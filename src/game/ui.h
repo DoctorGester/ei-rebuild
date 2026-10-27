@@ -993,24 +993,6 @@ public:
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
 
-// The interface sprite's views of the figure mesh's arrays: positions per quad as four x then four y
-// floats (VertexPacket), each vertex a 6-byte record (MeshCorner), 16-bit indices.
-struct UiQuadBlock {
-    float x[4];
-    float y[4];
-    float z[4];                      // 0 when the array grows (SetQuadCount)
-    float w[4];                      // 1
-};
-struct UiTexel {
-    float u, v;
-};
-static_assert(sizeof(UiQuadBlock) == 0x40);
-struct UiMeshVertex {
-    std::int16_t position;           // vertex number
-    std::int16_t normal;             // MeshCorner's second index; the builders write 0
-    std::int16_t frame;              // texture frame (the minimap's marker kinds)
-};
-static_assert(sizeof(UiMeshVertex) == 6);
 #undef GetClassName
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
 class CUiMesh : public CPlainFigureMesh {
@@ -1027,13 +1009,8 @@ public:
     void SetVertexCount(int count);
     void SetIndexCount(int count);
     void SetUvCount(int count);
-    // The figure mesh's arrays as the interface writes them; the indices are indices_ itself.
-    lib::AlignedArray<UiQuadBlock>& Quads() { return *reinterpret_cast<lib::AlignedArray<UiQuadBlock>*>(&vertices_); }
-    lib::AlignedArray<UiMeshVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<UiMeshVertex>*>(&corners_); }
-    lib::AlignedArray<UiTexel>& Texels() { return *reinterpret_cast<lib::AlignedArray<UiTexel>*>(&texCoords_); }
-    const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
-    const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
-    const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
+    // The sprite fills the figure mesh's arrays itself: vertices_ (a quad is one VertexPacket, its four
+    // corners x, y, z, w), corners_ (MeshCorner per vertex), texCoords_, indices_.
     // Where Place put the sprite (the layout point and the depth; each stored as float).
     void GetPlacement(float* x, float* y, float* depth) const;
     // Puts the sprite at layout point (x, y) at `depth` in front of the interface camera. Rebirth patches

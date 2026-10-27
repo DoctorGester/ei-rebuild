@@ -52,7 +52,7 @@ std::uintptr_t CMapObject::MarkChanged(int part) {
 EI_REWRITTEN(0x0050E9F0, CMapObject::MarkChanged);
 
 int CMapObject::HasEffect(std::uint32_t type) {
-    for (int i = 0; i < effectCount; ++i) {
+    for (int i = 0; i < effects.size; ++i) {
         MapEffect effect = effects[i];   // the whole record is copied
         if (effect.type == type) return 1;
     }
@@ -83,7 +83,7 @@ template <std::floating_point T> float FloatBits(T) = delete;
 // value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
 // is not looked at) and reads the count each time.
 void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
-    for (int i = 0; i < object->effectCount - 1; ++i) {
+    for (int i = 0; i < object->effects.size - 1; ++i) {
         MapEffect* e = &object->effects[i];
         if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
         EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
@@ -92,21 +92,21 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
         float difference = FloatBits(e->strength) - FloatBits(effect->strength);
         float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
         if (static_cast<double>(distance) < kRebirthSameStrength) {          // TEST AH,5; JP: IEEE
-            std::memmove(e, e + 1, (object->effectCount - i - 1) * sizeof(MapEffect));
-            --object->effectCount;
+            std::memmove(e, e + 1, (object->effects.size - i - 1) * sizeof(MapEffect));
+            --object->effects.size;
         }
     }
 }
 } // namespace
 
 void CMapObject::SetEffectCount(int count) {
-    reinterpret_cast<mfc::impl::Plain20::Array*>(&effectsVtable)->SetSize(count, -1);
+    effects.SetSize(count, -1);
 }
 
 std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
-    if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
-    int count = effectCount;
+    if (rebirth && effects.size >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
+    int count = effects.size;
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
     ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | 8);   // part 3
@@ -132,12 +132,12 @@ EI_REWRITTEN(0x0050F1E0, CMapObject::AddEffect);
 // CWorldServer::UpdateUnits (original).
 
 std::uintptr_t CMapObject::ClearEffects() {
-    if (effects) {
-        gamecrt::operator_delete(effects);
-        effects = nullptr;
+    if (effects.data) {
+        gamecrt::operator_delete(effects.data);
+        effects.data = nullptr;
     }
-    effectCapacity = 0;
-    effectCount = 0;
+    effects.maxSize = 0;
+    effects.size = 0;
     ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | 8);   // part 3
     flags_ |= kFlagDirty;
     if (refCount_ != 0) {
@@ -151,7 +151,7 @@ EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 
 float CMapObject::EffectValue(std::uint32_t type) {
     std::uint32_t best = 0;
-    for (int i = 0; i < effectCount; ++i) {
+    for (int i = 0; i < effects.size; ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
         if (effect.type != type) continue;   // the record's first dword & 0xFF
         float current = std::bit_cast<float>(best);

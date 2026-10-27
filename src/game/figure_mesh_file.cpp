@@ -151,7 +151,7 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z); the products the original
     // keeps on the FPU stay doubles.
     float* m = poseMatrix_.m;
-    for (int i = 0; i < 16; ++i) reinterpret_cast<std::uint32_t*>(m)[i] = 0;
+    std::memset(m, 0, sizeof(poseMatrix_));
     std::uint32_t one = 0x3F800000;
     std::memcpy(&m[15], &one, 4);
     std::memcpy(&m[10], &one, 4);

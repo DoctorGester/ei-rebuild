@@ -152,23 +152,23 @@ int CUiMesh::GetClassId() { return I3DFigureClassId(this); }
 // --- The arrays' sizes ---------------------------------
 
 void CUiMesh::SetQuadCount(int count) {
-    Quads().SetSize(count);
+    vertices_.SetSize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
-            Quads()[i].z[k] = 0.0f;
-            Quads()[i].w[k] = 1.0f;
+            vertices_[i].z()[k] = 0.0f;
+            vertices_[i].w()[k] = 1.0f;
         }
 }
 EI_REWRITTEN(0x005EA210, CUiMesh::SetQuadCount);
 
 void CUiMesh::SetVertexCount(int count) {
-    Vertices().SetSize(count);
-    for (int i = 0; i < count; ++i) Vertices()[i].normal = 0;
+    corners_.SetSize(count);
+    for (int i = 0; i < count; ++i) corners_[i].normal = 0;
 }
 EI_REWRITTEN(0x005EA600, CUiMesh::SetVertexCount);
 
 void CUiMesh::SetIndexCount(int count) { indices_.SetSize(count); }
 EI_REWRITTEN(0x005EA4C0, CUiMesh::SetIndexCount);
 
-void CUiMesh::SetUvCount(int count) { Texels().SetSize(count); }
+void CUiMesh::SetUvCount(int count) { texCoords_.SetSize(count); }
 EI_REWRITTEN(0x005EA380, CUiMesh::SetUvCount);

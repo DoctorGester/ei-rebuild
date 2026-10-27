@@ -275,8 +275,8 @@ int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, 
     for (unsigned n = 0; n < static_cast<unsigned>(r.indices.count); n += 3) {
         for (int k = 0; k < 3; ++k) {
             const MeshCorner& corner = corners[indices[n + k]];
-            std::memcpy(&target->corners[k].screen, &pixels[corner.index[0]], sizeof(PixelPair));
-            std::memcpy(&target->corners[k].texture, &texturePixels.data[corner.index[2]], sizeof(PixelPair));
+            std::memcpy(&target->corners[k].screen, &pixels[corner.position], sizeof(PixelPair));
+            std::memcpy(&target->corners[k].texture, &texturePixels.data[corner.texCoord], sizeof(PixelPair));
         }
         converter->RasteriseTriangle(target);
     }

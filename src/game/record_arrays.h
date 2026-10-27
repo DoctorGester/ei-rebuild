@@ -44,11 +44,8 @@ struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
 
-// Network delta fields: constructed and destroyed.
-// Out of line (world_effect_lifetime.cpp), so the replays that link this file need no streams.
-void InitDeltaField(DeltaField* p);
-void DestroyDeltaField(DeltaField* p);
-using DeltaFields = ArrayAbi<DeltaField, EachElements<DeltaField, InitDeltaField, DestroyDeltaField>>;
+// Network delta fields (DeltaState's array; net_delta.h has the element policy).
+using DeltaFields = ArrayAbi<DeltaField, DeltaFieldElements>;
 
 // Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
 void InitTheme(MusicTheme* p);

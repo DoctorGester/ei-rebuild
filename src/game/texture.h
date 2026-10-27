@@ -74,7 +74,7 @@ public:
 class CTextureDevice final : public CDXDirectDraw {
 public:
     int SetMaterial(CDeviceMaterial* material);
-    int DrawFlatBlocks(const void* positions, const char* uvs, int blocks, const std::uint16_t* indices, int indexCount,
+    int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
                  std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
     int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, const void* normals,
                   int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,

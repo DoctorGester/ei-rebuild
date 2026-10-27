@@ -234,7 +234,10 @@ CEngineObject* CEffectManager::NewObject(int type) {
 }
 EI_REWRITTEN(0x0067E170, CEffectManager::NewObject);
 
-namespace recordarrays {
-void InitDeltaField(DeltaField* p) { new (p) DeltaField(); }
-void DestroyDeltaField(DeltaField* p) { p->~DeltaField(); }
-} // namespace recordarrays
+void DeltaFieldElements::Construct(DeltaField* fields, int count) {
+    mfc::PlainElements<DeltaField>::Construct(fields, count);
+    for (; count--; ++fields) new (fields) DeltaField();
+}
+void DeltaFieldElements::Destruct(DeltaField* fields, int count) {
+    for (; count--; ++fields) fields->~DeltaField();
+}

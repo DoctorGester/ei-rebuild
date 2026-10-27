@@ -147,24 +147,17 @@ CMapObject::CMapObject() { SetUpMapObject(); }
 EI_REWRITTEN_SPECIAL(0x0050E2D0, CMapObject::CMapObject);
 
 DeltaState::DeltaState() {
-    SetVtable(this, recordarrays::DeltaFieldArrayClass::Vtable());
+    fields_.Construct(recordarrays::DeltaFieldArrayClass::Vtable());
     Reset();
 }
 
 DeltaState::~DeltaState() {
-    SetVtable(this, recordarrays::DeltaFieldArrayClass::Vtable());
-    if (DeltaField* data = fields_) {
-        for (int i = 0; i < fieldCount_; ++i) data[i].~DeltaField();
-        gamecrt::operator_delete(fields_);
-    }
+    fields_.vtable = const_cast<void*>(recordarrays::DeltaFieldArrayClass::Vtable());
+    fields_.FreeData();
 }
 
 void CMapObject::SetUpMapObject() {
-    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
-    effects = nullptr;
-    effectGrowBy = 0;
-    effectCapacity = 0;
-    effectCount = 0;
+    effects.Construct(mfc::impl::EffectArrayClass::Vtable());
     companion = nullptr;
     PackedVitals()->Reset();
     sectorCellX = -1;
@@ -174,8 +167,8 @@ void CMapObject::SetUpMapObject() {
 
 // The second name is destroyed after the body (before the effects in the original), then the 3D object.
 CMapObject::~CMapObject() {
-    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
-    if (effects) gamecrt::operator_delete(effects);
+    effects.vtable = const_cast<void*>(mfc::impl::EffectArrayClass::Vtable());
+    effects.FreeData();
 }
 
 EI_REWRITTEN_SPECIAL(0x0050E660, CMapObject::~CMapObject);

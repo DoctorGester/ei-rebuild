@@ -503,7 +503,7 @@ EI_REWRITTEN(0x0047F7F0, DeltaField::ReadFloat16x3);
 
 
 void DeltaState::Reset() {
-    for (int i = 0; i < fieldCount_; ++i) {
+    for (int i = 0; i < fields_.size; ++i) {
         DeltaField& field = fields_[i];
         field.snapshot[0].Resize(0);
         field.snapshot[1].Resize(0);
@@ -569,7 +569,7 @@ void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
     BitStream& header = state->header_[channel];
     header.Resize(0);
     header.Write(&mask, 2);
-    for (int i = 0; i < state->fieldCount_; ++i) {
+    for (int i = 0; i < state->fields_.size; ++i) {
         if (!(mask & (1 << i))) continue;
         BitStream& out = state->fields_[i].out[channel];
         header.EndBits();

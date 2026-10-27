@@ -504,9 +504,12 @@ Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);
 // Perspective projection; `fov` in radians (full angle).
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
-// A triangle corner of a figure part: position index, a second index (normal?) and texture coordinate index.
+// A triangle corner of a figure part: the vertex (position) index, a second index (the normal's; the interface
+// sprites write 0) and the texture coordinate index.
 struct MeshCorner {
-    std::uint16_t index[3];
+    std::uint16_t position;
+    std::uint16_t normal;
+    std::uint16_t texCoord;
 };
 static_assert(sizeof(MeshCorner) == 6);
 using TriangleIndexArray = lib::AlignedArray<MeshCorner>;

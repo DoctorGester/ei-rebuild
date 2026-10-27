@@ -27,7 +27,7 @@ int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
 
 
 void ScriptVars::ResetValues() {
-    for (int i = 0; i < floats.size; ++i) reinterpret_cast<std::uint32_t*>(floats.data)[i] = 0;
+    for (int i = 0; i < floats.size; ++i) floats.data[i] = 0.0f;
     for (int i = 0; i < strings.size; ++i) strings.data[i] = game::EmptyText();
     for (int i = 0; i < objects.size; ++i) {
         ScriptObjectRef* slot = &objects.data[i];

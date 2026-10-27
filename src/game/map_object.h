@@ -263,11 +263,7 @@ public:
     int updateCountdown;
     float animationSpeed;           // the animation's speed factor (CUnit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // hit points, maximum, mana, maximum
-    void* effectsVtable;            // CArray<MapEffect> (SetEffectCount is its SetSize)
-    MapEffect* effects;             // |
-    int effectCount;                // |
-    int effectCapacity;             // |
-    int effectGrowBy;               // /
+    mfc::CArray<MapEffect> effects; // (SetEffectCount is its SetSize)
     std::string name2;
     Vector3 baseScale;
     int sectorCellX;
@@ -280,7 +276,7 @@ protected:
 };
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);
-static_assert(offsetof(CMapObject, effects) == 0x198);
+static_assert(offsetof(CMapObject, effects) == 0x194);
 
 // The virtual the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

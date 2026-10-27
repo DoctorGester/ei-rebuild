@@ -279,10 +279,10 @@ void CWorldServer::TickSleepingEffects() {
     // the update map, whose update removes it.
     mapObjects_.map.ForEach([this](auto* node) {
         CMapObject* object = node->value;
-        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;
+        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effects.size == 0) return;
         if (object->updateCountdown > 0 || !object->companion) return;
         bool expired = false;
-        for (int i = 0; i < object->effectCount; ++i) {
+        for (int i = 0; i < object->effects.size; ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;
         }
         if (expired) AddToUpdateMap(object);

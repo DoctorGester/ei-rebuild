@@ -22,16 +22,25 @@
 // build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
     float block[4][4];
+    // The rows by name (the interface sprites' quads: the four corners' x, y, z (0) and w (1)).
+    float (&x())[4] { return block[0]; }
+    float (&y())[4] { return block[1]; }
+    float (&z())[4] { return block[2]; }
+    float (&w())[4] { return block[3]; }
+    const float (&x() const)[4] { return block[0]; }
+    const float (&y() const)[4] { return block[1]; }
+    const float (&z() const)[4] { return block[2]; }
+    const float (&w() const)[4] { return block[3]; }
 };
 static_assert(sizeof(VertexPacket) == 0x40);
 
 // Four normals in the same SoA form (mirrored together with the positions); the loaders copy them verbatim.
 struct NormalPacket {
-    std::uint32_t w[16];
+    float block[4][4];
 };
 // A texture coordinate (u, v); the rasteriser scales them to fixed point.
 struct TexCoord {
-    std::uint32_t w[2];
+    float u, v;
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 

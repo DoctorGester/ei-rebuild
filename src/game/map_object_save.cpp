@@ -42,7 +42,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&count, sizeof(count));
     SetEffectCount(count);
-    for (int i = 0; i < effectCount; ++i) effects[i].Load(stream);
+    for (int i = 0; i < effects.size; ++i) effects[i].Load(stream);
     std::uint32_t flags = flags_;   // the original's local starts as stack garbage
     stream->Read(&flags, sizeof(flags));
     flags_ = flags;
@@ -62,9 +62,9 @@ void CMapObject::SaveMapObject(CStream* stream) {
     stream->Write(&localRotation_, sizeof(localRotation_));
     WriteText(stream, name);
     stream->Write(&scale, sizeof(scale));
-    int count = effectCount;
+    int count = effects.size;
     stream->Write(&count, sizeof(count));
-    for (int i = 0; i < effectCount; ++i) effects[i].Save(stream);
+    for (int i = 0; i < effects.size; ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
     WriteText(stream, name2.c_str());

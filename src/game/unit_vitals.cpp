@@ -359,7 +359,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     for (UnitStatPair& protection : vitals->protection) std::memcpy(&protection.current, &protection.base, sizeof(float));
 
     float strongest[kEffectTypes] = {};
-    for (int i = 0; i < unit->effectCount; ++i) {
+    for (int i = 0; i < unit->effects.size; ++i) {
         MapEffect effect = EffectAt(unit, i);   // copies the whole record
         std::uint32_t type = effect.type;
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;

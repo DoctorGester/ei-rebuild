@@ -515,7 +515,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     TheRenderDevice()
-        ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
+        ->DrawFlatBlocks(vertices.data, texCoords.data, vertices.size, indices.data,
                          indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                          std::bit_cast<float>(kDrawDepth));
     return 1;

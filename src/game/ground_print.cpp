@@ -258,7 +258,7 @@ int GroundPrint::Draw() {
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = TheRenderDevice();
     device->BindNamedTexture(0, &texture_);
-    return device->DrawFlatBlocks(positions_.data, reinterpret_cast<const char*>(texCoords_.data), positions_.size,
+    return device->DrawFlatBlocks(positions_.data, texCoords_.data, positions_.size,
                                   indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
 

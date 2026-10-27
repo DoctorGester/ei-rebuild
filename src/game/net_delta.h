@@ -9,6 +9,7 @@
 #include "core_streams.h"
 #include "maths.h"
 #include "game_data.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -117,13 +118,17 @@ struct DeltaField {
 static_assert(offsetof(DeltaField, out) == 0x50);
 static_assert(sizeof(DeltaField) == 0xA0);
 
+// The element policy of the fields' CArray (record_arrays.h's DeltaFields): new fields zeroed and constructed,
+// dropped ones destroyed. Out of line (world_effect_lifetime.cpp), so the replays that link net_delta.h need no
+// streams.
+struct DeltaFieldElements {
+    static void Construct(DeltaField* fields, int count);
+    static void Destruct(DeltaField* fields, int count);
+};
+
 // The fields of one object.
 struct DeltaState {
-    std::uint32_t unused_0 = 0;
-    DeltaField* fields_ = nullptr;
-    int fieldCount_ = 0;
-    int fieldCapacity_ = 0;  // (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
-    int fieldGrowBy_ = 0;
+    mfc::CArray<DeltaField, DeltaFieldElements> fields_;
     std::uint16_t sentMask_ = 0;
     std::uint16_t lastMask_ = 0;
     std::uint16_t mask_ = 0;     // fields to write / read
@@ -132,7 +137,7 @@ struct DeltaState {
     int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
     BitStream header_[2];
 
-    // No fields, idle; the field array's table in place. The destructor destroys the fields.
+    // No fields, idle; the field array's vtable in place. The destructor destroys the fields.
     DeltaState();
     ~DeltaState();
     DeltaState(const DeltaState&) = delete;

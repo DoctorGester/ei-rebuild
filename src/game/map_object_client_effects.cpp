@@ -220,9 +220,9 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     // The effects, those of the merging types once each with the highest power.
     MapEffect* wanted = nullptr;
     int wantedCount = 0;
-    if (mapObject->effectCount > 0) {
-        wanted = gamecrt::operator_new_array<MapEffect>(mapObject->effectCount);
-        for (int i = 0; i < mapObject->effectCount; ++i) {
+    if (mapObject->effects.size > 0) {
+        wanted = gamecrt::operator_new_array<MapEffect>(mapObject->effects.size);
+        for (int i = 0; i < mapObject->effects.size; ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
             if (MergesParticles(effect.type)) {
@@ -354,7 +354,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     // The effect types, once each.
     std::uint8_t types[256];
     int typeCount = 0;
-    for (int i = 0; i < mapObject->effectCount; ++i) {
+    for (int i = 0; i < mapObject->effects.size; ++i) {
         std::uint8_t type = mapObject->effects[i].type;
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == type;
