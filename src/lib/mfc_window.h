@@ -163,7 +163,7 @@ static_assert(sizeof(CMenu) == 8);
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.
 int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId);
 // AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty
-// when it is missing; the original only traces that). A help id of -1 means `id`.
+// when it is missing; MFC only traces that). A help id of -1 means `id`.
 int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);
 
 // The fixed allocators of the temporary windows (CTempWnd, 0x3C-byte blocks) and menus (CTempMenu, 8), 64 to a block,
