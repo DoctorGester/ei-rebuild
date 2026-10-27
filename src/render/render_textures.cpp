@@ -373,7 +373,7 @@ void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory&
 }
 
 // Memory textures: updated in place (the default) or, the harness's `memorytextures remake`,
-// made again as new images with their levels box-filtered on the CPU, as before R16b (for frame
+// made again as new images with their levels box-filtered on the CPU, as before (for frame
 // comparisons).
 bool g_memoryInPlace = true;
 // Holders whose memory was marked written (render::SurfaceWritten) since their texture last read it.
@@ -691,7 +691,7 @@ sg_view SurfaceView(const void* holder) {
     t.usedFrame = frame;
     if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
     // Textures in the renderer's memory are checked once a frame: read again when the game marked
-    // their memory written since (render::SurfaceWritten: 0051CE60's copy of a shadow into its
+    // their memory written since (render::SurfaceWritten: the copy of a shadow into its
     // texture, the pixel code's DirectPixels, GDI) and it differs from what they were made from.
     const SurfaceMemory& m = memory->second;
     t.checkedFrame = frame;
@@ -838,8 +838,8 @@ struct MmpFile {
 };
 static_assert(sizeof(MmpFile) == 0x4C);
 
-// The offset of the first level's pixels after the header, as the game computes it (006908E0, and
-// inline in the fill 00690970; 32-bit arithmetic: the extra block plus a geometric sum of the larger
+// The offset of the first level's pixels after the header, as the game computes it (and
+// inline in the fill; 32-bit arithmetic: the extra block plus a geometric sum of the larger
 // levels). Only for the level the texture starts at: the product overflows from about the sixth
 // level of a 1024 x 1024 texture on, and the fill steps from level to level instead
 // (MmpFileLevelBytes).

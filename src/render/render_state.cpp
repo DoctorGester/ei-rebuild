@@ -22,7 +22,7 @@ bool g_renderKnown[kRenderStates];
 std::uint32_t g_stage[kStages][kStageStates];
 bool g_stageKnown[kStages][kStageStates];
 
-// The four state blocks the device records at its creation (004E6392..004E67BD): stage 0 colour
+// The four state blocks the device records at its creation: stage 0 colour
 // and alpha setups (g_stageBlocks, texture.h); per block the values of COLOROP (1), COLORARG1 (2),
 // COLORARG2 (3), ALPHAOP (4), ALPHAARG1 (5), ALPHAARG2 (6).
 struct KnownBlock {
@@ -180,7 +180,7 @@ void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, 
             g_passFallback = true;
             if (s < 32) Note(g_stageFallbacks[stage][s], "stage state", st, s, 0, device[k], false);
         } else if (device[k] != values[i]) {
-            // A known writer that cannot be converted: the unit panel's draw 006462A0 turns stage 0's
+            // A known writer that cannot be converted: the unit panel's draw turns stage 0's
             // mip filter off around the unit's picture and back (Rebirth replaces the whole function
             // with its wide-layout version). The device's value is drawn; not logged.
             bool allowed = stage == 0 && s == 18;

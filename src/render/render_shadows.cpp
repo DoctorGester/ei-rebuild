@@ -1,6 +1,6 @@
 // Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands
 // over the sun (CWorldClient::Render), which object each mesh belongs to (BeginCaster, the object
-// draws of 0056AFE0) and which objects cast this frame (CastsShadow, from their shadow draw 0051CE60:
+// draws) and which objects cast this frame (CastsShadow, from their shadow draw:
 // the options' switches and the game's own visibility of the shadow). Once a frame, before the world
 // draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
@@ -11,7 +11,7 @@
 // Objects the game does not draw (outside the view) whose shadow can reach the visible ground
 // cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
 // of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
-// The map holds depth only (R22's caster ids are gone): the receivers lit on the GPU take the sun
+// The map holds depth only: the receivers lit on the GPU take the sun
 // away by their normals' facing (a face turned away gets no sun to lose), the others are shadowed on their
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
 // A unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
@@ -47,12 +47,12 @@ using namespace detail;
 // The map: kMapSize texels a side over the visible ground (its larger side seen from the sun, in
 // steps of kExtentStep world units so that the texel size changes seldom), the origin snapped to
 // whole texels (shadows do not swim while the camera moves). Along the light it reaches from the
-// nearest caster towards the sun (R20: every caster whose bounds are in the map's area seen from the
+// nearest caster towards the sun (every caster whose bounds are in the map's area seen from the
 // sun and in front of the ground's far side; none is too high) to kDepthMargin behind the ground.
 constexpr int kMapSize = 4096;
 constexpr double kExtentStep = 8.0;
 constexpr double kDepthMargin = 2.0;
-// The sun at least this far above the horizon (the old shadows' 20 degrees, 0051CE60).
+// The sun at least this far above the horizon (the old shadows' 20 degrees).
 constexpr double kLeastElevation = 20.0 * 3.14159265358979323846 / 180.0;
 // How dark a fully shadowed pixel gets (the old decal: alpha 0x80 of black), the receivers' constant
 // depth bias in world units, the largest depth slope taken per world unit across.
@@ -159,7 +159,7 @@ const void* g_caster = nullptr;     // BeginCaster .. EndCaster
 bool g_casterFigure = false;        // ... a unit's draw
 ShadowInfo g_info, g_lastInfo;
 
-// --- R20: casters outside the view --------------------------------------------------------------------
+// --- Casters outside the view --------------------------------------------------------------------
 
 // A corner of a caster handed over by ShadowCasterMesh: as a kept mesh's (MeshLayout's cached layout).
 struct CasterVertex {

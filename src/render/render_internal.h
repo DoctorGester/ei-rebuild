@@ -356,7 +356,7 @@ void PresentWindow();
 // swap chain and its back buffer's view, the present pipeline (the frame and the cursor through the
 // gamma ramp), the frame's and the ramp's views and the ramp as uploaded (256 RGBA8 entries), the
 // client area, the frame's size and its place in the client area, Present's sync interval and flags
-// (R23: the vertical blank switch). Raw pointers, no references taken; false when there is no swap chain.
+// (the vertical blank switch). Raw pointers, no references taken; false when there is no swap chain.
 struct WindowParts {
     IDXGISwapChain1* chain;
     ID3D11RenderTargetView* view;
@@ -450,7 +450,7 @@ struct PoolPlace {
     std::uint32_t firstVertex = 0, vertexRoom = 0, firstIndex = 0, indexRoom = 0;
 };
 
-// Vertices and indices kept on the GPU across frames (R16c terrain pages, R16d meshes;
+// Vertices and indices kept on the GPU across frames (terrain pages, meshes;
 // render_buffers.cpp): a geometry stream (`geometryStride` bytes a vertex), a colour stream (colour and
 // specular, kColourPairBytes a vertex) and absolute 32-bit indices, in Direct3D 11 buffers of default
 // usage written in place with UpdateSubresource (sokol has no partial update) and handed to sokol.

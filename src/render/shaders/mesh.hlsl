@@ -87,7 +87,7 @@ SamplerState shadow_linear : register(s4);   // the range, filtered
 // lit colour times the cosine to it and each light's lit colour times its cosine and falloff, plus the
 // emissive colour, at most 1. The crown: pulled towards its average colour, taken as the average over
 // every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over
-// -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before R16i.
+// -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before.
 // A light with a point shadow (point_shadow.hlsli) adds only what reaches `land` (the point in the
 // landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh compares from the
 // unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
@@ -177,7 +177,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
     // by triangle on a low-poly creature). Any other mesh: on faces turned to the sun only, by their face
     // normal (the smoothed vertex normals of many static meshes lean far from their faces: a plank's top read
     // sideways). Every mesh is darkened by it alike, the colour lit here or by the game, the lamps' light and
-    // the ambient light with the sun's (as before R16i: in the towns the ambient light is nearly the sun's).
+    // the ambient light with the sun's (as before: in the towns the ambient light is nearly the sun's).
     float hidden = 0.0;
     if (shadow_on.x > 0.5) {
         bool unit = shadow_figure.x > 0.5;

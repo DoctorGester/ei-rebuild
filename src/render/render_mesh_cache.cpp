@@ -1,5 +1,5 @@
 // Meshes kept on the GPU (docs/notes/renderer.md section 13, item 4). The figure part draws
-// (005A7A70, 005A7640, src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
+// (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
 // (render::SetMeshSource); the mesh's corners are kept for that figure mesh: their positions and texture
 // coordinates in model space, their colours and the triangles, in a pool on the GPU (GpuPool: the
 // geometry and the colours in streams of their own). A frame hands over the mesh as kept; what is

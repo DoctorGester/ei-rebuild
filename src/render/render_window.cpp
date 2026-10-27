@@ -549,7 +549,7 @@ bool VsyncSwitchSupported() {
 }
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
-    // The ramp's full scale is the game's 65280 (255 * 256: 00504A60 multiplies by it); entries are
+    // The ramp's full scale is the game's 65280 (255 * 256); entries are
     // rounded to the 8 bits a channel of the frame has.
     const std::uint16_t* channels[3] = {red, green, blue};
     bool identity = true;

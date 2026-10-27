@@ -75,7 +75,7 @@ float4 ps_compose(float4 pos : SV_Position) : SV_Target0 {
     return FromBytes(Quantise((text * cover + under * (255 - cover) + 127) / 255));
 }
 
-// 005FE440's greying on the surface format's own bits (tex0: a copy of the canvas).
+// The greying on the surface format's own bits (tex0: a copy of the canvas).
 float4 ps_grey(float4 pos : SV_Position) : SV_Target0 {
     uint3 v = Bytes(tex0.Load(int3(pos.xy, 0)).rgb);
     if (bits.w == 0) {   // 5:6:5: (2 r + 2 g6 + b) / 16, green doubled

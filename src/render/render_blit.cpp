@@ -1,6 +1,6 @@
 // The interface windows' surfaces in the new renderer. The game composes most of its interface on
 // the CPU: every window (CUiSurface) owns an off-screen surface holder whose pixels (memory the new
-// renderer owns) it fills with GDI text, fills and pixel code, and 005FDA80 blits it onto the frame
+// renderer owns) it fills with GDI text, fills and pixel code, and the blit puts it onto the frame
 // (plainly or with a source colour key) in the windows' draw order, between the sprites and 3D
 // previews of the same windows. The new renderer reads such a surface when its contents changed
 // (render_textures.cpp) and draws it as
@@ -415,7 +415,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
-    // The image loaded from its picture (004EFC60, render::PictureFromMmp): the colours from the
+    // The image loaded from its picture (render::PictureFromMmp): the colours from the
     // file, the mask (the holder's width, in its pixel size) from the game's memory. A picture holder
     // has no surface: without a decoded picture there is nothing to draw.
     int maskWidth = holder->width;

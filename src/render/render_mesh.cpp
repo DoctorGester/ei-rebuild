@@ -1,7 +1,7 @@
 // Meshes in the new renderer: everything the old path draws through the device's mesh draws
-// (004E9010 / 004E9A50, src/game/device_mesh.cpp): figures and map objects, the sky, and the
+// (src/game/device_mesh.cpp): figures and map objects, the sky, and the
 // interface's sprites (CUiMesh) and 3D previews. The game hands the mesh over in model space with the
-// matrix it projects it with (BeginMesh); each pass the old path then draws (004EB550 / 004EB370,
+// matrix it projects it with (BeginMesh); each pass the old path then draws (
 // src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass):
 // blend, alpha test, depth, culling, fog, the two texture stages' operations, filters and textures.
 // The material's state blocks are opaque to us, so the state is read back from the old device
@@ -253,7 +253,7 @@ PassState ReadPassState(char* device) {
         st.addressV = static_cast<std::uint8_t>(t[10]);
         if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
         // The surface holder the old path bound to the stage (device +0x12C + stage * 4, set by
-        // 004EB300 / 004EBAF0).
+        // ).
         if (!device) continue;
         const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
         st.hasTexture = holder != nullptr;

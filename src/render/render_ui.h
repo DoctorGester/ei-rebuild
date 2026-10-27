@@ -66,10 +66,10 @@ void Pixel(const void* holder, int x, int y, Colour colour);
 // underlines fully covered; clipped to the layout's clip rectangle. Over black this is
 // text::ComposeAgainstBlack. The font (and its atlas) must outlive the canvas's queued commands.
 void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, Colour colour);
-// 005FD3D0's screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
+// The screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
 // pixel (CopyFrameTo's rule), quantised to the format.
 void CopyFrame(const void* holder, const Rect& source);
-// 005FE440's greying, on the format's bits.
+// The greying, on the format's bits.
 void Greyscale(const void* holder);
 
 // The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false
