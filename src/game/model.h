@@ -652,14 +652,13 @@ public:
     // Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
     int AddArchive(const stlp::string* path);
-    // link_figure.cpp. Reads a FIG / FIG8 part record at *cursor (moved past
+    // Reads a FIG / FIG8 part record at *cursor (moved past
     // it) into `mesh` as part `name`: its header (two dwords, bounds fitted to the vertices morphed
     // by s, t, u) and its elements (CLinkMesh::AddPart).
     void LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
     // The same for the older record without a FIG header (6 morph corners).
     void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
-    // link_loader.cpp:
     // A new mesh from .lnk file `name` (from the figure set, else the
     // archives' "<name>.lnk"): a count, then per part its name and a second, unused name
     // (ReadLinkString; an empty name keeps the previous one); each part loaded from the figure
@@ -682,7 +681,7 @@ public:
     // Part `name` of `mesh` morphed again by s, t, u from its record
     // (the figure set's model, else "<mesh name><name>.fig" in the archives): false without one.
     bool RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t, float u);
-    // link_figure.cpp. The record at *cursor (moved past the
+    // The record at *cursor (moved past the
     // vertices) morphed into the part's vertex packets (CLinkMesh::SetPartVertices) and its header's
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
     void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);

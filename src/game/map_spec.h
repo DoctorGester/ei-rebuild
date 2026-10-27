@@ -99,10 +99,10 @@ static_assert(sizeof(Patrol) == 0x20);
 
 // CArray<Patrol> (a behaviour's patrols); map_spec_unit.cpp and record_arrays.cpp.
 struct Patrols : mfc::CArray<Patrol> {
-    // map_spec_unit.cpp. The patrols become a copy of `from` (each patrol copied through a temporary returned by
+    // The patrols become a copy of `from` (each patrol copied through a temporary returned by
     // value, as the original does).
     void CopyFrom(const Patrols& from);
-    // record_arrays.cpp. By-value GetAt: element `index` copy-constructed into `result` (the position, then the
+    // By-value GetAt: element `index` copy-constructed into `result` (the position, then the
     // waypoints: storage for exactly the source's count, zero filled, the waypoints copied). Returns result.
     Patrol* CopyAt(Patrol* result, int index) const;
 };
@@ -129,7 +129,7 @@ struct Behaviour {
 };
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
-// map_spec_unit.cpp: the constructor (no patrols, type 3, loop, radius 10, delay 75; returns this) and the
+// The constructor (no patrols, type 3, loop, radius 10, delay 75; returns this) and the
 // destructor body.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
@@ -141,7 +141,7 @@ public:
     // No parent chunk, id -1, at the origin unrotated, named and commented "none", kind 0.
     Spec();
 
-    void OnChunk() override {}                              // (empty)
+    void OnChunk() override {}
     // The world object with the record's id.
     virtual void* WorldObject();
     virtual void Nothing(int) {}                            // (empty)

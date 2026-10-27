@@ -60,7 +60,7 @@ struct WoundsMaterial;   // below
 // CObject3DSpecific with the shadow, the part sets and the skins.
 class CObject3DClientSpecific : public CObject3DSpecific {
 public:
-    // object3d_client_parts.cpp. The empty arrays and names, the shadow sphere zeroed, cursor -1, the shadow
+    // The empty arrays and names, the shadow sphere zeroed, cursor -1, the shadow
     // texture and the wounds texture / material dropped, bounds and pulse clock 0.
     CObject3DClientSpecific();
     ~CObject3DClientSpecific() override;
@@ -72,7 +72,7 @@ public:
     // sets destroyed and deleted, every texture and material released and the arrays emptied; no
     // object, touch time and flags_ 0.
     void Destroy() override;
-    // object3d_specific_slots.cpp. Class name and id: "CObject3DClientSpecific", 0x37.
+    // Class name and id: "CObject3DClientSpecific", 0x37.
     const char* GetClassName() override;
     int GetClassId() override;
     // Draw and DrawShadow below (`context` is the scene renderer).
@@ -89,7 +89,7 @@ public:
     // had.
     int DrawShadow(CSceneRenderer* context);
 
-    // map_object_draw.cpp. Draws the object (`context` as above; `dirty` receives the screen rectangle the parts
+    // Draws the object (`context` as above; `dirty` receives the screen rectangle the parts
     // flagged 0x40 covered, or null): the object's state is updated and its animation, the lights within their
     // range + 10 are collected, the object's matrix (and its extra scale) pushed, and every part of the two part
     // sets (the first with the texture) within sqrt(1e9) drawn through the context's draw with those lights. A
@@ -97,36 +97,36 @@ public:
     // did, flags_ bit 8). Returns 1, or a fatal error's result.
     int Draw(CSceneRenderer* context, void* dirty);
 
-    // unit_client_update.cpp. Walk the materials: the first (cursor 0; with none the cursor is -1) / the next
+    // Walk the materials: the first (cursor 0; with none the cursor is -1) / the next
     // (the cursor moves on); null at the end.
     CMaterial* FirstMaterial();
     CMaterial* NextMaterial();
 
-    // unit_client_animation.cpp. The pulse of an invisible or stunned unit: the clock moves on by `frames`, its
+    // The pulse of an invisible or stunned unit: the clock moves on by `frames`, its
     // phase fmod(clock, 30) folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha. The second: every
     // drawn part takes the tint (pulse, 0, 0) and flags_ 0x10.
     void InvisiblePulse(float frames);
     void StunnedPulse(float frames);
-    // map_object_client_effects.cpp. Every drawn part's alpha back to 1 (an invisibility ended). Every drawn
+    // Every drawn part's alpha back to 1 (an invisibility ended). Every drawn
     // part's tint cleared and flags_ 0x10 off (a stun ended).
     void ResetPartAlpha();
     void ClearPartTints();
-    // unit_client_wounds.cpp. The wounds texture and its material are taken off and released (the material
+    // The wounds texture and its material are taken off and released (the material
     // deleted at its last reference).
     void HideWounds();
-    // unit_client_wounds.cpp. Shows the wounds texture `name` (kind 6): 0 without a first part set. The texture
+    // Shows the wounds texture `name` (kind 6): 0 without a first part set. The texture
     // is found or made on first use (none: FatalError with the object's class name and id). Unless its .mmp extra
     // block is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8 cleared); a failed load
     // drops the texture and the material and returns 0. Without a material, a new one (blended 5 / 6, the
     // renderer helper's preset 4) gets two stages: the first part set's texture, then the wounds texture. Returns
     // 1.
     int ShowWounds(const char* name);
-    // object3d_specific_slots.cpp. The scale virtual: x, y, z = figureScale. The materials registration: each
+    // The scale virtual: x, y, z = figureScale. The materials registration: each
     // drawn part (the cursor walks them from 0, up to the first null) registers its material with the world's
     // material manager (with the part's type_).
     void GetScale(float* x, float* y, float* z) override;
     void RegisterPartMaterials();
-    // object3d_specific_slots.cpp. Screen picking (a shown object only, flags_ 0x20 of the 3D object): whether
+    // Screen picking (a shown object only, flags_ 0x20 of the 3D object): whether
     // the point (x, y) is in the object's dirtyRect; in the screen rectangle of one of its parts with their own
     // mesh (part flags 0x40); whether `rect` meets such a part's rectangle (a non-empty intersection).
     int BoundsContainPoint(const long* point) override;
@@ -137,7 +137,7 @@ public:
     CFigureMesh* FindPart(const char* name) override;
     CFigureMesh* FindPartOfType(int type) override;
 
-    // object3d_client_parts.cpp: the part sets and skins. The wounds material slot cleared and the material it
+    // The part sets and skins. The wounds material slot cleared and the material it
     // held released (deleted at its last reference): CountedRef<WoundsMaterial>::Assign(nullptr), inlined by the
     // callers.
     void ClearWoundsMaterial();
@@ -179,7 +179,7 @@ public:
     void SetLit(int lit) override;
     void Unused25(int) override {}
     void EmptySlot25(int);
-    // object3d_client_shadow_state.cpp. Whether shadows are drawn for the object's kind: the option above 0 and
+    // Whether shadows are drawn for the object's kind: the option above 0 and
     // the switch of its class (units, class 0x52, others each have one). All of EAX; with shadows off only AL is
     // cleared (the original's XOR AL, AL on the setting's value).
     std::uint32_t ShadowsShown();

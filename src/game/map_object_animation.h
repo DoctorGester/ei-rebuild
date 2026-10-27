@@ -30,21 +30,20 @@ struct AnimationTrack : CEngineObject {
     // (kTrackDefaultPosition / kTrackDefaultRotation). Remembers `time`.
     void Evaluate(float time);
 
-    // animation_track_lifetime.cpp (A-U10; 0x78 bytes).
     // Engine object fields, empty arrays, then DestroyTrack's reset.
     AnimationTrack();
     ~AnimationTrack() override;
     // The deleting destructor frees into the game's heap.
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // CreateTrack
-    void Destroy() override;               // DestroyTrack
+    int Create() override;
+    void Destroy() override;
     const char* GetClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
-    int GetClassId() override;             // 0x22
+    int GetClassId() override;
 
     // DestroyTrack's reset; returns 1.
     int CreateTrack();
-    // animation_track_lifetime.cpp. The key frames from the model entry at *cursor (advanced past them): the
+    // The key frames from the model entry at *cursor (advanced past them): the
     // rotations (a count, then that many quaternions; none: null), the positions (likewise, three floats each),
     // the frame count and the vertex count; the frame array is sized to the frames and the vertices to the vertex
     // count (both without keeping their contents), and each frame points at its vertex set, which follow one

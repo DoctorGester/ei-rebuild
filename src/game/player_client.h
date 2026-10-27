@@ -22,14 +22,14 @@ public:
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
     const char* GetClassName() override;
-    int GetClassId() override;                                        // 0x3C
+    int GetClassId() override;
     void ForgetSentObjects() override {}                              // Virtual 13 (empty)
     void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }
     void ResetState() override { Clear(); }
     // Virtual 16 (empty; CPlayerConnection's).
     int Receive() override { return ReceiveMessages(); }
 
-    // player_client_orders.cpp: the local view's orders, queued for the server (out_), each
+    // The local view's orders, queued for the server (out_), each
     // a type byte and a payload; all return 1. Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
     int SendWalk(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
@@ -79,7 +79,6 @@ public:
     // 0x09 (resume).
     int SendResume();
 
-    // player_client.cpp.
     // State 0: once the link is connected, the party (message 8, with the
     // variables, when +0x85 is set) and the login (message 0: version 100, "Tango", "Very top
     // secret", the player's +0xFC) are queued, state 1, and everything is sent (SendToServer's

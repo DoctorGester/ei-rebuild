@@ -5,7 +5,6 @@
 // sound cache's wave records, unit behaviours, patrols and zone exits by value, the global map's
 // records and the script's command arrays. lib/mfc_array.h's templates over the game's element
 // types, each element's constructor and destructor ours, called directly. Registered in
-// record_arrays.cpp.
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"

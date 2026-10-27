@@ -40,7 +40,7 @@ public:
     int Create() override;
     void Destroy() override {}              // empty
     const char* GetClassName() override;
-    int GetClassId() override;              // 0x1F
+    int GetClassId() override;
 
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.

@@ -37,7 +37,7 @@ public:
     GameBuffer* CopyOut(void* to, unsigned size);
     // Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
-    // game_buffer_strings.cpp. Length-prefixed strings: the length * 2 in one byte, or
+    // Length-prefixed strings: the length * 2 in one byte, or
     // length * 2 + 1 in four bytes from 0x80 on.
     // Reads one into the STLport string `s` (assign): false with error bit 3
     // when it is longer than `maxLength` (> 0). The bytes are read in place (slot 0 first when they

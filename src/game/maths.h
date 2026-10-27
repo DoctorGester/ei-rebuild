@@ -11,5 +11,5 @@
 // (z * z' + y * y') + x * x' (DotZYX), returned unrounded in ST0.
 float __fastcall Dot(const Vector3& a, const Vector3& b);
 
-// quaternion.cpp. out = conj(b) * a. __fastcall (out in ECX, a in EDX); returns out.
+// Out = conj(b) * a. __fastcall (out in ECX, a in EDX); returns out.
 Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);

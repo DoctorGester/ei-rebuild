@@ -746,7 +746,6 @@ static_assert(sizeof(GameInfoRecord) == 0x28);
 // The byte buffer's read helpers (net_game_info.cpp).
 GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
-// net_session_tick.cpp.
 void __fastcall BufferUpdateHigh(GameBuffer* buffer);
 
 } // namespace net

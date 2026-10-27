@@ -3,7 +3,7 @@
 // The world's player manager (a CBaseManager of CPlayer objects, the world's +0x38, also the script
 // commands' event dispatcher ; a real virtual class);
 // player_manager.cpp, its lifetime and class virtuals in
-// world_managers.cpp. Its slot 2 and 14 bodies are registered by member pointer under their own
+// Its slot 2 and 14 bodies are registered by member pointer under their own
 // names. Creating a player for a lobby session is Rebirth-patched (PlayerNumbers, reproduced
 // behind its flag); callers go through its address (PlayerCreateOriginal, rule 9).
 
@@ -21,7 +21,7 @@ public:
     // The deleting destructor.
     int Create() override;
     const char* GetClassName() override;
-    int GetClassId() override;                     // 0x2E
+    int GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
     // CBaseManager's Create, its result made 0 / 1.

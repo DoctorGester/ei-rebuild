@@ -39,23 +39,20 @@ protected:
 // class. flags_ gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    // figure_part_draw_plain.cpp.
     int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
-    // figure_part_draw.cpp.
     int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
-    // figure_part_bounds.cpp.
     void DrawBounds(CSceneRenderer* renderer);
 
-    // figure_drawer.cpp. FigureDrawerBase's constructor (the class adds nothing).
+    // FigureDrawerBase's constructor (the class adds nothing).
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // CreateDrawer
-    void Destroy() override;               // DestroyDrawer
+    int Create() override;
+    void Destroy() override;
     const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
-    int GetClassId() override;             // 0x36
+    int GetClassId() override;
 
     // No flags; spare30_ becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
@@ -262,7 +259,7 @@ static_assert(offsetof(CLinkMesh, ranges_) == 0x9C);
 static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
 
-// link_loader.cpp. A length-prefixed string of a
+// A length-prefixed string of a
 // .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to
 // the first zero byte (copied through a static buffer) and keeps its old text for
 // length 0. The cursor moves past the record.

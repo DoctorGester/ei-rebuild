@@ -14,13 +14,13 @@ struct LockKey {
     // common) this level is at least the lock's (unsigned)? Rebirth's FixLeversActivate compares
     // signed, and for a lock of level 0 returns this level + 1.
     mfc::BOOL Opens(const LockKey* lock) const;
-    // trap_object.cpp: always 1: placed traps take any key.
+    // Always 1: placed traps take any key.
     mfc::BOOL AcceptedByTrap() const;
-    // lever_object.cpp (the lever's Load / Save). Reads / writes
+    // Reads / writes
     // the three dwords (the writes through a stack copy each).
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream) const;
-    // ui_small_members.cpp: the constructor of the battle screen's item key
+    // The constructor of the battle screen's item key
     // (CBattleScreen::itemUseKey_): {1, 0, 0}.
     LockKey* ConstructItemUseKey();
 

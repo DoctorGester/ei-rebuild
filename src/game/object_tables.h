@@ -43,16 +43,16 @@ struct ZoneExit {
     std::uint8_t unused_35[3];
     float deployAngle;              // saved from version 0x68
 
-    // exit_area.cpp. Whether (x, y) lies inside the exit area (rotated by `angle` about
+    // Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
     bool Contains(float x, float y) const;
-    // exit_area.cpp. From / to a stream (core_streams.h): +0x00..+0x20
+    // From / to a stream (core_streams.h): +0x00..+0x20
     // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
     // angle; Read takes the last three only from version 0x68 on (else 0).
     void Read(CStream* stream);
     void Write(CStream* stream) const;
     // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
-    // exit_area.cpp: the compiler's operator=: +0x00..+0x24 as dwords,
+    // The compiler's operator=: +0x00..+0x24 as dwords,
     // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);
 };
@@ -78,7 +78,7 @@ struct ZoneExitElements {
 // MFC CArray<ZoneExit> (a map record's +0x48, CWorldServer + 0xEC, CWorldClient + 0x8C). Its SetSize
 // is the instantiation's own (gamearrays::Exits; new records are constructed).
 struct ZoneExits : mfc::CArray<ZoneExit, ZoneExitElements> {
-    // record_arrays.cpp. By-value GetAt: element `index` copied into `out`
+    // By-value GetAt: element `index` copied into `out`
     // (the fields, the target string copy-constructed). Returns out.
     ZoneExit* CopyAt(ZoneExit* out, int index) const;
 };
@@ -122,17 +122,17 @@ struct CMapDatabase {
     MapRecord* FindMap(const char* name);
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(const char* name);
-    // map_database.cpp. Adds the allods and maps of a map.txt-style text file. Returns
+    // Adds the allods and maps of a map.txt-style text file. Returns
     // false if the file is not found.
     bool Load(const char* fileName);
-    // map_database.cpp. Loads "map.txt", then "map-LMP.txt"; returns the second
+    // Loads "map.txt", then "map-LMP.txt"; returns the second
     // Load's result (WinMain does not read it).
     bool LoadAll();
-    // map_database.cpp. The constructor: the two arrays empty with their vtables.
+    // The constructor: the two arrays empty with their vtables.
     // It runs from a static initialiser on the database, before the hooks
     // are installed, so the hook on it never fires. Returns this.
     CMapDatabase* Construct();
-    // database_destruct.cpp (the exit function). The maps' array (its
+    // The maps' array (its
     // vtable back, each record's destructor, the storage freed), then the allods' (each
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
     void Destruct();

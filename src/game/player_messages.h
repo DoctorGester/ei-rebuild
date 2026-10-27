@@ -100,7 +100,7 @@ public:
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
     const char* GetClassName() override;
-    int GetClassId() override;                                             // 0x3B
+    int GetClassId() override;
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     // Virtual 14 (empty; CPlayerConnection's).
     void ResetState() override { ClearServerState(); }
@@ -196,7 +196,6 @@ public:
     // brain then knows all of it; otherwise partyUnits_ becomes a copy of group50F8_ and +0x24 -1.
     void UpdatePartyUnits();
 
-    // player_server_handlers.cpp.
     // The player's leader died. Outside a network game (IsMultiplayerClient):
     // message 0x09, then 0x0B (the hero's id, 0xFF) when the first record's unit exists. In one,
     // a party of one hero is revived: it loses a share of the money, which goes with the
@@ -217,7 +216,7 @@ public:
     // brain's Player mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
     int OnUseOrder();
 
-    // player_server_handlers.cpp: the rest of the client's messages. Each returns 1, or 0
+    // The rest of the client's messages. Each returns 1, or 0
     // to refuse (the dispatcher's fatal error).
     // The player leaves for zone `zone`, entrance `entrance` (joined players,
     // state 1, only): in campaign modes 1 and 3 a dead or missing leader runs slot 20 (the
@@ -244,7 +243,7 @@ public:
     // Message 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
     int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
-    // player_server_orders.cpp: the last client messages. Units are the player's world's
+    // The last client messages. Units are the player's world's
     // "able" means present, not blocked (flag 0x800000) and not dead.
     int OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
@@ -362,7 +361,7 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
 
 
 // A world player ("CPlayer", class id 0xF; 0x134 bytes).
-// player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists. The harness's digest reads
+// The constructor, destructor, Create / Destroy and the item and unit lists. The harness's digest reads
 // its fields (tests/verify/harness_digest.cpp), hence the layout asserts.
 class CPlayer final : public CEngineObject {
 public:
@@ -380,7 +379,7 @@ public:
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
     const char* GetClassName() override;
-    int GetClassId() override;                         // 0xF
+    int GetClassId() override;
 
     // DestroyPlayer; returns 1.
     BOOL CreatePlayer();
