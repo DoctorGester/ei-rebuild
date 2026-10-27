@@ -42,20 +42,20 @@ float* StackTop(CTransformPipeline* device, int index) {
 }
 
 
-void PushBack(FrameQueue& v, CEngineObject* const& value) {
+void PushBack(FrameQueue& v, CMapObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
         if (v.Finish()) *v.Finish() = value;
         ++v.Finish();
     } else {
-        v.InsertOverflow<stlp::PlainElement<CEngineObject*>>(v.Finish(), value, 1);
+        v.InsertOverflow<stlp::PlainElement<CMapObject*>>(v.Finish(), value, 1);
     }
 }
 
-using ObjectList = stlp::list<CEngineObject*>;
+using ObjectList = stlp::list<CMapObject*>;
 using ObjectListNode = ObjectList::Node;
 
 // Insert(pos, value): new node holding a reference; returns *result.
-ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
+ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result, ObjectListNode* pos, CMapObject* const& value) {
     *result = ObjectList::Insert<stlp::HeldObject>(pos, value);
     return result;
 }
@@ -76,8 +76,8 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
     }
 }
 
-CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
-CObject3DClientSpecific* ModelOf(CEngineObject* object) {
+CObject3D* Object3D(CMapObject* object) { return object; }
+CObject3DClientSpecific* ModelOf(CMapObject* object) {
     return Object3D(object)->ClientSpecific();
 }
 
@@ -85,7 +85,7 @@ CObject3DClientSpecific* ModelOf(CEngineObject* object) {
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
     CTransformPipeline* device = Device();
     int touched = 0;
@@ -96,18 +96,18 @@ int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4
     ObjectListNode* node = list->head->next;
     if (node == list->head) return 0;
     do {
-        CEngineObject* object = node->data;
+        CMapObject* object = node->data;
         if (object && Object3D(object)->attached) {
             bool process = true;
             if (object->GetClassId() == world::kClassUnit) {
                 if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
-                    ObjectSlots(object)->AdvanceTime(animTime);
+                    object->AdvanceTime(animTime);
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
-                    CEngineObject* held = object;
+                    CMapObject* held = object;
                     ++held->refCount_;
                     ObjectListNode* result;
                     ObjectListInsert(DeferredUnits(), &result, DeferredUnits()->head, held);
@@ -133,7 +133,7 @@ int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4
                 int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->boundsFlags));
                 device->PopMatrix(CTransformPipeline::kClipStack);
 
-                CEngineObject* const& entry = object;
+                CMapObject* const& entry = object;
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
@@ -286,17 +286,17 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
 namespace {
 
 template <typename Less>
-using PtrSort = stlp::Sort<CEngineObject*, Less>;
+using PtrSort = stlp::Sort<CMapObject*, Less>;
 
 struct ByModel {
-    bool operator()(CEngineObject* a, CEngineObject* b) const {
+    bool operator()(CMapObject* a, CMapObject* b) const {
         UnitOrderLess less;
         return less.Less(a, b);
     }
 };
 
 struct ByModelUse {
-    bool operator()(CEngineObject* a, CEngineObject* b) const {
+    bool operator()(CMapObject* a, CMapObject* b) const {
         ModelUseLess less;
         return less.Less(a, b) != 0;
     }
@@ -304,23 +304,23 @@ struct ByModelUse {
 
 } // namespace
 
-void __fastcall IntroSortByModel(CEngineObject** first, CEngineObject** last, void*, int depthLimit, int) {
+void __fastcall IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModel>::IntroLoop(first, last, depthLimit, ByModel());
 }
 
-void __fastcall FinalSortByModel(CEngineObject** first, CEngineObject** last, int) {
+void __fastcall FinalSortByModel(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModel>::FinalInsertionSort(first, last, ByModel());
 }
 
-void __fastcall IntroSortByModelUse(CEngineObject** first, CEngineObject** last, void*, int depthLimit, int) {
+void __fastcall IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModelUse>::IntroLoop(first, last, depthLimit, ByModelUse());
 }
 
-void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last, int) {
+void __fastcall FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModelUse>::FinalInsertionSort(first, last, ByModelUse());
 }
 
-BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
+BOOL ModelUseLess::Less(CMapObject* a, CMapObject* b) {
     return ModelOf(b)->touchTime < ModelOf(a)->touchTime;
 }
 
@@ -329,17 +329,17 @@ BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
 // Empty at the start, as the static initialisers leave them (in the list's order: the last list
 // first); the exit functions they register free their storage through ~vector() (docs/notes/standalone.md,
 // "The static initialisers' objects").
-constinit stlp::vector<CEngineObject*> g_touchedModels = /*007AF508*/ {};
-constinit stlp::vector<CEngineObject*> g_shadow52 = /*007AF518*/ {};
-constinit stlp::vector<CEngineObject*> g_shadowUnits = /*007AF528*/ {};
-constinit stlp::vector<CEngineObject*> g_shadow5D = /*007AF538*/ {};
-constinit stlp::vector<CEngineObject*> g_shadowOther = /*007AF548*/ {};
-constinit stlp::vector<CEngineObject*> g_shadow54 = /*007AF558*/ {};
-constinit stlp::vector<CEngineObject*> g_visible52 = /*007AF568*/ {};
-constinit stlp::vector<CEngineObject*> g_visibleUnits = /*007AF578*/ {};
-constinit stlp::vector<CEngineObject*> g_visible5D = /*007AF588*/ {};
-constinit stlp::vector<CEngineObject*> g_visibleOther = /*007AF598*/ {};
-constinit stlp::vector<CEngineObject*> g_visible54 = /*007AF5A8*/ {};
+constinit stlp::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
+constinit stlp::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
+constinit stlp::vector<CMapObject*> g_shadowUnits = /*007AF528*/ {};
+constinit stlp::vector<CMapObject*> g_shadow5D = /*007AF538*/ {};
+constinit stlp::vector<CMapObject*> g_shadowOther = /*007AF548*/ {};
+constinit stlp::vector<CMapObject*> g_shadow54 = /*007AF558*/ {};
+constinit stlp::vector<CMapObject*> g_visible52 = /*007AF568*/ {};
+constinit stlp::vector<CMapObject*> g_visibleUnits = /*007AF578*/ {};
+constinit stlp::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
+constinit stlp::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
+constinit stlp::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
 namespace {
 void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }

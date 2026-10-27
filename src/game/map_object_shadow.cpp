@@ -4,7 +4,7 @@
 #include "map_object_shadow.h"
 
 #include "link_figure.h"        // CLinkMesh
-#include "map_object.h"         // ObjectSlots
+#include "map_object.h"
 #include "ground_decal.h"        // DecalTexCoord
 #include "dx_surface.h"          // SurfacePixels
 #include "map_object_figures.h"

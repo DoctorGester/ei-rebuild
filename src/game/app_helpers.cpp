@@ -67,10 +67,10 @@ std::uint8_t __cdecl MovieMode() { return g_movieMode; }
 // half (both are pointers; the game fails some time later).
 void __cdecl ScrambleObjects() {
     options::OptionsResetDefaults(options::TheOptions());
-    ObjectListIterator it{};
-    for (CEngineObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
-        static_cast<CMapObject*>(object)->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
-        static_cast<CObject3D*>(object)->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
+    ObjectListIteratorOf<CMapObject> it{};
+    for (CMapObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
+        object->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
+        object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
     }
     if (it.manager) --it.manager->refCount_;
 }

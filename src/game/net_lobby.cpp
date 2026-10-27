@@ -106,8 +106,6 @@ void AppendServer(ClientBase* self, RefPtr& entry) {
     self->servers_.Insert(self->servers_.End(), holder);
 }
 
-ServerEntry* EntryIn(const RefPtr& entry) { return static_cast<ServerEntry*>(entry.ptr); }
-
 } // namespace
 
 // ---- Small members --------------------------------------------------------------------------------
@@ -238,7 +236,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
 // others from the list never; unknown servers neither local nor asked are ignored. A known server's entry is
 // replaced (and its reply kept in its query, if asked); a new one is appended.
 void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
-    RefPtr entry{nullptr};
+    RefPtrTo<ServerEntry> entry{nullptr};
     std::uint32_t echo, magic;
     cursor->ReadBytes(&echo, 4);
     cursor->ReadBytes(&magic, 4);
@@ -248,12 +246,12 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     }
     ServerNode* node = FindServer(this, from);
     CreateEntry(&entry);
-    EntryIn(entry)->Read(cursor);
+    entry.Get()->Read(cursor);
     if (!entry.ptr) {
         entry.Destroy();
         return;
     }
-    ServerEntry* e = EntryIn(entry);
+    ServerEntry* e = entry.Get();
     e->address_ = *from;
     e->foreign_ = magic != magic_;   // another version (low byte differs): Connect refuses it
     bool local = socket_.IsLocal(from);
@@ -296,7 +294,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
             r.cur = r.begin;
             r.flags = 6;
             c.BeginWrite(&r, 0x400);
-            EntryIn(entry)->Write(&c);
+            entry.Get()->Write(&c);
             EndCursor(c);
         }
     }
@@ -357,7 +355,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
         Query* q = v.begin() + i;
         if (FindServer(this, &q->address) != servers_.End()) continue;
-        RefPtr entry{nullptr};
+        RefPtrTo<ServerEntry> entry{nullptr};
         GameBuffer& r = q->reply;
         if (r.cur > r.high) r.high = r.cur;
         if (r.PositionOf(r.high) != 0) {
@@ -368,7 +366,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
             BufferUpdateHigh(&r);
             c.BeginRead(&r, r.PositionOf(r.high));
             CreateEntry(&entry);
-            EntryIn(entry)->Read(&c);
+            entry.Get()->Read(&c);
             c.FlushBits();
             if (c.sink) {
                 c.sink->cur = c.p;
@@ -381,7 +379,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
             entry.Destroy();
             continue;
         }
-        ServerEntry* e = EntryIn(entry);
+        ServerEntry* e = entry.Get();
         e->state_ = ServerEntry::kAsked;
         e->address_ = q->address;
         AppendServer(this, entry);
@@ -414,10 +412,10 @@ void ClientBase::Ask(const NetAddress* address) {
         EntryOf(node)->state_ = ServerEntry::kAsked;
         return;
     }
-    RefPtr entry{nullptr};
+    RefPtrTo<ServerEntry> entry{nullptr};
     CreateEntry(&entry);
     if (entry.ptr) {
-        ServerEntry* e = EntryIn(entry);
+        ServerEntry* e = entry.Get();
         e->address_ = *address;
         e->state_ = ServerEntry::kAsked;
         AppendServer(this, entry);
@@ -536,7 +534,7 @@ EI_REWRITTEN(0x00442AD0, ClientBase::Tick);
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GrowingBuffer b;
     GameBuffer* buffer = &b;   // writes go through the vtable
-    RefPtr entry{nullptr};
+    RefPtrTo<ServerEntry> entry{nullptr};
     Describe(&entry);
     if (entry.ptr) {
         std::uint8_t kind = 5;
@@ -560,7 +558,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         c.BeginWrite(&b, 0x400);
         std::memcpy(c.p, &magic_, 4);
         c.p += 4;
-        EntryIn(entry)->Write(&c);
+        entry.Get()->Write(&c);
         EndCursor(c);
         Send(address, &b);
         entry.Destroy();

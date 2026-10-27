@@ -402,10 +402,10 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    CEngineObject* object = TheObjectManager()->FindObject(static_cast<unsigned>(attachedTo_));
+    CObject3D* object = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
     Vector3 saved;
     std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
-    source_->Attach(static_cast<CObject3D*>(object));
+    source_->Attach(object);
     if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
 }
 

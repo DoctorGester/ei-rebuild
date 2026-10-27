@@ -192,9 +192,9 @@ public:
 struct DriverNode {
     DriverNode* next;
     DriverNode* prev;
-    RefPtr value;
+    RefPtrTo<DriverLink> value;
 
-    DriverLink* Driver() const { return static_cast<DriverLink*>(value.ptr); }
+    DriverLink* Driver() const { return value.Get(); }
 };
 
 // The network session (made by CWorld::OpenSession): a player source with two lists of drivers.

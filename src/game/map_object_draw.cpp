@@ -2,7 +2,7 @@
 // docs/notes/map_objects.md ("Drawing").
 #include "engine_object.h"
 #include "game_arrays.h"          // aligned::AllocateDwords
-#include "map_object.h"           // ObjectSlots
+#include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "object.h"

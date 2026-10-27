@@ -588,7 +588,7 @@ int CPlayerClient::OnNewObject() {
     object->ApplyBaseScale();
     object->name2 = secondName.c_str();
     if (isUnit) {
-        auto* unit = static_cast<CUnit*>(created);
+        CUnit* unit = UnitOrNull(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
         auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
         unit->defaultScale.x = 0.0f;
