@@ -3342,7 +3342,7 @@ id = "C31"
 title = "Container aliases: name the type where it's used, drop single-use and pass-through using aliases"
 group = "cleanup"
 model = "sonnet"
-note = "User 2026-10-27. 1,000 using aliases in src, 477 of them to containers (ArrayAbi 83, mfc::CArray 55, stlp::list 53, stlp::VectorAbi 42, lib::AlignedArray 41, ListAbi 36, stlp::vector 35, stlp::hash_map 33, CTypedPtrList 28...). Inline aliases used once or only re-exporting another alias; keep an alias only where it names a real concept used in several places. Coordinate with C14b/C14c, which replace the container types themselves: do this first so those rewrites see one spelling per type. Build checks only; no game runs unless a type changes."
+note = "User 2026-10-27. 1,000 using aliases in src, 477 of them to containers (ArrayAbi 83, mfc::CArray 55, stlp::list 53, stlp::VectorAbi 42, lib::AlignedArray 41, ListAbi 36, stlp::vector 35, stlp::hash_map 33, CTypedPtrList 28...). Inline aliases used once or only re-exporting another alias; keep an alias only where it names a real concept used in several places. Coordinate with C14b/C14c, which replace the container types themselves: do this first so those rewrites see one spelling per type. Build checks only; no game runs unless a type changes. Also (user asked 'what is ArrayAbi even?'): ArrayAbi / ListAbi / stlp::VectorAbi / ListTemporary are port scaffolding giving each game.exe template instantiation its calling convention and registration address; with no game.exe in the build they go: call CArray/list members directly, drop the per-instantiation registrations, and check why CArray headers still carry a game vtable pointer (Class::Vtable()) after C28."
 
 [[ticket]]
 id = "C14e"
