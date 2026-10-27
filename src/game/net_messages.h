@@ -1,6 +1,6 @@
 #pragma once
 
-// The network message classes (game.exe's vtables 0073BBF8 ... 0073BDD0, 0x18 apart; message types 1..17 as
+// The network message classes (message types 1..17 as
 // SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
 // docs/notes/cleanup-network.md and docs/notes/network.md.
 // Every class has a factory (the type registry's, a static Create: a new message with no references), a
@@ -30,13 +30,13 @@ using RefVector = stlp::vector<RefPtr>;
 
 // ---- Client to server ---------------------------------------------------------------------------
 
-// 0073BBF8 (type 5, 0x34 bytes): the local player's login, kept by the client at +0x2600. The
+// Type 5, 0x34 bytes: the local player's login, kept by the client at +0x2600. The
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
 class LoginMessage final : public Message {
 public:
     LoginMessage();
-    LoginMessage(const LoginMessage& other);     // Clone's copy (00413440, inlined)
-    ~LoginMessage() override;                    // 00413800 (deleting: 004137E0)
+    LoginMessage(const LoginMessage& other);     // Clone's copy
+    ~LoginMessage() override;                    // The deleting destructor
 
     int OnShutdown() override;
     LoginMessage* Clone() override;
@@ -68,13 +68,13 @@ protected:
     void ReadText(BufferCursor* cursor);
 };
 
-// 0073BC28 (type 6): a chat line from a client (the server's handler 0041B1C0 announces it with
+// Type 6: a chat line from a client (the server's handler announces it with
 // the player's number and name).
 class SayMessage final : public TextMessage {
 public:
     SayMessage();
     SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~SayMessage() override {}                                          // 00413C40 (deleting: 00413C20)
+    ~SayMessage() override {}                                          // The deleting destructor
 
     int OnShutdown() override;
     SayMessage* Clone() override;
@@ -84,12 +84,12 @@ public:
     static Message* __fastcall Create();
 };
 
-// 0073BC40 (type 7, 0x1C bytes): a command for the server (ClientSession::SendCommand).
+// Type 7, 0x1C bytes: a command for the server (ClientSession::SendCommand).
 class CommandMessage final : public Message {
 public:
-    CommandMessage();                                // 00413C90 (kind_ is not set)
+    CommandMessage();                                // kind_ is not set
     CommandMessage(const CommandMessage& other);     // Clone's copy
-    ~CommandMessage() override {}                    // 00414060 (deleting: 00414040)
+    ~CommandMessage() override {}                    // The deleting destructor
 
     int OnShutdown() override;
     CommandMessage* Clone() override;
@@ -117,13 +117,13 @@ protected:
     void ReadFirst(BufferCursor* cursor);
 };
 
-// 0073BC58 (type 13): a client's request for a shared file (first_ the file message, second_ the
+// Type 13: a client's request for a shared file (first_ the file message, second_ the
 // requesting connection on the server).
 class FileRequestMessage final : public PairMessage {
 public:
     FileRequestMessage();
     FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~FileRequestMessage() override {}                                              // 00414270 (deleting: 00414250)
+    ~FileRequestMessage() override {}                                              // The deleting destructor
 
     int OnShutdown() override;
     FileRequestMessage* Clone() override;
@@ -136,13 +136,13 @@ public:
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
 };
 
-// 0073BDD0 (type 15, 0x34 bytes): a trade offer (the party a player offers to a partner; its
+// Type 15, 0x34 bytes: a trade offer (the party a player offers to a partner; its
 // members are PartyMemberMessages). Kept by the client at +0x260C, by the server on +0x25B8.
 class PartyMessage final : public Message {
 public:
     PartyMessage();
     PartyMessage(const PartyMessage& other);     // Clone's copy
-    ~PartyMessage() override;                    // 004178F0 (deleting: 004178D0)
+    ~PartyMessage() override;                    // The deleting destructor
 
     int OnShutdown() override;
     PartyMessage* Clone() override;
@@ -163,12 +163,12 @@ public:
     std::uint8_t unused_31[3];
 };
 
-// 0073BD78 (type 16, 0x34 bytes): one member of an offered party, serialised into a memory stream.
+// Type 16, 0x34 bytes: one member of an offered party, serialised into a memory stream.
 class PartyMemberMessage final : public Message {
 public:
     PartyMemberMessage() {}
     PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
-    ~PartyMemberMessage() override {}                      // 00417620 (deleting: 00417600)
+    ~PartyMemberMessage() override {}                      // The deleting destructor
 
     int OnShutdown() override;
     PartyMemberMessage* Clone() override;
@@ -182,12 +182,12 @@ public:
 
 // ---- Server to client ---------------------------------------------------------------------------
 
-// 0073BC70 (type 1, 0x3C bytes): a player record (the server's +0x2590, the client's +0x25D8).
+// Type 1, 0x3C bytes: a player record (the server's +0x2590, the client's +0x25D8).
 class PlayerMessage final : public Message {
 public:
     PlayerMessage();
     PlayerMessage(const PlayerMessage& other);     // Clone's copy
-    ~PlayerMessage() override {}                   // 004148E0 (deleting: 004148C0)
+    ~PlayerMessage() override {}                   // The deleting destructor
 
     int OnShutdown() override;
     PlayerMessage* Clone() override;
@@ -207,12 +207,12 @@ public:
     std::uint32_t firstLine_;       // +0x38 the first chat line it receives (not sent)
 };
 
-// 0073BC88 (type 2, 0x20 bytes): a chat or system line (the server's +0x2594, the client's +0x25DC).
+// Type 2, 0x20 bytes: a chat or system line (the server's +0x2594, the client's +0x25DC).
 class LineMessage final : public Message {
 public:
-    LineMessage();                               // 0041C740 (number_ is not set)
+    LineMessage();                               // number_ is not set
     LineMessage(const LineMessage& other);       // Clone's copy
-    ~LineMessage() override;                     // 00414D10 (deleting: 00414CF0)
+    ~LineMessage() override;                     // The deleting destructor
 
     int OnShutdown() override;
     LineMessage* Clone() override;
@@ -226,13 +226,13 @@ public:
     RefPtr connection_{};           // +0x1C the only receiver (null: everyone; not sent)
 };
 
-// 0073BCA0 (type 3, 0x24 bytes): where the host's game is (the server's +0x25A0, the client's
+// Type 3, 0x24 bytes: where the host's game is (the server's +0x25A0, the client's
 // +0x25EC; built by world_game.cpp's AnnounceHost).
 class HostMessage final : public Message {
 public:
     HostMessage();
     HostMessage(const HostMessage& other);       // Clone's copy
-    ~HostMessage() override {}                   // 004152A0 (deleting: 00415280)
+    ~HostMessage() override {}                   // The deleting destructor
 
     int OnShutdown() override;
     HostMessage* Clone() override;
@@ -245,13 +245,13 @@ public:
     stlp::string zone_;             // +0x18
 };
 
-// 0073BCB8 (type 4): binds a player record (first_) to its connection (second_, not sent). The
+// Type 4: binds a player record (first_) to its connection (second_, not sent). The
 // server's +0x25A4; a client keeps its own at +0x25F0.
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
     BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~BindingMessage() override {}                                          // 004154D0 (deleting: 004154B0)
+    ~BindingMessage() override {}                                          // The deleting destructor
 
     int OnShutdown() override;
     BindingMessage* Clone() override;
@@ -266,12 +266,12 @@ public:
     PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
 };
 
-// 0073BCD0 (type 8): a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
+// Type 8: a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
 class ZoneMessage final : public TextMessage {
 public:
     ZoneMessage();
     ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~ZoneMessage() override {}                                           // 00415930 (deleting: 00415910)
+    ~ZoneMessage() override {}                                           // The deleting destructor
 
     int OnShutdown() override;
     ZoneMessage* Clone() override;
@@ -281,12 +281,12 @@ public:
     static Message* __fastcall Create();
 };
 
-// 0073BD00 (type 9): the map being played (the server's +0x25A8, the client's +0x25F4).
+// Type 9: the map being played (the server's +0x25A8, the client's +0x25F4).
 class MapMessage final : public TextMessage {
 public:
     MapMessage() {}
     MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
-    ~MapMessage() override {}                                      // 00416110 (deleting: 004160F0)
+    ~MapMessage() override {}                                      // The deleting destructor
 
     int OnShutdown() override;
     MapMessage* Clone() override;
@@ -296,12 +296,12 @@ public:
     static Message* __fastcall Create();
 };
 
-// 0073BCE8 (type 10, 0x20 bytes): a script variable (the server's +0x25B0, the client's +0x25FC).
+// Type 10, 0x20 bytes: a script variable (the server's +0x25B0, the client's +0x25FC).
 class VariableMessage final : public Message {
 public:
     VariableMessage();                                 // value_ and serial_ are not set
     VariableMessage(const VariableMessage& other);     // Clone's copy
-    ~VariableMessage() override {}                     // 00415D00 (deleting: 00415CE0)
+    ~VariableMessage() override {}                     // The deleting destructor
 
     int OnShutdown() override;
     VariableMessage* Clone() override;
@@ -315,12 +315,12 @@ public:
     std::uint32_t serial_;       // +0x1C from g_variableSerial
 };
 
-// 0073BD18 (type 11, 0x2C bytes): a shared file (the server's +0x2598, the client's +0x25E0).
+// Type 11, 0x2C bytes: a shared file (the server's +0x2598, the client's +0x25E0).
 class FileMessage final : public Message {
 public:
     FileMessage();
     FileMessage(const FileMessage& other);       // Clone's copy
-    ~FileMessage() override;                     // 00416640 (deleting: 00416620)
+    ~FileMessage() override;                     // The deleting destructor
 
     int OnShutdown() override;
     FileMessage* Clone() override;
@@ -336,14 +336,14 @@ public:
     RefVector chunks_;           // +0x20 the chunk messages (not sent)
 };
 
-// 0073BD30 (type 12, 0x54 bytes): 64 bytes of a shared file (the client's +0x25E4).
+// Type 12, 0x54 bytes: 64 bytes of a shared file (the client's +0x25E4).
 class FileChunkMessage final : public Message {
 public:
     static constexpr std::size_t kDataSize = 0x40;
 
     FileChunkMessage() {}
     FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
-    ~FileChunkMessage() override;                      // 004168E0 (deleting: 004168C0)
+    ~FileChunkMessage() override;                      // The deleting destructor
 
     int OnShutdown() override;
     FileChunkMessage* Clone() override;
@@ -358,13 +358,13 @@ public:
     std::uint8_t unused_52[2];
 };
 
-// 0073BD48 (type 14, 0x24 bytes): an award for one connection (the server's +0x25B4 with a delay,
+// Type 14, 0x24 bytes: an award for one connection (the server's +0x25B4 with a delay,
 // the client's +0x2608; ClientSession::ApplyAwards).
 class AwardMessage final : public Message {
 public:
     AwardMessage();
     AwardMessage(const AwardMessage& other);     // Clone's copy
-    ~AwardMessage() override;                    // 00416D70 (deleting: 00416D50)
+    ~AwardMessage() override;                    // The deleting destructor
 
     int OnShutdown() override;
     AwardMessage* Clone() override;
@@ -379,13 +379,13 @@ public:
     stlp::string text_;          // +0x18 the item's name
 };
 
-// 0073BD60 (type 17, 0x28 bytes): a trade between two offers (the server's +0x25BC, the client's
+// Type 17, 0x28 bytes: a trade between two offers (the server's +0x25BC, the client's
 // +0x2618).
 class TradeMessage final : public Message {
 public:
     TradeMessage() {}
     TradeMessage(const TradeMessage& other);     // Clone's copy
-    ~TradeMessage() override;                    // 00416FC0 (deleting: 00416FA0)
+    ~TradeMessage() override;                    // The deleting destructor
 
     int OnShutdown() override;
     TradeMessage* Clone() override;
