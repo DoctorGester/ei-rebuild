@@ -17,7 +17,7 @@ namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 
-// The counted objects CountedRef holds: their count (+0x04); each is deleted at its last reference.
+// The counted objects CountedRef holds: their count; each is deleted at its last reference.
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
 inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
 inline int& CountOf(CRenderPreset* preset) { return preset->refs_; }

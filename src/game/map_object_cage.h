@@ -15,7 +15,7 @@ struct CageInterpolator {
     // consumed): edges 0-1 and 2-3 at t, between them at u; edges 4-5 and 6-7 likewise; then
     // between the two at w.
     void InterpolateCube(const float** stream);
-    // The same in the prism of the next 6 points (0x48 bytes): edge 0-1 at t, towards
+    // The same in the prism of the next 6 points: edge 0-1 at t, towards
     // point 2 at u; edge 3-4 at t, towards point 5 at u; then between the two at w.
     void InterpolatePrism(const float** stream);
 

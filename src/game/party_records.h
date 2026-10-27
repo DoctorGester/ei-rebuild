@@ -1,7 +1,7 @@
 #pragma once
 
 // Named party records (0x7C bytes, a counted object): a party object and the name scripts refer to it by.
-// The party manager keeps them in a vector at +0x24 followed by two strings. Names are provisional.
+// The party manager keeps them in a vector followed by two strings. Names are provisional.
 
 #include "core_refcount.h"
 #include "party_storage.h"
@@ -37,9 +37,9 @@ static_assert(sizeof(PartyRecord) == 0x7C);
 PartyRecord* __cdecl CreatePartyRecord();
 static_assert(offsetof(PartyRecord, name) == 0x78);
 
-// The named records (+0x24): an STLport vector of counted pointers, then two strings.
+// The named records: an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
-    // The party (+0x08) of the first record named `name` (_mbscmp), else of the
+    // The party of the first record named `name` (_mbscmp), else of the
     // last unnamed record, else null.
     CParty* Find(const char* name) const;
     // Appends a new record named `name`.
@@ -78,5 +78,5 @@ int __stdcall PartyNextId(int* out);
 
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
 // without "::") equal to the manager's current name (NamedPartyRecords::text10) gives the player's own
-// party (+0x70), any other the records' party of that owner (PartyRecordsFind). Null without a player.
+// party, any other the records' party of that owner (PartyRecordsFind). Null without a player.
 CParty* __fastcall PartyForScript(void* player, mfc::CString* name);

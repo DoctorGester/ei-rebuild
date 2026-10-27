@@ -124,7 +124,7 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     if (old) old->Release();
 }
 
-// The pipeline's stack the shadow is rendered with (+0x64).
+// The pipeline's stack the shadow is rendered with.
 constexpr int kShadowStack = 10;
 
 const float* TopMatrix(const CTransformPipeline* pipeline) { return pipeline->Top(kShadowStack)->m; }
@@ -452,7 +452,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
 
     // The point the shadow falls from: the object's offset point through its matrix.
-    // Each row of the world matrix times the bounds' centre (+0x128): (y + z) + x, unrounded.
+    // Each row of the world matrix times the bounds' centre: (y + z) + x, unrounded.
     const float* w = self->object->worldMatrix.m;
     const Vector3& c = self->object->center;
     auto product = [](float a, float b) { return static_cast<double>(a) * b; };

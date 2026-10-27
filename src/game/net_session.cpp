@@ -58,7 +58,7 @@ void __cdecl ConstructReceiveBuffer() {
 // Milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
-// A session that is there and not shutting down is ticked (slot 14) with `elapsed` milliseconds.
+// A session that is there and not shutting down is ticked with `elapsed` milliseconds.
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
     if (session->flags7_ & CRefCounted::kDetached) return;

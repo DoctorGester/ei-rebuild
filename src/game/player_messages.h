@@ -2,7 +2,7 @@
 
 // The server side of a player's connection (CPlayerServer) as far
 // as the message writers use it, and the party record lookup. Each writer appends one message to
-// the outgoing stream at +0x48 (a CMemoryStream; its slot 2 writes bytes): a type byte, then the
+// the outgoing stream (a CMemoryStream; its slot 2 writes bytes): a type byte, then the
 // payload. The single-player game runs the same server / client pair, so the per-tick player state
 // script variables and unit events all go through them. Names are provisional; see
 // docs/notes/objects.md.
@@ -45,7 +45,7 @@ struct HandlerEntry {
 };
 static_assert(sizeof(HandlerEntry) == 8 && offsetof(HandlerEntry, address) == 4);
 
-// A unit placement (0x28 bytes): the unit's id, position, rotation and two
+// A unit placement: the unit's id, position, rotation and two
 // values (CWorldServer::StoreParty stores the unit's +0x268 / +0x26C, CreateUnits restores them).
 struct UnitPlacement {
     int id;
@@ -75,7 +75,7 @@ public:
     // Virtual 20: server (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
     // the dying unit is the player's leader); client empty.
     virtual void LeaderDied() {}
-    virtual void TickDone() {}              // Virtual 21: server (empties +0x50F8); client empty
+    virtual void TickDone() {}              // Virtual 21: server; client empty
     virtual void ItemUsed(CEngineObject*) {}    // Virtual 22: server (message 0x14); client empty
     virtual int Receive() = 0;              // Virtual 23: server and client versions
 
@@ -147,13 +147,13 @@ public:
     void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);
-    void WriteTo(CStream* target);                                  // target->CopyFrom(out_) (slot 7)
+    void WriteTo(CStream* target);                                  // target->CopyFrom(out_)
     void SetDisconnect();                                           // state 4
     void SetFlag70(std::uint8_t value);
 
     // The per-tick sync (player_sync.cpp; called by CWorldServer::SyncPlayer, world_sync.cpp).
-    // Compresses the outgoing messages (the coder at +0x88) and sends them on the player's
-    // link (slot 8); the messages are emptied. The send's result (a bool), 0 without a link.
+    // Compresses the outgoing messages (the coder) and sends them on the player's
+    // link; the messages are emptied. The send's result (a bool), 0 without a link.
     int Flush();
     // Each new map object (message 0x40: header, scale, names, the
     // server companion's names and strings, a unit's name and +0x23C, its full state) / timed
@@ -168,7 +168,7 @@ public:
     // released (0x42 / 0x52: id). 1.
     int SendObjectsRemoved(const PlayerObjectArray* objects);
     int SendTimedRemoved(const PlayerObjectArray* objects);
-    // Every item of the player's item list (+0x114) the party's item manager knows is
+    // Every item of the player's item list the party's item manager knows is
     // sent (SendObject14, slot 22).
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the
@@ -189,7 +189,7 @@ public:
     // Message 0x80: the party saved (with its variables) as a sized block; the next
     // refresh in 900..1800 updates (ISAAC).
     void SendParty();
-    // Every packet waiting on the link is decompressed (+0x28B0) into the
+    // Every packet waiting on the link is decompressed into the
     // received stream and its messages run through the handlers; before the player has
     // joined (state 0) only types 0 and 8, the rest of such a packet is dropped. A read past the
     // end, a type without a handler or a refusing handler ends in the fatal error (its
@@ -209,7 +209,7 @@ public:
     // id from there that no world object has), the slots restored and a share of its experience above its NPC record's floor taken off.
     // The party collected (when deployed, flag70_) and sent (SendParty), lastPosition_.z
     // -1313, redeployed (Redeploy with scripts) and the new hero's brain gets the units (class
-    // 0x50) the old one knew (+0x12C) and the old hero, each once and counted.
+    // 0x50) the old one knew and the old hero, each once and counted.
     void OnLeaderDied();
     // Message 0x36, from the client's ViewOrderTarget / dead-unit order
     // handlers). Unit ids (a count, then the ids; units missing or blocked, flag 0x800000, are
@@ -249,7 +249,7 @@ public:
     int OnAttack();
     int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
     // player_server_orders.cpp: the last client messages. Units are the player's world's
-    // "able" means present, not blocked (flag 0x800000) and not dead (slot 55).
+    // "able" means present, not blocked (flag 0x800000) and not dead.
     int OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
     // the party collected (CollectParty with the placements) and sent, message 0x07 (the state and
@@ -379,7 +379,7 @@ public:
     // The maps (NextPrime(100) buckets each; their functor bytes are left as they are), the party
     // (constructed, then created), the lists (block size 10), then what DestroyPlayer leaves.
     CPlayer();
-    // The deleting destructor. DestroyPlayer, the party destroyed (slot 3), the lists emptied, the party
+    // The deleting destructor. DestroyPlayer, the party destroyed, the lists emptied, the party
     // destructed, the maps freed, the link released; CEngineObject's last.
     ~CPlayer() override;
 
@@ -392,19 +392,19 @@ public:
     BOOL CreatePlayer();
     // Destroy (virtual 3) and the destructor's copy. The recharge list emptied, Clear,
     // the party destroyed and created again (slots 3, 2); +0x130 0, id -1, +0x108 0; the link
-    // disconnected (slot 11) and released, the connection detached and released (slot 4);
+    // disconnected and released, the connection detached and released;
     // +0x110 -1, +0x100 and +0x104 0.
     void DestroyPlayer();
     // The given items released and the list emptied, both known-object maps cleared
     // every unit taken away (CUnit::SetPlayer(null), until the first is null), the
     // unit map emptied (max id 0), the recharge list emptied, then the connection's slot 13.
     void Clear();
-    // The old connection loses its owner and a reference (slot 4); the new one
+    // The old connection loses its owner and a reference; the new one
     // gets this player as owner and a reference.
     void SetConnection(CPlayerConnection* connection);
     void SetPlayerId(int id);
-    // With a link the connection leaves (slot 16); Clear; the link disconnected
-    // (slot 11) and released; `link` taken (counted); then the connection's slot 15.
+    // With a link the connection leaves; Clear; the link disconnected
+    // And released; `link` taken (counted); then the connection's slot 15.
     void Connect(netlink::NetLink* link);
     // As Connect without the new link and the slot 15 call.
     void Disconnect();
@@ -412,7 +412,7 @@ public:
     void ForgetKnownObjects();
 
     // Whether `unit` is the party's leader: there are records and its id is the
-    // first record's key (+0x1C). 0 for null.
+    // first record's key. 0 for null.
     BOOL IsLeader(const CEngineObject* unit);
     // The connection's slot 17 with both arguments, then every item of `items`
     // counted and appended to the given items.
@@ -420,7 +420,7 @@ public:
     // The connection's slot 18, then every given item taken off the head and released.
     void TakeAllItems();
     // 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item
-    // a unit of the player carries has it at +0x4C (any class; the walk stops at a null unit).
+    // a unit of the player carries has it (any class; the walk stops at a null unit).
     BOOL HasLoot(int kind);
     // The first given loot item of `kind` / item with id `id`: the
     // connection's slot 19, out of the list, released; 1, or 0 when there is none.
@@ -429,7 +429,7 @@ public:
     // A unit not yet in units_ is counted, raises the max id and is put in;
     // then the connection's slot 14. Nothing for null or a known unit.
     void AddUnit(CUnit* unit);
-    // A unit in units_ is erased, released (slot 4) and given to the
+    // A unit in units_ is erased, released and given to the
     // connection's slot 14.
     void RemoveUnit(CUnit* unit);
     // The item's id joins the recharge list unless there; the connection's
@@ -442,7 +442,7 @@ public:
     // (CUnit::SetPlayer(null)); the walk stops at a null entry.
     void ReleaseTamedUnits();
 
-    // Ticks the objects in the list at +0x114 (slot 6; looked up by id through the
+    // Ticks the objects in the list (slot 6; looked up by id through the
     // party's slot 18 manager) and drops the ones that are gone or whose tick returned 0, then runs
     // slot 21 of the connection.
     void Tick();

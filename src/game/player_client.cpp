@@ -56,7 +56,7 @@ struct LoginRequest {
     int version;
     char name[64];
     char password[64];
-    std::uint32_t partyId; // the player's partyId_ (+0xFC)
+    std::uint32_t partyId; // the player's partyId_
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
@@ -581,7 +581,7 @@ int CPlayerClient::OnNewObject() {
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 
-    // The world's slot 19 is its object manager (+0x40).
+    // The world's slot 19 is its object manager.
     auto* world = Owner()->WorldContext();
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;

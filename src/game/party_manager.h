@@ -20,7 +20,7 @@
 class CMemoryStream;
 class CParty;
 
-// An entry of the manager's list (0x14 bytes): two texts and a list of ids. Its copy, assignment and
+// An entry of the manager's list: two texts and a list of ids. Its copy, assignment and
 // destructor are compiler-made (library).
 struct PartyManagerEntry {
     mfc::CString name;              // chunk field 1

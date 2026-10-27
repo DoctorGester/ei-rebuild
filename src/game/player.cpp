@@ -173,7 +173,7 @@ void DropLink(netlink::NetLink*& link) {
     if (old != nullptr) old->Release();
 }
 
-// The data word every item class keeps at +0x4C (a quest item's id).
+// The data word every item class keeps (a quest item's id).
 std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId_; }
 
 } // namespace

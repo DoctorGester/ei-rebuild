@@ -1,7 +1,7 @@
 #pragma once
 
 // Delta replication of object state. Every replicated object (units at
-// +0x1C4, ...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
+// +0x1C4,...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
 // channels, the bytes last sent (the snapshot) and the bits and bytes to send now (the output).
 // The object's serialiser (a virtual) calls BeginField(i) for each
 // dirty field and writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and
@@ -53,10 +53,10 @@ std::uint16_t PackFloat16(std::uint32_t floatBits);
 std::uint32_t UnpackFloat16(std::uint16_t packed);
 } // namespace delta
 
-// One numbered field of a DeltaState (0xA0 bytes).
+// One numbered field of a DeltaState.
 struct DeltaField {
-    BitStream snapshot[2];   // , +0x28: per channel, the bytes last sent
-    BitStream out[2];        // , +0x78: per channel, what is sent now
+    BitStream snapshot[2];   // +0x28: per channel, the bytes last sent
+    BitStream out[2];        // +0x78: per channel, what is sent now
 
     // Identical copies: four empty memory streams.
     DeltaField() = default;
@@ -140,7 +140,7 @@ struct DeltaState {
     std::uint16_t unused_1A;
     BitStream* reader_;
     int mode_;               // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    BitStream header_[2];    // , +0x4C
+    BitStream header_[2];    // +0x4C
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 

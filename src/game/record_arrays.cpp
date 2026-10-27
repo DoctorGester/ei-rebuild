@@ -71,7 +71,7 @@ EI_REWRITTEN(0x005FBFB0, GlobalMapPointRecords::ConstructElements);
 EI_REWRITTEN(0x005FC010, GlobalMapPointRecords::ConstructElements);
 EI_REWRITTEN(0x005FBD80, DestroyGlobalMapRecord);
 EI_REWRITTEN(0x005FBDD0, DestroyGlobalMapRecord);
-// The zones (16 bytes): the strings at +0xC, then +8.
+// The zones (16 bytes): the strings, then +8.
 void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p) { mfc::impl::DestroyStringsAt<Bytes<0x10>, 0xC, 8>(p); }
 EI_REWRITTEN(0x005FBD30, DestroyGlobalMapZone);
 

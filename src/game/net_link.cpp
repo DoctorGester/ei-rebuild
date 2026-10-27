@@ -408,7 +408,7 @@ int FramedLink::IncomingCount() {
 EI_REWRITTEN(0x0047BA40, FramedLink::IncomingCount);
 
 // The message framed (its length, then its bytes, read from the start) in a stack buffer and
-// handed to slot 13; when that fails the link disconnects (slot 11). False for a message over
+// handed to slot 13; when that fails the link disconnects. False for a message over
 // 0x7FFC bytes or a failed send.
 bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];

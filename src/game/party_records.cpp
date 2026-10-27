@@ -1,4 +1,4 @@
-// The named party records of the party manager (+0x24): reset at new game, and the script commands' helpers to
+// The named party records of the party manager: reset at new game, and the script commands' helpers to
 // find,
 // add and remove a record by name. See party_records.h and docs/notes/world.md ("Party records and class
 // templates").

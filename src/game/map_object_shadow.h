@@ -42,7 +42,7 @@ struct PartGroup {
 };
 static_assert(sizeof(PartGroup) == 0x14);
 
-// A part set of a 3D object's client half (0x14 bytes): a texture and the groups of parts drawn
+// A part set of a 3D object's client half: a texture and the groups of parts drawn
 // with it, one per material.
 struct TextureParts {
     // The destructor: every group's parts and material released, the group deleted; the
@@ -143,8 +143,8 @@ public:
     // held released (deleted at its last reference): CountedRef<WoundsMaterial>::Assign(nullptr), inlined by the
     // callers.
     void ClearWoundsMaterial();
-    // `part` joins the group of its material (piece +0x158) in the set
-    // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
+    // `part` joins the group of its material in the set
+    // of its texture, both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
     int OnPartAdded(CFigureMesh* part) override;
     // The part named `name` leaves its group and is released. Returns it, or null when there is none or no group
@@ -259,5 +259,5 @@ inline void CObject3DClientSpecific::ClearWoundsMaterial() {
     if (old) old->Release();
 }
 
-// The 3D object's half (+0x94) on the client.
+// The 3D object's half on the client.
 inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }

@@ -1,5 +1,5 @@
 // The game client's tick and its award handling: timers count down,
-// and received awards (+0x2608) are applied to the local player. See net_classes.h and
+// and received awards are applied to the local player. See net_classes.h and
 // docs/notes/network.md.
 
 #include "game_lists.h"
@@ -53,7 +53,7 @@ void InitList(GivenItems& list, void* vtable) {
 // Applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
 // to player 0 and empties the list. Kind 0: experience; 1: money
 // (the party's, the value truncated), then an empty item list given; 2: the item named by the text,
-// given; 3: the first given item whose IsSameAs (slot 14) with the named item returns 0 is taken
+// given; 3: the first given item whose IsSameAs with the named item returns 0 is taken
 // (by id); 4: the party's quest items removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
@@ -127,7 +127,7 @@ void ClientSession::ApplyAwards() {
 }
 EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 
-// The client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
+// The client base tick, then the timers (+0x2604: {next, prev, seconds,...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
 // mode 3 when player 0 exists with its connection in state 1 and the game-flow flag is set.
 void ClientSession::Tick(double dt) {

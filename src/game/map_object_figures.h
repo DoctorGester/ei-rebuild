@@ -1,6 +1,6 @@
 #pragma once
 
-// The 3D object base under CMapObject (0x170 bytes): the object's figure (a model resource shared through the
+// The 3D object base under CMapObject: the object's figure (a model resource shared through the
 // figure manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the
 // figure was built for. Names provisional; see docs/notes/map_objects.md ("Figures").
 
@@ -24,7 +24,7 @@ class CObject3D;
 
 // The figures' default scale (a static initialiser: zeros; CObject3D's constructor and Create3D).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
-class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
+class CLinkMesh;          // link_figure.h: an object's figure
 class CTransformObject;
 struct tagRECT;
 
@@ -37,12 +37,12 @@ using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
 class CFigureMesh;      // figure_mesh.h: a part of an object's figure
 struct FigureModel;     // model.h: a cached model
-struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
+struct FootprintPart;   // ai_map.h: a figure part's box
 
-// One animation of a figure's animation database (0x58 bytes).
+// One animation of a figure's animation database.
 struct FigureAnimation {
     char name[0x10];                // (the figure manager takes the entry as an animation's name)
-    std::uint8_t index;             // its index in the database (a unit keeps it at +0x254 / +0x255)
+    std::uint8_t index;             // its index in the database (a unit keeps it)
     std::uint8_t unused_11[3];
     std::uint32_t key;              // animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
@@ -243,7 +243,7 @@ public:
     void* Queue(FigureAnimation* animation);
     // The frame reached becomes `frame` (`changed` set when it differs): with nothing
     // playing the next queued animation starts at 0; while the frame lies beyond the animation's
-    // frame count the count is taken off, the callback (+0x64) runs, and the next queued animation
+    // frame count the count is taken off, the callback runs, and the next queued animation
     // plays, or else the animation holds its last frame unless its key's top bits are 10 (loops).
     // When the animation changed, the figure manager or the bones take it as in Play.
     void SetTime(float frame);
@@ -425,11 +425,11 @@ public:
     // FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer
     // may be dangling) or null.
     CFigureMesh* RemovePartNamed(const char* partName);
-    // `part`'s position (+0x1C) turned by the orientation (+0x34, w first), scaled by
+    // `part`'s position turned by the orientation (+0x34, w first), scaled by
     // the side half's GetScale and moved to the object's position. Returns `out`.
     float* PartWorldPosition(float* out, const CFigureMesh* part);
 
-    // The animation database (+0xA0), loaded on first use through the owner's GetFile
+    // The animation database, loaded on first use through the owner's GetFile
     // ("<name>.adb"; nothing without an owner). Null when there is none.
     AnimationDatabase* Animations();
     // Animation `key & 0xFF` of the database, or null (no database, or beyond its count).
@@ -463,7 +463,7 @@ public:
     // A new part joins the parts (referenced; owner, animation state and side half told as AddPart does); the box
     // pivot is the part's position and flag 4 is set. Returns it.
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
-    // The object's figure becomes `model` (+0xA4) and each name of the
+    // The object's figure becomes `model` and each name of the
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
@@ -478,7 +478,7 @@ public:
     // unit (class 0x50 / 0x54) plays nothing, the bounds are recomputed and flags_ 0x80 is set unless both `arg`
     // and the figure are 0 (then cleared). Returns 1.
     int MakeFigure(const char* model, void* partList, std::uint32_t arg);
-    // The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
+    // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // world_client.cpp (the client's AddObject walks a platform object's boxes with it). The box
     // (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
@@ -537,7 +537,7 @@ public:
     void SetUpObject3D();
     void TearDownObject3D();
 
-    // The side-specific half (+0x94).
+    // The side-specific half.
     CObject3DSpecific* Specific() const { return attached; }
     // The same half on the client: the CObject3DClientSpecific (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;

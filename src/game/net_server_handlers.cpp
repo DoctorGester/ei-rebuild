@@ -80,7 +80,7 @@ EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 // A packet of kind -1: only from the master server's address (all 16
 // bytes compared; from any address with EI_Plugin's NewMaster, which NOPs a jump so the
 // answer of its second master server counts). Its first dword must be the session's +0x25FC; the
-// second is then kept at +0x2578 (the next announcement sends it back). The first dword is consumed
+// second is then kept (the next announcement sends it back). The first dword is consumed
 // either way.
 void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0 &&

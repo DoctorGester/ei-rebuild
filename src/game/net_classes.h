@@ -715,7 +715,7 @@ public:
     stlp::list<TradeRecord> tradeRecords_;   // the trades done
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    PartyStorage parties_[2];           // ours (published at +0x260C), +0x2690 the partner's
+    PartyStorage parties_[2];           // ours, +0x2690 the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
 static_assert(offsetof(ClientSession, info_) == 0x25EC);

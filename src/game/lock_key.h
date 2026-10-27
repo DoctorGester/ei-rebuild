@@ -1,6 +1,6 @@
 #pragma once
 
-// A key and the lock it is tested against (levers and traps keep their lock at +0x244; a zone
+// A key and the lock it is tested against (levers and traps keep their lock; a zone
 // file's lever record holds one, map_spec.h's LeverSetup): {mask, id, level}. Names provisional.
 
 #include "lib/mfc.h"   // BOOL
@@ -21,7 +21,7 @@ struct LockKey {
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream) const;
     // ui_small_members.cpp: the constructor of the battle screen's item key
-    // (CBattleScreen::itemUseKey_): {1, 0, 0}. Returns this.
+    // (CBattleScreen::itemUseKey_): {1, 0, 0}.
     LockKey* ConstructItemUseKey();
 
     std::uint32_t mask;

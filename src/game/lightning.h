@@ -45,7 +45,7 @@ struct NoiseKey {
 };
 static_assert(sizeof(NoiseKey) == 16);
 
-// One segment of a bolt (0xA8 bytes): a straight line from `start` in `points.size` steps of
+// One segment of a bolt: a straight line from `start` in `points.size` steps of
 // `step`, displaced along `side` and `up` by two noise curves.
 struct LightningSegment {
     Vector3 start;

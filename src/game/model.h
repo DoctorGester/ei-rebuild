@@ -293,7 +293,7 @@ public:
     virtual void ReleaseBlock(CRenderPreset* preset);
     // The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
-    // Preset `index` of the nine at +0x10C, or null beyond them.
+    // Preset `index` of the nine, or null beyond them.
     virtual CRenderPreset* Preset(unsigned index);
     // The states of `preset`'s record copied into `out`; false without a record.
     virtual bool PresetStates(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
@@ -323,7 +323,7 @@ static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelpe
 
 // The scene renderer's base class ("CVisualizator" in the game's messages, 25 virtuals):
 // the destructor, CreateBase, DestroyBase and SetBaseColour are its own, the rest pure (the
-// compiler CRT's `_purecall`). It owns +0x04 .. +0x1C. Nothing has it as its final class:
+// compiler CRT's `_purecall`). It owns +0x04.. +0x1C. Nothing has it as its final class:
 // only CSceneRenderer's construction and destruction pass through it.
 class CVisualizator {
 public:
@@ -373,7 +373,7 @@ public:
     // GetGraphicsProcessor() kept (fatal when either is missing). `window` is not read. Returns the
     // graphics processor.
     void* CreateBase(void* window, options::GameOptions* settings);
-    // The base constructor's work: flags_, pipeline_ and sun_ cleared. Returns this.
+    // The base constructor's work: flags_, pipeline_ and sun_ cleared.
     CVisualizator* SetUpBase();
     // DestroyBase. The sun dropped (set to null, then released) and the transform object
     // told (AddSun with null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and
@@ -472,7 +472,7 @@ public:
     int EndScene() override;
     // The last frame's time in ms (frameTime_).
     std::uint32_t FrameTime() override { return frameTime_; }
-    // Sets the colour the next draws are tinted with (kept at +0x18 and in the
+    // Sets the colour the next draws are tinted with (kept and in the
     // device object's colour_), the transform object's ambient from it (SetBaseColour).
     void SetColour(std::uint32_t colour) override;
     // Clears the render target and the depth (and the stencil when the device
@@ -492,7 +492,7 @@ public:
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
     int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB) override;
-    // Draws `figure` through its drawer (+0x94) unless it is
+    // Draws `figure` through its drawer unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
     // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
     // and third arguments are not read there.
@@ -549,16 +549,16 @@ public:
     int BindHeldTexture(int stage, HeldTexture* holder);
     // The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
-    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through the first virtual.
+    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored and set through the first virtual.
     void SetFogColour(float r, float g, float b);
 
     HeldDevice device_;              // the device object, a counted holder
     CRenderHelper* helper_;          // counted
-    // +0x28 .. +0x30: the display settings SetGamma last applied, as given.
+    // +0x28.. +0x30: the display settings SetGamma last applied, as given.
     float brightness_;
     float contrast_;
     float gamma_;
-    // +0x34 .. +0x58: the frame statistics (milliseconds; BeginScene / EndScene), set by the
+    // +0x34.. +0x58: the frame statistics (milliseconds; BeginScene / EndScene), set by the
     // creation to 0, 0x80000000, zeros, the time, zeros.
     std::uint32_t frameTime_;        // the last frame's
     std::uint32_t shortestFrame_;
@@ -607,7 +607,7 @@ struct LinkArchiveNode {
 };
 static_assert(sizeof(LinkArchiveNode) == 0x18);
 
-// A figure's cached model (0x20 bytes): the mesh, bones
+// A figure's cached model: the mesh, bones
 // and animation archives of "<name>.mod / .bon / .anm" (0x6C-byte CMMIOResource objects; null when
 // missing), then the animations read from the last by name. The figure manager
 // (CFigureManager::models_) and the link figure loader (its figure sets) cache
@@ -716,7 +716,7 @@ public:
     void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
     int refCount_ = 0;
-    ITransformPipeline* pipeline_;    // the renderer's (+0x24) +0xAC -> +0xC
+    ITransformPipeline* pipeline_;    // the renderer's +0xAC -> +0xC
     LinkArchiveNode* archives_;       // list sentinel
     stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
@@ -784,7 +784,7 @@ struct PrintsDatabase {
     // archive (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
     // The static initialiser's work. The three tables empty,
-    // each index with 100 buckets (193). Returns this.
+    // each index with 100 buckets (193).
     PrintsDatabase* Construct();
     // The exit function's work. The tables from the
     // last: the index's nodes and buckets, then the records and their storage.

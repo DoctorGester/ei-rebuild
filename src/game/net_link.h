@@ -5,7 +5,7 @@
 // provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 // Class map (vtables):
-//   FileStream (0x1C): a CStream over an MFC CFile at +0xC. Save files go through it
+//   FileStream (0x1C): a CStream over an MFC CFile. Save files go through it
 //             (world_game.cpp, ui_saveload.cpp), and the links record their messages with it.
 //   NetLink (0x28, abstract): the recording flags and the recording file.
 //   LoopbackLink (0x30): two of them joined to each other, the single-player
@@ -68,7 +68,7 @@ public:
         ok_ = File()->Open(path, flags, nullptr) != 0;
         return ok_ != 0;
     }
-    // The CFile's virtual Close (slot 19).
+    // The CFile's virtual Close.
     void Close() { File()->Close(); }
 
     // The CFile called through its own vtable (MFC 4.2 slots: 3 GetPosition, 8 Open, 10 Seek,
@@ -86,7 +86,7 @@ public:
 using StreamQueue = stlp::list<CMemoryStream>;
 using QueueNode = StreamQueue::Node;
 
-// The link base (0x28 bytes).
+// The link base.
 class NetLink : public CRefObject {
 public:
     // The deleting destructor: the record stream destroyed.
@@ -124,7 +124,7 @@ protected:
     NetLink(const NetLink& source);
 };
 
-// The loopback link (0x30 bytes).
+// The loopback link.
 class LoopbackLink final : public NetLink {
 public:
     // The base, an empty queue, no peer.
@@ -157,7 +157,7 @@ private:
     void DestroyQueue();
 };
 
-// The replay link (0x44 bytes).
+// The replay link.
 class ReplayLink final : public NetLink {
 public:
     // The base (not recording), then the second file stream.
@@ -209,7 +209,7 @@ protected:
     FramedLink(const FramedLink& other);
 };
 
-// The per-player driver (0x54 bytes): a framed link over a network
+// The per-player driver: a framed link over a network
 // connection's reliable streams.
 class DriverLink final : public FramedLink {
 public:

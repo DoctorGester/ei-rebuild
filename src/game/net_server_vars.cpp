@@ -1,4 +1,4 @@
-// The game server's script variables (+0x25B0): named floats the script reads and writes in a
+// The game server's script variables: named floats the script reads and writes in a
 // network game, replicated to the clients as VariableMessages. See
 // net_messages.h and docs/notes/network.md.
 

@@ -3,7 +3,7 @@
 // The zone file's object records (the .mob objects): chunk readers / writers (Chunk, chunk_stream.h) that are
 // also the map editor's live objects: Spec and the classes on it, each with the game's 12 virtuals (OnChunk,
 // File, then Spec's virtuals; the last is ObjectSpec's WriteFields or EffectSpec's SetVisible). The record
-// classes (kind at +0x48): the base (0); objects (1); flames (6); magic traps (7); levers (8); units (5);
+// classes: the base (0); objects (1); flames (6); magic traps (7); levers (8); units (5);
 // lights (2), sounds (3) and particle sources (4) on the effect records' base. Names are provisional; see
 // docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
@@ -23,9 +23,9 @@ class CTransformObject;
 class CUnit;
 
 // ---- The world objects' parts of the trap and lever records ---------------------------------------
-// The fields after a record's ObjectSpec (+0x8C), which the world object's SetUp reads in place.
+// The fields after a record's ObjectSpec, which the world object's SetUp reads in place.
 
-// A circle of a trap's area (0xC bytes).
+// A circle of a trap's area.
 struct TrapCircle {
     float x;
     float y;
@@ -51,7 +51,7 @@ static_assert(sizeof(TrapPoints) == 0x14);
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
     std::uint32_t sides;        // (-1); the zone loader makes it the players the
-                                // owner (+0x6E) is hostile to (relation 2), one bit each
+                                // owner is hostile to (relation 2), one bit each
     mfc::CString spell;         // the spell's text
     Vector3 position;           // the position when the zone loaded
     TrapArea area;
@@ -77,11 +77,11 @@ static_assert(sizeof(LeverSetup) == 0x18);
 
 namespace mapspec {
 
-// An MFC CArray of plain elements (0x14 bytes).
+// An MFC CArray of plain elements.
 using PlainArray = mfc::CArray<std::uint8_t>;
 
 // A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one).
-// A waypoint (0x14 bytes).
+// A waypoint.
 struct Waypoint {
     Vector3 position;
     float time;                  // the look's turning time (AILook::time; chunk BBBE0003)
@@ -90,7 +90,7 @@ struct Waypoint {
 };
 static_assert(sizeof(Waypoint) == 0x14);
 
-// A patrol (0x20 bytes): where it starts and its waypoints (CArray).
+// A patrol: where it starts and its waypoints (CArray).
 struct Patrol {
     Vector3 position;
     mfc::CArray<Waypoint> waypoints;
@@ -107,7 +107,7 @@ struct Patrols : mfc::CArray<Patrol> {
     Patrol* CopyAt(Patrol* result, int index) const;
 };
 
-// A unit's behaviour record (0x4C bytes).
+// A unit's behaviour record.
 struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(CStream* stream);
@@ -374,7 +374,7 @@ public:
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
-// Record constructors (each returns this), by .mob chunk id.
+// Record constructors (each returns this), by.mob chunk id.
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
 // The records of a .mob file by id (a local of the zone loader): an STLport hash_map<int, record*> (100
 // buckets to start) and the largest id read.

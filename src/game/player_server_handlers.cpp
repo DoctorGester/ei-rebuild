@@ -1,5 +1,5 @@
 // CPlayerServer: what the server does for its player beyond the per-tick sync, the leader's death
-// (slot 20) and the client's messages (handlers by type, from the table CreateServer builds), with
+// And the client's messages (handlers by type, from the table CreateServer builds), with
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"

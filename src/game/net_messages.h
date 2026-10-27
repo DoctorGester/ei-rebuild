@@ -30,7 +30,7 @@ using RefVector = stlp::vector<RefPtr>;
 
 // ---- Client to server ---------------------------------------------------------------------------
 
-// Type 5, 0x34 bytes: the local player's login, kept by the client at +0x2600. The
+// Type 5, 0x34 bytes: the local player's login, kept by the client. The
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
 class LoginMessage final : public Message {
 public:
@@ -54,7 +54,7 @@ public:
     RefPtrTo<BindingMessage> binding_{};   // +0x30 the server's binding for this login (not sent)
 };
 
-// One string at +0xC (0x18 bytes): the base of SayMessage, ZoneMessage and MapMessage, which
+// One string: the base of SayMessage, ZoneMessage and MapMessage, which
 // differ only in their classes (game.exe has no table of its own for this layer).
 class TextMessage : public Message {
 public:
@@ -102,7 +102,7 @@ public:
     stlp::string text_;          // +0x10
 };
 
-// Two counted pointers (0x14 bytes); only the first is sent. The base of BindingMessage and
+// Two counted pointers; only the first is sent. The base of BindingMessage and
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
@@ -137,7 +137,7 @@ public:
 };
 
 // Type 15, 0x34 bytes: a trade offer (the party a player offers to a partner; its
-// members are PartyMemberMessages). Kept by the client at +0x260C, by the server on +0x25B8.
+// members are PartyMemberMessages). Kept by the client, by the server on +0x25B8.
 class PartyMessage final : public Message {
 public:
     PartyMessage();
@@ -246,7 +246,7 @@ public:
 };
 
 // Type 4: binds a player record (first_) to its connection (second_, not sent). The
-// server's +0x25A4; a client keeps its own at +0x25F0.
+// server's +0x25A4; a client keeps its own.
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();

@@ -30,8 +30,8 @@ void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a
 
 } // namespace
 
-// SetMap(name). Empties the two lists at +0x25AC / +0x25B0, queues a map message (name +
-// suffix) on the first, replaces the counted message at +0x25A8 by a fresh one and copies
+// SetMap(name). Empties the two lists / +0x25B0, queues a map message (name +
+// suffix) on the first, replaces the counted message by a fresh one and copies
 // the name into it and into +0x25D4, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
@@ -108,8 +108,8 @@ void ServerSession::SetMap(const stlp::string* name) {
     AwardHost(entry, false);
 }
 // Unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
-// ) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
-// current map (+0x25D4), loading each zone's quests.
+// ) on +0x25AC for each zone the flow picks for the server's kind after the
+// current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
     stlp::vector<stlp::string> zones;   // empty
@@ -130,7 +130,7 @@ void ServerSession::QueueMapList() {
 }
 
 // When the held map message names `name`: drops it, empties the queued messages
-// (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
+// And queues a map message "name" + "_3". Returns whether it did.
 bool ServerSession::FinishMap(const stlp::string* name) {
     auto* holder = &map_;
     MapMessage* map = holder->Get();

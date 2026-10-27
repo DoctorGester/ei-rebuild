@@ -85,7 +85,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
     return nullptr;
 }
 
-// Removed file request: drops `message` from +0x259C.
+// Removed file request: drops `message`.
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);

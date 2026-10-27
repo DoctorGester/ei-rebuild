@@ -4,7 +4,7 @@
 // "MagicTrap" records; a real virtual class: the compiler makes its vtable).
 // Names provisional. flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. The trap's own members
-// start at +0x238 (declared below). See docs/notes/units.md ("Magic traps").
+// start (declared below). See docs/notes/units.md ("Magic traps").
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -31,7 +31,7 @@ public:
     // arrays SetSize(0, -1), the list emptied twice (RemoveAll, then CList's destructor), the
     // arrays' storage freed, then the map object's destructor.
     ~MagicTrap() override;
-    // The deleting destructor (slot 0) frees into the game's heap.
+    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateTrap(); }
     void Destroy() override { DestroyTrap(); }
@@ -42,12 +42,12 @@ public:
     int GetClassId() override;
     bool IsSynchronised() override { return true; }        // 29: the trap's
 
-    // SaveTrap (virtual slot 10). The map object part, the spell's id (-1:
+    // SaveTrap. The map object part, the spell's id (-1:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id
     // through the reference's Save), the points (count, then 8 bytes each), the period, countdown, +0x28C and
     // the sides.
     void SaveTrap(CStream* stream);
-    // LoadTrap (virtual slot 9). Reads what SaveTrap writes: the spell found by id in the
+    // LoadTrap. Reads what SaveTrap writes: the spell found by id in the
     // spell manager (the context's slot 22), the circles and points through SetSize(n,
     // -1), the units inside appended (resolved in the trap's context).
     void LoadTrap(CStream* stream);
@@ -82,7 +82,7 @@ public:
     // countdown at 0, and +0x28C from the record's byte.
     void SetUp(const MagicTrapRecord* record);
 
-    // Called from the trap's update (slot 6) while the world is live, it has
+    // Called from the trap's update while the world is live, it has
     // a spell and its period is not positive. The units inside that left every circle
     // (or a unit that is dead, in the first circle that holds it) are dropped. An armed trap then
     // takes in the living units of its sides found in its circles and casts its spell
@@ -99,7 +99,7 @@ public:
 
     using UnitList = mfc::CTypedPtrList<CUnit>;
 
-    std::uint32_t sides;            // bit per unit side (+0x250) that sets it off
+    std::uint32_t sides;            // bit per unit side that sets it off
     CSpell* spell;                  // a counted reference; null: none
     TrapArea area;
     TrapPoints points;              // where it casts ({x, y})
@@ -121,7 +121,7 @@ static_assert(sizeof(MagicTrap) == 0x290);
 // Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
 // circle of `area` asks the sector map (`context` + 0x294) for the units within its
 // radius of {x, y, 0} into a CPtrList of its own (blocks of 10) and appends to
-// `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side (+0x250) has its bit in
+// `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side has its bit in
 // `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
 // (the world). See docs/notes/units.md ("Magic traps").
 void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,

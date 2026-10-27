@@ -27,7 +27,7 @@ struct AnimationTrack : CEngineObject {
     // The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
     // Quaternion::Slerp; past the last key frame its values, without key frames the defaults
-    // (kTrackDefaultPosition / kTrackDefaultRotation). Remembers `time` (+0x48).
+    // (kTrackDefaultPosition / kTrackDefaultRotation). Remembers `time`.
     void Evaluate(float time);
 
     // animation_track_lifetime.cpp (A-U10; 0x78 bytes).

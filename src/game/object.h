@@ -24,7 +24,7 @@ int __fastcall UnitGetFlag274(const CUnit* unit);            // slot 55
 float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60
 
 // Slot 7 (GetName) of the base CFigure table (the figure classes' GetName) and of
-// CFakeFigure: CFigureMesh::name_ (+0x120) / SceneMesh::name (+0x94).
+// CFakeFigure: CFigureMesh::name_ / SceneMesh::name.
 const char* __fastcall FigureGetName(const CEngineObject* figure);
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);
 

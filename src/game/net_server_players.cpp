@@ -31,7 +31,7 @@ Connection* HostConnection(const stlp::SharedRefListOf<BindingMessage>& bindings
     return nullptr;
 }
 
-// The common tail of kicking and banning: the client is told to leave and removed (slot 2).
+// The common tail of kicking and banning: the client is told to leave and removed.
 void DropClient(ServerSession* self, Connection* connection) {
     self->SendLeave(&connection->address_, connection->id_);
     ClientNode* node;

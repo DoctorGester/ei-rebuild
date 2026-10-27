@@ -1,8 +1,8 @@
 #pragma once
 
 // The client side of a player's connection (CPlayerClient): it
-// sends the client's requests (+0x5C) compressed to the server and runs the server's messages
-// (+0x34) through its handler table. The single-player game runs it next to
+// sends the client's requests compressed to the server and runs the server's messages
+// Through its handler table. The single-player game runs it next to
 // CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see
 // docs/notes/objects.md.
 
@@ -88,7 +88,7 @@ public:
     // result); without a connected link 1. State 1: 1. State 2: the camera's anchor x, y as
     // message 0x40, then sent. Other states: sent.
     int Pump();
-    // Compresses the queued requests (coder +0x88) and sends them on the link (slot 8);
+    // Compresses the queued requests and sends them on the link;
     // the queue is emptied unless there is no link. 1 without a link, 0 when it is not connected,
     // else the send's result.
     int SendToServer();
@@ -100,7 +100,7 @@ public:
     // Appends the bytes of `source` (rewound) to the received stream, whose pending bits are
     // stored first; its read position stays.
     void AppendReceived(BitStream* source);
-    // One packet from the link, decompressed (+0x28B0) into +0x34 and
+    // One packet from the link, decompressed into +0x34 and
     // dispatched: 1 when there was none or it ran through, 0 without a link, when the receive
     // failed or the dispatch returned 0.
     int ReceiveMessages();
@@ -141,7 +141,7 @@ public:
     // the quest log shows them with the money gained. 0 when the stream runs out.
     int OnItemsReceived();
     // Message 0x80. The party: a sized block loaded into the player's party (with variables;
-    // a multiplayer client keeps its own); the player's recharge list (+0x114) gets every item
+    // a multiplayer client keeps its own); the player's recharge list gets every item
     // whose charge is below its maximum; the client world applies the variables, "party
     // received on client" is logged and the game flow's ReturnLocalParty runs.
     int OnParty();
@@ -166,11 +166,11 @@ public:
     // Message 0x13. A text run as the interface's string event.
     int OnStringEvent();
     // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units
-    // (+0x50D8) lose unit flag 0x400000 and their ids go into a set; the world's pause
+    // Lose unit flag 0x400000 and their ids go into a set; the world's pause
     // flag (byte); a dword (dropped); the new party ids (+0x50D8 resized without keeping its
     // contents), whose units get the flag and, when new to the party, in a session of kind 1
-    // without an owner (+0x24C) and with a game-flow condition, their controller's fade-in; the
-    // set emptied; the danger state to the world's +0x6E4; the other players' unit ids (+0x50E8).
+    // without an owner and with a game-flow condition, their controller's fade-in; the
+    // set emptied; the danger state to the world's +0x6E4; the other players' unit ids.
     int OnPartyState();
     // Clear's state (the +0x50D8 array through SetSize(0)), then the handler
     // table: 256 entries (grown as an aligned array), zeroed, and the 40 handlers by message type
@@ -207,13 +207,13 @@ public:
     // Message 0x0B. Two dwords to the interface's OnUnitSpeech.
     int OnUnitSpeech();
     // Message 0x0C. (id, float) pairs until id -1: the object manager's object gets the float
-    // at +0x28; an unknown id's float is not read (the next id is read from it). 0 when the stream
+    // an unknown id's float is not read (the next id is read from it). 0 when the stream
     // fails.
     int OnObjectValues();
     // Message 0x0F. Two points and a byte: the camera looks from the first at the second
     // (LookFrom) and goes free or not (SetFree).
     int OnFreeCamera();
-    // Message 0x12. A byte and a dword: the dword to the player's world (+0x7C0).
+    // Message 0x12. A byte and a dword: the dword to the player's world.
     int OnWorldValue();
     // Message 0x14. (id, float): the item of the party's item manager gets the float at +0x28
     // and the player's ItemUsed.
@@ -250,7 +250,7 @@ public:
     int OnWorldStream();
     // A unit joined (+0x24C set) or left the player: the interface is
     // told; a multiplayer client whose party has one member, `unit`, puts its id (-1 when it left)
-    // in the login record (+0x2C) and raises its version.
+    // in the login record and raises its version.
     void NotifyUnitChanged(CUnit* unit);
 
     // +0x20 state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.

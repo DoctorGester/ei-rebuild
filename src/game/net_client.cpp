@@ -30,7 +30,7 @@ void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) 
 
 } // namespace
 
-// The queries' constructor (an empty vector and a zero dword). Returns this.
+// The queries' constructor (an empty vector and a zero dword).
 ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
     new (&self->list) stlp::vector<Query>();
     self->extra = 0;
@@ -120,8 +120,8 @@ ClientSession::ClientSession() {
 EI_REWRITTEN_SPECIAL(0x0041BC40, ClientSession::ClientSession);
 
 // What the server receives from this client: the local player's login
-// (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our
-// trade offer (+0x260C) with its members. All priority 1.
+// The timed objects (+0x2604, value) and the file requests, and our
+// trade offer with its members. All priority 1.
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);

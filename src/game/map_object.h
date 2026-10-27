@@ -26,7 +26,7 @@ struct DeltaState;
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 class Terrain;
 
-// An active effect (0x14 bytes; CArray at +0x194).
+// An active effect (0x14 bytes; CArray).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
 // 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.
@@ -40,7 +40,7 @@ struct MapEffect {
     std::uint8_t ending;            // the client plays no end sound when set
     std::uint8_t unused_11[3];
 
-    // spell_lifetime.cpp: type, power, ticksLeft, value and ending cleared (strength not). Returns this.
+    // spell_lifetime.cpp: type, power, ticksLeft, value and ending cleared (strength not).
     MapEffect* Construct();
     // spell_lifetime.cpp (the server object's update). One tick less; whether any are left (0 / 1).
     int Tick();
@@ -136,7 +136,7 @@ public:
     virtual void TakePrototype(const char* prototype);
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
     virtual std::uintptr_t SetStats(const UnitStats* stats);
-    // map_object.cpp: hands `data` (0x58 bytes) to a CMapObjectServer companion. Returns what the original leaves
+    // map_object.cpp: hands `data` to a CMapObjectServer companion. Returns what the original leaves
     // in EAX.
     virtual std::uintptr_t SetServerData(const void* data);
     // Empty; units: the controller's size-class virtual.
@@ -229,7 +229,7 @@ public:
     // The point at the object's offset, moved to the ground height there plus the offset's z. Returns `out`.
     float* GroundPoint(float* out);
 
-    // Replaces the companion (+0x170): the old one is detached (its +0x1C cleared) and
+    // Replaces the companion: the old one is detached (its +0x1C cleared) and
     // released, the new one points back here and gains a reference.
     void AttachCompanion(CEngineObject* companion);
 
@@ -285,13 +285,13 @@ public:
     // The network state read from `reader`: BeginRead, the read virtual with `first`, the state finished. Returns
     // its EAX.
     std::uint32_t ReadState(int first, CMemoryStream* reader);
-    // The second name (+0x1A8) becomes `text`. Returns the string.
+    // The second name becomes `text`. Returns the string.
     mfc::CString* SetSecondName(const char* text);
 
     // The object as its CObject3D base (map_object_figures.h).
     CObject3D* Object3D() { return this; }
 
-    // The packed vitals (+0x17C) and the network state (+0x1C4).
+    // The packed vitals and the network state.
     UnitVitalsPacked* PackedVitals() { return &packedVitals; }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
 
@@ -323,10 +323,10 @@ public:
     int sectorCellY;
     int changeStamp;                // world + 0x68 when last changed
     // +0x1C4 the network state (DeltaState, net_delta.h, up to +0x238: its field records, masks
-    // and two memory streams at +0x1E8 / +0x210); NetState(). Its mask is changedParts.
+    // and two memory streams);  NetState(). Its mask is changedParts.
     std::uint8_t netState[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // bit per part changed (MarkChanged)
-    std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams at +0x1E8 and +0x210
+    std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams and +0x210
 
 protected:
     // map_object_lifetime.cpp: the 3D object, the effect array, the second name, the network record array and its

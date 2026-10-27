@@ -2,7 +2,7 @@
 // picks the Direct3D driver from the settings, creates the device object, fills the transform
 // pipeline's matrix stacks (projection, viewport, the fixed axis swap and their products), sets the
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the
-// ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
+// ambient colour, and creates the counted helper object. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
 #include "app.h"
 #include "device.h"   // the old device's calls
@@ -32,7 +32,7 @@ Matrix4* __stdcall AxisSwapMatrix(Matrix4*);
 namespace {
 
 
-// The device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
+// The device's pipeline holder takes the pipeline: counted first, then the old
 // one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
@@ -201,7 +201,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the caller
+// The counted helper object. The flag is a byte argument: only its low byte is read (the caller
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;

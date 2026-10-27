@@ -1,5 +1,5 @@
 // The client's trade offer (called by the party screens after a change): one member
-// message per party member, kept in our PartyMessage at +0x260C. See net_messages.h and
+// message per party member, kept in our PartyMessage. See net_messages.h and
 // docs/notes/network.md.
 #include "core_streams.h"
 #include "library_containers.h"
@@ -28,7 +28,7 @@ namespace {
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add.
 
-// The received offers (+0x2610): an STLport list of counted PartyMessages.
+// The received offers: an STLport list of counted PartyMessages.
 using OfferNode = stlp::list<RefPtr>::Node;
 
 void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
@@ -64,8 +64,8 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessa
 }
 EI_REWRITTEN(0x00429FC0, FindSameMessage);
 
-// Rebuilds the member messages of our offer (+0x260C) from our party (+0x2620): one per
-// item of the party. Each gives its spell's id, type and packed id and the spell's Save (slot 10),
+// Rebuilds the member messages of our offer from our party: one per
+// item of the party. Each gives its spell's id, type and packed id and the spell's Save,
 // or -1 without a spell, then the item's type and packed id and its own Save. A message equal to
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
@@ -125,7 +125,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
 }
 EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 
-// The received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
+// The received offer that pairs with ours: its partner is our
 // player and its player our partner, and it is live. Null without one.
 PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
@@ -148,7 +148,7 @@ void __fastcall ClientCommitParty(ClientSession* self) {
 }
 EI_REWRITTEN(0x0041E180, ClientCommitParty);
 
-// Rebuilds the partner's party (+0x2690) from the paired offer, once every member message
+// Rebuilds the partner's party from the paired offer, once every member message
 // of it holds data. Each message gives (when its first dword, the spell's id, is positive) a spell
 // made by the party's spell manager (slot 22; CreateObject with the stored type and that id, its
 // packed id set and its Load, slot 9) and an item made by the item manager (slot 18; CreateObject

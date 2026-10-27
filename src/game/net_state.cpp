@@ -1,5 +1,5 @@
 // The network state writers of map objects and units: the virtual slot
-// that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
+// that writes an object's dirty fields into its DeltaState for the clients. See
 // docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
@@ -136,7 +136,7 @@ void CUnit::WriteNetState() {
 namespace {
 
 
-// A companion (+0x170) as its virtual interface.
+// A companion as its virtual interface.
 
 // Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {

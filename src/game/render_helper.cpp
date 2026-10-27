@@ -110,7 +110,7 @@ void AssignStates(StateVector* out, const StateVector& source) {
     out->Finish() = out->Start() + count;
 }
 
-constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for (0x400 bytes)
+constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
 
 
 // The Direct3D driver list (an STLport list; fills it).

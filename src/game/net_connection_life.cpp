@@ -266,7 +266,7 @@ EI_REWRITTEN_SPECIAL(0x004344C0, ReplicaEntry::~ReplicaEntry);
 EI_REWRITTEN_SPECIAL(0x004344A0, ReplicaEntry::~ReplicaEntry);
 
 // (no Ghidra function; the element constructor the connection's constructor passes to the
-// vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.
+// vector constructor iterator): an empty id pool (no free ids, next 0).
 IdPool* __fastcall IdPoolConstruct(IdPool* self) {
     self->free.ConstructEmpty();
     self->next = 0;

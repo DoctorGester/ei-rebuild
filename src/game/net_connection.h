@@ -36,7 +36,7 @@ struct IdPool {
 };
 static_assert(sizeof(IdPool) == 0x10);
 
-// The tracking record of one replicated object (0x14 bytes).
+// The tracking record of one replicated object.
 class ReplicaEntry final : public CRefObject {
 public:
     // As Track inlines it: no object, no version and no id yet (the type and the flags are the

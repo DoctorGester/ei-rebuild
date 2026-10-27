@@ -35,7 +35,7 @@ protected:
 };
 
 // The drawer of a figure mesh (CFigureMesh::drawer_). It is an engine object of class 0x36,
-// "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory makes one
+// "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
 // class. flags_ gets the bits
 // of the animated-mesh flag word when the mesh is animated.
@@ -182,7 +182,7 @@ protected:
     explicit CLinkMeshBase(const stlp::string* name);
 };
 
-// A figure's mesh (0xB0 bytes): the parts' elements concatenated in the arrays. A real virtual class.
+// A figure's mesh: the parts' elements concatenated in the arrays. A real virtual class.
 // The draws go through the device (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:

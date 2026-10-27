@@ -93,7 +93,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     texts[6] = texts[5];
     stream->Read(&unitId, sizeof(unitId));
     stats.LoadFrom(stream);
-    stream->Read(&scaleX, 0xC);   // , +0x728 and the height
+    stream->Read(&scaleX, 0xC);   // +0x728 and the height
     ReadItemIds(stream, ItemList(weapons), g_loadingParty->ItemManager());
     ReadItemIds(stream, ItemList(quickItems), g_loadingParty->ItemManager());
     ReadItemIds(stream, ItemList(armor), g_loadingParty->ItemManager());

@@ -14,7 +14,7 @@ struct LogicSettings {
     // three values each.
     void Load(const char* path);
     // The static initialiser (Ghidra has no function there). The defaults Load
-    // keeps for a missing key, not loaded. Returns this.
+    // keeps for a missing key, not loaded.
     LogicSettings* Construct();
 
     bool loaded;                       // never set by Load

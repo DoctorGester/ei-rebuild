@@ -34,7 +34,7 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 // A unit's virtual slot 55: non-zero when dead.
 bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 
-// The units inside (+0x268): an MFC CList whose elements are counted references.
+// The units inside: an MFC CList whose elements are counted references.
 using VictimList = mfc::CTypedPtrList<CUnit>;
 using VictimNode = VictimList::Node;
 
@@ -44,7 +44,7 @@ using PtrNode = PtrList::Node;
 PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
 // The trap's map object context (object.cpp); the living units of the sides
-// `sides` in the circles of `area` (+0x240), appended to `out` after emptying it (a fastcall
+// `sides` in the circles of `area`, appended to `out` after emptying it (a fastcall
 // with the context in ECX; FindTrapVictims below, called through its address so its verify
 // wrapper sees the call); casting the spell at the newcomers `units` (MagicTrap::CastAtUnits
 // below).
@@ -196,7 +196,7 @@ namespace {
 // The map object context's (the world's) slot 22.
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
-// The units inside (+0x268): CList::RemoveAll inlined, as SetUp, the constructor and the
+// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the
 // destructor all have it (each element's reference released and cleared, the list emptied, its
 // blocks freed).
 void ClearVictims(MagicTrap* trap) {
@@ -271,7 +271,7 @@ void EmptyArray(mfc::CArray<T>& array) {
     array.size = 0;
 }
 
-// The spell (+0x23C), a counted reference: the new one's count raised before the old one is
+// The spell, a counted reference: the new one's count raised before the old one is
 // released.
 void SetSpell(MagicTrap* trap, CSpell* spell) {
     CSpell* old = trap->spell;

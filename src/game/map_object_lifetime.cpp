@@ -202,7 +202,7 @@ EI_REWRITTEN_SPECIAL(0x00529B50, CMapObject::~CMapObject);
 
 
 CUnit::CUnit() {
-    // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
+    // The unit's motion: two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
     m->points.data = nullptr;
     m->points.growBy = 0;

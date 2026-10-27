@@ -151,7 +151,7 @@ std::uint32_t ThroughFpu(std::uint32_t bits) {
     return nan ? bits | 0x00400000u : bits;
 }
 
-// The top of the pipeline's matrix stack at +0x24 (data) / +0x28 (count), transposed. The lower
+// The top of the pipeline's matrix stack (data) / +0x28 (count), transposed. The lower
 // triangle moves up as integers and the upper one down through the FPU.
 void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
     const Matrix4* top = pipeline->Top(CTransformPipeline::kClipStack);

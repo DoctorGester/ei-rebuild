@@ -19,7 +19,7 @@ public:
     CPlayerManager();
     // CBaseManager's destructor.
     ~CPlayerManager() override;
-    // The deleting destructor (slot 0).
+    // The deleting destructor.
     int Create() override;
     const char* GetClassName() override;
     int GetClassId() override;                     // 0x2E
@@ -35,7 +35,7 @@ public:
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
     CEngineObject* CreateSessionPlayer();
-    // `player`'s Release (slot 4); `this` is not used.
+    // `player`'s Release; `this` is not used.
     void ReleasePlayer(CEngineObject* player);
     // Called for the client's message 0x00 and the server's player id. `object` is filed
     // under `id`: its old id's entry erased, its id_ set, maxId_ raised, the table entry set

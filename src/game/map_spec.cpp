@@ -471,7 +471,7 @@ namespace mapspec {
 // ---- The zone's diplomacy table ------------------------------------------------------------------
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader): every pair 1 but a player
-// with itself (0), and the player names "Player-<i>". Returns this.
+// with itself (0), and the player names "Player-<i>".
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     mfc::CStringArray* names = &self->names;
     names->Construct();

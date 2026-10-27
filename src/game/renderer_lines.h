@@ -46,7 +46,7 @@ static_assert(sizeof(LineBuffer) == 0x10);
 extern LineBuffer g_lineVertices;
 inline LineBuffer& LineVertices() { return g_lineVertices; }
 
-// Four points of a line list as the transform object takes them (0x40 bytes).
+// Four points of a line list as the transform object takes them.
 struct LinePacket {
     float x[4];
     float y[4];
