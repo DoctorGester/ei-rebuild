@@ -28,8 +28,7 @@ inline void FreeAligned32(void* data) { gamecrt::operator_delete(static_cast<voi
 // The engine's aligned array (0x10 bytes): data, size, capacity, growth step. CArray's growth
 // rules without the vtable, the element construction or the destruction: new slots keep whatever
 // the block held. Instantiated per element type all over the engine (the animation and figure
-// loaders, the interface's pointer arrays,
-// the renderer's work buffers, ...).
+// loaders, the interface's pointer arrays, the renderer's work buffers, ...).
 template <typename T>
 struct AlignedArray {
     T* data;        // +0x00

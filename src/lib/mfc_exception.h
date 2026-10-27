@@ -56,8 +56,7 @@ public:
 };
 static_assert(sizeof(CSimpleException) == 0x98);
 
-// The four simple exceptions (game.exe's tables; constructors,
-// destructors, nothing of their own).
+// The four simple exceptions (constructors and destructors only, nothing of their own).
 class CResourceException final : public CSimpleException {
 public:
     using CSimpleException::CSimpleException;

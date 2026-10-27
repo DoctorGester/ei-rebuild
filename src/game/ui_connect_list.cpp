@@ -46,7 +46,7 @@ constexpr int kTipUnlisted = 0x9EA4, kTipPassword = 0x9EA5;
 constexpr int kNewGameType = 4;
 constexpr int kGameTypes = 4;
 
-// ExtendedServerName (addon's replacements of the draw calls the
+// ExtendedServerName (the addon's replacement of the draw calls'
 // constants): vanilla / extended.
 struct Layout {
     int rowRight, lineRight, rowLeftPing;

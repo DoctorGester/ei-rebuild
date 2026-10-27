@@ -50,9 +50,6 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     render::ClearDepth(z, rects ? r : nullptr, rects ? n : 0);
 }
 
-// Called through their addresses.
-// Its body part type (item.cpp).
-
 // share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     GameRender();

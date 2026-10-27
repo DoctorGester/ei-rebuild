@@ -32,7 +32,6 @@ constexpr float kNearPointCleared = 100000.0f;
 float InitialCallRadius() { return 10.0f /*0073FED8*/; }
 // A new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
-// The CPtrList the sector map fills (blocks of 10).
 
 } // namespace
 

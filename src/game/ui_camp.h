@@ -802,7 +802,7 @@ public:
     // The hero's shown weapon (+0x774) becomes `weapon`'s
     // place in the hero's weapon list (+0x730), or -1.
     void ShowWeapon(CItem* weapon);
-    // Selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
+    // selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
     void ShowArmour(CItem* item);
     // On the camp's body (body_) while enabled: a right click on
     // one of the first four weapon slots the hero fills plays "change" and shows that weapon; the
@@ -879,7 +879,7 @@ public:
     // Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
-    // Selected_ becomes `item`'s place in the hero's +0x760
+    // selected_ becomes `item`'s place in the hero's +0x760
     // list, or -1.
     void ShowEntry(CItem* item);
     // The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or

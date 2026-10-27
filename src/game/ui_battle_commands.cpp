@@ -39,23 +39,11 @@ float PortraitDelay(std::uint32_t random) {
 // The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize);
 // its data is freed with operator delete.
 using OrderUnits = mfc::CArray<CUnit*>;
-// The toggle's CArray<DWORD> (vtable SetAtGrow).
 
-// The client world: the local view, with 0 clears
-// the selection, controls a unit.
 inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
-// The local view's orders: attack (units, target, kind, ctrl;
-// CPlayerClient::SendAttack), a dead unit (units, target, ctrl).
-// The unit's level.
 
 
-// The local view's spell and quick item orders: on a unit (spell) /
-// (quick item) with (slot, member, target, ctrl), at a point with
-// (slot, member, &point, 0).
-// CUnit::CanCastSpell / CanUseQuickItem and
-// CHudQuickItems::SetUnit, called through their addresses.
-// The HUD panels: quick items (slot, 0), spells (index, 0),
-// actions (index, 0); a sprite's scale.
+// A sprite's scale and opacity; the HUD's quick item slots.
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;

@@ -786,8 +786,6 @@ void CMpConnectScreen::CreateScreen() {
     UiSurfaceReleaseDC(note);
 }
 EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
-// Rebirth's patches in Create: addon's ExtendedServerName sites
-// and EI_Plugin's NPlayers.
 
 // --- the master request box ----------------------------------------------------------------------
 

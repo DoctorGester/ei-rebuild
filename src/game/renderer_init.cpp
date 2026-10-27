@@ -1,4 +1,4 @@
-// The renderer's creation:
+// The renderer's creation. It
 // picks the Direct3D driver from the settings, creates the device object, fills the transform
 // pipeline's matrix stacks (projection, viewport, the fixed axis swap and their products), sets the
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the

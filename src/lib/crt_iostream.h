@@ -103,7 +103,7 @@ struct Ios {
     // ios::init: an owned streambuf deleted, `buffer` attached; badbit while it is null.
     void Init(Streambuf* buffer);
     // ostream's destructor and deleting destructor, entered with the ios (the virtual base) as `this`:
-    // puts back ostream's vtable for the ios; runs it and
+    // puts back ostream's vtable for the ios, runs it and
     // ~ios, then frees the ostream (8 bytes before the ios) under bit 0; it returns the ostream.
     void DestructOstream();
     Ostream* DeleteOstream(unsigned deleteFlags);

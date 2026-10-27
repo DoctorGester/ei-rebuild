@@ -24,7 +24,7 @@ namespace mfc::impl { struct WinThread; }
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
 
-// The drawing thread's procedure (the cursor; runs),
+// The drawing thread's procedure (the cursor),
 // started by AfxBeginThread.
 unsigned __cdecl CursorThreadEntry(void* cursor);
 

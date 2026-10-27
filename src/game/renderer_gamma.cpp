@@ -1,5 +1,4 @@
-// The display's gamma ramp (thiscall
-// 0xC): brightness, contrast and gamma from the options become the gamma ramp (the original's
+// The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (the original's
 // primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame
 // goes to the window). Called by WinMain at start-up and with zeros at exit,
 // and by the options screen when a value changes; no caller reads the

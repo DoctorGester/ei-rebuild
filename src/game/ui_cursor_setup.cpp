@@ -1,7 +1,6 @@
 // The software cursor (CCursor, ui_cursor.h): its set-up Init AddShape (called
 // by the cursor set-up, cursor_setup.cpp, at start and after a display reset), its life
-// cycle, shape and lock and the position update the drawing thread runs
-//. docs/notes/ui.md, section 3.
+// cycle, shape and lock and the position update the drawing thread runs. See docs/notes/ui.md, section 3.
 #include "ui_cursor.h"
 
 #include "texture.h"
@@ -125,7 +124,7 @@ void CCursor::DestroyBody() {
 EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
 // The cursor, zero at the start: built by the static initialiser in the list's order and destroyed by the exit
-// function it registers; (docs/notes/standalone.md,
+// function it registers (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
 CCursor* TheCursor() { return &*g_cursor; }

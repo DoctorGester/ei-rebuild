@@ -23,11 +23,6 @@ constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
 constexpr float kZero = 0.0f;
 
-// Called through their game addresses so the harness sees the
-// calls: UnitParams::WeaponSkillBonus (unit_params_skill.cpp), the damage
-// scale (this file).
-// Scales attack and defence by the difficulty unless `keyed`.
-
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.

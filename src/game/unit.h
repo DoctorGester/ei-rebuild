@@ -996,14 +996,13 @@ struct PartyUnitRecord {
     // inlined for the first two).
     void ClearItems();
 
-    // (party_items.cpp). A copy of `item` (its
-    // Clone with the world's spell manager), counted and appended to the weapons / quick items /
+    // A copy of `item` (its Clone with the world's spell manager), counted and appended to the weapons / quick items /
     // armour / spells; returns the copy.
     CItem* AddWeapon(CItem* item);
     CItem* AddQuickItem(CItem* item);
     CItem* AddArmor(CItem* item);
     CItem* AddSpell(CItem* item);
-    //. Releases `entry` and takes it out of the
+    // Releases `entry` and takes it out of the
     // list (nothing when it is not there).
     void RemoveWeapon(CItem* entry);
     void RemoveQuickItem(CItem* entry);
@@ -1255,7 +1254,7 @@ public:
     // A shown light not held is hidden: the light manager drops it and the client half
     // unlights the figure.
     void HideLight();
-    //. Mode 1: the light (a new default one,
+    // Mode 1: the light (a new default one,
     // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
     // list (+0xD4); mode 2: a light is hidden, its id removed from the list and the light released.
     void SetLightMode(int mode) override;

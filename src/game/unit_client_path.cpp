@@ -23,12 +23,6 @@
 
 namespace {
 
-// The controller's world []; the motion's sample [on unit +0x27C: world, order,
-// time, turning, position (half-cells), direction, speed, cell x, cell y]; the unit's ground height
-// [(x, y)], its turn toward a direction [(direction, flag)], its heading from a
-// direction [], its animation speed factor [(animation)]; the orientation's
-// facing axis [on the quaternion (out)].
-
 constexpr float kCellScale = 1.0f;
 constexpr float kHalf = 0.5f;
 constexpr float kHalfTurn = 3.1416f;

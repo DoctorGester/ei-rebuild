@@ -132,9 +132,7 @@ EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
 namespace {
 
-// The panels' units: weapon bar, quick items (through its address),
-// spells, actions.
-// Its prototype record.
+// A unit's prototype record.
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
@@ -144,29 +142,16 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// Whether this is a network client.
-// The world: the unit with an id, makes
-// `unit` the controlled one, the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
-// vector<int> pieces (library): constructs from an allocator,
-// constructs an element, the reallocating insert, /
-// sort's introsort loop and final insertion sort, assigns
-// the destructors of the two instantiations.
+// vector<int> of ids (the library instantiations).
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 
-// The party CArray<CUnit*> (+0x168): SetSize, SetAtGrow,
-// ConstructElements; the game's memmove.
-// Rebuilds them (`cameraFirst`: the first is the
-// camera's player; the original pushes a dword whose low byte only is set).
-// The children's update: the
-// next queued message: opens a window on top: the
-// message box's constructor.
+// The children's update (CUiContainer::UpdateBase).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// STLport list<CUnit*> (constructor) and list<int> (constructor,
-// end, insert); frees a node.
+// STLport lists of ids and unit pointers.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CEngineObject*>;
@@ -485,10 +470,6 @@ EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
 namespace {
 
-// The text of a key: splits a text
-// at a separator.
-// Adds a line.
-
 // FCOMP; TEST AH,0x40: equal.
 bool Equal(float a, float b) {
     EI_NAN_AUDIT(a, b);
@@ -583,9 +564,6 @@ EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 // --- the selection's refresh ---------------------------------------------------------------------
 
 namespace {
-
-// The panels' highlights (each called with (index, 0)): quick item slot
-// spell, action.
 
 } // namespace
 

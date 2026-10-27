@@ -200,8 +200,6 @@ void CBattleScreen::CreateScreen() {
 
 namespace {
 
-// (the menu object), every frame before the battle screen draws.
-
 constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
 constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 

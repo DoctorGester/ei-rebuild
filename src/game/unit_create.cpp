@@ -30,10 +30,6 @@ constexpr std::uint32_t kExtraRemark = 0x30;
 // The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
 constexpr int kPtrListBlockSize = 10;
 
-// Called through their game addresses (config/direct_calls_skip.csv):
-// UnitStats::RefillSlots in unit_vitals.cpp, a player's message writer in player_messages.cpp.
-// The player takes the items of `list`, a CPtrList.
-
 // The player's message writer (CPlayerServer, player + 0x20).
 CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 

@@ -104,10 +104,6 @@ namespace {
 
 CCursor* Cursor() { return TheCursor(); }   // SetShape
 
-// The message pump.
-// A multiplayer client session; returns AL.
-// The game state's server flag (reads it, sets it; neither reads ECX).
-
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
 // IDirect3DDevice7::SetRenderState (COM).

@@ -33,9 +33,9 @@ public:
     // A direction key released (actions 5-10 of
     // KeyActions) clears its axis and marks the key used; then, when used, the camera's motion is
     // set again from the axes: without Ctrl / Alt it pans along (y_, -x_) at the pan speed
-    // (*, stored as float), turns and tilts not, and climbs *
-    // * z_; with one it does not pan, turns * * y_, climbs, and tilts at
-    // * * x_.
+    // (the speed constants multiplied, stored as float), turns and tilts not, and climbs at the climb speed
+    // * z_; with one it does not pan, turns at the turn speed * y_, climbs, and tilts at the
+    // tilt speed * x_.
     void OnKeyUp(int key, int repeat, int flags);
     // The right button went down: the point kept screen and layout
     // turning_, the mouse-drag motion cleared, the cursor held; the button used.
@@ -43,11 +43,11 @@ public:
     // Released: turning_ cleared, the camera stops turning, tilting
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
     void OnRightUp(int buttons, int x, int y);
-    // (Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
-    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion
-    // (in layout units) turns the camera * * * (dx / 400) * 10 and
-    // tilts it * * * (dy / 300) * 500 (not tilting when it is at rest
-    // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) *
+    // (Rebirth-patched, reproducing WideScreen: the drag scaled without the margin.) The mouse moved.
+    // While turning: the drag motion
+    // (in layout units) turns the camera at the turn speed * (dx / 400) * 10 and
+    // tilts it at the tilt speed * (dy / 300) * 500 (not tilting when it is at rest
+    // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) at the pan speed.
     // The motion is cleared, the cursor takes shape 0x16, the event is used and the
     // layout point kept. Otherwise, when the edge margin is positive: the cursor within
     // the margin of a screen edge pans that way (with the keys' pan added unless Ctrl / Alt is
@@ -56,8 +56,8 @@ public:
     // The input loses the screen: no turning, the axes cleared, the cursor let go,
     // the motion cleared and the camera stopped.
     void OnDeactivate();
-    // The wheel zooms the camera * *
-    // (the delta's low word) * steps.
+    // The wheel zooms the camera by the zoom speed *
+    // (the delta's low word) * the step count.
     BOOL OnWheel(int keys, int delta, int x, int y);
 
     POINT pressScreen_;              // +0x0C where the right button went down (screen)

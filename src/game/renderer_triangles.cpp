@@ -1,5 +1,5 @@
-// The renderer's triangle draw:
-// pre-transformed vertices (FVF 0x1C4) drawn as an indexed triangle
+// The renderer's triangle draw of
+// pre-transformed vertices (FVF 0x1C4) as an indexed triangle
 // list with the current state, fogged first by distance when the device's distanceFog_ is set (the
 // transform object's FogVertices). Used by the flying hit points. The new renderer
 // (src/render) takes the draw; with the old path's objects off it is skipped. See

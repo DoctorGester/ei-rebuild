@@ -1,5 +1,4 @@
-// The camp's two action buttons and taking a spell container apart
-//. See docs/notes/ui.md, section 5.
+// The camp's two action buttons and taking a spell container apart. See docs/notes/ui.md, section 5.
 #include "item_stock.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -26,7 +25,6 @@ const char* const kBuySound = "buttons\\camp\\buy.wav";
 const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
-// The spell prototypes by name: SpellTable::Named.
 
 // Pages of the action buttons.
 enum CampPage {

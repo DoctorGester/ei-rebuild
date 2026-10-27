@@ -261,7 +261,7 @@ public:
     // 24 high from y 12): "topic_prefix" text + " " + the topic's title, white for
     // hoveredTopic_, else 0xA7D7E4.
     void DrawTopics();
-    // Topics_ becomes the topics of the person whose
+    // topics_ becomes the topics of the person whose
     // name has the text key `personId`: every "b.<person>.<topic>" variable equal to 1 (bit
     // compare), in the variable table's order (a network client sorts them),
     // and last the last "constr..." one found.
@@ -271,7 +271,7 @@ public:
     // (lowercased; "constr..." topics share "briefing constr"), empty without one.
     mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
 
-    // PersonTexts_ gets the "pers <name>" texts (LoadPersonTexts).
+    // personTexts_ gets the "pers <name>" texts (LoadPersonTexts).
     void LoadPersonTexts();
 
     // The dialogue (ui_briefing_dialogue.cpp).
@@ -350,7 +350,7 @@ public:
     // storage) and the topics; the dialogue text and the topic (the original frees
     // them among those), then the container's.
     ~CBriefingScreen() override;
-    // ChatActive_ = `mode`.
+    // chatActive_ = `mode`.
     void SetChatActive(int mode);
 
     // The next phrase of the current text: its lines up

@@ -176,7 +176,7 @@ public:
     // Composes the unit's skin texture through the texture manager
     // from the skin layers and the textures "<prototype>skin_<nn>.mmp" and
     // "<prototype><armour or weapon texture>.mmp", named "mo<id>p" / "prot<prototype>p" (or
-    // ...s when not `detailed`). Returns the texture.
+    // the shorter names when not `detailed`). Returns the texture.
     void* ComposeSkin(int detailed, void* target);
 
     // The point the weapon

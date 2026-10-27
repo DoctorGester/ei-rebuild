@@ -254,8 +254,6 @@ int ItemType(const CItem* item) { return item->type_; }
 double D(float f) { return f; }
 } // namespace
 
-// Prices; CanEquip follows.
-
 namespace {
 constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
@@ -834,9 +832,6 @@ EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 // --- the trade panel's destructor body -----------------------------------------------------------
 
 namespace {
-
-// Frees a vector's block of 0x3C-byte entries (STLport node
-// allocator for small blocks): the same for 0x18-byte entries.
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {

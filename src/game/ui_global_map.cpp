@@ -102,9 +102,6 @@ private:
     NamedFloatTable table_;
 };
 
-// The scene renderer (what returns).
-// Saves the game into saves\<name> (ECX name, DL flag).
-
 // --- Sprite fields set directly -------------------------------------------------------------------
 
 // Float fields are written with their bits, as the original's immediate stores do.
@@ -677,7 +674,7 @@ void DestroyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap::~CGlobalMap() {
-    arrivals_.Destroy();   // on the root,
+    arrivals_.Destroy();
     stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
                                         sizeof(GlobalMapStep));
     DestroyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());

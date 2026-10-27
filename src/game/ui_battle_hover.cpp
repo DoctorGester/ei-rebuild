@@ -41,17 +41,9 @@ constexpr int kCursorOrder = 0x18;
 void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 
 
-// The client world: the object under a screen point (x, y pair), the ground point under
-// a screen point (PickSurface), the zone exit at a point (FindExitAt).
-// The local player glue: an exit's zone name, the local
-// player's variable `name`.
-// Units: the prototype record, IsHostileTo,
-// CanCastSpell(index, point)CanUseQuickItem(index, point) (0 = can),
-// the quick item; an item's category.
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
-// Shows `unit` in the unit panel block `block`.
 
 // fcomp with 0.0 and: true for zero (either sign).
 bool IsZero(float value) {

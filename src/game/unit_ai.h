@@ -231,7 +231,7 @@ struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
     // The base vtable, every point's looks freed, then the buffer (pointer and
     // count kept).
     void Destruct();
-    //. Destruct, then operator delete when `flags` bit 0 is set; returns this.
+    // Destruct, then operator delete when `flags` bit 0 is set; returns this.
     PatrolPoints* DeletingDestruct(int flags);
     // (unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
     // `out` (a new look array); returns `out`.
@@ -744,7 +744,7 @@ struct AIAttention {
     void Build(CUnit* unit);
     // Fills `option`'s leading fields.
     void InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius, int effect);
-    //. Appends an option to `weapons` / `spells`; returns its damage.
+    // Appends an option to `weapons` / `spells`; returns its damage.
     std::uint16_t* AddWeaponOption(int kind, int part, float range, int maxCount, float radius, int effect);
     std::uint16_t* AddSpellOption(int kind, int part, float range, int maxCount, float radius, int effect);
     // The option kind of a spell by its type (high word of +0x18):
@@ -1153,5 +1153,4 @@ static_assert(sizeof(AIBrain) == 0x190);
 static_assert(offsetof(AIBrain, attention) == 0xA4);
 
 // The script-made modes' constructors and slots are members of the mode classes
-// above (script_unit_modes.cpp). Slots of 3 bytes (MOV AL,1, XOR EAX,EAX ...) cannot be
-// hooked:.
+// above (script_unit_modes.cpp).

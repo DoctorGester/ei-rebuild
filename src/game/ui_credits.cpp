@@ -1,5 +1,4 @@
-// The titles window's frame and close and its script lines' destructor
-//. The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
+// The titles window's frame and close and its script lines' destructor. The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
 #include "app.h"
 #include "app_helpers.h"
