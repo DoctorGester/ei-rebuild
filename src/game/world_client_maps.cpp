@@ -148,7 +148,6 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
         double dy = print.position_.y - py;
         double distance = libcrt::Hypot(dx, dy);
         float limit = print.scale_ * factor;
-        // Visible unless the distance is greater.
         EI_NAN_AUDIT(distance, limit);
         if (distance <= static_cast<double>(limit)) print.visible_ = 1;
     }
@@ -422,7 +421,6 @@ void CWorldClient::DropShadows() {
 }
 
 void CWorldClient::RemoveObject(int id) {
-    // The object's platform faces.
     PlatformList& platforms = platforms_.list;
     for (PlatformNode* node = platforms.head; node;) {
         PlatformNode* next = node->next;
@@ -753,7 +751,6 @@ constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 
 int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
     *out = nullptr;
-    // Steeper faces are left out.
     EI_NAN_AUDIT(normal->z);
     if (normal->z < kSteepest) return 0;
     PlatformNode* last = list.head;
@@ -1120,7 +1117,7 @@ int CWorldClient::Create() {
     manager44_ = NewCounted<CClientSpecificManager>();
     manager44_->Init(this);
     textureManager_ = NewCounted<CTextureManager>();
-    textureManager_->CBaseManager::Init(this);   // called directly
+    textureManager_->CBaseManager::Init(this);
     manager188_ = NewCounted<CMaterialManager>();
     manager188_->Init(this);
     manager190_ = NewCounted<CLightFactory>();

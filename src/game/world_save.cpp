@@ -68,13 +68,11 @@ constexpr int kSharedObjectNodeSize = 0x28;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// MFC CArray<int>.
 using IdArray = mfc::CArray<int>;
 
 // MFC CArray of counted item pointers (SharedObject::objects, world.h).
 using ObjectPtrArray = CountedPtrs<CItem>;
 
-// The shared-object list is CWorldServer::sharedObjects_ (world.h).
 using SharedObjectNode = SharedObjectList::Node;
 static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
@@ -93,7 +91,6 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// Reads a zero-terminated string; constructs the CString at `out` and returns it.
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
@@ -146,7 +143,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CMapObject* object = ObjectSlots(manager40_->FindObject(id));   // a map object (manager40_)
+        CMapObject* object = ObjectSlots(manager40_->FindObject(id));
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
@@ -726,7 +723,6 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 
 namespace {
 
-// UnitStats::RefillSlots on the controller's stats.
 
 } // namespace
 
