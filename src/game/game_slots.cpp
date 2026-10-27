@@ -1,5 +1,5 @@
-// The scalar deleting destructors of the MFC collections that destroy game elements (game_slots.h,
-// ticket S6a): each calls its class's destructor (ours, registered elsewhere) directly.
+// The scalar deleting destructors of the MFC collections that destroy game elements (game_slots.h): each calls its
+// class's destructor (ours, registered elsewhere) directly.
 #include "game/game_slots.h"
 
 #include "game/record_arrays.h"
@@ -27,7 +27,7 @@ EI_REWRITTEN(0x00427600, gamelists::EngineObjects::Destruct<ItemObjectListClass>
 EI_REWRITTEN(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
 EI_REWRITTEN(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Class>);
 EI_REWRITTEN(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
-// ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------
+// ---- Scalar deleting destructors -------------------------------------------------------------------
 
 // Over the destructors above.
 EI_REWRITTEN(0x00429160, ScalarDeleting<&gamelists::EngineObjects::Destruct<ItemObjectListClass>>::Delete);
@@ -72,7 +72,7 @@ EI_REWRITTEN(0x004D6590, ScalarDeleting<&ScriptDefinesDestruct>::Delete);
 EI_REWRITTEN(0x00558780, ScalarDeleting<&gamelists::OwnedRefs::Destruct<OwnedRefListClass>>::Delete);
 EI_REWRITTEN(0x0059B4D0, ScalarDeleting<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>::Delete);
 
-// ---- Serialize (vtable slot 2) -------------------------------------------------------------------
+// ---- Serialize -------------------------------------------------------------------------------------
 
 // Arrays whose elements SetSize builds and destroys through the game's code.
 EI_REWRITTEN(0x005701F0, gamearrays::ObjectPtrs::Serialize);   // the client maps' object pointers

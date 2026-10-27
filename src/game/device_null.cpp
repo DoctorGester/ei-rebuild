@@ -1,11 +1,10 @@
-// The switch-over device (ticket R9a; device.h, docs/notes/renderer.md section 9). With the new
-// renderer presenting, the device object has no DirectDraw object and no Direct3D device: its
-// IDirectDraw7 (+0x0C) and IDirect3DDevice7 (+0x54) pointers hold two tokens (below), not interfaces.
-// The calls of device.h know them and answer from the switch-over device's state: what the game reads
-// back stays consistent (the render and texture stage states set, fed to the new renderer's mirror as
-// well, render_state.h; state blocks recorded and applied; the capability, display mode and video
-// memory queries answered with fixed values, the old device's under dgVoodoo where the game's logic
-// depends on them). A method called through a token directly ends the run naming its caller.
+// The switch-over device (device.h, docs/notes/renderer.md section 9). With the new renderer presenting, the
+// device object has no DirectDraw object and no Direct3D device: its IDirectDraw7 (+0x0C) and IDirect3DDevice7
+// (+0x54) pointers hold two tokens (below), not interfaces. The calls of device.h know them and answer from the
+// switch-over device's state: what the game reads back stays consistent (the render and texture stage states set,
+// fed to the new renderer's mirror as well, render_state.h; state blocks recorded and applied; the capability,
+// display mode and video memory queries answered with fixed values, the old device's under dgVoodoo where the
+// game's logic depends on them). A method called through a token directly ends the run naming its caller.
 #include "device.h"
 
 #include "render/render_state.h"
@@ -64,9 +63,9 @@ const DDPIXELFORMAT kTextureFormats[] = {
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '2')),
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '3')),
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '4')),
-    // Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5: without it
-    // ParseMmpHeader finds no format, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes
-    // on), the battle screen misses a texture and its sprites bind garbage (ticket R9c).
+    // Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5: without it ParseMmpHeader finds no
+    // format, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes on), the battle screen misses a texture and
+    // its sprites bind garbage.
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '5')),
 };
 
@@ -461,10 +460,9 @@ std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
     return g_switchOver.StageState(stage, state);
 }
 
-// ---- The rewritten code's device calls (ticket R9b) ----------------------------------------------
-// Every call answers from the switch-over's state: the device object holds tokens, never interfaces
-// (the interface argument, the object's +0x54 / +0x0C, is not used). game.exe's own runs build no
-// switch-over device and do not come here.
+// ---- The device calls of the rewritten code ----------------------------------------------
+// Every call answers from the switch-over's state: the device object holds tokens, never interfaces (the interface
+// argument, the object's +0x54 / +0x0C, is not used).
 
 void AddRef(IDirect3DDevice7*) {}
 void Release(IDirect3DDevice7*) {}

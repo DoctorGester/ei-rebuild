@@ -20,15 +20,12 @@
 
 namespace {
 
-// STLport members (library), called as the original does: the party map's clear() (004AD050,
-// gamehash::PartyAbi's), resize(n) of
-// the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
-// an entry's ids.
-// (The record and template vectors' resize, 004AD700 / 004AD8D0: stlp::CountedRefVector's.)
+// STLport members (library): the party map's clear() (gamehash::PartyAbi's), resize(n) of the entry, record and
+// template vectors (null pointers / empty entries appended), resize(n, x) of an entry's ids. (The record and
+// template vectors' resize: stlp::CountedRefVector's.)
 
-// The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
-// pointers, whose release the original inlines: one reference less, the
-// object deleted (slot 0 with 1) at zero.
+// The records and templates are reference-counted objects held by counted pointers, whose release is inlined: one
+// reference less, the object deleted at zero.
 void Release(CRefCounted* counted) {
     if (counted && --counted->refs_ == 0) delete counted;
 }
@@ -183,7 +180,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 }
 EI_REWRITTEN(0x004A64B0, NamedPartyRecords::Serialize);
 
-// ---- The archived objects (slot 1 Serialize) ---------------------------------------------------------
+// ---- The archived objects (Serialize) ---------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
     CMemoryStream local;
@@ -230,8 +227,8 @@ EI_REWRITTEN(0x004A6C40, ClassTemplate::Serialize);
 
 namespace {
 
-// `to` becomes a copy of `from` (with variables) through a memory stream, as the original inlines
-// it (CParty::Assign without its Clear).
+// `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
+// inlines it.
 void CopyParty(CParty* to, CParty* from) {
     CMemoryStream local;
     from->SaveParty(&local, 1);
@@ -269,8 +266,8 @@ EI_REWRITTEN(0x004A6360, NamedPartyRecords::EndRedeploy);
 
 namespace {
 
-// The archive's contents, the same calls for both directions. The containers' serialisers get an
-// unused third argument (the original passes a stack leftover).
+// The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
+// argument (a stack leftover).
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties, nullptr);
     ar->SerializePartyEntries(2, &manager->entries, nullptr);

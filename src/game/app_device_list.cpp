@@ -1,5 +1,5 @@
-// The lever table's records (LeverRecord, lever.h: Levers.ldb, 0x2C bytes; WinMain's start-up
-// 00463390, patched by Rebirth, loads them from a chunk archive): the record's fields, its
+// The lever table's records (LeverRecord, lever.h: Levers.ldb, 0x2C bytes; Rebirth patches the
+// start-up code that loads them from a chunk archive): the record's fields, its
 // compiler-made members and the list's archiving. The list is an STLport vector (its algorithms
 // are library code). See docs/notes/app.md.
 #include "chunk_archive.h"
@@ -62,7 +62,7 @@ LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
 
-// 00465A70 / 00465BC0: copy constructor and assignment; both return this.
+// Copy constructor and assignment; both return this.
 LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
     new (&name) mfc::CString(from->name);
     app::CopyPlain(this, from);
@@ -84,9 +84,8 @@ EI_REWRITTEN(0x00465BC0, LeverRecord::Assign);
 
 namespace app {
 
-// 00465B20 (library, STLport's copy for the records; RET 0xC, the last two arguments its tags):
-// each record of [first, last) assigned to the next of `result`, first to last (the assignment
-// inline); returns the end of the copy.
+// STLport's copy for the records: each record of [first, last) assigned to the next of `result`,
+// first to last (the assignment inline); returns the end of the copy.
 LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) result->Assign(first);
     return result;

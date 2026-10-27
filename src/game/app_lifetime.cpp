@@ -1,10 +1,9 @@
-// Creators and destructors the application's start registers or runs (A-E1):
-//  - the creators of the class registry at 0079B270: id 1 a class template, id 2 a named
+// Creators and destructors the application's start registers or runs:
+//  - the creators of the class registry: id 1 a class template, id 2 a named
 //    party record; the registry makes these objects when a saved party manager is loaded;
-//  - the party record's destructor (004577E0, its slot 0 004577C0);
-//  - the DirectInput mouse's destructor (004578D0, deleting 004578B0), run when the application
-//    drops the mouse at exit;
-//  - the party manager's destructor, which the C runtime runs at exit on 007AA5A0.
+//  - the party record's destructor;
+//  - the DirectInput mouse's destructor, run when the application drops the mouse at exit;
+//  - the party manager's destructor, which the C runtime runs at exit.
 // Main thread. See docs/notes/app.md.
 #define DIRECTINPUT_VERSION 0x0700
 #include "class_templates.h"
@@ -37,7 +36,7 @@ void ReleaseCounted(CRefCounted* object) {
 
 // ---- The registry's creators ----------------------------------------------------------------------
 
-// The original clears the count dword before testing the allocation; ours tests first.
+// The count dword is cleared only after the allocation has been tested.
 PartyRecord* __cdecl CreatePartyRecord() {
     auto* record = new PartyRecord();
     if (!record) return nullptr;
@@ -62,10 +61,10 @@ EI_REPLACE(0x00457850, CreateClassTemplate);
 
 PartyRecord::PartyRecord() {
     new (Party()) CParty();
-    Party()->Create();   // slot 2
+    Party()->Create();
 }
 
-// The original destroys the name before the party's destructor; ours after (it is a member).
+// The name is destroyed after the party's destructor (it is a member).
 PartyRecord::~PartyRecord() {
     Party()->Destroy();
     Party()->~CParty();
@@ -113,9 +112,8 @@ PartyManager* PartyManager::Construct() {
 }
 EI_REWRITTEN(0x004A5870, PartyManager::Construct);
 
-// The manager, empty at the start: built by the static initialiser 004A56D0 in the list's order and destroyed by the exit
-// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
-// "The static initialisers' objects").
+// The manager, empty at the start: built by a static initialiser in the list's order and destroyed by the exit
+// function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 

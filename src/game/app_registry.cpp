@@ -1,7 +1,7 @@
 // Registers an object type with a factory in a two-way type registry (called twice by
 // WinMain): a prototype made by the factory gives the vtable; vtable -> id in the STLport
 // hash_map at +0, id -> factory in the one at +0x14 (the same scheme as the network's
-// TypeRegistry::Register, 0042A890). See docs/notes/app.md.
+// TypeRegistry::Register). See docs/notes/app.md.
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -28,16 +28,15 @@ void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* 
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype, 4);
     auto* tables = static_cast<Table*>(self);
-    // operator[] as inlined: find_or_insert of {key, 0} (resize 0042B9C0 / 0040BAC0, new node
-    // 0042B8A0 / 0040B440).
+    // operator[] as inlined: find_or_insert of {key, 0}.
     tables[0].FindOrInsert({vtable, 0})->value = id;
     tables[1].FindOrInsert({id, 0})->value = reinterpret_cast<std::uint32_t>(factory);
-    if (prototype && --prototype->refs_ == 0) delete prototype;   // slot 0 with 1
+    if (prototype && --prototype->refs_ == 0) delete prototype;
 }
 EI_REWRITTEN(0x00458570, TypeRegistryRegister);
 
-// 00458540 / 00458550 / 004586E0: destructors of WinMain's locals, reached only when an exception
-// unwinds it: two COM pointers (Release) and a counted object (deleted at its last reference).
+// Destructors of WinMain's locals, reached only when an exception unwinds it: two COM pointers
+// (Release) and a counted object (deleted at its last reference).
 void __fastcall ComPointerRelease(void** self) {
     if (void* object = *self) static_cast<IUnknown*>(object)->Release();
 }

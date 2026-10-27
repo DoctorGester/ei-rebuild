@@ -16,19 +16,17 @@ EI_REWRITTEN(0x004607B0, ZoneRecords::DestructElements);
 EI_REWRITTEN(0x0044F7E0, BlocksAt8::SetSize);
 EI_REWRITTEN(0x00452DF0, BlocksAt8::DestructElements);
 EI_REWRITTEN(0x00453700, BlocksAt4::DestructElements);
-// The destructors of global arrays only exit functions call: the vtable back, the elements
-// destroyed, the storage freed. Plain elements: the sector spiral's radius tree keys (CArray<float>,
-// The exit function 005BF860) and offsets, the path smoother's node
-// pool, the particles' draw order. The script quest's
-// objectives: each objective's text.
+// The destructors of global arrays only exit functions call: the vtable back, the elements destroyed, the storage
+// freed. Plain elements: the sector spiral's radius tree keys (CArray<float>, whose exit function is shared) and
+// offsets, the path smoother's node pool, the particles' draw order. The script quest's objectives: each
+// objective's text.
 EI_REWRITTEN(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
 EI_REWRITTEN(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
 EI_REWRITTEN(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
 EI_REWRITTEN(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
 EI_REWRITTEN(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
-EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical to 005C4490
-// Their constructors, which the static initialisers call: the
-// compiled table stored, the rest zero.
+EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical copy
+// Their constructors, which the static initialisers call: the compiled table stored, the rest zero.
 EI_REWRITTEN(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
 EI_REWRITTEN(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
 EI_REWRITTEN(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Construct);
@@ -50,7 +48,7 @@ EI_REWRITTEN(0x004C2050, ObjectRefs::SetSize);
 EI_REWRITTEN(0x004C2200, ObjectRefs::RemoveAt);
 EI_REWRITTEN(0x004CC7D0, ObjectRefs::DestructElements);
 EI_REWRITTEN(0x0052CEC0, ObjectRefs::DestructElements);
-EI_REWRITTEN(0x004C2290, ScriptGroup::DestructBody);   // byte-identical to 004B5EF0
+EI_REWRITTEN(0x004C2290, ScriptGroup::DestructBody);   // byte-identical copy
 EI_REWRITTEN(0x004CB150, PointLights::Destruct<PointLightArrayClass>);
 EI_REWRITTEN(0x004CB650, Areas::Destruct<mfc::impl::ScriptAreaArrayClass>);
 EI_REWRITTEN(0x004CB310, Definitions::Destruct<recordarrays::DefinitionArrayClass>);

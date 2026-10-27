@@ -1,7 +1,5 @@
-// Item copies and item lists: CItem::Clone / CopyTo and the subclasses' CopyTo
-// the party's item list
-// and the party unit records' four item lists (006608D0-00661000). See
-// party.h, item.h, unit.h and docs/notes/items_spells.md ("Party item lists").
+// Item copies and item lists: CItem::Clone / CopyTo and the subclasses' CopyTo, the party's item list and the party
+// unit records' four item lists. See party.h, item.h, unit.h and docs/notes/items_spells.md ("Party item lists").
 #include "base_manager.h"
 #include "item.h"
 #include "party.h"
@@ -20,10 +18,10 @@ namespace {
 static_assert(offsetof(PartyUnitRecord, weaponGrowBy) - offsetof(PartyUnitRecord, weapons) == 0xC);
 static_assert(sizeof(PartyItemArray) == 0x10);
 
-// A flag argument the original reads as a byte.
+// A flag argument read as a byte.
 bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
-// Appends `item` to `list` (the original's inlined SetSize(count + 1) and store).
+// Appends `item` to `list` (SetSize(count + 1) and store, inlined).
 void Append(PartyItemArray& list, CItem* item) {
     int index = list.size;
     list.SetSize(index + 1, -1);
@@ -37,7 +35,7 @@ void RemoveAt(PartyItemArray& list, int index) {
     --list.size;
 }
 
-// The world's spell manager (the item's manager context, slot 22).
+// The world's spell manager (the item's manager context).
 CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 CItem* AddEntry(CItem**& data, CItem* item) {
@@ -90,7 +88,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
 }
 
 
-// The subclasses' slot 15: the base copy, then their own dwords.
+// The subclasses' copy virtual: the base copy, then their own dwords.
 BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyTo(target, spells)) return 0;
     CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
@@ -217,10 +215,10 @@ EI_REWRITTEN(0x00660E10, PartyUnitRecord::RemoveArmor);
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 EI_REWRITTEN(0x00660FF0, PartyUnitRecord::RemoveSpell);
 
-// --- 00660840 (A-H25): the weight a unit record carries ---------------------------------------------
+// --- The weight a unit record carries ---------------------------------------------
 
 namespace {
-// One running sum over the lists, in the original's order.
+// One running sum over the lists, in this order.
 void AddListWeight(float& weight, CItem* const* list, std::uint32_t count) {
     for (int i = 0; i < static_cast<int>(count); ++i) {
         if (list[i]) weight += list[i]->Weight();

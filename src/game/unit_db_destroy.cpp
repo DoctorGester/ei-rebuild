@@ -1,7 +1,7 @@
 // Lifetime of the unit databases (docs/notes/units.md): the unit database at 007AF358 (constructor
 // 00539A10, destructor 0053A050), its prototype / NPC / model tables alone (00539B20, 00539CE0,
 // 00539E70), the record destructors and the skill database at
-// 007AF268. All are thiscall (or fastcall) with no arguments; the destructors run at exit
+// All are thiscall (or fastcall) with no arguments; the destructors run at exit
 // (0053A050 and 0051FB50 from the dynamic atexit functions 0053A040 / 0051FB40) and when the
 // database file changes (0057DEE0 destroys each table, constructs the database again and loads it);
 // the record destructors also from the tables' erase / reallocation code.

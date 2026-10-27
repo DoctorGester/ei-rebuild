@@ -1,8 +1,7 @@
 #pragma once
 
-// Named party records (0x7C bytes; game.exe's vtable 0073C360, a counted object): a party object and the name
-// scripts refer to it by. The object at 007AA5A0 keeps them in a vector at +0x24 followed by two
-// strings. Names are provisional.
+// Named party records (0x7C bytes, a counted object): a party object and the name scripts refer to it by.
+// The party manager keeps them in a vector at +0x24 followed by two strings. Names are provisional.
 
 #include "core_refcount.h"
 #include "party_storage.h"
@@ -18,29 +17,27 @@ class ChunkArchive;
 
 class PartyRecord : public CRefCounted {
 public:
-    // The record's constructor (inlined in its creators; the count is theirs): the party
-    // constructed and created (slot 2), an empty name.
+    // The record's constructor (inlined in its creators; the count is theirs): the party constructed and
+    // created, an empty name.
     PartyRecord();
-    // 004577E0 (deleting: 004577C0; app_lifetime.cpp): the party destroyed (slot 3) and its
-    // destructor, the name.
+    // Deleting destructor (app_lifetime.cpp): the party destroyed and its destructor, the name.
     ~PartyRecord() override;
-    // 004A5AF0 (slot 1, RET 4; party_manager.cpp). The name as string field 1, the party (SaveParty /
-    // LoadParty with variables) as stream field 2.
+    // Serialize: the name as string field 1, the party (SaveParty / LoadParty with variables) as stream
+    // field 2.
     void Serialize(ChunkArchive* ar) override;
 
-    PartyStorage party;         // +0x08 the party (constructor 00661050)
+    PartyStorage party;         // +0x08 the party
     mfc::CString name;          // +0x78 "" for the unnamed record
 
     CParty* Party() { return party.Get(); }
 };
 static_assert(sizeof(PartyRecord) == 0x7C);
-// 00457740 (A-E1; app_lifetime.cpp). A new unnamed record with no references (operator new and the
-// constructor: the party constructed and created, an empty name). The application's start
-// registers it with the class registry at 0079B270 as class 2.
+// A new unnamed record with no references (operator new and the constructor: the party constructed and
+// created, an empty name). The application's start registers it with the class registry as class 2.
 PartyRecord* __cdecl CreatePartyRecord();
 static_assert(offsetof(PartyRecord, name) == 0x78);
 
-// The named records (007AA5A0 +0x24): an STLport vector of counted pointers, then two strings.
+// The named records (+0x24): an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
     // The party (+0x08) of the first record named `name` (_mbscmp), else of the
     // last unnamed record, else null.
@@ -54,13 +51,13 @@ struct NamedPartyRecords {
     mfc::CString text0C;        // +0x0C
     mfc::CString text10;        // +0x10
 
-    // 004A64B0 (RET 4; party_manager.cpp). Chunk 1: the records as object references (field 1 per
-    // chunk 1; loading releases the old ones first); then the strings as fields 2 and 3.
+    // Chunk 1: the records as object references (field 1 per chunk 1; loading releases the old ones first);
+    // then the strings as fields 2 and 3.
     void Serialize(ChunkArchive* ar);
-    // The redeploy (004A8890 / 004A8880; party_manager.cpp), RET 4 each. The record a name picks is
-    // found as PartyRecordsFind does (the unnamed one when no record has the name).
-    // The record named text10 gets a copy of `party` (SaveParty / LoadParty through a
-    // memory stream); then every record's party gets `party`'s variables, zone name and +0x6C.
+    // The redeploy (party_manager.cpp). The record a name picks is found as PartyRecordsFind does (the
+    // unnamed one when no record has the name). The record named text10 gets a copy of `party` (SaveParty /
+    // LoadParty through a memory stream); then every record's party gets `party`'s variables, zone name and
+    // +0x6C.
     void BeginRedeploy(CParty* party);
     // `party` gets a copy of the record named text0C, or is cleared (Clear(1, 0)) when
     // there is none; then text10 = text0C.
@@ -68,24 +65,18 @@ struct NamedPartyRecords {
 };
 static_assert(sizeof(NamedPartyRecords) == 0x14);
 
-// 004A5BD0 (__thiscall, new game). Releases every record, empties the two strings, adds one
-// unnamed record and gives its party the member "Hero" ("Human Hero"), the zone text "gz1g" and
-// the variable gtime = 6.
+// New game: releases every record, empties the two strings, adds one unnamed record and gives its party the
+// member "Hero" ("Human Hero"), the zone text "gz1g" and the variable gtime = 6.
 void __fastcall PartyRecordsReset(NamedPartyRecords* list);
 
-// The party manager (007AA5A0, party_manager.h). __thiscall.
-// 004A88A0 / 004A88C0: new game; the records reset, then five / four templates.
+// The party manager (party_manager.h). __thiscall. New game: the records reset, then five / four templates.
 struct PartyManager;
 void __fastcall PartyManagerNewGame(PartyManager* manager);
 void __fastcall PartyManagerNewGameFour(PartyManager* manager);
-// (004A8890 / 004A8880 are PartyManager::BeginRedeploy / EndRedeploy.)
-// *out = the counter at 0078B0E8, then the counter is raised; returns it.
+// *out = the global counter, then the counter is raised; returns it.
 int __stdcall PartyNextId(int* out);
-// (004A8790 / 004A8800 are PartyManager::LoadParty / StoreParty.)
 
-// 004BAEC0 (__fastcall: ECX player, EDX name; script_runtime_helpers.cpp). The party a script's
-// "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty without "::")
-// equal to the manager's current name (007AA5A0 +0x34, NamedPartyRecords::text10) gives the
-// player's own party (+0x70), any other the records' party of that owner (PartyRecordsFind).
-// Null without a player.
+// The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
+// without "::") equal to the manager's current name (NamedPartyRecords::text10) gives the player's own
+// party (+0x70), any other the records' party of that owner (PartyRecordsFind). Null without a player.
 CParty* __fastcall PartyForScript(void* player, mfc::CString* name);

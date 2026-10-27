@@ -1,7 +1,8 @@
-// The registry key of the options and the game's folders (game_singletons.h): five CStrings, each built empty by its
-// static initialiser (0055E760-0055E860) in the list's order and destroyed once by the exit function it registers
-// (a guard bit each in 007AF438). The initialisers and exit functions are ported on the names and registered at their
-// addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// The registry key of the options and the game's folders (game_singletons.h): five CStrings, each built empty
+// by its
+// static initialiser in the list's order and destroyed once by the exit function it registers (a guard bit each).
+// The initialisers and exit functions are registered under their names (docs/notes/standalone.md, "The static
+// initialisers' objects").
 #include "game_singletons.h"
 
 #include "ei/hook.h"

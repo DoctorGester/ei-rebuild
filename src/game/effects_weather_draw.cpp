@@ -1,5 +1,5 @@
-// The visibility fog's draw (004E1EB0: its cells as sprites through the scene renderer) and the
-// rain / snow layer's work arrays. A-S12; see docs/notes/renderer.md (section 12).
+// The visibility fog's draw (its cells as sprites through the scene renderer) and the rain / snow layer's work
+// arrays. See docs/notes/renderer.md (section 12).
 #include "effects.h"
 #include "at_exit_functions.h"
 #include "figure_mesh.h"   // VertexPacket
@@ -29,9 +29,9 @@ struct FogSprite {
     const FogTile* tile;
 };
 
-// The draw's work arrays, statics of the original function: the sprites' centres and sizes and their records (a
-// CArray of SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. The
-// exit handlers that free them are 004E2280 (the records) and 004E2260 (the points), both ported here.
+// The draw's work arrays (function-local statics): the sprites' centres and sizes and their records (a CArray of
+// SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. Exit handlers
+// free the records and the points.
 using FogPointArray = lib::AlignedArray<ParticleVertex>;
 using FogSpriteArray = mfc::CArray<FogSprite>;
 constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
@@ -39,7 +39,7 @@ lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
 void __cdecl FreePoints() { g_points.FreeData(); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
 FogSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 004E2280
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;

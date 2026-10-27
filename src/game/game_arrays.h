@@ -1,8 +1,8 @@
 #pragma once
 
-// The CArray<T> instantiations whose elements the game destroys through its own code (ticket S6):
-// lib/mfc_array.h's templates over the game's element types, with the element destructors ours
-// (each called directly). Registered in game_arrays.cpp; checked in game by verify_mfc_array.cpp until S21d.
+// The CArray<T> instantiations whose elements the game destroys through its own code: lib/mfc_array.h's templates
+// over the game's element types, with the element destructors ours (each called directly). Registered in
+// game_arrays.cpp.
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -13,8 +13,8 @@
 #include "game_data.h"
 
 namespace aligned {
-std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
-void __fastcall ArrayAt8Free(void* self);   // 00454380 (aligned_arrays.cpp)
+std::uint32_t* __fastcall AllocateDwords(int count);   // aligned_arrays.cpp
+void __fastcall ArrayAt8Free(void* self);   // aligned_arrays.cpp
 void __fastcall ArrayAt4Free(void* self);
 } // namespace aligned
 
@@ -43,7 +43,7 @@ inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
-// Effect particles: 005124D0's fields; the source released.
+// Effect particles: the source released.
 inline void InitParticle(EffectParticle* p) {
     p->source = nullptr;
     p->type = 0;
@@ -52,8 +52,8 @@ inline void InitParticle(EffectParticle* p) {
 }
 inline void DestroyParticle(EffectParticle* p) { p->ReleaseSource(); }
 
-// Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by
-// a release through slot 4, the slot cleared or left.
+// Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by a release
+// through virtual 4, the slot cleared or left.
 inline void ReleaseAndClear(ScriptObjectRef* p) {
     if (p->object) p->object->Release();
     p->object = nullptr;
@@ -62,13 +62,12 @@ inline void ReleaseOnly(CEngineObject** p) {
     if (*p) (*p)->Release();
 }
 
-// The script's point lights: the light leaves the world's timed objects and is released, the slot
-// cleared (004B17F0's body, inlined by 004C5CB0).
+// The script's point lights: the light leaves the world's timed objects and is released, the slot cleared.
 inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
 
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
-// Zone exits (object_tables.h ZoneExits; 00573080 its SetSize).
+// Zone exits (object_tables.h ZoneExits; its SetSize).
 using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
@@ -87,32 +86,32 @@ inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p)
 using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea>>;
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
 
-// CScript's arrays' vtables (their destructors 004CB150, 004CB650, 004CB310).
+// CScript's arrays' vtables.
 // +0x00: the compiler's vtable. The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
 // recordarrays::DefinitionArrayClass.
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
 
-// The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
+// The vtable it restores (an array of object pointers).
 struct ObjectPtrArrayBaseClass
     : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
 // The global arrays the static initialisers construct (their constructors and the exit functions' destructors are
 // registered in game_arrays.cpp, so static_init.cpp calls them).
-// The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
+// The particles' draw order (CArray<ParticleDepth>, effects.h).
 struct ParticleDepthArrayClass final
     : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
-// The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h; 007C2FF8).
+// The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h).
 struct SpiralOffsetArrayClass final
     : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::Plain4::Serialize> {};
-// The script quest's objectives (CArray<ScriptQuestObjective>, script.h; 007AA608).
+// The script quest's objectives (CArray<ScriptQuestObjective>, script.h).
 struct ObjectiveArrayClass final
     : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &Objectives::Serialize> {};
-// The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
+// The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool).
 struct SmoothNodeArrayClass final
     : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
 
-// The vtable 004C3B20 restores (CArray<ScriptGroup>).
+// The vtable it restores (CArray<ScriptGroup>).
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &Groups::Serialize> {};
 
@@ -129,32 +128,32 @@ struct ScriptGroupValuesClass final
 // The tags lib/mfc_array.h only declares (their slots need the game's elements).
 namespace mfc::impl {
 
-// A zone's exits, the table a map record's items and the worlds' exit arrays restore; the destructor
-// 00460490 frees each exit's target string.
+// A zone's exits, the table a map record's items and the worlds' exit arrays restore; the destructor frees each
+// exit's target string.
 struct ExitArrayClass
     : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
-// The array inside a map record (constructor 004607E0): derived from ExitArrayClass.
+// The array inside a map record: derived from ExitArrayClass.
 struct MapRecordItemsClass final : ExitArrayClass {
     static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
 };
-// CArray<ScriptObjectRef> as a script group's base: the destructor body of 004C2290 (the references released, the
-// storage freed).
+// CArray<ScriptObjectRef> as a script group's base: the destructor body (the references released, the storage
+// freed).
 struct ObjectRefArrayClass final
     : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &gamearrays::ObjectRefs::Serialize> {};
 // A script group (ScriptGroup): its destructor stores ObjectRefArrayClass' table.
 struct ScriptGroupClass final
     : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &gamearrays::ObjectRefs::Serialize> {};
-// A save's shared object pointers (constructor 005985C0): derived from ObjectPtrArrayBaseClass.
+// A save's shared object pointers: derived from ObjectPtrArrayBaseClass.
 struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
     static void* Vtable() { return CompiledVtable<ObjectPtrArrayClass>(); }
 };
 
 // The element policies over them (the lib headers cannot name the complete tags).
-// A zone record (92 bytes: eight strings, the exits array at +0x48; constructor 004607E0).
+// A zone record (92 bytes: eight strings, the exits array at +0x48).
 using MapRecords = ArrayAbi<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
                             InitElements<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
                                          InitStringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>>>;
-// The script's groups (the element 004CC9B0 builds, 20 bytes: the group's array at +0).
+// The script's groups (the element is 20 bytes: the group's array at +0).
 using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
                               InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;
 // The world's shared objects (game/world.h SharedObject): the three dwords, then the objects' array at +0xC.

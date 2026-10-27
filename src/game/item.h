@@ -8,7 +8,7 @@
 #include "engine_object.h"
 #include "manager_context.h"
 #include "item_db.h"
-#include "lock_key.h"   // LockKey (slot 21)
+#include "lock_key.h"   // LockKey
 #include "resource_manager.h"
 #include "../lib/mfc.h"
 #include "game_data.h"
@@ -35,65 +35,58 @@ enum ItemKind : int {
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
 
-// Base of every item (game.exe's vtable 00743DA4, 22 slots; slots 11 and 12 pure). The six item
-// classes override the slots (each calls CItem's first).
+// Base of every item (22 virtuals; two pure). The six item classes override them (each calls CItem's first).
 class CItemLink;   // below
 
 class CItem : public CEngineObject {
 public:
-    // 0069FCA0 (item_lifetime.cpp). CEngineObject's fields, no link (+0x1C) or spell, +0x20..+0x3C
-    // -1.0, count 1 (+0x40 is left as it is).
+    // CEngineObject's fields, no link (+0x1C) or spell, +0x20..+0x3C -1.0, count 1 (+0x40 is left as it
+    // is).
     CItem();
-    // 0069FD70 (item_lifetime.cpp; the classes' destructors are byte-identical copies). Destroy's
-    // work, then the two members' destructors (on the fields it emptied).
+    // Destroy's work, then the two members' destructors (on the fields it emptied).
     ~CItem() override;
 
-    // 0069FE20 (slot 2; item_lifetime.cpp). Count 1, the spell released; returns 1.
+    // Count 1, the spell released; returns 1.
     int Create() override;
-    // 0069FE50 (slot 3; item_lifetime.cpp). The spell released (slot 4) and the link (+0x1C, a
-    // CRefCounted: 16-bit count, deleted at 0) let go.
+    // The spell released and the link (+0x1C, a CRefCounted: 16-bit count, deleted at 0) let go.
     void Destroy() override;
-    // 006A0070 (slot 6, called every tick). The recharge: moves charge_ towards chargeMax_ by
-    // chargeRate_ * chargeMax_. Returns 0 when already full.
+    // Called every tick. The recharge: moves charge_ towards chargeMax_ by chargeRate_ * chargeMax_.
+    // Returns 0 when already full.
     int RunTick() override;
-    // 006A0270 / 006A0360 (slots 9 / 10, RET 4; item_save.cpp). Read / write (a CStream) the
-    // packed id (+0x18), +0x20..+0x3C, the spell's id (-1: none; Load finds it in the spell manager
-    // of the manager context, slot 22, and counts it), +0x48 and +0x40, four bytes each, in that
-    // order.
+    // Read / write (a CStream) the packed id (+0x18), +0x20..+0x3C, the spell's id (-1: none; Load finds it
+    // in the spell manager of the manager context, and counts it), +0x48 and +0x40, four bytes each, in
+    // that order.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // 006A0490 (slot 13; item_constructor.cpp; the classes call it first): takes the item's values
-    // from a database record (see CItemConstructor::Build): +0x34 price, +0x38, +0x3C, +0x40
-    // charge (current and maximum), +0x44, +0x48 (+0x20 and +0x24); charge rate 0.001.
+    // The classes call it first: takes the item's values from a database record (see
+    // CItemConstructor::Build): +0x34 price, +0x38, +0x3C, +0x40 charge (current and maximum), +0x44, +0x48
+    // (+0x20 and +0x24); charge rate 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
-    // 0069FE90 (slot 14; item_slots.cpp): 1 for the item itself; else the same kind, packed id,
-    // values +0x40 and (equal or unordered floats) +0x20..+0x2C, +0x34..+0x3C, and both without a
-    // spell or both with one of the same packed id and modifiers.
+    // 1 for the item itself; else the same kind, packed id, values +0x40 and (equal or unordered floats)
+    // +0x20..+0x2C, +0x34..+0x3C, and both without a spell or both with one of the same packed id and
+    // modifiers.
     virtual BOOL IsSameAs(CItem* other);
-    // 0069FFC0 (RET 8; slot 15; party_items.cpp). Gives `target`, when it is of the same kind,
-    // this item's packed id and values +0x20..+0x40 (after its Destroy, slot 3), a copy of the
-    // attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of 1. Returns 0
-    // for another kind, else 1.
+    // Gives `target`, when it is of the same kind, this item's packed id and values +0x20..+0x40 (after its
+    // Destroy), a copy of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of
+    // 1. Returns 0 for another kind, else 1.
     virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
-    // 004622F0 (slot 16; four bytes, a generated short function). The base price (CItemLoot's
-    // depends on what it stands for).
+    // The base price (CItemLoot's depends on what it stands for).
     virtual float GetPrice() { return price_; }
-    // 00462300 / 00462330 / 00462360 / 00462390 (slots 17-20; class_slots.cpp): the model, first
-    // list, figure and picture names (item_names.cpp); "" for a plain item. Each is built in the
-    // caller's result.
+    // The model, first list, figure and picture names (item_names.cpp); "" for a plain item. Each is built
+    // in the caller's result.
     virtual mfc::CString ModelName();
     virtual mfc::CString FirstListName();
     virtual mfc::CString FigureName();
     virtual mfc::CString PictureName();
-    // 004623C0 (slot 21; class_slots.cpp). The key the item works as on a lock (map object slot 42
-    // AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest item's has its id.
+    // The key the item works as on a lock (map object slot 42 AcceptsKey, a lever's or a trap's
+    // ApplyScience): zeros; the quest item's has its id.
     virtual LockKey GetUse();
-    // The first name of slot 14, still used by ui_screens.cpp (another ticket's file).
+    // The first name of the model-name virtual, still used by ui_screens.cpp.
     BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
-    // 0069FF70 (RET 4; party_items.cpp). A new item of the same kind from the owning manager
-    // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
-    // that fails the new item is released and the result is null.
+    // A new item of the same kind from the owning manager, given this one's values through the copy
+    // virtual with the spell manager `spells`; when that fails the new item is released and the result is
+    // null.
     CItem* Clone(CSpellManager* spells);
 
     // The prototype record for the item's kind and index; null for spell containers,
@@ -146,11 +139,9 @@ public:
 // holds the id of the record's item. Methods in item_link.cpp (A-W14).
 class CItemLink final : public CRefObject {
 public:
-    // 0058FBB0 (also inlined): no references, no flags (the original clears the count's dword
-    // before it tests the allocation).
+    // No references, no flags (the count's dword is cleared before the allocation is tested).
     CItemLink();
-    // Built again in place (the count and the value stay): nothing changes. Returns 0
-    // (the original leaves EAX; no caller reads it).
+    // Built again in place (the count and the value stay): nothing changes. Returns 0.
     int OnShutdown() override;
     // A new link with this one's value and no references; null without memory.
     CItemLink* Clone() override;
@@ -159,10 +150,10 @@ public:
 };
 inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
 
-// A weapon (game.exe's vtable 00743DFC).
+// A weapon.
 class CItemWeapon : public CItem {
 public:
-    // 006A0540 (item_lifetime.cpp). CItem's, then +0x4C 0 and the three floats -1.0.
+    // CItem's, then +0x4C 0 and the three floats -1.0.
     CItemWeapon();
     const char* GetClassName() override;   // "CItemWeapon"
     int GetClassId() override;             // 0x11
@@ -173,29 +164,28 @@ public:
     // Copies the prototype's seven damage-type weights to `out` (zeros if none).
     void GetDamageTypes(float* out);
 
-    // Damage roll: damage_ + random fraction of damageSpread_ (uses the global ISAAC
-    // generator). Returned unrounded in ST0 like the original (callers round when they store it);
-    // declared double so the value is not rounded to float on return when the FPU runs at more
-    // than 24-bit precision (it does under Rebirth).
+    // Damage roll: damage_ + random fraction of damageSpread_ (uses the global ISAAC generator). Returned
+    // unrounded in ST0 (callers round when they store it); declared double so the value is not rounded to
+    // float on return when the FPU runs at more than 24-bit precision (it does under Rebirth).
     double RollDamage();
 
-    // Virtual slot 14: the same item as `other` (base comparison plus the weapon fields).
+    // Virtual: the same item as `other` (base comparison plus the weapon fields).
     BOOL IsSameAs(CItem* other) override;
 
-    // Names built from the prototype (item_names.cpp; virtual slots 17-20). Slot 17: the model
-    // name "<type>_<number>.<material name>.<variant>" (type "sw", "ax", ...; empty without a
-    // prototype or material). Slot 18: the first string of the prototype's string list (+0x20),
-    // else "". Slot 19: "unhuma" + slot 17. Slot 20: the picture name "initwe<type><number>weapon".
+    // Names built from the prototype (item_names.cpp). Model name: "<type>_<number>.<material
+    // name>.<variant>" (type "sw", "ax", ...; empty without a prototype or material). First list name: the
+    // first string of the prototype's string list (+0x20), else "". Figure name: "unhuma" + the model name.
+    // Picture name: "initwe<type><number>weapon".
     mfc::CString ModelName() override;
     mfc::CString FirstListName() override;
     mfc::CString FigureName() override;
     mfc::CString PictureName() override;
 
-    // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
+    // CItem::CopyTo, then +0x4C..+0x58.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // 006A0660 (slot 13; item_slots.cpp). CItem::InitFromRecord, then damage, spread and +0x58.
+    // CItem::InitFromRecord, then damage, spread and +0x58.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    // 006A2E60 / 006A2EB0 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C..+0x58.
+    // CItem's, then +0x4C..+0x58.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -205,10 +195,10 @@ public:
     float reach_;           // +0x58 prototype reach: the wielder's reach
 };
 
-// Armour (game.exe's vtable 00743E54).
+// Armour.
 class CItemArmor : public CItem {
 public:
-    // 006A2F20 (item_lifetime.cpp). CItem's, then absorb_ and layerMask_ 0.
+    // CItem's, then absorb_ and layerMask_ 0.
     CItemArmor();
     const char* GetClassName() override;   // "CItemArmor"
     int GetClassId() override;             // 0x12
@@ -226,14 +216,13 @@ public:
     mfc::CString FigureName() override;
     mfc::CString PictureName() override;
 
-    // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
+    // CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // 006A3070 (slot 13; item_slots.cpp). CItem::InitFromRecord, then the two absorption rows.
+    // CItem::InitFromRecord, then the two absorption rows.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     // CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
     BOOL IsSameAs(CItem* other) override;
-    // 006A3A70 / 006A3AA0 (slots 9 / 10; item_save.cpp). CItem's, then the two absorption rows
-    // (0x1C bytes each; layerMask_ is not saved).
+    // CItem's, then the two absorption rows (0x1C bytes each; layerMask_ is not saved).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -243,10 +232,10 @@ public:
     std::uint32_t layerMask_[2];    // +0x84
 };
 
-// A quick item: potions, wands (game.exe's vtable 00743EAC).
+// A quick item: potions, wands.
 class CItemQuick : public CItem {
 public:
-    // 006A3AD0 (item_lifetime.cpp). CItem's (+0x4C is left as it is).
+    // CItem's (+0x4C is left as it is).
     CItemQuick();
     const char* GetClassName() override;   // "CItemQuick"
     int GetClassId() override;             // 0x13
@@ -256,40 +245,37 @@ public:
     mfc::CString FigureName() override;
     // Slot 20: "initqi<number>item".
     mfc::CString PictureName() override;
-    // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    // CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // 006A3BE0 / 006A3C20 (slots 13 / 14, also the scrolls'; item_slots.cpp). The base's, then
-    // +0x4C (prototype +0x70).
+    // Also the scrolls'. The base's, then +0x4C (prototype +0x70).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
-    // 006A3C80 / 006A3CA0 (slots 9 / 10, also the scrolls'; item_save.cpp). CItem's, then +0x4C.
+    // Also the scrolls'. CItem's, then +0x4C.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
     std::uint32_t actionValue_;         // +0x4C the record's value70 (CUnitServer::ScaledItemValue)
 };
 
-// A quest item (game.exe's vtable 00743F04).
+// A quest item.
 class CItemQuest : public CItem {
 public:
-    // 006A43A0 (item_lifetime.cpp). CItem's (+0x4C is left as it is).
+    // CItem's (+0x4C is left as it is).
     CItemQuest();
     const char* GetClassName() override;   // "CItemQuest"
     int GetClassId() override;             // 0x14
 
-    mfc::CString FigureName() override;    // 006A45C0 "quitem<number>"
-    mfc::CString PictureName() override;   // 006A47B0 "initqu<number>item"
-    // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    mfc::CString FigureName() override;    // "quitem<number>"
+    mfc::CString PictureName() override;   // "initqu<number>item"
+    // CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // 006A44D0 / 006A4510 (slots 13 / 14; item_slots.cpp). The base's, then +0x4C (prototype
-    // +0x6C, the category).
+    // The base's, then +0x4C (prototype +0x6C, the category).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
-    // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
+    // CItem's, then +0x4C.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
-    // returns it; the other classes share 004623C0, which writes three zeros.
+    // Fills `out` with (8, the id, 0) and returns it; the other classes write three zeros.
     LockKey GetUse() override;
 
     // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
@@ -297,33 +283,33 @@ public:
     std::uint32_t questItemId_;
 };
 
-// A scroll, a spell container (game.exe's vtable 00743FB4): a quick item (its table has CItemQuick's
-// slots 9, 10, 13 and 14) with its own copy, names, class name and id.
+// A scroll, a spell container: a quick item (its virtual table has CItemQuick's save and load and match and
+// init-from-record entries) with its own copy, names, class name and id.
 class CItemSpell : public CItemQuick {
 public:
-    // 006A56E0 (item_lifetime.cpp). CItem's (+0x4C is left as it is).
+    // CItem's (+0x4C is left as it is).
     CItemSpell();
     const char* GetClassName() override;   // "CItemSpell"
     int GetClassId() override;             // 0x16
 
     // Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName() override;
-    // 006A58E0 (A-H25). Slot 20: "initqi1item".
+    // Picture name: "initqi1item".
     mfc::CString PictureName() override;
-    // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    // CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
 };
 
-// Loot: runes, materials, instructions (game.exe's vtable 00743F5C).
+// Loot: runes, materials, instructions.
 class CItemLoot : public CItem {
 public:
-    // 006A49A0 (item_lifetime.cpp). CItem's (kind, record type and index are left as they are).
+    // CItem's (kind, record type and index are left as they are).
     CItemLoot();
     const char* GetClassName() override;   // "CItemLoot"
     int GetClassId() override;             // 0x15
 
-    // Virtual slot 16: the base price. Depends on what the loot stands for (kind_):
-    // itself (price_), a material, or a record of another database (recordType_).
+    // The base price. Depends on what the loot stands for (kind_): itself (price_), a material, or a record
+    // of another database (recordType_).
     float GetPrice() override;
 
     // Slot 19, by kind_: a record's name ("<type>_<number>.<variant>" for weapons and
@@ -334,15 +320,13 @@ public:
     // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
     // "initlitr<number>item" for the loot itself.
     mfc::CString PictureName() override;
-    // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
+    // CItem::CopyTo, then kind_, recordType_, index_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // 006A4AB0 / 006A4B00 (slots 13 / 14; item_slots.cpp). The base's, then kind_, recordType_
-    // and index_ (prototype +0x6C..+0x74).
+    // The base's, then kind_, recordType_ and index_ (prototype +0x6C..+0x74).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
-    // 006A5630 / 006A5680 (slots 9 / 10; item_save.cpp). CItem's, then kind_, recordType_ and
-    // index_. Load reads the first two through the stack slot of `stream` (a read that writes
-    // nothing leaves the pointer's value, then the previous value).
+    // CItem's, then kind_, recordType_ and index_. Load reads the first two through the stack slot of
+    // `stream` (a read that writes nothing leaves the pointer's value, then the previous value).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -351,31 +335,31 @@ public:
     std::uint32_t index_;       // +0x54 record index
 };
 
-// Weapon stats from a packed id (__fastcall, id in ECX). Each faults if the prototype index is out
-// of range; an out-of-range material reads the multiplier from address 0 likewise.
+// Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
+// material reads the multiplier from address 0 likewise.
 int __fastcall WeaponType(std::uint32_t packedId);
 float __fastcall WeaponMinDamage(std::uint32_t packedId);
 float __fastcall WeaponMaxDamage(std::uint32_t packedId);
 float __fastcall WeaponAttack(std::uint32_t packedId);
-int __fastcall WeaponDamageType(std::uint32_t packedId);    // 006A2C60 first non-zero weight, else 6
+int __fastcall WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
 float __fastcall WeaponStat84(std::uint32_t packedId);
 float __fastcall WeaponStat88(std::uint32_t packedId);
 
-// 006A0CC0 (item_names.cpp). The base figure (skeleton) a weapon prototype (by index) is animated
-// with, into `out` (emptied first): "basesword", "baseaxe", "basedagger", "basepike", "baseclub"
-// with the prototype's number as "%.2d" appended, "basearrow00" / "basearrow01" for types 5 / 6,
-// else "baser_hand3". False (only AL set) for index -1 or out of range.
+// The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
+// "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
+// appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False (only AL set) for
+// index -1 or out of range.
 bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
 
-// 006A3480 (RET 4; item_model_names.cpp). The armour model name "<type>_<number>.<material
-// name>.<variant>" of armour prototype `armorIndex` in material `materialIndex` into `out` (emptied
-// first; left empty when either is out of range). The type code is copied into the stack slot of
-// `materialIndex`, so for a type without a code the index's own bytes are the code.
+// The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in
+// material `materialIndex` into `out` (emptied first; left empty when either is out of range). The type
+// code is copied into the stack slot of `materialIndex`, so for a type without a code the index's own bytes
+// are the code.
 void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
-// 006A0AA0 (RET 4; A-H25). The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
+// The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
 void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
-// 006A0BF0 (RET 4; A-H25). The same from the records themselves (no null checks, `out` not
-// emptied first); for a type without a code the code is the bytes of `out`'s address.
+// The same from the records themselves (no null checks, `out` not emptied first); for a type without a code
+// the code is the bytes of `out`'s address.
 void __fastcall WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
                                       const itemdb::MaterialRecordHead* material);
 
@@ -384,24 +368,22 @@ int __fastcall ArmorFieldB8(std::uint32_t index);
 
 // --- Item construction (item_constructor.cpp) -------------------------------------------------
 
-// The item constructor (game.exe's vtable 00744020): the manager creates an item object
-// (BeginCreateItem), the caller names the prototype and material records and optionally a spell,
-// and EndCreateItem fills the item from a record combining them (Build).
+// The item constructor: the manager creates an item object (BeginCreateItem), the caller names the prototype and
+// material records and optionally a spell, and EndCreateItem fills the item from a record combining them (Build).
 class CItemConstructor : public CEngineObject {
 public:
-    // 006A5AB0 (item_constructor.cpp). CEngineObject's fields, no manager, records, item or spell
-    // (count_ is left as it is).
+    // CEngineObject's fields, no manager, records, item or spell (count_ is left as it is).
     CItemConstructor();
-    // 006A5B20 (the scalar deleting destructor 006A5B00): Destroy's work.
+    // Destroy's work (the scalar deleting destructor's).
     ~CItemConstructor() override;
     const char* GetClassName() override;   // "CItemConstructor"
     int GetClassId() override;             // 0x1C
 
-    // Virtual slot 2, the reset: forgets the manager (its count dropped), releases the
-    // item and clears the records and the spell. Returns 1.
+    // The reset: forgets the manager (its count dropped), releases the item and clears the records and the
+    // spell. Returns 1.
     int Create() override;
 
-    // Virtual slot 3: the same, no result.
+    // The same, no result.
     void Destroy() override;
 
     // Counts a reference to `manager` (+4), dropping the previous one's (no release).
@@ -410,8 +392,8 @@ public:
     // Adopts an existing item (counted; the previous one released); records cleared.
     void SetItem(CItem* item);
 
-    // Creates the item through the manager (slot 23 with `kind`, `key`): counted,
-    // records cleared, count 1, flag 8 set. Returns 1, or a fatal error's result.
+    // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
+    // set. Returns 1, or a fatal error's result.
     BOOL BeginCreateItem(int kind, int key);
 
     BOOL SetMaterial(itemdb::MaterialRecordHead* material);   // Returns 1.
@@ -425,16 +407,15 @@ public:
     // Releases the item; records and spell cleared. Returns 1.
     BOOL Cancel();
 
-    // Fills the item from a temporary database record: the prototype's values combined
-    // with the material's, then the item's slot 13 (InitFromRecord); attaches the prototype's
-    // spell (wands, category 8) or the given one; sets the packed id and the count. Returns 0
-    // for a weapon or armor without a material, else 1.
+    // Fills the item from a temporary database record: the prototype's values combined with the material's,
+    // then the item's InitFromRecord; attaches the prototype's spell (wands, category 8) or the given one;
+    // sets the packed id and the count. Returns 0 for a weapon or armor without a material, else 1.
     BOOL Build();
 
-    // 006A6480 (RET 8; sets only AL; A-H25). Whether the item being built can hold a spell: not a
-    // weapon or armour (class 0x11 / 0x12) without a material. `level` gets the prototype's +0x44
-    // plus the material's +0x1C (unsigned, as a float), `power` the prototype's charge plus the
-    // material's +0x18; without a material the prototype's values alone.
+    // Whether the item being built can hold a spell: not a weapon or armour (class 0x11 / 0x12) without a
+    // material. `level` gets the prototype's +0x44 plus the material's +0x1C (unsigned, as a float),
+    // `power` the prototype's charge plus the material's +0x18; without a material the prototype's values
+    // alone.
     bool MagicCapacity(float* level, float* power);
 
     CBaseManager* manager_;   // +0x1C the item manager; counted (+4) but never released
@@ -450,15 +431,15 @@ inline CItem* FindItem(const CBaseManager* items, unsigned id) { return items->F
 
 // An item known to be a weapon as the CItemWeapon it is: a weapon slot's item (CUnit::weapons,
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
-// weapon. The original calls the weapon's methods without a class test.
+// weapon. The weapon's methods are called without a class test.
 inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
-// An item known to be armour as the CItemArmor it is: a hero record's armour (PartyUnitRecord::armor
-// holds armour only), an item of the armour kind, the copy or match of an armour piece, the item
-// put on as armour (CUnit::EquipArmour). The original calls the armour's methods without a class test.
+// An item known to be armour as the CItemArmor it is: a hero record's armour (PartyUnitRecord::armor holds
+// armour only), an item of the armour kind, the copy or match of an armour piece, the item put on as armour
+// (CUnit::EquipArmour). The armour's methods are called without a class test.
 inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
-// An item known to be loot as the CItemLoot it is: an item of the loot kind (0x3007), one made by
-// name from a loot prototype (runes, materials, instructions), the copy or match of a loot item.
-// The original reads its fields without a class test.
+// An item known to be loot as the CItemLoot it is: an item of the loot kind (0x3007), one made by name from
+// a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
+// without a class test.
 inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
 inline const CItemLoot* AsLoot(const CItem* item) { return static_cast<const CItemLoot*>(item); }
 // An item known to be a quick item / a quest item: the copy or match of one (the base IsSameAs
@@ -466,55 +447,49 @@ inline const CItemLoot* AsLoot(const CItem* item) { return static_cast<const CIt
 inline CItemQuick* AsQuick(CItem* item) { return static_cast<CItemQuick*>(item); }
 inline CItemQuest* AsQuest(CItem* item) { return static_cast<CItemQuest*>(item); }
 
-// The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
-// class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions
-// rewritten here are declared; context_ (+0xAC) is its manager context (slot 16: the item
-// constructor, slot 22: the spell manager).
+// The item manager (0xBC bytes, as the world and every party make one; a real virtual class). Only the functions
+// rewritten here are declared; context_ (+0xAC) is its manager context (its item constructor and its spell
+// manager).
 struct CItemManager : CResourceManager {
     static constexpr std::size_t kSize = 0xBC;
 
-    // CResourceManager's constructor, then this class's vtable (inlined where the original makes
-    // one: the world's 0055EE40, a party's Create 006614F0; world_managers.cpp).
+    // CResourceManager's constructor, then this class's vtable (inlined where a manager is made: the world's,
+    // a party's Create; world_managers.cpp).
     CItemManager();
     // CResourceManager's destructor.
     ~CItemManager() override;
-    const char* GetClassName() override;     // 11: 0055F3C0 "CItemManager"
-    int GetClassId() override;               // 12: 0055F3D0 (0x2F)
-    const char* GetFolderName() override;    // 25: 0055F3B0 "items"
-    // The deleting destructor (slot 0).
+    const char* GetClassName() override;     // "CItemManager"
+    int GetClassId() override;               // class id 0x2F
+    const char* GetFolderName() override;    // "items"
+    // The deleting destructor.
 
-    // 006AC780 (slot 2; item_lifetime.cpp, A-H25). CBaseManager::Create's result as 0 / 1 (the
-    // original also copies the text folder's name into a temporary it does not use).
+    // CBaseManager::Create's result as 0 / 1.
     int Create() override;
-    // 006AC810 (slot 14, RET 4; item_lifetime.cpp, A-H25). The item factory: a new constructed
-    // item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007 loot, 0x3008 scroll, 0x3009
-    // quest, its type_ set to the kind; null for another kind or without memory.
+    // The item factory: a new constructed item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007
+    // loot, 0x3008 scroll, 0x3009 quest, its type_ set to the kind; null for another kind or without
+    // memory.
     CEngineObject* NewObject(int kind) override;
 
-    // 006AD000 (RET 0x10; item_constructor.cpp, A-H20). An item of `kind` built by the context's
-    // item constructor (BeginCreateItem with `kind` and `key`) from prototype record `index` of
-    // the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for weapons and armor,
-    // material record `material`; an index out of range or another kind gives a null record.
-    // Returns the item (null when the build fails).
+    // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind` and `key`)
+    // from prototype record `index` of the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for
+    // weapons and armor, material record `material`; an index out of range or another kind gives a null
+    // record. Returns the item (null when the build fails).
     CItem* MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key);
 
-    // An item from its name, "prototype[.material][[extra]]" (lowercased):
-    // "spell container[spell]" makes a scroll; otherwise the prototype is looked up in the weapon,
-    // armor, quick, 007C8758 and 007C8778 tables (none: FatalError, null) and built with the
-    // material, the bracket part as a spell (or, for prototypes of type "material", as the count);
-    // a class-0x15 item of kind 2 gets the table index of the second name part at +0x54. A failed
-    // build reports FatalError and the original crashes; Rebirth's FixCreateItem returns null in
-    // both cases without FatalError.
+    // An item from its name, "prototype[.material][[extra]]" (lowercased): "spell container[spell]" makes a
+    // scroll; otherwise the prototype is looked up in the weapon, armor, quick, class-0x14 and class-0x15
+    // tables (none: FatalError, null) and built with the material, the bracket part as a spell (or, for
+    // prototypes of type "material", as the count); a class-0x15 item of kind 2 gets the table index of the
+    // second name part at +0x54. A failed build reports FatalError and the game crashes; Rebirth's
+    // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(const char* name);
 
-    // 006AD1E0 (RET 8; A-H25). A scroll ("spell container", kind 0x3008) holding the spell that
-    // `spells` builds from `spellText`; null when the spell or the item cannot be made (the spell
-    // is then left as it is).
+    // A scroll ("spell container", kind 0x3008) holding the spell that `spells` builds from `spellText`;
+    // null when the spell or the item cannot be made (the spell is then left as it is).
     CItem* CreateSpellItem(const char* spellText, CSpellManager* spells);
 
-    // 006AD260 / 006AD2F0 / 006AD380 / 006AD410 (RET 4; A-H25). `names` resized to the table's
-    // record count and filled with the records' names: the materials' keys (+0x00), the weapons',
-    // armours' and quick items' +0x04. `this` is not used.
+    // `names` resized to the table's record count and filled with the records' names: the materials' keys
+    // (+0x00), the weapons', armours' and quick items' +0x04. `this` is not used.
     void ListMaterialNames(mfc::CStringArray* names);
     void ListWeaponNames(mfc::CStringArray* names);
     void ListArmorNames(mfc::CStringArray* names);

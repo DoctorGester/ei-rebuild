@@ -18,8 +18,8 @@ using namespace itemdb;
 
 namespace {
 
-// The code of `type`. The original copies it into a 4-byte stack buffer and leaves the buffer
-// uninitialised for any other type (never the case in the databases); "" stands in for that.
+// The code of `type`. It is copied into a 4-byte stack buffer that stays uninitialised for any other type (never
+// the case in the databases); "" stands in for that.
 const char* TypeCode(const char* const (&codes)[7], int type) {
     return type >= 0 && type < 7 ? codes[type] : "";
 }
@@ -45,11 +45,11 @@ const char* const kHumanPrefix = "unhuma";
 const char* const kNoMaterial = "none";
 const char* const kUnknownMaterial = "uq";
 
-// The records are read without a null check where the original reads them without one.
+// The records are read without a null check.
 
 int Number(const ItemRecordHead* record) { return record ? record->number : -1; }
 
-// "<code>_<number>.<material>.<variant>", or "" without a prototype or material (slot 17).
+// "<code>_<number>.<material>.<variant>", or "" without a prototype or material.
 template <typename Record>
 mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], std::uint32_t id) {
     const MaterialRecordHead* material = MaterialAt(MaterialIndex(id));
@@ -61,7 +61,7 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
     return name;
 }
 
-// The first string of the prototype's list, or "" (slot 18).
+// The first string of the prototype's list, or "".
 template <typename Record>
 mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));
@@ -70,8 +70,7 @@ mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_
     return mfc::CString(game::EmptyText());   // ""
 }
 
-// "unhuma" + the item's slot 17 (a virtual call). The model name is destroyed before the prefix,
-// as in the original.
+// "unhuma" + the item's model name (a virtual call). The model name is destroyed before the prefix.
 mfc::CString HumanFigureName(CItem* item) {
     alignas(mfc::CString) char model[sizeof(mfc::CString)];
     mfc::CString& modelName = *new (model) mfc::CString(item->ModelName());
@@ -81,7 +80,7 @@ mfc::CString HumanFigureName(CItem* item) {
     return name;
 }
 
-// The picture name "<format with code and number>" (slot 20; no null check on the prototype).
+// The picture name "<format with code and number>" (no null check on the prototype).
 template <typename Record>
 mfc::CString PictureNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], const char* format,
                            std::uint32_t id) {
@@ -116,9 +115,8 @@ mfc::CString CItemArmor::PictureName() {
     return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
-// The original formats the number into a 4-byte buffer just before the name buffer; a
-// number above 999 would overrun it (none in the database; the overlapping strcat that would
-// follow is not reproduced).
+// The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 would overrun it
+// (none in the database; the overlapping strcat that would follow is not reproduced).
 bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     out->Empty();
     if (index == 0xFFFFFFFFu) return false;

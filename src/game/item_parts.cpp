@@ -19,7 +19,7 @@ struct PartName {
     const char* suffix;
 };
 
-// The strings at 00796454..00796508 and 0078FAF8.
+// The part-name strings.
 constexpr PartName kSword[] = {{"rh3.sword", true, ""}};
 constexpr PartName kAxe[] = {{"rh3.axe", true, ""}};
 constexpr PartName kDagger[] = {{"rh3.dagger", true, ""}};
@@ -46,7 +46,7 @@ template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {p
 constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
                                      List(kClub),  List(kBow),  List(kCrossbow)};
 
-// Calls add(name) for each part of the weapon prototype `record` (not null), in the original's order.
+// Calls add(name) for each part of the weapon prototype `record` (not null), in the game's order.
 template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
     char number[8];
     gamecrt::sprintf(number, "%.2d", head->number);

@@ -1,8 +1,7 @@
 #pragma once
 
-// The scalar deleting destructors (and the destructors they call) of the MFC collections whose
-// elements the game destroys through its own code (ticket S6a; the library-only ones are
-// lib/mfc_slots.h's). Registered in game_slots.cpp; checked in game by verify_mfc_slots.cpp until S21d.
+// The scalar deleting destructors (and the destructors they call) of the MFC collections whose elements the game
+// destroys through its own code (the library-only ones are lib/mfc_slots.h's). Registered in game_slots.cpp.
 
 #include "lib/mfc_slots.h"
 #include "game/game_arrays.h"
@@ -17,8 +16,7 @@ namespace gameslots {
 
 // ---- Elements -------------------------------------------------------------------------------------
 
-// A unit memory's 8-byte records: an object reference (released through slot 4, then cleared) and
-// a value.
+// A unit memory's 8-byte records: an object reference (released by a virtual call, then cleared) and a value.
 struct ObjectAndValue {
     ScriptObjectRef ref;
     int value;
@@ -49,28 +47,30 @@ using Commands = ArrayAbi<SSCCmd, EachElements<SSCCmd, nullptr, DestroyCommand>>
 using DeclList = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
 using GroupList = ListAbi<ScriptGroup, EachElements<ScriptGroup, nullptr, gamearrays::DestroyGroup>>;
 
-// A command block's commands as SetSize builds them (004CE920: zeroed, then SSCCmd's constructor).
+// A command block's commands as SetSize builds them (zeroed, then SSCCmd's constructor).
 inline void InitCommand(SSCCmd* p) { p->Construct(); }
 using BuiltCommands = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCommand, DestroyCommand>>;
-// The map database's zone records: built as 004607E0 builds them, destroyed by ZoneRecordDestruct.
+// The map database's zone records: built as the record's constructor builds them, destroyed by
+// ZoneRecordDestruct.
 using ZoneRecordElement = mfc::impl::StringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>;
 inline void DestroyZoneRecordElement(ZoneRecordElement* p) { zone::ZoneRecordDestruct(reinterpret_cast<MapRecord*>(p)); }
 using BuiltZoneRecords =
     ArrayAbi<ZoneRecordElement, EachElements<ZoneRecordElement, mfc::impl::InitStringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>,
                                              DestroyZoneRecordElement>>;
-// CArray<MapRecord> (the map database's maps, CMapDatabase +0x14): the compiler's table (game.exe's
-// 0073C3E8, the same slots).
+// CArray<MapRecord> (the map database's maps, CMapDatabase +0x14): the compiler's table.
 struct MapRecordArrayClass final
     : mfc::impl::CompiledCollection<MapRecordArrayClass, &BuiltZoneRecords::Destruct<MapRecordArrayClass>,
                                     &BuiltZoneRecords::Serialize> {};
 
-// ---- The lists whose Serialize loads through a temporary (ticket S6d) -----------------------------
-// ListAbi::SerializeThrough's element functions for each instantiation: how its loader builds the
-// temporary (Init), assigns the new element from it (Assign) and destroys it (Destroy). The lists'
-// NewNode is the instantiation's (the ABIs below where game_lists.h's build the element otherwise).
+// ---- The lists whose Serialize loads through a temporary -----------------------------------------
+// ListAbi::SerializeThrough's element functions for each instantiation: how its loader builds the temporary (Init),
+// assigns the new element from it (Assign) and destroys it (Destroy). The lists' NewNode is the
+// instantiation's (the
+// ABIs below where game_lists.h's build the element otherwise).
 
-// Engine object pointers: the temporary null; the holder's assignment (the new
-// object gains a reference, the old one released); a release through slot 4.
+// Engine object pointers: the temporary null; the holder's assignment (the new object gains a reference, the
+// old one
+// released); a virtual release.
 inline void InitObjectPtr(CEngineObject** p) { *p = nullptr; }
 inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { HeldEngineObject::Of(to)->Assign(*from); }
 // Script object references: the old one released and cleared, then the copy constructor.
@@ -89,8 +89,8 @@ inline void AssignVictim(ScriptObjectRef* to, const ScriptObjectRef* from) {
     if (object) ++object->refCount_;
     to->object = object;
 }
-// Counted pointers: the owner's (005576C0: ShareAssign, then the owner's release) and the plain
-// ones (00598FD0, 00599DF0: Assign, then the plain release).
+// Counted pointers: the owner's (ShareAssign, then the owner's release) and the plain ones (Assign, then the plain
+// release).
 inline void InitRef(RefPtr* p) { p->ptr = nullptr; }
 inline void ShareAssignRef(RefPtr* to, const RefPtr* from) { to->ShareAssign(from->ptr); }
 inline void AssignRef(RefPtr* to, const RefPtr* from) { to->Assign(from->ptr); }
@@ -199,17 +199,16 @@ using DefinesThrough = ListTemporary<DefineNodes, InitDefine, AssignDefine, Dest
 using SharedObjectsThrough = ListTemporary<SharedObjectNodes, InitSharedObject, AssignSharedObject, gamelists::DestroySharedObject>;
 using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, AssignWave, gamelists::DestroyWave>;
 
-// ---- The instantiations' vtables (C19: the compiler's) ----------------------------------------------
-// Each tag is a CompiledCollection (lib/mfc_slots.h) over the destructor and Serialize registered for the game.exe
-// table it replaces; the script's lists and arrays (game_lists.h / game_arrays.h had their own tags for the same
-// addresses: one tag each now).
+// ---- The instantiations' vtables ----------------------------------------------
+// Each tag is a CompiledCollection (lib/mfc_slots.h) over the destructor and Serialize registered for the table it
+// replaces; the script's lists and arrays (game_lists.h / game_arrays.h) share one tag each.
 
 using mfc::impl::CompiledCollection;
 
 // Counted pointer lists of the world server: the connections AcceptNewPlayers takes.
 struct RefListAClass final
     : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
-// A list of engine objects released through slot 4.
+// A list of engine objects released by a virtual call.
 struct ItemObjectListClass final
     : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
 // The same in the client maps, and the lightning manager's new bolts.
@@ -233,12 +232,11 @@ struct SharedObjectListClass final
 // The armour spells (12-byte records holding an engine object).
 struct ArmourSpellListClass final
     : CompiledCollection<ArmourSpellListClass, &gamelists::Holders::Destruct<ArmourSpellListClass>, &ArmourSpellsThrough::Abi::SerializeThrough<ArmourSpellsThrough>> {};
-// The sound cache's CList<WaveRecord> (destructor 006BC870).
+// The sound cache's CList<WaveRecord>.
 struct WaveListClass final
     : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &WavesThrough::Abi::SerializeThrough<WavesThrough>> {};
 
-// CScript's lists (their destructors, S13b: 004C92C0, 004C8E20, 004C7560, 004C8520, 004C7E30, 004C6760, 004C6410,
-// 004C6120).
+// CScript's lists.
 struct ParticleSourceListClass final
     : CompiledCollection<ParticleSourceListClass, &gamelists::ParticleSources::Destruct<ParticleSourceListClass>, &ParticleSourcesThrough::Abi::SerializeThrough<ParticleSourcesThrough>> {};
 struct FxSourceListClass final
@@ -279,7 +277,7 @@ struct CommandArrayClass
 } // namespace gameslots
 
 namespace mfc::impl {
-// A script block's commands (constructor of the command blocks, 004CEB20): derived from CommandArrayClass.
+// A script block's commands: derived from CommandArrayClass.
 struct ScriptCommandsClass final : gameslots::CommandArrayClass {
     static void* Vtable() { return CompiledVtable<ScriptCommandsClass>(); }
 };
