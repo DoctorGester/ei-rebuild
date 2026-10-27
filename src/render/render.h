@@ -1,27 +1,19 @@
 #pragma once
 
-// The new renderer: a sidecar module that draws the game's frame with sokol_gfx (Direct3D 11) from
-// data pulled out of the game (docs/notes/renderer.md) and presents it on the game window. The game
-// code that used to talk to the old Direct3D 7 path hands its data here instead; the Direct3D 7 calls
-// left in game code go to the switch-over device, which draws nothing (device.h).
-// The standalone image always draws with it: when the device object is built (StartPresenting) the
-// game gets no DirectDraw or Direct3D 7 device at all, the new renderer presents through
-// its own swap chain on the game window, the surface holders and the texture
-// manager's textures have no DirectDraw surface (the CPU-written, shadow and .bmp ones only memory
-// the new renderer owns, SurfaceMemory; the .mmp ones only its decoded copy, TextureFromMmp), and
-// captures write the new frame. There is no DirectDraw fallback: when the new renderer cannot start
-// the game ends with an error. In the original game's own process (the harness and the vector
-// recorders) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated list,
-// carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera",
-// SetSmoothCamera), the interface canvases' "uiboth" / "uinative" (render_ui.h) and the harness
-// build's "removable"; "new", "present" and "cpuwindows" are accepted and change nothing.
+// The new renderer: a sidecar module that draws the game's frame with sokol_gfx (Direct3D 11) from the
+// data the game hands over, and presents it through its own swap chain on the game window. There is no
+// DirectDraw fallback: when it cannot start the game ends with an error. It is off in the original
+// game's own process (the harness and the vector recorders). See docs/notes/renderer.md.
+// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera",
+// "uiboth" / "uinative" (render_ui.h), the harness build's "removable"; "new", "present" and
+// "cpuwindows" are accepted and change nothing.
 
 #include "lib/vecmath.h"
 
 #include <cstdint>
 #include <vector>
 
-struct Matrix4;   // lib/vecmath.h
+struct Matrix4;
 
 namespace terrain {
 struct SectorData;
@@ -29,32 +21,22 @@ struct SectorData;
 
 namespace render {
 
-// Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's. Without a call the
+// Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's; without a call the
 // environment is read at the first use.
 void Configure(const char* spec);
-// Starts making the Direct3D 11 device on a thread of its own (the image's start-up, before WinMain):
-// the game's own start-up (its DirectX probe, the sound) runs meanwhile and the renderer's first use
-// takes the device (0.15 s of each start).
+// Starts making the Direct3D 11 device on a thread of its own (the image's start-up, before WinMain); the
+// renderer's first use takes it (saves 0.15 s of each start).
 void PrepareDevice();
 
-// The smooth option (user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
-// setup draws it (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x). On, the world view's
-// models (figures, map objects, the sky, shadows) are sampled anisotropically (16x) with linear mips
-// where their stage asks for linear filters (the terrain pages always are), and the world view is
-// drawn with 8x multisampling (fewer when the device has no 8x), resolved into the frame before the
-// interface draws over it, before every present and every screen copy or capture. The interface's
-// sprites, previews and window surfaces draw as without it. Its one switch: EI_RENDER's word "smooth"
-// (read at the start) or SetSmooth (takes effect at the next frame). Off: what the game asks for.
+// The smooth option (off by default): anisotropic 16x sampling of the world view's models and 8x
+// multisampling of the world view, as the user's dgVoodoo setup draws it (renderer.md, "The smooth
+// option"). Switch: EI_RENDER's word "smooth" (read at the start) or SetSmooth (from the next frame).
 void SetSmooth(bool on);
 bool Smooth();
 // The world view's draws (CWorldClient::Render) come between BeginWorld and EndWorld.
 void BeginWorld();
 void EndWorld();
-// The smooth option's state: on, the samples the device gives (up to 8) and the world's target's,
-// and in the last presented frame the multisampled passes, the copies between the targets (the
-// frame target's colour and depth into every sample before a world run that follows other draws;
-// sample 0's depth back after a world run) and the models drawn anisotropically (world) or as their
-// stage says (the interface's).
+// The smooth option's state in the last presented frame.
 struct SmoothInfo {
     bool on = false;
     int deviceSamples = 1, targetSamples = 1;
@@ -63,45 +45,35 @@ struct SmoothInfo {
     int anisotropicModels = 0, plainModels = 0;
 };
 SmoothInfo SmoothState();
-// Harness build only (the harness's "smoothorder"): the smooth option's passes in an order the
-// game never draws (its world view is always the frame's first draw), from the next frame. Before: an
-// empty pass on the frame target first (cleared as a frame's first pass clears it), so the world's
-// first run starts from the copy into every sample. Split: the world view's first run ends at its
-// middle command, an empty pass on the frame target follows (sample 0's depth copied back) and the
-// rest of the world starts from the copy into every sample. Game: as the game draws.
+// Harness build only ("smoothorder"): the smooth option's passes in an order the game never draws, from
+// the next frame. Before: an empty pass on the frame target first. Split: the world view's first run
+// ends at its middle command and an empty pass on the frame target follows. Game: as the game draws.
 enum class SmoothOrder : std::uint8_t { Game, Before, Split };
 void SetSmoothOrder(SmoothOrder order);
 
-// Object shadows (docs/notes/renderer.md section 13): the world's figures and map objects cast
-// shadows from the sun through a shadow map made every frame, sampled with filtering where the
-// terrain, the objects and the figures draw; the game's shadow decals (the 64 x 64 textures
-// laid on the ground) are neither made nor drawn (the shadow map gives the only shadows).
+// Object shadows (renderer.md section 13): figures and map objects cast shadows from the sun through a
+// shadow map made every frame; the game's 64 x 64 shadow decals are neither made nor drawn.
 
-// The smooth camera (docs/notes/renderer.md section 14; off by default): the battle camera moves
-// once a frame by the frame's time plus the client time that passed (no extra update at each world
-// tick), its tracking drift and focus height lag ease by time instead of by call, and it follows its
-// target's position blended between the target's last two ticks. Read by the main loop and
-// CCamera::Update (src/game/app_main.cpp, camera.cpp), not by the renderer. Its switch: EI_RENDER's
-// word "smoothcamera" or SetSmoothCamera (from the next pass). Off: the game's camera.
+// The smooth camera (renderer.md section 14; off by default): the battle camera moves once a frame by
+// the frame's time, its drift and focus lag ease by time, and it follows its target's position blended
+// between the target's last two ticks. Read by the main loop and CCamera::Update, not by the renderer.
+// Switch: EI_RENDER's word "smoothcamera" or SetSmoothCamera (from the next pass).
 void SetSmoothCamera(bool on);
 bool SmoothCamera();
 // The performance overlay (render_perf.h; renderer.md section 15): frames a second, frame and GPU times,
-// draws, drawn over the presented frame in the game window (never into the frame target, so no capture or
-// screenshot holds it). Switched by the settings file (directdraw_holder.cpp); off by default. The harness
-// build has none: PerfOverlaySupported() is false there and SetPerfOverlay keeps it off.
+// draws, drawn over the presented frame (never into the frame target). Switched by the settings file;
+// off by default. The harness build has none: PerfOverlaySupported() is false there.
 bool PerfOverlaySupported();
 void SetPerfOverlay(bool on);
-// The sun for this frame's world view: the direction its light travels (CLight::direction_, z
-// negative by day), from CWorldClient::Render. Without it no shadow map is made.
+// The sun for this frame's world view: the direction its light travels (CLight::direction_, z negative
+// by day). Without it no shadow map is made.
 void ShadowSun(const float direction[3]);
-// The GPU lighting (docs/notes/renderer.md section 16). The world's draw (CWorldClient::Render, after
-// UpdateLighting) hands over the frame's light: the sun (the direction its light travels and its colour),
-// the ambient colour, the point lights the landscape lights its ground with (Terrain's table: position in
-// the landscape's space, 1 / range squared, colour, flag 0x40 specular) and the camera's position (the
-// nearest kMostSceneLights of them are kept). It stays until the next hand-over. GpuTerrainLighting: the
-// ground layer's vertex lighting is the GPU's (true when Active()): the game leaves its per-vertex sun,
-// ambient and point lights out (SectorData::Light writes only the edge fade) and the terrain shader
-// lights each pixel from the vertex normals, the sun, the shadow map and these lights.
+// The GPU lighting (renderer.md section 16). The world's draw hands over the frame's light: the sun, the
+// ambient colour, the point lights the landscape lights its ground with (position in the landscape's
+// space, 1 / range squared, colour, flag 0x40 specular) and the camera's position (the nearest
+// kMostSceneLights are kept), until the next hand-over. GpuTerrainLighting (true when Active()): the
+// terrain shader lights each pixel; the game leaves its per-vertex lighting out (SectorData::Light writes
+// only the edge fade).
 struct ScenePointLight {
     Vector3 position;
     float inverseRangeSquared;
@@ -119,46 +91,36 @@ struct SceneLights {
 constexpr int kMostSceneLights = 16;
 void SceneLighting(const SceneLights& lights);
 bool GpuTerrainLighting();
-// The ground casts into the shadow map (the landscape's sun shadows, landscape flag 0x10, as its ray
-// march did). ShadowTerrainArea: as ShadowCasterArea (below) for a caster no higher than `highestTop`
-// (whatever SetOffscreenCasters says); false: no map this frame. ShadowTerrainSector: a sector whose
-// vertices are loaded and which stands in that area casts with its ground layer's 33 x 33 vertices (kept
-// on the GPU while its vertices stay the same) when ShadowCasterReaches its box.
+// The ground casts into the shadow map (landscape flag 0x10). ShadowTerrainArea: as ShadowCasterArea for a
+// caster no higher than `highestTop`; false: no map this frame. ShadowTerrainSector: a loaded sector in
+// that area casts with its ground layer's 33 x 33 vertices when ShadowCasterReaches its box.
 struct ShadowCasterRect;
 bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area);
 void ShadowTerrainSector(const terrain::SectorData* sector);
-// The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
-// draws); CastsShadow (from the object's shadow draw, when the game would draw
-// its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
-// than `strength` 0.5 not at all (a unit fading in). `figure`: a unit's draw (the unit lists):
-// its meshes take only the shadows other objects cast (never their own; the sun side is shaded by the
-// lighting's N.L), on every face; any other object's meshes are shadowed on the faces turned to the sun.
+// The meshes handed over between BeginCaster and EndCaster belong to `object`; CastsShadow (from the
+// object's shadow draw) lets them cast into this frame's shadow map, not at all weaker than `strength`
+// 0.5 (a unit fading in). `figure`: a unit's draw: its meshes take only the shadows other objects cast,
+// on every face; any other object's meshes are shadowed on the faces turned to the sun.
 void BeginCaster(const void* object, bool figure);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
-// Casters outside the view. The meshes the game draws cast (above); an object it does not draw
-// this frame (outside the view), or a part of a drawn one it left out (its own view test), whose
-// shadow can reach the visible ground casts through ShadowCasterMesh: the world's draw
-// (CWorldClient::Render, after its object draws) reads them from the objects' parts and hands them
-// over, changing nothing of the game's. ShadowCasterArea: whether this frame gets a shadow map and,
-// when it does, the rectangle of the ground (x, y in the landscape's space, the objects' world
-// space) a caster's centre must stand in: the visible ground's box swept back towards the sun as far
-// as a caster no higher than `highestTop` (z) can stand from the ground it shadows, widened by
-// `widest` (the largest radius). It fits the map now, from the ground drawn so far (the frame's map
-// keeps that fit). ShadowCasterReaches: whether a caster inside the sphere (centre, radius) can
-// shadow the visible ground: its box seen from the sun meets the map's area and is in front of the
-// ground's far side (exact up to the bounds; the map's depth then starts at the nearest such caster).
-// CasterPartDrawn: whether the figure mesh `part` (MeshSource::owner) was drawn this frame as a
-// caster's mesh. CasterStrength: the strength CastsShadow gave `object` this frame, -1 when it was
-// not called. SetOffscreenCasters (the harness build's "shadowcasters view|all|walked"): all (the
-// default) as above; view: only what the game draws casts (as before); walked: every caster comes
-// from the walk, none from the game's draws (a check of the walk's meshes against the game's).
+// Casters outside the view: an object the game does not draw this frame, or a part of a drawn one it left
+// out, whose shadow can reach the visible ground casts through ShadowCasterMesh (the world's draw reads
+// them from the objects' parts, changing nothing of the game's). ShadowCasterArea: whether this frame gets
+// a shadow map and the rectangle of the ground (landscape's space) a caster's centre must stand in: the
+// visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` can
+// stand, widened by `widest` (the largest radius). ShadowCasterReaches: whether a caster inside the sphere
+// can shadow the visible ground (exact up to the bounds). CasterPartDrawn: whether the figure mesh `part`
+// (MeshSource::owner) was drawn this frame as a caster's mesh. CasterStrength: the strength CastsShadow
+// gave `object` this frame, -1 when it was not called. SetOffscreenCasters (the harness build's
+// "shadowcasters view|all|walked"): all (default) as above; view: only what the game draws casts; walked:
+// every caster comes from the walk.
 struct ShadowCasterRect {
     float x0, y0, x1, y1;
 };
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area);
 struct ShadowCasterSphere {
-    double x, y, z, radius;            // the centre in the landscape's space
+    double x, y, z, radius;
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
 bool CasterPartDrawn(const void* part);
@@ -177,32 +139,25 @@ struct ShadowMesh {
     const void* texture;               // stage 0's surface holder, or null
 };
 void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
-// The walk's time, from BeginShadowWalk to EndShadowWalk, counts as the shadow map's CPU time
-// (FrameStats::shadowMs; harness build).
+// The walk's time, from BeginShadowWalk to EndShadowWalk, counts as the shadow map's CPU time.
 void BeginShadowWalk();
 void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
-// The harness build's shadow map checks. SetShadowView (its "shadowview on|off"): the receivers show
-// only how much sun the map hides (white lit, black at the full strength), no texture, colour or fog.
-// SetShadowShift (its "shadowshift <texels>"): the map's origin moved by that many whole texels across
-// and half as many along its other side; its texels lie on the world as before, only which texels share
-// a range cell changes, so a filter that depends on the cells shows it.
+// Harness build shadow map checks. SetShadowView ("shadowview on|off"): the receivers show only how much
+// sun the map hides. SetShadowShift ("shadowshift <texels>"): the map's origin moved by that many whole
+// texels across and half as many along, to show a filter that depends on the range cells.
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
-// With the shadow map nothing reads an object shadow's classic texture (the 64 x 64
-// raster, its blur and the copy into the shadow texture) or its decal's flat draw; the game reads only
-// the parts' points, the bounds, the quad and the decal's projection (its sphere: ShadowInView).
-// ClassicShadowSkipped: true when Active() (the texture and the decal's draw are
-// left out whenever the new renderer draws).
+// With the shadow map nothing reads an object shadow's classic texture or its decal's flat draw; the game
+// reads only the parts' points, the bounds, the quad and the decal's projection. ClassicShadowSkipped:
+// true when Active().
 bool ClassicShadowSkipped();
-// The last presented frame's shadow map: made or not (no sun or terrain, no caster), its size, the
-// world extent it covers (the larger side), the casters' objects and draws,
-// the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
-// (CastsShadow, strong enough): `offScreen` cast nothing and handed over no mesh (the game did not
-// draw them, and none came through ShadowCasterMesh), `lost` handed over meshes of which none went
-// into the map (none should). `outsideCasters` objects cast through ShadowCasterMesh in
-// `outsideDraws` draws of `outsideCorners` corners.
+// The last presented frame's shadow map: made or not, its size, the world extent it covers, the casters'
+// objects and draws, the meshes and terrain batches that sampled it. Of the objects whose shadow the game
+// draws: `offScreen` cast nothing and handed over no mesh, `lost` handed over meshes of which none went
+// into the map (none should); `outsideCasters` cast through ShadowCasterMesh in `outsideDraws` draws of
+// `outsideCorners` corners.
 struct ShadowInfo {
     bool made = false;
     int size = 0;
@@ -214,88 +169,70 @@ struct ShadowInfo {
 };
 ShadowInfo ShadowState();
 
-// What the new renderer did for the presented frames (docs/notes/renderer.md section 13): the
-// hand-over's commands, the bytes written to the GPU, the draws and state changes, the textures made
-// and the CPU time spent, summed over `frames`. TakeFrameStats returns the sums since its last call
-// and starts new ones (the harness's "renderstats"). The CPU times and the reuse counts are the
-// harness build's only (zero in the product).
+// What the new renderer did for the presented frames (renderer.md section 13), summed over `frames`.
+// TakeFrameStats returns the sums since its last call and starts new ones (the harness's "renderstats").
+// The CPU times and the reuse counts are the harness build's only.
 struct FrameStats {
     enum Upload { Mmp, CpuPixels, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
-    // Hand-over: terrain pages and the batches they became, meshes handed over (BeginMesh with
-    // corners built) and their passes, pre-transformed draws (TlDraw, ScreenDraw), window blits
-    // (SurfaceBlit, movies, cursor, fills), depth clears, the old device's state read per pass.
+// Hand-over: terrain pages and batches, meshes (BeginMesh with corners built) and their passes,
+// pre-transformed draws, window blits, depth clears, the old device's state reads.
     std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
     std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
-    // Of the meshes: the flat geometry (object shadows, ground prints, selection markers,
-    // light decals) and its vertex bytes.
+// Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
     std::uint64_t flatMeshes = 0, flatVertexBytes = 0;
-    // The vertices handed over against the last frame's of the same terrain page (sector, page) or
-    // mesh (its positions' address): all the same, only the colours changed (relit), positions or
-    // texture coordinates changed (moved), or none last frame (new); meshes whose positions and
-    // texture coordinates equal another's of the same frame (shared: instancing candidates).
+// Vertices handed over against the last frame's of the same terrain page or mesh: all the same, only
+// colours changed (relit), positions or texture coordinates changed (moved), none last frame (new);
+// meshes equal to another's of the same frame (shared: instancing candidates).
     enum Reuse { Same, Relit, Moved, New, ReuseKinds };
     std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {}, sharedMeshes = 0;
-    // Bytes appended to the per-frame vertex and index buffers, uniform bytes.
     std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
     std::uint64_t uniformBytes = 0;
-    // Submission: passes, draws, pipeline applies and changes, bindings applies, changes of the
-    // first texture bound.
+// Submission: passes, draws, pipeline and bindings applies and changes, first-texture changes.
     std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
-    // Images made (or updated in place) per kind and their bytes (every level); bytes compared with
-    // the snapshots of the renderer's memory (window surfaces where marked written, memory textures
-    // once a frame) and converted from it.
+// Images made (or updated in place) per kind and their bytes; bytes compared with the snapshots of the
+// renderer's memory.
     std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
     std::uint64_t comparedBytes = 0;
-    // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
-    // (views checked, converted, made; windowMs: of it, the window surfaces'), EndFrame (uploads,
-    // draws, the present on the window). (statsMs: these counts' own hashing and checks, left out of
-    // the others; terrainMs: the terrain pages' hand-over and uploads, left out of the times around them.)
+// CPU time (ms): hand-over, texture work (windowMs: the window surfaces'), EndFrame. statsMs: these
+// counts' own hashing and checks; terrainMs: the terrain pages' hand-over and uploads; both left out of
+// the others.
     double terrainMs = 0.0;
     double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
-    // The old device path's mesh draws (projection, corners, clipping,
-    // passes; DeviceMeshTimer), the hand-over in them left out.
+// The old device path's mesh draws (DeviceMeshTimer), the hand-over in them left out.
     double deviceMeshMs = 0.0;
-    // The ground decals' projection onto the ground and platforms (ProjectDecal) for the
-    // object shadows and for the ground prints, with its calls and the vertices it made; the device's
-    // flat draws (projection, clipping, passes; the hand-over in them left out: prints,
-    // selection markers), with their vertices; and the object shadow's build around its projection
-    // (RenderShadow: the parts' points and the decal's projection).
+// The ground decals' projection (ProjectDecal) for object shadows and ground prints, with calls and
+// vertices; the device's flat draws (hand-over left out); the object shadow's build (RenderShadow).
     double decalShadowMs = 0.0, decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
     std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
     std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-    // The shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
-    // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
-    // gpuFrames) of the shadow pass and of the whole frame's passes.
+// The shadow map's draws and CPU time (left out of the times around it) and, harness build, GPU time
+// (timestamp queries read a few frames later, summed over gpuFrames) of the shadow pass and all passes.
     std::uint64_t shadowDraws = 0;
     double shadowMs = 0.0;
     std::uint32_t gpuFrames = 0;
     double gpuShadowMs = 0.0, gpuFrameMs = 0.0;
-    // The meshes handed over with positions moved by per-vertex offsets (an animation's morph:
-    // CFigureMesh::offsets_) and their corners.
+// Meshes handed over with per-vertex offsets (an animation's morph) and their corners.
     std::uint64_t morphMeshes = 0, morphCorners = 0;
 };
 FrameStats TakeFrameStats();
 
-// The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device at the
-// start, a sokol panic, a lost device that could not be made again). Every call below does nothing
-// when it is off.
+// The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device, a sokol
+// panic, a lost device that could not be made again). Every call below does nothing when it is off.
 bool Active();
-// Whether the old device path's mesh draws do only the per-corner work game
-// code reads: the new renderer draws every mesh from the model-space hand-over (BeginMesh)
-// and the image has no Direct3D 7 device, so the TL vertices, their fog and the clipped vertices'
-// screen positions are read by nothing but the screen rectangle of draw flag 1 (and the clipper,
-// whose counts the device's counters take). True when Active(), unless the harness asked for the
-// old work in full (its "meshcorners full", the harness build only: A/B frames and timings).
+// Whether the old device path's mesh draws do only the per-corner work game code reads: the new renderer
+// draws every mesh from the model-space hand-over, so the TL vertices, their fog and the clipped
+// vertices' screen positions are read only by the screen rectangle of draw flag 1 (and the clipper, whose
+// counts the device's counters take). True when Active(), unless the harness asked for the old work in
+// full ("meshcorners full", harness build only).
 bool MeshCornersSkipped();
 void SetMeshCornersFull(bool full);
 // Harness build: times one device mesh draw into FrameStats::deviceMeshMs (nothing elsewhere).
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
-// Harness build: times one decal projection (`shadow`: an object shadow's, else a ground
-// print's), one flat draw and one object shadow build (RenderShadow) into FrameStats,
-// counting them with the vertices made / drawn.
+// Harness build: times one decal projection (`shadow`: an object shadow's, else a ground print's), one
+// flat draw and one object shadow build into FrameStats, counting the vertices.
 void BeginDecalTime(bool shadow);
 void EndDecalTime(int vertices);
 void BeginFlatDrawTime(int vertices);
@@ -303,23 +240,22 @@ void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
 
-// The off-screen surfaces the game makes (interface windows, the software cursor,
-// movies) and system-memory pictures keep their pixels in memory the new renderer owns
-// (NewSurfaceMemory) and have no DirectDraw surface. The new renderer reads a holder's (CDXSurface)
-// pixels there wherever it draws it. Texture holders have such memory too (the save / load screen's
-// pictures, the shadow and the .bmp textures): a mesh pass that binds one
-// reads the memory, again whenever it changed.
-// A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
-// DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
-// 0 without alpha). The game code writes it (GDI, pixel code) and the new renderer reads it.
+// Off-screen surfaces (interface windows, the software cursor, movies) and system-memory pictures keep
+// their pixels in memory the new renderer owns and have no DirectDraw surface; the new renderer reads a
+// holder's (CDXSurface) pixels there wherever it draws it. Texture holders have such memory too (the
+// save / load screen's pictures, the shadow and .bmp textures): a mesh pass that binds one reads the
+// memory again whenever it changed.
+// A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory DC) of
+// `width` x `height` pixels, 16 or 32 bits each, channels at the given masks (`alphaMask` 0 without
+// alpha). The game code writes it and the new renderer reads it.
 struct SurfaceMemory {
     void* bits = nullptr;
     void* bitmap = nullptr;   // the DIB section (HBITMAP)
     int pitch = 0, width = 0, height = 0, bitsPerPixel = 0;
     std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
 };
-// Makes the memory of `holder` (replacing any it had); null when it cannot be made. The pointer
-// stays valid until the memory is freed.
+// Makes the memory of `holder` (replacing any it had); null when it cannot be made. The pointer stays
+// valid until the memory is freed.
 const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height, int bitsPerPixel, std::uint32_t redMask,
                                       std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 // The memory of `holder`, or null.
@@ -327,32 +263,28 @@ const SurfaceMemory* SurfaceMemoryOf(const void* holder);
 void FreeSurfaceMemory(const void* holder);
 // The holder is destroyed: its memory freed, what the renderer kept for it forgotten.
 void HolderGone(const void* holder);
-// A holder whose surface was loaded from an 8888 .mmp picture (the software cursor's
-// images): the new renderer keeps the picture's pixels from the file data.
+// A holder whose surface was loaded from an 8888 .mmp picture (the software cursor's images): the
+// renderer keeps the picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
 
-// The device object is being built: the new renderer starts now and from here on
-// presents through its own swap chain on the game window; the game then builds its device without
-// DirectDraw (device.h). False when the new renderer cannot start (the game then ends with an error).
+// The device object is being built: the new renderer starts now and presents through its own swap chain
+// on the game window; the game builds its device without DirectDraw (device.h). False when it cannot
+// start (the game then ends with an error).
 bool StartPresenting();
-// StartPresenting succeeded: the new renderer shows the frames itself.
 bool PresentsItself();
-// Whether presenting onto the game window waits for the vertical blank (default on). The harness
-// turns it off under its virtual clock.
+// Whether presenting waits for the vertical blank (default on); the harness turns it off under its
+// virtual clock.
 void SetWaitForVsync(bool on);
-// The settings file's "VSync" (directdraw_holder.cpp, after StartPresenting, before the first present): off
-// presents with sync interval 0 and, where the system supports it, tearing (a swap chain made with
-// DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING), so the windowed game runs unlocked. The harness build has no such switch:
-// VsyncSwitchSupported() is false there and SetVsync does nothing.
+// The settings file's "VSync" (directdraw_holder.cpp, after StartPresenting, before the first present):
+// off presents with sync interval 0 and, where supported, tearing (DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING).
+// The harness build has no such switch: VsyncSwitchSupported() is false there.
 bool VsyncSwitchSupported();
 void SetVsync(bool on);
 
-// A mesh draw of the old path (on the device object), after the game has
-// decided it is visible and set its colours: the mesh in model space and the matrix the old path
-// projects it with. Handed over between BeginMesh and EndMesh; every pass the old path draws in
-// between calls MeshPass, which takes the old device's state for that pass
-// (blend, alpha test, depth, culling, fog, texture stages, the bound textures) and returns whether
-// the old path still draws it (only when the new renderer did not take it).
+// A mesh draw of the old path, after the game decided it is visible and set its colours: the mesh in model
+// space and the matrix the old path projects it with. Handed over between BeginMesh and EndMesh; every
+// pass the old path draws in between calls MeshPass, which takes the old device's state for that pass
+// and returns whether the old path still draws it (only when the new renderer did not take it).
 struct MeshDraw {
     const float* positions;            // blocks of four vertices: x[4], y[4], z[4], 4 unused
     int positionCount;
@@ -375,142 +307,122 @@ struct MeshDraw {
     bool distanceFog;                  // the old path fogs the vertices by distance
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
-    // The normals (blocks of four as the positions; `normalCount` normals) and the words ((position,
-    // normal) index pairs, by the corners' colour index; `wordCount` of them) of a figure mesh lit on the
-    // GPU (MeshSource::lighting); null without.
+// The normals (blocks of four as the positions) and the words ((position, normal) index pairs, by the
+// corners' colour index) of a figure mesh lit on the GPU (MeshSource::lighting); null without.
     const float* normals;
     int normalCount;
     const std::uint16_t* words;
     int wordCount;
 };
 
-// A texture loaded from its .mmp file: `data` the file in memory, the levels from
-// `mip` on (`levels` of them) that the game loads for `holder` (a CDXSurface without a DirectDraw
-// surface): decoded from the file, keyed by the holder, kept until the holder goes (HolderGone).
-// False when it was not decoded (the new renderer is off, or the format is not one it reads).
+// A texture loaded from its .mmp file: `data` the file in memory, the levels from `mip` on (`levels` of
+// them) that the game loads for `holder`: decoded from the file, kept until the holder goes. False when
+// it was not decoded (the renderer is off, or the format is not one it reads).
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
-// From now on the rectangle `to` of the texture of `target` shows the rectangle `from` of the
-// texture of `source` (both surface holders; rectangles left, top, right, bottom in texels of the
-// textures' first level): every mesh draw sampling `target` in its first stage takes those texels
-// from `source` in the shader (on every level); the target's texture is not changed. One per
-// target: a new one replaces it; forgotten when either holder goes (HolderGone). Nothing is
-// recorded when a rectangle is empty or outside its texture (the old path's blit failed then).
-// The unit's face (the blink).
+// From now on the rectangle `to` of the texture of `target` shows the rectangle `from` of the texture of
+// `source` (rectangles left, top, right, bottom in texels of the first level): every mesh draw sampling
+// `target` in its first stage takes those texels from `source`; the target's texture is not changed. One
+// per target (a new one replaces it); forgotten when either holder goes. Nothing is recorded when a
+// rectangle is empty or outside its texture. Used for the unit's face (the blink).
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
-// The game made new pixels for a texture on the CPU (the shadow textures) and copies
-// them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes
-// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format). Nothing for a holder
-// with SurfaceMemory (the switch-over's shadow textures): it is read from that memory.
+// The game made new pixels for a texture on the CPU (the shadow textures) and copies them into its
+// surface: the renderer takes them from the buffer (`pitch` bytes per row, `bitsPerPixel` 16 or 32, the
+// surface's channel masks). Nothing for a holder with SurfaceMemory: it is read from that memory.
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void BeginMesh(void* device, const MeshDraw& mesh);
 bool MeshPass(void* device);
 void EndMesh();
 
-// Pre-transformed vertices the old path draws as they are (FVF 0xC4: screen x, y, depth z, rhw,
-// colour, specular; rhw taken as 1): the renderer's rectangle fill and outline. A
-// triangle list over `indices`, or a line strip over the vertices (`indices` null). Takes the old
-// device's state for the draw (`device`: the device object); returns whether the old path still
-// draws it.
+// Pre-transformed vertices the old path draws as they are (FVF 0xC4: screen x, y, depth z, rhw, colour,
+// specular; rhw taken as 1): the rectangle fill and outline. A triangle list over `indices`, or a line
+// strip over the vertices (`indices` null). Takes the old device's state for the draw; returns whether the
+// old path still draws it.
 struct ScreenVertex {
     float x, y, z, rhw;
     std::uint32_t colour, specular;
 };
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
-// A Direct3D 7 draw of pre-transformed vertices the old path is about to make (particles and
-// sprites, ribbons and lightning, the renderer's triangle draw: flying hit
-// points): `fvf` 0x1C4 (x, y, z, rhw, colour, specular, u, v) or 0xC4 (no texture coordinates),
-// `primitive` a D3DPRIMITIVETYPE (2 line list, 3 line strip, 4 triangle list, 5 strip, 6 fan),
-// indexed when `indices`. The vertices' fog (specular alpha) is already applied. Takes the old
-// device's state for the draw; returns whether the old path still draws it.
+// A Direct3D 7 draw of pre-transformed vertices the old path is about to make: `fvf` 0x1C4 (x, y, z, rhw,
+// colour, specular, u, v) or 0xC4 (no texture coordinates), `primitive` a D3DPRIMITIVETYPE (2 line list,
+// 3 line strip, 4 triangle list, 5 strip, 6 fan), indexed when `indices`. The vertices' fog is already
+// applied. Takes the old device's state; returns whether the old path still draws it.
 bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive);
 
-// A window surface's blit onto the frame: the surface holder (CDXSurface), the screen
-// rectangle, the source rectangle (null: the whole surface, stretched) and the colour key (in the
-// surface's pixel format) when `keyed`.
+// A window surface's blit onto the frame: the holder, the screen rectangle, the source rectangle (null:
+// the whole surface, stretched) and the colour key (in the surface's pixel format) when `keyed`.
 struct Rect {
     int left, top, right, bottom;
 };
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
-// The game wrote `written` (pixels; null: all of it) of the SurfaceMemory of `holder`: a
-// window surface is read again only where it was marked (and there only the rows and columns that
-// differ from what its texture holds), and that part uploaded. Writers: the DC release (GDI's
-// bounds), DirectPixels for writing (the pixel code), CopyFrameTo.
+// The game wrote `written` (pixels; null: all of it) of the SurfaceMemory of `holder`: a window surface
+// is read again only where marked (and there only the rows and columns that differ from its texture), and
+// uploaded. Writers: the DC release, DirectPixels for writing, CopyFrameTo.
 void SurfaceWritten(const void* holder, const Rect* written);
-// A texture holder's memory is read again only when marked written since its texture last read it
-// (and it differs from what the texture was made from), into the same image.
-// Harness build only: the window surfaces whose memory changed where no SurfaceWritten mark said, and
-// the memory textures whose memory changed with no mark (a writer without a mark: stale pixels in the
-// product; the run fails), and the first one's description.
+// A texture holder's memory is read again only when marked written since its texture last read it (and it
+// differs from what the texture was made from), into the same image.
+// Harness build only: the window surfaces and memory textures whose memory changed with no mark (a
+// writer without a mark: stale pixels in the product; the run fails), and the first one's description.
 int MissedSurfaceWrites(const char** first);
-// Harness build only (the harness's "memorytextures"): the textures in the renderer's memory
-// updated in place, their levels made on the GPU (on, the default), or made again as new images with
-// their levels box-filtered on the CPU (off: textures made again as before, for frame comparisons). Every memory
-// texture is read again at its next use.
+// Harness build only ("memorytextures"): memory textures updated in place with their levels made on the
+// GPU (on, the default), or made again as new images with levels box-filtered on the CPU (off, for frame
+// comparisons). Every memory texture is read again at its next use.
 void SetMemoryTexturesInPlace(bool on);
 
-// A movie's decoded frame (CBinkVideo): R, G, B, X bytes per pixel (BinkCopyToBuffer's
-// 32-bit "R" type), kept for `key` (the video object) until the next one; MovieBlit draws the last
-// frame into the screen rectangle `to`.
+// A movie's decoded frame (CBinkVideo): R, G, B, X bytes per pixel, kept for `key` (the video object)
+// until the next one; MovieBlit draws the last frame into the screen rectangle `to`.
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height);
 void MovieBlit(const void* key, const Rect& to);
 
-// A solid rectangle `to` in `colour` (D3DCOLOR; alpha ignored): the movie player's fill of the screen
-// before its first frame.
+// A solid rectangle `to` in `colour` (D3DCOLOR; alpha ignored): the movie player's fill before its first
+// frame.
 void Fill(const Rect& to, std::uint32_t colour);
 
-// The software cursor: the part `from` of the cursor image's surface (holder) with its
-// mask (`mask`: the image's full width, the surface's pixel format; the old path draws
-// (background & mask) | image) at the screen rectangle `to`. Texels whose mask is not zero are left
-// out.
+// The software cursor: the part `from` of the cursor image's surface with its mask (the image's full width,
+// the surface's pixel format; the old path draws (background & mask) | image) at the screen rectangle `to`.
+// Texels whose mask is not zero are left out.
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 
-// The software cursor between frames (the cursor thread in the switch-over without
-// DirectDraw; render_cursor.cpp, docs/notes/renderer.md section 9). Called from the cursor
-// thread with the cursor's lock held: the last frame presented on the game window (as drawn before
-// its cursor) is presented again with the part `from` of the cursor image (holder and mask as for
-// Cursor; the image must have been drawn by Cursor before) at `to`. Only when the new renderer
-// presents itself and nothing was presented on the game window for 40 ms (the main thread's frames
-// show the cursor themselves); false when nothing was presented. Thread-safe: no sokol call, the
-// Direct3D 11 work recorded on a deferred context and run as one command list.
+// The software cursor between frames (render_cursor.cpp, renderer.md section 9). Called from the cursor
+// thread with the cursor's lock held: the last presented frame (as drawn before its cursor) is presented
+// again with the part `from` of the cursor image (holder and mask as for Cursor, which must have drawn the
+// image before) at `to`. Only when the renderer presents itself and nothing was presented for 40 ms;
+// false when nothing was presented. Thread-safe: the Direct3D 11 work is recorded on a deferred context
+// and run as one command list.
 bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
-// The cursor thread's presents so far, the last one's rectangle and, in the verify build, the
-// checks of the frame it presented (the frame target, the cursor's texels where its
-// mask is clear) and how many differed.
+// The cursor thread's presents so far, the last one's rectangle and, in the verify build, the checks of
+// the frame it presented (the cursor's texels where its mask is clear) and how many differed.
 struct CursorPresentInfo {
     std::uint32_t presents = 0;
-    std::uint32_t calls = 0;       // moves the cursor thread handed over
+    std::uint32_t calls = 0;
     std::uint32_t refused[4] = {};   // not presented: picture not drawn yet, no frame, a frame within 40 ms, outside
     Rect lastTo{0, 0, 0, 0};
     int checks = 0, mismatches = 0;
 };
 CursorPresentInfo CursorPresents();
-// Verify build: the frame the cursor thread presented last (after the gamma ramp), as 24-bit BGR
-// rows from the top. False when there is none.
+// Verify build: the frame the cursor thread presented last (after the gamma ramp), as 24-bit BGR rows from
+// the top. False when there is none.
 bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
-// The old path clears the depth buffer to `z` in the middle of the frame (before the interface's
-// panels and 3D previews draw): `count` screen rectangles, or all of it when `rects` is null.
+// The old path clears the depth buffer to `z` mid-frame (before the interface's panels and 3D previews
+// draw): `count` screen rectangles, or all of it when `rects` is null.
 void ClearDepth(float z, const Rect* rects, int count);
 
-// DrawSectorPage hands every sector page the game draws: the sector, the renderer object
-// (whose transform pipeline holds the current clip matrix) and the page (ground pages
-// 0..pages+1, water pages after them).
+// The sector, the renderer object (whose transform pipeline holds the current clip matrix) and the page
+// (ground pages 0..pages+1, water pages after them) of every sector page the game draws.
 void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
-// The game changed what the sector's pages are built from (the renderer keeps them on the GPU):
-// Rebuilt its tile lists and records (SectorData::Build, Clear); Moved vertices or texture coordinates
-// (Animate's animated tiles); WaterMoved only the water layer's positions (Animate's waves,
-// ApplyWaterLevels: only the pages reading that layer read their vertices again).
+// The game changed what the sector's pages are built from: Rebuilt its tile lists and records; Moved
+// vertices or texture coordinates (animated tiles); WaterMoved only the water layer's positions (waves,
+// ApplyWaterLevels).
 enum class TerrainChange { Rebuilt, Moved, WaterMoved };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
-// Harness build only (the harness's "terraincache"): the terrain pages kept on the GPU (on, the
-// default) or built and uploaded again every frame (off: as before, for frame comparisons); the
-// pages kept, and the checks of kept pages against a fresh build (every 16th frame) with how many
-// found one stale (a change TerrainChanged was not told of).
+// Harness build only ("terraincache"): terrain pages kept on the GPU (on, the default) or built and
+// uploaded every frame (off, for frame comparisons); the pages kept and the checks of kept pages against
+// a fresh build (every 16th frame) with how many found one stale (a change TerrainChanged was not told of).
 void SetTerrainCache(bool on);
 struct TerrainCacheInfo {
     bool on = true;
@@ -519,21 +431,20 @@ struct TerrainCacheInfo {
 };
 TerrainCacheInfo TerrainCacheState();
 
-// A figure part lit on the GPU (the figure part draw; docs/notes/renderer.md section 16),
-// as 3DfpFPU's LightMesh lit its words: per channel the largest of the ambient colour, the sun (the
-// material's diffuse colour times the sun's colour times `coefficient`, times the cosine to the sun) and
-// each light (the same with its colour, times the cosine and 1 - distance^2 / range^2 where that is not
-// below 0), plus the emissive colour, at most 1; the alpha the diffuse colour's. The lights and the
-// sun are taken into the part's model space (the inverse of `model`); `crown`: the colours pulled 0.6 of
-// the way to the part's average (the flora's special light on the "crown" meshes).
+// A figure part lit on the GPU (renderer.md section 16), as 3DfpFPU's LightMesh lit its words: per channel
+// the largest of the ambient colour, the sun (diffuse colour times the sun's colour times `coefficient`,
+// times the cosine to the sun) and each light (the same with its colour, times the cosine and
+// 1 - distance^2 / range^2 where not below 0), plus the emissive colour, at most 1; the alpha the diffuse
+// colour's. Lights and sun are taken into the part's model space (the inverse of `model`); `crown`: the
+// colours pulled 0.6 of the way to the part's average (the flora's light on the "crown" meshes).
 struct MeshLightSource {
     Vector3 position;              // the landscape's space
     float inverseRangeSquared;
     float colour[3];
 };
 struct MeshLighting {
-    Matrix4 model;                 // the part's model space to the landscape's (row-major); with
-                                   // `camera`, the camera times that
+    Matrix4 model;                 // the part's model space to the landscape's (row-major); with `camera`, the
+                                   // camera times that
     const Matrix4* camera;         // the scene's camera (worlddata::SceneCamera), else null
     bool sun;                      // a sun (else no sun light)
     Vector3 sunDirection;          // the direction its light travels
@@ -547,12 +458,10 @@ struct MeshLighting {
     int lightCount;
 };
 
-// The figure mesh the next mesh draws draw. The new renderer keeps the
-// mesh's corners (positions and texture coordinates in model space, colours) on the GPU under `owner`
-// and builds and uploads again only what the game says changed: the colours when the draw wrote them,
-// the positions on MeshChanged. Set by the figure part draws right before the
-// device's draw and cleared (null) right after it; a mesh draw without one is built and uploaded again
-// every frame.
+// The figure mesh the next mesh draws draw. The renderer keeps the mesh's corners on the GPU under `owner`
+// and builds and uploads again only what the game says changed: the colours when the draw wrote them, the
+// positions on MeshChanged. Set by the figure part draws right before the device's draw and cleared right
+// after it; a mesh draw without one is built and uploaded every frame.
 struct MeshSource {
     const void* owner;     // the figure mesh (CFigureMesh) drawn
     const void* shared;    // the link figure (CLinkMesh) whose part it draws, else null
@@ -561,22 +470,17 @@ struct MeshSource {
     const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)
 };
 void SetMeshSource(const MeshSource* source);
-// The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'
-// positions (an animation's per-vertex offsets, a part morphed again), its colours outside its draw
-// (Colours: the sky's lighting on the sky object; a link figure's part lit or filled, on the colour
-// array's data, which the old code also does outside the figure part draws), or its buffers
-// (Rebuilt: loaded, cleared, mirrored, a part added or removed, destroyed).
+// The game changed a figure mesh or link figure in place: its vertices' positions (per-vertex offsets, a
+// part morphed again), its colours outside its draw (Colours: the sky's lighting; a link figure's part lit
+// or filled), or its buffers (Rebuilt: loaded, cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);
-// Mesh draws between SetInterfaceDraw(true) and SetInterfaceDraw(false) (an interface sprite's draw,
-// CUiMesh::Draw) are built and uploaded every frame: the interface rewrites its sprites'
-// corners in place in many places (bars, map markers, the original's and Rebirth's code), and they are
-// a few corners each.
+// Mesh draws between SetInterfaceDraw(true) and (false) (CUiMesh::Draw) are built and uploaded every
+// frame: the interface rewrites its sprites' corners in place in many places, a few corners each.
 void SetInterfaceDraw(bool on);
-// Harness build only (the harness's "meshcache"): the figure meshes kept on the GPU (on, the
-// default) or built and uploaded every frame (off: as before, for frame comparisons); the meshes
-// kept, and the checks of kept meshes against a fresh build (every 16th frame) with how many found
-// one stale (a change the game did not tell of).
+// Harness build only ("meshcache"): figure meshes kept on the GPU (on, the default) or built and uploaded
+// every frame (off, for frame comparisons); the meshes kept and the checks of kept meshes against a fresh
+// build (every 16th frame) with how many found one stale.
 void SetMeshCache(bool on);
 struct MeshCacheInfo {
     bool on = true;
@@ -585,15 +489,13 @@ struct MeshCacheInfo {
 };
 MeshCacheInfo MeshCacheState();
 
-// Copies the new frame's `source` rectangle (screen pixels, as drawn so far this frame) into the
-// SurfaceMemory of `holder` (a CDXSurface), stretched to its size: the screen copies
-// (the escape menu's background, the save game's picture). False when the sidecar is off, the holder
-// has no such memory or the copy failed.
+// Copies the new frame's `source` rectangle (screen pixels, as drawn so far) into the SurfaceMemory of
+// `holder`, stretched to its size: the escape menu's background, the save game's picture. False when the
+// renderer is off, the holder has no such memory or the copy failed.
 bool CopyFrameTo(const void* holder, const Rect& source);
 
-// The end of the game's frame: draws what was handed over since the last present into the
-// off-screen target and presents it on the game window. Once per frame; captures call it before
-// reading.
+// The end of the game's frame: draws what was handed over since the last present into the off-screen
+// target and presents it on the game window. Once per frame; captures call it before reading.
 void EndFrame();
 
 // The game presents: EndFrame if not done yet, then a new frame begins.
@@ -603,15 +505,14 @@ void Present();
 // has no frame.
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
-// The switch-over's own present on the game window (render_window.cpp; docs/notes/renderer.md,
-// section 9). The display's gamma ramp (three 256-entry ramps, full scale 65280; null
-// channels identity) applied as the frame goes to the window; captures read the frame before it.
-// GammaRamp copies the lookup in use (256 RGBA8 entries).
+// The switch-over's own present on the game window (render_window.cpp). The display's gamma ramp (three
+// 256-entry ramps, full scale 65280; null channels identity) is applied as the frame goes to the window;
+// captures read the frame before it. GammaRamp copies the lookup in use (256 RGBA8 entries).
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue);
 void GammaRamp(std::uint8_t* rgba256);
-// Frames presented on the game window so far; the verify build's checks of the presented frame
-// against the gamma ramp (after each SetGammaRamp, at a grid of points, when the frame shows one
-// to one): how many ran, the last one's points and differing points, whether one is still due.
+// Frames presented on the game window so far; the verify build's checks of the presented frame against
+// the gamma ramp (after each SetGammaRamp, at a grid of points, when the frame shows one to one): how many
+// ran, the last one's points and differing points, whether one is still due.
 struct WindowPresentInfo {
     std::uint32_t presents = 0;
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
@@ -629,31 +530,26 @@ struct WindowPresentInfo {
     int removals = 0;         // RemoveDevice calls
 };
 WindowPresentInfo WindowPresents();
-// Acts as if the Direct3D 11 device were lost at the next present (the harness's "losedevice"):
-// the swap chain's Present is not called but reported DXGI_ERROR_DEVICE_REMOVED (without a swap
-// chain of the game window's, the loss is taken at the end of the frame). Then, as for a real loss,
-// the device, sokol, the swap chain and every image are made again and textures uploaded again
-// from what they were decoded from.
+// Acts as if the Direct3D 11 device were lost at the next present ("losedevice"): the swap chain's Present
+// is not called but reported DXGI_ERROR_DEVICE_REMOVED. Then, as for a real loss, the device, sokol, the
+// swap chain and every image are made again and textures uploaded again from what they were decoded from.
 void LoseDevice();
-// Harness build only (EI_RENDER "removable"): the device was made through D3D11On12 on a
-// Direct3D 12 device, and this removes that device for real (ID3D12Device5::RemoveDevice, this
-// process only: no driver reset) right before the next present, which sees DXGI_ERROR_DEVICE_REMOVED;
-// everything is made again as for any lost device (on a new removable device). False when the
-// device is not removable.
+// Harness build only (EI_RENDER "removable"): the device was made through D3D11On12 on a Direct3D 12
+// device, and this removes that device for real (ID3D12Device5::RemoveDevice, this process only) right
+// before the next present; everything is made again as for any lost device. False when the device is not
+// removable.
 bool RemoveDevice();
-// Harness build only (the harness's "terrainlevels"): what the ground pages draw. Levels: the
-// texture level the page's sampler reads at each pixel instead of their colours (red = level * 32,
-// mip levels blended as the sampler blends them; green 0x5A and blue 0xA5 mark the pixel as
-// such), from a texture of the page's size and levels with one grey per level; PointMips: the same
-// through the old sampler (bilinear, D3DTFP_POINT mips: the level steps along the tiles' edges
-// that showed as seams). Off: the pages' colours.
+// Harness build only ("terrainlevels"): what the ground pages draw. Levels: the texture level the page's
+// sampler reads at each pixel instead of their colours (red = level * 32, mips blended as the sampler
+// blends them; green 0x5A and blue 0xA5 mark the pixel), from a texture of the page's size with one grey
+// per level; PointMips: the same through the old sampler (bilinear, D3DTFP_POINT mips: the level steps
+// along the tiles' edges that showed as seams). Off: the pages' colours.
 enum class TerrainLevelMode { Off, Levels, PointMips };
 void TerrainLevels(TerrainLevelMode mode);
-// Harness build only (the harness's "mmplevels"): how far the levels of the .mmp textures held
-// now, decoded as for drawing, lie from their level 0: both box-filtered down to 4 x 4, the mean
-// absolute difference per channel (0..255), the largest over all levels down to 4 x 4.
-// Levels decoded from the wrong bytes (the old offsets' overflow: bright green strips over the trees)
-// lie far off; the file's own mips stay close.
+// Harness build only ("mmplevels"): how far the levels of the .mmp textures held now, decoded as for
+// drawing, lie from their level 0: both box-filtered down to 4 x 4, the mean absolute difference per
+// channel (0..255), the largest over all levels. Levels decoded from the wrong bytes (bright green strips
+// over the trees) lie far off; the file's own mips stay close.
 struct MmpLevelCheck {
     int textures = 0, levels = 0;
     double worst = 0.0;
@@ -662,11 +558,10 @@ struct MmpLevelCheck {
 };
 MmpLevelCheck CheckMmpLevels();
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
-// (aspect kept, centred; the rest black). False when the new renderer does not present itself.
+// (aspect kept, centred). False when the renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);
-// Client-area point to frame pixel (outside the frame: beyond its edges) and back (the centre of the
-// frame pixel's window pixels). Unchanged when the frame fills the client area one to one or the new
-// renderer does not present itself.
+// Client-area point to frame pixel (outside the frame: beyond its edges) and back (the centre of the frame
+// pixel's window pixels). Unchanged when the frame fills the client area or the renderer does not present.
 void WindowToFrame(int* x, int* y);
 void FrameToWindow(int* x, int* y);
 

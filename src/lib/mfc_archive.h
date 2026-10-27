@@ -18,23 +18,23 @@ struct CArchive {
     enum Mode : unsigned { store = 0, load = 1, noFlushOnDelete = 2, noByteSwap = 4 };
     enum BufferCommand : unsigned { bufferRead = 0, bufferWrite = 1, bufferCommit = 2, bufferCheck = 3 };
 
-    void* document;                 // +0x00 m_pDocument
-    BOOL forceFlat;                 // +0x04
-    BOOL directBuffer;              // +0x08 m_bDirectBuffer
-    unsigned objectSchema;          // +0x0C
-    CString fileName;               // +0x10 m_strFileName
-    unsigned mode;                  // +0x14 m_nMode
-    BOOL userBuffer;                // +0x18
-    unsigned bufferSize;            // +0x1C m_nBufSize
-    CFile* file;                    // +0x20 m_pFile
-    unsigned char* bufferCur;       // +0x24 m_lpBufCur
-    unsigned char* bufferMax;       // +0x28 m_lpBufMax
-    unsigned char* bufferStart;     // +0x2C m_lpBufStart
-    unsigned mapCount;              // +0x30
-    void* objectMap;                // +0x34 m_pLoadArray / m_pStoreMap
-    void* schemaMap;                // +0x38
-    unsigned growSize;              // +0x3C
-    unsigned hashSize;              // +0x40
+    void* document;
+    BOOL forceFlat;
+    BOOL directBuffer;
+    unsigned objectSchema;
+    CString fileName;
+    unsigned mode;
+    BOOL userBuffer;
+    unsigned bufferSize;
+    CFile* file;
+    unsigned char* bufferCur;
+    unsigned char* bufferMax;
+    unsigned char* bufferStart;
+    unsigned mapCount;
+    void* objectMap;                // m_pLoadArray / m_pStoreMap
+    void* schemaMap;
+    unsigned growSize;
+    unsigned hashSize;
 
     bool IsLoading() const { return (mode & load) != 0; }
 

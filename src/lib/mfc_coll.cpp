@@ -106,7 +106,6 @@ template struct PlainArray<std::uint32_t, DWordArrayClass>;
 template struct PlainArray<std::uint8_t, ByteArrayClass>;
 template struct PlainArray<unsigned, UIntArrayClass>;
 
-// ---- CStringArray -------------------------------------------------------------------------------
 
 void __cdecl CStringArray::ConstructElements(CString* elements, int count) {
     for (; count--; ++elements) ::new (elements) CString;

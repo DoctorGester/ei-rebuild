@@ -1,10 +1,9 @@
 #pragma once
 
-// The world's effect objects: placed sounds, lights, particle sources, lightning bolts and missiles.
-// They are engine objects in the world's object list; the server ticks them (RunTick) and sends their
-// state to the clients as a DeltaField (Unpack / Pack), and the client side starts or moves the actual
-// sound, light or particle source (Start). Class names are the game's GetClassName strings; method
-// names are provisional. See docs/notes/effects.md.
+// The world's effect objects: placed sounds, lights, particle sources, lightning bolts and missiles. They are
+// engine objects in the world's object list; the server ticks them (RunTick) and sends their state to the
+// clients as a DeltaField (Unpack / Pack), and the client side starts or moves the actual sound, light or
+// particle source (Start). See docs/notes/effects.md.
 // Virtuals shared by every effect (CEngineObject's, CTransformObject's and these): Create (Reset, then
 // a full state write), Destroy (Reset), RunTick (0 = remove the effect), Load / Save (save game; the
 // stream's Read / Write, the save version), Reset, Radius (float), Position(group), Unpack(update,
@@ -24,15 +23,11 @@
 #include <cstddef>
 #include <cstdint>
 
-// The common base (abstract: GetClassName / GetClassId and Unpack / Pack / Start are pure). 0x14C
-// bytes. The world's timed objects (CWorld::timedObjects_) are reached through Reset, Radius and
-// Position.
+// The common base (abstract). The world's timed objects (CWorld::timedObjects_) are reached through Reset,
+// Radius and Position.
 class CEffect : public CTransformObject {
 public:
-    // Out of line for CEffectArrow's parts (every effect's constructor inlines it): the transform
-    // object's fields, no velocity, the state field, start tick and moving flag 0.
     CEffect();
-    // Every effect's destructor inlines it: the state field's streams, then the transform object's.
     ~CEffect() override;
 
     int Create() override;     // Reset, then a full Pack; returns 1.
@@ -40,7 +35,7 @@ public:
     int RunTick() override;    // 1: the effect stays.
     // Position, state field, start tick, velocity and stamp cleared.
     virtual void Reset();
-    // How far it reaches: a constant, unrounded in ST0.
+    // How far it reaches: a constant.
     virtual double Radius();
     // Its position as `group` sees it: the local position (the argument is ignored).
     virtual Vector3* Position(void* group);
@@ -67,17 +62,14 @@ public:
     DeltaField state_;         // the replicated state (see net_delta.h)
     int changeStamp_;          // the global when last changed, -1 after Reset
 };
-// world_effect.cpp. Reads a count and that many strings (CStream::ReadString) from a save stream, each
-// appended to `array`.
+// Reads a count and that many strings from a save stream, each appended to `array`.
 void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream);
 
-// A positional sound (class id 0x48). 0x264 bytes.
+// A positional sound (class id 0x48).
 class CEffectSound final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // world_effect_lifetime.cpp. The constructor ends with Reset; the destructor runs Reset twice
-    // (inline, then the virtual).
     CEffectSound();
     ~CEffectSound() override;
     void Reset() override;
@@ -87,7 +79,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    double Radius() override;                              // radius_
+    double Radius() override;
 
     char name_[0x100];         // sound file
     float volume_;
@@ -100,22 +92,21 @@ public:
     std::uint8_t unused_261[3];
 };
 
-// A sequence of sounds picked at random (class id 99). 0x174 bytes.
+// A sequence of sounds picked at random (class id 99).
 class CEffectSoundSeq final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // As CEffectSound's; the destructor then destroys the name array and the name.
     CEffectSoundSeq();
     ~CEffectSoundSeq() override;
     void Reset() override;
     int RunTick() override;
-    void Start(int update) override;                       // world_effect_sequence.cpp
+    void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    double Radius() override;                              // radius_
+    double Radius() override;
 
     mfc::CString name_;        // the first sound
     mfc::CStringArray names_;  // the others
@@ -126,12 +117,11 @@ public:
     int sound_;                // sequence handle, -1: none
 };
 
-// A looping ambient sound (class id 0x49). 0x174 bytes.
+// A looping ambient sound (class id 0x49).
 class CEffectAmbientSound final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor ends with Reset; the destructor runs Reset twice (inline, then the virtual).
     CEffectAmbientSound();
     ~CEffectAmbientSound() override;
     void Reset() override;
@@ -140,7 +130,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    double Radius() override;                              // radius_
+    double Radius() override;
 
     mfc::CStringArray names_;
     float volume_;
@@ -150,12 +140,11 @@ public:
     int sound_;                // handle, -1: none
 };
 
-// A point light (class id 0x4B). 0x164 bytes.
+// A point light (class id 0x4B).
 class CEffectPointLight final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor ends with Reset; the destructor runs Reset (the virtual) and releases the light.
     CEffectPointLight();
     ~CEffectPointLight() override;
     void Reset() override;
@@ -173,12 +162,11 @@ public:
     std::uint32_t lightFlags_; // ored into the light's flags
 };
 
-// A particle source (class id 0x4A; CreateParticleSource). 0x180 bytes.
+// A particle source (class id 0x4A; CreateParticleSource).
 class CEffectParticle : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor ends with Reset; the destructor runs Reset and releases the source.
     CEffectParticle();
     ~CEffectParticle() override;
     void Reset() override;
@@ -207,13 +195,11 @@ public:
     int unitId_;               // a unit whose position is used when unpacking, -1: none
 };
 
-// A particle wall (class id 0x5A; fire wall). 0x18C bytes.
+// A particle wall (class id 0x5A; fire wall).
 class CEffectWall final : public CEffectParticle {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor runs the particle's Reset and then its own; the destructor its own Reset and the
-    // particle's, then releases the source.
     CEffectWall();
     ~CEffectWall() override;
     void Reset() override;
@@ -226,13 +212,11 @@ public:
     Vector3 direction_;        // copied to the source
 };
 
-// A lightning bolt between two points or objects (class id 0x4D). 0x178 bytes.
+// A lightning bolt between two points or objects (class id 0x4D).
 class CEffectLightning final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor does not reset: only the bolt (null), the width (0) and the flag (0) are set. The
-    // destructor runs Reset and releases the bolt.
     CEffectLightning();
     ~CEffectLightning() override;
     void Reset() override;
@@ -257,11 +241,10 @@ public:
     std::uint8_t unused_175[3];
 };
 
-// A missile homing on a world object (abstract base: Unpack, Pack, Start and MoveParts pure). 0x158
-// bytes. Subclasses: CEffectArrow (0x4E) and the class 0x5B missile (twice as fast).
+// A missile homing on a world object (abstract base). Subclasses: CEffectArrow (0x4E) and the class 0x5B
+// missile (twice as fast).
 class CEffectMissile : public CEffect {
 public:
-    // The abstract table's destructor (no live object has it).
     ~CEffectMissile() override;
     // Aims the velocity at the target's centre at the missile speed (planar). 0 once within one step or
     // when the target is gone (arrived_ set, velocity zero without a target); on a client the height is
@@ -280,14 +263,12 @@ public:
     std::uint8_t unused_155[3];
 };
 
-// A spell missile: a particle source, a light and a looping sound flying together (class id 0x4E;
-// created by CSpellEffect::CreateArrow). 0x6C0 bytes.
+// A spell missile: a particle source, a light and a looping sound flying together (class id 0x4E; created by
+// CSpellEffect::CreateArrow).
 class CEffectArrow final : public CEffectMissile {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // world_effect_missile.cpp. The three embedded effects are built and destroyed with their own
-    // constructor and destructor bodies; the constructor ends with Reset.
     CEffectArrow();
     ~CEffectArrow() override;
     int RunTick() override;
@@ -311,16 +292,14 @@ public:
     int casterId_;                 // unit, -1: none
 };
 
-// A bow or crossbow shot (class id 0x5B, "CEffectArrowFigure"; made by CUnitServer::DeliverAttack with
-// the hit it carries). A missile at twice the speed. The client shows it as a figure object of its own
-// (class 0x38, model "efar1", texture "arrow01", filed in the client world's maps) that follows it,
-// turned along the velocity; on arrival the server hands the hit to the target (ReceiveHit). 0x19C
-// bytes. world_effect_missile.cpp.
+// A bow or crossbow shot (class id 0x5B, "CEffectArrowFigure"; made by CUnitServer::DeliverAttack with the
+// hit it carries). A missile at twice the speed. The client shows it as a figure object of its own (class
+// 0x38, model "efar1", texture "arrow01", filed in the client world's maps) that follows it, turned along the
+// velocity; on arrival the server hands the hit to the target (ReceiveHit).
 class CEffectArrowFigure final : public CEffectMissile {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor resets (Reset); the destructor resets twice (inline, then the virtual).
     CEffectArrowFigure();
     ~CEffectArrowFigure() override;
     void Reset() override;                                 // figure out of the maps and released
@@ -338,14 +317,12 @@ public:
 };
 
 // What a unit sees, shown in the fog of war (clairvoyance, class id 0x5E, created by
-// CSpellEffect::CreateParticle and Start). The server recomputes the seen squares from the seer's sight
-// every tick and sends them; the client reveals them in a fog object of its own. 0x170 bytes.
-// world_effect_visibility.cpp.
+// CSpellEffect::CreateParticle and Start). The server recomputes the seen squares from the seer's sight every
+// tick and sends them; the client reveals them in a fog object of its own.
 class CEffectShowVisibility final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor gives the grid one square (cells and rows allocated) and does not Reset.
     CEffectShowVisibility();
     ~CEffectShowVisibility() override;
     void Reset() override;                                 // grid cleared, fog released
@@ -363,17 +340,15 @@ public:
     FogGrid grid_;
 };
 
-// The bird of the client world (class id 100, "CEffectMoshka"; CWorldClient keeps one in bird_, made
-// and told whom to follow by the client world). It perches near the followed object (usually the
-// leader), flies to it when it comes close, circles it and flies off to a perch again; the client's
-// draw pass moves it every frame (Update with the animation time). Its figure object (class 0x38,
-// model "unmobi", texture "bird00") carries a particle source (0x203C). Nothing is sent or saved (Load
-// / Save are the base's, Pack / Start do nothing). 0x16C bytes. world_effect_moshka.cpp.
+// The bird of the client world (class id 100, "CEffectMoshka"; CWorldClient keeps one in bird_, made and told
+// whom to follow by the client world). It perches near the followed object (usually the leader), flies to it
+// when it comes close, circles it and flies off to a perch again; the client's draw pass moves it every frame
+// (Update with the animation time). Its figure object (class 0x38, model "unmobi", texture "bird00") carries
+// a particle source (0x203C). Nothing is sent or saved (Load / Save are the base's, Pack / Start do nothing).
 class CEffectMoshka final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor and destructor reset (the destructor twice: inline, then the virtual).
     CEffectMoshka();
     ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
@@ -401,16 +376,14 @@ public:
     int state_;                // 0 perched, 1 circling, 2 flying to position_ (the perch)
 };
 
-// A tornado crossing the map (class id 0x65, "CEffectTornado"; the server weather launches it). It
-// moves in a straight line for framesLeft_ ticks, carries a particle source (0x200A) and the looping
-// sound "nature\tornado\circle.wav"; on the server every 8th tick (while more than 20 remain) the
-// units within 5 take a hit of 5 (damage type 6). The source stops emitting for the last 110 ticks.
-// 0x15C bytes. world_effect_tornado.cpp.
+// A tornado crossing the map (class id 0x65, "CEffectTornado"; the server weather launches it). It moves in a
+// straight line for framesLeft_ ticks, carries a particle source (0x200A) and the looping sound
+// "nature\tornado\circle.wav"; on the server every 8th tick (while more than 20 remain) the units within 5
+// take a hit of 5 (damage type 6). The source stops emitting for the last 110 ticks.
 class CEffectTornado final : public CEffect {
 public:
     const char* GetClassName() override;
     int GetClassId() override;
-    // The constructor resets inline (as Reset); the destructor resets twice (inline, then the virtual).
     CEffectTornado();
     ~CEffectTornado() override;
     void Reset() override;                                 // source cleared and released, sound stopped

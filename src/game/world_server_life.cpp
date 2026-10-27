@@ -97,7 +97,6 @@ void CWorldServer::Destroy() {
     ResetState();
     Messages()->Close();
 
-    // The exits' storage freed (each record's target string destroyed), as SetSize(0) inlined.
     if (exits_.data) {
         for (int i = 0; i < exits_.size; ++i) std::destroy_at(&exits_[i].target);
         gamecrt::operator_delete(exits_.data);

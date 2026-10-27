@@ -1,14 +1,11 @@
 #pragma once
 
-// MFC 4.2's CList<TYPE, ARG_TYPE>, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> (afxtempl.h) and CPlex
-// (afxplex_.h) as game.exe instantiates them, for the standalone exe
-// (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the map bodies are
-// written here over mfc::CMap's layout; what differs between the instantiations is the element: its
-// size (read from each NewNode's CPlex::Create) and the element policy (mfc_array.h: how
-// ConstructElements builds a new one, how DestructElements destroys it). ListAbi / MapAbi turn the
-// members into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused);
-// mfc_list.cpp registers the library-only instantiations, src/game/game_lists.cpp the ones whose
-// elements are game types.
+// MFC 4.2's CList<TYPE, ARG_TYPE>, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> (afxtempl.h) and CPlex (afxplex_.h) as
+// game.exe instantiates them (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the
+// map bodies are written here over mfc::CMap's layout; the instantiations differ in the element: its size (read
+// from each NewNode's CPlex::Create) and the element policy (mfc_array.h). ListAbi / MapAbi turn the members
+// into the instantiations' calling conventions; mfc_list.cpp registers the library-only instantiations,
+// src/game/game_lists.cpp the ones whose elements are game types.
 
 #include "mfc_array.h"
 #include "game/game_data.h"
@@ -19,7 +16,6 @@
 
 namespace mfc::impl {
 
-// ---- CPlex ----------------------------------------------------------------------------------------
 
 // CPlex::Create (__stdcall): a block of `count` elements of `elementSize` bytes
 // after the CPlex header (operator new), linked in front of `head`. Returns the block.
@@ -29,7 +25,6 @@ CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 // returns that EAX (0 there; its checks run on empty lists).
 int __fastcall FreePlexChain(CPlex* head);
 
-// ---- CList ----------------------------------------------------------------------------------------
 
 template <typename T, typename E = PlainElements<T>>
 struct ListAbi : CList<T, E> {
@@ -108,7 +103,6 @@ template <typename Abi, typename Node>
 typename Abi::Node* NodeAs(Node* node) {
     return reinterpret_cast<typename Abi::Node*>(node);
 }
-// NewNode(prev, next), FreeNode(node) and RemoveAt(node) of the list as `Abi`.
 template <typename Abi, typename T, typename E>
 typename CList<T, E>::Node* NewNodeAs(CList<T, E>* list, typename CList<T, E>::Node* prev,
                                       typename CList<T, E>::Node* next) {
@@ -167,22 +161,22 @@ void InitMap(CMap<std::uint32_t, std::uint32_t>* p) {
 
 // ---- The instantiations' vtables (game data) ------------------------------------------------------
 
-struct PtrListClass;   // CPtrList (the lists the code builds on the stack; blocks of 10)
-struct ItemListClass;   // the item and object pointer lists (CTypedPtrList)
-struct TempListClass;   // a pointer list built around each item creation (world quests)
-struct CellListClass;   // the units' path cell lists
-struct LootListClass;   // the loot lists
-struct PlatformListClass;   // the client maps' platform lists
-struct ClientListClass;   // the client map's lists (world_client_maps)
-struct ClientList2Class;   // 's list
-struct ClientList3Class;   // 's list
-struct NodeListClass;   // the AI map's node lists
-struct BlockCostListClass;   // the AI's block cost lists
-struct AiMapListClass;   // the AI map's lists
-struct WaypointListClass;   // the AI plan's waypoint lists
-struct StaticListClass;   // the list a static initialiser builds
-struct DwordMapClass;   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-struct ScriptCommandsClass;   // CArray<SSCCmd> (a script block, a CList element)
+struct PtrListClass;
+struct ItemListClass;
+struct TempListClass;
+struct CellListClass;
+struct LootListClass;
+struct PlatformListClass;
+struct ClientListClass;
+struct ClientList2Class;
+struct ClientList3Class;
+struct NodeListClass;
+struct BlockCostListClass;
+struct AiMapListClass;
+struct WaypointListClass;
+struct StaticListClass;
+struct DwordMapClass;
+struct ScriptCommandsClass;
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -211,7 +205,6 @@ using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
 
-// The ConstructElements helpers those NewNodes call (__stdcall).
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;

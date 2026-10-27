@@ -264,9 +264,9 @@ static void LoadRebirthSettings() {
 
 int InstallHooks() {
     // The standalone image: every plain replacement goes in (there is no original code to run). game.exe runs
-    // only as the original game (the original's harness: ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours
-    // is installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original
-    // through its trampoline and samples its calls. No mode runs our rewrites inside game.exe.
+    // only as the original game (ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours is installed there,
+    // except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original through its
+    // trampoline and samples its calls.
     const bool standalone = Standalone();
     if (!standalone) {
         char noHooksValue[4], vectorsValue[4];
@@ -397,7 +397,7 @@ int InstallHooks() {
 // and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
 // has applied its own patches from a hook on the WinMain call. The standalone image calls InstallHooks
 // from EiStandaloneMain (standalone_main.cpp).
-void InstallCoverage();   // cover.cpp
+void InstallCoverage();
 static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();
 

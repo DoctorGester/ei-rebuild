@@ -105,7 +105,6 @@ void WallScorchShape(const Vector3* direction, const float* half, float* angleAn
 
 } // namespace
 
-// --- CEffectPointLight ---------------------------------------------------------------------------
 
 void CEffectPointLight::Reset() {
     ClearBase(this);
@@ -234,7 +233,6 @@ void CEffectPointLight::Save(CStream* stream) {
 
 double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
 
-// --- CEffectParticle -----------------------------------------------------------------------------
 
 void CEffectParticle::Reset() {
     ClearBase(this);
@@ -472,7 +470,6 @@ int CEffectParticle::RunTick() {
     return now > startTick_ + lifetime ? 0 : 1;
 }
 
-// --- CEffectWall ---------------------------------------------------------------------------------
 
 void CEffectWall::Reset() {
     localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -547,7 +544,6 @@ void CEffectWall::Save(CStream* stream) {
     Write(stream, &direction_, 12);
 }
 
-// --- CEffectLightning ----------------------------------------------------------------------------
 
 void CEffectLightning::Reset() {
     ClearBase(this);

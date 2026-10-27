@@ -1,13 +1,10 @@
 #pragma once
 
-// STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
-// section 2).
-// One pointer to the sentinel node the constructor allocates (its next is the first element, its
-// prev the last; an empty list's sentinel points at itself). Nodes are next, prev, then the element,
-// from the node allocator. The game's instantiations of the members below (constructor, begin / end,
-// insert, erase, clear, destructor, distance) are registered at their own addresses in
-// stlp_list.cpp through the ListAbi shims: one body for every element type, the element's copy and
-// destruction supplied by an element policy.
+// STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). One
+// pointer to the sentinel node the constructor allocates (its next is the first element, its prev the last; an
+// empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. The
+// game's instantiations of the members below are registered at their own addresses in stlp_list.cpp through the
+// ListAbi shims: one body for every element type, the element's copy and destruction supplied by an element policy.
 
 #include "stlp_alloc.h"
 
@@ -74,7 +71,6 @@ struct list {
         head->prev = head;
     }
 
-    // _M_create_node(x): a node from the pool, then the element copied into it.
     template <typename E = Element<T>>
     static Node* CreateNode(const T& x) {
         Node* node = allocate_as<Node>();
@@ -121,18 +117,15 @@ struct list {
         deallocate(pos, sizeof(Node));
         return next;
     }
-    // list(const list&): a sentinel, then a copy of each element of `from`.
     template <typename E = Element<T>>
     void CopyConstruct(const list& from) {
         Construct();
         InsertRange<E>(head, from.First(), from.End());
     }
-    // clear.
     template <typename E = Element<T>>
     void Clear() {
         ClearWith([](T* p) { E::Destroy(p); });
     }
-    // ~list: clear, then the sentinel back to the pool.
     template <typename E = Element<T>>
     void Release() {
         Clear<E>();
@@ -149,7 +142,6 @@ struct list {
             first = next;
         }
     }
-    // distance(first, last, n): adds the number of nodes from first to last to n.
     static void Distance(const Node* first, const Node* last, int& n) {
         for (; first != last; first = first->next) ++n;
     }
@@ -165,14 +157,11 @@ struct list {
         last->prev = first->prev;
         first->prev = tmp;
     }
-    // splice(pos, x, i): the node `i` moved before `pos` (nothing when pos is i or
-    // the node after it).
     static void SpliceOne(Node* pos, Node* i) {
         Node* j = i->next;
         if (pos == i || pos == j) return;
         Transfer(pos, i, j);
     }
-    // splice(pos, x, first, last).
     static void SpliceRange(Node* pos, Node* first, Node* last) {
         if (first != last) Transfer(pos, first, last);
     }
@@ -193,19 +182,15 @@ struct ListAbi : list<T> {
     using List = list<T>;
     using Node = typename List::Node;
 
-    // list(const allocator_type&): returns this.
     List* Construct(const void* /*allocator*/) {
         List::Construct();
         return this;
     }
-    // list(): the same without the allocator argument.
     static List* __fastcall ConstructDefault(List* self) {
         self->Construct();
         return self;
     }
-    // ~list.
     static void __fastcall Destruct(List* self) { self->template Release<E>(); }
-    // clear.
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
     // _M_create_node(x): the list is not read; the node's links are left as
     // the pool had them.
@@ -216,7 +201,6 @@ struct ListAbi : list<T> {
         *out = List::template Insert<E>(pos, x);
         return out;
     }
-    // insert(pos): insert(pos, T).
     Node** InsertDefault(Node** out, Node* pos) {
         *out = List::template InsertDefault<E>(pos);
         return out;
@@ -228,17 +212,12 @@ struct ListAbi : list<T> {
         List::template InsertRange<E>(this->head, from->First(), from->End());
         return this;
     }
-    // insert(pos, first, last).
     void InsertRange(Node* pos, const Node* first, const Node* last) {
         List::template InsertRange<E>(pos, first, last);
     }
-    // push_back(x): insert(end, x).
     void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
-    // push_back(): insert(end()).
     static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
-    // pop_back(): erase(--end()).
     static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
-    // erase(pos): the list itself is not read.
     Node** Erase(Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);
         return out;

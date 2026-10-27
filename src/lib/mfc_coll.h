@@ -18,10 +18,10 @@ namespace mfc::impl {
 template <typename T, typename Class>
 struct PlainArray {
     void* vtable;
-    T* data;        // +0x04 operator new storage
-    int size;       // +0x08
-    int maxSize;    // +0x0C
-    int growBy;     // +0x10
+    T* data;        // operator new storage
+    int size;
+    int maxSize;
+    int growBy;
 
     PlainArray* Construct();                        // the constructor (returns this)
     void Destruct();                                // the destructor
@@ -55,10 +55,10 @@ static_assert(sizeof(CWordArray) == 0x14);
 // ones are released.
 struct CStringArray {
     void* vtable;
-    CString* data;  // +0x04
-    int size;       // +0x08
-    int maxSize;    // +0x0C
-    int growBy;     // +0x10
+    CString* data;
+    int size;
+    int maxSize;
+    int growBy;
 
     static void* Vtable();   // compiled (mfc_coll.cpp) in place
 

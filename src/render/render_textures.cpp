@@ -1,11 +1,8 @@
-// Game textures in the new renderer, keyed by their surface holder (CTexture +0x5C; no holder has a
-// DirectDraw surface): .mmp textures decoded from the file's levels (RGB of any mask layout, DXT1-5;
-// levels the file lacks box-filtered) and CPU pixels (TexturePixels), kept as sokol images until the
-// holder goes, with what they were decoded from for a new device. Also here: the holders' pixels in
-// memory the renderer owns (render::SurfaceMemory: DIB sections the game code draws into). A texture
-// whose holder has such memory (the save / load screen's pictures, the CPU-written, shadow and .bmp
-// textures) is read from it, again into the same image when the memory was marked written and
-// changed; so are window surfaces (WindowSurfaceView).
+// Game textures in the new renderer, keyed by their surface holder: .mmp textures decoded from the file's
+// levels (RGB of any mask layout, DXT1-5; missing levels box-filtered) and CPU pixels (TexturePixels), kept
+// as sokol images until the holder goes, with what they were decoded from for a new device. Also the holders'
+// pixels in memory the renderer owns (render::SurfaceMemory): a texture or window surface whose holder has
+// such memory is read from it, again into the same image when the memory was marked written and changed.
 #include "render_internal.h"
 #include "render_ui.h"
 
@@ -16,7 +13,7 @@
 #include <windows.h>
 #include <d3d11.h>
 
-#include "../game/texture.h"   // CDXSurface, CTexture
+#include "../game/texture.h"
 
 #include <cstdio>
 #include <cstring>
@@ -28,10 +25,8 @@ namespace render::detail {
 
 namespace {
 
-// What an owned texture (below) was decoded from: the .mmp file's levels as the file has them (as
-// compressed as the file: about what DirectDraw's managed texture kept in system memory), or the
-// RGBA8 level of TexturePixels. A new Direct3D 11 device (the old one was lost) gets the texture
-// decoded again from it.
+// What an owned texture was decoded from: the .mmp file's levels as the file has them, or the RGBA8 level of
+// TexturePixels. A new Direct3D 11 device gets the texture decoded again from it.
 struct TextureSource {
     enum Kind : std::uint8_t { None, Mmp, Rgba } kind = None;
     std::vector<std::uint8_t> header;   // Mmp: the file's header
@@ -49,11 +44,9 @@ struct Texture {
     bool keyed = false;              // window surfaces: the colour key it was converted with
     std::uint32_t key = 0;
     int width = 0, height = 0;
-    bool owned = false;              // decoded for a holder without memory (.mmp files, TexturePixels): the
-                                     // only copy, kept until the holder goes
+    bool owned = false;              // decoded for a holder without memory (.mmp files, TexturePixels): the only copy
     TextureSource source;            // owned: what it was decoded from, to make it again on a new device
-    bool updatable = false;          // window surfaces: rectangles can be written into the image;
-                                     // memory textures: level 0 written in place, the others made on the GPU
+    bool updatable = false;          // window surfaces: rectangles written into the image; memory textures: level 0 written in place
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
@@ -66,7 +59,6 @@ sg_sampler g_linear{};
 int g_failures = 0;
 constexpr std::uint32_t kUnusedFrames = 600;   // entries unused this long are dropped
 
-// One channel of an RGB mask layout: mask, shift of its lowest bit, width.
 struct Channel {
     std::uint32_t mask = 0;
     int shift = 0;
@@ -89,7 +81,6 @@ std::uint8_t Expand(std::uint32_t pixel, const Channel& c, std::uint8_t missing)
     return static_cast<std::uint8_t>(out);
 }
 
-// A 5:6:5 colour as RGBA8.
 void Colour565(std::uint16_t c, std::uint8_t* out) {
     int r = (c >> 11) & 31, g = (c >> 5) & 63, b = c & 31;
     out[0] = static_cast<std::uint8_t>((r << 3) | (r >> 2));
@@ -98,8 +89,7 @@ void Colour565(std::uint16_t c, std::uint8_t* out) {
     out[3] = 255;
 }
 
-// One DXT colour block (8 bytes) into a 4x4 RGBA8 tile. `alphaBlock` (DXT1 only) allows the
-// three-colour mode with transparent black.
+// One DXT colour block (8 bytes) into a 4x4 RGBA8 tile; `dxt1` allows the three-colour mode with transparent black.
 void ColourBlock(const std::uint8_t* block, std::uint8_t tile[16][4], bool dxt1) {
     std::uint16_t c0 = static_cast<std::uint16_t>(block[0] | (block[1] << 8));
     std::uint16_t c1 = static_cast<std::uint16_t>(block[2] | (block[3] << 8));
@@ -121,7 +111,6 @@ void ColourBlock(const std::uint8_t* block, std::uint8_t tile[16][4], bool dxt1)
     for (int i = 0; i < 16; ++i) std::memcpy(tile[i], palette[(bits >> (2 * i)) & 3], 4);
 }
 
-// DXT1..5 blocks ("DXTn" as the .mmp header's format id) into RGBA8, packed rows of blocks.
 bool DecodeDxtBlocks(const void* data, int width, int height, std::uint32_t fourcc, std::vector<std::uint8_t>& out) {
     char n = (fourcc & 0xFFFFFF) == 0x545844 ? static_cast<char>(fourcc >> 24) : 0;   // "DXT"
     int kind = n == '1' ? 1 : (n == '2' || n == '3') ? 3 : (n == '4' || n == '5') ? 5 : 0;
@@ -162,9 +151,8 @@ bool DecodeDxtBlocks(const void* data, int width, int height, std::uint32_t four
     return true;
 }
 
-// 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up:
-// the shadow textures' 4:4:4:4 and the other 16-bit memory (the masks' loop per channel cost more
-// than the rest of a texture's update). A few layouts are ever in use.
+// 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up (the
+// masks' loop per channel cost more than the rest of a texture's update). A few layouts are ever in use.
 struct Table16 {
     std::uint32_t masks[4] = {};
     std::vector<std::uint32_t> rgba;   // 65536 entries, the bytes R, G, B, A in memory order
@@ -191,7 +179,6 @@ const std::uint32_t* Lookup16(std::uint32_t red, std::uint32_t green, std::uint3
 
 bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
 
-// The union of two rectangles (either may be empty).
 Rect Union(const Rect& a, const Rect& b) {
     if (Empty(a)) return b;
     if (Empty(b)) return a;
@@ -199,9 +186,8 @@ Rect Union(const Rect& a, const Rect& b) {
                 a.bottom > b.bottom ? a.bottom : b.bottom};
 }
 
-// The rectangle `part` of a holder's memory as RGBA8 rows of its width (after GdiFlush: GDI may still
-// hold drawing for it). With `keyed`, pixels whose colour bits equal `key`'s (a DirectDraw source
-// colour key) come out transparent.
+// The rectangle `part` of a holder's memory as RGBA8 rows of its width (after GdiFlush: GDI may still hold
+// drawing for it). With `keyed`, pixels equal to `key` (a DirectDraw source colour key) come out transparent.
 bool Convert(const SurfaceMemory& m, const Rect& part, std::vector<std::uint8_t>& out, bool keyed = false,
              std::uint32_t key = 0) {
     GdiFlush();
@@ -255,8 +241,7 @@ bool Convert(const SurfaceMemory& m, const Rect& part, std::vector<std::uint8_t>
 
 Rect Whole(const SurfaceMemory& m) { return Rect{0, 0, m.width, m.height}; }
 
-// The next level of an RGBA8 level of `*width` x `*height` as a 2x2 box filter (sizes halved, at
-// least 1); `*width` / `*height` become its size.
+// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
 std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
     int w = *width, h = *height;
     int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
@@ -276,8 +261,7 @@ std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* 
     return dst;
 }
 
-// An RGBA8 image from `levels` (level 0 first); levels not given are box-filtered from the last one,
-// down to 1x1.
+// An RGBA8 image from `levels` (level 0 first); levels not given are box-filtered from the last, down to 1x1.
 sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label,
                    FrameStats::Upload kind) {
     int w = width, h = height;
@@ -302,8 +286,7 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     return sg_make_image(&desc);
 }
 
-// A texture view of `image`; none when the image could not be made (sokol's validation would
-// dereference the missing image).
+// A texture view of `image`; none when the image could not be made (sokol's validation would dereference it).
 sg_view MakeTextureView(sg_image image) {
     if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
         if (g_failures++ < 10) ei::Log("render: a texture image could not be made (pool full or bad data); drawn white");
@@ -331,12 +314,10 @@ void Retire(Texture& t) {
     t.view = sg_view{};
 }
 
-// The holders' pixels in memory the new renderer owns (render::NewSurfaceMemory).
 std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
-// The memory as the texture was last made from it. A memory texture is converted again when the game
-// marked its memory written since (g_textureMarks) and it differs (compared once a frame); a
-// window surface only where the game marked it written since (render::SurfaceWritten, g_written) and
-// that part differs.
+// The memory as the texture was last made from it. A memory texture is converted again when the game marked
+// its memory written since (g_textureMarks) and it differs (compared once a frame); a window surface only
+// where the game marked it written (render::SurfaceWritten, g_written) and that part differs.
 using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
 Snapshots g_snapshots;          // by holder: window surfaces
 Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
@@ -350,8 +331,7 @@ std::size_t MemoryBytes(const SurfaceMemory& m) {
     return static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(m.height);
 }
 
-// The memory of `holder` differs from its snapshot in `snapshots` (GdiFlush first: GDI may still
-// hold drawing for it).
+// The memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold drawing for it).
 bool MemoryChanged(const Snapshots& snapshots, const void* holder, const SurfaceMemory& m) {
     GdiFlush();
     auto it = snapshots.find(holder);
@@ -360,8 +340,7 @@ bool MemoryChanged(const Snapshots& snapshots, const void* holder, const Surface
     return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
 }
 
-// Keeps the memory of `holder` as its texture was just made from it (`made`), or forgets it when the
-// texture could not be made.
+// Keeps the memory of `holder` as its texture was just made from it, or forgets it when that failed.
 void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory& m, bool made) {
     if (!made) {
         snapshots.erase(holder);
@@ -372,14 +351,11 @@ void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory&
     std::memcpy(snapshot.data(), m.bits, snapshot.size());
 }
 
-// Memory textures: updated in place (the default) or, the harness's `memorytextures remake`,
-// made again as new images with their levels box-filtered on the CPU, as before (for frame
-// comparisons).
+// Memory textures: updated in place (the default) or, the harness's `memorytextures remake`, made again as
+// new images with their levels box-filtered on the CPU (for frame comparisons).
 bool g_memoryInPlace = true;
-// Holders whose memory was marked written (render::SurfaceWritten) since their texture last read it.
 std::unordered_set<const void*> g_textureMarks;
 
-// The levels of a `width` x `height` texture down to 1 x 1.
 int LevelCount(int width, int height) {
     int levels = 1;
     while ((width > 1 || height > 1) && levels < SG_MAX_MIPMAPS) {
@@ -390,9 +366,8 @@ int LevelCount(int width, int height) {
     return levels;
 }
 
-// A memory texture's image of `w` x `h` with every level, written in place (WriteMemoryTexture): a
-// Direct3D 11 texture of default usage handed to sokol that the GPU makes its levels for
-// (GenerateMips). No image when the device cannot make one.
+// A memory texture's image of `w` x `h` with every level, written in place (WriteMemoryTexture): a Direct3D 11
+// texture of default usage handed to sokol, whose levels the GPU makes (GenerateMips). No image on failure.
 sg_image MakeMemoryImage(int w, int h) {
     auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
     if (!device) return sg_image{};
@@ -433,9 +408,8 @@ bool WriteMemoryTexture(const Texture& t, const std::vector<std::uint8_t>& rgba)
     return true;
 }
 
-// Reads a texture whose pixels are in the renderer's memory into `t`: level 0 from the memory, the
-// others made from it. In place when `t` has an in-place image of the memory's size; else a new image
-// (`t`'s old one retired).
+// Reads a texture whose pixels are in the renderer's memory into `t`: level 0 from the memory, the others
+// made from it; in place when `t` has an in-place image of the memory's size, else a new image.
 void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
     std::vector<std::uint8_t> pixels;
     bool ok = Convert(c, Whole(c), pixels);
@@ -480,9 +454,8 @@ void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
     }
 }
 
-// A window surface's image of `rgba` (w x h): a Direct3D 11 texture of default usage handed to sokol,
-// so that changed rectangles can be written into it (UpdateWindow); `*updatable` false when only
-// sokol's own immutable image could be made.
+// A window surface's image of `rgba` (w x h): a Direct3D 11 texture of default usage handed to sokol, so
+// changed rectangles can be written into it; `*updatable` false when only an immutable image could be made.
 sg_image MakeWindowImage(int w, int h, const std::vector<std::uint8_t>& rgba, bool* updatable) {
     *updatable = false;
     auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
@@ -516,7 +489,6 @@ sg_image MakeWindowImage(int w, int h, const std::vector<std::uint8_t>& rgba, bo
     return image;
 }
 
-// Reads a window surface (one level; keyed) from its memory into `t`.
 void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool keyed, std::uint32_t key) {
     std::vector<std::uint8_t> pixels;
     bool ok = Convert(m, Whole(m), pixels, keyed, key);
@@ -541,8 +513,7 @@ void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool key
     }
 }
 
-// Whether the pixels `x0` .. `x1` of one row differ between `a` and `b` (`bytes` a pixel); if so the
-// first and last differing pixel widen `*left` / `*right` (x1 exclusive).
+// Whether the pixels `x0` .. `x1` of one row differ between `a` and `b`; if so widens `*left` / `*right`.
 bool RowChange(const std::uint8_t* a, const std::uint8_t* b, int x0, int x1, int bytes, int* left, int* right) {
     if (x1 <= x0) return false;
     std::size_t at = static_cast<std::size_t>(x0) * bytes;
@@ -559,8 +530,7 @@ bool RowChange(const std::uint8_t* a, const std::uint8_t* b, int x0, int x1, int
     return true;
 }
 
-// The part of `within` where the memory differs from `snapshot` (the bounding rectangle of the
-// differing pixels; empty when none).
+// The bounding rectangle of the pixels within `within` where the memory differs from `snapshot`.
 Rect ChangedPart(const SurfaceMemory& m, const std::vector<std::uint8_t>& snapshot, const Rect& within) {
     int bytes = m.bitsPerPixel / 8;
     Rect changed{m.width, m.height, 0, 0};
@@ -576,7 +546,6 @@ Rect ChangedPart(const SurfaceMemory& m, const std::vector<std::uint8_t>& snapsh
     return Empty(changed) ? Rect{} : changed;
 }
 
-// Writes the `part` of the memory into the window texture of `t` and into its snapshot.
 void UpdateWindow(Texture& t, const SurfaceMemory& m, std::vector<std::uint8_t>& snapshot, const Rect& part) {
     std::vector<std::uint8_t> pixels;
     if (!Convert(m, part, pixels, t.keyed, t.key)) return;
@@ -597,8 +566,7 @@ void UpdateWindow(Texture& t, const SurfaceMemory& m, std::vector<std::uint8_t>&
     }
 }
 
-// What was marked written in the memory of `holder` since the last call (clipped to it; empty when
-// nothing was).
+// What was marked written in the memory of `holder` since the last call (clipped to it).
 Rect TakeWritten(const void* holder) {
     auto it = g_written.find(holder);
     if (it == g_written.end()) return Rect{};
@@ -608,9 +576,9 @@ Rect TakeWritten(const void* holder) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// Harness build: the memory compared with the snapshot outside `*written`. A difference there is a
-// writer that set no mark (the product would show stale pixels): logged and counted (the run fails,
-// render::MissedSurfaceWrites), and `*written` grown over it so this frame shows it.
+// Harness build: the memory compared with the snapshot outside `*written`. A difference is a writer that set
+// no mark (the product would show stale pixels): logged and counted (render::MissedSurfaceWrites), and
+// `*written` grown over it so this frame shows it.
 void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<std::uint8_t>& snapshot, Rect* written) {
     StatsTimer timer(&FrameStats::statsMs);
     int bytes = m.bitsPerPixel / 8;
@@ -644,9 +612,8 @@ void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<st
     *written = Union(w, missed);
 }
 
-// Harness build: a memory texture's memory compared with its snapshot though nothing marked it
-// written. A difference is a writer that set no mark (the product would show the texture
-// stale): logged and counted as above; true, so that this frame reads it.
+// Harness build: a memory texture's memory compared with its snapshot though nothing marked it written: a
+// writer without a mark, logged and counted as above; true, so this frame reads it.
 bool CheckTextureMark(const void* holder, const SurfaceMemory& m) {
     StatsTimer timer(&FrameStats::statsMs);
     GdiFlush();
@@ -678,8 +645,7 @@ sg_view SurfaceView(const void* holder) {
         auto decoded = holder ? g_textures.find(holder) : g_textures.end();
         if (decoded != g_textures.end() && !decoded->second.view.id && decoded->second.owned &&
             decoded->second.checkedFrame != frame) {
-            // Lost with the old device (DropTextures): made again from what it was decoded from,
-            // tried once a frame.
+            // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
             decoded->second.checkedFrame = frame;
             Remake(decoded->second);
         }
@@ -690,9 +656,8 @@ sg_view SurfaceView(const void* holder) {
     Texture& t = g_textures[holder];
     t.usedFrame = frame;
     if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures in the renderer's memory are checked once a frame: read again when the game marked
-    // their memory written since (render::SurfaceWritten: the copy of a shadow into its
-    // texture, the pixel code's DirectPixels, GDI) and it differs from what they were made from.
+    // Textures in the renderer's memory are checked once a frame: read again when the game marked their memory
+    // written since (render::SurfaceWritten) and it differs from what they were made from.
     const SurfaceMemory& m = memory->second;
     t.checkedFrame = frame;
     bool marked = g_textureMarks.erase(holder) != 0;
@@ -708,9 +673,8 @@ sg_view SurfaceView(const void* holder) {
     return t.view.id ? t.view : White().view;
 }
 
-// The entry of `holder` from decoded levels, keyed by the holder: the texture until the holder goes
-// (HolderGone), `source` kept to make it again on a new device. Not for a holder with memory of the
-// renderer's: that memory is what the texture shows.
+// The entry of `holder` from decoded levels: the texture until the holder goes, `source` kept to make it
+// again on a new device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label, TextureSource source) {
     FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
@@ -734,7 +698,6 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
 
 namespace {
 
-// The patches (render::TexturePatch) by target holder: rectangles in texels of the first levels.
 struct Patch {
     const void* source = nullptr;
     int to[4] = {};
@@ -743,7 +706,6 @@ struct Patch {
 std::unordered_map<const void*, Patch> g_patches;
 int g_patchFailures = 0;
 
-// The size of the first level of the texture of `holder`: its memory, or what was decoded for it.
 bool HolderSize(const void* holder, int* width, int* height) {
     auto memory = g_memory.find(holder);
     if (memory != g_memory.end()) {
@@ -813,7 +775,7 @@ bool TextureFromPixels(const void* holder, const void* pixels, int width, int he
             o[3] = Expand(pixel, a, 255);
         }
     }
-    TextureSource source;   // the only copy (StoreDecoded): kept for a new device
+    TextureSource source;
     source.kind = TextureSource::Rgba;
     source.bytes = rgba;
     source.width = width;
@@ -838,11 +800,10 @@ struct MmpFile {
 };
 static_assert(sizeof(MmpFile) == 0x4C);
 
-// The offset of the first level's pixels after the header, as the game computes it (and
-// inline in the fill; 32-bit arithmetic: the extra block plus a geometric sum of the larger
-// levels). Only for the level the texture starts at: the product overflows from about the sixth
-// level of a 1024 x 1024 texture on, and the fill steps from level to level instead
-// (MmpFileLevelBytes).
+// The offset of the first level's pixels after the header, as the game computes it (32-bit arithmetic: the
+// extra block plus a geometric sum of the larger levels). Only for the level the texture starts at: the
+// product overflows from about the sixth level of a 1024 x 1024 texture on, and the fill steps from level to
+// level instead (MmpFileLevelBytes).
 std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
     if (mip == 0) return h.extraSize;
     std::uint32_t levelBytes = (h.bitsPerPixel * h.height * h.width) >> 3;
@@ -850,14 +811,12 @@ std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
     return levelBytes * (scale - 1) * 4 / (scale * 3) + h.extraSize;
 }
 
-// The bytes level `mip` takes in the file as the game's fill copies it and steps over it:
-// bits per pixel x width x height / 8 of the level's size (each halved per level, down to 0), no
-// whole DXT blocks for the levels under 4 x 4.
+// The bytes level `mip` takes in the file as the game's fill copies it: bits per pixel x width x height / 8
+// of the level's size (halved per level, down to 0), no whole DXT blocks for the levels under 4 x 4.
 std::uint32_t MmpFileLevelBytes(const MmpFile& h, unsigned mip) {
     return (h.bitsPerPixel * (h.width >> (mip & 31)) * (h.height >> (mip & 31))) >> 3;
 }
 
-// One level of the file as RGBA8.
 bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
     if ((h.format & 0xFFFFFF) == 0x545844) return DecodeDxtBlocks(pixels, width, height, h.format, out);   // "DXT"
     int bytes = static_cast<int>(h.bitsPerPixel / 8);
@@ -879,18 +838,16 @@ bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int
     return true;
 }
 
-// The bytes a level of `width` x `height` takes to decode (whole DXT blocks).
 std::uint32_t MmpLevelBytes(const MmpFile& h, int width, int height) {
-    if ((h.format & 0xFFFFFF) == 0x545844) {   // "DXT": 8 bytes a 4x4 block for DXT1, else 16
+    if ((h.format & 0xFFFFFF) == 0x545844) {
         auto blocks = static_cast<std::uint32_t>((width + 3) / 4) * static_cast<std::uint32_t>((height + 3) / 4);
         return blocks * ((h.format >> 24) == '1' ? 8u : 16u);
     }
     return static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height) * (h.bitsPerPixel / 8);
 }
 
-// The levels from `mip` on (`levels` of them, at least one) as RGBA8. `pixels` holds the file's bytes
-// after the header from offset `pixelsOffset` on; the bytes the decoded levels take go to `*first`
-// .. `*end`.
+// The levels from `mip` on (`levels` of them, at least one) as RGBA8. `pixels` holds the file's bytes after
+// the header from offset `pixelsOffset` on; the bytes the decoded levels take go to `*first` .. `*end`.
 bool DecodeMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixelsOffset, unsigned mip, unsigned levels,
                int* width, int* height, std::vector<std::vector<std::uint8_t>>& decoded, std::uint32_t* first,
                std::uint32_t* end) {
@@ -907,8 +864,7 @@ bool DecodeMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixel
         std::uint32_t bytes = MmpFileLevelBytes(h, m);
         const std::uint8_t* source = pixels + (offset - pixelsOffset);
         if (bytes < MmpLevelBytes(h, w, hh)) {
-            // A level the fill copies only part of (a DXT level under 4 x 4: the start of its
-            // block): the rest as zeros.
+            // A level the fill copies only part of (a DXT level under 4 x 4): the rest as zeros.
             padded.assign(MmpLevelBytes(h, w, hh), 0);
             std::memcpy(padded.data(), source, bytes);
             source = padded.data();
@@ -948,7 +904,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
                     static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    TextureSource source;   // the only copy (StoreDecoded): the file's levels kept for a new device
+    TextureSource source;
     source.kind = TextureSource::Mmp;
     source.header.assign(static_cast<const std::uint8_t*>(data), base);
     source.bytes.assign(base + first, base + end);
@@ -960,7 +916,6 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
 
 namespace {
 
-// An owned texture's image made again from its source (on a new device).
 void Remake(Texture& t) {
     const TextureSource& s = t.source;
     std::vector<std::vector<std::uint8_t>> levels;
@@ -989,7 +944,7 @@ void Remake(Texture& t) {
 } // namespace
 
 namespace {
-std::unordered_map<const void*, Picture> g_pictures;   // by surface holder
+std::unordered_map<const void*, Picture> g_pictures;
 } // namespace
 
 bool PictureFromMmpData(const void* holder, const void* data) {
@@ -1015,7 +970,6 @@ const Picture* PictureOf(const void* holder) {
 }
 
 sg_view TextureView(const void* texture) {
-    // The texture's counted surface holder (CDXSurface).
     if (!texture) return White().view;
     return SurfaceView(static_cast<const CTexture*>(texture)->surface_);
 }
@@ -1074,7 +1028,7 @@ sg_sampler LinearSampler() {
 
 namespace {
 sg_wrap Wrap(std::uint8_t address) {
-    switch (address) {   // D3DTEXTUREADDRESS
+    switch (address) {
     case 2: return SG_WRAP_MIRRORED_REPEAT;
     case 3: return SG_WRAP_CLAMP_TO_EDGE;
     case 4: return SG_WRAP_CLAMP_TO_BORDER;
@@ -1110,10 +1064,9 @@ sg_sampler AnisotropicSampler(const StageState& s) {
                         (static_cast<std::uint32_t>(s.addressV & 7) << 12);
     auto it = g_samplers.find(key);
     if (it != g_samplers.end()) return it->second;
-    // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose
-    // texture coordinates change direction and scale from tile to tile (D3DTFP_POINT's level
-    // steps showed as seams along the tile edges; renderer.md section 11). The smooth option samples
-    // the world's models so too (dgVoodoo's Filtering 16).
+    // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture
+    // coordinates change direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams;
+    // renderer.md section 11). The smooth option samples the world's models so too.
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_LINEAR;
     d.mag_filter = SG_FILTER_LINEAR;
@@ -1139,7 +1092,6 @@ void RetireTextures() {
     std::uint32_t frame = FrameNumber();
     for (auto* map : {&g_textures, &g_windows}) {
         for (auto it = map->begin(); it != map->end();) {
-            // (A texture decoded for a holder with nothing to read again stays until the holder goes.)
             if (!it->second.owned && frame - it->second.usedFrame > kUnusedFrames) {
                 if (it->second.image.id) {
                     sg_destroy_view(it->second.view);
@@ -1324,14 +1276,12 @@ int MissedSurfaceWrites(const char** first) {
 }
 
 void HolderGone(const void* holder) {
-    // Its patch, and those it was the source of.
     detail::g_patches.erase(holder);
     for (auto it = detail::g_patches.begin(); it != detail::g_patches.end();)
         it = it->second.source == holder ? detail::g_patches.erase(it) : std::next(it);
     FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
-    // What the renderer made for it (a later holder at the same address starts afresh; a texture
-    // decoded for the holder would otherwise outlive it).
+    // What the renderer made for it (a later holder at the same address starts afresh).
     detail::ForgetHolder(holder);
     ui::DropCanvas(holder);
 }

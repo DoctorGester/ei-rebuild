@@ -1,12 +1,10 @@
 #pragma once
 
-// MFC 4.2's CArray<TYPE, ARG_TYPE> (afxtempl.h) as game.exe instantiates it, for the standalone exe
-// (docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
-// between the instantiations is the element: its size, how ConstructElements builds new ones (MFC's
-// memset, then the element's constructor if it has one: inlined, or an out-of-line helper) and how
-// DestructElements destroys them. Those are the element policies below. ArrayAbi turns the members
-// into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused; the element
-// helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
+// MFC 4.2's CArray<TYPE, ARG_TYPE> (afxtempl.h) as game.exe instantiates it (docs/notes/standalone.md section
+// 2). The bodies are mfc::CArray's (mfc.h); the instantiations differ in the element: its size, how
+// ConstructElements builds new ones (MFC's memset, then the element's constructor if it has one: inlined, or an
+// out-of-line helper) and how DestructElements destroys them: the element policies below. ArrayAbi turns the
+// members into the instantiations' calling conventions; mfc_array.cpp registers each instantiation at its
 // library address.
 
 #include "containers.h"
@@ -23,7 +21,7 @@
 
 namespace mfc::impl {
 
-struct CArchive;   // mfc_archive.h
+struct CArchive;
 
 // An element seen only as its bytes (plain data whose type the array code never looks into).
 template <std::size_t N>
@@ -90,8 +88,8 @@ struct ArrayAbi : CArray<T, E> {
     using Element = T;
     using Array = CArray<T, E>;
 
-    // Serialize (vtable slot 2; defined in mfc_slots.h): the count (loading: ReadCount, then
-    // SetSize(count, -1)), then the elements in one block.
+    // Serialize (defined in mfc_slots.h): the count (loading: ReadCount, then SetSize(count, -1)), then the
+    // elements in one block.
     void Serialize(CArchive* ar);
 
     // The instantiations' SetSize(nNewSize, nGrowBy), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
@@ -100,7 +98,6 @@ struct ArrayAbi : CArray<T, E> {
     // (mfc.h), registered through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
     void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
-    // ConstructElements / DestructElements (__stdcall).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
 
@@ -164,40 +161,39 @@ void DestructArrayOf(CArray<T, E>& a) {
     a.FreeData();
 }
 
-// ---- The instantiations' vtables (game data) -------------------------------------------------------
-// One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable. The forward-declared
-// ones are compiler-made vtables (classes of mfc_slots.h and the game headers deriving from CompiledCollection);
-// the element policies and aliases below only name them.
+// One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable. The
+// forward-declared ones are compiler-made vtables (classes of mfc_slots.h and the game headers deriving from
+// CompiledCollection); the element policies and aliases below only name them. What each is: mfc_slots.h.
 
-struct IntArrayClass;   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
-struct UnitPtrArrayClass;   // the interface's unit pointer arrays
-struct FloatArrayClass;   // CArray<float>
-struct ArgFloatArrayClass;   // the script commands' float arguments (a CArray<float> subclass)
-struct ObjectRefArrayClass;   // CArray<ScriptObjectRef> (a script group's base)
-struct ScriptGroupClass;   // a script group (game/script.h ScriptGroup)
-struct ScriptFloatsClass;   // the script's float variables
-struct ScriptAreaClass;   // a script area's parts
-struct ScriptIfThenArrayClass;   // the script's if-then blocks
-struct PartySlotArrayClass;   // the script's party slots
-struct AiLookArrayClass;   // the AI's look records
-struct SpriteArrayClass;   // the weather and lightning sprites
-struct BoneLinkArrayClass;   // a figure's bone links
-struct WaypointArrayClass;   // a patrol's waypoints
-struct ExitArrayClass;   // a zone's exits
-struct MapRecordItemsClass;   // the array inside a map record
-struct PointArrayClass;   // a unit's point lists
-struct AttackOptionArrayClass;   // a unit's attack options
-struct AnimationStepsClass;   // a unit's animation steps
-struct AnimationStepsCopyClass;   // the animation steps a motion copies
-struct ClientMapArrayClass;   // the client map arrays (world_client_maps)
-struct ObjectPtrArrayClass;   // a save's shared object pointers
-struct SectorArrayClass;   // the AI map's sectors
-struct CellRowArrayClass;   // the AI map's cell rows
-struct AreaListClass;   // the AI map's area lists
-struct ScriptAreaPartsClass;   // the array a script area element holds (base ScriptAreaClass)
-struct StringArrayClass;   // CArray<CString> (the script's string variables)
-struct ArrayBaseClass;   // the base vtable the element arrays' destructors restore (patrols, motion records)
-struct AiLookRecordArrayClass;   // the array inside the AI's 32-byte look records (base AiLookArrayClass)
+struct IntArrayClass;
+struct UnitPtrArrayClass;
+struct FloatArrayClass;
+struct ArgFloatArrayClass;
+struct ObjectRefArrayClass;
+struct ScriptGroupClass;
+struct ScriptFloatsClass;
+struct ScriptAreaClass;
+struct ScriptIfThenArrayClass;
+struct PartySlotArrayClass;
+struct AiLookArrayClass;
+struct SpriteArrayClass;
+struct BoneLinkArrayClass;
+struct WaypointArrayClass;
+struct ExitArrayClass;
+struct MapRecordItemsClass;
+struct PointArrayClass;
+struct AttackOptionArrayClass;
+struct AnimationStepsClass;
+struct AnimationStepsCopyClass;
+struct ClientMapArrayClass;
+struct ObjectPtrArrayClass;
+struct SectorArrayClass;
+struct CellRowArrayClass;
+struct AreaListClass;
+struct ScriptAreaPartsClass;
+struct StringArrayClass;
+struct ArrayBaseClass;
+struct AiLookRecordArrayClass;
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -377,7 +373,7 @@ using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, I
 // A unit's animation list (game/combat.h's AnimationSteps): the steps' array and a
 // dword copied along with them.
 struct AnimationStepList : AnimationSteps::Array {
-    int extra;   // +0x14
+    int extra;
 };
 static_assert(sizeof(AnimationStepList) == 0x18);
 
@@ -422,7 +418,7 @@ using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, 
 // whose virtual destructor comes first. Declared only: the call goes through the element's vtable.
 class __declspec(novtable) DeletingFirst {
 public:
-    virtual void* DeletingDestructor(unsigned flags);   // 0
+    virtual void* DeletingDestructor(unsigned flags);
 };
 template <typename E>
 void DeleteThroughObject(E* p) { reinterpret_cast<CObjectVirtuals*>(p)->DeletingDestructor(0); }

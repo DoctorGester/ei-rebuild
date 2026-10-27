@@ -43,19 +43,19 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    int allocated;               // +0x04
-    int unbuffered;              // +0x08
-    int lastChar;                // +0x0C
-    char* base;                  // +0x10
-    char* ebuf;                  // +0x14
-    char* pbase;                 // +0x18
-    char* pptr;                  // +0x1C
-    char* epptr;                 // +0x20
-    char* eback;                 // +0x24
-    char* gptr;                  // +0x28
-    char* egptr;                 // +0x2C
-    int lockFlag;                // +0x30
-    CRITICAL_SECTION lock;       // +0x34
+    int allocated;
+    int unbuffered;
+    int lastChar;
+    char* base;
+    char* ebuf;
+    char* pbase;
+    char* pptr;
+    char* epptr;
+    char* eback;
+    char* gptr;
+    char* egptr;
+    int lockFlag;
+    CRITICAL_SECTION lock;
 
 protected:
     // streambuf(char*, int): the reserve area `buffer` of `length` bytes (none, and unbuffered,
@@ -108,21 +108,21 @@ struct Ios {
     void DestructOstream();
     Ostream* DeleteOstream(unsigned deleteFlags);
 
-    const void* vtable;          // +0x00
-    Streambuf* bp;               // +0x04
-    int state;                   // +0x08
-    int ispecial;                // +0x0C
-    int ospecial;                // +0x10
-    int isfxSpecial;             // +0x14
-    int osfxSpecial;             // +0x18
-    int deleteBuffer;            // +0x1C
-    Ostream* tie;                // +0x20
-    long flags;                  // +0x24
-    int precision;               // +0x28
-    char fill;                   // +0x2C
-    int width;                   // +0x30
-    int lockFlag;                // +0x34
-    CRITICAL_SECTION lock;       // +0x38
+    const void* vtable;
+    Streambuf* bp;
+    int state;
+    int ispecial;
+    int ospecial;
+    int isfxSpecial;
+    int osfxSpecial;
+    int deleteBuffer;
+    Ostream* tie;
+    long flags;
+    int precision;
+    char fill;
+    int width;
+    int lockFlag;
+    CRITICAL_SECTION lock;
 };
 static_assert(sizeof(Ios) == 0x50);
 

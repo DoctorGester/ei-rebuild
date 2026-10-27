@@ -1,8 +1,8 @@
 #pragma once
 
-// The game glue: methods of two empty objects (the game's, the local player's) that the interface, the
-// scripts and the console call instead of the worlds. None reads `this`, so they are plain functions here.
-// world.h declares the others (GameTime, LocalPlayerData, ...). Names are provisional.
+// The game glue: methods of two empty objects (the game's, the local player's) that the interface, the scripts
+// and the console call instead of the worlds. None reads `this`, so they are plain functions here. world.h
+// declares the others (GameTime, LocalPlayerData, ...).
 
 #include "lib/mfc.h"
 
@@ -14,8 +14,8 @@ const mfc::CString* GameBasePathString();
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
 int __stdcall FinishQuestMap(const char* name);
 
-class CScript;            // script.h
-struct NamedFloatTable;   // object_tables.h
+class CScript;
+struct NamedFloatTable;
 
 // A script's last error as callers take it (copied out of the script): the text, the code and the line.
 struct ScriptErrorInfo {
@@ -43,25 +43,23 @@ void __cdecl StoreStartFolder();
 #include <cstdint>
 
 class CEngineObject;
-class CPlayerClient;   // player_client.h
-class CUnit;   // unit.h
-struct PartyUnitRecord;   // unit.h
+class CPlayerClient;
+class CUnit;
+struct PartyUnitRecord;
 class CTextManager;
 
 // The server world's.
 // Player 0's connection, when there is one, sends "constr.current" = `value`.
 void __stdcall GameSetConstructionVariable(std::uint32_t value);
-// CWorldServer::SetWeather.
 void __stdcall GameSetWeather(int weather, float strength);
-// The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)), in ST0.
+// The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)).
 double GameServerTimeOfDay();
 // The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)
 // unless it is negative or a NaN.
 void __stdcall GamePassTime(float offset);
-// CWorldServer::EnsureZone (the client's state block).
 void __stdcall GameEnsureZone(const char* map, const char* mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
-class CMemoryStream;   // core_streams.h
+class CMemoryStream;
 CMemoryStream* GameObject7C2D60();
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
 // unless it is there already (or NaN).
@@ -83,9 +81,7 @@ int __stdcall GameShowCameraPath(const char* name);
 std::uint32_t GameCameraPathPlaying();
 
 // The client world's.
-// CWorldClient::Render (its result).
 int GameRender();
-// CSoundManager::StopAll(stopStream).
 void __stdcall GameStopSounds(int stopStream);
 // The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
 void GameStopAmbience();
@@ -93,29 +89,21 @@ void GameStartAmbience();
 // The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's
 // result.
 int __stdcall GamePlayMusic(const char* name);
-// CWorld::FindUnit on the client world.
 CUnit* __stdcall GameFindClientUnit(int id);
-// CWorldClient::CreatePartyUnits / RemoveUnitsOf.
 void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
 void __stdcall GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records);
-// CWorldClient::FindExitAt / PartyInExit / ExitTarget.
 int __stdcall GameFindExitAt(const float* point, int* index);
 int __stdcall GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit);
 const char* __stdcall GameExitTarget(int index);
 // Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void __stdcall GameLeaveThroughExit(int exit);
-// The interface's close-all flag (CInterface3D +0x44) set, then the local client's SendLeave04(value) /
-// Rejoin.
+// The interface's close-all flag set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
 // The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
-// CWorldClient::LocalView.
 CPlayerClient* GameLocalView();
-// CWorldClient::SendFlag10 (its result).
 int __stdcall GameSendFlag10(int value);
-// The client world's pause flag.
 std::uint8_t GameClientPaused();
-// The client world's text resources (+0x1D0).
 CTextManager* GameClientTexts();

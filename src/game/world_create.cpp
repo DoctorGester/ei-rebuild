@@ -72,7 +72,6 @@ int CWorld::Create() {
     itemManager_ = MakeNew<CItemManager>();
     Attach(itemManager_, this);
 
-    // The helper goes into the counted pointer shared5C_ (RefPtr::ShareAssign, inlined).
     shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
     countdowns_.RemoveAll();

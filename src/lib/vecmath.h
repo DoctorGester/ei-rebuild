@@ -1,11 +1,10 @@
 #pragma once
 
-// Vector, quaternion and matrix types and their inline maths (tickets V1 / V2; the catalog, the orders the
-// game uses and the migration plan are in docs/notes/vector-math.md).
-// Types: the game's own layouts, aggregates without constructors (`{x, y, z}` initialisation keeps working).
-// The out-of-line originals that are members (Vector3::Length, Quaternion::PreMultiply, ...) are declared
-// here and defined, hooked, in src/game; the free ones (Dot, CrossProduct, ...) stay declared in maths.h /
-// object_maths.h / core_maths.h. Inline helpers never reuse those names.
+// Vector, quaternion and matrix types and their inline maths (the catalog, the orders the game uses and the
+// migration plan are in docs/notes/vector-math.md). Types: the game's own layouts, aggregates without
+// constructors (`{x, y, z}` initialisation keeps working). The out-of-line members (Vector3::Length,
+// Quaternion::PreMultiply, ...) are declared here and defined in src/game; the free ones (Dot, CrossProduct,
+// ...) stay declared in maths.h / object_maths.h / core_maths.h. Inline helpers never reuse those names.
 // Grouping. `+` and `*` commute exactly, so only the grouping of a sum decides its rounding. A 3-term sum has
 // three groupings, named by the pair added first: XYZ = (x + y) + z, ZYX = (z + y) + x, ZXY = (z + x) + y
 // (YXZ, YZX and XZY are the same three). Every 3-term helper names its grouping, as a suffix (DotZYX) or a
@@ -42,14 +41,14 @@ struct Vector3 {
 
     // The constructor Vector3(x, y, z): callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
-    float Length() const;                           // (maths.cpp), XYZ, FSQRT
-    const Vector3* AddInPlace(const Vector3& v);    // Returns &v
-    void DivideInPlace(float d);                    // (object_maths.cpp)
-    double LengthSquared() const;                   // (ground_decal.cpp), unrounded
+    float Length() const;                           // XYZ
+    const Vector3* AddInPlace(const Vector3& v);    // returns &v
+    void DivideInPlace(float d);
+    double LengthSquared() const;                   // unrounded
 };
 static_assert(sizeof(Vector3) == 12);
 
-// A homogeneous point (x, y, z, w). Name provisional.
+// A homogeneous point (x, y, z, w).
 struct Vector4 {
     float x, y, z, w;
 
@@ -67,12 +66,12 @@ struct Quaternion {
 
     Quaternion* SetIdentity();
     void PreMultiply(const Quaternion& r);          // *this = r * *this
-    Vector3* AxisX(Vector3* out) const;             // rotated X axis
-    Vector3* AxisY(Vector3* out) const;             // rotated Y axis
-    Vector3* AxisZ(Vector3* out) const;             // rotated Z axis
+    Vector3* AxisX(Vector3* out) const;
+    Vector3* AxisY(Vector3* out) const;
+    Vector3* AxisZ(Vector3* out) const;
 
-    Quaternion* SetAngleAxis(float angle, const Vector3& axis);     // returns this
-    Quaternion* SetAxisAngle(const Vector3& axis, float angle);     // returns this
+    Quaternion* SetAngleAxis(float angle, const Vector3& axis);
+    Quaternion* SetAxisAngle(const Vector3& axis, float angle);
     void PreMultiplyConjugate(const Quaternion& r); // *this = conj(r) * *this
     void Slerp(float t, const Quaternion& a, const Quaternion& b);  // shortest arc
 

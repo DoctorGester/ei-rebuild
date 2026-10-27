@@ -211,7 +211,6 @@ void AssignCounted(T** slot, T* object) {
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
-    // The counted array's inlined RemoveAll (each element is released).
     if (countedA0_.data) {
         for (int i = 0; i < countedA0_.size; ++i) {
             if (countedA0_[i]) countedA0_[i]->Release();
@@ -361,7 +360,6 @@ void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
     }
 }
 
-// The inlined iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) {
         --it.manager->refCount_;

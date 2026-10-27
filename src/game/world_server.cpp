@@ -40,11 +40,8 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-// RemoveObject's callees (not rewritten).
-
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
-// find + erase(iterator), inlined for each map.
 template <typename Map>
 void EraseId(Map& map, unsigned id) {
     if (auto* node = map.map.Find(id)) map.map.Erase(node);

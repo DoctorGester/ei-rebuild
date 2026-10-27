@@ -84,7 +84,7 @@ void CWorldServer::SetZoneExits(const ZoneExits* source) {
         int index = exits->size;
         exits->SetSize(index + 1);
         ZoneExit* to = &exits->data[index];
-        to->Assign(from);   // (inlined: ten dwords as integers, the target, then the rest)
+        to->Assign(from);
     }
 }
 
@@ -113,7 +113,6 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 // ---- .mob object files ------------------------------------------------------------------------
 
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
-    // The root chunk with its MFC CFile (inlined constructor).
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = root->file_.Virtuals();

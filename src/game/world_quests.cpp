@@ -40,7 +40,7 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-// The text key (object id) of a name (object_tables.cpp). Named float table Get; the value is left in ST0.
+// The text key (object id) of a name (object_tables.cpp).
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
@@ -49,7 +49,7 @@ struct Briefing {
     mfc::CString n1, n3, n9, n8, n2, n10, hired, n11;
 };
 
-// The player's party (its records, items and variables; CPlayer + 0x70).
+// The player's party (its records, items and variables).
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
 PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_.data[index]; }
 
@@ -148,8 +148,6 @@ void CWorldServer::UpdateMercBriefings() {
     }
 }
 
-// ---- CompleteBriefing -------------------------------------------------------------------------
-
 namespace {
 
 constexpr int kKindNoRangeTest = 3;
@@ -172,7 +170,6 @@ CItem* CreateNamedItem(const char* name, bool fromSecond) {
     return item;
 }
 
-// The rewards of a briefing record for `player`.
 void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
     float experience = record->exp;
     EI_NAN_AUDIT(experience);
@@ -225,7 +222,6 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
          name != record->lists[QuestBriefingRecord::kCompleteZones].end(); ++name)
         state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
 
-    // The list's inlined destructor (its nodes are dropped, the items stay with the player).
     items.vtable = mfc::impl::ItemListClass::Vtable();
     items.RemoveAll();
 }
@@ -276,8 +272,6 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
 
-// ---- ApplyMercBriefing ------------------------------------------------------------------------
-
 namespace {
 
 // CWorld: the unit object with a text key. Patched by Rebirth. CWorldServer: removes the object with an id.
@@ -327,8 +321,6 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     UpdateMercBriefings();
 }
 
-// ---- AwardExperience --------------------------------------------------------------------------
-
 namespace {
 
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
@@ -344,11 +336,9 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-// The unit controller gains experience. A party record's statistics (+0x20) gain experience. The player
-// state tells its client about experience.
+// The unit controller, a party record's statistics and the player state (which tells its client) gain experience.
 
-// The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
-// controller's statistics (+0x8E0, +0x1E4).
+// The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
 double Weight(CUnitServer* controller) {
     return std::sqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
 }
@@ -454,8 +444,6 @@ void CWorldServer::AwardExperience(CPlayer* player, float amount) {
     else ShareAmongHeroes(this, player, amount);
 }
 
-// ---- SyncPartyRecords -------------------------------------------------------------------------
-
 namespace {
 
 constexpr int kQuickSlots = 4;
@@ -463,9 +451,8 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-// The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740 ("belt"),
-// armour +0x750 ("worn"), spells +0x760): remove an entry; add an entry (they return the record entry). The
-// unit's slots: quick, worn, belt, spells.
+// The unit record's lists (weapons ("quick"), quick items ("belt"), armour ("worn"), spells): remove an entry;
+// add an entry (they return the record entry).
 
 // The party's copy of an item (CParty's copy virtual; the record entry's source).
 CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
@@ -519,7 +506,6 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (entry) entry->Release();
         CItemLink* link = new CItemLink();
         link->value = static_cast<std::uint32_t>(added->id_);
-        // The counted pointer's assignment, inlined (16-bit count at +4).
         CItemLink* old = item->ServerLink();
         item->link_ = link;
         if (link) ++link->refs_;
@@ -553,8 +539,6 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
     list.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (list.data) gamecrt::operator_delete(list.data);
 }
-
-// ---- StoreParty / CollectParty ----------------------------------------------------------------
 
 namespace {
 
@@ -637,8 +621,7 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     RecordPtrArray list{mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
-    // Records whose unit is gone (or dead, outside a network client game) are dropped (the
-    // inlined CArray::RemoveAt).
+    // Records whose unit is gone (or dead, outside a network client game) are dropped.
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         CUnit* unit = static_cast<CWorld*>(this)->FindUnit(static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
@@ -680,7 +663,6 @@ void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* server = player->Server();
-        // Only AL is tested.
         if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, value);
     }
 }
