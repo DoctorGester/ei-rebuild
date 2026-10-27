@@ -1,6 +1,5 @@
-// Small CUnitServer slots and the order / step constructors (A-U6): the deleting destructor, class
-// name and id, the motion getter, the empty slot 17, slot 53, UnitAction's and AnimationStep's
-// constructors.
+// Small CUnitServer virtuals and the order / step constructors: the deleting destructor, class name and id,
+// the motion getter, the empty virtual, UnitAction's and AnimationStep's constructors.
 #include "combat.h"
 
 #include "ei/hook.h"
@@ -12,7 +11,7 @@ constexpr int kClassServer = 0x3E;
 constexpr int kOrderNone = 9;
 } // namespace
 
-// 005460C0 / 005460D0 (slots 11 / 12).
+// Class name and id.
 const char* CUnitServer::GetClassName() { return kServerName; }
 EI_REWRITTEN(0x005460C0, CUnitServer::GetClassName);
 int CUnitServer::GetClassId() { return kClassServer; }
@@ -37,7 +36,7 @@ EI_REWRITTEN(0x00545F70, UnitAction::Construct);
 
 AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step) {
     mfc::impl::InitAnimationStep12(step);
-    step->padding = 0;   // SV7b2a: the original leaves it (a stack byte); the harness zeroes it there too
+    step->padding = 0;   // the original leaves it (a stack byte); the harness zeroes it there too
     return step;
 }
 EI_REWRITTEN(0x00550A60, ConstructAnimationStep);

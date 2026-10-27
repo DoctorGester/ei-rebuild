@@ -30,7 +30,7 @@ static_assert(offsetof(MotionSegment, curveX) == offsetof(UnitMotion, curveX) - 
 static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) - offsetof(UnitMotion, fromX));
 } // namespace
 
-// 0054B220 (thiscall on the world): its time in ticks. Four bytes (too short to hook).
+// Its time in ticks. Four bytes.
 int __fastcall WorldTick(CWorld* world) { return world->tick_; }
 EI_REPLACE(0x0054B220, WorldTick);
 
@@ -45,5 +45,4 @@ ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
 }
 EI_REWRITTEN(0x00558840, ArmourSpell::Assign);
 
-// 00558CA0 / 00558CC0 (the counted reference and the call record deleting destructors) are in
-// world_deleting_destructors.cpp.
+// The counted reference's and the call record's deleting destructors are in world_deleting_destructors.cpp.

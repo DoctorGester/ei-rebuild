@@ -11,7 +11,7 @@
 
 // AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (CUnitServer holds a plan).
 
-// Where an order must be seen from (0x18 bytes; 0054BCB0 fills it).
+// Where an order must be seen from (0x18 bytes).
 struct SightTarget {
     Vector3 point;              // +0x00 the point to see (a target unit's is filled in later)
     float minDistanceSq;        // +0x0C closer than this needs no line of sight

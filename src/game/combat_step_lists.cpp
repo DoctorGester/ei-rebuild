@@ -39,7 +39,7 @@ namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
 constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of no plan
 
-// Appends a blank step (00550A60's values) and returns it.
+// Appends a blank step and returns it.
 AnimationStep& AppendBlank(AnimationSteps* list) {
     int index = list->size;
     list->SetSize(index + 1, -1);
@@ -99,7 +99,7 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 EI_REWRITTEN(0x00544E70, AnimationSteps::SameAs);
 
 void AnimationSteps::Load(CStream* stream) {
-    // The original reads the count over its stream argument on the stack.
+    // The count is read over the stream argument on the stack.
     int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&newCount, sizeof(newCount));
     SetSize(newCount, -1);

@@ -1,5 +1,4 @@
-// CUnitServer's Load and Save slots (vtable 0073EF38 slots 9 and 10). See combat.h and
-// docs/notes/combat.md ("Rewritten").
+// CUnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Rewritten").
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "base_manager.h"
@@ -39,7 +38,7 @@ void WriteCopy(CStream* stream, T value) {
 
 int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
 
-// 00556C60 / 00556C40 (two copies): assigns a counted reference, releasing the previous object.
+// Assigns a counted reference, releasing the previous object (two copies in the game).
 template <typename T>
 void AssignCounted(T*& slot, T* object) {
     T* previous = slot;
@@ -50,8 +49,8 @@ void AssignCounted(T*& slot, T* object) {
 } // namespace
 
 namespace {
-// 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
-// 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
+// A counted reference by id (load resolves through `context`); CBaseManager::FindObject (base_manager.cpp),
+// through its game address.
 
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
@@ -121,7 +120,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 // --- Step lists and the armour spell list (A-U7) ----------------------------------------------------
 
 namespace {
-// The item manager (007AFFB4, the world server's +0x54), which resolves the armour spells' item ids.
+// The item manager (the world server's), which resolves the armour spells' item ids.
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
@@ -208,12 +207,12 @@ void CUnitServer::Load(CStream* stream) {
     stream->Read(&deathReported, 1);
     stream->Read(&sinkSpeed, 4);
 
-    // The context's (the world's) slot 14: the timed objects.
+    // The context's (the world's) virtual for the timed objects.
     CBaseManager* effects = WorldContext()->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
-    // The map objects' manager (007AFFA0, the world server's +0x40).
+    // The map objects' manager (the world server's).
     AssignCounted(followedLeader, ReadUnit(stream, WorldObjectManager()));
 
     if (stream->version_ < kVersion180) return;

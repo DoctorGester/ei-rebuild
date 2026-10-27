@@ -54,20 +54,6 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-// The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
-// 0x80 under a point, 005BC3E0 LineOfSight (ST0).
-// The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
-// AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
-// is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
-// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample, 005C6270 Clear.
-// The controller's functions rewritten elsewhere: 0054C800
-// CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
-// ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
-// 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
-// The player's message about a path (combat_motion.cpp).
-// Containers: 00545750 a path cell list's constructor (blocks of 0x80), 00539890 its destructor,
-// 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
-// 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
@@ -102,8 +88,8 @@ struct LocalPath {
 };
 static_assert(sizeof(AIPath) == 0x88);
 
-// A motion order on the stack (the order and its step list), as 005B22C0 fills it. The order
-// part is zeroed (the original leaves it uninitialised until it is filled).
+// A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
+// is zeroed (the original leaves it uninitialised until it is filled).
 struct LocalMotionOrder : PathOrder {
     LocalMotionOrder() {
         std::memset(&motionOrder, 0, sizeof(motionOrder));
@@ -115,8 +101,7 @@ struct LocalMotionOrder : PathOrder {
 };
 static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
-// A UnitMotion on the stack, cleared, with the speed scale 0073EF20, no turning limit (1e10) and
-// no segment.
+// A UnitMotion on the stack, cleared, with the speed scale, no turning limit (1e10) and no segment.
 struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
@@ -144,7 +129,7 @@ struct LocalUnitMotion {
 // The spots a use order may go to (map_object.h).
 using SpotArray = UseSpotArray;
 
-// A CPtrList on the stack (vtable 0073D454, blocks of 10).
+// A CPtrList on the stack (blocks of 10).
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 
 // The messages of a unit's player (CPlayer::connection_).
@@ -176,7 +161,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             spot = spots.data[i];
             path.Path()->Clear();
             if (!static_cast<CAIMap*>(map)->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
-            // The path must end within 0073EF28 of the spot.
+            // The path must end within 0.2 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
