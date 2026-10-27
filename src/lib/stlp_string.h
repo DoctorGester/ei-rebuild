@@ -25,11 +25,9 @@ struct StringAbi : string {
     string* ConstructFromText(const char* text, const void* alloc);
     // basic_string(): empty, an 8-byte block.
     static string* __fastcall ConstructDefault(string* self);
-    // _String_base(const allocator&, n): a block of n bytes, nothing written in it
-    // (no block for n 0).
+    // _String_base(const allocator&, n): a block of n bytes, nothing written in it (no block for n 0).
     string* ConstructWithCapacity(const void* alloc, std::size_t n);
-    // _M_append(first, last, tag) and append(first, last) with the
-    // dispatch argument or without.
+    // _M_append(first, last, tag) and append(first, last) with the dispatch argument or without.
     string* Append(const char* first, const char* last, std::uint32_t tag);
     string* AppendRange(const char* first, const char* last);
     // assign(first, last) (with the tag).
@@ -73,9 +71,8 @@ struct StringAbi : string {
     static char* EndOfStorage(const string& s) { return s.eos_; }
 };
 
-// __stl_throw_out_of_range("basic_string") (substr past the end): the text as a string, an
-// out_of_range made from it (stlp_string.cpp's class) and thrown; the string's block is freed as the
-// throw unwinds this frame.
+// __stl_throw_out_of_range("basic_string") (substr past the end): the text as a string, an out_of_range made
+// from it (stlp_string.cpp's class) and thrown; the string's block is freed as the throw unwinds this frame.
 [[noreturn]] void __fastcall ThrowOutOfRange();
 
 } // namespace stlp

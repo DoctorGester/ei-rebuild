@@ -452,7 +452,7 @@ unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
 }
 EI_REWRITTEN(0x006EBBB4, libcrt::Controlfp);
 
-// ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
+// ---- The runtime the image owns ------------------------------------------------------------------
 
 namespace {
 // The CRT's new handler (_pnhHeap), which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).

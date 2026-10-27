@@ -111,10 +111,9 @@ void CFixedAlloc::Free(void* block) {
 }
 
 #ifndef EI_VECTORS_REPLAY
-// The string allocators, zero at the start: each built by its static initialiser in the list's order (a block's size is
-// the string's room, the header and the terminator, rounded up to 16 bytes) and destroyed by the exit function it
-// registers (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The string allocators, zero at the start: each built by its static initialiser in the list's order (a
+// block's size is the string's room, the header and the terminator, rounded up to 16 bytes) and destroyed by
+// the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CFixedAlloc> g_stringAlloc512 = /*007C8B08*/ {};
 constinit lib::StaticObject<CFixedAlloc> g_stringAlloc256 = /*007C8B30*/ {};
 constinit lib::StaticObject<CFixedAlloc> g_stringAlloc128 = /*007C8B58*/ {};

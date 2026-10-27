@@ -1,15 +1,7 @@
 #pragma once
 
-// MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
-// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (docs/notes/standalone.md).
-// The thread and process locals are globals MFC fills on first use (_afxThreadState, _afxBaseModuleState and
-// the others); the exit functions free them through the destructors here. afxData is built by a static
-// initialiser and its menu-dot bitmap deleted at exit. The header also holds what the other static initialisers
-// call: AfxClassInit (the runtime class list of the module state), MFC's global locks, _afxDBCS's initialiser
-// and wingdix.cpp's halftone brush (an atexit that deletes it). The image has a stand-in module state with the
-// members used so far (ImageModuleState). Every body is registered at its library address (mfc_state.cpp); in
-// the image nothing fills the locals (the handle maps are thread_local, mfc_gdi.cpp), so their destructors find
-// an empty slot or object.
+// MFC 4.2's thread and process locals (afxtls.cpp), its AUX_DATA (afxData) and what the other static
+// initialisers call. See docs/notes/standalone.md, "The image's source files".
 
 #include <cstddef>
 #include <cstdint>
@@ -62,8 +54,7 @@ static_assert(offsetof(CThreadSlotData, section) == 0x1C);
 struct CThreadLocalObject {
     int slot;
 
-    // The slot freed
-    // when there is one and _afxThreadData exists, then the slot cleared.
+    // The slot freed when there is one and _afxThreadData exists, then the slot cleared.
     void Destruct();
 };
 
@@ -75,8 +66,7 @@ struct CProcessLocalObject {
     void Destruct();
 };
 
-// AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when
-// there is one.
+// AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when there is one.
 void __stdcall AfxDeleteObject(HGDIOBJ* object);
 
 // AUX_DATA (0x6C bytes): afxData (mfc_state.cpp).
@@ -129,8 +119,7 @@ AuxData& AfxData();
 
 // ---- Module state, runtime class list, global locks ----------------------------------------
 
-// CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset`
-// bytes in.
+// CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset` bytes in.
 struct CSimpleList {
     void* head;
     std::size_t nextOffset;
@@ -158,10 +147,9 @@ static_assert(offsetof(ModuleState, classList) == 0x1C);
 // The runtime classes' link offset (CRuntimeClass::m_pNextClass).
 constexpr std::size_t kNextClassOffset = 0x14;
 
-// AfxGetModuleState: the calling thread's module state. The hook build calls the
-// original's; the image registers ImageModuleState at that address: one module state for the
-// process, nothing in it but the class list. Its instance and resource handles stay null, as the
-// original's do (the game never runs AfxWinInit); AfxLoadString (mfc_resource.h) answers from a table in code.
+// AfxGetModuleState: the calling thread's module state. The image registers ImageModuleState at that address:
+// one module state for the process, nothing in it but the class list. Its instance and resource handles stay
+// null (the game never runs AfxWinInit); AfxLoadString (mfc_resource.h) answers from a table in code.
 ModuleState* __cdecl AfxGetModuleState();
 ModuleState* __cdecl ImageModuleState();
 
@@ -171,8 +159,7 @@ ModuleState* __cdecl ImageModuleState();
 constexpr int kLockTypes = 17;
 constexpr int kRuntimeClassListLock = 0;
 
-// Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
-// _afxCriticalInit.
+// Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns _afxCriticalInit.
 BOOL __cdecl AfxCriticalInit();
 // lock type `lockType` entered (its critical section made on first use) / left.
 void __stdcall AfxLockGlobals(int lockType);

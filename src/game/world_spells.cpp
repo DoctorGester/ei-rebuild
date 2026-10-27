@@ -26,18 +26,14 @@ namespace {
 
 
 constexpr int kKindSinglePlayer = 1;
-constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // spell +0x3C: also hits the target itself
+constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // targetFlags_: also hits the target itself
 constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 using UnitList = mfc::CTypedPtrList<CUnit>;
-// SpellHasLineOfSight (combat.h): whether the spell may hit a target. The missile: constructor (returns this),
-// CSpellEffect::Init, Update. AIBrain::SetSeen: the target's AI brain is attacked by `caster`. CDiplomacy: `a`
-// attacked `b` (strength).
 
-// The spell's type (the prototype index in the packed id). Its +0x34 is the radius (float bits) and +0x38
-// the number of targets.
+// The prototype index in the packed id.
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
 // Whether the spell type turns the target against the caster (a switch over 0x13, 0x19, 0x1E, 0x20, 0x22,

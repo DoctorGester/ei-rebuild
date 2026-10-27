@@ -1,19 +1,5 @@
-// game.exe's .rdata and .data in ei_hook.dll's own storage (docs/notes/standalone.md, "Own data").
-// In the standalone image both sections (kMovedBegin-kMovedEnd: .rdata with the import address
-// table at its start, .data with its zero-filled tail, the .bss) are kept in g_dataStorage instead of at their
-// addresses: the data seam (game_data.h) adds g_dataShift to each of their addresses, the pointer cells of
-// game.exe's .rdata and .data that point into the range (image_cells.inc, tools/gen_image_cells.py: vtables'
-// RTTI, the C++ exception tables, MFC's runtime classes and maps, string pointers) get the same shift. Nothing is at
-// the old range (the host keeps what of game.exe's range is free reserved), so a use that missed the seam
-// faults and is named with its data address and code address (OnOldData); a game address outside the range asked
-// of the seam is named too (StrayGameAddress). The initial bytes come from game.exe at build time
-// (image_data_bytes.inc in the build folder, gen_image_cells.py --bytes).
-// In game.exe (the original's runs) none of it happens: the shift stays 0.
-// The import slots at the storage's start are ours: zero from the build, resolved right after the move
-// (image_imports.cpp).
-// The move runs before every other static constructor of ei_hook.dll (init_seg(compiler)): the
-// harness and the game's globals bind references to game data at static initialisation, and the harness
-// takes import slots there.
+// game.exe's .rdata and .data in ei_hook.dll's own storage, moved before every other static constructor
+// (init_seg(compiler)). See docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
 #include "game/game_data.h"
 #include "hook/log.h"

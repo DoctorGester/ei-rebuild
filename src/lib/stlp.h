@@ -169,8 +169,7 @@ public:
         count_ = 0;
     }
 
-    // An empty table with
-    // NextPrime(n) buckets in a fresh block.
+    // An empty table with NextPrime(n) buckets in a fresh block.
     void InitBuckets(std::size_t n);
 
     std::size_t BucketCount() const { return buckets_.size(); }
@@ -211,9 +210,8 @@ public:
         return n->value;
     }
 
-    // operator[] as STLport writes it for a key with a copy constructor: a
-    // temporary {key, Value()} for find_or_insert (copied into a new node when the key is
-    // missing), destroyed after.
+    // operator[] as STLport writes it for a key with a copy constructor: a temporary {key, Value()} for
+    // find_or_insert (copied into a new node when the key is missing), destroyed after.
     Value& Subscript(const Key& key) {
         Pair obj{key, Value()};
         return FindOrInsert(obj)->value;
@@ -285,9 +283,8 @@ public:
     void* BucketVector() { return &buckets_; }
     void* CountProxy() { return &count_; }
     std::size_t& Count() { return count_; }
-    // The insert half of operator[] for owners that call the game's own resize and node
-    // allocation (the session's type registry): the head of bucket `b`, and a new node linked in
-    // front of it.
+    // The insert half of operator[] for owners that call the game's own resize and node allocation (the
+    // session's type registry): the head of bucket `b`, and a new node linked in front of it.
     Node* Bucket(std::size_t b) const { return buckets_[b]; }
     void LinkAtHead(std::size_t b, Node* node) {
         node->next = buckets_[b];

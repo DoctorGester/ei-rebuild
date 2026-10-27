@@ -1,8 +1,7 @@
-// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and
-// ObjectsDrawRadius behind their flags. See world.h and docs/notes/world.md.
-// Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7,
-// lastLoadResult_ the last state block result) and to the scene pipeline's matrix stacks (ScenePipeline()) with
-// the same calls in the same order as the original.
+// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
+// behind their flags. See world.h and docs/notes/world.md. Both talk to Direct3D 7 through the renderer
+// (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7, lastLoadResult_ the last state block result) and to
+// the scene pipeline's matrix stacks (ScenePipeline()) with the same calls in the same order as the original.
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -65,8 +64,7 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     render::state::Block(handle);
 }
 
-// The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world
-// draw's, 9 the views.
+// The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world draw's, 9 the views.
 constexpr int kStackScene1 = 1;
 constexpr int kStackScene2 = 2;
 constexpr int kStackWorld = 5;
@@ -76,7 +74,6 @@ constexpr int kStackView = 9;
 Matrix4 g_sceneCamera;
 bool g_haveSceneCamera = false;
 
-// Pushes `matrix` on `stack`.
 void PushMatrix(MatrixStack& stack, const float* matrix) {
     int& depth = stack.count;
     Matrix4* matrices = stack.matrices;
@@ -93,9 +90,8 @@ void PopMatrix(MatrixStack& stack) {
     if (depth) --depth;
 }
 
-// A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
-// addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
-// settings when it loads).
+// A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as addon turns it
+// into the float it patches in: (float)(unsigned)value, read once (addon reads its settings when it loads).
 float StarterDrawRadius(const char* name) {
     DWORD value = 100;
     DWORD data = 0, size = sizeof(data), type = 0;
@@ -105,7 +101,6 @@ float StarterDrawRadius(const char* name) {
     return radius;
 }
 
-// The terrain's draw distance (the PUSH 100.0).
 float LandscapeDrawRadius() {
     static const float setting = StarterDrawRadius("LandscapeDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
@@ -122,7 +117,6 @@ float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
-// 1.0, the map edge's margin.
 float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
 // The length of the shadows' projection along the camera's Z axis.
 float ShadowLength() { return (-0.02f /*0073F750*/); }
@@ -133,24 +127,20 @@ int LightEffects1B8() { return LightEffectsSetting(options::TheOptions()->enable
 int LightEffects1BC() { return LightEffectsSetting(options::TheOptions()->enableFootprints_); }
 int LightEffects1C0() { return LightEffectsSetting(options::TheOptions()->enableFireprints_); }
 int GameMode() { return options::TheOptions()->selectionType_; }
-// The part a selection marker sits on.
 const char* MarkerPartName() { return "hp"; }
 
-// FLD a; FADD/FSUB b; FSTP: the result rounded to float.
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
 float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
-// FLD a; FCOMP b: whether C0 is set (a < b).
+// a < b, or unordered (FCOMP's C0 is set then too).
 bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
 }
-// Mask selects after FCOMP: C0 picks a's bits, else b's (the smaller one) ...
 float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
-// ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
+// t when 0 < t or unordered, else 0.
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
 // A float copied through the FPU (FLD / FSTP) in the original; here the value as it is.
 float Reload(float v) { return v; }
-// The game's _ftol of a float.
 int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
 float AnimationTime() {
@@ -179,7 +169,6 @@ void SortByModel(FrameList list) {
     FinalSortByModel(first, last, 0);
 }
 
-// Calls `draw` on every object of a draw list (in list order).
 template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
     CEngineObject** end = FrameObjects(list).end();
@@ -367,7 +356,6 @@ constexpr std::uint32_t kShowRenderInfo = 2;
 constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
-// The debug info panel loses the line `key`.
 void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
 } // namespace
 

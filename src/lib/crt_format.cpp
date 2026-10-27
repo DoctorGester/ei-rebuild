@@ -327,8 +327,7 @@ struct Decimal {
     char* digits;
 };
 
-// _fltout2: __dtold to 80 bits (a zero of either sign becomes +0; a denormal is
-// normalised), then 17 digits.
+// _fltout2: __dtold to 80 bits (a zero of either sign becomes +0; a denormal is normalised), then 17 digits.
 Decimal ToDecimal(double value, char* digits) {
     std::uint64_t bits;
     std::memcpy(&bits, &value, sizeof bits);

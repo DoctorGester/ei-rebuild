@@ -273,7 +273,6 @@ void GameFlow::RegisterQuests(const char* folder) {
         std::string path = base + game::briefingwords::MapList();
         TheMapDatabase()->Load(path.c_str());
     }
-    // push_back(folder)
     stlp::string name(folder);
     if (folders.Finish() != folders.EndOfStorage()) {
         new (folders.Finish()) stlp::string(name);

@@ -1,14 +1,5 @@
-// The casters of the new renderer's shadow map that the game does not draw this frame. The map
-// (src/render/render_shadows.cpp, docs/notes/renderer.md section 13 item 10) takes the meshes of the
-// objects the game draws; an object outside the view, or a part of a drawn one that the part's own
-// view test left out, can still throw its shadow onto the visible ground. After the world's object
-// draws (CWorldClient::Render) every object standing where such a caster can stand
-// (render::ShadowCasterArea, through the object grid's sectors) whose bounding sphere passes the
-// map's test (render::ShadowCasterReaches: inside the map's area seen from the sun, on the sun's side
-// of the ground it covers) hands its undrawn parts to the map (render::ShadowCasterMesh), placed as
-// CObject3DClientSpecific::Draw places them. Everything here only reads the game's
-// objects: no flag, pose, colour, list or heap block of the game changes, so the game's logic and
-// its goldens are those of a run without it.
+// The shadow map's casters the game does not draw this frame (render::ShadowCasterMesh). Only reads the game's
+// objects. See docs/notes/renderer.md, "The renderer's source files".
 #include "world_client_shadow_casters.h"
 
 #include "camera.h"

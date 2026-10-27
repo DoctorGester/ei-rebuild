@@ -1503,3 +1503,185 @@ Kept as the game has it: the vertices' colour and specular are never written (wh
 buffer held stays, the distance fog only lowers the specular's alpha), the packets' w neither;
 the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number
 would loop forever in the rain's wrap. See docs/notes/renderer.md, section 12.
+
+## The renderer's source files
+
+What each file does at large, moved from the files' headers.
+
+### render_cursor.cpp: the cursor between frames
+
+The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md, section 9). The
+game's cursor thread (every 41 ms) drew the cursor straight onto the primary surface when it moved, so it kept
+moving while the main thread drew no frame (a long frame, a blocking load). Without DirectDraw the cursor thread
+hands the move here instead (render::CursorBetweenFrames): the last frame presented on the game window, which holds
+no cursor (the present draws it over the frame), is presented again with the cursor at its new place. The main
+thread keeps using sokol alone. The cursor thread makes no sokol call: it records its present on a Direct3D 11
+deferred context with the raw objects of sokol's present pipeline (the frame target and the cursor through the
+gamma ramp into the back buffer: the draw the main thread's present makes) and runs it as one command list on the
+immediate context (ExecuteCommandList, which puts the context's state back, so sokol's state cache stays right),
+with the device's multithread protection on. The swap chain and the frame target are shared: the main thread's
+frame draw and present on the game window and the cursor thread's present take turns under one lock, and the main
+thread takes the references the cursor thread draws with at the end of each of its presents (and drops them when it
+begins the next frame's draws: the frame target is partly drawn until then).
+
+### render_mesh.cpp: meshes
+
+Meshes in the new renderer: everything the old path draws through the device's mesh draws (figures and map objects,
+the sky, the interface's sprites (CUiMesh) and 3D previews). The game hands the mesh over in model space with the
+matrix it projects it with (BeginMesh); each pass the old path then draws (src/game/device_draw.cpp) becomes a
+batch with the old device's state of that moment (MeshPass): blend, alpha test, depth, culling, fog, the two
+texture stages' operations, filters and textures. The material's state blocks are opaque to us, so the state is
+read back from the old device. A figure mesh drawn through the figure part draws is kept on the GPU
+(render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the frame's stream. A
+figure part handed over with its lighting (MeshSource::lighting) is lit in the shader from its normals.
+
+### render_mesh_cache.cpp: meshes kept on the GPU
+
+Meshes kept on the GPU (docs/notes/renderer.md section 13, item 4). The figure part draws
+(src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws (render::SetMeshSource); the mesh's corners
+are kept for that figure mesh (positions and texture coordinates in model space, colours and triangles) in a pool
+on the GPU (GpuPool: geometry and colours in streams of their own). A frame hands over the mesh as kept; what is
+built and uploaded again is what the game says changed:
+- the colours, when the draw wrote the colour arrays or the game lit the mesh outside its draw (MeshChanged
+  Colours: the sky; a link figure's LightPart / FlatColours) or a draw that wrote them was not kept (NoteMeshDraw):
+  read and compared with the kept ones, the changed range uploaded;
+- the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, CFigureMesh::SetOffsets; a
+  link figure's part morphed again): read and compared, the changed range uploaded;
+- all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or counts
+  than it was built from. Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame
+  with other data go into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the
+  draw's, added in the shader. The harness build compares every kept mesh with a fresh build every 16th frame
+  (`meshcache check`); `meshcache off` builds every mesh into the frame's stream.
+
+### render_point_shadows.cpp: point-light shadows
+
+Point-light shadows (docs/notes/renderer.md section 13, item 9). The sun's map (render_shadows.cpp) shadows the sun
+alone; here the few strongest point lights in view (the campfire, the lamps, a torch) get a cube of six depth faces
+each, drawn from the same casters (the objects the game shadows, by their meshes drawn this frame), and the
+receivers lit on the GPU take each such light away where it is hidden: the ground (shaders/scene_lighting.hlsli's
+point loop) and the figure parts (shaders/mesh.hlsl's figure_light). The receivers' rules follow the sun's
+(shaders/point_shadow.hlsli):
+- an object never shadows itself from a light inside it or just beside it (the campfire's spit, the hero's light
+  above his head, a torch-bearer): an object with a mesh whose bounding sphere, grown by kHoldMargin, holds the
+  light casts nothing for it;
+- a unit's meshes compare from the unit's nearest distance to the light (as the sun map's unit front): no shadow of
+  its own, every other caster's on every face;
+- other meshes are shadowed only on faces turned to the light (by their face normal), looked up a little along it
+  (the normal offset). The lights' cubes share one depth atlas: a light a row of kPointFaceTexels-texel faces, one
+  per column. What is left out: the ground casts no point shadow, nor objects outside the view (that walk is the
+  sun map's only); lights beyond the kept scene lights (render::SceneLighting's nearest kMostSceneLights) cast
+  none.
+
+### render_shadows.cpp: object shadows through a sun shadow map
+
+Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands over the sun, which
+object each mesh belongs to (BeginCaster) and which objects cast this frame (CastsShadow). Once a frame, before the
+world draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives every
+receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters' meshes into the map
+(depth only; alpha-tested and blended passes cut out by their texture's alpha), then the map's depth range per
+cell. Objects the game does not draw whose shadow can reach the visible ground cast too (ShadowCasterMesh, tested
+against the map's fit made right then). The receivers lit on the GPU take the sun away by their normals' facing,
+the others are shadowed on their faces turned to the sun; both look the map up a little along their normal. A
+unit's meshes compare from the unit's nearest depth in the map (FigureFronts): no shadow of its own, every other
+caster's on every face, no normal offset. The point lights' shadows (render_point_shadows.cpp) are prepared and
+drawn from here, inside the shadow map's time. Space: the meshes' matrices are clip matrices, the terrain's the
+same for the landscape's space, in which the map is fitted.
+
+### render_terrain.cpp: the terrain
+
+The terrain in the new renderer. The game's terrain passes (ground pages, water pages) call DrawSectorPage
+(src/game/terrain_draw.cpp) for every visible sector page; it hands the page here. The page's tiles are turned into
+world-space triangles at the sector's level of detail (the same tile entries and index patterns as the old path),
+with the vertex colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
+and the page's texture; the clip matrix is the one the old path transforms the same vertices with (the pipeline's
+stack at +0x24). The GPU clips; no software clipping or projection here. The pages stay on the GPU
+(docs/notes/renderer.md section 13): each sector page at a level of detail and seam variant is built once into a
+pool of vertex and index buffers (positions and texture coordinates in one stream, the lit colours in another) and
+built again only when what it was built from changes (the sector's tile lists and records: SectorData::Build,
+render:: TerrainChanged). When the game only moved vertices or texture coordinates (the animated tiles: the pages
+holding one; the waves and the water levels, which move only the water layer: the pages reading it) the page reads
+them again and uploads those that changed. The colours of the page's visible quarters are compared with the records
+every frame and only the changed ones uploaded. A frame keeps the visible quarters of each page handed over
+(TerrainPiece).
+
+### render_perf.h: the performance overlay
+
+The performance overlay (docs/notes/renderer.md, section 15): frames a second, the frame time (average and worst
+over the last second), the GPU time of the frame's passes (timestamp queries, read a few frames late without
+waiting), the renderer's CPU time and the draws, as a few lines of text in the frame's top left corner. Drawn by
+the present into the game window's back buffer after the frame and the cursor (render_window.cpp, DrawToWindow),
+never into the frame target: captures, screenshots, the escape menu's and the save game's pictures and every frame
+check read the frame target, so none of them holds it. Off unless the settings file switches it on
+(render::SetPerfOverlay); the harness build never draws it. Its own text: a 5 x 7 pixel font of capitals, digits
+and a few signs, drawn into a one-channel image (0 the box, else the text's brightness) and scaled up by whole
+pixels with the game's height (Scale).
+
+### shaders/mesh.hlsl: figure_light
+
+A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with
+the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's lit colour times
+the cosine to it and each light's lit colour times its cosine and falloff, plus the emissive colour, at most 1. The
+crown: pulled towards its average colour, taken as the average over every direction a normal can face (the mean of
+max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1). The shadow map darkens it after (ps_main), as
+it darkened the CPU-lit colours before. A light with a point shadow (point_shadow.hlsli) adds only what reaches
+`land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
+compares from the unit's nearest distance to the light, on every face; any other only on faces turned to the light
+(by `face`: the smoothed normals lean far from their faces), looked up moved along `face`.
+
+### shaders/scene_lighting.hlsli: ground_light
+
+The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp: ShadeSun, then LightVertex), at a
+point `p` (the landscape's space) with the unit normal `n`: `m` the material colour the sun and ambient light start
+from (the water's; on the ground the water's above it, else black), `mp` the one the point lights start from (the
+record's own), `loss` the light lost under the water (0 above it), `hidden` how much of the sun the shadow map
+hides at the point (the vertex lighting's ray march gave 0 or 1) and `strength` the map's darkening
+(render_shadows.cpp kStrength). Ambient and direct light apart: in the sun max(material + facing x sun, ambient),
+in the shade ambient + material, as the game lit them; but a shadow is never lighter than the sunlit light times 1
+- strength (the old decals' and the map's look before: where the ambient light is nearly the sun's, as in the
+towns, the game's shade alone hardly shows), on faces turned to the map's light (by their facing to it: the map's
+sun, at least 20 degrees high, is what casts; a face turned away keeps its light, its own object's shadow there is
+no acne). The point lights (each material + its light, at most 1 per channel, by its falloff and facing, dimmed
+under the water by the light's vertical part) take the largest per channel, darkened by the same shade (the towns'
+lamps light the ground by day too: the units' shadows would vanish under them; the point lights cast no shadow of
+their own), the specular ones (shaded alike) apart (`spec`, added after the texture as the specular word was). A
+light with a point shadow (`shadows`: point_shadow.hlsli) adds only what reaches the point; the ground casts none,
+so the point is looked up moved along its own normal. The colour word's light is returned.
+
+### shaders/shadow_receiver.hlsli: the receivers and the soft edges
+
+The shadow map's receivers' part (render_shadows.cpp; included in the terrain and mesh shaders): how much of the
+sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, on.y, or take the sun's light
+away by it). `s` is the pixel's position in the map's clip space, `dsx` / `dsy` its screen derivatives (taken
+before any discard), `pixel` its screen position. Every comparison follows the receiver's plane (its depth slope
+across the map, clamped). A receiver weighs it by its facing to the sun, so a face turned away is not shadowed (its
+own object's shadow there would be acne): the ground by its normal, the meshes by their face normal
+(`shadow_facing`, the derivatives). A unit's meshes instead compare from the unit's nearest depth (`front`): no
+shadow of its own (that flipped face by face on a low-poly creature), every other caster's on every face, its sun
+side shaded by its lighting's N.L alone. Soft edges, contact-hardening as PCSS. `range` holds, per kRangeCell-texel
+cell of the map, the nearest and the farthest depth of the cells within the widest filter's reach and one cell more
+(x, y), and the cell's own nearest (z). It is read filtered (`range_smp`: bilinear between the four cells around
+the pixel). Each of those four cells' bounds holds for every texel the pixel's taps read, so their weighted mean
+does too, and the bounds change smoothly across the map instead of stepping at the cells' edges (read per cell,
+they made cell-sized squares in a penumbra, which crawled while the sun turned the map's texels across the ground:
+the user's shimmer). A pixel nearer than every depth around is lit, one farther than every depth around is
+shadowed. For the others (near an edge) the nearest depth around bounds the filter's radius: the distance along the
+light to it times the sun's chosen size (soft.x), from soft.z to soft.y. When that bound is wider than half a cell,
+a blocker search narrows it: kSearchTaps points on a disc of the bound and the pixel's own give the mean distance
+from the receiver to the nearest caster around each (the cells' own nearest, filtered) that hides it, the radius
+that distance times soft.x (so a shadow is sharp where its caster meets the ground). From half a cell to a cell the
+searched radius is blended in from the bound, so the radius does not step where the search starts. Then bilinear
+comparisons on a disc of the radius: kFilterTaps, or kFewTaps on a narrow one. Both discs are Vogel spirals turned
+per pixel (interleaved gradient noise of the screen position): the few taps make a fine grain instead of bands. The
+search reads the small cell image, not the map: the map's texels far apart and turned per pixel cost far more.
+
+### game/world_client_shadow_casters.cpp: casters outside the view
+
+The casters of the new renderer's shadow map that the game does not draw this frame. The map
+(src/render/render_shadows.cpp, docs/notes/renderer.md section 13 item 10) takes the meshes of the objects the game
+draws; an object outside the view, or a part of a drawn one that the part's own view test left out, can still throw
+its shadow onto the visible ground. After the world's object draws (CWorldClient::Render) every object standing
+where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors) whose bounding sphere
+passes the map's test (render::ShadowCasterReaches: inside the map's area seen from the sun, on the sun's side of
+the ground it covers) hands its undrawn parts to the map (render::ShadowCasterMesh), placed as
+CObject3DClientSpecific::Draw places them. Everything here only reads the game's objects: no flag, pose, colour,
+list or heap block of the game changes, so the game's logic and its goldens are those of a run without it.

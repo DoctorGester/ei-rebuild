@@ -1,8 +1,7 @@
-// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach
-// through the scalar deleting destructors, the members destroyed last to first after the class's own
-// teardown. The containers are the library's (lib/mfc.h CArray / CList, lib/containers.h
-// AlignedArray, lib/stlp.h hash_map). Checked in game by verify_world_destructors.cpp. See
-// docs/notes/standalone.md.
+// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach through the
+// scalar deleting destructors, the members destroyed last to first after the class's own teardown. The
+// containers are the library's (lib/mfc.h CArray / CList, lib/containers.h AlignedArray, lib/stlp.h
+// hash_map). See docs/notes/standalone.md.
 #include "effects.h"
 #include "game_arrays.h"
 #include "game_lists.h"
@@ -30,8 +29,7 @@ void __fastcall RefPtrRelease(RefPtr* self);
 
 namespace {
 
-// The client's ground print lists: each print's destructor (the client's copies
-// of GroundPrint's).
+// The client's ground print lists: each print's destructor (the client's copies of GroundPrint's).
 struct PrintElement {
     template <typename P>
     static void Destroy(P* print) {

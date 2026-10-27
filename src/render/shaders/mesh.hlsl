@@ -82,16 +82,8 @@ Texture2D<float> shadow_map : register(t3);
 SamplerComparisonState shadow_smp : register(s3);
 Texture2D<float4> shadow_range : register(t4);
 SamplerState shadow_linear : register(s4);   // the range, filtered
-// A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point
-// `p` with the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's
-// lit colour times the cosine to it and each light's lit colour times its cosine and falloff, plus the
-// emissive colour, at most 1. The crown: pulled towards its average colour, taken as the average over
-// every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over
-// -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before.
-// A light with a point shadow (point_shadow.hlsli) adds only what reaches `land` (the point in the
-// landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh compares from the
-// unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
-// `face`: the smoothed normals lean far from their faces), looked up moved along `face`.
+// A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting). See docs/notes/renderer.md,
+// "The renderer's source files".
 float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn) {
     float3 ambient = light_ambient.rgb;
     float facing = dot(light_sun.xyz, n);

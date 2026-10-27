@@ -184,8 +184,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     auto* found = objects_.map.Find(id);
     CMapObject* const* slot = found ? &found->value : nullptr;
     // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
-    // pointer (and
-    // crashes).
+    // pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
@@ -239,7 +238,7 @@ void CWorldServer::RemoveAllUnits() {
         bool isUnit = object->GetClassId() == world::kClassUnit;
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
-        if (isUnit) RemoveObject(static_cast<int>(id));   // Rebirth patches it (rule 9)
+        if (isUnit) RemoveObject(static_cast<int>(id));
     } while (node);
 }
 EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);

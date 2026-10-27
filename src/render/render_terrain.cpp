@@ -1,18 +1,5 @@
-// The terrain in the new renderer. The game's terrain passes (ground pages, water
-// pages) call DrawSectorPage (src/game/terrain_draw.cpp) for every visible sector page;
-// it hands the page here. The page's tiles are turned into world-space triangles at the sector's
-// level of detail (the same tile entries and index patterns as the old path), with the vertex
-// colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
-// and the page's texture; the clip matrix is the one the old path transforms the same vertices with
-// (the pipeline's stack at +0x24). The GPU clips; no software clipping or projection here.
-// The pages stay on the GPU (docs/notes/renderer.md section 13): each sector page at a level of
-// detail and seam variant is built once into a pool of vertex and index buffers (positions and
-// texture coordinates in one stream, the lit colours in another) and built again only when what it
-// was built from changes (the sector's tile lists and records: SectorData::Build, render::
-// TerrainChanged). When the game only moved vertices or texture coordinates (the animated tiles: the
-// pages holding one; the waves and the water levels, which move only the water layer: the pages
-// reading it) the page reads them again and uploads those that changed. The colours of the page's
-// visible quarters are compared with the records every frame and only the changed ones uploaded. A frame keeps the visible quarters of each page handed over (TerrainPiece).
+// The terrain: the game's sector pages as world-space triangles, kept on the GPU and built again only where the
+// game says they changed. See docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 

@@ -80,7 +80,7 @@ constexpr unsigned kMagicMission = 0x102;
 int GameMode() { return TheServerWorld()->gameResult_; }        // 1: single player
 int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
-// The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
+// BeginMultiplayerGame sets it, a missing zone clears it.
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
 libcrt::Ostream* const kConsole = &console::g_consoleOut;
@@ -100,7 +100,6 @@ const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
 const mfc::CString& RecordMob(MapRecord* record) { return record->mob; }
 const mfc::CString& RecordMap(MapRecord* record) { return record->map; }
 
-// The record builder's party, built and torn down here.
 struct LocalRecords {
     PartyStorage storage;
     CParty* Party() { return storage.Get(); }
@@ -244,10 +243,9 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 
-// The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
-// catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
-// around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
-// corrupt.
+// The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world catch up with
+// the time spent away (one tick per elapsed unit, at most 1000, waking the units around the entrance).
+// Returns LoadSave's result, 0 when the file cannot be opened or is corrupt.
 int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone, mfc::CString& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;
@@ -377,10 +375,7 @@ constexpr int kServerMessageZone = 8;
 
 int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
-// The host announcement of a network game: the host name, the address, the server's host record and its
-// counted pointer, then the message (8, zone).
 
-// A session or a replicated record is usable: there, and not detached by its owner.
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
@@ -481,7 +476,6 @@ int __stdcall StartNetworkZone(const char* zone) {
 
 namespace {
 
-// The globals note the campaign's progress.
 
 } // namespace
 
@@ -553,12 +547,9 @@ void GameFlow::UpdateMultiplayerVariable() {
         else variables->Remove(kMultiplayerVariable);
     };
     if (!Active(net::GameServer())) {
-        // A client: set while it has no host announcement (info_).
         set(!Active(net::GameClient()->info_));
         return;
     }
-    // The host: with +0x80, set while more than one player is in; otherwise while the client
-    // has no map message (map_).
     if (flag80_) set(ServerPlayerCount() > 1);
     else set(!Active(net::GameClient()->map_));
 }
@@ -567,8 +558,6 @@ void GameFlow::UpdateMultiplayerVariable() {
 
 namespace {
 
-// The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
-// bz4mpg, anything else bz1mpg.
 
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
@@ -592,12 +581,11 @@ void GameFlow::BeginMultiplayerGame() {
     {
         mfc::CString zone(mfc::CString::kUnset);
         MultiplayerZoneInto(&zone);
-        state_ = 4;   // the state: load the zone
+        state_ = 4;   // load the zone
         requestTarget_ = zone.GetString();
         requestArg_ = 0;
     }
     flag80_ = 0;
-    // The client's game state request: 1, a new version.
     LocalLogin()->state_ = 1;
     ++LocalLogin()->version_;
     SessionsOpen() = 1;
@@ -695,7 +683,7 @@ void GameFlow::CloseSessions() {
     net::ClientSession* oldClient = client;
     client = nullptr;
     ReleaseSession(oldClient);
-    state_ = 1;   // the state
+    state_ = 1;
 }
 
 // The flow's requests: the state its update acts on next, the zone or save name, and a party for states 5
@@ -1088,8 +1076,6 @@ int __stdcall LoadMission(CStream* file) {
 
 namespace {
 
-// CreateDirectoryA and DeleteFileA go through the import slots (gameapi.h): harness runs redirect them to
-// harness_saves.
 
 } // namespace
 
@@ -1207,7 +1193,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheServerWorld()->sessionKind_ = mode;
     if (mode == 1) SpectatorFlag() = mode;
     TheServerWorld()->SetGameResult(result);
-    // The server world's counted helper (+0x5C, a player source) handed to the client world.
+    // The server world's player source handed to the client world.
     TheClientWorld()->SetPlayer(TheServerWorld()->shared5C_.Get());
     ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
@@ -1563,7 +1549,6 @@ void GameFlow::AfterServerStart() {
 
 namespace {
 
-// The game types' (ClientSession::gameType_, 0..3) variable set to 1 and briefing name.
 
 unsigned g_serverStamp = /*007AFED0*/ {};
 unsigned& ServerStamp() { return g_serverStamp; }   // the newest variable stamp seen
@@ -1586,7 +1571,6 @@ struct LocalVariables {
     ~LocalVariables() { table.Destroy(); }
 };
 
-// The server's variables (name_, value_ and the stamp serial_).
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
 net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }

@@ -1,7 +1,6 @@
-// The client world's session links: the local session takes a new link
-// (single-player loopback, a recording's replay, a network game client's driver) after the maps
-// are emptied, and the per-frame pump the application asks whether messages are waiting.
-// The same with a given link is dead code.
+// The client world's session links: the local session takes a new link (single-player loopback, a recording's
+// replay, a network game client's driver) after the maps are emptied, and the per-frame pump the application
+// asks whether messages are waiting. The same with a given link is dead code.
 #include "world.h"
 
 #include "net_classes.h"

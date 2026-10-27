@@ -1,8 +1,7 @@
 #pragma once
 
-// The game's statically linked C runtime and MFC helpers (config/library.csv): memory comes from and goes
-// back to the game's own heap, and functions such as tolower depend on the game's locale tables. In the
-// standalone build these are thin wrappers over the modern CRT, checked to behave identically.
+// The game's statically linked C runtime and MFC helpers (config/library.csv): memory comes from the game's
+// heap, and functions such as tolower depend on the game's locale tables.
 
 #include <cstdarg>
 #include <cstddef>
@@ -76,7 +75,7 @@ int __cdecl write(int fd, const void* buffer, unsigned count);
 
 struct CrtFile;
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file);
-// A stream's file descriptor (the _fileno macro; in the standalone image the host CRT's, libcrt::Fileno).
+// The _fileno macro (the host CRT's, libcrt::Fileno).
 int fileno(const CrtFile* file);
 
 // _finddata_t (VC6: 32-bit times, local time through FileTimeToLocalFileTime).
@@ -129,9 +128,8 @@ int __cdecl Isalpha(int c);
 int __cdecl Isdigit(int c);
 int __cdecl Isspace(int c);
 int __cdecl Isprint(int c);
-// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
-// first): equal elements end up in the same order as in the game (the host's qsort changed 105 image
-// goldens).
+// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
+// equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
 
 // memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath
@@ -171,8 +169,7 @@ void __fastcall Element(void* element, void*) {
     Function(static_cast<typename ElementOf<decltype(Function)>::Type*>(element));
 }
 
-// The STLport node allocator (__node_alloc<true, 0>): its pool is the exe's data, so the same in
-// both builds.
+// The STLport node allocator (__node_alloc<true, 0>); its pool is the exe's data.
 void* __fastcall NodeAllocate(std::size_t bytes);
 void __fastcall NodeDeallocate(void* p, std::size_t bytes);
 void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes);
@@ -198,8 +195,7 @@ gamecrt::CrtFile* StandardOutput();
 // terminator when it still fits.
 int FormatInto(char* buffer, std::size_t room, const char* format, va_list args);
 
-// The x87 entry points with register arguments (src/lib/crt_x87.cpp; standalone image only): each is called
-// from assembly only and calls the plain body beside it.
+// The x87 entry points with register arguments (src/lib/crt_x87.cpp), called from assembly only.
 std::int64_t __cdecl FtolEntry();                                                       // _ftol
 double __cdecl CiAcosEntry();                                                     // _CIacos
 double __cdecl CiAsinEntry();                                                     // _CIasin
@@ -213,11 +209,10 @@ std::int64_t __cdecl FtolExtended(const unsigned char* value);
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
-// _hypot (standalone image only: the camera, the strips, the client maps): the larger size
-// m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
-// as _hypothlp computes it under its control word 133F (to nearest) whatever the caller's; an
-// overflow as the caller's rounding direction has it, a NaN argument as x87 addition propagates it, an
-// infinity otherwise +infinity.
+// _hypot (the camera, the strips, the client maps): the larger size m of |x| and |y| times the root of
+// (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double, as _hypothlp computes it under its
+// control word 133F (to nearest) whatever the caller's; an overflow as the caller's rounding direction has
+// it, a NaN argument as x87 addition propagates it, an infinity otherwise +infinity.
 double __cdecl Hypot(double x, double y);
 
 // C++ exceptions (src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not continuable,
@@ -240,8 +235,8 @@ struct Exception {
 };
 static_assert(sizeof(Exception) == 12);
 
-// The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
-// heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
+// The runtime the image owns (registered with EI_REPLACE_STANDALONE): the heap (the modern CRT's), operator
+// new's handler loop, the atexit list and exit.
 void* __cdecl OperatorNew(std::size_t size);
 void __cdecl OperatorDelete(void* p);
 void* __cdecl Malloc(std::size_t size);

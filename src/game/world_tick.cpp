@@ -206,8 +206,6 @@ namespace {
 // UpdateUnits' two function-local id lists (arrays of data, size, max, grow; the data block starts one dword
 // after its allocation), with their guard bits in g_updateListGuards.
 using IdArray = lib::AlignedArray<unsigned>;
-// The instantiation's SetAtGrow(index, value).
-
 constinit lib::AlignedArray<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
 constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
 IdArray& RemovedIds() { return g_removedIds; }

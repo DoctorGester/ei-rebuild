@@ -1,15 +1,7 @@
 #pragma once
 
-// STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2);
-// the library body the instantiations' own addresses are registered to (stlp_hash.cpp).
-// Layout (0x14 bytes): the hasher, key_equal and key extractor (empty, one byte each, then a pad
-// byte), the bucket vector (vector<Node*>, stlp_vector.h) and the element count, which STLport
-// keeps in the node allocator's proxy. A node is the next pointer followed by the value; its size
-// picks the pool's free list, so each instantiation's node type comes from its node-creation code.
-// Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
-// below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the
-// head of its bucket, and iteration walks the buckets in order and each chain from its head. A
-// rehash (resize) moves each old bucket's chain, head first, to the head of its new bucket.
+// STLport's hashtable (hash_map / hash_set) as compiled into game.exe. Its layout and iteration order (which
+// game code depends on): docs/notes/standalone.md, "The image's source files".
 
 #include "crt.h"
 #include "mfc.h"
@@ -199,8 +191,7 @@ public:
         InitializeBuckets(n);
     }
 
-    // _M_initialize_buckets(n): reserve(NextPrime(n)), insert that many nulls at
-    // the end, no elements.
+    // _M_initialize_buckets(n): reserve(NextPrime(n)), insert that many nulls at the end, no elements.
     void InitializeBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
         buckets_.template Reserve<BucketElement>(buckets);
@@ -295,9 +286,8 @@ public:
         return node;
     }
 
-    // equal_range(key): the first node holding `key` and the first node after it
-    // that does not (its chain's next one, else the head of the next non-empty bucket, else null);
-    // both null when no node holds the key.
+    // equal_range(key): the first node holding `key` and the first node after it that does not (its chain's
+    // next one, else the head of the next non-empty bucket, else null); both null when no node holds the key.
     void EqualRange(const Key& key, Node*& first, Node*& last) const {
         std::size_t b = BucketOf(key);
         for (Node* cur = buckets_[b]; cur; cur = cur->next) {
@@ -458,8 +448,7 @@ public:
         count_ = 0;
         CopyFrom(ht);
     }
-    // operator=(ht): nothing for the table itself; else clear, ht's functor
-    // bytes, _M_copy_from(ht).
+    // operator=(ht): nothing for the table itself; else clear, ht's functor bytes, _M_copy_from(ht).
     void Assign(const hashtable& ht) {
         if (&ht == this) return;
         Clear();

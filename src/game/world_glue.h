@@ -54,8 +54,7 @@ void __stdcall GameSetConstructionVariable(std::uint32_t value);
 void __stdcall GameSetWeather(int weather, float strength);
 // The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)).
 double GameServerTimeOfDay();
-// The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)
-// unless it is negative or a NaN.
+// The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void __stdcall GamePassTime(float offset);
 void __stdcall GameEnsureZone(const char* map, const char* mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
@@ -86,8 +85,7 @@ void __stdcall GameStopSounds(int stopStream);
 // The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
 void GameStopAmbience();
 void GameStartAmbience();
-// The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's
-// result.
+// The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's result.
 int __stdcall GamePlayMusic(const char* name);
 CUnit* __stdcall GameFindClientUnit(int id);
 void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
@@ -101,7 +99,6 @@ void __stdcall GameLeaveThroughExit(int exit);
 // The interface's close-all flag set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
-// The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
 CPlayerClient* GameLocalView();
 int __stdcall GameSendFlag10(int value);

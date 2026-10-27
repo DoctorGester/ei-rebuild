@@ -1,13 +1,7 @@
 #pragma once
 
-// MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
-// helpers they use, written out for the standalone exe (docs/notes/standalone.md
-// section 2). Same layout as the copy linked into game.exe; the tables are compiled (mfc_file.cpp's
-// FileTable, StdioFileTable and FileFindTable) in place, with the
-// slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).
-// CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game
-// CRT's FILE in the hook build (shared with the exe's remaining CRT code) and, in the standalone
-// image, the host CRT's (crt.h: there the game's FILE* is the host's).
+// MFC 4.2's CFile, CStdioFile and CFileFind and the path helpers they use; the tables are compiled in
+// game.exe's slot order (mfc_file.cpp). See docs/notes/standalone.md, "The image's source files".
 
 #include "mfc_exception.h"
 #include "mfc_time.h"

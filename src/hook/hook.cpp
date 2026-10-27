@@ -405,8 +405,7 @@ void SetOriginalWinMainAction(void (*action)()) { g_originalWinMainAction = acti
 
 static void __stdcall OnWinMain() {
     // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
-    // run/vanilla and run/rebirth already makes it (the standalone host does the same in
-    // EiStandaloneMain).
+    // run/vanilla and run/rebirth already makes it (the standalone host does the same in EiStandaloneMain).
     SetProcessDPIAware();
     DWORD old;
     auto* p = reinterpret_cast<unsigned char*>(kGameWinMain);

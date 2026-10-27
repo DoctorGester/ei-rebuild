@@ -77,8 +77,7 @@ struct list {
         E::Copy(&node->data, x);
         return node;
     }
-    // insert(pos, x): _M_create_node(x), linked in before `pos`. The list itself
-    // is not read.
+    // insert(pos, x): _M_create_node(x), linked in before `pos`. The list itself is not read.
     template <typename E = Element<T>>
     static Node* Insert(Node* pos, const T& x) {
         Node* node = CreateNode<E>(x);
@@ -99,8 +98,7 @@ struct list {
         E::Destroy(value);
         return node;
     }
-    // insert(pos, first, last): a copy of each element of [first, last) inserted
-    // before `pos`, in order.
+    // insert(pos, first, last): a copy of each element of [first, last) inserted before `pos`, in order.
     template <typename E = Element<T>>
     static void InsertRange(Node* pos, const Node* first, const Node* last) {
         for (; first != last; first = first->next) Insert<E>(pos, first->data);
@@ -192,11 +190,9 @@ struct ListAbi : list<T> {
     }
     static void __fastcall Destruct(List* self) { self->template Release<E>(); }
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
-    // _M_create_node(x): the list is not read; the node's links are left as
-    // the pool had them.
+    // _M_create_node(x): the list is not read; the node's links are left as the pool had them.
     Node* CreateNode(const T& x) { return List::template CreateNode<E>(x); }
-    // insert(pos, x). The list is not read (it is called with any
-    // register value).
+    // insert(pos, x). The list is not read (it is called with any register value).
     Node** Insert(Node** out, Node* pos, const T& x) {
         *out = List::template Insert<E>(pos, x);
         return out;
@@ -205,8 +201,7 @@ struct ListAbi : list<T> {
         *out = List::template InsertDefault<E>(pos);
         return out;
     }
-    // list(const list& x): a sentinel, then insert(end, x.begin, x.end);
-    // returns this.
+    // list(const list& x): a sentinel, then insert(end, x.begin, x.end); returns this.
     List* CopyConstruct(const List* from) {
         List::Construct();
         List::template InsertRange<E>(this->head, from->First(), from->End());

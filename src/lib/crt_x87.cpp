@@ -1,11 +1,7 @@
-// The game CRT's x87 entry points with register arguments (docs/notes/standalone.md): _ftol (ST0 in, its
-// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow: and
-// ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod). A C++ function cannot be
-// declared with that ABI, so each is a naked entry that moves its arguments to the stack and calls a plain
-// C++ body; this file is the one in src/lib that tools/check_cleanup.py lets hold __asm, for these entries
-// only.
-// Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
-// its x87 results (and the goldens recorded with them) stay as recorded.
+// The game CRT's x87 entry points with register arguments: _ftol (ST0 in, its 64-bit truncation in EDX:EAX,
+// ST0 popped) and the _CI maths (_CIacos, _CIasin, _CIpow: ST0 in and out; fmod and _CIfmod are the host
+// CRT's std::fmod). Each is a naked entry that moves its arguments to the stack and calls a plain C++ body;
+// this is the one file in src/lib that tools/check_cleanup.py lets hold __asm.
 #include "crt.h"
 
 #include "ei/hook.h"

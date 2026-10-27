@@ -1,31 +1,6 @@
-// The shadow map's receivers' part (render_shadows.cpp; included in the terrain and mesh shaders): how
-// much of the sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, on.y,
-// or take the sun's light away by it). `s` is the pixel's position in the map's clip space, `dsx` /
-// `dsy` its screen derivatives (taken before any discard), `pixel` its screen position. Every comparison
-// follows the receiver's plane (its depth slope across the map, clamped). A receiver weighs it by its
-// facing to the sun, so a face turned away is not shadowed (its own object's shadow there would be acne):
-// the ground by its normal, the meshes by their face normal (`shadow_facing`, the derivatives).
-// A unit's meshes instead compare from the unit's nearest depth (`front`): no shadow of its own
-// (that flipped face by face on a low-poly creature), every other caster's on every face, its sun side
-// shaded by its lighting's N.L alone.
-// Soft edges, contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
-// the nearest and the farthest depth of the cells within the widest filter's reach and one cell more
-// (x, y), and the cell's own nearest (z). It is read filtered (`range_smp`: bilinear between the four
-// cells around the pixel). Each of those four cells' bounds holds for every texel the pixel's taps
-// read, so their weighted mean does too, and the bounds change smoothly across the map instead of
-// stepping at the cells' edges (read per cell, they made cell-sized squares in a penumbra, which crawled
-// while the sun turned the map's texels across the ground: the user's shimmer). A pixel nearer than
-// every depth around is lit, one farther than every depth around is shadowed. For the others (near an
-// edge) the nearest depth around bounds the filter's radius: the distance along the light to it times
-// the sun's chosen size (soft.x), from soft.z to soft.y. When that bound is wider than half a cell, a blocker
-// search narrows it: kSearchTaps points on a disc of the bound and the pixel's own give the mean
-// distance from the receiver to the nearest caster around each (the cells' own nearest, filtered) that
-// hides it, the radius that distance times soft.x (so a shadow is sharp where its caster meets the
-// ground). From half a cell to a cell the searched radius is blended in from the bound, so the radius
-// does not step where the search starts. Then bilinear comparisons on a disc of the radius:
-// kFilterTaps, or kFewTaps on a narrow one. Both discs are Vogel spirals turned per pixel (interleaved
-// gradient noise of the screen position): the few taps make a fine grain instead of bands. The search
-// reads the small cell image, not the map: the map's texels far apart and turned per pixel cost far more.
+// The shadow map's receivers' part (included in the terrain and mesh shaders): how much of the sun the map
+// hides at a pixel (0 .. 1). `s`: the pixel in the map's clip space, `dsx` / `dsy` its screen derivatives
+// (taken before any discard). Soft edges as PCSS. See docs/notes/renderer.md, "The renderer's source files".
 static const int kSearchTaps = 8;
 static const int kFilterTaps = 16;
 static const int kFewTaps = 8;

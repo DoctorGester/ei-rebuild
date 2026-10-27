@@ -11,9 +11,8 @@ void __fastcall RefPtrRelease(RefPtr* self);
 
 namespace stlp {
 
-// Copied with one more reference, destroyed with a plain release (RefPtrRelease).
-// Assignment (erase's shift) stores and counts the new object
-// first, then releases the old one.
+// Copied with one more reference, destroyed with a plain release (RefPtrRelease). Assignment (erase's shift)
+// stores and counts the new object first, then releases the old one.
 struct CountedRefElement {
     static void Construct(RefPtr* to, const RefPtr& from) { to->FromRawCounted(from.ptr); }
     static void Assign(RefPtr& to, const RefPtr& from) {

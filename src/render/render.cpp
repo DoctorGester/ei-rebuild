@@ -45,18 +45,14 @@ using namespace detail;
 bool g_configured = false;
 bool g_failed = false;   // device or pipelines could not be created, or sokol panicked: nothing more is drawn
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
-// The smooth option (off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
 bool g_smooth = false;
-// The smooth camera (off by default): EI_RENDER's "smoothcamera", render::SetSmoothCamera.
 bool g_smoothCamera = false;
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
-// The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all and the
-// scenarios) change nothing: the image always draws with the new renderer. "smooth", "smoothcamera" and
-// "uiboth" / "uinative" (render_ui.h) set the options.
+// EI_RENDER's words (render.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
@@ -132,10 +128,7 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
 
 #if defined(EI_RENDER_VALIDATION)
 // --- A device the harness can remove --------------------------------------------------------------
-// With "removable" in EI_RENDER (harness build only) the Direct3D 11 device is made through
-// D3D11On12CreateDevice on a Direct3D 12 device of the default adapter, so that ID3D12Device5::RemoveDevice
-// (render::RemoveDevice) can remove it for real: Present and GetDeviceRemovedReason report
-// DXGI_ERROR_DEVICE_REMOVED as after a driver reset, in this process only.
+// EI_RENDER "removable" (harness build only): render::RemoveDevice.
 
 ID3D12Device* g_d3d12 = nullptr;
 ID3D12CommandQueue* g_queue = nullptr;

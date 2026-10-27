@@ -1,19 +1,5 @@
-// Meshes kept on the GPU (docs/notes/renderer.md section 13, item 4). The figure part draws
-// (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws (render::SetMeshSource); the mesh's
-// corners are kept for that figure mesh (positions and texture coordinates in model space, colours and
-// triangles) in a pool on the GPU (GpuPool: geometry and colours in streams of their own). A frame hands over
-// the mesh as kept; what is built and uploaded again is what the game says changed:
-// - the colours, when the draw wrote the colour arrays or the game lit the mesh outside its draw (MeshChanged
-//   Colours: the sky; a link figure's LightPart / FlatColours) or a draw that wrote them was not kept
-//   (NoteMeshDraw): read and compared with the kept ones, the changed range uploaded;
-// - the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, CFigureMesh::SetOffsets;
-//   a link figure's part morphed again): read and compared, the changed range uploaded;
-// - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or
-//   counts than it was built from.
-// Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame with other data go into
-// the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the
-// shader. The harness build compares every kept mesh with a fresh build every 16th frame (`meshcache check`);
-// `meshcache off` builds every mesh into the frame's stream.
+// Meshes kept on the GPU, built again only where the game says they changed. See docs/notes/renderer.md,
+// "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 
