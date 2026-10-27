@@ -499,7 +499,7 @@ int CWorldClient::Segment() {
     EndWalk(objectsIt);
     return 1;
 }
-EI_REPLACE_METHOD(0x005641F0, CWorldClient::Segment);
+EI_REWRITTEN(0x005641F0, CWorldClient::Segment);
 
 EI_REWRITTEN(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REWRITTEN(0x00560F00, PlatformSet::SurfaceHeight);
