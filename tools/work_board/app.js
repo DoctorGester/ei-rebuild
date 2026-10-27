@@ -141,7 +141,7 @@ function ticketsView() {
   const cards = working.filter(t => byTree.get(t.assignment.worktree || t.id)[0] === t);
   sections.push(lane('Active work', 'Tickets with an open assignment (work.py start), newest first; one card per worker.', cards,
     t => ticketCard(t, byTree.get(t.assignment.worktree || t.id).slice(1))));
-  if (lost.length) sections.push(lane('Running or in review, nobody assigned', 'The toml says a worker has it, work.py has no open assignment.', lost, ticketCard));
+  if (lost.length) sections.push(lane('Running or in review, nobody assigned', 'The toml says a worker has it, work.py has no open assignment.', lost, t => ticketCard(t)));
   const others = all.filter(t => !working.includes(t) && !lost.includes(t) && t.state !== 'done');
   const chip = t => `<button class="chip s-${t.state}" title="${esc(t.title)} (${t.state})">${esc(t.id)}</button>`;
   const order = ['ready', 'waiting', 'watch', 'later'];
