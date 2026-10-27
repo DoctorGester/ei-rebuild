@@ -107,8 +107,8 @@ void __fastcall ComputeMeshNormals(MeshArray* meshes) {
 }
 EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 
-// PlaceMeshes (`unit` is the fake unit, meshes at +0x544): every mesh's positions packed four at a time
-// into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every lane starts as the first position, so
+// PlaceMeshes (`unit` is the fake unit, meshes): every mesh's positions packed four at a time
+// into 64-byte blocks (x[4], y[4], z[4], w[4] = 1); every lane starts as the first position, so
 // the unused lanes of the last block keep it.
 void __fastcall PackMeshPositions(FakeUnitScene* unit) {
     MeshArray& meshes = unit->meshes;

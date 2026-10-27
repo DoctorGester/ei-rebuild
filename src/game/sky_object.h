@@ -17,7 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTexture;   // texture.h
+class CTexture;
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -29,18 +29,13 @@ static_assert(sizeof(SkyColour) == 16);
 
 class CSkyObject : public CPlainFigureMesh {
 public:
-    // The figure's constructor (CPlainFigureMesh's: the base work with
-    // its vtable and Create, then the mesh's arrays empty), the haze empty,
-    // then the sky's Create (slot 2: the same CreateMesh).
     CSkyObject();
-    // The haze freed, then the mesh's arrays (CPlainFigureMesh's destructor) and the
-    // figure's (CFigureMesh's).
     ~CSkyObject() override;
 
     // The vtable: the class 0x42 mesh's (CPlainFigureMesh) but for
     // 0, 11 and 12.
-    const char* GetClassName() override;   // 11: "CSkyObject"
-    int GetClassId() override;             // 12: 0x20
+    const char* GetClassName() override;   // "CSkyObject"
+    int GetClassId() override;             // 0x20
 
     // Lights the vertices. Each vertex's haze (distances_) is recomputed
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
@@ -52,7 +47,7 @@ public:
 
     // The mesh's fields (CFigureMesh): worldMatrix_ the world matrix CSky::Draw builds, name_
     // "nask0", directory_ emptied by LoadSky, the vertices and normals four per packet.
-    lib::AlignedArray<float> distances_;            // +0x220 haze per vertex
+    lib::AlignedArray<float> distances_;            // haze per vertex
 };
 static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
 static_assert(offsetof(CSkyObject, colorsA_) == 0x138);
@@ -73,13 +68,13 @@ struct CSky {
     // drawn (renderer slot 14 with alpha 0xFF), and both stacks popped (when not empty).
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
     // The compiler's destructor (from CWorldClient::Destroy): the texture, the
-    // material and the object released (slot 4), in that order, each when set.
+    // material and the object released, in that order, each when set.
     void Destruct();
 
-    CSkyObject* object;   // +0x00 null until the zone's sky is loaded
-    CEngineObject* material;   // +0x04 counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed
-    HeldTexture texture;  // +0x08 texture holder
-    int turns;            // +0x0C 1 when constructed
+    CSkyObject* object;   // null until the zone's sky is loaded
+    CEngineObject* material;   // counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed
+    HeldTexture texture;  // texture holder
+    int turns;            // 1 when constructed
 
     // Object->Light(...) when there is an object.
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);

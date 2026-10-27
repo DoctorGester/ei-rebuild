@@ -15,27 +15,24 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CStream;      // core_streams.h
-struct LockKey;     // unit.h
+class CStream;
+struct LockKey;
 
 class CTrapObject : public CMapObject {
 public:
-    // The map object's constructor, the map object's Create, flags_ bit 0x40
-    // cleared. The destructor is the map object's (a jump there: no Destroy).
     CTrapObject();
-    // The deleting destructor (slot 0) frees into the game's heap.
 
     int Create() override { return CreateTrap(); }
     int RunTick() override { return UpdateTrap(); }
-    void Load(CStream* stream) override;                      // 9: LoadTrapObject
-    void Save(CStream* stream) override;                      // 10: SaveTrapObject
-    const char* GetClassName() override;                   // 11: "CTrapObject"
-    int GetClassId() override;                             // 12: 0x55
-    bool IsSynchronised() override { return Slot29True(); }   // 29
-    int IsUsable() override { return Slot38One(); }           // 38
-    // 41: Disarm. The first argument is the key record (combat_actions.cpp passes its address).
+    void Load(CStream* stream) override;                      // LoadTrapObject
+    void Save(CStream* stream) override;                      // SaveTrapObject
+    const char* GetClassName() override;                   // "CTrapObject"
+    int GetClassId() override;                             // 0x55
+    bool IsSynchronised() override { return Slot29True(); }
+    int IsUsable() override { return Slot38One(); }
+    // Disarm. The first argument is the key record (combat_actions.cpp passes its address).
     bool ApplyScience(int first, int second) override;
-    int AcceptsKey(const LockKey* key) override { return KeyFits(key); }   // 42
+    int AcceptsKey(const LockKey* key) override { return KeyFits(key); }
 
     // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
     int CreateTrap();
@@ -58,14 +55,14 @@ public:
     bool Slot29True();   // AL = 1
     int Slot38One();     // 1
 
-    std::uint32_t savedValue_;   // +0x238 only loaded and saved; nothing sets it (not even the constructor)
+    std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };
 static_assert(offsetof(CTrapObject, savedValue_) == 0x238);
 static_assert(sizeof(CTrapObject) == 0x23C);
 
 // Slots 11 / 12: "CTrapObject" and 0x55. The magic trap's
 // "CMagicTrapObject" and 0x61.
-class MagicTrap;   // magic_trap.h
+class MagicTrap;
 const char* __fastcall TrapClassName(CTrapObject* self);
 int __fastcall TrapClassId(CTrapObject* self);
 const char* __fastcall MagicTrapClassName(MagicTrap* self);

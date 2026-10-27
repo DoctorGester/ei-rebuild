@@ -125,7 +125,6 @@ void InitMap(DwordMap& map) {
     map.blockSize = 10;
 }
 
-// --- Records ---------------------------------------------------------------------------------------
 
 // The 0x2C-byte record header.
 struct RecordHeader {

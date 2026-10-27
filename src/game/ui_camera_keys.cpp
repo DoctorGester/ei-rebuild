@@ -2,7 +2,7 @@
 // 9 is). See docs/notes/ui.md ("Camera keys").
 // Keys are mapped to characters through the scan-code: characters 5-10 set a
 // direction (+0x20 x, +0x24 y, +0x28 z to +-1) and 13-16 restore camera views 0-3 (saved with Ctrl
-// or Alt held: interface +0x7C / +0x7E). While a direction is held (+0x8), the camera pans (or with
+// or Alt held: interface +0x7C / +0x7E). While a direction is held, the camera pans (or with
 // a modifier turns and tilts) at the option speeds.
 #include "ui_camera_keys.h"
 #include "options.h"

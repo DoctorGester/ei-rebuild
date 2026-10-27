@@ -6,13 +6,12 @@
 
 #include "script_addon.h"
 
-class CUnitServer;   // combat.h
+class CUnitServer;
 
 namespace scriptaddon {
 
 using Handler = bool (*)(Call* call);
 
-// ---- Helpers ------------------------------------------------------------------------------------
 
 // _ftol2_sse (10090EB0): truncation toward zero (CVTTSD2SI); NaN and out-of-range values give
 // 0x80000000.
@@ -29,7 +28,7 @@ float Distance(float x0, float y0, float x1, float y1);
 int Stricmp(const char* a, const char* b);
 // The object's class (virtual 12) is a unit's (0x50).
 bool IsUnit(CEngineObject* object);
-// 10010E2D: a unit's data object (+0x240), null for a missing reference, object or non-unit.
+// 10010E2D: a unit's data object, null for a missing reference, object or non-unit.
 CUnitServer* UnitData(const ScriptObjectRef* ref);
 // 10010D12: addon reports a handler's problem as a "Scripts" error ("<function>: <message>") in
 // its console log only when the mod setting EnableShowingScriptErrors is on, which no Rebirth mod
@@ -38,7 +37,6 @@ bool Report(const char* function, const char* format, ...);
 // 10010D7B: Report(function, "Invalid argument(s) passed to function").
 bool InvalidArguments(const char* function);
 
-// ---- Handlers -----------------------------------------------------------------------------------
 
 // script_addon_math.cpp
 bool Sin(Call* call);

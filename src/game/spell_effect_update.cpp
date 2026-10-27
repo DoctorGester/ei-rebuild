@@ -30,7 +30,7 @@ CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 // --- State 1 -------------------------------------------------------------------------------------
 
 // 0 / 0x28 (the fire arrow) and 2 (the acid ray): the effect follows its missile; when the missile
-// reports a hit (+0x14C) the target takes the damage, the missile, sound and light go, and a
+// reports a hit the target takes the damage, the missile, sound and light go, and a
 // splash, an end sound and a rising light appear at the target's height. The two spells compute
 // the light's rise differently (the arrow rounds the quotient before scaling it).
 void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
@@ -375,7 +375,6 @@ void Teleport(CSpellEffect* e) {
 
 } // namespace
 
-// --- CSpellEffect ---------------------------------------------------------------------------------
 
 int CSpellEffect::Update() {
     if (!world) return 0;

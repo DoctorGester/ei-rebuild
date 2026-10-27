@@ -35,7 +35,6 @@ MapEffect* MapEffect::Construct() {
 }
 EI_REWRITTEN(0x00688510, MapEffect::Construct);
 
-// --- CSpell --------------------------------------------------------------------------------------
 
 CSpell::CSpell() {
     ClearFields();
@@ -62,7 +61,6 @@ int CSpell::GetClassId() { return 0x4F; }
 EI_REWRITTEN(0x0068B280, CSpell::GetClassName);
 EI_REWRITTEN(0x0068B290, CSpell::GetClassId);
 
-// --- CSpellEffect --------------------------------------------------------------------------------
 
 CSpellEffect::CSpellEffect() {
     target = nullptr;

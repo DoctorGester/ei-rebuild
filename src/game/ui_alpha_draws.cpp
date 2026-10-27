@@ -32,7 +32,7 @@ std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
 
 } // namespace
 
-// A container's. The children, each drawn (slot 21) when enabled.
+// A container's. The children, each drawn when enabled.
 void CUiContainer::DrawChild(int pass) {
     if (!interface_->drawing_) return;
     std::uint32_t savedRef = GetState(this, kAlphaRef);
@@ -48,7 +48,6 @@ void CUiContainer::DrawChild(int pass) {
 }
 EI_REWRITTEN(0x00600F70, CUiContainer::DrawChild);
 
-// Returns 1.
 BOOL CGlobalMap::Draw(int pass) {
     SetState(this, kAlphaBlend, 1);
     SetState(this, kAlphaTest, 0);
@@ -60,7 +59,6 @@ BOOL CGlobalMap::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062EFC0, CGlobalMap::Draw);
 
-// Returns 1.
 BOOL CHelpWindow::Draw(int pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);

@@ -173,7 +173,6 @@ void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
 
 } // namespace
 
-// ---- Variables -------------------------------------------------------------------------------------
 
 template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
@@ -400,7 +399,6 @@ void ScriptVars::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 
-// ---- Lists ---------------------------------------------------------------------------------------
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
 // list from the head (a list that was not empty would have its old nodes read again).
 
@@ -438,7 +436,7 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
             source->object = nullptr;
             source->id = 0;
             source->name = emptyName;
-            std::memset(&source->position, 0, sizeof(*source) - offsetof(ScriptFxSource, position));   // +0x0C..+0x33
+            std::memset(&source->position, 0, sizeof(*source) - offsetof(ScriptFxSource, position));   // .+0x33
         });
     }
     for (auto* node = list->head; node;) {
@@ -592,7 +590,7 @@ void CScript::LoadState(ScriptStream* stream) {
     stream->Read(&nextParticleId_, 4);
     stream->Read(&nextFxId_, 4);
 
-    // Command blocks (+0x70): created empty, then each block's id and commands.
+    // Command blocks: created empty, then each block's id and commands.
     int blocks = ReadInt(stream);
     for (int i = 0; i < blocks; ++i) NewCommandList();
     for (auto* node = blocks_.head; node;) {
@@ -603,7 +601,7 @@ void CScript::LoadState(ScriptStream* stream) {
     }
     ScriptWorldBlocksLoad(&worldBlocks_, stream);
 
-    // Definitions (+0x8C).
+    // Definitions.
     auto& scripts = definitions_;
     mfc::impl::ArrayAs<recordarrays::Definitions>(scripts).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < scripts.size; ++i) {

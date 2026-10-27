@@ -60,7 +60,6 @@ constexpr int kThirdPlace = 2;
 
 } // namespace
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) TheSoundManager()->StopSound(voice_);
@@ -98,7 +97,6 @@ void CBriefingScreen::StartPhrases() {
 }
 EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
@@ -122,7 +120,6 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 }
 EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
-// --- -----------------------------------------------------------------------------------
 
 // SpeakerActionDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
@@ -138,7 +135,6 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
 }
 EI_REPLACE(0x006023F0, SpeakerAnimationDone);
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
     float cosAngle = static_cast<float>(x87::fcos(angle));
@@ -201,7 +197,6 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
 }
 EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
-// --- -----------------------------------------------------------------------------------
 
 namespace {
 
@@ -274,7 +269,6 @@ void CBriefingScreen::ViewPreset(int preset) {
 }
 EI_REWRITTEN(0x00607EC0, CBriefingScreen::ViewPreset);
 
-// --- -----------------------------------------------------------------------------------
 
 namespace {
 

@@ -67,7 +67,6 @@ void FreeModifierNodes(SpellModifierList& list) {
 char Letter(const itemdb::SpellModifierRecord* modifier, int i) { return modifier->code[i]; }
 } // namespace
 
-// --- CSpell ------------------------------------------------------------------------------------
 
 void CSpell::Destroy() {
     ClearState();
@@ -95,7 +94,6 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
 }
 EI_REWRITTEN(0x0068B410, CSpell::Clone);
 
-// --- CSpellContainer ---------------------------------------------------------------------------
 
 int CSpellContainer::Create() {
     prototype_ = nullptr;
@@ -263,7 +261,6 @@ BOOL CSpellContainer::Build() {
 }
 EI_REWRITTEN(0x0068BF60, CSpellContainer::Build);
 
-// --- CSpellManager -----------------------------------------------------------------------------
 
 CSpellContainer* CSpellManager::NewContainer() {
     return CreateObjectAs<CSpellContainer>(kClassSpellContainer, -1);
@@ -289,7 +286,6 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
 }
 EI_REWRITTEN(0x00689310, CSpellManager::CreateSpell);
 
-// --- CSpellConstructor -------------------------------------------------------------------------
 
 CSpellConstructor::~CSpellConstructor() {
     CSpellConstructor::Destroy();

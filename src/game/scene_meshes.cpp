@@ -32,9 +32,9 @@ using WordArray = lib::AlignedArray<std::uint16_t>;
 using DwordArray = lib::AlignedArray<std::uint32_t>;
 
 // The three CMaps (mfc::CMap) and their associations:
-//   corners: 64-bit key -> 64-bit value (0x18 bytes)
-//   indices: 64-bit key -> dword (0x14 bytes)
-//   pairs:   dword key -> dword (0x10 bytes)
+//   corners: 64-bit key -> 64-bit value
+//   indices: 64-bit key -> dword
+//   pairs:   dword key -> dword
 using CornerMap = mfc::CMap<std::uint64_t, std::uint64_t>;
 using IndexMap = mfc::CMap<std::uint64_t, std::uint32_t>;
 using PairMap = mfc::CMap<std::uint32_t, std::uint32_t>;

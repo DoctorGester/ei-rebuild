@@ -73,7 +73,6 @@ Vector3 Normalised(float x, float y, float z) {
 
 } // namespace
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
@@ -114,7 +113,6 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
 
 EI_REWRITTEN(0x006089D0, CBriefingScreen::MovePerson);
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;

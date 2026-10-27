@@ -69,7 +69,6 @@ CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const
 
 } // namespace
 
-// --- MmpHeader -----------------------------------------------------------------------------------
 
 std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     if (mip == 0) return extraSize;
@@ -98,7 +97,6 @@ std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned 
     return total;
 }
 
-// --- CTexture ------------------------------------------------------------------------------------
 
 int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip) {
     if (flags_ & kTextureLoaded) return 1;
@@ -136,7 +134,6 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
 }
 EI_REWRITTEN(0x00690430, CTexture::CreateFromMmp);
 
-// --- CTextureManager -----------------------------------------------------------------------------
 
 int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     MmpHeader header;

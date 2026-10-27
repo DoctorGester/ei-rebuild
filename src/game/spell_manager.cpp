@@ -41,7 +41,6 @@ void FreeModifierNodes(SpellModifierNode* sentinel) {
 
 } // namespace
 
-// --- Sequences -----------------------------------------------------------------------------------
 
 void SpellSequence::Destruct() {
     ReleaseContainers(this);
@@ -49,7 +48,6 @@ void SpellSequence::Destruct() {
 }
 EI_REWRITTEN(0x006886F0, SpellSequence::Destruct);
 
-// --- CSpellManager -------------------------------------------------------------------------------
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
     auto* spell = CreateObjectAs<CSpell>(kClassSpell, -1);
@@ -133,7 +131,6 @@ void CSpellManager::ListModifierNames(mfc::CStringArray* names) {
 EI_REWRITTEN(0x00689570, CSpellManager::ListSpellNames);
 EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 
-// --- CSpellContainer -----------------------------------------------------------------------------
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
@@ -144,7 +141,7 @@ CSpellContainer::CSpellContainer() {
     codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
-    CSpellContainer::Create();   // inlined
+    CSpellContainer::Create();
 }
 EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);
 

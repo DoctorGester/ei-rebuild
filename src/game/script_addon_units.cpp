@@ -31,7 +31,7 @@ void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 
 // A unit's prototype record: its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
-// The unit's parameters (+0x330): the 7-value block filled from the unit's +0x17C (the
+// The unit's parameters: the 7-value block filled from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
 
@@ -81,7 +81,7 @@ void ForWorldObjects(Visit visit) {
 
 } // namespace
 
-// The unit's party's player number (party +0x24); -1 without.
+// The unit's party's player number; -1 without.
 bool GetPlayerOfUnit(Call* call) {
     Store(call->FloatResult(), -1.0f);
     CEngineObject* unit = ObjectArg(call, 0)->object;

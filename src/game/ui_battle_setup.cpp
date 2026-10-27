@@ -57,7 +57,6 @@ CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_
     }
 }
 
-// --- Create ---------------------------------------------------------------------------
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
@@ -104,7 +103,7 @@ void CBattleScreen::CreateScreen() {
         }
     }
 
-    // The screen's own input handler (0x0C bytes).
+    // The screen's own input handler.
     UiInputSide* input = new UiInertInput(interface_);
     AddInput(input);
 
@@ -186,7 +185,7 @@ void CBattleScreen::CreateScreen() {
     party_.SetSize(0, -1);
     viewPressed_ = false;
     boxSelecting_ = false;
-    std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word
+    std::memset(orderKeys_, 0, 6);   // dword and +0x191 word
     questSound_ = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.
@@ -198,7 +197,6 @@ void CBattleScreen::CreateScreen() {
     clientParty_.camera = -1;
 }
 
-// --- Drawing ---------------------------------------------------------------
 
 namespace {
 

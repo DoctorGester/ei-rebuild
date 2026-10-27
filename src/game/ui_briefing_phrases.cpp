@@ -103,7 +103,6 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 } // namespace
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::NextPhrase(bool skip) {
     console::CStringArray words;

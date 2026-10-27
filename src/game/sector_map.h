@@ -1,6 +1,6 @@
 #pragma once
 
-// The AI map embeds the sector map (+0x124), so ai_map.h includes this header first and the AI
+// The AI map embeds the sector map, so ai_map.h includes this header first and the AI
 // map's declaration comes last, for the files that include only this one.
 #include "engine_object.h"
 #include "maths.h"
@@ -30,11 +30,7 @@ struct SectorOccluder {
 static_assert(sizeof(SectorOccluder) == 8);
 
 struct Sector {
-    // Constructs each sector (sector_map.cpp): the two lists with blocks of 10, the empty record
-    // array, then Clear.
     Sector();
-    // The destructor (also the deleting one; world_destructors.cpp): Clear, then the members last to first (the record
-    // array's storage, both lists emptied).
     virtual ~Sector();
 
     // Clear: no free record, the records' storage freed, both lists
@@ -50,10 +46,10 @@ struct Sector {
     // Puts record `index` on the free list.
     void FreeOccluder(int index);
 
-    mfc::CTypedPtrList<CMapObject> objects;      // +0x04 non-unit objects
-    mfc::CTypedPtrList<CUnit> units;             // +0x20
-    int freeOccluder;                            // +0x3C head of the free records (-1 none)
-    mfc::CArray<SectorOccluder> occluders;       // +0x40 (mfc_slots.h's SectorOccluderArrayClass)
+    mfc::CTypedPtrList<CMapObject> objects;      // non-unit objects
+    mfc::CTypedPtrList<CUnit> units;
+    int freeOccluder;                            // head of the free records (-1 none)
+    mfc::CArray<SectorOccluder> occluders;       // (mfc_slots.h's SectorOccluderArrayClass)
 };
 static_assert(sizeof(Sector) == 0x54);
 static_assert(offsetof(Sector, freeOccluder) == 0x3C);
@@ -81,9 +77,9 @@ struct RadiusTree {
     // value, the last one). The bottom level holds the values themselves.
     void Build(const float* values, int count);
 
-    mfc::CArray<float> keys;    // +0x00
-    int depth;                  // +0x14
-    int mask;                   // +0x18
+    mfc::CArray<float> keys;
+    int depth;
+    int mask;
 };
 static_assert(sizeof(RadiusTree) == 0x1C);
 
@@ -108,10 +104,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
 // The AI map's sector map (one virtual: the destructor).
 class CSectorMap {
 public:
-    // The AI map's constructor's stores (inlined there): no sectors, no AI map.
     CSectorMap();
-    // Destroys every sector and frees the array's storage (reached by the AI map's unwinding and the deleting destructor):
-    // the sectors' destructors, then the storage.
     virtual ~CSectorMap();
 
     // Registers `object` in the sector under its position and stamps its footprint.
@@ -142,11 +135,11 @@ public:
     // destroyed, the storage freed.
     static void __fastcall DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
 
-    int width;              // +0x04 in sectors
-    int height;             // +0x08
-    int added;              // +0x0C successful Add calls (Remove does not decrement it)
-    mfc::CArray<Sector, SectorElements> sectors;   // +0x10 width * height, row by row
-    CAIMap* aiMap;          // +0x24
+    int width;              // in sectors
+    int height;
+    int added;              // successful Add calls (Remove does not decrement it)
+    mfc::CArray<Sector, SectorElements> sectors;   // width * height, row by row
+    CAIMap* aiMap;
 };
 static_assert(offsetof(CSectorMap, sectors) == 0x10);
 static_assert(offsetof(CSectorMap, aiMap) == 0x24);

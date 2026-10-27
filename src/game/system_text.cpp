@@ -159,7 +159,6 @@ const void* SystemRoute(const char* dll, const char* function) {
 
 namespace utf8 {
 
-// ---- Files ---------------------------------------------------------------------------------------------
 
 HANDLE WINAPI CreateFileA(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES security, DWORD disposition,
                           DWORD flags, HANDLE templateFile) {
@@ -447,7 +446,6 @@ HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font) {
     return ::CreateFontIndirectW(&wide);
 }
 
-// ---- Case -------------------------------------------------------------------------------------------
 
 namespace {
 // CharUpperA / CharLowerA's two forms: a string changed in place (the pointer back), or one character in the

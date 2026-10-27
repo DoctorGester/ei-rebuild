@@ -1,6 +1,6 @@
 // The fake unit's skeleton from the scene nodes (BuildSkeleton, called by LoadFakeUnitScene): each node's
 // pivot (its first rotation key's vector, +0x70) and rest rotation (its first position key: axis +0x60 and
-// angle +0x6C as a quaternion at +0x7C, unless the axis is the zero vector), the mesh named like a node
+// angle +0x6C as a quaternion, unless the axis is the zero vector), the mesh named like a node
 // moved into the node's frame, the bones built from the root node, then each node's frame array (+0xF8,
 // 40-byte records) sized to the frame count with the pivot and rotation in its first record. Plain float
 // maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").

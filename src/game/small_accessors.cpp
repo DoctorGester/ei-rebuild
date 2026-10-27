@@ -56,7 +56,6 @@ void CMaterial::SetSpecular(const Vector3* value) {
 }
 EI_REWRITTEN(0x00471AF0, CMaterial::SetSpecular);
 
-// ---- Effects --------------------------------------------------------------------------------------
 
 // The particle manager's own part of its constructor (the client world's manager set-up
 // calls it after the base manager's): quietStart cleared.

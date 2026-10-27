@@ -200,7 +200,7 @@ float CLight::GetIntensityAt(const Vector3* point) {
 EI_REWRITTEN(0x0068D730, CLight::GetIntensityAt);
 
 void CLight::SetLitColors(const float* source, float scale) {
-    // source is a byte layout: colours at +0x20 and +0x40 (float indices 8 and 16).
+    // source is a byte layout: colours and +0x40 (float indices 8 and 16).
     const float* a = source + 8;
     const float* b = source + 16;
     litColors_[0][0] = scale * a[0] * color_[0];

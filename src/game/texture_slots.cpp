@@ -12,7 +12,6 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-// --- MmpHeader -------------------------------------------------------------------------------------
 
 void MmpHeader::SetNoFormat() {
     alphaMask = alphaKind = alphaShift = 0;
@@ -54,7 +53,6 @@ void MmpHeader::SetFormat8888() {
 }
 EI_REWRITTEN(0x00693910, MmpHeader::SetFormat8888);
 
-// --- CTexture --------------------------------------------------------------------------------------
 
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
@@ -130,7 +128,6 @@ namespace {
 EI_REWRITTEN(0x00691A00, CTexture::Create);
 EI_REWRITTEN(0x00691A70, CTexture::Destroy);
 
-// --- CTextureManager -------------------------------------------------------------------------------
 
 void* CTextureManager::GetFileData(const char* name) { return GetFile(name, nullptr); }
 EI_REWRITTEN(0x00691CF0, CTextureManager::GetFileData);

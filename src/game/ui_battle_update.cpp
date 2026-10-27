@@ -138,7 +138,7 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
 // The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
-// size from `first`'s (+0x20), the height from the shown unit's (+0x24; the same unit).
+// size from `first`'s, the height from the shown unit's (+0x24; the same unit).
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
@@ -168,7 +168,6 @@ void PushId(IdVector* ids, const int* value) {
         ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
-// The same with the construction inlined.
 void PushIdInline(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
         if (ids->Finish()) *ids->Finish() = *value;
@@ -485,8 +484,8 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     mfc::CString text;
     mfc::CString title;
     text::Split(name, &parts, '.');
-    const float complete = 2.0f /*0073CDB8*/;   // 2
-    const float failed = 3.0f /*0073BAA4*/;     // 3
+    const float complete = 2.0f /*0073CDB8*/;
+    const float failed = 3.0f /*0073BAA4*/;
     if (parts.size == 3) {
         const char* key;
         if (Equal(value, complete)) {

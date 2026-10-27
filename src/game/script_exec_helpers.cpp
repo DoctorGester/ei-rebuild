@@ -92,7 +92,6 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 
 } // namespace
 
-// ---- Areas --------------------------------------------------------------------------------------
 
 void ScriptAreaParts::AddRect(float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
@@ -116,7 +115,7 @@ void ScriptAreaParts::AddRound(float x, float y, float radius) {
 EI_REWRITTEN(0x004B2070, ScriptAreaParts::AddRound);
 
 void CScript::DeleteArea(int id) {
-    // CArray of areas at +0x194 (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
+    // CArray of areas (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
     constexpr int kAreaSize = sizeof(ScriptArea);
     for (int i = 0; i < areas_.size; ++i) {
         ScriptArea* areas = areas_.data;
@@ -208,7 +207,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
 }
 EI_REWRITTEN(0x004BD920, CScript::DeletePointLight);
 
-// ---- QFinish ------------------------------------------------------------------------------------
 
 namespace {
 

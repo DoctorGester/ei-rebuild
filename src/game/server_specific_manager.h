@@ -16,22 +16,20 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CStream;   // core_streams.h
-class CMapObject;   // map_object.h
-struct DeltaField;  // net_delta.h
+class CStream;
+class CMapObject;
+struct DeltaField;
 
 class CServerSpecificManager : public CBaseManager {
 public:
-    // CBaseManager's constructor.
     CServerSpecificManager();
-    // CBaseManager's destructor.
     ~CServerSpecificManager() override;
 
-    // 11: "CServerSpecificManager" (the exe's string).
+    // "CServerSpecificManager" (the exe's string).
     const char* GetClassName() override;
-    // 12: 0x31.
+    // 0x31.
     int GetClassId() override;
-    // A new object of `type`: 0x46 CObject3DServer (0x20 bytes),
+    // A new object of `type`: 0x46 CObject3DServer,
     // 0x47 CMapObjectServer (0x94), 0x48 CUnitServer (0xB20), 0x49 the player's server
     // object (0x5128), 0x4B CTorchObjectSpec (constructed inline, then its Create);
     // null for any other type (0x4A too) or when the allocation fails.
@@ -42,27 +40,22 @@ static_assert(sizeof(CServerSpecificManager) == 0xB0);
 
 class CTorchObjectSpec : public CEngineObject {
 public:
-    // The engine object's fields, an empty name, no torch, then CreateSpec (the manager's
-    // NewObject constructs it inline and calls Create; the client half's constructor
-    // calls CreateSpec).
     CTorchObjectSpec();
-    // DestroySpec (the game's Destroy through the vtable), the name, the engine object.
     ~CTorchObjectSpec() override;
-    // The deleting destructor (slot 0) frees into the game's heap.
 
     int Create() override { return CreateSpec(); }
     void Destroy() override { DestroySpec(); }
-    int RunTick() override;                          // 6: returns 1
-    void Load(CStream* stream) override;                // 9: LoadSpec
-    void Save(CStream* stream) override;                // 10: SaveSpec
-    // 11: "CTorchObjectSpec". 12: 0x42.
+    int RunTick() override;                          // returns 1
+    void Load(CStream* stream) override;                // LoadSpec
+    void Save(CStream* stream) override;                // SaveSpec
+    // "CTorchObjectSpec". 12: 0x42.
     const char* GetClassName() override;
     int GetClassId() override;
     // 13-15: empty here; the client half (torch_client_spec.h) shows its
     // effects, hides them and warms its particles up.
-    virtual void ShowEffectsSlot() {}       // 13
-    virtual void HideEffectsSlot() {}       // 14
-    virtual void WarmUpParticlesSlot() {}   // 15
+    virtual void ShowEffectsSlot() {}
+    virtual void HideEffectsSlot() {}
+    virtual void WarmUpParticlesSlot() {}
     // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
     // through the vtable (the network read, the world server's CreateObject).
     virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
@@ -89,10 +82,10 @@ public:
     void ReadNetState(DeltaField* field);
 
     CMapObject* torch_;         // the torch it belongs to (set by the torch's attach); null when constructed
-    std::uint32_t lightKind_;   // +0x20 the light's kind (SetLight; saved and sent)
-    mfc::CString name_;         // +0x24
-    float values_[6];           // +0x28 Create: 1, 10, 1, 1, 1, 1
-    float colours_[2][3];       // +0x40 Create: both black
+    std::uint32_t lightKind_;   // the light's kind (SetLight; saved and sent)
+    mfc::CString name_;
+    float values_[6];           // Create: 1, 10, 1, 1, 1, 1
+    float colours_[2][3];       // Create: both black
 };
 static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);

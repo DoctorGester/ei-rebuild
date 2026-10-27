@@ -242,7 +242,6 @@ bool InvalidArguments(const char* function) {
     return Report(function, "Invalid argument(s) passed to function");
 }
 
-// ---- Interface ----------------------------------------------------------------------------------
 
 bool Enabled() { return ei::rebirth::Enabled(ei::rebirth::Patch::AddNewScriptCommands); }
 

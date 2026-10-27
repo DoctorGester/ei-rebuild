@@ -435,9 +435,9 @@ struct MapMaterial {
     int kind;
     Vector3 colour;
     float opacity;
-    float light;                    // +0x14 scales the colour
-    float priority;                 // +0x18
-    float warpSpeed;                // +0x1C (the name modding notes give it); copied, nothing reads it
+    float light;                    // scales the colour
+    float priority;
+    float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
     std::uint8_t unused_20[0xC];    // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);

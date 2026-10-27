@@ -911,3 +911,182 @@ the holders have no DirectDraw surface) directly (DirectPixels): no Lock, the sc
 renderer's frame, the stretched copy on the CPU. A holder without that memory (none is made) is left alone.
 A native surface (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative
 instead of in its memory), and its canvas is read back before its memory is read or kept.
+
+## 12. Behaviour moved out of header comments
+
+Long header comments of ui.h, ui_camp.h and the other UI headers, moved here by the comment cleanup. The header keeps the gist.
+
+### OnLButtonUp
+
+Input side `this` is the window (ui_battle_update.cpp). The left button released: nothing while a portrait
+click picks a player; without a press on the view the container's handler; a press without a drag, or on a
+network client, is a click on the unit under the point (units with flag 0x400000 only) through SelectUnit; a
+drag selects the party units inside the box : the world's selection cleared, the box marks and portraits'
+markers reset, each unit inside controlled with its portrait marked and its face turned (about -x by
+kHudQuarterTurn / 7), then the speech event with the first one's id; then RefreshSelection.
+
+### OnMouseMove
+
+Input side `this` is the window (ui_battle_mouse.cpp). The mouse moved (also every frame from Draw, at the
+current position): while a portrait click picks a player the cursor shape 0xD and the portraits' own mouse
+move; otherwise shape 0, then with a press on the view, a positive BoxSelectThreshold and not a network
+client: a move farther than the threshold from the press point in x or y starts the selection box, which
+empties the unit panel's hover unit and spans the press point and (x, y); before that the unit under the point
+is hovered at once. Without a press the container's handler first, and when no panel took the move the unit
+under the point (any flags) goes to HoverUnit.
+
+### OnKeyDown
+
+A key pressed (ui_battle_keys.cpp; Rebirth's MPSpeedControl reproduced behind its flag; input side `this` is
+the window). While a portrait click picks a player, Esc ends that and nothing else happens. On a network
+client Enter / Backspace go to the chat line and the key is used. Otherwise the container's handler first; a
+key nobody used and not repeating: Esc drops the pending action with every panel's highlight, or without one
+opens the escape menu (built inline: 0x168 bytes); any other key by its action (KeyActions, by `flags &
+0x1FF`): 1 pause (the clock's sound), 2 / 3 normal / fast speed (not while paused or on a network client: the
+clock's +0x154, the world's update period 55 / 27 ms, the interface's +0x94), 4 the objectives window of the
+player's zone, 0xB the camera follows the first selected member (or nobody), 0xC the camera faces north (the
+map's +0x1B0 0.5), 0x11..0x16 the order keys (orderKeys_), 0x17..0x1A the selected members' movement mode 0..3
+and 0x1B their flag (the movement panel), 0x1C / 0x1D the action buttons "follow" / "science", 0x1E..0x25
+spells 0..7 and 0x2A..0x2D quick items 0..3 (cast or used at once with Ctrl or Alt), 0x26..0x29 weapons 0..3,
+0x2E..0x31 the unit panel's body parts and 0x32 / 0x33 the top panel's pages (a panel slid away comes back,
+the choice already shown slides it away), 0x34 the map slides, 0x35 / 0x36 quick save / load ("saveq"),
+0x37..0x39 party members 0..2 (ToggleMember; with Ctrl or Alt the camera follows the member), 0x3A every
+member selected (not on a network client), 0x3B the message window opens). Pause, the objectives, the movement
+keys, the message window and the escape menu mark the key used.
+
+### OnQuestVariable
+
+A "q." player variable changed while the screen is on top (the quest log passes it on). `name` split at '.':
+three parts (q.<zone>.<quest>) a quest line, "combat_get_quest" / "_complete_" (value 2) / "_failed_" (3),
+then the quest's title (text "quest <quest>"); four parts (a sub-objective) the same with "_subobj" and the
+"#subobj <n>" line, skipped on a single player whose variable "<a>.<b>.<c>" is 0. The line (any part count)
+goes to the top panel's text and, unless +0x160, the message log; the clock pulses, +0x1FC becomes at least
+the value (1 for a failure, 3 for a completed quest).
+
+### RefreshSelection
+
+Called when a unit joins or leaves the party, after items are picked up, by the member toggle, a box drag and
+a network client's party change). The selection changed: with exactly one living party unit selected the
+weapon bar, quick items, spell and action columns show it, otherwise they are emptied (the action column keeps
+its extra button while anyone is selected); the unit panel (+0x14C, +0x15C / +0x154 from the prototype's +0x20
+/ +0x24) shows the first selected unit (null with nobody selected) when it changed; the pending action (+0x17C
+0, +0x180 / +0x184 -1) and every panel highlight are cleared.
+
+### ToggleMember
+
+Party member `index` clicked (its portrait or body, SelectUnit; the member keys): nothing on a network client
+or for an index past the party. The selection is the members' flag 0x10 (as 0x10 or 0); with the interface's
++0x7D the member flips (to 1 / 0), else it alone is chosen (1). The world's selection is cleared; each
+portrait's marker gets the chosen value and its face's rest orientation the turn about -x by kHudQuarterTurn /
+7 (or the identity); each chosen member is controlled and the clicked one gets a speech event (id, 0, 0). In
+single player the local player's unit records follow flag 0x10; then
+
+### CHelpWindow::ShowPage
+
+Body of the Rebirth-patched page setup (ui_help_page.cpp; reproducing Rebirth's WideScreen, so hooked in both
+launches). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial <text_>" (without
+it the pending value is set to 0) and goes to the page's "#screen" line. The page's rectangle is (200,
+50)-(600, 560), or "#position left top right [rows]" (at least 300 wide, rows x 16 + 110 high, at most 600).
+Scene objects 0 the plain background, 1 the frame, 2 / 3 / 4 the previous, OK and next buttons; then one
+pulsing frame per "#rectangle left top right bottom" line (with Rebirth's WideScreen some zone tutorial pages'
+frames move by the layout's extra units, as the battle screen's panels) and one entry per "#text [picture]"
+line (the next line's first word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1
+the entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass makes the
+pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells, and gives the height), 2 the
+buttons' texts with the help key's name. Regions 0-2 the buttons.
+
+### CGlobalMap::OnMouseMove
+
+(input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both launches: the drag scaled without
+the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (printed to the
+stream) turns the map: angle_ += dx / 300 (layout units), taken mod kGlobalMapFullTurn, and turn_ = the tilt
+(pi * 0.8 about x) times the spin about z; the motion is cleared. Otherwise the zone or link under the mouse
+is selected (a link's region 3..; or, off every region, the zone read from the backdrop's pixel at half the
+point, on gipat its link when it has one; nothing while a turn button is held) and its tip shown: the first
+surface with the title and the titles of the zone's quests, the last two sprites behind it; a zone in state 0
+or nothing hides the tip. A new name plays "buttons\globalmap\zone.wav". Regions past the links do nothing.
+
+### CGlobalMap::OnLeftDown
+
+(Input slot 2. Rebirth's WideScreen patches it and this reproduces the patch: the pick picture's x is read
+without the margin; ui_global_map_paths.cpp.) The left button pressed (nothing while dragging). Regions 0 / 1,
+the turn buttons: turning_ -1 / +1 and "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
+"buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions 3..), or on gipat a
+zone that has one: "buttons\globalmap\ok.wav", the ways to the link's zone searched from the local player's
+zone and, when there is one, the time of arrival exit 0 passed and the zone asked for at entrance 0. Any other
+zone under the mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
+search, and the objectives window (built inline) opened over the map with the zone, the arrival times, two
+buttons and no zone list.
+
+### CCampPages::BuildPages
+
+Create's body. Builds the camp: the server flag set; the constructor's class template from the player's
+"constr.current" (none found: back to the world, nothing built) with its flags, price weights and part lists;
+the player's "i.noconstr" / "i.off..." / "i.on..." switches; texture "campinfo", twelve regions (the two
+action buttons, the two hero turn areas, the eight page buttons) and ten button sprites; the item screen's
+base; two surfaces; seven item lists; the panels (description, statistics, help, the item strip, equipment,
+quick items, trade, and each offered constructor's strip and pages); the party's heroes handed to the client
+world as units (records of class 0x32, ids raised by 100000000 meanwhile), each idling, armed from its record
+and wearing its armour; the first hero shown the page titles; the first page (4 item constructor, 2 spell
+constructor, else 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
+highest skill per spell school; the allod's constructor music; antialiasing (render state 2 = 2) when the
+device sorts independently.
+
+### CBriefingScreen::OnMouseMove
+
+Mouse move: with the chat window active, cursor 0xD and the event to it; otherwise cursor 0, the container's
+handler, then by state: 1 the hovered topic row (redrawn when it changes), 3 cursor 0xE, 4 cursor 0. Walking
+(state 0, right button up): over a person who can talk (as OnLeftDown; on a network client not the leader) its
+topics are looked up (cursor 0xE when it has any) and its "pers" text, when it has one, is shown in surface 1
+at the mouse (-125, -20); over a zone exit, cursor 0xF when the zone of exit_ (not of the exit found: kept) is
+not "none" and its "z.<zone>" variable is not 1.
+
+### CBriefingScreen::OnKeyDown
+
+Keys: with the chat window active only Esc, which gives the input back. Otherwise the container's handler,
+then Backspace / Enter go to a network client's chat line; Enter (single player) and Esc skip the phrases
+(with 1 until the state changes) or take the rewards; Esc also opens the escape menu (state 0), ends the start
+or the topic choice (1); Space the next phrase. Other keys while walking by their action: 4 the objectives
+window when a quest of this allod ("q.<quest>.<zone>.." = 1) is active, 0xB the camera to the leader, '5' /
+'6' quick save / load "saveq". Every handled key sets handled_.
+
+### CBriefingScreen::StartDialogue
+
+Dialogue topic_ starts: "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen
+5) with constructor N (the topic from its eighth character) when that class template exists. Otherwise the
+"#show" lines of the text "briefing <topic>" name the people: the first one not the leader is person_, a
+second third_; without one, state 0. The places: the person's (or, with noWalk_, the leader's) position, the
+other 2.5 + viewDistance along its facing, the third one beside the middle; their facings across, flat and
+normalised. With `remember` the people's positions are kept first (personHome_, thirdPlace_). A mover of the
+third person (or of the person, noWalk_) is dropped, its target kept unless it was waited for; then the leader
+(or, noWalk_, the person) and the third walk to their places (waited, `immediate`). `immediate` starts the
+phrases at once (StartPhrases), else state 2.
+
+### CBriefingScreen::FinishDialogue
+
+The dialogue ends (the rewards taken, or skipped): the voice stops, the music fades in, the shown items go,
+every speaker leaves (the server hears event 2, its blink stops, its server unit's flag 0x40000000 back,
+height 0, action dropped) and the list is emptied; the leader and the person back to height 0, the third
+speaker walks back to thirdPlace_ (and is forgotten), with noWalk_ the person to personHome_. The first
+"b.*.<topic>" variable (three parts) completes (for player 0). State 0, the server hears event 0 with the
+leader; a dialogue that started by itself (briefingStarted_) puts the camera on the leader (message 0x04) and
+frees it, otherwise it goes back to savedCamera_ / lookAt_.
+
+### CBriefingScreen::ShowItem
+
+"#show <name>": a person `name` joins the speakers (moved to the end; the server hears event 1; the leader's
+server unit gets flag 0x40000000; its controller's actionDone the speakers' callback). Anything else with
+`index` >= 0 is a loot item ("_" read as " ", lowercased, the loot table's name index): an item of that name
+shown already goes, then slot `index` % 7 (x 300, 500, 200, 400, 600, 75, 725; y 300 or 500) gets a backdrop
+and frame for the first seven, the item's figure "initqu<n>item" (tinted from index 8) with its image
+"quitem<n>" in a new texture, turned over about x; it goes first in shown_. The third argument is not read.
+
+### CBriefingScreen::NextPhrase
+
+The next phrase of the current text: its lines up to the next "#phrase <speaker> [voice]" are carried out
+("#nolips", "#show", "#hide", "#animation n", "#camera n [angle distance height]"); the phrase (up to the next
+'#') goes, headed by the speaker's name, into dialogueText_ and (unless `skip`) the text window, with its
+voice "<t|s>\briefing\<topic>\<n>.mp3" and phraseTime_. After the last phrase: state 4 and the briefing
+record's rewards as lines (experience, gold, items given and lost, quests). The camera then views the phrase's
+speaker, who talks (an animation, blinking unless "#nolips") while the others listen; skipping to the end
+shows the whole text at once.

@@ -148,7 +148,6 @@ void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count
     for (; count != 0; --count, ++first) DropEffect(&first->object);
 }
 
-// ---- Commands -----------------------------------------------------------------------------------------
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
@@ -325,7 +324,6 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     source->step.z = (f[3] - at.z) * inverse;
 }
 
-// ---- Saving ---------------------------------------------------------------------------------------
 
 void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
@@ -366,7 +364,6 @@ void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
     WriteInt(stream, id);
 }
 
-// ---- Loading --------------------------------------------------------------------------------------
 
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
     object = ReadObject<CEffectPointLight>(stream);

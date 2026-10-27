@@ -25,7 +25,6 @@ int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
 
 } // namespace
 
-// ---- ScriptVars ---------------------------------------------------------------------------------
 
 void ScriptVars::ResetValues() {
     for (int i = 0; i < floats.size; ++i) reinterpret_cast<std::uint32_t*>(floats.data)[i] = 0;
@@ -160,7 +159,6 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
 }
 EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameter);
 
-// ---- SSCCmd -------------------------------------------------------------------------------------
 
 void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
     for (int k = 0; k < bindings->size; ++k) {

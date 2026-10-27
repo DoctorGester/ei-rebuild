@@ -126,7 +126,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 
 } // namespace
 
-// ---- SSCCmd -------------------------------------------------------------------------------------
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
     SetParameters(&localBindings, vars);
@@ -610,7 +609,6 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
 }
 EI_REWRITTEN(0x004B56C0, SSCCmd::CalcObject);
 
-// ---- CalcGroup ----------------------------------------------------------------------------------
 
 namespace {
 

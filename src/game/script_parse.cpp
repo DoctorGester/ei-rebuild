@@ -42,7 +42,6 @@ void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->Un
 using namespace scriptparse;
 
 
-// ---- Errors -------------------------------------------------------------------------------------
 
 int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* format, va_list args) {
     char text[0x400];
@@ -383,7 +382,6 @@ const char* __fastcall KeywordName(int id) {
 }
 EI_REPLACE(0x004D0BA0, KeywordName);
 
-// ---- Tokens -------------------------------------------------------------------------------------
 
 ScriptToken* ScriptToken::Construct() {
     std::construct_at(&text);
@@ -414,7 +412,6 @@ void __stdcall ConstructTokens(ScriptToken* tokens, int count) {
 }
 EI_REWRITTEN(0x004CF380, ConstructTokens);
 
-// ---- Lexer --------------------------------------------------------------------------------------
 
 BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     const char* p = source.c_str();
@@ -513,7 +510,6 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
 }
 EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
 
-// ---- Names --------------------------------------------------------------------------------------
 
 mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
     if (FileCount() == 0) {
