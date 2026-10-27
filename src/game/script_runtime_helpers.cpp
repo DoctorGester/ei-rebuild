@@ -1,7 +1,7 @@
 // Small pieces of the script runtime the rewritten script code still called through their
 // original addresses (A-S4; the party a script names, 004BAEC0, is party_script.cpp): the group / command block /
-// define list destructors (004B5EF0, 004BF7E0, 004D6340), the AI map's sector map wrappers
-// (004BA090-004BA100) and the console's float output (004BA9D0). Names are provisional.
+// define list destructors, the AI map's sector map wrappers
+// (004BA090-004BA100) and the console's float output. Names are provisional.
 #include "ai_map.h"
 #include "console.h"
 #include "script.h"

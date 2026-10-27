@@ -102,7 +102,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     LOGFONTA measured;
     gameapi::GetObjectA(fonts_[0]->handle, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
-    const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
+    const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01
     delete fonts_[0];
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();

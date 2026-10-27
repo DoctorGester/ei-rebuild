@@ -212,7 +212,7 @@ EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
 
 EI_REWRITTEN(0x0062FF10, CGlobalMap::OnDeactivate);
 
-// 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
+// The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);

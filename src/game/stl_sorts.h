@@ -85,7 +85,7 @@ SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEn
 // A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
 // texts. A copy allocates (string's copy constructor 004A8930, the swap's string(first, last)), so
 // every copy, assignment (assign(first, last) 0042A4F0) and destruction is STLport's
-// (stlp::StringElement); the partition (0060B990) takes the pivot by value and frees it before it
+// (stlp::StringElement); the partition takes the pivot by value and frees it before it
 // returns. The comparison object is empty (the caller passes the person's id in its slot).
 // 0060B330 (RET 0xC) __introsort_loop, 0060B440 (RET 4) __final_insertion_sort.
 void __fastcall TopicIntroSort(stlp::string* first, stlp::string* last, int tag, int depth, int comp);

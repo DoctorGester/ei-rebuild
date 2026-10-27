@@ -20,7 +20,7 @@ void __cdecl ReleaseGameServer() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net:
 void __cdecl ReleaseGameClient() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net::g_gameClient)); }
 
 // Their static initialisers (00412230 / 00412280, in the list's order): the counted pointer's constructor
-// (0041FF50 / 0041FF60) clears it, then the exit function is registered.
+// clears it, then the exit function is registered.
 void __cdecl InitGameServerPointer() {
     net::g_gameServer = nullptr;
     libcrt::AtExit(ReleaseGameServer);
@@ -30,7 +30,7 @@ void __cdecl InitGameClientPointer() {
     libcrt::AtExit(ReleaseGameClient);
 }
 
-// The two growing buffers' exit functions (00432CC0 / 00432D00): each destroys its buffer once (bit 0 / bit 1 of
+// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of
 // their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 void __cdecl DestroySendBuffer() {
@@ -55,7 +55,7 @@ void __cdecl ConstructReceiveBuffer() {
     libcrt::AtExit(DestroyReceiveBuffer);
 }
 
-// 0073BB24: milliseconds to the sessions' time unit (1/1024).
+// Milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
 // A session that is there and not shutting down is ticked (slot 14) with `elapsed` milliseconds.

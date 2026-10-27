@@ -23,13 +23,13 @@ namespace scriptaddon {
 
 namespace {
 
-// The world (007AFF60): the player with a number (00594180).
+// The world: the player with a number.
 void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 
-// The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
+// The sector map: every object within `radius` of `point`, into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
 
-// A unit's prototype record (00530930): its name and, at +4, its model name (the race).
+// A unit's prototype record: its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).

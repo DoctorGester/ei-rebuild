@@ -1,6 +1,6 @@
 // The game client's message handlers (registered by the constructor 0041BC40, __fastcall with the
 // client in ECX and the message in EDX) and the three party-screen entry points around them
-// (0041E0A0, 0041E270, 0041E3E0). Each keeps the replicated objects the server sends in one of the
+//. Each keeps the replicated objects the server sends in one of the
 // client's lists and tells the interface or the game flow. 0041ECC0 (the file chunk handler for
 // channel 0) is patched by Rebirth: ours installs in the vanilla launch only. The messages are
 // declared in net_messages.h. See docs/notes/network.md.
@@ -149,7 +149,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.Clear<recordli
 
 // --- The party-screen entry points -------------------------------------------------------------
 
-// 0041E0A0: records the trade the paired offer stands for: our offer accepts the other's current
+// Records the trade the paired offer stands for: our offer accepts the other's current
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
 // of the two parties (+0x2620, +0x2690) and `party`.
 void ClientSession::RecordTrade(const void* party) {
@@ -168,13 +168,13 @@ void ClientSession::RecordTrade(const void* party) {
     TradeRecord* record = &tradeRecords_.End()->prev->data;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
-    record->parties[0]->Assign(parties_[0].Get());   // 00661300
+    record->parties[0]->Assign(parties_[0].Get());
     record->parties[1]->Assign(parties_[1].Get());
     record->parties[2]->Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
 EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 
-// 0041E270: starts our trade offer to `partner` when the binding (+0x25F0) and its player are
+// Starts our trade offer to `partner` when the binding (+0x25F0) and its player are
 // live: kept at +0x260C, from the binding's player.
 void ClientSession::StartParty(CRefObject* partner) {
     BindingMessage* binding = binding_;
@@ -197,16 +197,16 @@ void ClientSession::StartParty(CRefObject* partner) {
 }
 EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 
-// 0041E3E0: drops the party description.
+// Drops the party description.
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
 EI_REWRITTEN(0x0041E3E0, ClientDropParty);
 
 // --- Handlers ----------------------------------------------------------------------------------
 
-// The binding of this client: kept at +0x25F0 (0041E430), dropped (0041E460). An update lists its
+// The binding of this client: kept at +0x25F0, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
 // come before the binding; their refresh then listed nobody (ShowPlayers lists only with the binding)
-// and the original's binding does not refresh: the base screen's faces followed the heap (UB1). Ours
+// and the original's binding does not refresh: the base screen's faces followed the heap. Ours
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
@@ -214,62 +214,62 @@ void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
 }
 void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players on +0x25D8, with the interface's player list refreshed.
-void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
+void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {
     AppendRaw(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
-void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }   // 0041E510
-void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
+void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }
+void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {
     RemoveCounted(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
 // The chat lines on +0x25DC, each shown with its number.
-void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
+void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {
     AppendCounted(self->lines_, message);
     TheInterface()->OnChatLine(message->text_.data(), message->number_);
 }
-void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }   // 0041E690
+void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept at +0x25EC.
-void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }   // 0041E730
-void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }   // 0041E760
+void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
+void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered on +0x25F8, passed to the game flow.
-void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
+void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {
     AppendCounted(self->zones_, message);
     TheGameFlow()->MarkBriefing(message->text_.data());
 }
-void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
+void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
     RemoveCounted(self->zones_, message);
     TheGameFlow()->ForgetBriefing(message->text_.data());
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
-void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 0041E900
+void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
     TheGameFlow()->RegisterQuests(message->text_.data());
 }
-void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
+void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
 // The script variables on +0x25FC; the flow is told of every change.
-void __fastcall ClientOnVariable(ClientSession* self, Message* message) {   // 0041E990
+void __fastcall ClientOnVariable(ClientSession* self, Message* message) {
     AppendRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
-void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }   // 0041EA10
-void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   // 0041EA20
+void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }
+void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
 // The shared files on +0x25E0; for a file the flow lacks, a request holding the file goes on
 // +0x25E8.
-void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
+void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {
     AppendRaw(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
     auto* request = NewCounted<FileRequestMessage>();
     AssignRef(&request->FileRef(), message);
     AppendRaw(self->fileRequests_, request);
 }
-void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0041EBF0
+void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
@@ -327,29 +327,29 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     chunks.FreeStorage();
 }
 EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
-void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }   // 0041EF10
+void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
 // The awards on +0x2608 (applied by the tick).
-void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }   // 0041EF90
+void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
 // The other players' trade offers on +0x2610; the one paired with ours rebuilds the party.
-void __fastcall ClientOnParty(ClientSession* self, Message* message) {   // 0041EFF0
+void __fastcall ClientOnParty(ClientSession* self, Message* message) {
     AppendRaw(self->offers_, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message) {   // 0041F090
+void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message) {
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers_, message); }   // 0041F0D0
+void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers_, message); }
 // Party members, every channel: the description committed and the party rebuilt.
-void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 0041F180 / 0041F1B0
+void __fastcall ClientOnMember(ClientSession* self, Message*) {
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
 // The trade at +0x2618: a new one empties the trade records and resets both parties.
-void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {   // 0041F1E0
+void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
     reinterpret_cast<CParty*>(&self->parties_[0])->Clear(1, 0);   // parties (00661050 class)
@@ -357,7 +357,7 @@ void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {   //
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.
-void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {   // 0041F270
+void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
     if (!message->done_ || message != self->trade_) return;
     std::uint32_t a, b;
     if (message->offer_.ptr == self->party_.ptr) {
@@ -378,7 +378,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     DropParty(self);
     ClearTradeRecords(self);
 }
-void __fastcall ClientOnTradeGone(ClientSession* self, Message* message) {   // 0041F3A0
+void __fastcall ClientOnTradeGone(ClientSession* self, Message* message) {
     if (self->trade_ != message) return;
     ClearRef(&self->trade_);
     DropParty(self);

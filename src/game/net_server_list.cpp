@@ -1,4 +1,4 @@
-// The server list reply (0041D600): a compressed run of {address, GameInfoRecord} turned into the
+// The server list reply: a compressed run of {address, GameInfoRecord} turned into the
 // client base's server entries. See net_classes.h and docs/notes/network.md.
 #include "library_containers.h"
 #include "net_classes.h"
@@ -17,7 +17,7 @@ namespace {
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
-// through slot 3, else from memory (00401310).
+// through slot 3, else from memory.
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     if (buffer->cur + size > buffer->high) buffer->ReadPastEnd(to, size);
     else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);
@@ -30,7 +30,7 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 
 } // namespace
 
-// 0041D600: reads a server list reply from `in` (rewound): its size, then the LZ-compressed list.
+// Reads a server list reply from `in` (rewound): its size, then the LZ-compressed list.
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
 // player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).

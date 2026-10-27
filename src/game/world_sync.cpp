@@ -1,6 +1,6 @@
 // CWorldServer: keeping each player's view of the world up to date (single player too: the local
 // player is a client of the server). SyncPlayer runs once per world update for every player
-// (0058DFF0); SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
+// SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "world.h"
 #include "options.h"
 
@@ -73,18 +73,18 @@ StaticPtrArray& Added() { return g_added; }
 StaticPtrArray& Kept() { return g_kept; }
 StaticPtrArray& Removed() { return g_removed; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeCollected() { g_collected.FreeData(); }   // 0058C4D0
-void __cdecl FreeAdded() { g_added.FreeData(); }           // 0058C4B0
-void __cdecl FreeKept() { g_kept.FreeData(); }             // 0058C490
-void __cdecl FreeRemoved() { g_removed.FreeData(); }       // 0058C470
+void __cdecl FreeCollected() { g_collected.FreeData(); }
+void __cdecl FreeAdded() { g_added.FreeData(); }
+void __cdecl FreeKept() { g_kept.FreeData(); }
+void __cdecl FreeRemoved() { g_removed.FreeData(); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
-// The game's atexit (006E727B).
-// 0055FBD0 (RET 8). The time of day and the time speed.
+// The game's atexit.
+// The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
 // 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
 // fills `added`, `kept` and `removed`.
@@ -301,15 +301,15 @@ int CWorldServer::SendZone(CPlayer* player) {
 
         // The zone's units.
         UnitSet units;
-        units.figured.Construct(100, 0, 0, 0);   // 005985E0
-        units.dressed.Construct(100, 0, 0, 0);   // 00598790
+        units.figured.Construct(100, 0, 0, 0);
+        units.dressed.Construct(100, 0, 0, 0);
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
             if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
         units.Write(&message);
-        units.dressed.Destroy();   // 00598860
-        units.figured.Destroy();   // 005986B0
+        units.dressed.Destroy();
+        units.figured.Destroy();
 
-        result = state->SendState02(&message);   // 0066EBD0
+        result = state->SendState02(&message);
         if (result != 0 && sendsStartPosition_ != 0) {
             result = 1;
             if (player->units_.Size() != 0) {

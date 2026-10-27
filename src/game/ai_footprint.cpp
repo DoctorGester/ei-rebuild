@@ -22,7 +22,7 @@ FootprintCellSet* FootprintCellSet::Construct() {
 EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
 // The spells' footprint set (spell_effect_internal.h), empty at the start: built by the static initialiser 0067E4C0 in the
-// list's order and freed by the exit function it registers (0067E500); both ported on the name and registered at their
+// list's order and freed by the exit function it registers; both ported on the name and registered at their
 // addresses (docs/notes/standalone.md, "The static initialisers' objects").
 namespace spellfx {
 constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {};
@@ -30,11 +30,11 @@ constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {}
 using spellfx::g_spellFootprint;
 
 namespace {
-void __cdecl ConstructSpellFootprint() {   // 0067E4C0
+void __cdecl ConstructSpellFootprint() {
     g_spellFootprint->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
 }
-void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }   // 0067E500
+void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
 } // namespace
 
 EI_REPLACE(0x0067E4C0, ConstructSpellFootprint);

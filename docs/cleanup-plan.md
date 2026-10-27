@@ -36,10 +36,10 @@ neither depends on the heap or on memory layout.
    bugs included; every deviation (Rebirth's patches, our fixes) is a named, documented, switchable
    fix (see "Fixes layer").
 6. **No addresses.** Functions are called by name, data are ordinary variables, and nothing in the
-   build reads game.exe. An address stays only in the harness's game.exe side and, where our work still
-   needs it, in one greppable tag per function (C22).
-7. **Comments explain the game, not the port** (C22): no "naked because", "rule 9", "verify wrapper"
-   commentary.
+   build reads game.exe. An address stays only in the harness's game.exe side, in the registrations
+   until C20 retires them, and in the rdata literal tags `/*0073B86C*/`; never in a comment (C22).
+7. **Comments explain the game, not the port** (C22, `docs/comment-guide.md`): no "naked because",
+   "rule 9", "verify wrapper" commentary, no addresses or ticket ids.
 
 ## What is left and what removes it
 

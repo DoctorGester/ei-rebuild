@@ -1,7 +1,6 @@
 // CTransformObject's rotation helpers (00401570-00402280): the world matrix, turning the local
 // rotation towards a direction (three variants), rotating about an axis and setting a heading.
 // See core_transform.h and docs/notes/core.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float (including the floats it pushes to the
 // Vector3 constructor).
@@ -93,7 +92,7 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
 
 } // namespace
 
-// 00401570: the world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
+// The world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
 // position). The original keeps 2x, xx, xy and zz on the FPU stack and rounds the other products.
 void CTransformObject::WorldMatrix(float* m) const {
     std::memset(m, 0, 16 * sizeof(float));
@@ -129,7 +128,7 @@ void CTransformObject::WorldMatrix(float* m) const {
     m[14] = worldPosition_.z;
 }
 
-// 00401680: turns the local rotation a tenth of the way from its down axis (minus the rotated Y
+// Turns the local rotation a tenth of the way from its down axis (minus the rotated Y
 // axis) towards `target` (normalised here): about down x target, by acos(down . target) / 10.
 // No turn when the axis is shorter than 1e-5.
 void CTransformObject::TiltTowards(const Vector3& target) {
@@ -161,7 +160,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
     localRotation_.PreMultiply(turn);
 }
 
-// 00401940: turns the local rotation so that its forward axis (rotated Z) points along `target`:
+// Turns the local rotation so that its forward axis (rotated Z) points along `target`:
 // about forward x target (normalised), by acos(forward . target). No turn when the axis is
 // shorter than 1e-5.
 void CTransformObject::TurnTowards(const Vector3& target) {
@@ -196,7 +195,7 @@ void CTransformObject::TurnTowards(const Vector3& target) {
     localRotation_.PreMultiply(turn);
 }
 
-// 00401B50: turns the down axis (minus the rotated Y axis) about the forward axis towards `dir`
+// Turns the down axis (minus the rotated Y axis) about the forward axis towards `dir`
 // (its part across the forward axis): Rotate(down x toward, acos(down . toward)).
 void CTransformObject::RollTowards(const Vector3& dir) {
     const Quaternion& q = localRotation_;
@@ -214,7 +213,7 @@ void CTransformObject::RollTowards(const Vector3& dir) {
     Rotate(axis, angle);
 }
 
-// 00401E50: localRotation = rotation(angle about axis) * localRotation.
+// LocalRotation = rotation(angle about axis) * localRotation.
 void CTransformObject::Rotate(const Vector3& axis, float angle) {
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, axis);
@@ -229,7 +228,7 @@ void CTransformObject::Rotate(const Vector3& axis, float angle) {
     q.x = static_cast<float>(x);
 }
 
-// 00401F00: as RollTowards with the up axis (rotated Y) negated once more, so the up axis turns
+// As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns
 // towards `dir`; an angle above pi becomes 2 pi - angle about the opposite axis, and `reduced`
 // scales the angle by 0.4.
 void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
@@ -255,7 +254,7 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     Rotate(axis, angle);
 }
 
-// 00402220: the local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the
+// The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the
 // heading offset, pi / 2).
 void CTransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);

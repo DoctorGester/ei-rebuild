@@ -1,5 +1,5 @@
-// The multiplayer hero screen's per-frame draw (006159E0) and update (00617820), its close
-// (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
+// The multiplayer hero screen's per-frame draw and update, its close
+// and the trade panel's experience figures it shows.
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "game_strings.h"
@@ -221,15 +221,15 @@ EI_REWRITTEN(0x00634560, ReleaseCachedObjects);
 namespace {
 void DestroyVoices(MpVoiceVector& voices) {
     for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
-    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));   // 006344C0
+    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));
 }
 void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
     for (mfc::CString* at = begin; at != end; ++at) at->~CString();
 }
 } // namespace
 
-// Built inline by the main menu's Multiplayer click (00632D70): the item screen, both caches
-// (00633F50 / 00633FF0), the name vectors, the text and the voice lists empty.
+// Built inline by the main menu's Multiplayer click: the item screen, both caches
+// the name vectors, the text and the voice lists empty.
 CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
     lib_trees::ConstructHeroItemCache(&models_);
     lib_trees::ConstructHeroItemCache(&textures_);
@@ -239,9 +239,9 @@ CMpHeroScreen::~CMpHeroScreen() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
     DestroyStrings(names_.begin(), names_.end());
-    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
+    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));
     DestroyStrings(defaults_.begin(), defaults_.end());
-    stlp::deallocate(defaults_.begin(),   // 00520F20
+    stlp::deallocate(defaults_.begin(),
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
 }
 EI_REWRITTEN_SPECIAL(0x00633260, CMpHeroScreen::~CMpHeroScreen);

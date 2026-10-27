@@ -1,4 +1,4 @@
-// CWorldServer::Loot (005942D0): a player takes what a dead body or a container holds. See
+// CWorldServer::Loot: a player takes what a dead body or a container holds. See
 // world.h and docs/notes/world.md.
 #include "unit.h"
 #include "world.h"
@@ -27,7 +27,7 @@ using GivenItems = mfc::CTypedPtrList<CItem>;
 
 // 0059A670 (a byte-identical copy of the particle list's GetNext): the item at `position`, which moves on.
 CItem* NextItem(GivenItems* list, GivenItems::Node** position) { return list->GetNext(*position); }
-// 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
+// The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
 
 template <typename T>
@@ -52,7 +52,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     InitList(third, mfc::impl::LootListClass::Vtable());
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping (00558C50 /
-    // 00429F10); the others destroy them (00558470 / 00427830).
+    // 00429F10); the others destroy them.
     auto abandon = [&]() {
         third.vtable = mfc::impl::LootListClass::Vtable();
         third.RemoveAll();
@@ -99,12 +99,12 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         else node->prev->next = node->next;
         if (node == list.tail) list.tail = node->prev;
         else node->next->prev = node->prev;
-        mfc::impl::FreeNodeAs<gamelists::SharedObjects>(&list, node);   // 0059CAD0
+        mfc::impl::FreeNodeAs<gamelists::SharedObjects>(&list, node);
         abandon();
         return true;
     }
 
-    if (!hoover_->CollectLoot(this, unit, &items, &second, &third, &gold)) {   // 00461CB0
+    if (!hoover_->CollectLoot(this, unit, &items, &second, &third, &gold)) {
         destroy();
         return false;
     }
@@ -152,8 +152,8 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 namespace {
 
 // STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the
-// constructor (00404A70) allocates the head node, the destructor frees the nodes (00404D10) and
-// the head (00498C40). As in world_tick.cpp.
+// constructor allocates the head node, the destructor frees the nodes and
+// the head. As in world_tick.cpp.
 class IdList {
 public:
     struct Node {

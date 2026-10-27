@@ -2,19 +2,16 @@
 
 // Vector, quaternion and matrix types and their inline maths (tickets V1 / V2; the catalog, the
 // orders the original uses and the migration plan are in docs/notes/vector-math.md).
-//
 // Types: the game's own layouts, aggregates without constructors (`{x, y, z}`
 // initialisation keeps working). The out-of-line originals that are members (Vector3::Length,
 // Quaternion::PreMultiply, ...) are declared here and defined, hooked, in src/game; the free ones
 // (Dot 00401E00, CrossProduct 004489D0, ...) stay declared in maths.h / object_maths.h /
 // core_maths.h. Inline helpers never reuse those names.
-//
 // Grouping. `+` and `*` commute exactly, so only the grouping of a sum decides its rounding. A
 // 3-term sum has three groupings, named by the pair added first: XYZ = (x + y) + z, ZYX =
 // (z + y) + x, ZXY = (z + x) + y (YXZ, YZX and XZY are the same three). Every 3-term helper names
 // its grouping, as a suffix (DotZYX) or a `Sum3` template argument (TransformRow<Sum3::ZYX>); there
 // is no default. A 4-term transform adds the translation last.
-//
 // Evaluation. The build is /fp:precise (since SV7d1a; /fp:fast regrouped an inlined sum with the
 // caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ..., verify_vecmath.cpp caught
 // it), so the grouping written here is kept (C12 removed the precise-on pragma: no codegen change). Each
@@ -23,7 +20,6 @@
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
 // not the original's (code there stays written out, docs/notes/vector-math.md). Square roots use
 // std::sqrt (FSQRT at the precision control on this x87 target; cast a float argument to double first: std::sqrt(float) is sqrtf).
-//
 // Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as `double`, like FPATAN and
 // the game's CRT; where the original stores the result to a float, round it with static_cast<float>
 // (ticket X3: an unrounded angle flipped a quaternion's sign).
@@ -46,7 +42,7 @@ struct Vector3 {
     // 00503F20 (RET 4; game/small_slots_500.cpp). The three parts copied from `other`.
     void Assign(const Vector3* other);
 
-    // 00401DE0. The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
+    // The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
     float Length() const;                           // 00401E20 (maths.cpp), XYZ, FSQRT
     const Vector3* AddInPlace(const Vector3& v);    // 00410750 (core_maths.cpp); returns &v
@@ -72,17 +68,17 @@ struct Quaternion {
     void FromAxisAngle(const Vector3& axis, float angle);
 
     // core_maths.cpp
-    Quaternion* SetIdentity();                      // 0040CB00
-    void PreMultiply(const Quaternion& r);          // 004018A0: *this = r * *this
-    Vector3* AxisX(Vector3* out) const;             // 0040D940: rotated X axis
-    Vector3* AxisY(Vector3* out) const;             // 0040F560: rotated Y axis
-    Vector3* AxisZ(Vector3* out) const;             // 0040D6B0: rotated Z axis
+    Quaternion* SetIdentity();
+    void PreMultiply(const Quaternion& r);          // *this = r * *this
+    Vector3* AxisX(Vector3* out) const;             // rotated X axis
+    Vector3* AxisY(Vector3* out) const;             // rotated Y axis
+    Vector3* AxisZ(Vector3* out) const;             // rotated Z axis
 
     // quaternion.cpp (0049E790-0049EE50)
-    Quaternion* SetAngleAxis(float angle, const Vector3& axis);     // 0049E790: returns this
-    Quaternion* SetAxisAngle(const Vector3& axis, float angle);     // 0049E800: returns this
-    void PreMultiplyConjugate(const Quaternion& r); // 0049E870: *this = conj(r) * *this
-    void Slerp(float t, const Quaternion& a, const Quaternion& b);  // 0049ED20: shortest arc
+    Quaternion* SetAngleAxis(float angle, const Vector3& axis);     // returns this
+    Quaternion* SetAxisAngle(const Vector3& axis, float angle);     // returns this
+    void PreMultiplyConjugate(const Quaternion& r); // *this = conj(r) * *this
+    void Slerp(float t, const Quaternion& a, const Quaternion& b);  // shortest arc
 
     // 004D9AA0 (matrix_math.cpp, RET 4). The rotation part of the row-major 4x4 matrix `out`
     // (elements 0-2, 4-6, 8-10; the others are left as they are).
@@ -96,7 +92,7 @@ static_assert(sizeof(Quaternion) == 16);
 // Row-major 4x4 matrix (the transform library's and Direct3D's layout). Two conventions use it:
 // row vectors (v * M, translation in m[12..14]: CTransformObject::WorldMatrix, figures) and column
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
-// The product is Matrix4::Multiply (004D9880), which sums each element in its own order.
+// The product is Matrix4::Multiply, which sums each element in its own order.
 struct Matrix4 {
     float m[16];
 
@@ -301,7 +297,7 @@ __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Dis
 __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
 
 // The rotated Y axis of q as Quaternion::AxisY 0040F560 and the game's inlined copies of it compute
-// it (00547280, 005CA410): (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each
+// it: (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each
 // doubling an addition (FADD ST0, ST0), each component rounded to float (they store it before
 // negating), nothing stored before that. Precise: /fp:fast had turned these ports' written-out
 // 2(yz + wx) into (2wx + yz) + yz (a second rounding) and 005CA410's -2(yx - wz) into
@@ -327,7 +323,6 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 }
 
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
-//
 // The original keeps many 2D differences and sums on the FPU stack and compares or uses the
 // unrounded ST0 value (AIDistance2 returns it). The precise helpers above round their result
 // through memory; these do not: compiled without precise semantics, an inlined body is the same
@@ -336,7 +331,7 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 // (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only 2-term sums (one
 // result in every order), and the caller's expression may regroup around them as /fp:fast does with
 // written-out code: use them for a sum that is compared, stored or passed on as a whole.
-// Kept (C12): removing this pragma changes the code of 39 objects (the sums get rounded through memory).
+// Kept: removing this pragma changes the code of 39 objects (the sums get rounded through memory).
 #pragma float_control(precise, off, push)
 
 // x * x + y * y.

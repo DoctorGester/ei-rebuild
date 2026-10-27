@@ -1,6 +1,6 @@
 #pragma once
 
-// MFC 4.2's CRuntimeClass records of the game's copy (C18e), as named data: the 41 the exe holds, 36 here (const, in
+// MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in
 // .rdata) and the 5 serializable ones (CByteArray, CDWordArray, CStringArray, CWordArray in mfc_coll.cpp, CDib in
 // game/dib.cpp) in .data, where the static initialisers link them into the module state's class list
 // (AfxClassInit writes m_pNextClass). Each record names its base's record and its create function (ours,

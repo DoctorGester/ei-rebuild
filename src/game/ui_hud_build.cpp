@@ -1,7 +1,7 @@
 // The battle screen's weapon bar, quick items, spell column and action column: the four
-// constructors (0063BAB0, 0063C800, 0063E2A0, 0063F300), the functions that add a slot's sprite
-// (0063BCC0, 0063CAE0, 0063E4B0, 0063F500) and the weapon bar's highlight (0063C050). Rebirth
-// patches all nine for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// constructors, the functions that add a slot's sprite
+// and the weapon bar's highlight. Rebirth
+// patches all nine for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the weapon bar and the action column at the screen's left edge, the quick items and the spell
 // column at its right (the panel offset while some of them run, layout constants moved by
 // EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
@@ -24,7 +24,7 @@
 namespace {
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-// A texel as a texture offset: 1 / 256 (0073EEB8).
+// A texel as a texture offset: 1 / 256.
 float TexelStep() { return 0.00390625f /*0073EEB8*/; }
 // The layout y the columns' bottom button sits at (00742948, 490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
@@ -101,7 +101,7 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
-    // WideScreen: the rectangle and the first region from 80 - shift (0063BAFC, 0063BB2B); the
+    // WideScreen: the rectangle and the first region from 80 - shift; the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
     rect_ = {80 - shift, 520, 240 - shift, 600};
@@ -134,7 +134,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
         widescreen::LeavePanel();
         return;
     }
-    // The more weapons, the larger each: 1.2 (0073CDF4) per slot in use, 24 (0073CE28) deep at scale 1.
+    // The more weapons, the larger each: 1.2 per slot in use, 24 deep at scale 1.
     float scale = 1.0f /*0073B84C*/;
     for (int i = count_; i > 0; --i) scale *= 1.2f /*0073CDF4*/;
     float depth = scale * 24.0f /*0073CE28*/;
@@ -155,8 +155,8 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
-        // Turned about z, then y, then z again: pi * -0.05 (00742804), pi * -1/3 (00742800) and
-        // pi * 0.75 (0073C524).
+        // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and
+        // pi * 0.75.
         Quaternion first, second, third;
         first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f /*00742804*/));
         second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f /*00742800*/));

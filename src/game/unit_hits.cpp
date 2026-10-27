@@ -24,15 +24,15 @@
 #include "logic_settings.h"
 
 namespace {
-constexpr float kZero = 0.0f;                       // 0073B858
-constexpr float kOne = 1.0f;                        // 0073B84C
-constexpr float kOverkill = -5.0f;                  // 0073DDC0
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
+constexpr float kOverkill = -5.0f;
 constexpr std::uint32_t kOneBits = 0x3F800000u;
 constexpr int kAllLocations = 6;
 constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
 constexpr int kClassUnitServer = 0x3E;
-constexpr float kHalfBack = -0.5f;                 // 0073CDC8
+constexpr float kHalfBack = -0.5f;
 
 // Remarks (party messages through CUnitServer 00552780) when an item wears out or breaks.
 constexpr int kRemarkArmourBroken = 0x23;
@@ -67,10 +67,10 @@ float Max0(float value) { return value <= kZero ? kZero : value; }   // the orig
 
 // The hit log stream (a MSVC 6 ostream) and its inserters (library code).
 struct UnitLogStream : libcrt::Ostream {
-    UnitLogStream* Put(const char* text) { PutText(text); return this; }                             // 006FC31D
-    UnitLogStream* Put(double value) { PutDouble(value); return this; }                              // 006FC7FA
-    UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
-    UnitLogStream* Apply(libcrt::Manipulator manipulator) {                                                        // 00434FE0: manipulator(*this)
+    UnitLogStream* Put(const char* text) { PutText(text); return this; }
+    UnitLogStream* Put(double value) { PutDouble(value); return this; }
+    UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
+    UnitLogStream* Apply(libcrt::Manipulator manipulator) {                                                        // manipulator(*this)
         libcrt::Ostream::Apply(manipulator);
         return this;
     }

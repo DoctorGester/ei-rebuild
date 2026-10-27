@@ -1,5 +1,5 @@
 // The client's attack figures of a party unit (CUnitClientSpecific slot 50, 00538960) and the copy
-// of the damage scale it uses (005285D0). See unit_client_models.h and docs/notes/units.md ("Rewritten").
+// of the damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
 #include "unit_client_models.h"
 
 #include "combat.h"   // AttackParams
@@ -21,12 +21,12 @@ constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
-constexpr float kZero = 0.0f;               // 0073B858
+constexpr float kZero = 0.0f;
 
 // Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
 // calls: 00527850 UnitParams::WeaponSkillBonus (unit_params_skill.cpp, ST0), 005285D0 the damage
 // scale (this file; thiscall on the parameters, which it does not read: RET 8, ST0).
-// 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
+// Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
 

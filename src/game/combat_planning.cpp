@@ -1,7 +1,6 @@
 // Combat, eighth part: planning an order's way (PlanOrder), the spot a use order goes to, the time
 // along a path until an action can be carried out, and a party unit's move. See combat.h,
 // combat_plan.h and docs/notes/combat.md ("Order lifecycle").
-//
 // These build paths on the stack: an AIPath (0x88 bytes: the motion order, the step and cell lists
 // at +0x20 / +0x3C, a point array at +0x70) and the motion order a path turns into (0x3C bytes:
 // the order and a step list) for the player's path messages and the simulation of a unit's motion.
@@ -65,15 +64,15 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
-// 0066D490: the player's message about a path (combat_motion.cpp).
+// The player's message about a path (combat_motion.cpp).
 // Containers: 00545750 a path cell list's constructor (blocks of 0x80), 00539890 its destructor,
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
-// map (007B01F4).
+// The server's AI map's refreshUnits, cleared around path searches, and its sector
+// map.
 std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
@@ -125,7 +124,7 @@ struct LocalUnitMotion {
         motion.points.vtable = mfc::impl::MotionPointsClass::Vtable();
         mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
         mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
-        motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
+        motion.curveX = {};   // the segment part: no curves, no segment
         motion.curveY = {};
         motion.segment = -1;
         motion.Clear();

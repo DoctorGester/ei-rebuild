@@ -25,7 +25,7 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-// The image's heap (nothing of ours runs in game.exe; H30).
+// The image's heap (nothing of ours runs in game.exe).
 void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
 void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
 void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
@@ -263,7 +263,6 @@ namespace {
 
 using Compare = int(__cdecl*)(const void*, const void*);
 
-// 006E8A9E.
 void SwapElements(char* a, char* b, std::size_t width) {
     if (a == b) return;
     for (; width != 0; --width, ++a, ++b) {
@@ -273,7 +272,7 @@ void SwapElements(char* a, char* b, std::size_t width) {
     }
 }
 
-// 006E8A50: the largest of [lo, hi] (the first of equals) goes to hi, then the range shrinks.
+// The largest of [lo, hi] (the first of equals) goes to hi, then the range shrinks.
 void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
     for (; lo < hi; hi -= width) {
         char* largest = lo;
@@ -393,12 +392,12 @@ EI_REPLACE(0x006E77EA, libcrt::Srand);
 // ---- Maths ----
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
-// The original (006EBBB4) is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
+// The original is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
 // FLDCW; ported as that, FLDCW only when the hardware word would change (SV10k: the UCRT's __control87_2 under
 // terrain lighting's two calls per lit sector). The abstract form is the CRT's: _EM_* in bits 0-4 (in the reverse
 // order of the hardware's) and 19, _RC_* in 8-9, _PC_* in 16-17 (64 bits is 0), _IC_* in 18.
 namespace {
-// 006EBC2A: the hardware word (the low 16 bits) as the CRT's abstract word.
+// The hardware word (the low 16 bits) as the CRT's abstract word.
 unsigned AbstractControl(unsigned hardware) {
     unsigned word = 0;
     if (hardware & 0x01) word |= 0x10;       // invalid
@@ -422,7 +421,7 @@ unsigned AbstractControl(unsigned hardware) {
     return word;
 }
 
-// 006EBCBC: the abstract word as the hardware word.
+// The abstract word as the hardware word.
 unsigned HardwareControl(unsigned word) {
     unsigned hardware = 0;
     if (word & 0x10) hardware |= 0x01;
@@ -465,7 +464,7 @@ namespace {
 constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
 } // namespace
 
-// malloc and free are the host CRT's (C26; VC6's were HeapAlloc / HeapFree on a heap of their own, the size
+// malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
 void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
 EI_REWRITTEN(0x006EABD1, libcrt::Malloc);
@@ -493,7 +492,6 @@ void __cdecl OperatorDelete(void* p) { Free(p); }
 EI_REWRITTEN(0x007005D8, libcrt::OperatorDelete);
 
 // ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
-//
 // Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
 // with 20 blocks cut from a chunk the allocator keeps (asking operator new for twice the need plus a
 // sixteenth of all it has taken so far). The code the original inlines a block's return in calls
@@ -610,7 +608,7 @@ EI_REWRITTEN(0x0043B310, libcrt::NodeDeallocateChecked);
 void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
 EI_REWRITTEN(0x00426450, libcrt::NodeDeallocateCheckedStd);
 
-// The onexit list is the host CRT's (C26): _crt_atexit's table, which std::exit runs last-registered first
+// The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
 // (functions registered while it runs, too) before the host's own terminators. A function registered at its
 // address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 ExitFunction __cdecl OnExit(ExitFunction function) {
@@ -669,7 +667,7 @@ int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { r
 int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout) {         // 006E614E, ord 18
     return Slot(&Select, ei::Imports().select)(count, read, write, except, timeout);
 }
-long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) { // 006E61F0
+long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
     return Slot(&DirectInputCreateEx, ei::Imports().DirectInputCreateEx)(instance, version, iid, out, outer);
 }
 

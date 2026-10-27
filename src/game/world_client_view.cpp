@@ -41,7 +41,7 @@ float* StackTop(CTransformPipeline* device, int index) {
     return stack.matrices[stack.count - 1].m;
 }
 
-// Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
+// Terrain::HeightAt declared double: the original adds the unrounded ST0.
 
 // 0056E840 (also inlined by the original): push_back.
 void PushBack(FrameQueue& v, CEngineObject* const& value) {
@@ -49,7 +49,7 @@ void PushBack(FrameQueue& v, CEngineObject* const& value) {
         if (v.Finish()) *v.Finish() = value;
         ++v.Finish();
     } else {
-        v.InsertOverflow<stlp::PlainElement<CEngineObject*>>(v.Finish(), value, 1);   // 00571B00
+        v.InsertOverflow<stlp::PlainElement<CEngineObject*>>(v.Finish(), value, 1);
     }
 }
 
@@ -57,7 +57,7 @@ void PushBack(FrameQueue& v, CEngineObject* const& value) {
 using ObjectList = stlp::list<CEngineObject*>;
 using ObjectListNode = ObjectList::Node;
 
-// 0056E8A0. insert(pos, value): new node holding a reference; returns *result.
+// Insert(pos, value): new node holding a reference; returns *result.
 ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
     *result = ObjectList::Insert<stlp::HeldObject>(pos, value);
     return result;
@@ -75,7 +75,7 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
         std::memcpy(stack.matrices[0].m, matrix, 0x40);
     } else {
         int depth = ++stack.count;
-        stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, matrix);   // 004D9880
+        stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, matrix);
     }
 }
 
@@ -346,17 +346,17 @@ constinit stlp::vector<CEngineObject*> g_visibleOther = /*007AF598*/ {};
 constinit stlp::vector<CEngineObject*> g_visible54 = /*007AF5A8*/ {};
 
 namespace {
-void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }   // 0056A830
-void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }             // 0056A7E0
-void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }       // 0056A790
-void __cdecl FreeShadow5D() { g_shadow5D.FreeStorage(); }             // 0056A740
-void __cdecl FreeShadowOther() { g_shadowOther.FreeStorage(); }       // 0056A6F0
-void __cdecl FreeShadow54() { g_shadow54.FreeStorage(); }             // 0056A6A0
-void __cdecl FreeVisible52() { g_visible52.FreeStorage(); }           // 0056A650
-void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }     // 0056A600
-void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }           // 0056A5B0
-void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }     // 0056A560
-void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }           // 0056A510
+void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }
+void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }
+void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }
+void __cdecl FreeShadow5D() { g_shadow5D.FreeStorage(); }
+void __cdecl FreeShadowOther() { g_shadowOther.FreeStorage(); }
+void __cdecl FreeShadow54() { g_shadow54.FreeStorage(); }
+void __cdecl FreeVisible52() { g_visible52.FreeStorage(); }
+void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
+void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }
+void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }
+void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }
 } // namespace
 
 EI_REPLACE(0x0056A830, FreeTouchedModels);

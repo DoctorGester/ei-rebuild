@@ -1,5 +1,5 @@
 // The device's indexed draw with the current material (004EB550, thiscall on the device holder,
-// RET 0x1C): used by the mesh draws (004E9010) and the flat geometry draw (004EA4A0). Without a
+// RET 0x1C): used by the mesh draws and the flat geometry draw. Without a
 // material it is a plain DrawIndexedPrimitive. A material (CTextureDevice::material_) brings its
 // blend, a preset of state blocks (one per pass) and texture stages: with one pass the stages are
 // set and drawn once; with more, the first pass sets every stage, each further pass applies its
@@ -50,7 +50,7 @@ struct DrawArgs {
     int flags;
 };
 
-// DrawIndexedPrimitive under the device lock (007AEE78), the result in lastLoadResult_, and the
+// DrawIndexedPrimitive under the device lock, the result in lastLoadResult_, and the
 // vertex, triangle and call counters. A mesh handed over to the new renderer (src/render,
 // device_mesh.cpp) gets this pass with the device's current state; the old draw is skipped when the
 // old path no longer draws meshes.
@@ -176,7 +176,7 @@ void BindStage0(CTextureDevice* device, CDXSurface* holder) {
 
 } // namespace
 
-// 004EB550. Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material.
+// Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material.
 // Returns 1.
 int CTextureDevice::DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount,
                                  const std::uint16_t* indices, unsigned indexCount, int flags) {
@@ -207,7 +207,7 @@ int CTextureDevice::DrawIndexed(int primitive, int fvf, void* vertices, int vert
 }
 EI_REWRITTEN(0x004EB550, CTextureDevice::DrawIndexed);
 
-// 004EB370. Draws the indexed primitives with `first` on stage 0, then again blended (source
+// Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
 int CTextureDevice::DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive,
                                      int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,

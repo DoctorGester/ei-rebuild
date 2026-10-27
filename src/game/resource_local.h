@@ -10,7 +10,7 @@
 
 #include <cstdint>
 
-// The archive, built in place: its constructor (00671280) directly, its destructor body through
+// The archive, built in place: its constructor directly, its destructor body through
 // its address (006714A0, which Rebirth patches).
 struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }

@@ -29,7 +29,7 @@ struct LightningPoint {
 static_assert(sizeof(LightningPoint) == 16);
 
 // An aligned array of LightningPoint (the raw operator new block is kept just before the data, at
-// data[-1]). Its SetSize (00468C50) is the library instantiation's, reached through
+// data[-1]). Its SetSize is the library instantiation's, reached through
 // LightningPointsSetSize (lightning.cpp).
 using LightningPointArray = lib::AlignedArray<LightningPoint>;
 void __fastcall LightningPointsSetSize(LightningPointArray* points, void*, int newSize, int newGrowBy);
@@ -40,7 +40,7 @@ struct NoiseKey {
     std::uint32_t index[2];
     float weight[2];
 
-    // 00466190. Picks two random rows and two random weights in [-1, 1), then rescales the weights
+    // Picks two random rows and two random weights in [-1, 1), then rescales the weights
     // to length `amplitude`.
     void Randomize(float amplitude);
 };
@@ -59,14 +59,14 @@ struct LightningSegment {
     LightningPointArray points; // +0x94
     float width;                // +0xA4 passed to the renderer
 
-    // 00466820. Straight segment between two points: start, step and point count (48 below 10
+    // Straight segment between two points: start, step and point count (48 below 10
     // units, 72 above 15, 5 per unit in between, a multiple of 4), the displacement axes scaled to
     // the length (at most 15).
     void Init(const Vector3* from, const Vector3* to);
-    // 004662C0. Advances the noise keys to `time` (one new key per elapsed unit, at most 100) and
+    // Advances the noise keys to `time` (one new key per elapsed unit, at most 100) and
     // writes the two noise curves (one value per point) to outSide / outUp.
     void SampleNoise(float time, float* outSide, float* outUp, float amplitude);
-    // 00466CE0. Recomputes the points at `time`: the line plus the noise curves, each curve tilted
+    // Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
     // 00468900 (no Ghidra function; lightning_start.cpp): the points empty.
@@ -85,10 +85,10 @@ public:
     // 00468810 (deleting: 004687F0; lightning_start.cpp): reset like slot 3, then the segments.
     ~CLightning() override;
 
-    // Slot 2 (00466EA0): resets the bolt like slot 3, then adds it to the manager's list of new
+    // Slot 2: resets the bolt like slot 3, then adds it to the manager's list of new
     // bolts, which holds a reference until the next DrawAll. Returns 1.
     int Create() override;
-    // Slot 3 (00468790): power 1, amplitude 0.1, releases both textures.
+    // Slot 3: power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
     const char* GetClassName() override;    // 11: 004687D0 "CLightning"
     int GetClassId() override;              // 12: 004687E0 (0x1E)
@@ -96,13 +96,13 @@ public:
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
     // 00467AD0 (lightning_draw.cpp). Draws the bolt (render device virtuals, glow sprites).
     int Draw(void* device);
-    // 00466FD0. Grows the bounding box by the points of one segment.
+    // Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
-    // 00467150. Bounding box and sphere of all segments (centre, box relative to it, radius).
+    // Bounding box and sphere of all segments (centre, box relative to it, radius).
     void UpdateBounds();
-    // 004672E0. Moves the branches with the bolt (unless power is 0) and animates all segments.
+    // Moves the branches with the bolt (unless power is 0) and animates all segments.
     void Animate();
-    // 00467E10. New end points: main segment, then the branches (spread along the main segment,
+    // New end points: main segment, then the branches (spread along the main segment,
     // or random parallel bolts when power is 0); animates when power is negative.
     void SetEndpoints(const Vector3* from, const Vector3* to);
     // 004680D0 (lightning_start.cpp). A new bolt: power, sway, the main segment and six branches
@@ -122,7 +122,7 @@ public:
     float amplitude_;                   // +0x510 noise amplitude of the branch sway
 };
 
-// 0079CE78: the noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
+// The noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
 // key drawn for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
 constexpr int kLightningNoiseRows = 32;
 constexpr int kLightningNoiseRowLength = 400;
@@ -138,14 +138,14 @@ class CLightningManager : public CBaseManager {
 public:
     // CBaseManager's constructor, then the list of new bolts (vtable 0073F61C, block size 10).
     CLightningManager();
-    // 00562EC0. Every listed bolt released, the list emptied, then CBaseManager's destructor.
+    // Every listed bolt released, the list emptied, then CBaseManager's destructor.
     ~CLightningManager() override;
     const char* GetClassName() override;           // 11: 00562D80 "CLightningManager"
     int GetClassId() override;                     // 12: 00562D90 (0x35)
     // 13: 00562D70, CBaseManager's Init (the same code at its own address).
-    // 14: 00468680. A new bolt.
+    // A new bolt.
     CEngineObject* NewObject(int type) override;
-    // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
+    // Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);
     // 004689D0, slot 2 (A-E1; class_slots.cpp). Loads the noise table on the first call (the

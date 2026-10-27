@@ -27,7 +27,7 @@ constexpr const char kInstruction[] = "instr ";
 constexpr const char kSpell[] = "spell ";
 constexpr const char kModifier[] = "modifier ";
 constexpr const char kSpace[] = " ";
-constexpr const char kNoMaterial[] = "none";   // 007846F0
+constexpr const char kNoMaterial[] = "none";
 constexpr const char kUnknown[] = "Unknown";
 constexpr const char kColon[] = ": ";
 constexpr const char kLineEnd[] = "\r\n";
@@ -199,7 +199,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         break;
     }
     case kItemQuest: {
-        // 0x3009 is the quest item ("questitem"); its table (007C8758) is Loot in item_db.h.
+        // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
         KeyName(recordName, QuestItemAt(prototypeIndex)->text04);
         ReadItemText(this, mfc::CString(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";
@@ -241,7 +241,7 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* prev = pos->prev;
     prev->next = next;
     next->prev = prev;
-    pos->data.name.~string();   // 004DEAB0: the storage freed
+    pos->data.name.~string();   // the storage freed
     if (pos) libcrt::NodeDeallocate(pos, 0x18);   // the original checks only here, after using the node (always true)
     *out = next;
     return out;

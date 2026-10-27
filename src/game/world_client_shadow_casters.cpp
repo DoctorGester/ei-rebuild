@@ -6,7 +6,7 @@
 // (render::ShadowCasterArea, through the object grid's sectors) whose bounding sphere passes the
 // map's test (render::ShadowCasterReaches: inside the map's area seen from the sun, on the sun's side
 // of the ground it covers) hands its undrawn parts to the map (render::ShadowCasterMesh), placed as
-// CObject3DClientSpecific::Draw (0051B7E0) places them. Everything here only reads the game's
+// CObject3DClientSpecific::Draw places them. Everything here only reads the game's
 // objects: no flag, pose, colour, list or heap block of the game changes, so the game's logic and
 // its goldens are those of a run without it.
 #include "world_client_shadow_casters.h"
@@ -37,12 +37,12 @@
 
 namespace {
 
-constexpr std::uint32_t kPartHidden = 0x80;             // CFigureMesh::flags_: not drawn (0051B7E0, 00501D40)
+constexpr std::uint32_t kPartHidden = 0x80;             // CFigureMesh::flags_: not drawn
 constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;    // object->flags_: drawn in a spectator's view too
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags
-constexpr double kNearSquared = 1e9;                    // 0073DE58: parts farther from the object are not drawn
+constexpr double kNearSquared = 1e9;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
-constexpr int kSectorShift = 4;                         // 16-unit sectors (0056AFE0)
+constexpr int kSectorShift = 4;                         // 16-unit sectors
 constexpr std::uint32_t kHeightScanEvery = 32;          // frames between scans of the highest object
 
 // Row-major 4 x 4 matrices in double: out = M * (x, y, z, 1).
@@ -298,7 +298,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
     render::ShadowCasterRect area;
     const HighestObject& highest = Highest(world);
     if (!render::ShadowCasterArea(static_cast<float>(highest.top), static_cast<float>(highest.widest), &area)) return;
-    // Only a multiplayer spectator's view leaves out the units it cannot see (0056A990).
+    // Only a multiplayer spectator's view leaves out the units it cannot see.
     const bool allUnits = !(options::TheOptions()->drawVisibleOnly_ != 0 && world->Session()->sessionKind100_ == 1);
 
     auto cell = [](float v, std::uint32_t cells) {

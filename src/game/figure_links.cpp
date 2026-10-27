@@ -3,7 +3,7 @@
 // freed by CloseFile); without it the manager opens "<name>.lnk" (its GetFile / CloseFile); with
 // neither the fatal error "Can't load skeleton file" is returned. The data is a count and that
 // many (child, parent) length-prefixed names (read by 004DBCA0 into CStrings), each passed to
-// the animation state's LinkPiece (0050CC60) with the model; FindRoot (0050D2E0) finishes it.
+// the animation state's LinkPiece with the model; FindRoot finishes it.
 // Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
 #include "map_object_cage.h"
@@ -19,9 +19,9 @@
 
 namespace {
 
-// 005AA5F0: the manager's model of a name (figure_models.cpp).
+// The manager's model of a name (figure_models.cpp).
 // The animation state: LinkPiece (RET 0xC), FindRoot (map_object_animation_bones.cpp).
-// 00480080: game::FatalError(format, ...).
+// Game::FatalError(format, ...).
 
 
 } // namespace

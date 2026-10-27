@@ -125,7 +125,7 @@ void TextSources::Clear() {
     for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->data.source);
     for (Node* node = sentinel->next; node != sentinel;) {
         Node* next = node->next;
-        node->data.name.~string();   // 004DEAB0: the storage freed
+        node->data.name.~string();   // the storage freed
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }
@@ -149,8 +149,8 @@ void CTextManager::ClearSources() { sources_.Clear(); }
 
 CTextManager::CTextManager() {
     ClearFields();
-    sources_.Construct();   // 00562A80
-    CTextManager::Create();   // 004DED20
+    sources_.Construct();
+    CTextManager::Create();
 }
 
 CTextManager::~CTextManager() {
@@ -193,7 +193,7 @@ EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
-    // multibyte code page from it: the game's only locale set-up, on the host CRT (C26; docs/notes/standalone.md). With
+    // multibyte code page from it: the game's only locale set-up, on the host CRT (docs/notes/standalone.md). With
     // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
     // the option is not used and LC_CTYPE stays "C".
     if constexpr (!text::kUtf8) {

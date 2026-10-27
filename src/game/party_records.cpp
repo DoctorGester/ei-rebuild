@@ -1,5 +1,5 @@
-// The named party records of the object at 007AA5A0 (+0x24): reset at new game (004A5BD0), and
-// the script commands' helpers to find (004A5E10), add (004A5E90) and remove (004A5FA0) a record
+// The named party records of the object at 007AA5A0 (+0x24): reset at new game, and
+// the script commands' helpers to find, add and remove a record
 // by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
 #include "object_tables.h"
 #include "party_records.h"
@@ -58,8 +58,8 @@ const char* NameOf(const PartyRecord* record) { return record->name.GetString();
 void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** end = list->records.Finish();
     auto* newEnd = reinterpret_cast<PartyRecord**>(stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(
-        stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));   // 004AB910
-    for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);   // 004AB960
+        stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));
+    for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);
     list->records.Finish() = newEnd;
     list->text0C = game::EmptyText();
     list->text10 = game::EmptyText();
@@ -126,12 +126,12 @@ void NamedPartyRecords::Remove(const char* name) {
             }
         }
         --records.Finish();
-        RefPtrRelease(reinterpret_cast<RefPtr*>(records.Finish()));   // 004A5D70
+        RefPtrRelease(reinterpret_cast<RefPtr*>(records.Finish()));
     }
 }
 EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);
 
-// ---- The party manager (007AA5A0) -----------------------------------------------------------------
+// ---- The party manager -----------------------------------------------------------------
 
 namespace {
 
@@ -185,7 +185,7 @@ EI_REWRITTEN(0x004A8790, PartyManager::LoadParty);
 
 bool PartyManager::StoreParty(const int* key, CParty* source) {
     CParty* value = FindParty(parties, *key);
-    if (!value) value = parties.At(key)->Get();   // 004A91B0
+    if (!value) value = parties.At(key)->Get();
     value->Assign(source);
     return true;
 }

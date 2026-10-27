@@ -1,6 +1,6 @@
-// The hero panels' small methods: the equipment panel's shown weapon / item (006229E0, 00622A30),
-// its right button (00622960) and item lookup (00622860); the quick strip's selection (00622BC0)
-// and item lookup (00622D40). See docs/notes/ui.md, section 5.
+// The hero panels' small methods: the equipment panel's shown weapon / item,
+// its right button and item lookup; the quick strip's selection
+// and item lookup. See docs/notes/ui.md, section 5.
 #include "ui_camp.h"
 #include "ui_screens.h"
 #include "item.h"

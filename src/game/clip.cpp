@@ -14,7 +14,7 @@
 
 namespace {
 
-const float kOne = 1.0f;   // 0073B84C
+const float kOne = 1.0f;
 
 // The intersection parameter t = (limit - a) / (b - a), exactly as the original computes it: the
 // value is stored to `store` as a float (FST) while the unrounded quotient is compared with 1.
@@ -41,12 +41,12 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 }
 
 // The work buffer: a CWordArray (SetSize is MFC's, 006FEEFA), zero at the start: built by the static initialiser
-// 0042D8E0 in the list's order and destroyed by the exit function it registers (0042D900); both ported on the name and
+// 0042D8E0 in the list's order and destroyed by the exit function it registers; both ported on the name and
 // registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_workWords = /*0079B668*/ {};
 mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
-void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }   // 0042D900
-void __cdecl ConstructWorkWords() {                                                                        // 0042D8E0
+void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }
+void __cdecl ConstructWorkWords() {
     mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
     libcrt::AtExit(DestroyWorkWords);
 }

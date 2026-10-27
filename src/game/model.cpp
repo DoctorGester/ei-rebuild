@@ -168,7 +168,7 @@ EI_REWRITTEN(0x004F57B0, TriangleIndexArray::SetSize);
 
 namespace {
 // list<pair<string, CMMIOResource*>> members (recordlist::LinkArchives'): insert(pos,
-// value_type()) with the string reserved for 8 bytes (004FB2E0), and erase(pos) (004FAE00).
+// value_type()) with the string reserved for 8 bytes, and erase(pos).
 using Archives = stlp::list<recordlist::LinkArchive>;
 } // namespace
 

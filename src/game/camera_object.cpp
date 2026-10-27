@@ -32,7 +32,7 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
 EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
-// 0040C8B0: the constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
+// The constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
 // the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,
 // response rates 2/15 (pan) and 1/3, no target.
 CCamera::CCamera() {
@@ -75,27 +75,27 @@ CCamera::CCamera() {
 }
 EI_REWRITTEN_SPECIAL(0x0040C8B0, CCamera::CCamera);
 
-// 0040CE60: the destructor: no target, the camera path keys freed, the view stack and shake list
+// The destructor: no target, the camera path keys freed, the view stack and shake list
 // destroyed (the file name, a member, goes after them: the original freed it before the view stack).
 CCamera::~CCamera() {
     targetId_ = -1;
     if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
-    viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
-    shakes_.Destroy();      // the nodes, then the sentinel (00411B30)
+    viewStack_.Destroy();   // the nodes, then the map
+    shakes_.Destroy();      // the nodes, then the sentinel
 }
 EI_REWRITTEN_SPECIAL(0x0040CE60, CCamera::~CCamera);
 EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
 // The camera, zero at the start: built by the static initialiser 0040C880 in the list's order and destroyed by the
-// exit function it registers (0040C8A0); both ported on the name and registered at their addresses
+// exit function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
 static_assert(sizeof(CCamera) == 0x308);
 CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
-void __cdecl DestroyCamera() { g_camera.Destroy(); }     // 0040C8A0
-void __cdecl ConstructCamera() {                          // 0040C880
+void __cdecl DestroyCamera() { g_camera.Destroy(); }
+void __cdecl ConstructCamera() {
     g_camera.Construct();
     libcrt::AtExit(DestroyCamera);
 }
@@ -121,7 +121,7 @@ EI_REWRITTEN(0x0040D190, CCamera::Create);
 void CCamera::Destroy() { targetId_ = -1; }
 EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 
-// 0040D0A0: Init(settings, near, far, fov). Takes the views and the start distance and focus from
+// Init(settings, near, far, fov). Takes the views and the start distance and focus from
 // the settings, keeps the three distances / angle (as the dword bit patterns of floats) at
 // +0x2E0..+0x2E8, switches to free placement, and resets views 6 and 7 to the start distance at 45
 // degrees (the pitch too). Returns 1.
@@ -146,7 +146,7 @@ int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_
 }
 EI_REWRITTEN(0x0040D0A0, CCamera::Init);
 
-// 0040D380: the near distance, far distance and field of view (as dwords).
+// The near distance, far distance and field of view (as dwords).
 void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const {
     std::memcpy(a, &nearDistance_, 4);
     std::memcpy(b, &farDistance_, 4);
@@ -154,7 +154,7 @@ void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) con
 }
 EI_REWRITTEN(0x0040D380, CCamera::GetRange);
 
-// 0040FB20: the point the camera is placed by: its own position when playing a file or placed
+// The point the camera is placed by: its own position when playing a file or placed
 // freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
@@ -170,7 +170,7 @@ const char kRecordFolder[] = ".\\camera\\";
 
 } // namespace
 
-// 0040E910: starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
+// Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
 // rename goes to camera0001.cam; kept as the original has it). Sets bit 0x10 of 007AF5C0 either
@@ -216,7 +216,7 @@ int CCamera::OpenFile(const char* name) {
 }
 EI_REWRITTEN(0x0040E910, CCamera::OpenFile);
 
-// 0040EB60: while recording (flag 0x10), appends a frame {time, -, local position, local rotation}
+// While recording (flag 0x10), appends a frame {time, -, local position, local rotation}
 // to the file named at +0x2EC. Returns 1 when written, 0 when not recording or the file does not
 // open.
 int CCamera::RecordFrame(std::uint32_t time) {
@@ -235,7 +235,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
 }
 EI_REWRITTEN(0x0040EB60, CCamera::RecordFrame);
 
-// 0040ECB0: closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
+// Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {
     self->flags_ &= ~CCamera::kRecording;
     self->fileName_.Empty();
@@ -243,7 +243,7 @@ int __fastcall CameraCloseFile(CCamera* self) {
 }
 EI_REWRITTEN(0x0040ECB0, CameraCloseFile);
 
-// 00410AB0: loads the camera state saved by Save. Saves before version 0x6F hold all eight
+// Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
 void CCamera::Load(CStream* stream) {
     stream->Read(&focus_, 12);
@@ -273,7 +273,7 @@ void CCamera::Load(CStream* stream) {
 }
 EI_REWRITTEN(0x00410AB0, CCamera::Load);
 
-// 00410C10: saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and
+// Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and
 // views 4..7).
 void CCamera::Save(CStream* stream) {
     stream->Write(&focus_, 12);

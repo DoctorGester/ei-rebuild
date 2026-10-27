@@ -30,21 +30,21 @@ constexpr char kListSeparator = ',';
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
     int Find(char c, int start) const;          // 00700E9F Find(TCHAR, int)
-    void TrimLeft();                            // 006FE216
-    void TrimRight();                           // 006FE11F
+    void TrimLeft();
+    void TrimRight();
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
-// 006FD5D0: operator+(TCHAR, const CString&).
+// Operator+(TCHAR, const CString&).
 
 // MFC's afxcoll arrays (mfc::CArray layout), through their own code: CUIntArray's constructor,
-// destructor and SetSize (006FF933 / 006FF966 / 006FF993), and the byte / word / uint SetSize.
+// destructor and SetSize, and the byte / word / uint SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
-void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }      // 006FF64A
-void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }     // 006FEEFA
-void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }     // 006FF29A
+void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }
+void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }
+void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }
 
-// 004513A0: SetSize of an aligned int array (CArray<int> with the aligned allocator).
+// SetSize of an aligned int array (CArray<int> with the aligned allocator).
 
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 
@@ -55,7 +55,7 @@ BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::C
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
 }
 
-// The value of `key` as a CString (00696030).
+// The value of `key` as a CString.
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }
@@ -314,7 +314,7 @@ BOOL CIniFile::WriteList(const char* section, const char* key, const console::CS
     if (items->GetSize() == 0) return 0;
     text = (*items)[0];
     for (int i = 1; i < items->GetSize(); ++i) {
-        mfc::CString part = mfc::operator+(separator, (*items)[i]);   // 006FD5D0
+        mfc::CString part = mfc::operator+(separator, (*items)[i]);
         text += part;
     }
     return WriteCopy(this, section, key, text);

@@ -172,12 +172,12 @@ namespace {
 // std::exception, __Named_exception's 256-byte name (its what), logic_error. Nothing catches one by type.
 class NamedException : public std::exception {
 public:
-    // 004219A0: the text copied into the name (strncpy, the last byte zero).
+    // The text copied into the name (strncpy, the last byte zero).
     explicit NamedException(const string& what) {
         gamecrt::strncpy(name_, what.data(), sizeof(name_));
         name_[sizeof(name_) - 1] = 0;
     }
-    const char* what() const noexcept override { return name_; }   // 0040C430
+    const char* what() const noexcept override { return name_; }
 
 private:
     char name_[0x100];

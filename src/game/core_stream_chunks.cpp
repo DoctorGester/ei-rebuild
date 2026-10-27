@@ -1,5 +1,5 @@
-// Tagged blocks and text in a stream (A-S4): CStream::ReadTagged (004A4940), FindTagged
-// (004A4A90), ReplaceTagged (004A4AF0, A-S9) and ReadText (004A48F0). Every stream access goes through the virtual functions, in
+// Tagged blocks and text in a stream (A-S4): CStream::ReadTagged, FindTagged
+// ReplaceTagged (004A4AF0, A-S9) and ReadText. Every stream access goes through the virtual functions, in
 // the original's order.
 #include "core_streams.h"
 

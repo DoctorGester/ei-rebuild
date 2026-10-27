@@ -24,7 +24,7 @@ namespace {
 
 const char* const kFakeUnitName = "CFakeUnit";
 
-// Set once the lightning noise table has been loaded (00468A00).
+// Set once the lightning noise table has been loaded.
 int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace

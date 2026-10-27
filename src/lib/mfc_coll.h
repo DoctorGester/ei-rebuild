@@ -32,8 +32,7 @@ struct PlainArray {
     void Serialize(CArchive* ar);                   // vtable slot 2 (not CUIntArray's)
 };
 
-// The instantiations' tables: compiled (C19, mfc_coll.cpp) in place of game.exe's 00745F78, 007464B8, 00746560 and
-// 007467A0.
+// The instantiations' tables: compiled (mfc_coll.cpp) in place of game.exe's 00745F78, 007464B8, 00746560 and
 struct WordArrayClass {
     static void* Vtable();
 };
@@ -61,25 +60,25 @@ struct CStringArray {
     int maxSize;    // +0x0C
     int growBy;     // +0x10
 
-    static void* Vtable();   // compiled (C19, mfc_coll.cpp) in place of game.exe's 00745F5C
+    static void* Vtable();   // compiled (mfc_coll.cpp) in place of game.exe's 00745F5C
 
-    CStringArray* Construct();                          // 006FE925
-    void Destruct();                                    // 006FE958
+    CStringArray* Construct();
+    void Destruct();
     CStringArray* DeletingDestructor(unsigned flags);   // 006FE93C (vtable slot 1)
-    void SetSize(int newSize, int newGrowBy);           // 006FE9B8
+    void SetSize(int newSize, int newGrowBy);
     int Append(const CStringArray& source);             // 006FEB01 (returns the old size)
-    void Copy(const CStringArray& source);              // 006FEB61
-    void SetAtGrow(int index, const char* text);        // 006FEBCE
-    void SetAtGrow(int index, const CString& value);    // 006FEBFA
-    void InsertEmpty(int index, int count);             // 006FEC26
-    void InsertAt(int index, const CString& value, int count);   // 006FED03
-    void RemoveAt(int index, int count);                // 006FED3C
+    void Copy(const CStringArray& source);
+    void SetAtGrow(int index, const char* text);
+    void SetAtGrow(int index, const CString& value);
+    void InsertEmpty(int index, int count);
+    void InsertAt(int index, const CString& value, int count);
+    void RemoveAt(int index, int count);
     void Serialize(CArchive* ar);                       // 006FEE31 (vtable slot 2)
 
     // array_s.cpp's element helpers (cdecl).
-    static void __cdecl ConstructElements(CString* elements, int count);     // 006FEAD5
-    static void __cdecl DestructElements(CString* elements, int count);      // 006FE996
-    static void __cdecl CopyElements(CString* dest, const CString* source, int count);   // 006FEB37
+    static void __cdecl ConstructElements(CString* elements, int count);
+    static void __cdecl DestructElements(CString* elements, int count);
+    static void __cdecl CopyElements(CString* dest, const CString* source, int count);
 };
 static_assert(sizeof(CStringArray) == 0x14);
 

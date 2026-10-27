@@ -1,5 +1,5 @@
 // The unit AI's Fear mode (vtable 0073FF8C): how afraid the unit is (Evaluate, 005D2960) and running
-// away or taking shelter (Execute, 005D30A0); and the brain taking up a chosen attack (005CF170).
+// away or taking shelter (Execute, 005D30A0); and the brain taking up a chosen attack.
 #include "unit_ai.h"
 
 #include "ai_map.h"
@@ -35,25 +35,25 @@ constexpr int kKeepLevel = 500;             // with `flag`, levels above it are 
 constexpr int kCommandWalk = 1;             // CUnitServer::command / nextCommand
 constexpr int kLargeSizeClass = 6;
 
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kHalf = 0.5f;                                       // 0073B86C
-constexpr float kOne = 1.0f;                                        // 0073B84C, 0073FEC8
-constexpr float kThree = 3.0f;                                      // 0073BAA4
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);         // 0073D9A4
-constexpr float kSeenScale = 1.5f;                                  // 0073C51C
+constexpr float kZero = 0.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kOne = 1.0f;
+constexpr float kThree = 3.0f;
+constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
+constexpr float kSeenScale = 1.5f;
 constexpr float kMaxLoadFactor = std::bit_cast<float>(0x3F19999Au); // 0073CDE0 (0.6)
-constexpr float kFlightStep = 5.0f;                                 // 0073BF34
-constexpr float kRangeBase = 10.0f;                                 // 0073BAAC
-constexpr float kSmoothingScale = 5000.0f;                          // 0073FFC4
+constexpr float kFlightStep = 5.0f;
+constexpr float kRangeBase = 10.0f;
+constexpr float kSmoothingScale = 5000.0f;
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // 0073E73C (1e30)
-constexpr float kDistanceWeight = 30.0f;                            // 0073BAF0
+constexpr float kDistanceWeight = 30.0f;
 constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // 0073FFC0 (1 / 31)
-constexpr float kSpreadScale = 2.5f;                                // 0073CE18
+constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;                                // pushed as 0x40400000
 constexpr float kNoWander = -1.0f;                                  // pushed as 0xBF800000
 constexpr float kMoveTime = 1000000.0f;                             // pushed as 0x49742400
-constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 0073FFC8: 6 / 2^32
-constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 0073C468: 1 / 2^32
+constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
+constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 1 / 2^32
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                   // -1313: no shelter
 
 // FCOMP 0; TEST AH,0x40; JNZ: equal to zero.
@@ -73,8 +73,8 @@ float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-// The original builds the move order's looks with the derived array constructor (005D8B40), then
-// clears the order (00545B20).
+// The original builds the move order's looks with the derived array constructor, then
+// clears the order.
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
@@ -309,7 +309,7 @@ void FearMode::Execute(AIBrain* brain) {
             brain->target.Assign(nullptr);
             brain->action = AIBrain::kActionMove;
             brain->actionTime = AIBrain::kNoTime;
-            // 005D7970: the order assigned to the brain's action point and looks.
+            // The order assigned to the brain's action point and looks.
             brain->move.point = order.point;
             brain->move.looks.Copy(order.looks);
             brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);

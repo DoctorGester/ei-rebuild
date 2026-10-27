@@ -26,7 +26,7 @@ void* __stdcall CreateFigureObject(int classId);
 
 // FigureModel, the cached model, is in model.h.
 
-// A real virtual class: the compiler makes its vtable (C19; game.exe's 0073FB88 is retired).
+// A real virtual class: the compiler makes its vtable (game.exe's 0073FB88 is retired).
 // The menus' button rectangles (menus.reg; menu_rects.cpp): the main menu's six (new game, load, exit, options,
 // credits, multiplayer), then the Esc menu's five (save, load, resume, exit to the main menu, options).
 constexpr int kMainMenuRects = 6;
@@ -39,15 +39,15 @@ public:
     // NextPrime(100) buckets.
     CFigureManager();
     // 005AA1C0 (figure_model_destroy.cpp; deleting: 005AA1A0). Every cached model destroyed and freed, the base's
-    // clean-up (00674F40), the model map cleared and its buckets freed, then CResourceManager's
+    // clean-up, the model map cleared and its buckets freed, then CResourceManager's
     // destructor.
     ~CFigureManager() override;
 
-    int Create() override { return CreateWithArchives(); }                   // 2: 005AA510
+    int Create() override { return CreateWithArchives(); }
     const char* GetClassName() override;                                     // 11: 005AA180 "CFigureManager"
     int GetClassId() override;                                               // 12: 005AA190 (0x28)
     CEngineObject* NewObject(int type) override;                             // 14: 005AA8E0 the factory
-    BOOL AddArchive(const char* path) override { return AddMmioArchive(path); }   // 16: 005AA360
+    BOOL AddArchive(const char* path) override { return AddMmioArchive(path); }
     CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }   // 23
     const char* GetFolderName() override;                                    // 25: 005AA170 "figures"
 
@@ -69,7 +69,7 @@ public:
     CEngineObject* CreateFigureObject(int type, int id);
     // 005AA510 (slot 2, Create; patched by Rebirth, so vanilla only; A-W14). The base manager's
     // Create (0 when it fails), then the archives "figures.res" and "menus.res" of the text
-    // resources' folder (007AF45C) added (slot 16) and the menus' button rectangles read
+    // resources' folder added (slot 16) and the menus' button rectangles read
     // (005ACE80 into 007C8048). Returns 1.
     int CreateWithArchives();
 
@@ -78,7 +78,7 @@ public:
     // 19, then +0x188 cleared and the data closed), or released (slot 24) and null when the file is
     // missing. Without a name the empty object is returned.
     CEngineObject* NewFigure(const char* name);
-    // 005AC2F0 (RET 0x14). `part`'s data from the model's mesh archive (slot 5 by the part's name)
+    // `part`'s data from the model's mesh archive (slot 5 by the part's name)
     // or from "<directory (+0x124)><name>.fig" (slot 19), loaded by the part's slot 19 at the morph
     // (s, t, u); returns 1. Missing data: FatalError("Can't open file ...") and what it returns.
     // The data is not closed.
@@ -89,7 +89,7 @@ public:
     // and `arg` are not read. Returns the part (a null part faults, as in the original).
     CFigureMesh* NewPart(const char* modelName, const char* partName, FigureModel* model, std::uint32_t scaleX,
                          std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
-    // 005ACA60 (RET 0xC). The bone's animation `animation` from "<bone's model name (+0x24)><bone's
+    // The bone's animation `animation` from "<bone's model name (+0x24)><bone's
     // name (slot 7)><animation>.ast" (slot 19) into `animator` (LoadKeyFrames); 0 without an
     // animation or the file. The path is built in a 0x200-byte buffer without a bounds check; the
     // data is not closed.

@@ -155,7 +155,7 @@ int CUnit::Level() {
 }
 EI_REWRITTEN(0x00532D40, CUnit::Level);
 
-// --- The virtual slots (vtable 0073EA8C) for the compiler's table (C19) ---------------------------
+// --- The virtual slots (vtable 0073EA8C) for the compiler's table ---------------------------
 
 int CUnit::Create() { return CreateUnit(); }
 void CUnit::Destroy() { DestroyUnit(); }

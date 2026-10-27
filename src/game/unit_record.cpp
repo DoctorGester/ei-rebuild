@@ -1,4 +1,4 @@
-// The unit record applied to a new unit (00477B00). See unit_record.h.
+// The unit record applied to a new unit. See unit_record.h.
 #include "item.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -53,8 +53,8 @@ void UnitRecord::ApplyTo(CUnit* target) {
     vitals.maxHitPoints = static_cast<float>(r.maxHitPoints);
     vitals.mana = static_cast<float>(r.mana);
     vitals.maxMana = static_cast<float>(r.maxMana);
-    s.SetSlotMaxima(vitals.maxHitPoints);   // 00525A00
-    s.RefillSlots();                        // 00525AF0
+    s.SetSlotMaxima(vitals.maxHitPoints);
+    s.RefillSlots();
     s.fixedMaxHitPoints = vitals.maxHitPoints;
     s.speed = r.speed;
     s.rate = r.rate;

@@ -58,31 +58,30 @@ inline void DestroyZoneRecordElement(ZoneRecordElement* p) { zone::ZoneRecordDes
 using BuiltZoneRecords =
     ArrayAbi<ZoneRecordElement, EachElements<ZoneRecordElement, mfc::impl::InitStringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>,
                                              DestroyZoneRecordElement>>;
-// CArray<MapRecord> (the map database's maps, CMapDatabase +0x14): the compiler's table (C19; game.exe's
+// CArray<MapRecord> (the map database's maps, CMapDatabase +0x14): the compiler's table (game.exe's
 // 0073C3E8, the same slots).
 struct MapRecordArrayClass final
     : mfc::impl::CompiledCollection<MapRecordArrayClass, &BuiltZoneRecords::Destruct<MapRecordArrayClass>,
                                     &BuiltZoneRecords::Serialize> {};
 
 // ---- The lists whose Serialize loads through a temporary (ticket S6d) -----------------------------
-//
 // ListAbi::SerializeThrough's element functions for each instantiation: how its loader builds the
 // temporary (Init), assigns the new element from it (Assign) and destroys it (Destroy). The lists'
 // NewNode is the instantiation's (the ABIs below where game_lists.h's build the element otherwise).
 
-// Engine object pointers (00427690, 00571420): the temporary null; the holder's assignment (the new
+// Engine object pointers: the temporary null; the holder's assignment (the new
 // object gains a reference, the old one released); a release through slot 4.
 inline void InitObjectPtr(CEngineObject** p) { *p = nullptr; }
 inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { HeldEngineObject::Of(to)->Assign(*from); }
-// Script object references (004C9350): the old one released and cleared, then the copy constructor.
+// Script object references: the old one released and cleared, then the copy constructor.
 inline void InitObjectRef(ScriptObjectRef* p) { p->object = nullptr; }
 inline void AssignObjectRef(ScriptObjectRef* to, const ScriptObjectRef* from) {
     gamearrays::ReleaseAndClear(to);
     to->Construct(*from);
 }
 inline void ReleaseObjectRef(ScriptObjectRef* p) { gamearrays::ReleaseOnly(&p->object); }
-// A magic trap's victims (0052C740): unless the same object, the old one released and cleared
-// (0052B030), the new one gains a reference.
+// A magic trap's victims: unless the same object, the old one released and cleared
+// the new one gains a reference.
 inline void AssignVictim(ScriptObjectRef* to, const ScriptObjectRef* from) {
     CEngineObject* object = from->object;
     if (object == to->object) return;
@@ -164,12 +163,12 @@ inline void AssignSharedObject(SharedObject* to, const SharedObject* from) {
     to->objects.CopyFrom(from->objects);
 }
 
-// The sound cache's wave records: the record's assignment (006BD1B0).
+// The sound cache's wave records: the record's assignment.
 inline void AssignWave(WaveRecord* to, const WaveRecord* from) { to->Assign(from); }
 
 // The lists whose NewNode builds the element otherwise than game_lists.h's (the zero fill, then:
-// the name empty (004CEA80), 0 / -1, the commands' header (004CEB20), "None" / -1 (004CF380), both
-// strings empty (004D6840), the objects' header (0059E330)).
+// the name empty, 0 / -1, the commands' header, "None" / -1, both
+// strings empty, the objects' header).
 using ArmourSpells = ListAbi<ArmourSpellRecord>;
 using FxSourceNodes = ListAbi<ScriptFxSource, EachElements<ScriptFxSource, InitFxSource, nullptr>>;
 using LightningNodes = ListAbi<ScriptLightning, EachElements<ScriptLightning, InitLightning, nullptr>>;
@@ -201,20 +200,19 @@ using SharedObjectsThrough = ListTemporary<SharedObjectNodes, InitSharedObject, 
 using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, AssignWave, gamelists::DestroyWave>;
 
 // ---- The instantiations' vtables (C19: the compiler's) ----------------------------------------------
-//
 // Each tag is a CompiledCollection (lib/mfc_slots.h) over the destructor and Serialize registered for the game.exe
 // table it replaces; the script's lists and arrays (game_lists.h / game_arrays.h had their own tags for the same
 // addresses: one tag each now).
 
 using mfc::impl::CompiledCollection;
 
-// Counted pointer lists of the world server (00598F40): the connections AcceptNewPlayers takes.
+// Counted pointer lists of the world server: the connections AcceptNewPlayers takes.
 struct RefListAClass final
     : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
-// A list of engine objects released through slot 4 (00427600).
+// A list of engine objects released through slot 4.
 struct ItemObjectListClass final
     : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
-// The same in the client maps (00571F10), and the lightning manager's new bolts.
+// The same in the client maps, and the lightning manager's new bolts.
 struct ClientObjectList2Class final
     : CompiledCollection<ClientObjectList2Class, &gamelists::EngineObjects::Destruct<ClientObjectList2Class>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
 // CList<ScriptObjectRef> (CScript's temporary objects, +0x1CC).
@@ -223,13 +221,13 @@ struct ObjectRefListClass final
 // A magic trap's victims (counted references).
 struct VictimListClass final
     : CompiledCollection<VictimListClass, &gamelists::ObjectRefs::Destruct<VictimListClass>, &VictimsThrough::Abi::SerializeThrough<VictimsThrough>> {};
-// Counted pointer lists of the world server (00599D60).
+// Counted pointer lists of the world server.
 struct RefListBClass final
     : CompiledCollection<RefListBClass, &gamelists::Refs::Destruct<RefListBClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
-// A map object controller's counted pointer list (005575F0).
+// A map object controller's counted pointer list.
 struct OwnedRefListClass final
     : CompiledCollection<OwnedRefListClass, &gamelists::OwnedRefs::Destruct<OwnedRefListClass>, &OwnedRefsThrough::Abi::SerializeThrough<OwnedRefsThrough>> {};
-// The world server's shared objects (0059A3C0).
+// The world server's shared objects.
 struct SharedObjectListClass final
     : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SharedObjectsThrough::Abi::SerializeThrough<SharedObjectsThrough>> {};
 // The armour spells (12-byte records holding an engine object).
@@ -258,10 +256,10 @@ struct RunListClass final
 // CScript's temporary groups (+0x1B0).
 struct GroupListClass final
     : CompiledCollection<GroupListClass, &GroupList::Destruct<GroupListClass>, &GroupsThrough::Abi::SerializeThrough<GroupsThrough>> {};
-// The script parser's tokens (004CA260).
+// The script parser's tokens.
 struct TokenListClass final
     : CompiledCollection<TokenListClass, &gamelists::Tokens::Destruct<TokenListClass>, &TokensThrough::Abi::SerializeThrough<TokensThrough>> {};
-// The script's #define list (004D6340).
+// The script's #define list.
 struct DefineListClass final
     : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &DefinesThrough::Abi::SerializeThrough<DefinesThrough>> {};
 

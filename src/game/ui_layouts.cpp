@@ -1,7 +1,6 @@
 // Layout builders of the windows opened from the Esc menu (their slot 25, "Create"): the regions,
 // sprites, surfaces, scroll bar and 3D model each window is made of. See docs/notes/ui.md.
-//
-// The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
+// The builders call the sprite placement functions and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "app_helpers.h"
 #include "asset_text.h"
@@ -100,7 +99,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 
 } // namespace
 
-// --- Save/load window (00653DD0) -------------------------------------------------------------
+// --- Save/load window -------------------------------------------------------------
 
 void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -171,7 +170,7 @@ void CSaveLoadWindow::CreateScreen() {
 }
 EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::CreateScreen);
 
-// --- Options window (006503C0) ------------------------------------------------------------------
+// --- Options window ------------------------------------------------------------------
 
 namespace {
 // The option groups' names.
@@ -241,7 +240,7 @@ void COptionsWindow::CreateScreen() {
 }
 EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 
-// --- Esc menu (0062AB20) ------------------------------------------------------------------------
+// --- Esc menu ------------------------------------------------------------------------
 
 // The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
 
@@ -269,7 +268,7 @@ void CEscMenu::CreateScreen() {
 }
 EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
-// --- Esc menu clicks (0062AE90) -------------------------------------------------------------------
+// --- Esc menu clicks -------------------------------------------------------------------
 
 void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
@@ -312,7 +311,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 
 EI_REWRITTEN(0x0062AE90, CEscMenu::OnLButtonDown);
 
-// --- Main menu clicks (00632D70) ------------------------------------------------------------------
+// --- Main menu clicks ------------------------------------------------------------------
 
 namespace {
 // The game glue (world_glue.h) gives the game's folder, the text table (004E0020 a key's text,
@@ -389,15 +388,15 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 
 EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 
-// --- Message box (00634790) -----------------------------------------------------------------------
+// --- Message box -----------------------------------------------------------------------
 
 namespace {
-// Not rewritten: the surface's DC (005FDC00 / 005FDC60), its text (005FDE20, Rebirth-patched;
+// Not rewritten: the surface's DC, its text (005FDE20, Rebirth-patched;
 // returns the text's height), the interface's text extent (005F8340, Rebirth-patched; takes a
 // CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
 // interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
 int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);   // 005FDE20
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
@@ -463,7 +462,7 @@ void CMessageBox::CreateScreen() {
 }
 EI_REWRITTEN(0x00634790, CMessageBox::CreateScreen);
 
-// --- Difficulty question (006337B0) ---------------------------------------------------------------
+// --- Difficulty question ---------------------------------------------------------------
 
 void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", 3, 0);
@@ -529,11 +528,11 @@ void CDifficultyBox::CreateScreen() {
 }
 EI_REWRITTEN(0x006337B0, CDifficultyBox::CreateScreen);
 
-// --- Titles (0062B7D0) ----------------------------------------------------------------------------
+// --- Titles ----------------------------------------------------------------------------
 
 namespace {
 // Not rewritten. 006B71C0 (the loading screen 007AF784, RET 4) steps it; 006B4F70 stops the music
-// (007AF760); 005E5270 (the renderer 007C7BD8, RET 4) shows or hides the cursor; 00458270 plays the
+// 005E5270 (the renderer 007C7BD8, RET 4) shows or hides the cursor; 00458270 plays the
 // movies listed under a section (ECX; DL clears the screen first; then clear-after and two values
 // on the stack); 004461E0 (on a CString) drops its CRs (Remove 0x0D); 0065ED30 (RET 8: interface,
 // RECT*) constructs the scrolling text surface (0x58 bytes), 005FCDD0 (RET 0xC: interface, RECT*,
@@ -598,7 +597,7 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrNull();
             words.Next();
             record.text = words.WordOrNull();
-            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back (0062C090)
+            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back
             lines.Next();
         }
         currentLine_ = lines_.First();

@@ -6,12 +6,10 @@
 // (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a
 // TLS slot or an object); the exit functions free them through the destructors here. afxData is
 // built by a static initialiser and its menu-dot bitmap deleted at exit.
-//
 // S3f added what the other static initialisers call: AfxClassInit (the runtime class list of the
 // module state) with MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush
 // (an atexit that deletes it). The module state is the original's in the hook build (AfxGetModuleState
 // at its address); the image has a stand-in with the members used so far (ImageModuleState).
-//
 // Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
 // runs them over the original's state; in the image nothing fills the locals (S8a's handle maps are
 // thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked in game by
@@ -58,7 +56,7 @@ struct CThreadSlotData {
     std::size_t nextOffset;     // +0x18 m_list.m_nNextOffset
     CRITICAL_SECTION section;   // +0x1C m_sect
 
-    // 0070C71F (RET 4): every thread's value of `slot` deleted and cleared, then the slot no longer in
+    // Every thread's value of `slot` deleted and cleared, then the slot no longer in
     // use; under the critical section.
     void FreeSlot(int slot);
 };
@@ -116,13 +114,13 @@ struct AuxData {
     BOOL smallCaption;          // +0x64 bSmCaption (= win4)
     BOOL marked4;               // +0x68 bMarked4 (the process is marked 4.0; picks the scroll metrics)
 
-    // 0070D1AA: the version flags, the metrics, the colours and the two standard cursors; returns this.
+    // The version flags, the metrics, the colours and the two standard cursors; returns this.
     AuxData* Construct();
-    // 0070E181: the menu-dot bitmap deleted (AfxDeleteObject).
+    // The menu-dot bitmap deleted (AfxDeleteObject).
     void Destruct();
-    // 00703E12: the button and frame colours and their brushes.
+    // The button and frame colours and their brushes.
     void UpdateSysColors();
-    // 00703E56: the icon size, the scroll metrics (by marked4), the screen's pixels per inch.
+    // The icon size, the scroll metrics (by marked4), the screen's pixels per inch.
     void UpdateSysMetrics();
     // 0070D158 / 0070D188 (cdecl, on afxData in the original): the scroll bar sizes. Marked 4.0: only on
     // Windows 4, one pixel larger, marked4 set; otherwise as the system has them, marked4 cleared.
@@ -134,7 +132,7 @@ static_assert(sizeof(AuxData) == 0x6C);
 // afxData.
 AuxData& AfxData();
 
-// ---- Module state, runtime class list, global locks (S3f) ----------------------------------------
+// ---- Module state, runtime class list, global locks ----------------------------------------
 
 // CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset`
 // bytes in.
@@ -142,7 +140,7 @@ struct CSimpleList {
     void* head;                 // +0x00 m_pHead
     std::size_t nextOffset;     // +0x04 m_nNextOffset
 
-    void AddHead(void* element);    // 0070C4E9 (RET 4)
+    void AddHead(void* element);
 };
 
 struct CRuntimeClass;
@@ -165,7 +163,7 @@ static_assert(offsetof(ModuleState, classList) == 0x1C);
 // The runtime classes' link offset (CRuntimeClass::m_pNextClass).
 constexpr std::size_t kNextClassOffset = 0x14;
 
-// AfxGetModuleState (0070CE8C): the calling thread's module state. The hook build calls the
+// AfxGetModuleState: the calling thread's module state. The hook build calls the
 // original's; the image registers ImageModuleState at that address: one module state for the
 // process, nothing in it but the class list. Its instance and resource handles stay null, as the
 // original's do (the game never runs AfxWinInit); AfxLoadString (mfc_resource.h) answers from a table in code.
@@ -178,7 +176,7 @@ ModuleState* __cdecl ImageModuleState();
 constexpr int kLockTypes = 17;
 constexpr int kRuntimeClassListLock = 0;
 
-// 0070C3C5: once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
+// Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
 // _afxCriticalInit.
 BOOL __cdecl AfxCriticalInit();
 // 0070C458 / 0070C4C8: lock type `lockType` entered (its critical section made on first use) / left.
@@ -189,12 +187,12 @@ void __stdcall AfxUnlockGlobals(int lockType);
 // CRIT_RUNTIMECLASSLIST. The static initialisers register five classes with it.
 void __stdcall AfxClassInit(CRuntimeClass* newClass);
 
-// _AfxInitDBCS (0070DC4D): whether the OEM code page has double-byte characters (its MaxCharSize above
+// _AfxInitDBCS: whether the OEM code page has double-byte characters (its MaxCharSize above
 // 1); the static initialiser stores it in _afxDBCS (007CAA98, a BOOL).
 BOOL __cdecl AfxInitDbcs();
 
 // wingdix.cpp: the halftone brush (_afxHalftoneBrush, made on first use by code the game never reaches) deleted at
-// exit by AfxWingdixTerm (0070B5F0), which the static initialiser 0070B600 registers with atexit.
+// exit by AfxWingdixTerm, which the static initialiser 0070B600 registers with atexit.
 void __cdecl AfxWingdixTerm();
 void __cdecl AfxWingdixTermInit();
 

@@ -1,9 +1,8 @@
-// The game CRT's x87 entry points with register arguments (S4c, docs/notes/standalone.md): _ftol (ST0 in, its
+// The game CRT's x87 entry points with register arguments (docs/notes/standalone.md): _ftol (ST0 in, its
 // 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow: ST1
-// and ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod, C26). A C++ function cannot be declared with that ABI, so each is a
+// and ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod). A C++ function cannot be declared with that ABI, so each is a
 // naked entry that moves its arguments to the stack and calls a plain C++ body; this file is the one in
 // src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
-//
 // Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
 // its x87 results (and the goldens recorded with them) stay the original's. verify_crt_x87.cpp
 // compared every entry with the original at start-up (until S21d).
@@ -60,7 +59,7 @@ unsigned Exponent(std::uint64_t bits) { return static_cast<unsigned>(bits >> 52)
 bool IsNan(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & kMantissa) != 0; }
 bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & kMantissa) == 0; }
 
-// The control word the _CI functions compute under (006EF665): rounding to nearest, every exception
+// The control word the _CI functions compute under: rounding to nearest, every exception
 // masked, the caller's precision kept, so their FADD / FSUB / FMUL / FSQRT round to the caller's
 // precision (24 bits on the game's main thread). The bodies compute at 53 bits and round with Round where
 // the original's instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
@@ -128,7 +127,7 @@ double Scale(double value, int exponent) {
     return std::ldexp(value, exponent);
 }
 
-// What the CRT's integer test (006E8395) says of y: 0 not an integer, 1 odd, 2 even (from the bits: the
+// What the CRT's integer test says of y: 0 not an integer, 1 odd, 2 even (from the bits: the
 // caller's precision must not round y * 0.5).
 int IntegerKind(double y) {
     const std::uint64_t bits = Bits(y);
@@ -158,7 +157,7 @@ double RoundToEven(double value) {
     return IntegerKind(down) == 1 ? down + 1.0 : down;
 }
 
-// _CIacos / _CIasin (006E733D / 006E83DD): |x| < 1 by FPATAN of the root of (1 + x)(1 - x) and x; +-1
+// _CIacos / _CIasin: |x| < 1 by FPATAN of the root of (1 + x)(1 - x) and x; +-1
 // exactly; NaN quietened; anything else the indefinite (with a domain error the game never reads).
 double ArcCosineOrSine(double x, bool sine) {
     const std::uint64_t bits = Bits(x);
@@ -176,7 +175,7 @@ double ArcCosineOrSine(double x, bool sine) {
     return sine ? x87::fpatan(x, root) : x87::fpatan(root, x);
 }
 
-// _powhlp (006F1527) for an infinite x or y (neither a NaN): the C limits; |x| == 1 to an infinite power is
+// _powhlp for an infinite x or y (neither a NaN): the C limits; |x| == 1 to an infinite power is
 // the indefinite.
 double PowerOfInfinity(double x, double y) {
     const double size = std::fabs(x);
@@ -213,7 +212,7 @@ std::int64_t __cdecl FtolExtended(const unsigned char* value) {
 double __cdecl CiAcos(double x) { return ArcCosineOrSine(x, false); }
 double __cdecl CiAsin(double x) { return ArcCosineOrSine(x, true); }
 
-// x^y (006E81C2): y log2(x) by FYL2X, then 2 to that as 2^n times the rounded 1 + (2^f - 1), f = t - n, n
+// x^y: y log2(x) by FYL2X, then 2 to that as 2^n times the rounded 1 + (2^f - 1), f = t - n, n
 // the nearest integer (F2XM1, FSCALE). A negative x needs an integer y (the result negated for an odd
 // one), a zero x gives 1, a zero or an infinity; NaNs propagate, infinities as C has them.
 double __cdecl CiPow(double x, double y) {

@@ -3,7 +3,7 @@
 // The world server's manager of server-side state objects (A-S7): CServerSpecificManager
 // (004D6900-004D6BA0, class id 0x31; created by 0058AE10) and the torch state object it makes for
 // type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
-// compiler makes their vtables (C19; game.exe's 0073D4F4 and 0073D558 are retired).
+// compiler makes their vtables (game.exe's 0073D4F4 and 0073D558 are retired).
 // server_specific_manager.cpp. Names from the classes' own GetClassName strings.
 
 #include "base_manager.h"
@@ -22,16 +22,16 @@ struct DeltaField;  // net_delta.h
 
 class CServerSpecificManager : public CBaseManager {
 public:
-    // 004D6900. CBaseManager's constructor.
+    // CBaseManager's constructor.
     CServerSpecificManager();
-    // 004D6960. CBaseManager's destructor.
+    // CBaseManager's destructor.
     ~CServerSpecificManager() override;
 
     // 11: 004D6920 "CServerSpecificManager" (the exe's string, 0078DAD0).
     const char* GetClassName() override;
     // 12: 004D6930 (0x31).
     int GetClassId() override;
-    // 14: 004D6970 (RET 4). A new object of `type`: 0x46 CObject3DServer (0x20 bytes, 0051F240),
+    // A new object of `type`: 0x46 CObject3DServer (0x20 bytes, 0051F240),
     // 0x47 CMapObjectServer (0x94), 0x48 CUnitServer (0xB20, 00545580), 0x49 the player's server
     // object (0x5128, 0066C540), 0x4B CTorchObjectSpec (constructed inline, then its Create);
     // null for any other type (0x4A too) or when the allocation fails.
@@ -46,28 +46,28 @@ public:
     // NewObject 004D6970 constructs it inline and calls Create; the client half's constructor
     // 0052D0D0 calls CreateSpec).
     CTorchObjectSpec();
-    // 004D6BA0. DestroySpec (the original's Destroy through the vtable), the name, the engine object.
+    // DestroySpec (the original's Destroy through the vtable), the name, the engine object.
     ~CTorchObjectSpec() override;
     // The deleting destructor (slot 0, 004D6B80) frees into the game's heap.
 
-    int Create() override { return CreateSpec(); }   // 2: 0052C610
-    void Destroy() override { DestroySpec(); }       // 3: 0052C680
+    int Create() override { return CreateSpec(); }
+    void Destroy() override { DestroySpec(); }
     int RunTick() override;                          // 6: 004D6B50 (1)
     void Load(CStream* stream) override;                // 9: 0052C490 LoadSpec
     void Save(CStream* stream) override;                // 10: 0052C500 SaveSpec
-    // 11: 004D6B60 "CTorchObjectSpec" (0078DAE8). 12: 004D6B70 (0x42).
+    // 11: 004D6B60 "CTorchObjectSpec". 12: 004D6B70 (0x42).
     const char* GetClassName() override;
     int GetClassId() override;
     // 13-15: empty here (004D6B20 / 30 / 40); the client half (torch_client_spec.h) shows its
-    // effects (0052D580), hides them (0052D610) and warms its particles up (0052D3F0).
+    // effects, hides them and warms its particles up.
     virtual void ShowEffectsSlot() {}       // 13
     virtual void HideEffectsSlot() {}       // 14
     virtual void WarmUpParticlesSlot() {}   // 15
     // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
     // through the vtable (the network read 0052C390, the world server's CreateObject 005927C0).
-    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }   // 16: 0052C590
-    virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }   // 17: 0052C5C0
-    virtual void SetNameSlot(const char* name) { SetName(name); }   // 18: 0052C600
+    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
+    virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }
+    virtual void SetNameSlot(const char* name) { SetName(name); }
 
     // torch_spec.cpp (A-U6). Slots 2 / 3 (0052C610 / 0052C680; other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours

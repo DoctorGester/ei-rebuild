@@ -28,11 +28,11 @@ constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer tic
 constexpr int kSoundStench = 0x13;
 constexpr int kSoundFeebleMind = 0x20;
 constexpr std::uint32_t kStenchPeriod = 0x10;
-constexpr float kLightHeight = 2.0f;                 // 0073DBE8
+constexpr float kLightHeight = 2.0f;
 constexpr float kEndSoundNear = 8.0f;                // pushed as 0x41000000
 constexpr float kEndSoundFar = 20.0f;                // 0x41A00000
-constexpr float kStenchNear = 10.0f;                 // 0073DBE0
-constexpr float kStenchFar = 50.0f;                  // 0073DBE4
+constexpr float kStenchNear = 10.0f;
+constexpr float kStenchFar = 50.0f;
 const char* const kEndSoundName = "magic\\end1.wav";
 const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
@@ -151,7 +151,7 @@ int CMapObjectClientSpecific::RunTick() {
             direction.x = followed->localPosition_.x - lightPosition.x;
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
-            TheTerrain()->MoveLight(lamp, &direction);   // 006CA830
+            TheTerrain()->MoveLight(lamp, &direction);
             followed = OwnerOf(this);
             float* position = PositionOf(light);
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));

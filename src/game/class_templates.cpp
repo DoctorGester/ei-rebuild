@@ -1,7 +1,6 @@
-// The class templates a new game builds (004A7630) and the item and spell lists each template
-// gets from the databases (004A7080). See class_templates.h and docs/notes/world.md
+// The class templates a new game builds and the item and spell lists each template
+// gets from the databases. See class_templates.h and docs/notes/world.md
 // ("Party records and class templates").
-//
 // The templates live in a vector of counted pointers at +0x38 of the object at 007AA5A0 (its +0x24
 // holds the parties). 004A88A0 builds five templates, 004A88C0 (from 0057F280) four.
 #include "class_templates.h"
@@ -52,7 +51,7 @@ void ListModifiers(CSpellManager* db, void*, console::CStringArray* names) { db-
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only): ItemStock::AddArmor and
 // the like (__thiscall (record)) append the record to one vector unless already there; AddMaterial
-// (00699260) also takes two counts.
+// also takes two counts.
 
 // The bit of the template's class (+0x08) in a record's class mask (SHL by CL: modulo 32).
 bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {

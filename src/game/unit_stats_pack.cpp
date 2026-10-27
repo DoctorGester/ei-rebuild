@@ -10,10 +10,10 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                    // 0073B858
-constexpr float kByteMax = 255.0f;               // 0073C370
-constexpr float kTwo = 2.0f;                     // 0073E02C
-constexpr float kSpeedScale = 25.5f;             // 0073E120
+constexpr float kZero = 0.0f;
+constexpr float kByteMax = 255.0f;
+constexpr float kTwo = 2.0f;
+constexpr float kSpeedScale = 25.5f;
 constexpr float kOne = 1.0f;
 constexpr int kNoNaturalWeapon = 8;              // UnitStats +0xAC after Reset
 constexpr int kResetSlotType = 4;

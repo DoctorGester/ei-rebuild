@@ -1,7 +1,7 @@
 // The global table at 0079C1A0 that levers look up (0052CA40 by the lever's +0xA4; loaded by the
 // Rebirth-patched 00463390 from WinMain): an STLport vector of 0x2C-byte records (CStrings at +0,
 // +0x20, +0x24, +0x28) and a hash map whose 0x14-byte nodes hold a vector at +4. Its constructor
-// (004632A0) runs from a static initializer, before the hooks are installed; the destructor
+// runs from a static initializer, before the hooks are installed; the destructor
 // (00463120, registered with atexit through the thunk 00463110) is rewritten here. The STL members
 // it inlines are library code. See docs/notes/app.md.
 #include "lever.h"
@@ -38,21 +38,21 @@ static_assert(sizeof(Table) == 0x20);
 constexpr std::size_t kRecordSize = 0x2C;
 
 // The node allocator's deallocate (004648D0, thiscall on the count's allocator proxy); the bucket
-// storage's deallocate (00406590).
+// storage's deallocate.
 void BucketsDeallocate(HashNode** buckets, std::size_t n) { stlp::deallocate(buckets, n * sizeof(HashNode*)); }
 
 void DestroyString(std::uint8_t* p) { reinterpret_cast<mfc::CString*>(p)->~CString(); }
 
 } // namespace
 
-// 00463120: the hash map (nodes, then the bucket storage), then the records and their storage
+// The hash map (nodes, then the bucket storage), then the records and their storage
 // (operator delete above 128 bytes, else back to the node pool's free list at 0079B224).
 void __fastcall LeverTableDestruct(Table* self) {
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(self->bucketsEnd - self->buckets); ++i) {
         for (HashNode* node = self->buckets[i]; node;) {
             HashNode* next = node->next;
             node->value.FreeStorage();   // 00464DF0 (flags 0)
-            stlp::deallocate(node, 20);   // 004648D0
+            stlp::deallocate(node, 20);
             node = next;
         }
         self->buckets[i] = nullptr;
@@ -79,16 +79,16 @@ EI_REWRITTEN(0x00463120, LeverTableDestruct);
 } // namespace levertable
 
 // The table, empty at the start: built by the static initialiser 004630F0 in the list's order and destroyed by the exit
-// function it registers (00463110); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
 
 namespace {
-void __cdecl ConstructLeverTable() {   // 004630F0
+void __cdecl ConstructLeverTable() {
     g_leverTable->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00463110));
 }
-void __cdecl DestroyLeverTable() {   // 00463110
+void __cdecl DestroyLeverTable() {
     levertable::LeverTableDestruct(reinterpret_cast<levertable::Table*>(&g_leverTable.Get()));
 }
 } // namespace

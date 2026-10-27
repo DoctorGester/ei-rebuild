@@ -12,10 +12,10 @@ namespace game {
 inline constexpr char kEmptyText[1] = /*0079B298*/ "";
 inline const char* EmptyText() { return kEmptyText; }
 
-// The texture manager's FatalError (00691D80).
+// The texture manager's FatalError.
 inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }
 
-// The window surfaces' FatalDirectX (005FCC00 / 005FD120).
+// The window surfaces' FatalDirectX.
 inline const char* CantGetSurfaceDescriptionText() { return "Can't get surface description.\n"; }
 // 005FCF80's picture file name.
 inline const char* MmpExtensionText() { return ".mmp"; }
@@ -62,7 +62,7 @@ inline const char* SpellContainerText() { return "spell container"; }
 inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
 inline const char* TutorialLineFormat() { return "%s %d\n"; }
 
-// The flying hit points' draw (005E18E0): the amount's format and its FatalError.
+// The flying hit points' draw: the amount's format and its FatalError.
 inline const char* DecimalFormat() { return "%d"; }
 inline const char* FlyingHitPointsTextureText() { return "CFlyingHitPoints::Draw.\n SetTexture failed.\n"; }
 

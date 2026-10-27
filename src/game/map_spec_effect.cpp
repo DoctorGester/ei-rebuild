@@ -53,7 +53,7 @@ void MakeEffect(EffectSpec* self) {
 
 } // namespace
 
-// ---- The base (0073C728) ------------------------------------------------------------------------
+// ---- The base ------------------------------------------------------------------------
 
 // The records' destructors are the base record's.
 EffectSpec::~EffectSpec() = default;
@@ -93,12 +93,12 @@ void EffectSpec::Move(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x0046D420, EffectSpec::Move);
 
-// 0046D4D0 (RET 8): takes the two strings by value and only destroys them (the callee destroys
+// Takes the two strings by value and only destroys them (the callee destroys
 // its by-value parameters).
 void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
 EI_REWRITTEN(0x0046D4D0, EffectNotify);
 
-// ---- Particle sources (0073C758) ------------------------------------------------------------------
+// ---- Particle sources ------------------------------------------------------------------
 
 ParticleSpec::ParticleSpec() {
     type = 0;
@@ -154,7 +154,7 @@ void ParticleSpec::Apply() {
 }
 EI_REWRITTEN(0x0046D870, ParticleSpec::Apply);
 
-// ---- Lights (0073C788) -----------------------------------------------------------------------------
+// ---- Lights -----------------------------------------------------------------------------
 
 LightSpec::LightSpec() {
     colour.x = 1.0f;
@@ -215,7 +215,7 @@ void LightSpec::Apply() {
 }
 EI_REWRITTEN(0x0046DD70, LightSpec::Apply);
 
-// ---- Sounds (0073C7B8) -------------------------------------------------------------------------------
+// ---- Sounds -------------------------------------------------------------------------------
 
 SoundSpec::SoundSpec() {
     sounds.Construct();

@@ -25,7 +25,7 @@
 namespace {
 
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
-// FindPlayer (0041A2E0) is the player record with that id, or null.
+// FindPlayer is the player record with that id, or null.
 net::ServerSession* ActiveGameServer() {
     net::ServerSession* server = net::GameServer();
     if (!server || (server->flags7_ & CRefCounted::kDetached)) return nullptr;
@@ -89,7 +89,7 @@ int CWorldServer::CountLivingMercs(int id) {
     int living = 0;
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         unsigned unitId = player->Party()->members_.data[i].unitId;
-        CEngineObject* unit = FindUnit(static_cast<int>(unitId));   // 0055FB00
+        CEngineObject* unit = FindUnit(static_cast<int>(unitId));
         if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
     }
     return living - 1;
@@ -109,7 +109,7 @@ void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
         const SharedObject& current = node->data;
         node = node->next;
         if (current.player != player && current.player != -1) continue;   // -1: every player
-        if (CEngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);   // 0055FB00
+        if (CEngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
     }
 }
 
@@ -157,7 +157,7 @@ void CWorldServer::AddTimedObject(CEngineObject* object) {
     auto* effect = static_cast<CEffect*>(object);
     effect->startTick_ = tick_;
     ++object->refCount_;
-    effect->MarkChanged();   // 00675CA0: flags_ |= 2, stamped with 007AFFC8
+    effect->MarkChanged();   // flags_ |= 2, stamped with 007AFFC8
     unsigned id = static_cast<unsigned>(object->id_);
     timedObjects_.Set(id, object);
 }
@@ -208,7 +208,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
     object->flags_ |= 1;
-    ScriptPurgeDeletedObjects(MainScript());     // 004BED90: what refers to removed objects dropped
+    ScriptPurgeDeletedObjects(MainScript());     // what refers to removed objects dropped
     ScriptPurgeDeletedObjects(SecondScript());
 
     // Every world object forgets it (the walk stops at an entry without an object).
@@ -218,9 +218,9 @@ void CWorldServer::RemoveObject(unsigned id) {
     for (auto* node = projectiles_.head; node;) {
         auto* current = node;
         node = node->next;
-        // 0067EF00: 0 when the missile's owner left (the missile is then dropped).
+        // 0 when the missile's owner left (the missile is then dropped).
         if (!current->data->Forget(object))
-            mfc::impl::RemoveAtAs<gamelists::Refs>(&projectiles_, current);   // 00599CC0
+            mfc::impl::RemoveAtAs<gamelists::Refs>(&projectiles_, current);
     }
     {
         PlayerIterator players;
@@ -241,7 +241,7 @@ void CWorldServer::RemoveAllUnits() {
         bool isUnit = object->GetClassId() == world::kClassUnit;
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
-        if (isUnit) RemoveObject(static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
+        if (isUnit) RemoveObject(static_cast<int>(id));   // Rebirth patches it (rule 9)
     } while (node);
 }
 EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);

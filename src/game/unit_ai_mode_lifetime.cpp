@@ -1,7 +1,7 @@
 // The unit AI modes' lifetime and constant slots: the Player and Patrol constructors (005D3760,
-// 005D0F60), the Patrol and Fear destructors (005D1240 / 005D1220, 005D2950 / 005D2930), their
-// GetType slots (005D1210, 005D2920), the abstract base's Execute (005D0A90), the abstract bases'
-// constructors (005D8850, 005D6D10) and the patrol point array's destructors (005D8CF0, 005D8CD0).
+// 005D0F60), the Patrol and Fear destructors, their
+// GetType slots, the abstract base's Execute, the abstract bases'
+// constructors and the patrol point array's destructors.
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -19,9 +19,9 @@ constexpr int kRemarkIdle = 1;
 constexpr int kTypePatrol = 1;
 constexpr int kTypeFear = 7;
 
-// The patrol points' tables as compiled collections (C19, mfc_slots.h) in place of game.exe's 0073FF74 (the
+// The patrol points' tables as compiled collections (mfc_slots.h) in place of game.exe's 0073FF74 (the
 // constructors store it) and 0073FF80 (the destructors': the base's), which have the same slots: 1 the destructor
-// (PatrolPointArray::DeletingDestruct, 005D8CD0 / its copy 005D9D00), 2 the 0x20-byte records' Serialize (005D9610).
+// (PatrolPointArray::DeletingDestruct, 005D8CD0 / its copy 005D9D00), 2 the 0x20-byte records' Serialize.
 void __fastcall DestructPatrolPoints(PatrolPointArray* points) { points->Destruct(); }
 struct PatrolPointsBaseClass : mfc::impl::CompiledCollection<PatrolPointsBaseClass, &DestructPatrolPoints,
                                                              &mfc::impl::AiLookRecords::Serialize> {};
@@ -83,7 +83,7 @@ PatrolMode::~PatrolMode() { points.Destruct(); }
 EI_REWRITTEN_SPECIAL(0x005D1240, PatrolMode::~PatrolMode);
 EI_REWRITTEN_SPECIAL(0x005D1220, PatrolMode::~PatrolMode);
 
-// 005D1140 (slot 2): destroyed and built again in place (the reference count kept).
+// Destroyed and built again in place (the reference count kept).
 int PatrolMode::OnShutdown() {
     points.Destruct();
     ClearPoints(points);
@@ -105,7 +105,7 @@ PatrolPoint* PatrolPointArray::CopyAt(PatrolPoint* out, int index) const {
 EI_REWRITTEN(0x005D9E40, PatrolPointArray::CopyAt);
 EI_REWRITTEN(0x005D9590, PatrolPointArray::CopyAt);
 
-// 005D0F90 (slot 3): a copy with its own points, each through a temporary copy of the source point
+// A copy with its own points, each through a temporary copy of the source point
 // (PatrolPointArray::CopyAt) whose looks are freed after.
 PatrolMode* PatrolMode::Clone() {
     auto* clone = new PatrolMode();

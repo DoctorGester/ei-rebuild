@@ -1,7 +1,6 @@
 // Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
 // every creature on the server) and the animation queue and order states it drives. See combat.h,
 // combat_plan.h and docs/notes/combat.md ("Update").
-//
 // The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
 // the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
 // +0x15C) and sets +0x144 until it is restored. The plan of the order being carried out is the
@@ -71,7 +70,7 @@ constexpr int kRemarkBored = 0x29;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-// 0073C548: how much faster a dead body sinks every update.
+// How much faster a dead body sinks every update.
 float SinkAcceleration() { return 0.01f /*0073C548*/; }
 int TickOf(const CWorld* world) { return world->tick_; }
 int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
@@ -138,7 +137,7 @@ struct LocalSteps {
     LocalSteps& operator=(const LocalSteps&) = delete;
 };
 
-// A copy of the plan's animation (00556870) with its extra dword, destroyed at the end.
+// A copy of the plan's animation with its extra dword, destroyed at the end.
 struct PlanCopy {
     AnimationSteps steps;
     explicit PlanCopy(const AnimationSteps& from) {
@@ -198,7 +197,7 @@ int CUnitServer::RunTick() {
             presence = TheServerWorld()->AIEvents()->StepNoise(&unit->localPosition_, this);
         }
         TickItemSpells();
-        if (unit->player != nullptr) {   // 005301A0
+        if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
             Brain()->memory.MeasureExposure(this, unit->levels4C8);
             unit->MarkChanged(0xC);
@@ -530,7 +529,7 @@ void CUnitServer::TickAction() {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
         Queue(this).CopySteps(plan.animation);
         QueueTime(this) = plan.animation.extra;
-        Queue(this).Assign(plan.animation);   // 005483C0
+        Queue(this).Assign(plan.animation);
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -713,7 +712,7 @@ void CUnitServer::RefreshItemSpells() {
         if (tail) tail->next = added;
         else head = added;
         tail = added;
-        CItem* previous = added->data.item;   // a reference's assignment (00429B50)
+        CItem* previous = added->data.item;   // a reference's assignment
         added->data.item = item;
         if (item) ++item->refCount_;
         if (previous) previous->Release();
@@ -728,7 +727,7 @@ void CUnitServer::RefreshItemSpells() {
         else current->prev->next = current->next;
         if (current == tail) tail = current->prev;
         else current->next->prev = current->prev;
-        mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);   // 00558B80
+        mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);
     }
     others.vtable = mfc::impl::LootListClass::Vtable();
     others.RemoveAll();

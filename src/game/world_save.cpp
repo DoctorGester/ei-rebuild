@@ -59,7 +59,7 @@ constexpr int kVersionMobFiles = 0x60;
 constexpr int kVersionSharedObjects = 0x6E;
 constexpr int kVersionMapObjectName = 0x59;
 
-// Progress screen stages LoadSave shows (005DA400).
+// Progress screen stages LoadSave shows.
 constexpr int kProgressStart = 0;
 constexpr int kProgressZone = 1;
 constexpr int kProgressManagers = 5;
@@ -97,15 +97,15 @@ void WriteCopy(WorldStream* stream, const T& value) {
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
-// 00461190 (RET 4). Reads a zero-terminated string; constructs the CString at `out` and returns it.
-// 005DA400. Shows the loading screen at `stage` (ECX).
+// Reads a zero-terminated string; constructs the CString at `out` and returns it.
+// Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
 
 namespace {
 void ObjectPtrArrayDestruct(ObjectPtrArray* a) { mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*a)); }
-// 0059CA60: the shared-object list's NewNode (the element's array header built).
+// The shared-object list's NewNode (the element's array header built).
 SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode* prev, SharedObjectNode* next) {
     return mfc::impl::NewNodeAs<mfc::impl::SharedObjectNewList>(list, prev, next);
 }
@@ -266,7 +266,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         if (stream->version_ >= kVersionPlayerLists) {
             DwordList& ids = player->recharging_;
             int count = ReadValue<int>(stream);
-            for (int i = 0; i < count; ++i) ids.AddTail(0);   // 0059CC60
+            for (int i = 0; i < count; ++i) ids.AddTail(0);
             for (auto* node = ids.head; node;) {
                 auto* next = node->next;
                 stream->Read(&node->data, 4);
@@ -321,7 +321,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
     zoneName_ = zoneName;
-    SelectLoadingMovie(zoneName);   // 00595080
+    SelectLoadingMovie(zoneName);
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
@@ -408,7 +408,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
-            if (stream->version_ >= kVersionCountdowns)   // the countdowns are a tween array (006D4660)
+            if (stream->version_ >= kVersionCountdowns)   // the countdowns are a tween array
                 countdowns_.LoadEntries(stream);
 
             // Counted references to items (added at the head of the list).
@@ -612,7 +612,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);
-    countdowns_.Save(stream);   // 006D47E0
+    countdowns_.Save(stream);
 
     for (auto* node = counted_.head; node;) {
         auto* next = node->next;
@@ -658,21 +658,21 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
 namespace {
 
-// 0059B8F0 (RET 4). CArray<CRefPtr>::Copy (gamearrays::ObjectPtrCopy).
+// CArray<CRefPtr>::Copy (gamearrays::ObjectPtrCopy).
 void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
     to->CopyFrom(*from);
 }
-// 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
+// Releases `count` counted pointers from `data` (CArray DestructElements).
 void CountedRangeRelease(CItem** items, int count) {
     for (int i = 0; i < count; ++i)
         if (items[i]) items[i]->Release();
 }
-// 00403F40 (RET 4). The item manager's (007AFFB4, WorldItemManager) object by id, or null.
+// The item manager's (007AFFB4, WorldItemManager) object by id, or null.
 
 // SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
 void Append(ObjectPtrArray& array, CItem* object) {
     int index = array.size;
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(array).SetSize(index + 1, -1);   // 0059C8C0
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(array).SetSize(index + 1, -1);
     CItem* old = array.data[index];
     array.data[index] = object;
     if (object) ++object->refCount_;
@@ -715,7 +715,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     int player = -1;
     net::ServerSession* session = net::GameServer();
     if (session && !(session->flags7_ & CRefCounted::kDetached))
-        if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;   // 0041A2E0
+        if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;
 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
@@ -747,7 +747,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 
 namespace {
 
-// 00525AF0. UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
+// UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
 
 } // namespace
 
@@ -783,7 +783,7 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
 
 int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;
-    SelectLoadingMovie(zone);   // 00595080
+    SelectLoadingMovie(zone);
     ShowLoadProgress(kProgressStart);
     if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;

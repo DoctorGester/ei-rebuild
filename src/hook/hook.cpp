@@ -18,7 +18,7 @@ namespace ei {
 
 static HookEntry* g_hooks = nullptr;
 
-// The standalone image's code table (src/standalone/image_code.cpp, S18i).
+// The standalone image's code table (src/standalone/image_code.cpp).
 void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed);
 
 // Every address InstallHooks took, in install order, with its code (the replacement, or a recorder in game.exe,
@@ -286,7 +286,7 @@ int InstallHooks() {
         }
         Log("EI_VECTORS set: the original game code with the vector recorders only");
     }
-    // game.exe's file, in the original's process (the recorders' stolen bytes). The image reads none (S18k): its
+    // game.exe's file, in the original's process (the recorders' stolen bytes). The image reads none: its
     // data comes from a 1.06 game.exe at build time (tools/gen_image_cells.py checks the timestamp), and a
     // registration's address is a function start of game.exe's code.
     std::vector<unsigned char> file;

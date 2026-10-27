@@ -1,6 +1,6 @@
 // Small virtual slots of a map object's companions (A-U12): the base companion (game.exe's vtable
-// 0073DC54; its slots are what the server's CMapObjectServer, 0073DD6C, mostly keeps) and the client's
-// CMapObjectClientSpecific (0073DBEC). Slot names: CMapObjectCompanion (map_object.h).
+// Its slots are what the server's CMapObjectServer, 0073DD6C, mostly keeps) and the client's
+// CMapObjectClientSpecific. Slot names: CMapObjectCompanion (map_object.h).
 #include "map_object.h"
 #include "effects.h"       // CParticleSource
 #include "net_delta.h"

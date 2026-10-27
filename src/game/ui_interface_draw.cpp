@@ -30,7 +30,7 @@ namespace {
 // The bars' share of the screen height (00740150; read from the exe's memory).
 float LetterboxShare() { return 0.217f /*00740150*/; }
 
-constexpr float kOpaque = 255.0f;     // 0073C370
+constexpr float kOpaque = 255.0f;
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
 
 // IDirect3DDevice7::SetRenderState, recorded for the frame capture as the other ported draws do.
@@ -45,7 +45,7 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
     return screen;
 }
 
-// --- The overlays (005F5320) ---
+// --- The overlays ---
 
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
 int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }

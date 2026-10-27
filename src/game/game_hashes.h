@@ -39,7 +39,7 @@ using DressedTable = UnitSet::DressedTable;
 using DressedAbi = stlp::HashtableAbi<DressedTraits>;
 
 struct FiguredGroupPair : FiguredGroupsTable::Value {
-    // 0055ABB0 (RET 8). pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
+    // Pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
     // table (its functor bytes, then _M_copy_from). Returns this.
     FiguredGroupPair* Construct(const std::uint32_t* from, const FiguredTable* table);
 };
@@ -61,7 +61,7 @@ struct ShapeTraits {
     static void Construct(Value* to, const Value& from) { to->Construct(&from.key, &from.value); }
     static void Destroy(Value* p) { DestroyShapePair(p); }
 };
-// 005BE090 (RET 4). The shape cache's operator[]: a pair of a copy of the handle and a null
+// The shape cache's operator[]: a pair of a copy of the handle and a null
 // RefPtr, find_or_insert of it, the pair destroyed. The node's RefPtr.
 struct ShapeTable : stlp::hashtable<ShapeTraits> {
     RefPtr* At(const ShapeCacheHandle* handle);

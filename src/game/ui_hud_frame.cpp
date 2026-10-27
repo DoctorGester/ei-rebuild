@@ -2,7 +2,6 @@
 // face with the time of day, moves the hand and the speed dial and makes the pause button blink
 // while the game is paused; the top panel (CHudTopPanel::Update, 00649FF0) slides in and out.
 // See docs/notes/ui.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
@@ -53,7 +52,7 @@ float BlinkBase() { return 1.4f /*0073CDF8*/; }   // 1.4
 float PulseAmplitude() { return 0.3f /*0073C54C*/; }   // 0.3
 float PulseMiddle() { return 0.7f /*0073C538*/; }   // 0.7
 float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
-bool GamePaused() { return TheClientWorld()->paused_ != 0; }   // 00578D50
+bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling

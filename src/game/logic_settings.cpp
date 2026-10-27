@@ -1,4 +1,4 @@
-// LogicSettings::Load (005CE0F0): the logic settings from their registry file. See logic_settings.h.
+// LogicSettings::Load: the logic settings from their registry file. See logic_settings.h.
 #include "logic_settings.h"
 
 #include "registry.h"

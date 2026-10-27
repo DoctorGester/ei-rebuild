@@ -1,4 +1,4 @@
-// The destructors the compiler wrote for the world's classes (S13a): the bodies the exe's vtables
+// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables
 // reach through their slot 0 (the scalar deleting destructors), the members destroyed last to
 // first after the class's own teardown. The containers are the library's (lib/mfc.h CArray /
 // CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked in game by
@@ -68,7 +68,7 @@ struct ReleasedElements {
             if (*slot) (*slot)->Release();
     }
 };
-// A missile: its counted pointer released (0059B4B0).
+// A missile: its counted pointer released.
 struct ProjectileElements {
     static void Construct(CSpellEffect**, int) {}
     static void Destruct(CSpellEffect** slot, int count) {
@@ -138,9 +138,9 @@ EI_REWRITTEN_SPECIAL(0x0055EC60, CWorld::~CWorld);
 
 CParticleManager::CParticleManager() {
     mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
-    held_.Construct(100);   // 005725E0
+    held_.Construct(100);
     maxHeldId_ = 0;
-    ParticleManagerClearQuietStart(this);   // 004981A0
+    ParticleManagerClearQuietStart(this);
 }
 
 CParticleManager::~CParticleManager() {

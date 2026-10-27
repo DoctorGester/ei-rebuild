@@ -14,8 +14,8 @@
 
 namespace {
 constexpr int kNoKey = -123;                    // slot 40: the object asks for no key
-constexpr float kNoSpeed = 0.0f;                // 0073B858
-constexpr float kPlainRadius = 0.75f;           // 0073C524
+constexpr float kNoSpeed = 0.0f;
+constexpr float kPlainRadius = 0.75f;
 constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
 constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has not been written
 } // namespace
@@ -46,7 +46,7 @@ EI_REPLACE(0x0050F0C0, MapObjectZero);
 EI_REPLACE(0x0050F0D0, MapObjectZero);
 EI_REPLACE(0x0050E4F0, MapObjectZero);
 
-// 0050F110 (slot 42, RET 4): no key is accepted.
+// No key is accepted.
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
 EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 
@@ -54,11 +54,11 @@ EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 bool CMapObject::AcceptsAnyAnimation(const void* /*animation*/) { return true; }
 EI_REWRITTEN(0x0050E400, CMapObject::AcceptsAnyAnimation);
 
-// 0050E960 (slot 33, RET 4): a scaling effect came or went; 1.
+// A scaling effect came or went; 1.
 int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
 EI_REWRITTEN(0x0050E960, CMapObject::ScaleEffectChangedDefault);
 
-// 0050F0E0 (slot 40): the key the object asks for; none.
+// The key the object asks for; none.
 int __fastcall MapObjectKeyId(CMapObject*) { return kNoKey; }
 EI_REWRITTEN(0x0050F0E0, MapObjectKeyId);
 
@@ -123,7 +123,7 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
-// --- The virtual slots (vtable 0073DAA0) for the compiler's tables (C19) -------------------------------
+// --- The virtual slots (vtable 0073DAA0) for the compiler's tables -------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.
 
 void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }

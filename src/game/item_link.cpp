@@ -1,6 +1,5 @@
 // The item link record (CItemLink, item.h; a counted value the world server hangs on an item's
 // +0x1C). game.exe's table was 0073FA88; its slot 0 is the counted value's deleting destructor
-// (0058FBC0).
 #include "item.h"
 
 #include "ei/hook.h"

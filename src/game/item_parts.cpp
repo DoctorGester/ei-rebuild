@@ -1,4 +1,4 @@
-// Weapon model parts: the names of the figure parts a weapon is drawn with (006A0FF0, 006A1780).
+// Weapon model parts: the names of the figure parts a weapon is drawn with.
 #include "item.h"
 
 #include "console.h"

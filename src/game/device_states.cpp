@@ -1,7 +1,7 @@
 // Small device-state setters of the old renderer, rewritten so the new renderer's state mirror
 // (src/render/render_state.h) gets their values: the renderer's fog colour (00501AB0, virtual slot 0
 // of the renderer 007AF060), its blend factors (00501C60, slot 10: the particles' additive / normal
-// switch) and the device object's material (004EB170). See docs/notes/renderer.md ("Pass state").
+// switch) and the device object's material. See docs/notes/renderer.md ("Pass state").
 #include "app.h"
 #include "device.h"
 #include "device_material.h"

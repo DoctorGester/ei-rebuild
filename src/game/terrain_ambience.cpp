@@ -73,13 +73,13 @@ struct ClassVotes {
 };
 static_assert(sizeof(ClassVotes) == 0x24);
 
-constexpr float kRadiusCells = 48.0f;       // 0074420C
-constexpr float kSectorCells = 32.0f;       // 0073CA90
-constexpr float kSpotCells = 16.0f;         // 0073CA98: a one-shot lands within +-16 cells of its sector's offset
-constexpr float kMinWeight = 0.001f;        // 0073CCF4
-constexpr float kPercent = 100.0f;          // 0073BAB0
-constexpr float kPi = 3.14159274f;          // 007441C8
-constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
+constexpr float kRadiusCells = 48.0f;
+constexpr float kSectorCells = 32.0f;
+constexpr float kSpotCells = 16.0f;         // a one-shot lands within +-16 cells of its sector's offset
+constexpr float kMinWeight = 0.001f;
+constexpr float kPercent = 100.0f;
+constexpr float kPi = 3.14159274f;
+constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
 float CellSize() { return 1.0f /*007441D0*/; }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
@@ -88,7 +88,7 @@ constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
 
-// 006CB360: by weight, highest first (an unordered pair sorts "after").
+// By weight, highest first (an unordered pair sorts "after").
 int __cdecl ByWeight(const void* a, const void* b) {
     float wa = static_cast<const ClassVotes*>(a)->weightSum;
     float wb = static_cast<const ClassVotes*>(b)->weightSum;

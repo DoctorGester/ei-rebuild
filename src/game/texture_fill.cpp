@@ -1,4 +1,4 @@
-// Loading a .bmp texture with its alpha file (00690260). (The fill of a texture's system-memory
+// Loading a .bmp texture with its alpha file. (The fill of a texture's system-memory
 // surface from .mmp data, 0068FA10 with its three fills 00690970 / 00690B30 / 00690D30, went with
 // the DirectDraw textures in R11b: the new renderer decodes the .mmp file, texture_mmp.cpp.)
 #include "texture.h"

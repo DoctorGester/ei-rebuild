@@ -33,10 +33,10 @@ using PlaceElement = stlp::PlainElement<float>;
 // others; erase a range 006AFB60, clear 0052E010, reserve 006B02B0, push_back from a CString
 // 006AF790).
 using ListElement = stlp::ObjectElement<mfc::CString>;
-// The quest and briefing vectors' push_back (006B0710 / 006B0780).
+// The quest and briefing vectors' push_back.
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
-// The quest index: find by the record's name (006B0870), clear (006B0520), operator[] (0064EE90).
+// The quest index: find by the record's name, clear, operator[].
 // The briefing index: find 006B07C0 / 006B0930, clear 006B0590, operator[] 004297A0; the
 // add-unless-present used for the later briefings 006B0600.
 
@@ -153,7 +153,7 @@ void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord*
 
 } // namespace
 
-// 006AE8E0 (RET 4). `image` is the quest's registry file in memory. Returns false when it is not a
+// `image` is the quest's registry file in memory. Returns false when it is not a
 // registry, true otherwise.
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
@@ -180,9 +180,9 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         ReadReceiveBriefing(reg, db, briefing);
         ReadRejectBriefing(reg, db, briefing);
         ReadCompleteBriefing(reg, db, briefing);
-        briefing->Destruct();   // 006AF5A0
+        briefing->Destruct();
     }
-    quest->Destruct();   // 006AF4D0
+    quest->Destruct();
     reg.Destroy();
     return true;
 }

@@ -7,7 +7,7 @@
 #include <cstdint>
 
 namespace {
-constexpr float kColourScale = 255.0f;   // 0073C370
+constexpr float kColourScale = 255.0f;
 } // namespace
 
 void CSceneRenderer::SetFogColour(float r, float g, float b) {

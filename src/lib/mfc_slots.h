@@ -34,12 +34,11 @@ struct ScalarDeleting {
     }
 };
 
-// std::exception's destructor (006E7DA8), which the exception classes' own destructors jump to (0040C4A0,
+// std::exception's destructor, which the exception classes' own destructors jump to (0040C4A0,
 // 0040C4D0, 0040C500, 0041F760).
 void __fastcall ExceptionDestruct(libcrt::Exception* self);
 
 // ---- Serialize (vtable slot 2, RET 4) --------------------------------------------------------------
-//
 // afxtempl.h's Serialize with the default SerializeElements: each element as its raw bytes (ar.Write
 // / ar.Read of sizeof(TYPE)), whatever it holds. CObject::Serialize first is empty. `Abi` is the
 // instantiation's (mfc_array.h, mfc_list.h): its element and how SetSize / NewNode build one.
@@ -140,20 +139,19 @@ void MapAbi<K, V>::Serialize(CArchive* ar) {
     }
 }
 
-// ---- Compiler-made vtables (C19) -------------------------------------------------------------------
-//
+// ---- Compiler-made vtables -------------------------------------------------------------------
 // The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table
 // its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose
 // vtable the compiler makes in place of game.exe's table for the instantiation (docs/notes/standalone.md,
 // "Compiler-made vtables"): CObject's three slots over the header's layout (the CArray / CList whose first field
-// holds the table). Slot 0 is CObject's GetRuntimeClass (007005E3), slot 1 the destructor `Destroy` (the
+// holds the table). Slot 0 is CObject's GetRuntimeClass, slot 1 the destructor `Destroy` (the
 // instantiation's own: the table written, the elements destroyed, the storage freed; the compiler's scalar deleting
 // destructor frees the object into the game's heap), slot 2 Serialize (`Store`). Our code calls the header's
 // functions by name; the slots are what the original's dispatch through the table reaches (DestructElements' slot 1
 // on an element that is a collection, CArchive's slot 2). A tag derived from another is the derived
 // instantiation's (its destructor ends in the base's, which stores the base's table, as the original's does).
 
-// CObject::GetRuntimeClass (007005E3): CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
+// CObject::GetRuntimeClass: CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
 struct CRuntimeClass;
 const CRuntimeClass* ObjectRuntimeClass();
 
@@ -190,7 +188,7 @@ protected:
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
-// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
+// AIAttention::Choose's 12-byte records: -1, then 0.
 struct Attention12 {
     int id;
     int value;
@@ -203,7 +201,6 @@ inline void InitAttention12(Attention12* p) {
 using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 
 // ---- The container instantiations of mfc_array.h and mfc_list.h ----------------------------------
-//
 // Their tags are declared there (the element policies and aliases name them) and defined here: one class per vtable,
 // each with the slots the exe's table has (the instantiation's destructor and Serialize). A tag that is a base of
 // another is not final (the base is defined first); the derived tag's table calls the base's destructor.
@@ -327,14 +324,14 @@ struct AiMapListClass final
 // The AI plan's waypoint lists
 struct WaypointListClass final
     : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &List12::Serialize> {};
-// The list a static initialiser builds (005CDAD0)
+// The list a static initialiser builds
 struct StaticListClass final
     : CompiledCollection<StaticListClass, &PtrList::Destruct<StaticListClass>, &List30::Serialize> {};
 // The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
 struct DwordMapClass final
     : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &Map32::Serialize> {};
 
-// The animation list's copy constructor of the steps' array alone (00556870): the copy tag's table written first.
+// The animation list's copy constructor of the steps' array alone: the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
     Array::Construct(AnimationStepsCopyClass::Vtable());
     Array::Copy(*source);
@@ -395,14 +392,14 @@ using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
 // The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
 using DwordMap = CMap<std::uint32_t, std::uint32_t>;
 using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
-// {id, CString}: the string empty (004553F0); its destructor (0044C490).
+// {id, CString}: the string empty; its destructor.
 using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, InitWithString<8, 4>,
                                                             DestroyStringsAt<WithString<8, 4>, 4>>>;
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
-// Inside the scene loader's 0x120-byte node records (00454F80).
+// Inside the scene loader's 0x120-byte node records.
 struct NodeItemsAClass final
     : CompiledCollection<NodeItemsAClass, &ArrayHeader<NodeItemsAClass>::Destruct, &Plain20::Serialize> {};
 struct NodeItemsBClass final
@@ -504,13 +501,11 @@ struct TokenPtrArrayClass final
 // The scroll text's line pointers.
 struct LinePtrArrayClass final
     : CompiledCollection<LinePtrArrayClass, &ArrayHeader<LinePtrArrayClass>::Destruct, &Plain4::Serialize> {};
-// The terrain builder's arrays (006CBE60).
+// The terrain builder's arrays.
 struct TerrainArrayAClass final
     : CompiledCollection<TerrainArrayAClass, &ArrayHeader<TerrainArrayAClass>::Destruct, &Plain4::Serialize> {};
-// (006CC2A0, 006CC3E0).
 struct TerrainArrayBClass final
     : CompiledCollection<TerrainArrayBClass, &ArrayHeader<TerrainArrayBClass>::Destruct, &Plain16::Serialize> {};
-// (006CC530).
 struct TerrainArrayCClass final
     : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &Plain4::Serialize> {};
 

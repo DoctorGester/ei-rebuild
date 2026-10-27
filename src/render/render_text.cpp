@@ -307,7 +307,6 @@ std::u32string DecodeCp1251(const char* text, int count) {
 }
 
 // ---- Layout -------------------------------------------------------------------------------------------
-//
 // The rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts; the synthetic
 // cases in tools/text_check check each of them):
 // - Lines end at CR or LF; CR LF and LF CR count as one break. A break at the very end still makes an

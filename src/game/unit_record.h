@@ -58,7 +58,7 @@ static_assert(sizeof(UnitRecordStats) == 0xAC);
 
 class UnitRecord {
 public:
-    // 00477B00. Applies the record to `unit`.
+    // Applies the record to `unit`.
     void ApplyTo(CUnit* unit);
 
     UnitRecordStats stats;          // +0x000 (chunk BBBB0004)

@@ -7,11 +7,10 @@
 // keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
 // renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
 // ("Cursor") and docs/notes/renderer.md.
-//
 // Also the cursor's draws straight to the primary surface in the original (ticket R6): the cursor
 // thread 005E5690 (redraws the cursor on the primary every 41 ms between frames) and the background
 // save 005E6630. The cursor's holders have no DirectDraw surface (ticket R7): the background saves,
-// the composition 005E5C40 and the holder blits 005E5640 are left out (R11a; R11b removed the two
+// the composition 005E5C40 and the holder blits 005E5640 are left out (R11b removed the two
 // ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
 // presenting the last frame again (render::CursorBetweenFrames, ticket R9c2); as in the original,
 // not while the image is hidden (the movie players and the loading screen hide it).
@@ -30,12 +29,12 @@ namespace {
 
 constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
 
-// 00500960: the renderer object (007AF060); its flags' bit 0 is the software cursor display option.
+// The renderer object; its flags' bit 0 is the software cursor display option.
 bool SoftwareCursor() { return (SceneRenderer()->flags_ & 1) != 0; }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
-// The cursor thread's step (R9c2): under the cursor's lock, the position updated (005E52E0) and,
+// The cursor thread's step: under the cursor's lock, the position updated and,
 // when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
 // with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
 // frames come often enough); the drawn rectangle follows as the original's blits made it.
@@ -52,7 +51,7 @@ void MoveBetweenFrames(CCursor* self) {
 
 } // namespace
 
-// 005E54A0. (Without an image shown the original saves the background from the primary in mode 2:
+// (Without an image shown the original saves the background from the primary in mode 2:
 // nothing here.)
 void __fastcall CursorDrawFrame(CCursor* self) {
     if (!SoftwareCursor()) return;
@@ -93,7 +92,7 @@ void __fastcall CursorThread(CCursor* self) {
 }
 EI_REWRITTEN(0x005E5690, CursorThread);
 
-// 005E52A0 (cdecl; no Ghidra function; S16b): the procedure AfxBeginThread starts (the cursor as its
+// 005E52A0 (cdecl; no Ghidra function): the procedure AfxBeginThread starts (the cursor as its
 // parameter): CursorThread, then exit code 0.
 unsigned __cdecl CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<CCursor*>(cursor));

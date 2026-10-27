@@ -3,7 +3,6 @@
 // The network message classes (game.exe's vtables 0073BBF8 ... 0073BDD0, 0x18 apart; message types 1..17 as
 // SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
 // docs/notes/cleanup-network.md and docs/notes/network.md.
-//
 // Every class has a factory (the type registry's, a static Create: a new message with no references), a
 // constructor, a copy constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp).
 // Slot 1 is Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is
@@ -35,16 +34,16 @@ using RefVector = stlp::vector<RefPtr>;
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
 class LoginMessage final : public Message {
 public:
-    LoginMessage();                              // 00413350
+    LoginMessage();
     LoginMessage(const LoginMessage& other);     // Clone's copy (00413440, inlined)
     ~LoginMessage() override;                    // 00413800 (deleting: 004137E0)
 
-    int OnShutdown() override;                  // 2: 00413570
-    LoginMessage* Clone() override;             // 3: 00413440
-    void Write(BufferCursor* cursor) override;  // 4: 004136B0
-    void Read(BufferCursor* cursor) override;   // 5: 00413750
+    int OnShutdown() override;
+    LoginMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 004170A0
+    static Message* __fastcall Create();
 
     stlp::string name_;             // +0x0C the player's name
     stlp::string text_;             // +0x18
@@ -73,16 +72,16 @@ protected:
 // the player's number and name).
 class SayMessage final : public TextMessage {
 public:
-    SayMessage();                                                      // 004138A0
+    SayMessage();
     SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
     ~SayMessage() override {}                                          // 00413C40 (deleting: 00413C20)
 
-    int OnShutdown() override;                  // 2: 00413A50
-    SayMessage* Clone() override;               // 3: 00413930
-    void Write(BufferCursor* cursor) override;  // 4: 00413B10
-    void Read(BufferCursor* cursor) override;   // 5: 00413B50
+    int OnShutdown() override;
+    SayMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 004171A0
+    static Message* __fastcall Create();
 };
 
 // 0073BC40 (type 7, 0x1C bytes): a command for the server (ClientSession::SendCommand).
@@ -92,12 +91,12 @@ public:
     CommandMessage(const CommandMessage& other);     // Clone's copy
     ~CommandMessage() override {}                    // 00414060 (deleting: 00414040)
 
-    int OnShutdown() override;                  // 2: 00413E40
-    CommandMessage* Clone() override;           // 3: 00413D20
-    void Write(BufferCursor* cursor) override;  // 4: 00413F00
-    void Read(BufferCursor* cursor) override;   // 5: 00413F50
+    int OnShutdown() override;
+    CommandMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00417250
+    static Message* __fastcall Create();
 
     std::uint32_t kind_;         // +0x0C
     stlp::string text_;          // +0x10
@@ -122,16 +121,16 @@ protected:
 // requesting connection on the server).
 class FileRequestMessage final : public PairMessage {
 public:
-    FileRequestMessage();                                                          // 004140B0
+    FileRequestMessage();
     FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
     ~FileRequestMessage() override {}                                              // 00414270 (deleting: 00414250)
 
-    int OnShutdown() override;                  // 2: 00414130
-    FileRequestMessage* Clone() override;       // 3: 004140D0
-    void Write(BufferCursor* cursor) override;  // 4: 004141F0
-    void Read(BufferCursor* cursor) override;   // 5: 00414210
+    int OnShutdown() override;
+    FileRequestMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 004179E0
+    static Message* __fastcall Create();
 
     RefPtr& FileRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
@@ -145,12 +144,12 @@ public:
     PartyMessage(const PartyMessage& other);     // Clone's copy
     ~PartyMessage() override;                    // 004178F0 (deleting: 004178D0)
 
-    int OnShutdown() override;                  // 2: 004177A0
-    PartyMessage* Clone() override;             // 3: 004176A0
-    void Write(BufferCursor* cursor) override;  // 4: 00412AC0
-    void Read(BufferCursor* cursor) override;   // 5: 00412B70
+    int OnShutdown() override;
+    PartyMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00417650
+    static Message* __fastcall Create();
 
     RefVector members_;              // +0x0C the party members (PartyMemberMessage)
     std::uint32_t money_ = 0;        // +0x18 the offered party's money (CParty::Money)
@@ -171,12 +170,12 @@ public:
     PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
     ~PartyMemberMessage() override {}                      // 00417620 (deleting: 00417600)
 
-    int OnShutdown() override;                  // 2: 004174F0
-    PartyMemberMessage* Clone() override;       // 3: 00417420
-    void Write(BufferCursor* cursor) override;  // 4: 00417560
-    void Read(BufferCursor* cursor) override;   // 5: 004175B0
+    int OnShutdown() override;
+    PartyMemberMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00417300
+    static Message* __fastcall Create();
 
     CMemoryStream stream_;       // +0x0C
 };
@@ -186,16 +185,16 @@ public:
 // 0073BC70 (type 1, 0x3C bytes): a player record (the server's +0x2590, the client's +0x25D8).
 class PlayerMessage final : public Message {
 public:
-    PlayerMessage();                               // 0041C680
+    PlayerMessage();
     PlayerMessage(const PlayerMessage& other);     // Clone's copy
     ~PlayerMessage() override {}                   // 004148E0 (deleting: 004148C0)
 
-    int OnShutdown() override;                  // 2: 00414650
-    PlayerMessage* Clone() override;            // 3: 00414500
-    void Write(BufferCursor* cursor) override;  // 4: 00414770
-    void Read(BufferCursor* cursor) override;   // 5: 00414820
+    int OnShutdown() override;
+    PlayerMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00414420
+    static Message* __fastcall Create();
 
     stlp::string name_;             // +0x0C
     stlp::string text_;             // +0x18
@@ -215,12 +214,12 @@ public:
     LineMessage(const LineMessage& other);       // Clone's copy
     ~LineMessage() override;                     // 00414D10 (deleting: 00414CF0)
 
-    int OnShutdown() override;                  // 2: 00414AC0
-    LineMessage* Clone() override;              // 3: 00414A00
-    void Write(BufferCursor* cursor) override;  // 4: 00414BB0
-    void Read(BufferCursor* cursor) override;   // 5: 00414C00
+    int OnShutdown() override;
+    LineMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00414960
+    static Message* __fastcall Create();
 
     std::uint32_t number_;          // +0x0C
     stlp::string text_;             // +0x10
@@ -231,16 +230,16 @@ public:
 // +0x25EC; built by world_game.cpp's AnnounceHost).
 class HostMessage final : public Message {
 public:
-    HostMessage();                               // 0041C7C0
+    HostMessage();
     HostMessage(const HostMessage& other);       // Clone's copy
     ~HostMessage() override {}                   // 004152A0 (deleting: 00415280)
 
-    int OnShutdown() override;                  // 2: 00414FA0
-    HostMessage* Clone() override;              // 3: 00414E80
-    void Write(BufferCursor* cursor) override;  // 4: 004150B0
-    void Read(BufferCursor* cursor) override;   // 5: 00415120
+    int OnShutdown() override;
+    HostMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00414DB0
+    static Message* __fastcall Create();
 
     stlp::string address_;          // +0x0C "host:port"
     stlp::string zone_;             // +0x18
@@ -250,16 +249,16 @@ public:
 // server's +0x25A4; a client keeps its own at +0x25F0.
 class BindingMessage final : public PairMessage {
 public:
-    BindingMessage();                                                      // 0041C870
+    BindingMessage();
     BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
     ~BindingMessage() override {}                                          // 004154D0 (deleting: 004154B0)
 
-    int OnShutdown() override;                  // 2: 004153B0
-    BindingMessage* Clone() override;           // 3: 00415350
-    void Write(BufferCursor* cursor) override;  // 4: 00415450
-    void Read(BufferCursor* cursor) override;   // 5: 00415470
+    int OnShutdown() override;
+    BindingMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00415320
+    static Message* __fastcall Create();
 
     RefPtr& PlayerRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
@@ -270,16 +269,16 @@ public:
 // 0073BCD0 (type 8): a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
 class ZoneMessage final : public TextMessage {
 public:
-    ZoneMessage();                                                       // 00418C30
+    ZoneMessage();
     ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
     ~ZoneMessage() override {}                                           // 00415930 (deleting: 00415910)
 
-    int OnShutdown() override;                  // 2: 00415740
-    ZoneMessage* Clone() override;              // 3: 00415620
-    void Write(BufferCursor* cursor) override;  // 4: 00415800
-    void Read(BufferCursor* cursor) override;   // 5: 00415840
+    int OnShutdown() override;
+    ZoneMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00415570
+    static Message* __fastcall Create();
 };
 
 // 0073BD00 (type 9): the map being played (the server's +0x25A8, the client's +0x25F4).
@@ -289,12 +288,12 @@ public:
     MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
     ~MapMessage() override {}                                      // 00416110 (deleting: 004160F0)
 
-    int OnShutdown() override;                  // 2: 00415F20
-    MapMessage* Clone() override;               // 3: 00415E00
-    void Write(BufferCursor* cursor) override;  // 4: 00415FE0
-    void Read(BufferCursor* cursor) override;   // 5: 00416020
+    int OnShutdown() override;
+    MapMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00415D50
+    static Message* __fastcall Create();
 };
 
 // 0073BCE8 (type 10, 0x20 bytes): a script variable (the server's +0x25B0, the client's +0x25FC).
@@ -304,12 +303,12 @@ public:
     VariableMessage(const VariableMessage& other);     // Clone's copy
     ~VariableMessage() override {}                     // 00415D00 (deleting: 00415CE0)
 
-    int OnShutdown() override;                  // 2: 00415B60
-    VariableMessage* Clone() override;          // 3: 00415A30
-    void Write(BufferCursor* cursor) override;  // 4: 00415C20
-    void Read(BufferCursor* cursor) override;   // 5: 00415C80
+    int OnShutdown() override;
+    VariableMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00415980
+    static Message* __fastcall Create();
 
     stlp::string name_;          // +0x0C
     float value_;                // +0x18
@@ -323,12 +322,12 @@ public:
     FileMessage(const FileMessage& other);       // Clone's copy
     ~FileMessage() override;                     // 00416640 (deleting: 00416620)
 
-    int OnShutdown() override;                  // 2: 00416390
-    FileMessage* Clone() override;              // 3: 00416220
-    void Write(BufferCursor* cursor) override;  // 4: 004164D0
-    void Read(BufferCursor* cursor) override;   // 5: 00416530
+    int OnShutdown() override;
+    FileMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00416160
+    static Message* __fastcall Create();
 
     std::uint16_t chunkCount_;   // +0x0C
     std::uint16_t unused_0E;
@@ -346,12 +345,12 @@ public:
     FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
     ~FileChunkMessage() override;                      // 004168E0 (deleting: 004168C0)
 
-    int OnShutdown() override;                  // 2: 00416780
-    FileChunkMessage* Clone() override;         // 3: 00416720
-    void Write(BufferCursor* cursor) override;  // 4: 00416800
-    void Read(BufferCursor* cursor) override;   // 5: 00416850
+    int OnShutdown() override;
+    FileChunkMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 004166F0
+    static Message* __fastcall Create();
 
     RefPtrTo<FileMessage> file_{};       // +0x0C the file message
     std::uint16_t index_;                // +0x10
@@ -367,12 +366,12 @@ public:
     AwardMessage(const AwardMessage& other);     // Clone's copy
     ~AwardMessage() override;                    // 00416D70 (deleting: 00416D50)
 
-    int OnShutdown() override;                  // 2: 00416B30
-    AwardMessage* Clone() override;             // 3: 00416A10
-    void Write(BufferCursor* cursor) override;  // 4: 00416C00
-    void Read(BufferCursor* cursor) override;   // 5: 00416C60
+    int OnShutdown() override;
+    AwardMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00416940
+    static Message* __fastcall Create();
 
     RefPtr connection_{};        // +0x0C the receiver (not sent)
     std::uint32_t kind_;         // +0x10 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
@@ -388,12 +387,12 @@ public:
     TradeMessage(const TradeMessage& other);     // Clone's copy
     ~TradeMessage() override;                    // 00416FC0 (deleting: 00416FA0)
 
-    int OnShutdown() override;                  // 2: 00416EB0
-    TradeMessage* Clone() override;             // 3: 00416E30
-    void Write(BufferCursor* cursor) override;  // 4: 00412C80
-    void Read(BufferCursor* cursor) override;   // 5: 00412CE0
+    int OnShutdown() override;
+    TradeMessage* Clone() override;
+    void Write(BufferCursor* cursor) override;
+    void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();        // 00416DF0
+    static Message* __fastcall Create();
 
     RefPtrTo<PlayerMessage> player_{};       // +0x0C the first offer's player (not sent)
     RefPtrTo<PlayerMessage> partner_{};      // +0x10 its partner (not sent)

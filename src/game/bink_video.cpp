@@ -5,18 +5,16 @@
 // target, or of the primary surface when `toPrimary`. Returns whether frames are left. The new
 // renderer (src/render) takes the frame from a CPU copy of the decoded frame (render::MovieFrame)
 // and the blit as part of its frame (MovieBlit). See docs/notes/renderer.md.
-//
 // Also the two movie players that draw outside the game's frame, straight to the primary surface
 // in the original (ticket R6): the blocking player 005DB3F0 (intro, titles, the script's PlayMovie;
 // its message loop at 005DB788), and the loading screen's movie 005DA400 (progres*.bik, one step per
 // call). They hand each frame over as a frame of the new renderer's own (render::MovieFrame /
 // MovieBlit, then the present 004EF610).
-//
-// And the frame player's open (005DBA50, ticket R7). The movies' holders (004EF7B0) have no
+// And the frame player's open (005DBA50, ticket R7). The movies' holders have no
 // DirectDraw surface: nothing decodes into them and BinkDDSurfaceType is not asked (the type kept is
 // that of the CPU copy). The original's Lock / BinkCopyToBuffer / Unlock into the holder's surface
-// and its Blts are gone with the DirectDraw fallback (R11a), and so is the holder's colour fill
-// 005DB9E0, which nothing of ours calls (R11b).
+// and its Blts are gone with the DirectDraw fallback, and so is the holder's colour fill
+// 005DB9E0, which nothing of ours calls.
 #include "app.h"
 #include "bink_video.h"
 #include "game_strings.h"
@@ -44,7 +42,7 @@ std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
-// Bink through game.exe's import table (stdcall; the image's: ei_hook.dll's table, S18f).
+// Bink through game.exe's import table (stdcall; the image's: ei_hook.dll's table).
 using BinkFn = int(__stdcall*)(BinkHeader*);
 using BinkCopyFn = int(__stdcall*)(BinkHeader*, void*, int, int, int, int, unsigned);
 using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
@@ -71,7 +69,7 @@ BinkHeader* OpenBink(const char* name, unsigned flags) {
 
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
 
-// The loading screen's movie (005DA400): where it is drawn on the screen, its Bink handle and the surface type it
+// The loading screen's movie: where it is drawn on the screen, its Bink handle and the surface type it
 // was opened for (its surface holder is g_loadingHolder; the off switch g_loadingMovieOff, bink_video.h).
 RECT g_loadingScreen = /*007C5520*/ {};
 BinkHeader* g_loadingBink = /*007C5550*/ {nullptr};
@@ -88,7 +86,7 @@ int MovieVolume() { return options::TheOptions()->audioStreaming_; }          //
 CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
 std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
 
-void __cdecl ReleaseLoadingHolder() {   // 005DA380
+void __cdecl ReleaseLoadingHolder() {
     if (g_loadingHolderReleased & 1) return;
     g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
     if (g_loadingHolder) g_loadingHolder->Release();
@@ -111,7 +109,6 @@ unsigned SurfaceType() { return kBinkSurface32R; }
 
 } // namespace
 
-// 005DBD80.
 unsigned CBinkVideo::Frame(char toPrimary) {
     if (!MoviesMode()) return 0;   // movies off
     BinkHeader* binkHandle = this->bink;
@@ -133,12 +130,12 @@ unsigned CBinkVideo::Frame(char toPrimary) {
 }
 EI_REWRITTEN(0x005DBD80, CBinkVideo::Frame);
 
-// --- The movie players outside the frame (005DB3F0, 005DA400) -----------------------------------
+// --- The movie players outside the frame -----------------------------------
 
 namespace {
 
 // The movie's surface holder (0x20 bytes on the game's heap) for a w x h frame. The original asks
-// for a video-memory surface through a DDSURFACEDESC2 (004EFA60) when 00784756 is 0, falling back to
+// for a video-memory surface through a DDSURFACEDESC2 when 00784756 is 0, falling back to
 // 004EF7B0 in a catch block when that throws. 00784756 is written by the game start (00456E35, from
 // GetAvailableVidMem): the switch-over's stand-in reports 256 MB, which clears it; without DirectDraw
 // (device.h) the video-memory surface would be refused and its throw end the game, so the holder is
@@ -150,7 +147,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
 }
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the
-// present (004EF610).
+// present.
 void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
@@ -258,7 +255,7 @@ EI_REWRITTEN(0x005DB3F0, PlayMovie);
 // surface type 007C5554 and the screen rectangle 007C5520) is decoded up to that frame and its
 // frame stretched over the screen of the primary surface. Nothing when 007C554C is set.
 void __fastcall ShowLoadingMovie(int progress) {
-    net::Pump();   // 004122D0
+    net::Pump();
     if (g_loadingMovieOff) return;
     TheCursor()->ShowImage(0);
     if (!g_loadingHolder) {
@@ -319,7 +316,7 @@ void __fastcall ShowLoadingMovie(int progress) {
 }
 EI_REWRITTEN(0x005DA400, ShowLoadingMovie);
 
-// --- Opening a movie for the frame's player (005DBA50) ----------------------------------------------
+// --- Opening a movie for the frame's player ----------------------------------------------
 
 // 005DBA50 (thiscall, RET 8; the titles' Create 0062B7D0 starts Titles.bik with it). The movie open
 // before is closed (its handle stays in +0x18 when movies are off), the loading screen steps when

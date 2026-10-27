@@ -160,7 +160,7 @@ struct AlignedArray {
         size = 0;
     }
 
-    // operator= (0044F410, 00474C80): SetSize to the source's size (keeping the step), then its
+    // operator=: SetSize to the source's size (keeping the step), then its
     // elements with memcpy.
     void Copy(const AlignedArray& source) {
         SetSize(source.size);

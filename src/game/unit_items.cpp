@@ -31,7 +31,7 @@ void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
 }
 } // namespace
 
-// 00514930: the unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
+// The unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
 // unit_create.cpp, called through its address.
 
 CItemArmor* CUnit::EquipArmour(CItem* item) {

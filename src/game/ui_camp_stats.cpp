@@ -15,18 +15,18 @@
 
 namespace {
 
-constexpr const char* kPerkLevelDigits = "123";     // 00793E60
-constexpr const char* kPerkFirstLevel = "0";        // 007856B8
-constexpr const char* kPointsLeft = "lmp_points_left";   // 00793D40
-constexpr const char* kHeight = "lmp_pers_tall";         // 00793D30
-constexpr const char* kSkull = "hl_skull";               // 00793E38
-constexpr const char* kArms = "hl_arms";                 // 00793E30
-constexpr const char* kTorso = "hl_torso";               // 00793E24
-constexpr const char* kLegs = "hl_legs";                 // 00793E1C
-constexpr const char* kAttack = "attack";                // 00793E14
-constexpr const char* kDefence = "defense";              // 00792F88
-constexpr const char* kDamage = "camp_damage";           // 00793E08
-constexpr const char* kMagicSkills = "magic_skills";     // 00793D20
+constexpr const char* kPerkLevelDigits = "123";
+constexpr const char* kPerkFirstLevel = "0";
+constexpr const char* kPointsLeft = "lmp_points_left";
+constexpr const char* kHeight = "lmp_pers_tall";
+constexpr const char* kSkull = "hl_skull";
+constexpr const char* kArms = "hl_arms";
+constexpr const char* kTorso = "hl_torso";
+constexpr const char* kLegs = "hl_legs";
+constexpr const char* kAttack = "attack";
+constexpr const char* kDefence = "defense";
+constexpr const char* kDamage = "camp_damage";
+constexpr const char* kMagicSkills = "magic_skills";
 
 // The hover kinds (ItemHoverInfo::kind).
 constexpr int kNone = -1;

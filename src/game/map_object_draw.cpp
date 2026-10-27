@@ -36,16 +36,16 @@ constexpr std::uint32_t kPartMoving = 0x10;         // part->flags_
 constexpr std::uint32_t kPartDirty = 0x40;
 constexpr std::uint32_t kPartHidden = 0x80;
 constexpr std::uint32_t kRedrawStatic = 8;          // this->flags_
-constexpr float kNearSquared = 1e9f;                // 0073DE58
-constexpr float kLightMargin = 10.0f;               // 0073BAAC
+constexpr float kNearSquared = 1e9f;
+constexpr float kLightMargin = 10.0f;
 constexpr std::uint32_t kOne = 0x3F800000;
 constexpr int kStackWorld = 1;                      // the pipeline's matrix stacks
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
-// 006CB020. Light manager: is the point lit, AL.
-// 004EB170. Device: sets the texture of stage 0.
-// 00457720. A temporary texture reference: released.
+// Light manager: is the point lit, AL.
+// Device: sets the texture of stage 0.
+// A temporary texture reference: released.
 void __fastcall ReleaseTemporary(void* object) { static_cast<CEngineObject*>(object)->ReleaseAndDelete(); }
 
 // The light list being collected: aligned storage of light pointers.
@@ -111,7 +111,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         if (!InReach(object, light)) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
-        list.SetAtGrow(list.size, light);   // 0051EE50
+        list.SetAtGrow(list.size, light);
     }
 
     // The object's matrix, and its extra scale when it has one.

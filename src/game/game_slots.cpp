@@ -60,17 +60,17 @@ EI_REWRITTEN(0x004CB0F0, ScalarDeleting<&Commands::Destruct<CommandArrayClass>>:
 // Over destructors registered elsewhere.
 
 // The script's variables, groups, tokens and defines.
-EI_REWRITTEN(0x004C1840, ScalarDeleting<&ScriptRefArrayDestruct>::Delete);   // 004BC9A0
-EI_REWRITTEN(0x004C1860, ScalarDeleting<&ScriptNamesDestruct>::Delete);   // 004BC810
-EI_REWRITTEN(0x004C18A0, ScalarDeleting<&ScriptGroupArrayDestruct>::Delete);   // 004BCA20
-EI_REWRITTEN(0x004CAFB0, ScalarDeleting<&gamearrays::DestructGroupBody>::Delete);   // 004C2290
-EI_REWRITTEN(0x004CB010, ScalarDeleting<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>::Delete);   // 004C3B20
-EI_REWRITTEN(0x004CB7B0, ScalarDeleting<&gamelists::Tokens::Destruct<TokenListClass>>::Delete);   // 004CA260
-EI_REWRITTEN(0x004D6590, ScalarDeleting<&ScriptDefinesDestruct>::Delete);   // 004D6340
+EI_REWRITTEN(0x004C1840, ScalarDeleting<&ScriptRefArrayDestruct>::Delete);
+EI_REWRITTEN(0x004C1860, ScalarDeleting<&ScriptNamesDestruct>::Delete);
+EI_REWRITTEN(0x004C18A0, ScalarDeleting<&ScriptGroupArrayDestruct>::Delete);
+EI_REWRITTEN(0x004CAFB0, ScalarDeleting<&gamearrays::DestructGroupBody>::Delete);
+EI_REWRITTEN(0x004CB010, ScalarDeleting<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>::Delete);
+EI_REWRITTEN(0x004CB7B0, ScalarDeleting<&gamelists::Tokens::Destruct<TokenListClass>>::Delete);
+EI_REWRITTEN(0x004D6590, ScalarDeleting<&ScriptDefinesDestruct>::Delete);
 
 // A map object controller's counted pointers, the world's shared object pointers.
-EI_REWRITTEN(0x00558780, ScalarDeleting<&gamelists::OwnedRefs::Destruct<OwnedRefListClass>>::Delete);   // 005575F0
-EI_REWRITTEN(0x0059B4D0, ScalarDeleting<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>::Delete);   // 0059A100
+EI_REWRITTEN(0x00558780, ScalarDeleting<&gamelists::OwnedRefs::Destruct<OwnedRefListClass>>::Delete);
+EI_REWRITTEN(0x0059B4D0, ScalarDeleting<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>::Delete);
 
 // ---- Serialize (vtable slot 2) -------------------------------------------------------------------
 
@@ -87,7 +87,7 @@ EI_REWRITTEN(0x00511C30, gamearrays::Particles::Serialize);    // a map object c
 EI_REWRITTEN(0x00556E10, ObjectValues::Serialize);             // a unit memory's object records
 EI_REWRITTEN(0x004C55C0, BuiltCommands::Serialize);            // a command block
 
-// Lists whose loader builds, assigns and releases a temporary (S6d).
+// Lists whose loader builds, assigns and releases a temporary.
 EI_REWRITTEN(0x00427690, EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>);    // ItemObjectListClass
 EI_REWRITTEN(0x00571420, EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>);    // ClientObjectList2Class
 EI_REWRITTEN(0x004C9350, ObjectRefsThrough::Abi::SerializeThrough<ObjectRefsThrough>);       // ObjectRefListClass
@@ -110,7 +110,7 @@ EI_REWRITTEN(0x006BC920, WavesThrough::Abi::SerializeThrough<WavesThrough>);    
 
 } // namespace gameslots
 
-// The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
+// The lib templates over tags the game's headers define: the registrations that need the complete tag.
 namespace mfc::impl {
 
 EI_REWRITTEN(0x004CEB20, CommandBlockArray::ConstructElements);

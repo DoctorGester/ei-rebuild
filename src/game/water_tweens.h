@@ -23,14 +23,14 @@ struct WaterTweens : mfc::CArray<TweenEntry> {
     // 006D4410 (via 00593FA0). The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).
     void SetTarget(int key, float target, int steps);
-    // 006D44E0. One update of every entry; the ones finished and back at zero are removed. True
+    // One update of every entry; the ones finished and back at zero are removed. True
     // while any entry moves.
     bool Tick();
     // 006D4570 (006D47E0 identical): the count, then the entries.
     void Save(CStream* stream) const;
-    // 006D45D0. Reads the array and applies each entry's value to `terrain` (006CC7F0).
+    // Reads the array and applies each entry's value to `terrain`.
     void Load(CStream* stream, Terrain* terrain);
-    // 006D4660. Reads the array only (the inlined SetSize of another CArray instantiation).
+    // Reads the array only (the inlined SetSize of another CArray instantiation).
     void LoadEntries(CStream* stream);
     // The read part of both loads: the count (the original reads it into a slot that still holds
     // `unread` if the stream writes nothing), SetSize, then the entries.

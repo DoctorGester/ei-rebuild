@@ -9,7 +9,7 @@
 #include <cstdint>
 
 struct LogicSettings {
-    // 005CE0F0 (RET 4). Reads the keys from the registry at `path` unless `loaded` is set; a key
+    // Reads the keys from the registry at `path` unless `loaded` is set; a key
     // that is missing keeps the current value. The difficulty arrays start at 1.0 and take up to
     // three values each.
     void Load(const char* path);

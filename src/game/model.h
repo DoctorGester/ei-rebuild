@@ -30,7 +30,7 @@ struct ClipBounds {
     Vector3 boxMin;        // +0x14 box corners, relative to the centre
     Vector3 boxMax;        // +0x20
 
-    // 004F93A0. Sets the box and its flag; returns the new flags (left in EAX).
+    // Sets the box and its flag; returns the new flags (left in EAX).
     std::uint32_t SetBox(const float* min, const float* max);
 };
 static_assert(sizeof(ClipBounds) == 0x2C);
@@ -40,7 +40,7 @@ struct MatrixStack {
     // 004F0DB0 (render_helper.cpp; the pipeline's constructor has the compiler's array constructor run it for each
     // of the 16): room for 16 matrices, empty.
     MatrixStack();
-    // 004F0DE0: the block freed.
+    // The block freed.
     ~MatrixStack();
     MatrixStack(const MatrixStack&) = delete;
     MatrixStack& operator=(const MatrixStack&) = delete;
@@ -92,7 +92,7 @@ public:
     virtual void Unknown15();
     virtual void Unknown16();
     virtual void Unknown17();
-    // 18 / 19: the same for the terrain's vertices (006BFC80).
+    // 18 / 19: the same for the terrain's vertices.
     virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
                                       int count);
     virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
@@ -136,7 +136,7 @@ public:
                               std::uint16_t* clippedIndices, int* vertexCount, int* indexCount);
     virtual void Unknown38();
     virtual void Unknown39();
-    // 40: lights a figure mesh (005A7A70): its vertex packets and normals, the colours written (one
+    // 40: lights a figure mesh: its vertex packets and normals, the colours written (one
     // per normal), its words, the lights (their localPosition_, colours set for the material) and
     // the material's light vector.
     virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,
@@ -156,7 +156,7 @@ public:
     static constexpr int kPickStack = 0;
     static constexpr int kViewStack = 9;
 
-    // 004F16A0. Classifies `bounds` against the view volume of the current (top) matrix:
+    // Classifies `bounds` against the view volume of the current (top) matrix:
     // 2 = entirely outside one clip plane, 0 = entirely inside, 1 = crossing or not decided.
     // The cube (flag 0) is tried first, then the box (flag 1).
     int ClipTest(const ClipBounds* bounds) const;
@@ -180,7 +180,7 @@ public:
     ~CTransformPipeline() override;
     // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
     // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
-    // the new top is computed by Matrix4::Multiply (004D9880), whose elements sum in another order.
+    // the new top is computed by Matrix4::Multiply, whose elements sum in another order.
     void PushMatrixProduct(const Matrix4& m, int index) {
         MatrixStack& stack = stacks_[index];
         if (stack.count == 0) {
@@ -209,7 +209,7 @@ public:
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
 
-// The scene renderer's pipeline (world_singletons.cpp): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world
+// The scene renderer's pipeline (world_singletons.cpp): stacks 1 and 2 take the scene matrices, 5 the world
 // draw's, 9 the views.
 CTransformPipeline* ScenePipeline();
 
@@ -281,25 +281,25 @@ class CRenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
-    // 004FCA60 (RET 8). Takes the device and its capabilities, then records the nine built-in presets (`flag`'s low
+    // Takes the device and its capabilities, then records the nine built-in presets (`flag`'s low
     // byte: one texture stage each).
     CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
     // 004FCD50 (deleting: 004FCC20). Every record's preset through slot 3, the tables freed, the device released.
     virtual ~CRenderHelper();
-    // 1: 004FD2A0 (RET 0xC). Records the state blocks of `states` and keeps the new preset (as
+    // Records the state blocks of `states` and keeps the new preset (as
     // built-in preset `index` when that is below 9). `singleStage`: at most one texture stage.
     virtual CRenderPreset* Record(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
-    // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its preset.
+    // The record of `preset`, if there is one: slot 3 with its preset.
     virtual void ReleasePreset(CRenderPreset* preset);
-    // 3: 004FD9D0 (RET 4). Deletes the preset's state blocks and drops its record.
+    // Deletes the preset's state blocks and drops its record.
     virtual void ReleaseBlock(CRenderPreset* preset);
-    // 4: 004FDB50 (RET 4). The preset of `preset`'s record, or null without a record.
+    // The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
-    // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
+    // Preset `index` of the nine at +0x10C, or null beyond them.
     virtual CRenderPreset* Preset(unsigned index);
-    // 6: 004FDBC0 (RET 8). The states of `preset`'s record copied into `out`; false without a record.
+    // The states of `preset`'s record copied into `out`; false without a record.
     virtual bool PresetStates(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
-    // 7: 004FDD80 (RET 8). Slot 6 for preset `index`; false beyond the nine or for a null one.
+    // Slot 6 for preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
 
     // On the game's heap.
@@ -339,32 +339,32 @@ public:
     // 3: 005006E0 (DestroyBase; the renderer's 005019F0).
     virtual void DestroyRenderer();
     virtual int BeginScene() = 0;            // 4: the renderer's 00503F40
-    virtual int EndScene() = 0;              // 5: 005040A0
-    virtual std::uint32_t FrameTime() = 0;   // 6: 00500A90
+    virtual int EndScene() = 0;
+    virtual std::uint32_t FrameTime() = 0;
     // 7: 00500740 (SetBaseColour; the renderer's 00501CC0 also tints the device object). Sets the draw colour.
     virtual void SetColour(std::uint32_t colour);
-    virtual int ClearFrame() = 0;                                     // 8: 00501A40
-    virtual std::uint32_t ZEnable() = 0;                              // 9: 00501AA0
-    virtual int SetBlend(std::uint32_t source, std::uint32_t dest) = 0;   // 10: 00501C60
-    virtual int SetTexture(int stage, void* texture) = 0;             // 11: 00501AF0
+    virtual int ClearFrame() = 0;
+    virtual std::uint32_t ZEnable() = 0;
+    virtual int SetBlend(std::uint32_t source, std::uint32_t dest) = 0;
+    virtual int SetTexture(int stage, void* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
-                              unsigned indexCount) = 0;                // 12: 00501BB0
+                              unsigned indexCount) = 0;
     virtual int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
-                              CTexture* textureA, CTexture* textureB) = 0;   // 13: 00501D40
+                              CTexture* textureA, CTexture* textureB) = 0;
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
-                           tagRECT* screen) = 0;                       // 14: 00501D00
-    virtual void DrawLineList(void* lines) = 0;                        // 15: 00501CE0
+                           tagRECT* screen) = 0;
+    virtual void DrawLineList(void* lines) = 0;
     virtual int DrawStrip(void* points, float width, int visibility, float length, float offset,
-                          float slant) = 0;                            // 16: 00501D90
-    virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;   // 17: 00502CA0
+                          float slant) = 0;
+    virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;
     virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
-                                    const Vector3* axisY) = 0;         // 18: 00503A40
-    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;   // 19: 005041F0
-    virtual int Polyline(const ScreenPoints* points, std::uint32_t colour) = 0;   // 20: 005045D0
-    virtual int DrawTexture(CTexture* texture, float x, float y, float scale) = 0;   // 21: 00504860
-    virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;      // 22: 00504A60
-    virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;   // 23: 00504A40
-    virtual bool RestoreSurfaces() = 0;                                // 24: 00504780
+                                    const Vector3* axisY) = 0;
+    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;
+    virtual int Polyline(const ScreenPoints* points, std::uint32_t colour) = 0;
+    virtual int DrawTexture(CTexture* texture, float x, float y, float scale) = 0;
+    virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;
+    virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
+    virtual bool RestoreSurfaces() = 0;
 
     // Freed into the game's heap (the scalar deleting destructor's operator delete).
     static void operator delete(void* memory);
@@ -385,16 +385,16 @@ public:
     // 00500740 (base slot 7, RET 4). colour_ = `colour`; the transform object's ambient (slot 3)
     // becomes its red, green and blue bytes times 1 / 255.
     void SetBaseColour(std::uint32_t colour);
-    // 005007C0 (RET 4). The sun becomes `light` (counted; the old one released) and is handed to the
+    // The sun becomes `light` (counted; the old one released) and is handed to the
     // transform object (AddSun) when there is one.
     void SetSun(CLight* light);
-    // 00500800 (RET 0x10). SetSun, then the colour (slot 7) from r, g, b in 0..1, packed as
+    // SetSun, then the colour (slot 7) from r, g, b in 0..1, packed as
     // SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
-    std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
+    std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation
     CTransformPipeline* pipeline_;   // +0x08 counted
-    CPixelConverter* graphicsProcessor_;   // +0x0C 2DintMMX.dll's GetGraphicsProcessor() (00500540)
+    CPixelConverter* graphicsProcessor_;   // +0x0C 2DintMMX.dll's GetGraphicsProcessor()
     void* graphicsLibrary_;          // +0x10 the HMODULE of 2DintMMX.dll
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
@@ -413,7 +413,7 @@ const float* TransformAmbientColour();
 
 // The scene renderer (the global at 007AF060, 26 slots; 00500960 returns it). C19: a real virtual class over
 // CVisualizator, the compiler's table in place of game.exe's 0073D93C; the static initialiser's constructor
-// (00500A70) and the exit's destructor (00500AC0) construct and destroy it in place.
+// and the exit's destructor construct and destroy it in place.
 // A counted texture pointer as the original's helpers take it: by address, thiscall on the pointer
 // (the particle sources', the rain's, the sky's and the lightning's textures). Reads see the texture;
 // a plain store (`held = p`) counts nothing.
@@ -478,33 +478,33 @@ public:
     int EndScene() override;
     // 6: 00500A90 (too short to hook). The last frame's time in ms (frameTime_).
     std::uint32_t FrameTime() override { return frameTime_; }
-    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
+    // Sets the colour the next draws are tinted with (kept at +0x18 and in the
     // device object's colour_), the transform object's ambient from it (SetBaseColour).
     void SetColour(std::uint32_t colour) override;
-    // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
+    // Clears the render target and the depth (and the stencil when the device
     // has one) to the fog colour and 1.
     int ClearFrame() override;
-    // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
+    // The device object's z-buffer setting (CTextureDevice::zEnable_).
     std::uint32_t ZEnable() override;
     // 10: 00501C60 (RET 8; device_states.cpp). Sets SRCBLEND, then DESTBLEND.
     int SetBlend(std::uint32_t source, std::uint32_t dest) override;
-    // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
+    // Binds `texture` (a texture object, or null) to stage `stage`.
     int SetTexture(int stage, void* texture) override;
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
     int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
-    // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
-    // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
+    // Draws `figure` (a CFigureMesh) through its drawer's lit draw
+    // with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
     int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB) override;
-    // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
+    // Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
     // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
     // and third arguments are not read there.
     int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                    tagRECT* screen) override;
-    // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
+    // Draws a line list (0049B780 with the pipeline and the device object).
     void DrawLineList(void* lines) override;
     // 16: 00501D90 (RET 0x18; renderer_strip.cpp). Draws a strip along `points` (a lightning segment's aligned points) of
     // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
@@ -517,14 +517,14 @@ public:
     // 18: 00503A40 (RET 0x10, EAX 1; renderer_marker.cpp, A-U9). The selection marker under a selected
     // unit (00569E40's draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
     // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
-    // geometry draw (004EA4A0) as six triangles of two vertex blocks.
+    // geometry draw as six triangles of two vertex blocks.
     int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) override;
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
     // 20: 005045D0 (RET 8; renderer_lines.cpp). A screen polyline in `colour`.
     int Polyline(const ScreenPoints* points, std::uint32_t colour) override;
-    // 21: 00504860 (RET 0x10). Draws `texture` at (x, y) scaled by `scale` as a
+    // Draws `texture` at (x, y) scaled by `scale` as a
     // pre-transformed strip of four vertices (z 0.9, white, specular 0xFF000000) through stage 0
     // (slot 11). 0 without a texture, else 1.
     int DrawTexture(CTexture* texture, float x, float y, float scale) override;
@@ -537,13 +537,13 @@ public:
     // 0..1, plus the brightness, clamped again, times 65280 (truncated) for all three channels.
     // True when SetGammaRamp succeeds.
     bool SetGamma(float brightness, float contrast, float gamma) override;
-    // 23: 00504A40 (RET 0xC). The display settings SetGamma last kept.
+    // The display settings SetGamma last kept.
     void GetGamma(float* brightness, float* contrast, float* gamma) const override;
     // 24: 00504780 (plain RET, AL; WM_ACTIVATE after a switch back, app.cpp). False without
     // a device object. A full-screen device gets its cooperative level (004EECF0 with its screen
     // rectangle) and display mode (004EEBC0: the render target's size and depth) back; then
     // IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
-    // surfaces restored, and the texture manager's restore (00693F60), whose result is returned.
+    // surfaces restored, and the texture manager's restore, whose result is returned.
     bool RestoreSurfaces() override;
     // 25: 005015A0 (RET 8; renderer_init.cpp, A-U12; nothing calls it). The pipeline's
     // matrix stacks emptied and filled again for `screen` and a field of view (0: the camera's), as
@@ -551,14 +551,14 @@ public:
     virtual void SetView(const tagRECT* screen, float fieldOfView);
 
     // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
-    // (00500970) and binds it to `stage` through slot 11.
+    // and binds it to `stage` through slot 11.
     int BindHeldTexture(int stage, HeldTexture* holder);
     // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
     void SetFogColour(float r, float g, float b);
 
-    HeldDevice device_;              // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
+    HeldDevice device_;              // +0x20 the device object, a counted holder (00504E20 assigns)
     CRenderHelper* helper_;          // +0x24 counted
     // +0x28 .. +0x30: the display settings slot 22 (SetGamma) last applied, as given.
     float brightness_;
@@ -587,10 +587,10 @@ static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRender
 // renderer_lifetime.cpp (A-U11). 00500960 (cdecl): the renderer (the global at 007AF060).
 CSceneRenderer* __cdecl SceneRenderer();
 
-// 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
+// Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
 Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);
-// 004F0E80. Perspective projection; `fov` in radians (full angle). Returns out.
+// Perspective projection; `fov` in radians (full angle). Returns out.
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
 // Triangle index buffer of a figure part: 3 uint16 indices per triangle, an engine aligned array
@@ -615,7 +615,7 @@ static_assert(sizeof(LinkArchiveNode) == 0x18);
 
 // A figure's cached model (0x20 bytes, constructor 005A9A50, destructor 005A9C90): the mesh, bones
 // and animation archives of "<name>.mod / .bon / .anm" (0x6C-byte CMMIOResource objects; null when
-// missing), then the animations read from the last by name (005A9EF0). The figure manager
+// missing), then the animations read from the last by name. The figure manager
 // (CFigureManager::models_, 005AA5F0) and the link figure loader (its figure sets, 004FAB00) cache
 // them by name.
 struct FigureModel {
@@ -644,7 +644,7 @@ void __fastcall DestroyFigureModel(FigureModel* model);
 // parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
 // multimap by name (a counted reference each) and hands out a cached one whose coefficients are
 // within 1e-5 (squared distance, the double at 0073B860) unless asked for a fresh one. Parts come
-// from the figure's own archive set when there is one (004FAB00), else from the open archives
+// from the figure's own archive set when there is one, else from the open archives
 // as "<figure><part>.fig". link_loader.cpp (A-S7).
 class CLinkMesh;
 class CTextureDevice;
@@ -657,20 +657,20 @@ public:
     // `folder` opened (a failure is only logged).
     CLinkFigureLoader(CTextureDevice* renderer, const stlp::string* folder);
     // 004F6BD0 (deleting: 004F6A30; A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
-    // figure set destroyed (005A9C90) and freed, the device object released (the field cleared first), the cache
+    // figure set destroyed and freed, the device object released (the field cleared first), the cache
     // emptied (ClearCache's walk), then the containers' storage.
     virtual ~CLinkFigureLoader();
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
     virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's MemoryBytes summed; A-S8)
-    // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
+    // Figure `name` with the parts `parts`: unless `fresh`, the first cached
     // mesh of that name with close coefficients, given the parts it lacks; otherwise a new one
     // (MakeFigure). No reference is added for the caller.
     virtual CLinkMesh* LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
                                   float u, bool fresh);
-    // 4: 004F7080 (RET 0x14). The same for a .lnk figure: a cached one, or LoadLinkFile.
+    // The same for a .lnk figure: a cached one, or LoadLinkFile.
     virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
-    virtual void ClearCache();                  // 5: 004F7020
-    // 6: 004F75E0 (RET 0x10). `mesh` with new coefficients: a mesh others also hold (more than
+    virtual void ClearCache();
+    // `mesh` with new coefficients: a mesh others also hold (more than
     // two references) is looked up again through slot 4 by its name; otherwise its parts are
     // morphed in place (SetMorph, then 004F9E50 per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
@@ -682,24 +682,24 @@ public:
     CLinkFigureLoader(const CLinkFigureLoader&) = delete;
     CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;
 
-    // 004F6D30. Opens `path` as a memory-mapped archive and appends it to the list, unless an
+    // Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
     int AddArchive(const stlp::string* path);
     // 004F7F00 (RET 0x18; link_figure.cpp). Reads a FIG / FIG8 part record at *cursor (moved past
     // it) into `mesh` as part `name`: its header (two dwords, bounds fitted to the vertices morphed
     // by s, t, u) and its elements (CLinkMesh::AddPart).
     void LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
-    // 004F87D0 (RET 0x18). The same for the older record without a FIG header (6 morph corners).
+    // The same for the older record without a FIG header (6 morph corners).
     void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
     // link_loader.cpp (A-S7):
-    // 004F77C0 (RET 0x10). A new mesh from .lnk file `name` (from the figure set, else the
+    // A new mesh from .lnk file `name` (from the figure set, else the
     // archives' "<name>.lnk"): a count, then per part its name and a second, unused name
     // (ReadLinkString; an empty name keeps the previous one); each part loaded from the figure
     // set or the archives. Cached (one reference). No link file: FatalError("Can't find link
     // file ..."), whose result (0) is returned and the new mesh leaked.
     CLinkMesh* LoadLinkFile(const stlp::string* name, float s, float t, float u);
-    // 004F7B10 (RET 0x14). A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does
+    // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does
     // (a part missing from the figure set is skipped); cached.
     CLinkMesh* MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t, float u);
     // 004F7480 (RET 8, AL). Part `name` of `mesh` (its own coefficients) unless it has it: from its
@@ -709,8 +709,8 @@ public:
     // "<mesh name><name>.fig".
     int LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u);
     // 004FAB00 (RET 4; A-S8). Figure `name`'s own archive set: the cached one, else (when an open
-    // archive has "<name>.mod") a new set (005A9A50) stored under the name and loaded from the first
-    // archives with "<name>.mod" / ".bon" / ".anm" (005A9EB0); null without a .mod.
+    // archive has "<name>.mod") a new set stored under the name and loaded from the first
+    // archives with "<name>.mod" / ".bon" / ".anm"; null without a .mod.
     FigureModel* FindFigureSet(const stlp::string* name);
     // 004F9E50 (RET 0x18, AL; A-S8). Part `name` of `mesh` morphed again by s, t, u from its record
     // (the figure set's model, else "<mesh name><name>.fig" in the archives): false without one.
@@ -742,14 +742,14 @@ static_assert(sizeof(PrintLook) == 0xC);
 
 // A record of prints.db (terrain footprints; game.exe's vtable 00744264). 0x28 bytes. The records live
 // in the prints' vectors (record_vectors.h): the copies copy the name and the looks; the record resize(n)
-// appends copies of (006D26E0) has an empty name with room for 8 bytes and zero looks; the destructor
-// (006D29A0) returns the name's storage.
+// appends copies of has an empty name with room for 8 bytes and zero looks; the destructor
+// returns the name's storage.
 struct PrintRecord {
     PrintRecord();
     PrintRecord(const PrintRecord& from);
     PrintRecord& operator=(const PrintRecord&) = delete;
 
-    virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
+    virtual void Serialize(ChunkArchive* ar);
 
     stlp::string name;           // +0x04
     PrintLook look2;             // +0x10 chunk 2
@@ -765,7 +765,7 @@ struct PrintRecord2 {
     PrintRecord2(const PrintRecord2& from);
     PrintRecord2& operator=(const PrintRecord2&) = delete;
 
-    virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
+    virtual void Serialize(ChunkArchive* ar);
 
     stlp::string name;           // +0x04
     PrintLook look2;             // +0x10 chunk 2
@@ -809,7 +809,7 @@ static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(Print
 extern lib::StaticObject<PrintsDatabase> g_printsDatabase;   // 007C89C8, database_globals.cpp
 inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
-// ---- Water level changes (006D4400): water_tweens.h ----------------------------------------------
+// ---- Water level changes: water_tweens.h ----------------------------------------------
 
 // model_names.cpp (A-S4). 004DBCA0 (__fastcall: ECX out, EDX cursor): a length-prefixed name (a
 // four-byte length, then the characters) at *cursor into `out` (emptied for length 0), the

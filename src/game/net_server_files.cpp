@@ -19,7 +19,7 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 
 } // namespace
 
-// 00419A00: shares `data` (read from its start to its highest position) under `name` unless a file
+// Shares `data` (read from its start to its highest position) under `name` unless a file
 // of that name is listed already: a file message (chunk count, size, name) with a chunk message
 // (the file, its index, up to 64 bytes) per 64 bytes. The vector is
 // first filled with one shared chunk (a copy per element when shared, as RefPtr copies are),
@@ -68,7 +68,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     }
 
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, file);   // 00427FE0
+    const RefPtr* value = RefPtrFromRaw(&ref, file);
     files_.Insert(files_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();

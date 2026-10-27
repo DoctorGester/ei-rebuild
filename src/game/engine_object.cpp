@@ -1,5 +1,5 @@
 // CEngineObject: the default slots of its vtable (game.exe's 0073B8E0) and its non-virtual members. See
-// engine_object.h. Slots 5, 6, 9 and 10 (00402CC0, 00402CD0, 00402D00, 00402D10) are shorter than
+// engine_object.h. Slots 5, 6, 9 and 10 are shorter than
 // the hook's jump and stay original.
 #include "engine_object.h"
 
@@ -8,7 +8,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 
-// 00402D40 (slot 1).
 void CEngineObject::CopyFrom(const CEngineObject& other) {
     flags_ = other.flags_;
     type_ = other.type_;
@@ -27,7 +26,7 @@ int CEngineObject::RunTick() { return 0; }
 void CEngineObject::Load(CStream*) {}
 void CEngineObject::Save(CStream*) {}
 
-// 00455980 (slot 4). When the last reference goes, the owning manager releases the object (its
+// When the last reference goes, the owning manager releases the object (its
 // slot 24, CBaseManager::ReleaseObject). The original leaves `this` in EAX, or what the manager's slot 24
 // leaves there; no caller reads it.
 void CEngineObject::Release() {

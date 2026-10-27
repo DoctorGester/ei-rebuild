@@ -52,7 +52,7 @@ int CFigureAnimationState::GetClassId() { return kStateClassId; }
 std::uint32_t __fastcall RendererFrameTime(CSceneRenderer* self) { return self->frameTime_; }
 EI_REPLACE(0x00500A90, RendererFrameTime);
 
-// 00503F20 (RET 4). A vector copied (the selection marker's corners).
+// A vector copied (the selection marker's corners).
 void Vector3::Assign(const Vector3* other) {
     x = other->x;
     y = other->y;

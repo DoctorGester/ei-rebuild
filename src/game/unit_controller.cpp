@@ -58,7 +58,7 @@ void CUnit::SetPlayer(CPlayer* newPlayer) {
 EI_REWRITTEN(0x005300D0, CUnit::SetPlayer);
 
 void CUnit::ReleaseUnit() {
-    // The map object's slot 5 (0050E760) is empty.
+    // The map object's slot 5 is empty.
     SetPlayer(nullptr);
     if (controller) controller->ClearState();
     ReleaseSlots(quickItems, 4);

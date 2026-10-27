@@ -1,7 +1,7 @@
 // The selection marker (00503A40, thiscall on the renderer at 007AF060, RET 0x10): a flat arrow
-// under each selected unit, drawn by the world's draw pass (00569E40) in single-player mode. Its six
+// under each selected unit, drawn by the world's draw pass in single-player mode. Its six
 // corners lie 0.3 above the given point, in the plane of the unit's x and y axes; the device's
-// flat geometry draw (004EA4A0) projects them with the scene's matrices. See docs/notes/renderer.md.
+// flat geometry draw projects them with the scene's matrices. See docs/notes/renderer.md.
 #include "figure_mesh.h"   // VertexPacket
 #include "model.h"         // CSceneRenderer
 #include "texture.h"       // CTextureDevice

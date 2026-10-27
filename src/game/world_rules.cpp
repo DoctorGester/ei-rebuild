@@ -25,7 +25,7 @@ namespace {
 // The local player record through the client's local view (no null checks, as the original).
 CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
-// 00460AF0: a player's named float variable (its party's variables_).
+// A player's named float variable (its party's variables_).
 float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }
 
 } // namespace

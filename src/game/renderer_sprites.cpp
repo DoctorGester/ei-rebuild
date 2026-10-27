@@ -5,7 +5,7 @@
 // (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
 // by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
 // when the transform reports that some corners are off screen, every triangle goes through the
-// screen clipper (0042D910) first. Particles (004976B0) draw through it, with additive blending when
+// screen clipper first. Particles draw through it, with additive blending when
 // their source asks for it. Buffers are function-local statics (007AEF60..007AEFF8). See
 // docs/notes/models.md ("Renderer").
 #include "clip.h"
@@ -66,31 +66,31 @@ using SpriteArray = mfc::CArray<Sprite>;
 using devicebuffers::ProjectedVertex;
 constinit lib::AlignedArray<ProjectedVertex> g_unused = /*007AEFA0*/ {};
 lib::AlignedArray<ProjectedVertex>& Unused() { return g_unused; }  // sized only
-void __cdecl FreeUnused() { g_unused.FreeData(); }   // 00503A20
+void __cdecl FreeUnused() { g_unused.FreeData(); }
 constinit lib::AlignedArray<TLVertex> g_corners = /*007AEF90*/ {};
 lib::AlignedArray<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
-void __cdecl FreeCorners() { g_corners.FreeData(); }   // 00503A00
+void __cdecl FreeCorners() { g_corners.FreeData(); }
 // A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
 // functions it registers (ported here on the names; docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
 mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
 mfc::CArray<std::uint16_t>& Indices() { return *g_indices; }
-void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }   // 005039F0 (006FF61D)
-void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }     // 005039E0 (006FEECD)
+void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }   // 005039F0
+void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }     // 005039E0
 std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
 constinit lib::AlignedArray<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
 lib::AlignedArray<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
-void __cdecl FreeCornersCopy() { g_cornersCopy.FreeData(); }   // 005039C0
+void __cdecl FreeCornersCopy() { g_cornersCopy.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord> g_records = /*007AEFD8*/ {};
 lib::AlignedArray<SpriteSortRecord>& Records() { return g_records; }
-void __cdecl FreeRecords() { g_records.FreeData(); }   // 005039A0
+void __cdecl FreeRecords() { g_records.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord*> g_order = /*007AEFC8*/ {};
 lib::AlignedArray<SpriteSortRecord*>& Order() { return g_order; }
-void __cdecl FreeOrder() { g_order.FreeData(); }   // 00503980
+void __cdecl FreeOrder() { g_order.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return g_spare; }
-void __cdecl FreeSpare() { g_spare.FreeData(); }   // 00503960
+void __cdecl FreeSpare() { g_spare.FreeData(); }
 std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
@@ -109,12 +109,12 @@ void EnsureStatics() {
     }
     if (!(g_guards & 4)) {
         g_guards |= 4;
-        mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes);   // 006FF5EA
+        mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes);
         libcrt::AtExit(DestroyOutcodes);
     }
     if (!(g_guards & 8)) {
         g_guards |= 8;
-        mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_indices);    // 006FEE9A
+        mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_indices);
         libcrt::AtExit(DestroyIndices);
     }
 }
@@ -316,7 +316,7 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 
 // --- 00503710 / 005037D0 / 00503680 --------------------------------------------------------------
 
-// 00503710. One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
+// One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
 // to `dst` in ascending order (`ascending` set) or descending. __fastcall: shift in ECX, src in EDX;
 // RET 0xC.
@@ -335,7 +335,7 @@ void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteS
 }
 EI_REWRITTEN(0x00503710, SpriteRadixPass);
 
-// 005037D0. One merge sort pass over `count` record pointers: for each column j below `width`, the
+// One merge sort pass over `count` record pointers: for each column j below `width`, the
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
 // (the first run's on ties), into dst[j], dst[j + w], ...; when 2w > count the last `width`
 // pointers are first copied as they are (the columns without a second run). __fastcall: width in
@@ -374,7 +374,7 @@ void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteS
 EI_REWRITTEN(0x005037D0, SpriteMergePass);
 
 // 00503680 (thiscall on the device holder, RET 0x1C). DrawIndexedPrimitive under the device's
-// critical section (007AEE78); the result goes to lastLoadResult_; counts vertices, triangles
+// critical section; the result goes to lastLoadResult_; counts vertices, triangles
 // (indices / 3) and calls. Returns 1.
 int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount,
                            std::uint16_t* indices, int indexCount, int flags) {

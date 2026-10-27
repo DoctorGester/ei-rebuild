@@ -25,31 +25,31 @@ void DestroyOnce(lib::StaticObject<mfc::CString>& folder, std::uint8_t bit) {
     folder.Destroy();
 }
 
-void __cdecl DestroyRegistryRoot() { DestroyOnce(g_registryRoot, 1); }   // 0055E780
-void __cdecl DestroyStartFolder() { DestroyOnce(g_startFolder, 2); }     // 0055E7C0
-void __cdecl DestroyDataFolder() { DestroyOnce(g_dataFolder, 4); }       // 0055E800
-void __cdecl DestroyTextFolder() { DestroyOnce(g_textFolder, 8); }       // 0055E840
-void __cdecl DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }    // 0055E880
+void __cdecl DestroyRegistryRoot() { DestroyOnce(g_registryRoot, 1); }
+void __cdecl DestroyStartFolder() { DestroyOnce(g_startFolder, 2); }
+void __cdecl DestroyDataFolder() { DestroyOnce(g_dataFolder, 4); }
+void __cdecl DestroyTextFolder() { DestroyOnce(g_textFolder, 8); }
+void __cdecl DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
 
 using AtExitFunction = void(__cdecl*)();
 
-void __cdecl ConstructRegistryRoot() {   // 0055E760
+void __cdecl ConstructRegistryRoot() {
     g_registryRoot.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E780));
 }
-void __cdecl ConstructStartFolder() {   // 0055E7A0
+void __cdecl ConstructStartFolder() {
     g_startFolder.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E7C0));
 }
-void __cdecl ConstructDataFolder() {   // 0055E7E0
+void __cdecl ConstructDataFolder() {
     g_dataFolder.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E800));
 }
-void __cdecl ConstructTextFolder() {   // 0055E820
+void __cdecl ConstructTextFolder() {
     g_textFolder.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E840));
 }
-void __cdecl ConstructDiscFolder() {   // 0055E860
+void __cdecl ConstructDiscFolder() {
     g_discFolder.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E880));
 }

@@ -1,4 +1,4 @@
-// Asset text to UTF-8 and, until U3, back at the ANSI calls; typed text by character (U4). See asset_text.h.
+// Asset text to UTF-8 and, until U3, back at the ANSI calls; typed text by character. See asset_text.h.
 #include "asset_text.h"
 
 #include <algorithm>
@@ -105,7 +105,7 @@ int CharacterCount(std::string_view text) {
 
 int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text)); }
 
-// ---- Lengths and cuts by character (U5) ----------------------------------------------------------------
+// ---- Lengths and cuts by character ----------------------------------------------------------------
 
 namespace {
 bool IsTrailByte(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
@@ -166,7 +166,7 @@ void CopyFitting(char* to, std::size_t size, const char* from) {
     to[n] = '\0';
 }
 
-// ---- Typing (U4) ---------------------------------------------------------------------------------------
+// ---- Typing ---------------------------------------------------------------------------------------
 
 namespace {
 

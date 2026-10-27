@@ -2,7 +2,6 @@
 
 // Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and
 // rendering") behind the flag ei::rebirth::Patch::WideScreen.
-//
 // With the starter's Settings\WideScreen on (DWORD, 1 when absent) and the starter's
 // EvilIslands\General Settings\VIDEORESOLUTION ("WxH") a valid mode wider than 4:3, addon widens the
 // 800x600 interface layout: the 4:3 part of the screen keeps the 800x600 layout in the middle
@@ -10,7 +9,6 @@
 // `extra` layout units on either side. addon computes these once, when it applies its patches before
 // WinMain, from the registry (not from the game's screen), and so does this module (Startup, before
 // the hooks are installed).
-//
 // Done here (ticket W1): the layout widths 00742B08 (800 -> 800 + extra) and 007428AC (695 -> 695 +
 // extra), the layout-to-screen scaling 005F7CA0 / 005F7D20 (+ margin), the screen-to-layout scaling
 // 005F7DA0 / 005F7E00 / 005F7E30 (- margin; addon's entries 005F7D9E / 005F7DFE in front of the
@@ -28,9 +26,8 @@
 // (DrawOverlays 005F5320), the drags scaled without the margin (the camera's and the global map's
 // mouse moves 005EB210 / 00630010), the global map's pick picture read without the margin
 // (00630010 / 0062F950 through addon's 9 bytes at 005FD237: PickShift), the curtains over the
-// margins of the camp and the multiplayer hero screen (0060C870, 00613EA0, 00615D30) and the
+// margins of the camp and the multiplayer hero screen and the
 // tutorial messages' frames moved with the panels (00659420+574).
-//
 // With the flag off, or a mode addon would refuse, everything is the original's.
 
 #include <windows.h>
@@ -85,7 +82,7 @@ void LeavePanel();
 // addon's code leaves in EAX: the last coordinate stored (y, or the bottom of a rectangle).
 // `margin`: addon's code tests ECX (the interface) and adds / takes off the margin only when it is
 // nonzero; its entries 005F7D9E and 005F7DFE clear ECX first, and its code at 005FDE94 (the text
-// surfaces' draw 005FDE20, W2) calls 005F7CA0 with ECX 0.
+// surfaces' draw 005FDE20) calls 005F7CA0 with ECX 0.
 int RectToScreen(RECT* rect, bool margin);
 int PointToScreen(POINT* point, bool margin);
 int RectFromScreen(RECT* rect, bool margin);
@@ -96,10 +93,10 @@ int PointFromScreen(POINT* point, bool margin);
 // mode's height (IMUL / IDIV, 64-bit products).
 SIZE TextExtentToLayout(SIZE pixels);
 
-// The projection's x scale on the axis swap's diagonal (004F1330): axisScale while Active(), else 1.
+// The projection's x scale on the axis swap's diagonal: axisScale while Active(), else 1.
 float AxisScale();
 // What a 75-point font's pixel height is multiplied by for the interface fonts' scale
-// (005F4990+BF): fontScale while Active(), else the original's 0.01 (0073D09C).
+// (005F4990+BF): fontScale while Active(), else the original's 0.01.
 float FontScale();
 // addon's 9 bytes at 005FD237 (SUB EAX,margin / 2; MOV [ESP+4],EAX), which the global map's
 // mouse move and click call in place of the pick picture's pixel read 005FD240: the half-size

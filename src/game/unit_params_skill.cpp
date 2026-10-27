@@ -1,4 +1,4 @@
-// The weapon skill bonus on a unit's packed parameters (00527850). See unit.h (UnitParams) and
+// The weapon skill bonus on a unit's packed parameters. See unit.h (UnitParams) and
 // docs/notes/units.md ("Statistics in play").
 #include "item_db.h"
 #include "unit.h"
@@ -10,7 +10,7 @@
 #include <cstdint>
 
 namespace {
-constexpr double kStatBase = 25.0;   // 0073E124
+constexpr double kStatBase = 25.0;
 constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus (+0x7B / +0x7C)
 constexpr int kWeaponSkill1Bonus = 1;
 

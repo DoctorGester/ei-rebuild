@@ -1,6 +1,6 @@
 // The device's draw of flat-coloured textured geometry (004EA4A0, thiscall on the device at the
-// renderer's +0x20, RET 0x24): used for object shadows (0051CE60), by the renderer (00503A40) and
-// 006CEDE0. The positions (blocks of four vertices) are projected by the pipeline (004F2650, with
+// renderer's +0x20, RET 0x24): used for object shadows, by the renderer and
+// The positions (blocks of four vertices) are projected by the pipeline (004F2650, with
 // outcodes); every vertex gets one colour / specular pair and its own texture coordinate; z can be
 // scaled. Crossing the screen edges, the triangles go through the transform object's clipper (slot
 // 37) and the vertices are projected again (slot 34). Shares the buffers of device_mesh.cpp
@@ -45,7 +45,7 @@ void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
 
 void Scale(int count, const float* scale) {
     EI_NAN_AUDIT(*scale);
-    if (*scale == 1.0f) return;   // FCOMP with 1.0 (0073B84C); TEST AH,0x40
+    if (*scale == 1.0f) return;   // FCOMP with 1.0; TEST AH,0x40
     for (int i = 0; i < count; ++i) ScaleZ(&Vertices().data[i].z, scale);
 }
 
@@ -79,7 +79,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
     std::uint32_t colours[2] = {colour, specular};
     Projected().SetSizeDiscard(count * 10);
     Outcodes().SetSizeDiscard(count);
-    // 004F2650: the blocks projected with outcodes; 0 on screen, 1 crossing, 2 outside.
+    // The blocks projected with outcodes; 0 on screen, 1 crossing, 2 outside.
     int visibility = pipeline->ProjectBlocks(positions, Projected().data, Outcodes().data, blocks, bounds);
     if (visibility != 2)
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
@@ -115,7 +115,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
 
 } // namespace
 
-// 004EA4A0. `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
+// `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `bounds` passed
 // to the projection (null: crossing), `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.

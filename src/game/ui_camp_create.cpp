@@ -66,7 +66,7 @@ const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templat
 CParty* LocalParty() { return LocalPlayerData(); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
-// Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
+// Whether the local player's variable `name` is 1. The original's FCOMP also takes an
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
 
@@ -86,7 +86,7 @@ void BuildPanel(CUiWindow* panel) {
     panel->Build();
 }
 
-// The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
+// The time in animation frames: milliseconds / 1024 * 15.
 double FramesNow() {
     return x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f /*0073BB24*/ * 15.0f /*0073C518*/;
 }

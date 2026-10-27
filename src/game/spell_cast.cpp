@@ -31,10 +31,10 @@ constexpr int kClassSpellContainer = 0x3003;
 
 
 
-// 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
+// STLport string reserve(n) on the container's code string (stlp::StringAbi's).
 void CodesReserve(char** codes, unsigned n) { static_cast<stlp::StringAbi*>(reinterpret_cast<stlp::string*>(codes))->Reserve(n); }
 
-// _ftol (006E853C) of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
+// _ftol of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
 // FMUL dword, CALL _ftol).
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(gamecrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
@@ -90,7 +90,7 @@ EI_REWRITTEN(0x0068B370, CSpell::CopyTo);
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
     CSpell* spell = manager->CreateSpellObject(-1);
-    CopyTo(spell);   // 0068B370
+    CopyTo(spell);
     return spell;
 }
 EI_REWRITTEN(0x0068B410, CSpell::Clone);
@@ -118,7 +118,7 @@ EI_REWRITTEN(0x0068BC00, CSpellContainer::GetName);
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
-    SpellModifierList::Insert(modifiers_.End(), modifier);   // 0068C560
+    SpellModifierList::Insert(modifiers_.End(), modifier);
     return 1;
 }
 EI_REWRITTEN(0x0068BE30, CSpellContainer::AddModifier);

@@ -1,7 +1,7 @@
-// 004E59F0: the zone exit's area test (world.h, ZoneExit). The rectangle is turned by `angle` about
+// The zone exit's area test (world.h, ZoneExit). The rectangle is turned by `angle` about
 // its centre: the point is turned the other way first. Comparisons keep the original's NaN cases:
 // a NaN angle takes the axis-aligned path, a NaN turned x is outside, the other tests let NaN in.
-// Also the exit's stream form (004E5750 / 004E58A0) and the stream's CString reader 004E5840.
+// Also the exit's stream form and the stream's CString reader 004E5840.
 #include "world.h"
 
 #include "core_maths.h"
@@ -53,7 +53,7 @@ ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
 }
 EI_REWRITTEN(0x00583B50, ZoneExit::Assign);
 
-// ---- Stream form (004E5750 / 004E58A0) and the CString reader 004E5840 (A-S10) ------------------
+// ---- Stream form and the CString reader 004E5840 (A-S10) ------------------
 
 namespace {
 constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x34, +0x38 and the angle saved from here on

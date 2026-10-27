@@ -1,4 +1,4 @@
-// The GPU lighting's scene light (R16i; docs/notes/renderer.md section 16): what the world's draw hands
+// The GPU lighting's scene light (docs/notes/renderer.md section 16): what the world's draw hands
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
@@ -96,7 +96,7 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     };
     const float* diffuse = l.diffuseColour;
     p.on[0] = 1.0f;
-    p.on[1] = l.crown ? 0.6f : 0.0f;   // 0073CDE0
+    p.on[1] = l.crown ? 0.6f : 0.0f;
     if (l.sun) {
         const Vector3 towards = toModel(-l.sunDirection);   // as 005A7A70's TransformSun (no translation)
         p.sun[0] = towards.x;

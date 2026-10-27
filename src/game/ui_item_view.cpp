@@ -1,6 +1,5 @@
-// The item screens' model view (005ECA10) and the description panel's drawing (005EE5C0). See
+// The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
-//
 // Floating point follows the original's x87 code: values the original keeps on the FPU stack stay
 // there (inline assembly where a value is stored and still used unrounded, or truncated with the
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
@@ -398,7 +397,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     mfc::CString sex;
     const char* figureModel = figure->figureName;
-    const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (005ED889): the model's fifth character
+    const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
     if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
         sex = "m";
     else if (fixes || SameText(figureModel, "unhufe"))
@@ -439,7 +438,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     model->Draw(PassRenderer(pass));
 }
 EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
-// EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
+// EI_Plugin.asi patches the sex test of the face's picture in a Rebirth launch.
 
 // --- 005EC020: an item's figure texture -------------------------------------------------------------
 

@@ -159,7 +159,7 @@ bool SocketDriver::Open(int port) {
     a.port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
     if (port > 0 && libcrt::imports::Bind(socket, &a, 0x10) != 0) {
         // Not the game's: a second game on the machine holding the port leaves this session without a
-        // socket, and its local client then talks to that game's server (N0c). The verify build's
+        // socket, and its local client then talks to that game's server. The verify build's
         // check of the server's constructor builds a second server, which always gets this.
         ei::Log("net: UDP port %d is taken (bind failed): this session gets no socket", port);
         libcrt::imports::CloseSocket(socket);
@@ -225,7 +225,7 @@ EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 
-// 00440C60: a non-blocking TCP socket connecting to `address` (state 1), or state 0.
+// A non-blocking TCP socket connecting to `address` (state 1), or state 0.
 MasterLink::MasterLink(const void* address) {
     socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {
@@ -247,13 +247,13 @@ MasterLink::MasterLink(const void* address) {
 }
 EI_REWRITTEN_SPECIAL(0x00440C60, MasterLink::MasterLink);
 
-// 00440D40: closes the socket (left as it is); the buffers are destroyed after it (in, then out).
+// Closes the socket (left as it is); the buffers are destroyed after it (in, then out).
 MasterLink::~MasterLink() {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
 }
 EI_REWRITTEN_SPECIAL(0x00440D40, MasterLink::~MasterLink);
 
-// 00440DE0: one step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
+// One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
 // buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes
 // (3). An error closes the socket (0). Each step waits at most kSelectTimeout (a poll). Returns the
 // state.
@@ -329,7 +329,7 @@ int __fastcall MasterLinkTick(MasterLink* self) {
 EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 
 // 0047C330, the exit function of Winsock's static initialiser 0047C300 (WSAStartup 1.1): WSACleanup once the network
-// threads are gone. The original waits while their count (007A9774) is non-zero; only the thread procedure 0047C3A0
+// threads are gone. The original waits while their count is non-zero; only the thread procedure 0047C3A0
 // counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
 void __cdecl CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
 EI_REPLACE(0x0047C330, CleanUpWinsock);

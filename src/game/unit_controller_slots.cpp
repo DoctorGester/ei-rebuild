@@ -32,7 +32,7 @@ CUnitController::~CUnitController() { unit = nullptr; }
 EI_REWRITTEN_SPECIAL(0x00533DB0, CUnitController::~CUnitController);
 EI_REWRITTEN_SPECIAL(0x00533D90, CUnitController::~CUnitController);
 
-// 00533DD0 (slot 2): no unit; 1. 00533DE0 (slot 3): no unit.
+// No unit; 1. 00533DE0 (slot 3): no unit.
 int CUnitController::Create() {
     unit = nullptr;
     return 1;
@@ -51,7 +51,7 @@ EI_REWRITTEN(0x00533B90, CUnitController::FiguresLoaded);
 
 // Plain RET, nothing: slots 15, 22, 23, 28, 38, 41, 43, 44, 45, 48, 49, 52 and 53 (the server keeps
 // 15, 41, 43, 48 and 52; the client 22, 23, 28, 38, 44, 45, 49 and 53), and the client's own 17
-// (00534130) and 15 (00535580).
+// and 15.
 void __fastcall ControllerNothing(CUnitController*) {}
 EI_REPLACE(0x00533BB0, ControllerNothing);
 EI_REPLACE(0x00533C00, ControllerNothing);

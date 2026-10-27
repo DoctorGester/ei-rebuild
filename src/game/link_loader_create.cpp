@@ -38,7 +38,7 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const stlp::strin
     if (renderer) renderer->AddRef();
     cache_.Construct();
     pipeline_ = renderer_->pipeline_->transform_;
-    // Rebirth's ResOverride (004F6952): the mod's figure archives come first.
+    // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& modPath : modfolders::FigureArchives()) {
             const stlp::string path(modPath.c_str());

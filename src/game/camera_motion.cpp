@@ -1,7 +1,6 @@
-// CCamera helpers the per-frame update uses: aiming along a direction (004110D0), turning the
-// camera upright towards its target (0040D710) and keeping it above nearby objects (0040E4C0).
+// CCamera helpers the per-frame update uses: aiming along a direction, turning the
+// camera upright towards its target and keeping it above nearby objects.
 // See camera.h and docs/notes/core.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "camera.h"
@@ -23,7 +22,7 @@ using camera::D;
 
 } // namespace
 
-// 004110D0: aims the camera along (dx, dy, dz): the view heading is the turn about Z that points
+// Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points
 // the camera's X axis along the horizontal part (identity when that is straight along Y), then the
 // local rotation tilts by -(90 degrees + elevation) about its own X axis. False (and nothing done)
 // for a direction shorter than 1e-9.
@@ -77,7 +76,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     return true;
 }
 
-// 0040D710: turns the camera a tenth of the way about its own X-axis-and-horizontal cross product
+// Turns the camera a tenth of the way about its own X-axis-and-horizontal cross product
 // so that its X axis lines up with the horizontal direction across the view (Z axis turned a
 // quarter about +Z); nothing below one degree. Then lifts the camera over nearby objects.
 void CCamera::AlignToTarget() {
@@ -128,7 +127,7 @@ void CCamera::AlignToTarget() {
     ClampAboveObjects();
 }
 
-// 0040E4C0: keeps the camera above the terrain and the objects within 16 of it: an object (all
+// Keeps the camera above the terrain and the objects within 16 of it: an object (all
 // extents up to 100) counts with its top height, fully when the camera is inside its footprint
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
 // (raised over the highest terrain by at most settings->maxRaise) plus settings->clearance.
@@ -138,7 +137,7 @@ void CCamera::ClampAboveObjects() {
     const Vector3* zero = &camera::kZeroVector;
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     NearbyList list;
-    list.Construct();   // 00411850
+    list.Construct();
     TheClientWorld()->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
     for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {

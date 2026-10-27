@@ -1,17 +1,13 @@
 #pragma once
 
 // MFC's TRY / CATCH, for the rewrites of the game functions that use it (A-E2).
-//
 // The game's MFC 4.2 is built with C++ exceptions: THROW is `throw` of a CException*, and
-//
 //     TRY { ... } CATCH(CFileException, e) { ... } END_CATCH
-//
 // is `{ AFX_EXCEPTION_LINK link; try { ... } catch (CFileException* e) { link.m_pException = e;
 // ... } }`. The link's destructor (AfxTryCleanup) deletes the exception it was given and takes the
 // link off the thread's chain, after the handler has run.
-//
 // A rewrite writes exactly that. What makes it work across the two C++ runtimes:
-// - a throw is `throw` of a pointer to one of the classes below (C18e): this compiler makes the throw
+// - a throw is `throw` of a pointer to one of the classes below: this compiler makes the throw
 //   information, which lists the pointer to the class and to each base like the game's did
 //   (".PAVCFileException@@", ".PAVCException@@", ".PAVCObject@@", ".PAX");
 // - a handler matches a thrown object when the type descriptors are the same object or carry the
@@ -37,8 +33,8 @@ namespace mfc {
 
 // AFX_EXCEPTION_LINK: one TRY block on the thread's chain of them.
 struct ExceptionLink {
-    ExceptionLink();    // 007020F1: no exception, put on the chain
-    ~ExceptionLink();   // AfxTryCleanup (0070212F): the exception released, the top link taken off
+    ExceptionLink();    // no exception, put on the chain
+    ~ExceptionLink();   // AfxTryCleanup: the exception released, the top link taken off
     ExceptionLink(const ExceptionLink&) = delete;
     ExceptionLink& operator=(const ExceptionLink&) = delete;
 

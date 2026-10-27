@@ -1,4 +1,4 @@
-// The locale and multibyte state the CRT ports read (crt_locale_data.h): the host CRT's (C26).
+// The locale and multibyte state the CRT ports read (crt_locale_data.h): the host CRT's.
 #include "crt_locale_data.h"
 
 #include <windows.h>

@@ -38,7 +38,7 @@ public:
     virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
     virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
 
-    // 00455940. The owning manager's context_ (the world, for the world's managers).
+    // The owning manager's context_ (the world, for the world's managers).
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (units, map objects, effects, items
     // on the ground: their managers' context_ is the world itself; a party's items have the party).
@@ -52,7 +52,7 @@ public:
     CWorld* World() const;
     // 00457720 (app_helpers.cpp). Drops one reference; at zero the object is deleted (slot 0 with 1).
     void ReleaseAndDelete();
-    // 00455970. Sets the owner; returns the previous one.
+    // Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
     // The fields the (mostly inlined) constructor sets (0040CB20 out of line), in its order: no
     // references, id -1, no flags, kind 0, no owner.
@@ -122,9 +122,9 @@ static_assert(sizeof(HeldEngineObject) == 4);
 // counted_ref.cpp's, instantiated there for each T; AIRef's are the registered ones.
 template <typename T>
 struct AIRefTo {
-    // 0052B030. Release and clear.
+    // Release and clear.
     void Reset();
-    // 0052A8F0. Hold `object` (released first unless it is already held).
+    // Hold `object` (released first unless it is already held).
     void Assign(T* newObject);
     // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, CWorld* world);
@@ -149,6 +149,6 @@ using AIRef = AIRefTo<CEngineObject>;
 template <>
 AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
-// 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World
+// CEngineObject::World, for the callers that name the object's base (CMapObject::World
 // hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

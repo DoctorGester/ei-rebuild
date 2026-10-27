@@ -1,4 +1,4 @@
-// Spells from text (00689030): "healing{e2;e2}" as the scripts' CastSpellUnit / CastSpellPoint and
+// Spells from text: "healing{e2;e2}" as the scripts' CastSpellUnit / CastSpellPoint and
 // the wands' prototypes (CItemConstructor::Build) write them.
 #include "spell.h"
 
@@ -25,14 +25,14 @@ struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
     void TrimLeft();                            // 006FE216 (white space)
     void TrimRight();                           // 006FE11F (white space)
-    void TrimRight(char c);                     // 006FE0DD
+    void TrimRight(char c);
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
-// 004DBE40: splits `text` at `separator` into `out` (__fastcall, separator on the stack).
+// Splits `text` at `separator` into `out` (__fastcall, separator on the stack).
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
-// 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
+// Operator[](key) (inserts a null record for a missing name); returns the value.
 // The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
 itemdb::SpellTable::CodeIndex& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
 itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }

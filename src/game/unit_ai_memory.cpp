@@ -1,6 +1,6 @@
-// The perception memory's queries over the visible units (005CB260, 005CB480, 005CB670), the
-// exposure to hostile units (005CB850), corpses seen (005CBE90), forcing
-// an object into sight (005CBC80) and the counted lists' AddTail (005CD500).
+// The perception memory's queries over the visible units, the
+// exposure to hostile units, corpses seen, forcing
+// an object into sight and the counted lists' AddTail.
 #include "ai_map.h"
 #include "combat.h"
 #include "unit_ai.h"
@@ -21,7 +21,7 @@
 #include <cstdint>
 
 namespace {
-constexpr float kZero = 0.0f;                   // 0073B858
+constexpr float kZero = 0.0f;
 const float kFar = 1e30f;                       // 7149F2CA
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
@@ -143,7 +143,7 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
 EI_REWRITTEN(0x005CBE90, AIMemory::SeeCorpse);
 
 namespace {
-constexpr float kMaxExposure = 3.0f;            // 0073FE90
+constexpr float kMaxExposure = 3.0f;
 
 // distance / range, at most 3 (NaN kept); 3 for a zero range.
 float Exposure(float distance, double range) {

@@ -96,8 +96,8 @@ EI_REWRITTEN(0x0055EA10, StoreStartFolder);
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
 
 namespace {
-constexpr double kHoursPerDay = 24.0;   // 0073D108
-const char kConstructionVariable[] = "constr.current";   // 00790384
+constexpr double kHoursPerDay = 24.0;
+const char kConstructionVariable[] = "constr.current";
 // The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
@@ -143,7 +143,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     EI_NAN_AUDIT(unit->localPosition_.z, z);
     if (unit->localPosition_.z == z) return;
     Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    world->Sectors()->Move(unit, &target);   // 005C11D0
+    world->Sectors()->Move(unit, &target);
     unit->MarkChanged(2);
 }
 EI_REWRITTEN(0x00578760, GameSetUnitHeight);

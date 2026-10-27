@@ -87,8 +87,8 @@ EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 
 void ItemStock::Destruct() {
     context = nullptr;
-    modifierMap.Destroy();   // 004A9010
-    spellMap.Destroy();      // 004A8E60
+    modifierMap.Destroy();
+    spellMap.Destroy();
     // _Vector_base's destructors: the storage back to the node allocator (operator delete above 128 bytes).
     modifiers.FreeStorage();
     spells.FreeStorage();

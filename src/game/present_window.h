@@ -3,7 +3,6 @@
 // The game window in the switch-over without DirectDraw (render::PresentsItself, ticket R9c): full
 // screen without a display mode change, and the game's mouse coordinates when the frame does not
 // fill the window one to one. docs/notes/renderer.md, section 9.
-//
 // The game takes its mouse positions as screen coordinates of a window at 0, 0 the size of its
 // resolution: GetCursorPos (the cursor 005E52E0, the global map 0062F050) and SetCursorPos without
 // converting, WM_MOUSEMOVE and the buttons as client coordinates, WM_MOUSEWHEEL as screen
@@ -18,7 +17,7 @@ class CTextureDevice;
 
 namespace present_window {
 
-// Each present (004EF610) without DirectDraw: a full-screen device (flags_ bit 0) gets its window
+// Each present without DirectDraw: a full-screen device (flags_ bit 0) gets its window
 // over the whole monitor it is on (not while minimised; again after a display mode change), and
 // the cursor imports are mapped from the first call.
 void Update(CTextureDevice* device);

@@ -24,7 +24,7 @@ using IntPoint = RasterTriangle::Point;
 using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocates through 004F65B0
 constinit lib::AlignedArray<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
 lib::AlignedArray<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
-void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }   // 005A1170
+void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 
@@ -36,7 +36,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
         uv = PointArray{};
-        libcrt::AtExit(FreeTexturePoints);   // 005A1170
+        libcrt::AtExit(FreeTexturePoints);
     }
     uv.SetSizeDiscard(buffers.texCoordCount);
     float scale = 255.0f /*0073C370*/;

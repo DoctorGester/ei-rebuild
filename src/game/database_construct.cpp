@@ -1,4 +1,4 @@
-// The compiler-generated constructors of the resource databases (S3b). Only the static
+// The compiler-generated constructors of the resource databases. Only the static
 // initialisers call them, before the hooks are installed (the spell and item databases' also the
 // resource switch 0057CB50 and reload 0057DEE0 of a network game), so the hook build checks them at
 // start-up against what the originals built (verify_global_constructors.cpp until S21d); the

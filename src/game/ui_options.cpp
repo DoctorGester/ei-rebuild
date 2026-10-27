@@ -1,5 +1,5 @@
 // The options window's settings and key bindings (00651350..006524A0) and its slider's layout
-// (0065B8B0). See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
+//. See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
 #include "record_vectors.h"
 #include "ui.h"
 
@@ -64,7 +64,7 @@ float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above th
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The game's option globals the window loads (00652200) and stores (006524A0), by setting.
+// The game's option globals the window loads and stores, by setting.
 int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
 int& OptVolume1() { return options::TheOptions()->audioStreaming_; }       // setting 1
 int& OptVolume2() { return options::TheOptions()->audioSpeech_; }       // setting 2

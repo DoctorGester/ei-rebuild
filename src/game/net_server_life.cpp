@@ -1,5 +1,5 @@
-// The game server's destructor (00417BC0), scalar deleting destructor (00417A10, slot 0) and its
-// base layer's destructor body (004132F0). The members are torn down in reverse order through
+// The game server's destructor, scalar deleting destructor (00417A10, slot 0) and its
+// base layer's destructor body. The members are torn down in reverse order through
 // their STLport destructors and the counted pointers' releases, then the session base. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"

@@ -17,7 +17,7 @@ constexpr float kSize = 100.0f;
 constexpr int kTexels = 0x80;
 } // namespace
 
-// 005EBFB0 (__fastcall). The model manager's object `name`, else a new interface sprite standing in
+// The model manager's object `name`, else a new interface sprite standing in
 // for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
 CUiMesh* __fastcall ItemModel(const char* name) {
     CFigureManager* manager = TheFigureManager();

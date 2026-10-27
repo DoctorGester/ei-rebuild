@@ -43,7 +43,7 @@ CMappedResource::CMappedResource() {
 }
 
 CMappedResource::~CMappedResource() {
-    // Rebirth's ResOverride (006714A2): addon forgets the archive first.
+    // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (fd_ >= 0) {
@@ -68,7 +68,7 @@ void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 void CMappedResource::Flush() {}   // 4: 00671390 (short_functions.cpp)
 
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
-    // Rebirth's ResOverride (00671738): addon loads the mod's archives on the first open and records
+    // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();

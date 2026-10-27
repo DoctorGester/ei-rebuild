@@ -1,6 +1,6 @@
 // The item panels' shared left-button handler (005EE310, input slot 2 of the description panel,
 // the hero equipment, the quick strip, the trade and repair grids, both constructor pages and the
-// blank panel), and the blank panel's constructor (0060E210). See docs/notes/ui.md, section 5.
+// blank panel), and the blank panel's constructor. See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"

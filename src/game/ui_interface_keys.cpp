@@ -1,5 +1,4 @@
 // The interface's key-down handler (CInterface3D, 005F78C0). See ui.h and docs/notes/ui.md.
-//
 // The modifier flags it sets are +0x7C Ctrl (scan codes 0x1D, 0x11D), +0x7D Shift (0x2A, 0x36) and
 // +0x7E Alt (0x38, 0x138).
 #include "ui.h"
@@ -69,7 +68,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         ++g_shotCounter;
         lib::InPlace<mfc::CFile> storage;
         auto* file = storage.Get();
-        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite
+        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // modeCreate | modeWrite
         picture->Write(file);
         file->Close();
         delete picture;

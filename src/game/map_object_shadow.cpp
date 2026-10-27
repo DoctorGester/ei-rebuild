@@ -62,16 +62,16 @@ ShadowPoints& Points() { return g_points; }
 ShadowPixels& Pixels() { return g_pixels; }
 ShadowQuads& Quads() { return g_quads; }
 
-// The exit functions their static initialisers (0051CBD0, 0051CDA0, 0051CE00) register: each frees its array's block.
+// The exit functions their static initialisers register: each frees its array's block.
 // The points' and the pixels' are guarded: a guard bit each in 007AF1F0, so a second run frees nothing.
 constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
-void __cdecl FreeQuads() { g_quads.FreeData(); }   // 0051CC00
-void __cdecl FreePoints() {   // 0051CDD0
+void __cdecl FreeQuads() { g_quads.FreeData(); }
+void __cdecl FreePoints() {
     if (g_freed & 1) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 1);
     g_points.FreeData();
 }
-void __cdecl FreePixels() {   // 0051CE30
+void __cdecl FreePixels() {
     if (g_freed & 2) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 2);
     g_pixels.FreeData();
@@ -94,16 +94,16 @@ constexpr std::uint32_t kDefaultColour = 0x80FFFFFF;
 constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0073C54C 0.3
 constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0073CDE0 0.6
 constexpr float kBlue = std::bit_cast<float>(0x3DCCCCCDu);    // 0073B850 0.1
-constexpr float kOne = 1.0f;                                  // 0073B84C
-constexpr double kOneDouble = 1.0;                            // 0073BAC8
-constexpr float kStrongFactor = 10.0f;                        // 0073BAAC
+constexpr float kOne = 1.0f;
+constexpr double kOneDouble = 1.0;
+constexpr float kStrongFactor = 10.0f;
 constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // 0073DF80 -tan(20 degrees)
-constexpr float kFarSquared = 1e10f;                          // 0073DF7C
-constexpr float kTextureScale = 63.0f;                        // 0073D044
-constexpr float kAlphaScale = 128.0f;                         // 0073DF78
+constexpr float kFarSquared = 1e10f;
+constexpr float kTextureScale = 63.0f;
+constexpr float kAlphaScale = 128.0f;
 constexpr std::uint32_t kDrawDepth = 0x3F7FF972;
 
-// pi, 1/180 and 20 (0073DE60, 0073BA30, 0073DF88): volatile, so the product is formed at run
+// pi, 1/180 and 20: volatile, so the product is formed at run
 // time with the FPU's precision like the original's.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
@@ -114,11 +114,11 @@ volatile double g_minimumTilt = 20.0;
 // 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
 // 00501AF0 (CSceneRenderer::SetTexture). Texture stages: binds a texture.
-// 006CB020. Light manager: is the point lit, AL.
+// Light manager: is the point lit, AL.
 // 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
 // 004018A0 Quaternion::PreMultiply; 005A0CD0 CFigureMesh::DrawOffset.
 
-// 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
+// *slot = value with counted references; the old value is released (its slot 4).
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;
@@ -267,7 +267,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
             stlp::string key(name);
             count += figure->RasterisePart(&key, &Pixels()[count], &target);
         } else {
-            count += part->Rasterise(static_cast<CPixelConverter*>(device), &Pixels()[count], &target);   // 005A0E80
+            count += part->Rasterise(static_cast<CPixelConverter*>(device), &Pixels()[count], &target);
         }
     }
     if (ShadowMode() == 2) {
@@ -329,7 +329,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // The original turns the object back with the conjugate (0051D4E0 PreMultiply), which is not exact:
     // each re-rendered shadow moved the orientation by an ulp, and how often that ran followed the frame
     // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
-    // harness does the same in the original, harness_shadow_turn.h, SV7b4a).
+    // harness does the same in the original, harness_shadow_turn.h).
     const Quaternion kept = object->localRotation_;
     object->localRotation_.PreMultiply(turn);
     ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
@@ -377,7 +377,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float offsetY = static_cast<float>(-(static_cast<double>(scaleY) * self->bounds[1]));
     Matrix4 toPixels = {};
     float* t = toPixels.m;
-    t[0] = t[5] = t[10] = t[15] = 1.0f;   // 0051E1C0
+    t[0] = t[5] = t[10] = t[15] = 1.0f;
     t[0] = scaleX;
     t[12] = offsetX;
     t[13] = offsetY;
@@ -494,7 +494,7 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
 }
 
 int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
-    // The game shows this object's shadow: in the new renderer's shadow map its meshes cast (R16j),
+    // The game shows this object's shadow: in the new renderer's shadow map its meshes cast,
     // a unit as strongly as it has faded in.
     float strength = 1.0f;
     if (!ShadowCastStrength(object, &strength)) return 1;

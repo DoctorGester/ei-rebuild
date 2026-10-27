@@ -31,7 +31,7 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-// The software cursor's lock (005E65F0), unless the harness hooks the call (ei/main_loop.h): its frame
+// The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame
 // capture reads the finished frame before the cursor is blitted and the frame flipped
 // (tests/verify/harness_capture.cpp; in game.exe's own runs it patches the original CALL at 004580D7).
 using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
@@ -74,8 +74,8 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (cursor) TheInterface()->DrawOverlays();
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(TheCursor());
-    CursorDrawFrame(TheCursor());   // 005E54A0
-    if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
+    CursorDrawFrame(TheCursor());
+    if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
     TheCursor()->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];

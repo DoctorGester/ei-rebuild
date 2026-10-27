@@ -42,7 +42,7 @@ struct LeverRecord {
 static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table's layout: the records (an STLport vector) and their index by model name. Its
-// constructor (004632A0) is a static initialiser, its destructor 00463120 (lever_table.cpp).
+// constructor is a static initialiser, its destructor 00463120 (lever_table.cpp).
 // (The archive's helper for the records is ChunkArchive::SerializeLevers, app_device_list.cpp.)
 
 struct LeverRecordTable {
@@ -79,16 +79,16 @@ inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
 // docs/notes/units.md ("Levers"). unit_lever.cpp: SetState, CollectUseSpots; lever_object.cpp the rest.
 class Lever : public CMapObject {
 public:
-    // 0052B1F0. The map object (0050E2D0), the lock {1, 0, 0}, the map object's Create (0050E770),
-    // the animation cleared, 6 network fields (0050FA30), then the lock again, state 0 of 1, not
+    // The map object, the lock {1, 0, 0}, the map object's Create,
+    // the animation cleared, 6 network fields, then the lock again, state 0 of 1, not
     // cycling, both flags 0.
     Lever();
-    // 0052B320. The map object's Destroy (0050E840), then its destructor.
+    // The map object's Destroy, then its destructor.
     ~Lever() override;
     // The deleting destructor (slot 0, 0052B300) frees into the game's heap.
 
-    int Create() override { return CreateLever(); }        // 2: 0052B370
-    int RunTick() override { return UpdateLever(); }       // 6: 0052B490
+    int Create() override { return CreateLever(); }
+    int RunTick() override { return UpdateLever(); }
     void Load(CStream* stream) override;                      // 9: 0052BDD0 LoadLever
     void Save(CStream* stream) override;                      // 10: 0052BE40 SaveLever
     const char* GetClassName() override;                   // 11: 0052B2E0 "CLeverObject"
@@ -105,7 +105,7 @@ public:
     void WriteNetState() override { WriteLeverNetState(); }        // 50
     float Radius() override { return static_cast<float>(RadiusSlot()); }   // 60
 
-    // 0052B7A0 (RET 8). Sets state `state` (negative: the next one, wrapping when cycling) and
+    // Sets state `state` (negative: the next one, wrapping when cycling) and
     // moves the lever there over `duration` ticks (negative: the model's default from 0079C1AC,
     // else 10; zero or less: at once). The units standing around it are lifted off the sector map
     // while it moves and put back on free cells if they cannot stay where they are.
@@ -125,20 +125,20 @@ public:
     // 0052B490 (slot 6, the update). The map object's update; then on the client only (the
     // context's slot 26 is 0): while the move runs (t = (end tick - tick) * rate above 0) the
     // shown position is to - (to - from) * t, else `to` when it differs; the scale is applied
-    // (00517700) and the client world refreshes the object (005651A0). Returns 1 while moving,
+    // and the client world refreshes the object. Returns 1 while moving,
     // else 0.
     int UpdateLever();
-    // 0052BDD0 / 0052BE40 (slots 9 / 10, RET 4). The map object part (0050F7A0 / 0050F900), then
+    // 0052BDD0 / 0052BE40 (slots 9 / 10, RET 4). The map object part, then
     // state, count, cycling, the lock (three dwords; 005229F0 / 00522A30) and both flag bytes.
     void LoadLever(CStream* stream);
     void SaveLever(CStream* stream);
-    // 0052B560 (slot 50). The map object's network state (0050EAF0), then field 5: a finished
+    // The map object's network state, then field 5: a finished
     // move (to != shown position) restarts from the shown position with rate 0; the lock, from,
     // to, end tick, rate and the disabled bit.
     void WriteLeverNetState();
-    // 0052B650 (slot 49, RET 4). Reads what WriteLeverNetState writes; the result is the map
+    // Reads what WriteLeverNetState writes; the result is the map
     // object's and-ed with "the snapshot was consumed". The client world queues the object
-    // (0056D7E0); on the first read a moving lever plays its model's sound (lever table record
+    // on the first read a moving lever plays its model's sound (lever table record
     // +0x24) at its position (8 to 40 units). Returns the map object's result without field 5.
     std::uint32_t ReadLeverNetState(int first);
 
@@ -152,20 +152,20 @@ public:
     std::uintptr_t SetLock(const LockKey* lock);
 
     // Small slots.
-    bool Slot29True();                  // 0052B2B0 (slot 29): AL = 1
-    int Flag260Slot();                  // 0052B2D0 (slot 39): the byte +0x260
-    bool KeepsMapFlagSlot();            // 0052B2C0 (slot 43): AL = the byte +0x261
-    // 0052BB00 (slot 38). 0 when disabled, else whether the lock has a mask.
+    bool Slot29True();                  // AL = 1
+    int Flag260Slot();                  // the byte +0x260
+    bool KeepsMapFlagSlot();            // AL = the byte +0x261
+    // 0 when disabled, else whether the lock has a mask.
     int NeedsKey();
-    // 0052BBC0 (slot 40). The lock's id when its mask has bit 3, else 0.
+    // The lock's id when its mask has bit 3, else 0.
     std::uint32_t KeyId() override;
     // 0052BB50 (slot 41, RET 8: ApplyScience). When `key` opens the lock (00522A80, Rebirth's
     // FixLeversActivate, through its address): the next state (SetState(-1, -10)), disabled,
     // MarkChanged(5); AL 1. Else 0. The second argument is not read.
     bool ApplyKey(const LockKey* key, int unused);
-    // 0052BBA0 (slot 42, RET 4). Whether `key` opens the lock (00522A80's EAX).
+    // Whether `key` opens the lock (00522A80's EAX).
     BOOL KeyOpens(const LockKey* key);
-    // 0052B3E0 (slot 60). The radius (+0x134), in ST0.
+    // The radius (+0x134), in ST0.
     double RadiusSlot();
 
     int state;                      // +0x238
@@ -187,6 +187,6 @@ static_assert(offsetof(Lever, rate) == 0x25C);
 static_assert(offsetof(Lever, keepsMapFlag) == 0x261);
 static_assert(sizeof(Lever) == 0x264);
 
-// 0052B2E0 / 0052B2F0 (slots 11 / 12): "CLeverObject" (0078F788) and 0x5D.
+// 0052B2E0 / 0052B2F0 (slots 11 / 12): "CLeverObject" and 0x5D.
 const char* __fastcall LeverClassName(Lever* self);
 int __fastcall LeverClassId(Lever* self);

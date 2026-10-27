@@ -1,4 +1,4 @@
-// UnitStats::LoadFrom / SaveTo (005287A0 / 00528800): the statistics block in saved games (the
+// UnitStats::LoadFrom / SaveTo: the statistics block in saved games (the
 // server controller's copy, combat_save.cpp; the party's records, party_save.cpp). See unit.h.
 #include "unit.h"
 

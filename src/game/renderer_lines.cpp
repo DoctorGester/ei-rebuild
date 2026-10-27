@@ -3,13 +3,12 @@
 // (render::TlDraw; with the old path's meshes off the old draw is skipped). Both draw untextured
 // one-colour strips: stage 0's colour and alpha operations off around the draw, back to MODULATE
 // after it. See docs/notes/renderer.md ("Pass state").
-//
 // - 005045D0 (virtual slot 20 of the renderer 007AF060, vtable 0073D93C): a strip through integer
 //   screen points. No caller found in the exe (not reached by the scenarios).
 // - 0049B4B0 (the device object): a strip through points the transform pipeline projected; the
 //   draw of the renderer's line lists (0049B780, slot 15 00501CE0: the figure parts' debug bounds
 //   boxes of 005A7290, the world client's line lists in 00569D60). Debug drawing; not reached by
-//   the scenarios. Its vertices go to a growing buffer in the exe's data (007A9CE0).
+//   the scenarios. Its vertices go to a growing buffer in the exe's data.
 #include "renderer_lines.h"
 
 #include "device.h"
@@ -138,16 +137,16 @@ EI_REWRITTEN(0x0049B4B0, DeviceDrawLineStrip);
 
 // The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers 0049B460 and
 // 0049B6E0 leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
-// initialisers' objects"). 0049B730's array (007A9CA8) is never used: config/unread_data.csv.
+// initialisers' objects"). 0049B730's array is never used: config/unread_data.csv.
 constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
 constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
 namespace {
-void __cdecl FreeLineVertices() {   // 0049B490
+void __cdecl FreeLineVertices() {
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
-void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }   // 0049B710
+void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }
 void __cdecl DestroyLineOutcodes() {   // 0049B6D0 (CByteArray's destructor 006FF61D)
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
 }

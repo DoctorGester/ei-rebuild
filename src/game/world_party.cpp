@@ -1,5 +1,5 @@
 // CWorldServer: the party arriving in a zone (Redeploy 00590700) and the quest items it brings
-// back (00590460, 005901E0). See world.h and docs/notes/world.md.
+// back. See world.h and docs/notes/world.md.
 #include "script.h"
 #include "world.h"
 
@@ -51,11 +51,11 @@ using ObjectList = mfc::CTypedPtrList<CItem>;
 // 0059CB50 is lib::AlignedArray's).
 using ItemArray = PartyItemArray;
 
-// CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes (0073FAA4).
+// CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes.
 using IdArray = mfc::CArray<int>;
 using RecordArray = RecordPtrArray;
 
-// 0045E850 (RET 4). The map database's zone record by name.
+// The map database's zone record by name.
 const MapRecord* FindZone(const char* name) {
     return TheMapDatabase()->FindMap(name);
 }
@@ -209,10 +209,10 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
                                                        static_cast<double>(start.x) - centreX) - kFacingOffset);
     if (exit && exit->hasDeployAngle) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};
-    rotation.FromAxisAngle(up, angle);   // 0049ECC0
+    rotation.FromAxisAngle(up, angle);
 
     CreateUnits(player, &records, &start, rotation, placements);
-    if (placements)   // 0059C3D0
+    if (placements)
         mfc::impl::ArrayAs<mfc::impl::Placements>(*placements).SetSize(0, -1);
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
@@ -235,7 +235,7 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
 
 namespace {
 
-// 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (CountedEngineList::AddTailCounted).
+// CTypedPtrList<CRefPtr> AddTail: the list holds a reference (CountedEngineList::AddTailCounted).
 void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
     reinterpret_cast<gamelists::CountedEngineList*>(list)->AddTailCounted(object);
 }
@@ -262,7 +262,7 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 namespace {
 
 // 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
-// 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
+// The item manager makes a spell by name (with world slot 22).
 
 // The world server's item manager (CWorld::itemManager_, 007AFFB4).
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }

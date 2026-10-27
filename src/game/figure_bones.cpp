@@ -1,4 +1,4 @@
-// The skeleton's pose (0050C230): each bone of a figure takes its place from its parent and its
+// The skeleton's pose: each bone of a figure takes its place from its parent and its
 // animator, and places the mesh it carries. Called from the root (CFigureAnimationState +0x20) by
 // 0050D3E0 / 0050D450 (the animation changed) and 0050D7C0 (the figure was rescaled), with the
 // figure's scaled time factor as the origin. See docs/notes/map_objects.md.

@@ -25,16 +25,16 @@
 namespace {
 
 constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;                                           // 0073B86C
-constexpr float kOne = 1.0f;                                            // 0073B84C
-constexpr float kQuarter = 0.25f;                                       // 0073C3B0
+constexpr float kHalf = 0.5f;
+constexpr float kOne = 1.0f;
+constexpr float kQuarter = 0.25f;
 constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 0073D738 (3.14159, sic)
-constexpr float kVolumeScale = 100.0f;                                  // 0073BAB0
-constexpr float kDensityScale = 64.0f;                                  // 0073D734
+constexpr float kVolumeScale = 100.0f;
+constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = std::bit_cast<float>(0x3C23D70Au);      // 0073C548 (0.01)
 // Random jitter of a fog cell centre (0073CDA0, 2^-33 with its last bit set).
 constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
-constexpr float kFogCellSize = 1.0f;                                    // 0073D6A4
+constexpr float kFogCellSize = 1.0f;
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
 
@@ -49,10 +49,10 @@ double Unsigned(std::uint32_t value) {
 
 // The sound manager (*007AF784): 006B9100 sets a playing sound's volume (0..100), 006B94A0 stops it.
 
-// The game's atexit (006E727B).
+// The game's atexit.
 
 // vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
-// update, its guard bit 0), with the original's constructor (004E2BA0) and insert-overflow (004E2FA0).
+// update, its guard bit 0), with the original's constructor and insert-overflow.
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
@@ -61,10 +61,10 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
 
 constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }   // 004E1C50 (004E2A20)
+void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }   // 004E1C50
 
 // The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
-// exists; returns the pair) and erase by key (004E2F00): the 28-byte dword-keyed table's.
+// exists; returns the pair) and erase by key: the 28-byte dword-keyed table's.
 using CellTable = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
 CellTable::Table* CellTableOf(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellTable::Table*>(map); }
 std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pair) {
@@ -190,9 +190,9 @@ CRainSnow::CRainSnow() {
 CRainSnow::~CRainSnow() {
     Clear();
     offsets.FreeData();
-    indices.Destruct();   // 006FEECD
+    indices.Destruct();
     vertices.FreeData();
-    frames.Destruct();   // 006FF61D
+    frames.Destruct();
     outcodes.Destruct();
     positions.FreeData();
     projected.FreeData();
@@ -261,7 +261,7 @@ int CVisibilityFog::UpdateCells() {
     KeyVector& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
-        dead.ConstructEmpty();   // 004E2BA0
+        dead.ConstructEmpty();
         libcrt::AtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
@@ -329,7 +329,7 @@ EI_REWRITTEN(0x004E1C60, CVisibilityFog::Reveal);
 
 // ---- The fog object's slots (A-S10) ----------------------------------------------------------------
 
-// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list (0079B230), as the original
+// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list, as the original
 // pushes them.
 static_assert(sizeof(CVisibilityFog::CellMap::Node) > 24 && sizeof(CVisibilityFog::CellMap::Node) <= 32);
 

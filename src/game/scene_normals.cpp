@@ -1,5 +1,5 @@
 // The fake unit scene's vertex normals (0044DCF0, Ghidra: PrepareMeshes) and packed positions
-// (0044E3B0), both called by LoadFakeUnitScene. Normals: for every mesh, each face's normal (0049AEC0), each position's normal as the
+// both called by LoadFakeUnitScene. Normals: for every mesh, each face's normal, each position's normal as the
 // normalised sum of the normals of the faces using it (the zero vector 0079B9B0 when the sum is
 // within the weld distance of zero), the faces' position indices refreshed, and the normals packed
 // four at a time into 64-byte blocks (x[4], y[4], z[4], w[4]; unused lanes repeat the last
@@ -61,7 +61,7 @@ void __fastcall ComputeMeshNormals(MeshArray* meshes) {
             } else {   // within the weld distance of zero, or NaN
                 normal = kZeroVector;
             }
-            normals.SetAtGrow(normals.size, std::bit_cast<PointBits>(normal));   // 00452AF0
+            normals.SetAtGrow(normals.size, std::bit_cast<PointBits>(normal));
         }
 
         for (int f = 0; f < faces.size; ++f) {

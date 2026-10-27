@@ -18,14 +18,14 @@
 // ai_unit_shape.cpp. Names provisional.
 class CUnitShape final : public CRefObject {
 public:
-    // 005B3440 (RET 4). The levels of a disc: per cell (2 + radius - half its distance from the
+    // The levels of a disc: per cell (2 + radius - half its distance from the
     // middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0. No references.
     explicit CUnitShape(float radius);
     // An empty shape, as OnShutdown leaves one (the water patch, ai_water_patch.cpp). No references.
     CUnitShape();
-    // 005B3540. Constructed again empty: no levels, radius -1. Returns 0.
+    // Constructed again empty: no levels, radius -1. Returns 0.
     int OnShutdown() override;
-    // 005B34F0. A new shape with the same levels and radius (no references yet).
+    // A new shape with the same levels and radius (no references yet).
     CUnitShape* Clone() override;
 
     std::uint8_t levels[16][16];    // +0x008 rows of 16

@@ -1,6 +1,6 @@
 // The game server's handlers of the login message (0073BBF8, registered by the server constructor):
 // a client joined (0041ADB0: a player record and a connection binding for it), its record changed
-// (0041AD80) or it left (0041B0C0).
+// or it left.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "net_connection.h"
@@ -23,21 +23,21 @@ std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
 } // namespace
 
-// 0041ADB0: a client joined (a LoginMessage). Appends a player record (the login's texts and
+// A client joined (a LoginMessage). Appends a player record (the login's texts and
 // values, the lowest free player number, the next serial, the server's next line number) and a
 // binding (the player and the current connection) the login keeps. The player is the host when
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
 void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewCounted<PlayerMessage>();
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, player);   // 00428040
+    const RefPtr* value = RefPtrFromRaw(&ref, player);
     self->players_.Insert(self->players_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
     PlayerMessage* record = self->players_.Back();
 
     auto* binding = NewCounted<BindingMessage>();
-    value = RefPtrFromRaw(&ref, binding);   // 00428050
+    value = RefPtrFromRaw(&ref, binding);
     self->bindings_.Insert(self->bindings_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();

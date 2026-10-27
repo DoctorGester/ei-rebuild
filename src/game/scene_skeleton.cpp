@@ -2,7 +2,7 @@
 // LoadFakeUnitScene): each node's pivot (its first rotation key's vector, +0x70) and rest rotation
 // (its first position key: axis +0x60 and angle +0x6C as a quaternion at +0x7C, unless the axis is
 // the zero vector 0079B9B0), the mesh named like a node moved into the node's frame, the bones built
-// from the root node (00449240), then each node's frame array (+0xF8, 40-byte records) sized to the
+// from the root node, then each node's frame array (+0xF8, 40-byte records) sized to the
 // frame count with the pivot and rotation in its first record. Plain float maths (rule 7). Names
 // provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
@@ -47,7 +47,7 @@ ChildArray& Children(SceneNode* node) { return node->children; }
 
 } // namespace
 
-// 00449240: replaces the skin's root bone (the old one destroyed and freed) by a new one built
+// Replaces the skin's root bone (the old one destroyed and freed) by a new one built
 // from `node`, then makes frames 0 .. (short)frames of the skeleton relative.
 void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames) {
     if (CAnimationNode* old = skin->root) {
@@ -63,7 +63,7 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
 }
 EI_REWRITTEN(0x00449240, BuildRootBone);
 
-// 004491C0: every child's rest pivot and rotation copied, recursively.
+// Every child's rest pivot and rotation copied, recursively.
 void __fastcall CopyRestPose(SceneNode* node) {
     ChildArray& children = Children(node);
     for (int i = 0; i < children.size; ++i) {
@@ -73,7 +73,7 @@ void __fastcall CopyRestPose(SceneNode* node) {
 }
 EI_REWRITTEN(0x004491C0, CopyRestPose);
 
-// 00449030: links each node to its children (nodes whose parent name equals its name, _mbscmp),
+// Links each node to its children (nodes whose parent name equals its name, _mbscmp),
 // finds the root (the last node with an empty parent name, -1 when none) and copies the rest pose
 // from it down. Without a root the original reads and writes the element before the array; kept.
 int __fastcall FindRootNode(NodeArray* nodeArray) {

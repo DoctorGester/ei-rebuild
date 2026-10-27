@@ -4,14 +4,14 @@
 // `dsy` its screen derivatives (taken before any discard), `pixel` its screen position. Every comparison
 // follows the receiver's plane (its depth slope across the map, clamped). A receiver weighs it by its
 // facing to the sun, so a face turned away is not shadowed (its own object's shadow there would be acne):
-// the ground by its normal (R16i), the meshes by their face normal (`shadow_facing`, the derivatives).
-// A unit's meshes instead (R16i2) compare from the unit's nearest depth (`front`): no shadow of its own
+// the ground by its normal, the meshes by their face normal (`shadow_facing`, the derivatives).
+// A unit's meshes instead compare from the unit's nearest depth (`front`): no shadow of its own
 // (that flipped face by face on a low-poly creature), every other caster's on every face, its sun side
 // shaded by its lighting's N.L alone.
-// Soft edges (R16j2), contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
+// Soft edges, contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
 // the nearest and the farthest depth of the cells within the widest filter's reach and one cell more
 // (x, y), and the cell's own nearest (z). It is read filtered (`range_smp`: bilinear between the four
-// cells around the pixel; R25). Each of those four cells' bounds holds for every texel the pixel's taps
+// cells around the pixel). Each of those four cells' bounds holds for every texel the pixel's taps
 // read, so their weighted mean does too, and the bounds change smoothly across the map instead of
 // stepping at the cells' edges (read per cell, they made cell-sized squares in a penumbra, which crawled
 // while the sun turned the map's texels across the ground: the user's shimmer). A pixel nearer than
@@ -66,7 +66,7 @@ float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<
     if (abs(det) > 1e-24) slope = float2(uy.y * dsx.z - ux.y * dsy.z, ux.x * dsy.z - uy.x * dsx.z) / det;
     slope = clamp(slope, -scale.w, scale.w);
     float z = s.z - on.w;
-    // A unit's mesh (R16i2): compared as a plane facing the light at its object's nearest depth (`front`;
+    // A unit's mesh: compared as a plane facing the light at its object's nearest depth (`front`;
     // above 1: not a unit), so only what lies nearer the sun than all of the unit shadows it.
     if (front <= 1.0) {
         z = min(s.z, front) - on.w;

@@ -40,7 +40,7 @@ CLight::CLight() {
     unused_FC = 0;
     unused_E8 = 1.0f;
     unused_E4 = 1.0f;
-    // FSQRT of the double FLT_MAX (00743B48); the main thread's 24-bit precision rounds the root to
+    // FSQRT of the double FLT_MAX; the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
     const float root = static_cast<float>(std::sqrt(static_cast<double>(FLT_MAX)));
     const double squared = static_cast<double>(root) * root;
@@ -160,7 +160,7 @@ CEngineObject* CLightFactory::NewObject(int type) {
         game::DebugLog(kUnknownLightType, type);
         return nullptr;
     }
-    // Allocated zeroed (SV7b6a): the constructor leaves the transform's positions, and nothing sets a
+    // Allocated zeroed: the constructor leaves the transform's positions, and nothing sets a
     // directional light's localPosition_; the terrain's sun lighting reads its z (ShadeSun, under water), so
     // heap leftovers there (a NaN) darkened the shallow water's sun light by the heap's history.
     void* memory = gamecrt::operator_new_zeroed(sizeof(CLight));

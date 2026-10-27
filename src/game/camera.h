@@ -101,7 +101,7 @@ static_assert(sizeof(CameraKey) == 0x24);
 // A cubic curve in 3D: polynomial coefficients c0..c3 for x, then y, then z (as CubicSegment).
 struct CubicCurve3 {
     float c[12];
-    // 0040E460. Point at t; returns out.
+    // Point at t; returns out.
     Vector3* Evaluate(Vector3* out, float t) const;
 };
 
@@ -111,7 +111,7 @@ using ViewStack = stlp::deque<stlp::Opaque<0x24>>;
 static_assert(sizeof(ViewStack) == 0x28);
 static_assert(sizeof(ViewStack) == 0x28);
 
-// 0040D9B0. Average, lowest and highest surface height on a grid of `step` spacing over
+// Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more). The two unused pointers are always the zero vector.
 void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
@@ -132,9 +132,9 @@ public:
 
     int Create() override;                  // 2: 0040D190 no target, the default distances and angle; 1
     void Destroy() override;                // 3: 0040D1D0 no target
-    int RunTick() override { return 1; }    // 6: 0040E900
-    void Load(CStream* stream) override;    // 9: 00410AB0
-    void Save(CStream* stream) override;    // 10: 00410C10
+    int RunTick() override { return 1; }
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
     const char* GetClassName() override;    // 11: 0040CDF0 "CCamera"
     int GetClassId() override;              // 12: 0040CE00 (0x43)
 
@@ -153,38 +153,38 @@ public:
     static constexpr std::uint32_t kAlternate = 0x200;
 
     // camera.cpp
-    // 0040FB30. Per-frame update: listener, target tracking, pan / turn / tilt / zoom motion,
+    // Per-frame update: listener, target tracking, pan / turn / tilt / zoom motion,
     // limits, ApplyView, shake.
     void Update(float dt);
-    // 0040F8B0. Places the camera at `distance_` from the focus along the view rotation tilted by
+    // Places the camera at `distance_` from the focus along the view rotation tilted by
     // the pitch, then lifts it over objects and re-aims at the focus when it was lifted.
     void ApplyView();
-    // 0040F5C0. Moves the focus to `p`, its height set from the terrain around it.
+    // Moves the focus to `p`, its height set from the terrain around it.
     void SetFocus(const Vector3* p);
-    // 0040F230. Pan velocity target from a screen-space direction (x right, y up the screen).
+    // Pan velocity target from a screen-space direction (x right, y up the screen).
     void Pan(const Vector3* direction);
-    // 0040F430. Stops panning, turning, tilting and zooming.
+    // Stops panning, turning, tilting and zooming.
     void StopMotion();
-    // 004107A0. Zoom by 1.05^steps, clamped to the current limits.
+    // Zoom by 1.05^steps, clamped to the current limits.
     void ZoomBy(float steps);
     // 00410860 / 004108D0. Saved views 0-7 (false for other slots). Restore sets distance and
     // pitch only.
     bool SaveView(unsigned slot);
     bool RestoreView(unsigned slot);
-    // 00411470. Sets distance and pitch from a view; stops all motion.
+    // Sets distance and pitch from a view; stops all motion.
     void SetDistancePitch(const CameraView* view);
     // 00410D70 / 00410D10. Views 0-3 to / from the settings record.
     void ViewsToSettings(CameraSettings* settings);
     void ViewsFromSettings(const CameraSettings* settings);
-    // 004109E0. View rotation = `angle` radians about Z, then ApplyView.
+    // View rotation = `angle` radians about Z, then ApplyView.
     void SetHeading(float angle);
-    // 00410E50. Free placement on / off.
+    // Free placement on / off.
     void SetFree(bool on);
-    // 00411060. Free placement at `from` looking at `to`. Third argument unused.
+    // Free placement at `from` looking at `to`. Third argument unused.
     void LookFrom(const Vector3* from, const Vector3* to, int unused);
-    // 00411360. Keep the focus within `radius` of `center`.
+    // Keep the focus within `radius` of `center`.
     void SetBounds(const Vector3* center, float radius);
-    // 004113A0. Starts a shake from an event at `source` (ignored 20 or more away).
+    // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3* source, float duration, float amplitude, float decay);
     // 0040F1B0 / 0040EFB0. Recorded camera path: jump to the first key / interpolate at `time`
     // (0 when finished or not playing).
@@ -192,20 +192,20 @@ public:
     int PlaybackStep(float time);
 
     // camera_object.cpp
-    // 0040D0A0. Views and start placement from the settings; the near / far distances and the
+    // Views and start placement from the settings; the near / far distances and the
     // field of view (floats passed as their dword bit patterns) kept at +0x2E0..+0x2E8.
     int Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
 
     // camera_motion.cpp
-    // 0040E4C0. Lifts the camera over the terrain and the objects within 16 of it.
+    // Lifts the camera over the terrain and the objects within 16 of it.
     void ClampAboveObjects();
-    // 0040D710. Turns the camera a tenth of the way upright, then ClampAboveObjects.
+    // Turns the camera a tenth of the way upright, then ClampAboveObjects.
     void AlignToTarget();
-    // 004110D0. Aims along the direction; false (nothing done) for a zero-length one.
+    // Aims along the direction; false (nothing done) for a zero-length one.
     bool LookDirection(float dx, float dy, float dz);
 
     // core_transform.cpp
-    // 0040E810. Where the camera's view axis (rotated Z) meets the ground plane z = 0; the camera
+    // Where the camera's view axis (rotated Z) meets the ground plane z = 0; the camera
     // position itself when the axis is (nearly) horizontal or points away from the plane.
     void GroundPoint(Vector3* out) const;
 
@@ -213,7 +213,6 @@ public:
     // magnitude. Names provisional (driven by mouse rotation in 005EAD50).
     void SetTurnRate(float rate);
     void SetTiltRate(float rate);
-    // 0040F420.
     void SetZoomTarget(std::uint32_t value);
 
     // 0040D3B0 / 0040D420. Follows the object with this id (-1: none); starting to follow resets
@@ -280,7 +279,7 @@ static_assert(offsetof(CCamera, fileName_) == 0x2EC);
 static_assert(offsetof(CCamera, keys_) == 0x2F0);
 static_assert(offsetof(CCamera, keyIndex_) == 0x304);
 
-// The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange (0056DAF0) fills.
+// The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange fills.
 using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
@@ -296,7 +295,7 @@ namespace camera {
 inline double D(float f) { return f; }
 
 inline float CellSize() { return options::TheOptions()->cameraTerrainArea_; }
-// What static initialisers leave (0040C840, 0040C7E0, 0040C800): pi * 0.5 (the shake's wave runs at this rate), the
+// What static initialisers leave: pi * 0.5 (the shake's wave runs at this rate), the
 // zero vector and the identity rotation the camera copies.
 inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
@@ -320,7 +319,7 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 #define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
 #define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
 
-// The smooth camera (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the main loop
+// The smooth camera (render::SmoothCamera; docs/notes/renderer.md section 14): the main loop
 // calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
 // the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
 void NoteTargetTick(const CCamera* camera);

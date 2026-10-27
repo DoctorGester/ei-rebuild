@@ -10,7 +10,7 @@ vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
     o.pos = float4(dot(row0, p), dot(row1, p), dot(row2, p), dot(row3, p));
-    // A caster before the near plane (the map starts at the nearest one the world's draw found, R20)
+    // A caster before the near plane (the map starts at the nearest one the world's draw found)
     // is drawn at it: it still hides everything behind it (the map's projection is orthographic, w 1).
     o.pos.z = max(o.pos.z, 0.0);
     o.uv = i.uv + uv_offset.xy;

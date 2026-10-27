@@ -30,11 +30,11 @@ inline constexpr GUID kIidTnLHalDevice = /*00745A10*/ {0xF5049E78, 0x4861, 0x11D
 inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E}};
 inline constexpr GUID kIidDirect3D7 = /*00745A80*/ {0xF5049E77, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 
-// The game's device lock (007AEE78), held around Direct3D draws and surface locks.
+// The game's device lock, held around Direct3D draws and surface locks.
 // The surface holders alive (004EFA60 and the other constructors count them).
 inline int g_holderCount = /*007AEE94*/ {};
 inline int& HolderCount() { return g_holderCount; }
-// The texture manager (007AF744).
+// The texture manager.
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return device->d3dDevice_; }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return device->ddraw_; }
@@ -54,7 +54,6 @@ inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
 inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == b; }
 
 // ---- The switch-over device (device_null.cpp; ticket R9a, docs/notes/renderer.md section 9) ----
-//
 // The device object is built without DirectDraw and
 // Direct3D: no DirectDraw object, display mode, primary, render target or depth surface and no
 // Direct3D device; the new renderer presents through its own swap chain on the game window. The
@@ -79,7 +78,6 @@ void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 
 // ---- The rewritten code's calls into the old device (ticket R9b) ----
-//
 // Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given the device object's
 // +0x54 / +0x0C (a token, not used) as the original calls it: the render and texture stage states,
 // state blocks, bound textures, viewport and scene bracket are kept in the switch-over device's

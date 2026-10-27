@@ -1,5 +1,5 @@
 // The unit AI brain's mode list and state resets (005CB0F0, 005D4DF0-005D6140), and its save-game
-// Load / Save (005D8310 / 005D8860).
+// Load / Save.
 #include "map_spec.h"
 #include "unit_ai.h"
 
@@ -28,9 +28,9 @@
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
-// 0073FED8: the initial call radius (10.0).
+// The initial call radius (10.0).
 float InitialCallRadius() { return 10.0f /*0073FED8*/; }
-// 0073FF00: a new fear mode's distance (copied as a dword).
+// A new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 
@@ -197,7 +197,7 @@ void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
 EI_REWRITTEN(0x005D6300, AIBrain::AddGuardMode);
 
 void AIBrain::AddSuspectionMode() {
-    AddMode(new SuspectionMode());   // point and level zeroed (SV7d4)
+    AddMode(new SuspectionMode());   // point and level zeroed
 }
 EI_REWRITTEN(0x005D63B0, AIBrain::AddSuspectionMode);
 
@@ -372,7 +372,7 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
     for (int i = 0; i < count; ++i) calls[i].Destruct();
 }
 
-// 005CDD60 (RET 8): SetSize. 005CD880 (RET 4): Add, returning the new index.
+// SetSize. 005CD880 (RET 4): Add, returning the new index.
 EI_REWRITTEN(0x005CDD60, AIHeardCalls::SetSize);
 EI_REWRITTEN(0x005CD880, AIHeardCalls::Add);
 EI_REWRITTEN(0x00558D00, AICallRecord::Destruct);
@@ -436,7 +436,7 @@ void AIMemory::Update(CUnitServer* who) {
         AIReport* entry = &reports.data[i];
         if (--entry->what >= 0) continue;
         int after = reports.size - i - 1;
-        // The element's destructor (00558CE0): release the object.
+        // The element's destructor: release the object.
         if (entry->object) entry->object->Release();
         entry->object = nullptr;
         if (after != 0) std::memmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
@@ -444,8 +444,8 @@ void AIMemory::Update(CUnitServer* who) {
         --i;
     }
     calls.Update(who->unit, this);
-    // The AI events are the world server's +0x2838 (007B2798).
-    TheServerWorld()->AIEvents()->Update(who, this);   // 005CAA00
+    // The AI events are the world server's +0x2838.
+    TheServerWorld()->AIEvents()->Update(who, this);
     noticedLevel += noticedKind;
 }
 

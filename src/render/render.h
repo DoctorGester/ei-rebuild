@@ -4,13 +4,12 @@
 // data pulled out of the game (docs/notes/renderer.md) and presents it on the game window. The game
 // code that used to talk to the old Direct3D 7 path hands its data here instead; the Direct3D 7 calls
 // left in game code go to the switch-over device, which draws nothing (device.h).
-//
 // The standalone image always draws with it: when the device object is built (StartPresenting) the
 // game gets no DirectDraw or Direct3D 7 device at all (ticket R9a), the new renderer presents through
 // its own swap chain on the game window, the holders of 004EF7B0 / 004F0060 and the texture
 // manager's textures have no DirectDraw surface (the CPU-written, shadow and .bmp ones only memory
 // the new renderer owns, SurfaceMemory; the .mmp ones only its decoded copy, TextureFromMmp), and
-// captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
+// captures write the new frame. There is no DirectDraw fallback: when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
 // list, carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
@@ -38,10 +37,10 @@ void Configure(const char* spec);
 // takes the device (SV10b: 0.15 s of each start).
 void PrepareDevice();
 
-// The smooth option (R12a; user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
+// The smooth option (user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
 // setup draws it (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x). On, the world view's
 // models (figures, map objects, the sky, shadows) are sampled anisotropically (16x) with linear mips
-// where their stage asks for linear filters (the terrain pages always are, R12), and the world view is
+// where their stage asks for linear filters (the terrain pages always are), and the world view is
 // drawn with 8x multisampling (fewer when the device has no 8x), resolved into the frame before the
 // interface draws over it, before every present and every screen copy or capture. The interface's
 // sprites, previews and window surfaces draw as without it. Its one switch: EI_RENDER's word "smooth"
@@ -64,7 +63,7 @@ struct SmoothInfo {
     int anisotropicModels = 0, plainModels = 0;
 };
 SmoothInfo SmoothState();
-// Harness build only (the harness's "smoothorder", R12a1): the smooth option's passes in an order the
+// Harness build only (the harness's "smoothorder"): the smooth option's passes in an order the
 // game never draws (its world view is always the frame's first draw), from the next frame. Before: an
 // empty pass on the frame target first (cleared as a frame's first pass clears it), so the world's
 // first run starts from the copy into every sample. Split: the world view's first run ends at its
@@ -73,12 +72,12 @@ SmoothInfo SmoothState();
 enum class SmoothOrder : std::uint8_t { Game, Before, Split };
 void SetSmoothOrder(SmoothOrder order);
 
-// Object shadows (R16j, docs/notes/renderer.md section 13): the world's figures and map objects cast
+// Object shadows (docs/notes/renderer.md section 13): the world's figures and map objects cast
 // shadows from the sun through a shadow map made every frame, sampled with filtering where the
 // terrain, the objects and the figures draw; the game's shadow decals (0051CE60's 64 x 64 textures
 // laid on the ground) are neither made nor drawn (R16i: the only shadows).
 
-// The smooth camera (R18; docs/notes/renderer.md section 14; off by default): the battle camera moves
+// The smooth camera (docs/notes/renderer.md section 14; off by default): the battle camera moves
 // once a frame by the frame's time plus the client time that passed (no extra update at each world
 // tick), its tracking drift and focus height lag ease by time instead of by call, and it follows its
 // target's position blended between the target's last two ticks. Read by the main loop and
@@ -86,7 +85,7 @@ void SetSmoothOrder(SmoothOrder order);
 // word "smoothcamera" or SetSmoothCamera (from the next pass). Off: the game's camera.
 void SetSmoothCamera(bool on);
 bool SmoothCamera();
-// The performance overlay (R21, render_perf.h; renderer.md section 15): frames a second, frame and GPU times,
+// The performance overlay (render_perf.h; renderer.md section 15): frames a second, frame and GPU times,
 // draws, drawn over the presented frame in the game window (never into the frame target, so no capture or
 // screenshot holds it). Switched by the settings file (directdraw_holder.cpp); off by default. The harness
 // build has none: PerfOverlaySupported() is false there and SetPerfOverlay keeps it off.
@@ -131,7 +130,7 @@ void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
 // draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
 // its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
-// than `strength` 0.5 not at all (a unit fading in). `figure`: a unit's draw (0056AFE0's unit lists, R16i2):
+// than `strength` 0.5 not at all (a unit fading in). `figure`: a unit's draw (0056AFE0's unit lists):
 // its meshes take only the shadows other objects cast (never their own; the sun side is shaded by the
 // lighting's N.L), on every face; any other object's meshes are shadowed on the faces turned to the sun.
 void BeginCaster(const void* object, bool figure);
@@ -184,7 +183,7 @@ void BeginShadowWalk();
 void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
-// The harness build's shadow map checks (R25). SetShadowView (its "shadowview on|off"): the receivers show
+// The harness build's shadow map checks. SetShadowView (its "shadowview on|off"): the receivers show
 // only how much sun the map hides (white lit, black at the full strength), no texture, colour or fog.
 // SetShadowShift (its "shadowshift <texels>"): the map's origin moved by that many whole texels across
 // and half as many along its other side; its texels lie on the world as before, only which texels share
@@ -215,7 +214,7 @@ struct ShadowInfo {
 };
 ShadowInfo ShadowState();
 
-// What the new renderer did for the presented frames (R16, docs/notes/renderer.md section 13): the
+// What the new renderer did for the presented frames (docs/notes/renderer.md section 13): the
 // hand-over's commands, the bytes written to the GPU, the draws and state changes, the textures made
 // and the CPU time spent, summed over `frames`. TakeFrameStats returns the sums since its last call
 // and starts new ones (the harness's "renderstats"). The CPU times and the reuse counts are the
@@ -283,8 +282,8 @@ FrameStats TakeFrameStats();
 // start, a sokol panic, a lost device that could not be made again). Every call below does nothing
 // when it is off.
 bool Active();
-// Whether the old device path's mesh draws (004E9010 / 004E9A50) do only the per-corner work game
-// code reads (R16k): the new renderer draws every mesh from the model-space hand-over (BeginMesh)
+// Whether the old device path's mesh draws do only the per-corner work game
+// code reads: the new renderer draws every mesh from the model-space hand-over (BeginMesh)
 // and the image has no Direct3D 7 device, so the TL vertices, their fog and the clipped vertices'
 // screen positions are read by nothing but the screen rectangle of draw flag 1 (and the clipper,
 // whose counts the device's counters take). True when Active(), unless the harness asked for the
@@ -295,7 +294,7 @@ void SetMeshCornersFull(bool full);
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
 // Harness build: times one decal projection (0056C750; `shadow`: an object shadow's, else a ground
-// print's), one flat draw (004EA4A0) and one object shadow build (RenderShadow) into FrameStats,
+// print's), one flat draw and one object shadow build (RenderShadow) into FrameStats,
 // counting them with the vertices made / drawn.
 void BeginDecalTime(bool shadow);
 void EndDecalTime(int vertices);
@@ -326,13 +325,13 @@ const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height,
 // The memory of `holder`, or null.
 const SurfaceMemory* SurfaceMemoryOf(const void* holder);
 void FreeSurfaceMemory(const void* holder);
-// The holder is destroyed (004EFD20): its memory freed, what the renderer kept for it forgotten.
+// The holder is destroyed: its memory freed, what the renderer kept for it forgotten.
 void HolderGone(const void* holder);
 // A holder whose surface was loaded from an 8888 .mmp picture (004EFC60: the software cursor's
 // images): the new renderer keeps the picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
 
-// The device object is being built (004EDD70): the new renderer starts now and from here on
+// The device object is being built: the new renderer starts now and from here on
 // presents through its own swap chain on the game window; the game then builds its device without
 // DirectDraw (device.h). False when the new renderer cannot start (the game then ends with an error).
 bool StartPresenting();
@@ -341,7 +340,7 @@ bool PresentsItself();
 // Whether presenting onto the game window waits for the vertical blank (default on). The harness
 // turns it off under its virtual clock.
 void SetWaitForVsync(bool on);
-// The settings file's "VSync" (R23; directdraw_holder.cpp, after StartPresenting, before the first present): off
+// The settings file's "VSync" (directdraw_holder.cpp, after StartPresenting, before the first present): off
 // presents with sync interval 0 and, where the system supports it, tearing (a swap chain made with
 // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING), so the windowed game runs unlocked. The harness build has no such switch:
 // VsyncSwitchSupported() is false there and SetVsync does nothing.
@@ -351,7 +350,7 @@ void SetVsync(bool on);
 // A mesh draw of the old path (004E9010 / 004E9A50 on the device object), after the game has
 // decided it is visible and set its colours: the mesh in model space and the matrix the old path
 // projects it with. Handed over between BeginMesh and EndMesh; every pass the old path draws in
-// between (004EB550 / 004EB370) calls MeshPass, which takes the old device's state for that pass
+// between calls MeshPass, which takes the old device's state for that pass
 // (blend, alpha test, depth, culling, fog, texture stages, the bound textures) and returns whether
 // the old path still draws it (only when the new renderer did not take it).
 struct MeshDraw {
@@ -385,7 +384,7 @@ struct MeshDraw {
     int wordCount;
 };
 
-// A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
+// A texture loaded from its .mmp file: `data` the file in memory, the levels from
 // `mip` on (`levels` of them) that the game loads for `holder` (a CDXSurface without a DirectDraw
 // surface): decoded from the file, keyed by the holder, kept until the holder goes (HolderGone).
 // False when it was not decoded (the new renderer is off, or the format is not one it reads).
@@ -411,7 +410,7 @@ bool MeshPass(void* device);
 void EndMesh();
 
 // Pre-transformed vertices the old path draws as they are (FVF 0xC4: screen x, y, depth z, rhw,
-// colour, specular; rhw taken as 1): the renderer's rectangle fill and outline (005041F0). A
+// colour, specular; rhw taken as 1): the renderer's rectangle fill and outline. A
 // triangle list over `indices`, or a line strip over the vertices (`indices` null). Takes the old
 // device's state for the draw (`device`: the device object); returns whether the old path still
 // draws it.
@@ -430,25 +429,25 @@ bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
 bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive);
 
-// A window surface's blit onto the frame (005FDA80): the surface holder (CDXSurface), the screen
+// A window surface's blit onto the frame: the surface holder (CDXSurface), the screen
 // rectangle, the source rectangle (null: the whole surface, stretched) and the colour key (in the
 // surface's pixel format) when `keyed`.
 struct Rect {
     int left, top, right, bottom;
 };
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
-// The game wrote `written` (pixels; null: all of it) of the SurfaceMemory of `holder` (R16a): a
+// The game wrote `written` (pixels; null: all of it) of the SurfaceMemory of `holder`: a
 // window surface is read again only where it was marked (and there only the rows and columns that
 // differ from what its texture holds), and that part uploaded. Writers: the DC release 005FDC60 (GDI's
 // bounds), DirectPixels for writing (the pixel code), CopyFrameTo.
 void SurfaceWritten(const void* holder, const Rect* written);
 // A texture holder's memory is read again only when marked written since its texture last read it
-// (and it differs from what the texture was made from), into the same image (R16b).
+// (and it differs from what the texture was made from), into the same image.
 // Harness build only: the window surfaces whose memory changed where no SurfaceWritten mark said, and
 // the memory textures whose memory changed with no mark (a writer without a mark: stale pixels in the
 // product; the run fails), and the first one's description.
 int MissedSurfaceWrites(const char** first);
-// Harness build only (the harness's "memorytextures", R16b): the textures in the renderer's memory
+// Harness build only (the harness's "memorytextures"): the textures in the renderer's memory
 // updated in place, their levels made on the GPU (on, the default), or made again as new images with
 // their levels box-filtered on the CPU (off: as before R16b, for frame comparisons). Every memory
 // texture is read again at its next use.
@@ -461,17 +460,17 @@ void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height
 void MovieBlit(const void* key, const Rect& to);
 
 // A solid rectangle `to` in `colour` (D3DCOLOR; alpha ignored): the movie player's fill of the screen
-// (005DB9E0) before its first frame.
+// before its first frame.
 void Fill(const Rect& to, std::uint32_t colour);
 
-// The software cursor (005E54A0): the part `from` of the cursor image's surface (holder) with its
+// The software cursor: the part `from` of the cursor image's surface (holder) with its
 // mask (`mask`: the image's full width, the surface's pixel format; the old path draws
 // (background & mask) | image) at the screen rectangle `to`. Texels whose mask is not zero are left
 // out.
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 
 // The software cursor between frames (the cursor thread 005E5690 in the switch-over without
-// DirectDraw; render_cursor.cpp, docs/notes/renderer.md section 9, R9c2). Called from the cursor
+// DirectDraw; render_cursor.cpp, docs/notes/renderer.md section 9). Called from the cursor
 // thread with the cursor's lock held: the last frame presented on the game window (as drawn before
 // its cursor) is presented again with the part `from` of the cursor image (holder and mask as for
 // Cursor; the image must have been drawn by Cursor before) at `to`. Only when the new renderer
@@ -508,7 +507,7 @@ void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
 // ApplyWaterLevels: only the pages reading that layer read their vertices again).
 enum class TerrainChange { Rebuilt, Moved, WaterMoved };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
-// Harness build only (the harness's "terraincache", R16c): the terrain pages kept on the GPU (on, the
+// Harness build only (the harness's "terraincache"): the terrain pages kept on the GPU (on, the
 // default) or built and uploaded again every frame (off: as before R16c, for frame comparisons); the
 // pages kept, and the checks of kept pages against a fresh build (every 16th frame) with how many
 // found one stale (a change TerrainChanged was not told of).
@@ -548,10 +547,10 @@ struct MeshLighting {
     int lightCount;
 };
 
-// R16d: the figure mesh the next mesh draws (004E9010 / 004E9A50) draw. The new renderer keeps the
+// R16d: the figure mesh the next mesh draws draw. The new renderer keeps the
 // mesh's corners (positions and texture coordinates in model space, colours) on the GPU under `owner`
 // and builds and uploads again only what the game says changed: the colours when the draw wrote them,
-// the positions on MeshChanged. Set by the figure part draws (005A7A70, 005A7640) right before the
+// the positions on MeshChanged. Set by the figure part draws right before the
 // device's draw and cleared (null) right after it; a mesh draw without one is built and uploaded again
 // every frame.
 struct MeshSource {
@@ -574,7 +573,7 @@ void MeshChanged(const void* object, MeshChange change);
 // corners in place in many places (bars, map markers, the original's and Rebirth's code), and they are
 // a few corners each.
 void SetInterfaceDraw(bool on);
-// Harness build only (the harness's "meshcache", R16d): the figure meshes kept on the GPU (on, the
+// Harness build only (the harness's "meshcache"): the figure meshes kept on the GPU (on, the
 // default) or built and uploaded every frame (off: as before R16d, for frame comparisons); the meshes
 // kept, and the checks of kept meshes against a fresh build (every 16th frame) with how many found
 // one stale (a change the game did not tell of).
@@ -597,7 +596,7 @@ bool CopyFrameTo(const void* holder, const Rect& source);
 // reading.
 void EndFrame();
 
-// The game presents (004EF610): EndFrame if not done yet, then a new frame begins.
+// The game presents: EndFrame if not done yet, then a new frame begins.
 void Present();
 
 // The last frame EndFrame drew, as 24-bit BGR rows from the top. False when the sidecar is off or
@@ -636,13 +635,13 @@ WindowPresentInfo WindowPresents();
 // the device, sokol, the swap chain and every image are made again and textures uploaded again
 // from what they were decoded from.
 void LoseDevice();
-// Harness build only (EI_RENDER "removable", R9c5): the device was made through D3D11On12 on a
+// Harness build only (EI_RENDER "removable"): the device was made through D3D11On12 on a
 // Direct3D 12 device, and this removes that device for real (ID3D12Device5::RemoveDevice, this
 // process only: no driver reset) right before the next present, which sees DXGI_ERROR_DEVICE_REMOVED;
 // everything is made again as for any lost device (on a new removable device). False when the
 // device is not removable.
 bool RemoveDevice();
-// Harness build only (the harness's "terrainlevels", R12): what the ground pages draw. Levels: the
+// Harness build only (the harness's "terrainlevels"): what the ground pages draw. Levels: the
 // texture level the page's sampler reads at each pixel instead of their colours (red = level * 32,
 // mip levels blended as the sampler blends them; green 0x5A and blue 0xA5 mark the pixel as
 // such), from a texture of the page's size and levels with one grey per level; PointMips: the same
@@ -650,7 +649,7 @@ bool RemoveDevice();
 // that showed as seams). Off: the pages' colours.
 enum class TerrainLevelMode { Off, Levels, PointMips };
 void TerrainLevels(TerrainLevelMode mode);
-// Harness build only (the harness's "mmplevels", R12b): how far the levels of the .mmp textures held
+// Harness build only (the harness's "mmplevels"): how far the levels of the .mmp textures held
 // now, decoded as for drawing, lie from their level 0: both box-filtered down to 4 x 4, the mean
 // absolute difference per channel (0..255), the largest over all levels down to 4 x 4.
 // Levels decoded from the wrong bytes (the old offsets' overflow: bright green strips over the trees)

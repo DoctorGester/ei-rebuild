@@ -2,7 +2,6 @@
 
 // STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
 // section 2).
-//
 // One pointer to the sentinel node the constructor allocates (its next is the first element, its
 // prev the last; an empty list's sentinel points at itself). Nodes are next, prev, then the element,
 // from the node allocator. The game's instantiations of the members below (constructor, begin / end,
@@ -201,7 +200,7 @@ struct ListAbi : list<T> {
         List::Construct();
         return this;
     }
-    // list() (00562A80): the same without the allocator argument.
+    // list(): the same without the allocator argument.
     static List* __fastcall ConstructDefault(List* self) {
         self->Construct();
         return self;
@@ -237,9 +236,9 @@ struct ListAbi : list<T> {
     }
     // push_back(x) (e.g. 004207C0; RET 4): insert(end(), x).
     void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
-    // push_back() (0040A6B0): insert(end()).
+    // push_back(): insert(end()).
     static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
-    // pop_back() (0040A6D0): erase(--end()).
+    // pop_back(): erase(--end()).
     static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
     // erase(pos) (e.g. 00420290; RET 8): the list itself is not read.
     Node** Erase(Node** out, Node* pos) {

@@ -18,8 +18,8 @@ namespace {
 
 
 // The layout: half a texel (0073CC90, 1 / 512) and a texel (0073EEB8, 1 / 256) of the 256-wide
-// interface textures; 1 / 800 (00740164) and 1 / 400 (0074015C) of the layout's width; the view's
-// half width at depth 1 (00740158, 0.48157); 0.75 (0073C524), the layout's height over its width.
+// interface textures; 1 / 800 and 1 / 400 of the layout's width; the view's
+// half width at depth 1 (00740158, 0.48157); 0.75, the layout's height over its width.
 float Texel() { return 0.00390625f /*0073EEB8*/; }
 float HalfTexel() { return 0.001953125f /*0073CC90*/; }
 float One() { return 1.0f /*0073B84C*/; }

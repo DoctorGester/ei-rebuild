@@ -1,13 +1,11 @@
 // The device object's DirectDraw base class (CDXDirectDraw, texture.h; vtable 0073D770, the
 // members up to +0x50). A-S13: IDirectDraw7 is called as the original calls it, through device.h
 // (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
-//
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
 // the game in WinMain.
-//
 // The image builds the base without DirectDraw (004EDD70; R11a removed the fallback). The driver
-// list (004EE4A0 / 004ED610 / 004EE5D0), the DirectDraw object (004EEA90), the display mode change
-// (004EEBC0) and the primary and back surfaces (004EEE30) had no caller of ours left and went in
+// list, the DirectDraw object, the display mode change
+// and the primary and back surfaces had no caller of ours left and went in
 // R11b (config/dead_code.csv).
 #include "app.h"
 #include "device.h"
@@ -62,7 +60,7 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
     return holder;
 }
 
-// The performance overlay's switch (R21; docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
+// The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
 // Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent. Read only where the
 // overlay exists: the harness build has none, and its pinned settings file lacks the value.
 bool PerfOverlaySetting() {
@@ -73,7 +71,7 @@ bool PerfOverlaySetting() {
            type == 4 /* REG_DWORD */ && value != 0;
 }
 
-// The vertical blank's switch (R23; docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
+// The vertical blank's switch (docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
 // absent: on) of the same key. Read only in the product, as above.
 bool VsyncSetting() {
     unsigned long type = 0, value = 0, size = sizeof(value);

@@ -55,9 +55,9 @@ public:
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
 
-    // 0040A3A0. Drops one reference; destroys the object at zero.
+    // Drops one reference; destroys the object at zero.
     void Release();
-    // 00417DF0. Calls OnShutdown with an extra reference held, so it cannot destroy itself
+    // Calls OnShutdown with an extra reference held, so it cannot destroy itself
     // meanwhile. Returns OnShutdown's EAX.
     int Shutdown();
 };
@@ -73,21 +73,21 @@ struct RefPtr {
     RefPtr* DeleteReleased(unsigned flags);
     RefPtr* DeleteDestroyed(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
-    // 004A5D50 / 004ABE30 (RET 4; S16a): counted_ptr<T>'s copy constructor: from's object, one more
+    // 004A5D50 / 004ABE30 (RET 4): counted_ptr<T>'s copy constructor: from's object, one more
     // reference. Returns this.
     RefPtr* CopyCounted(const RefPtr* from);
     RefPtr* AssignHolder(const RefPtr* other);
     RefPtr* AssignObject(CRefObject* object);
     CRefObject* ptr;
 
-    // 00419CD0. Points at `object` (adding a reference) and releases the previous one.
+    // Points at `object` (adding a reference) and releases the previous one.
     void Assign(CRefObject* object);
-    // 00418BE0. Initialises to share `object`: null for a null or detached object, a clone for a
+    // Initialises to share `object`: null for a null or detached object, a clone for a
     // copy-on-share one. The result is marked copy-on-share.
     void Share(CRefObject* object);
     // 004292F0 and eight identical copies (refptr_copies.cpp). The same, returning this.
     RefPtr* ShareReturn(CRefObject* object);
-    // 00413270. The owner's release: a still-shared object is detached and shut down first. The
+    // The owner's release: a still-shared object is detached and shut down first. The
     // pointer itself is left as it was.
     void Destroy();
     // 005D9D40 (RET 4; the AI mode list's element assignment). Unless it already points at

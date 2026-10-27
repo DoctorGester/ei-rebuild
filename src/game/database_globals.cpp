@@ -1,5 +1,5 @@
-// The resource databases that are globals of the game: the spells (007C8510), the items (007C86D8), the quests
-// (007C87A8), the ground prints (007C89C8) and the speeches (007C8A60). Each is built empty by a static initialiser in
+// The resource databases that are globals of the game: the spells, the items, the quests
+// the ground prints and the speeches. Each is built empty by a static initialiser in
 // the list's order and destroyed by the exit function the initialiser registers with the game's atexit; both are ported
 // on the names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects"). The
 // constructors (database_construct.cpp) and destructors (database_destruct.cpp, item_db_load.cpp) are the objects' own.
@@ -31,35 +31,35 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
-void __cdecl ConstructSpellDatabase() {   // 00684360
+void __cdecl ConstructSpellDatabase() {
     g_spellDatabase->Construct();
     RegisterExit(0x00684380);
 }
-void __cdecl DestroySpellDatabase() { g_spellDatabase->Destruct(); }   // 00684380
+void __cdecl DestroySpellDatabase() { g_spellDatabase->Destruct(); }
 
-void __cdecl ConstructItemDatabase() {   // 006A6540
+void __cdecl ConstructItemDatabase() {
     g_itemDatabase->Construct();
     RegisterExit(0x006A6560);
 }
-void __cdecl DestroyItemDatabase() { g_itemDatabase->DestructBody(); }   // 006A6560
+void __cdecl DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
 
-void __cdecl ConstructQuestDatabase() {   // 006ADF10
+void __cdecl ConstructQuestDatabase() {
     g_questDatabase->Construct();
     RegisterExit(0x006ADF30);
 }
-void __cdecl DestroyQuestDatabase() { g_questDatabase->Destruct(); }   // 006ADF30
+void __cdecl DestroyQuestDatabase() { g_questDatabase->Destruct(); }
 
-void __cdecl ConstructPrintsDatabase() {   // 006D00B0
+void __cdecl ConstructPrintsDatabase() {
     g_printsDatabase->Construct();
     RegisterExit(0x006D00D0);
 }
-void __cdecl DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }   // 006D00D0
+void __cdecl DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }
 
-void __cdecl ConstructAckDatabase() {   // 006D7080
+void __cdecl ConstructAckDatabase() {
     g_ackDatabase->Construct();
     RegisterExit(0x006D70A0);
 }
-void __cdecl DestroyAckDatabase() { g_ackDatabase->Destruct(); }   // 006D70A0
+void __cdecl DestroyAckDatabase() { g_ackDatabase->Destruct(); }
 
 } // namespace
 

@@ -13,7 +13,7 @@ using namespace itemdb;
 namespace {
 // The game's global ISAAC generator.
 
-constexpr float kZero = 0.0f;   // 0073B858
+constexpr float kZero = 0.0f;
 
 } // namespace
 
@@ -75,7 +75,7 @@ double CItemWeapon::RollDamage() {
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = IsaacRandom::Global().Next();
     volatile std::int64_t roll64 = roll;               // FILD qword: exact
-    // 0073C468: the double 0x3DF0000000100000, about 1 / (2^32 - 1).
+    // The double 0x3DF0000000100000, about 1 / (2^32 - 1).
     constexpr double kRollScale = 0x1.0000000100000p-32;
     // ((high - low) * roll) * scale + low, all on the FPU stack; returned unrounded in ST0.
     return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
@@ -111,7 +111,7 @@ float CItemLoot::GetPrice() {
     case 0: return price_;
     case 1: return MaterialAt(index_)->unitPrice;
     case 2: break;
-    default: return -1.0f;   // 0073B854
+    default: return -1.0f;
     }
     switch (recordType_) {
     case 0: return WeaponAt(index_)->price;

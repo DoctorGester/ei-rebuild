@@ -13,7 +13,7 @@
 namespace figure {
 
 // 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
-// 004547A0: a slot that answers 1.
+// A slot that answers 1.
 const char* __fastcall FigureClassName(void*) { return "CFigure"; }
 EI_REWRITTEN(0x00453450, FigureClassName);
 int __fastcall FigureClassId(void*) { return 0x44; }
@@ -31,7 +31,7 @@ void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { self->name
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
 EI_REWRITTEN(0x00454360, mfc::impl::ScalarDeleting<&NamedRecordDestruct>::Delete);
 
-// 004533E0: a 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
+// A 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
 void* __fastcall ClearArray(std::uint32_t* self) {
     self[0] = 0;
     self[3] = 0;

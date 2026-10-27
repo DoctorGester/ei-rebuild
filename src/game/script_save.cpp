@@ -1,7 +1,6 @@
 // Saving the mission script into a savegame (CScript::Save 004C0F90) and the savers of its parts
-// in this range: command blocks (004C1230), the four kinds of variables (004C2EF0, 004C33C0,
-// 004C38C0, 004C4330) and the areas (004CAEC0). See script.h and docs/notes/script.md.
-//
+// in this range: command blocks, the four kinds of variables (004C2EF0, 004C33C0,
+// 004C38C0, 004C4330) and the areas. See script.h and docs/notes/script.md.
 // Every piece goes through the stream's Write (vtable slot 2) in the original's order and in the
 // original's pieces (a verify wrapper compares the pieces as well as the bytes).
 #include "script.h"
@@ -154,9 +153,9 @@ void CScript::SaveState(ScriptStream* stream) {
     WriteInt(stream, lights.size);
     for (int i = 0; i < lights.size; ++i) lights.data[i].ScriptPointLightSave(stream);
 
-    WriteList(stream, particles_, &ScriptParticleSource::ScriptParticleSourceSave);   // 004B1A80
-    WriteList(stream, fxSources_, &ScriptFxSource::ScriptFxSourceSave);            // 004B1C50
-    WriteList(stream, lightning_, &ScriptLightning::ScriptLightningSave);          // 004B1DB0
+    WriteList(stream, particles_, &ScriptParticleSource::ScriptParticleSourceSave);
+    WriteList(stream, fxSources_, &ScriptFxSource::ScriptFxSourceSave);
+    WriteList(stream, lightning_, &ScriptLightning::ScriptLightningSave);
     stream->Write(&nextParticleId_, 4);
     stream->Write(&nextFxId_, 4);
     WriteList(stream, blocks_, &ScriptDecl::Save);

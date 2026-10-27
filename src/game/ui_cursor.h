@@ -45,23 +45,23 @@ public:
     CDirectInputMouse(const CDirectInputMouse&) = delete;
     CDirectInputMouse& operator=(const CDirectInputMouse&) = delete;
 
-    // 0065EAD0 (RET 8). DirectInput 7 for `instance`, its system mouse device with the mouse data
+    // DirectInput 7 for `instance`, its system mouse device with the mouse data
     // format, non-exclusive in the background for `window`, acquired (a failed Acquire is reported
     // and passed over). Each other failure is reported (FatalErrorCode) and gives its result as
     // 0 / 1; success sets only AL.
     int Setup(HWND window, HINSTANCE instance);
-    // 0065EC30. The device unacquired and released, DirectInput released.
+    // The device unacquired and released, DirectInput released.
     void Shutdown();
     // 0065EC70 (RET 4; sets only AL unless Acquire fails). Acquires or unacquires the device with
     // the window's activation; 0 without a device, the report's result as 0 / 1 when Acquire fails.
     int SetActive(char active);
-    // 0065ECB0 (RET 4). Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the
+    // Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the
     // read fails) into the object and returns it. The argument is not read. PollThroughHook goes
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return Poll(unused); }
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
-    // DIDATAFORMAT): ours, since game.exe keeps its object table (006E6180) in its code section,
+    // DIDATAFORMAT): ours, since game.exe keeps its object table in its code section,
     // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
 
@@ -75,7 +75,7 @@ public:
 // its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame
 // shown, the hot spot and the mask.
 struct CursorImage {
-    // 005E4EB0 (RET 0x10): the image of the picture "<name>" (the file's name with ".mmp", from the
+    // The image of the picture "<name>" (the file's name with ".mmp", from the
     // texture manager; loaded into a holder by 004EFC60 with `flag`), the hot spot given in the
     // 32-pixel layout. Returns this.
     CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
@@ -107,27 +107,27 @@ public:
     int SetShape(int shape) { return ChangeShape(shape); }
 
     // ui_cursor_setup.cpp:
-    // 005E51C0. Constructor body: no device, surfaces or shapes, the lock initialised, not
+    // Constructor body: no device, surfaces or shapes, the lock initialised, not
     // enabled. Returns this.
     CCursor* Construct();
-    // 005E4E00. Destructor body: the lock deleted, the shape list's storage freed, the two
+    // Destructor body: the lock deleted, the shape list's storage freed, the two
     // surfaces and the device released (the fields left as they are).
     void DestroyBody();
-    // 005E5200 (RET 4). Unless no shape is selected yet or the cursor is not enabled (-1): under
+    // Unless no shape is selected yet or the cursor is not enabled (-1): under
     // the lock, shape `shape` and its image become current with the image's current frame as
     // `from_`; returns the previous shape.
     int ChangeShape(int shape);
-    // 005E5270 (RET 4). Under the lock, whether an image is shown (when enabled).
+    // Under the lock, whether an image is shown (when enabled).
     void ShowImage(int shown);
-    // 005E67B0 (RET 4). Under the lock, the held byte (when enabled).
+    // Under the lock, the held byte (when enabled).
     void SetHeld(char held);
     // 005E65F0 / 005E6610. The lock taken / released, only when enabled in mode 2.
     void TakeLock();
     void ReleaseLock();
-    // 005E6260. Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread
+    // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread
     // started (AfxBeginThread of 005E52A0 at priority 2).
     void Start();
-    // 005E62E0. Ends the drawing thread (stop_, then waits for `stopped_`), closes the event,
+    // Ends the drawing thread (stop_, then waits for `stopped_`), closes the event,
     // releases and frees every shape and empties the list, releases the surfaces and the device
     // and resets the fields (not enabled, shape -1, mode 0).
     void Shutdown();
@@ -151,20 +151,20 @@ public:
 
     int mode_;                       // +0x00 2: the background is saved from the primary without an image
     CTextureDevice* device_;         // +0x04 the device object (its +0x0C IDirectDraw7), referenced
-    CDirectInputMouse* mouse_;       // +0x08 polled for the motion (005E52E0)
-    int imageShown_;                 // +0x0C an image is shown (005E5270)
+    CDirectInputMouse* mouse_;       // +0x08 polled for the motion
+    int imageShown_;                 // +0x0C an image is shown
     CursorImage* image_;             // +0x10
     std::uint32_t imageSpare_;       // +0x14 0 from Init and Shutdown (with image_); nothing reads it
     int shape_;                      // +0x18 the shape SetShape selected
     HANDLE stopped_;                 // +0x1C set when the cursor thread ends
     RECT drawn_;                     // +0x20 the rectangle drawn last
-    RECT rect_;                      // +0x30 the cursor's screen rectangle (005E52E0)
+    RECT rect_;                      // +0x30 the cursor's screen rectangle
     RECT from_;                      // +0x40 the part of the image shown
     RECT bounds_;                    // +0x50
     CDXSurface* under_;              // +0x60 surface holder: the background under the cursor
     CDXSurface* target_;             // +0x64 surface holder: where the cursor is drawn
     lib::AlignedArray<CursorImage*> images_;   // +0x68 the shapes (AddShape)
-    POINT position_;                 // +0x78 the position drawn last (005E52E0)
+    POINT position_;                 // +0x78 the position drawn last
     POINT heldPosition_;             // +0x80 the position kept while held
     POINT motion_;                   // +0x88 the mouse motion summed by 005E52E0
     std::uint8_t held_;              // +0x90 the cursor stays at +0x80 (005E67B0 sets it)
@@ -191,10 +191,10 @@ static_assert(offsetof(CCursor, lock_) == 0xA0);
 static_assert(sizeof(CCursor) == 0xB8);
 
 // The game's cursor (the object at 007C7BD8; ui_cursor_setup.cpp): built by the static initialiser 005E4DD0 in the
-// list's order, destroyed by the exit function it registers (005E4DF0).
+// list's order, destroyed by the exit function it registers.
 extern lib::StaticObject<CCursor> g_cursor;
 
-// 005DAEA0 (fastcall, RET 8; cursor_setup.cpp): the cursor (007C7BD8) initialised and given its shapes.
+// 005DAEA0 (fastcall, RET 8; cursor_setup.cpp): the cursor initialised and given its shapes.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags);
 // 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags);

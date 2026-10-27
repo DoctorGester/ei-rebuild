@@ -30,7 +30,7 @@ float TurnSpeed() { return Option(Settings().cameraRotate_.powerKeyboard) * Opti
 float TiltSpeed() { return Option(Settings().cameraPitch_.powerKeyboard) * Option(Settings().cameraPitch_.speed); }
 float ClimbSpeed() { return Option(Settings().cameraZoom_.powerKeyboard) * Option(Settings().cameraZoom_.speed); }
 float ZoomSpeed() { return Option(Settings().cameraZoom_.powerMouse) * Option(Settings().cameraZoom_.speed); }
-// 00740240: the wheel's steps per delta unit (read from the exe, rule 9).
+// The wheel's steps per delta unit (read from the exe, rule 9).
 float WheelStep() { return (-0.008333334f /*00740240*/); }
 
 std::uint32_t Bits(float value) {

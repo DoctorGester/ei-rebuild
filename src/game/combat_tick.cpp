@@ -30,17 +30,17 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kOne = 1.0f;                                        // 0073B84C / 0073EEE4
-constexpr float kHalf = 0.5f;                                       // 0073B86C
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
+constexpr float kHalf = 0.5f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 (0.1)
 constexpr float kNearPoint = std::bit_cast<float>(0x3DB851ECu);     // 0073F0B0 (0.09)
 constexpr float kShort = std::bit_cast<float>(0x3F7FBE77u);         // 0073F0B4 (0.999)
 constexpr float kLong = std::bit_cast<float>(0x3A83126Fu);          // 0073CCF4 (0.001)
-constexpr float kFive = 5.0f;                                       // 0073BF34
-constexpr float kFifteen = 15.0f;                                   // 0073C518
-constexpr float kHeightLimit = 1.5f;                                // 0073C51C
-constexpr double kArrived = 0.02;                                   // 0073F098
+constexpr float kFive = 5.0f;
+constexpr float kFifteen = 15.0f;
+constexpr float kHeightLimit = 1.5f;
+constexpr double kArrived = 0.02;
 constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the slowest closing speed
 constexpr std::uint32_t kFarBits = 0x49742400u;                     // 1e6: no limit for a path
 
@@ -73,7 +73,7 @@ constexpr int kChaseMaxTicks = 0x40;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
-// Party messages (0066D6E0).
+// Party messages.
 constexpr int kMessageCannotReach = 0x0C;
 constexpr int kMessageTargetLost = 0x0B;
 constexpr int kMessageCannotDo = 0x0E;
@@ -81,7 +81,7 @@ constexpr int kMessageNoMana = 0x0F;
 constexpr int kMessageNoCharge = 0x11;
 constexpr int kMessageUnseen = 0x12;
 constexpr int kMessageStopped = 0x1B;
-// Shouts (00552780).
+// Shouts.
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
@@ -95,7 +95,7 @@ bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast 
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
-// The world time of an object's world (00455950).
+// The world time of an object's world.
 int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
@@ -181,7 +181,7 @@ EI_REWRITTEN(0x0054A620, CUnitServer::SyncMoveModes);
 
 namespace {
 // The melee reach test of 0054C8B0 as 0054A6E0 inlines it: false when the target (a living unit
-// standing on its own) is too high to reach, else whether the action can be planned (0054C6B0).
+// standing on its own) is too high to reach, else whether the action can be planned.
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
         CUnit* other = UnitOrNull(order->target);
@@ -199,7 +199,7 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
 void CUnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
-    // 0052A8F0: the counted reference assigned.
+    // The counted reference assigned.
     CMapObject* target = action2.target;
     if (target != action.target) {
         if (action.target) action.target->Release();
@@ -390,7 +390,7 @@ bool CUnitServer::StartQueuedOrder() {
         int duration = AnimationDuration(animation);
         steps.AddStep(animation, duration);
         AnimationSteps copy;
-        copy.CopyConstruct(steps);   // 0054B260
+        copy.CopyConstruct(steps);
         PlayAnimationOrder(copy);
         steps.DestructSteps();
         return true;
@@ -405,7 +405,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.extra = -1;
         steps.AddEmote(static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
-        copy.CopyConstruct(steps);   // 0054B260
+        copy.CopyConstruct(steps);
         PlayEmoteOrder(copy);
         steps.DestructSteps();
         return true;
@@ -420,7 +420,7 @@ bool CUnitServer::StartQueuedOrder() {
         BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
         AnimationSteps copy;
-        copy.CopyConstruct(steps);   // 0054B260
+        copy.CopyConstruct(steps);
         currentPlan.TakeSteps(copy, now, duration);
         StartAction(1, 0);
         steps.DestructSteps();
@@ -549,7 +549,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
         base = static_cast<int>(weapon->GetPrototype()->category);
     } else {
         double value = self->Combat().attackCategory;
-        // _ftol (006E853C), as the original truncates it.
+        // _ftol, as the original truncates it.
         base = static_cast<int>(gamecrt::Ftol(value));
     }
     float scaled = static_cast<float>(static_cast<double>(base) * factor);

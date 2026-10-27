@@ -23,15 +23,15 @@
 // locals.
 
 namespace {
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kOne = 1.0f;                                        // 0073B84C
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
 constexpr float kPercentB = std::bit_cast<float>(0x3C23D70Au);      // 0073D09C (0.01, a second copy)
 constexpr float kHitPointEffect = std::bit_cast<float>(0x3BA3D70Au);  // 0073E130 (0.005)
 constexpr float kDamageEffect = std::bit_cast<float>(0x3B449BA6u);  // 0073E134 (0.003)
-constexpr float kTwelve = 12.0f;                                    // 0073E138
+constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073BAD4 (0.2)
-constexpr float kTen = 10.0f;                                       // 0073BAAC
+constexpr float kTen = 10.0f;
 constexpr float kRevived = std::bit_cast<float>(0x3A83126Fu);       // 0073CCF4 (0.001)
 constexpr double kMinHeal = 0.001;                                  // 0073BA88 (a double)
 constexpr std::uint32_t kNoCapacity = 0x49742400u;                  // 1000000.0f

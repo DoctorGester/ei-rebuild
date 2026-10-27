@@ -2,12 +2,10 @@
 
 // Resource archives (*.res): the game's packed file format, used for textures, figures, maps,
 // scripts and everything else under Res\. Class names come from the game's own error messages.
-//
 // File layout:
 //   ResHeader                  at offset 0
 //   ResEntry[header.count]     at header.tableOffset
 //   char names[header.namesSize] immediately after the table (not NUL-terminated)
-//
 // Entries form a hash table: an entry's home slot is
 //   (sum of tolower(name[i])) % count,
 // and colliding names are chained through ResEntry::next (-1 ends the chain).
@@ -51,8 +49,8 @@ public:
     CMappedFile();
     CMappedFile* Construct();                         // 006756B0 (the constructor)
     void Close();                                     // 006756D0 (00675720 is an identical copy)
-    BOOL Open(const char* path, BOOL writable);       // 00675770
-    void Flush();                                     // 00675A50: write back, stamp modification time
+    BOOL Open(const char* path, BOOL writable);
+    void Flush();                                     // write back, stamp modification time
 
     void* file_;         // +0x00 HANDLE, INVALID_HANDLE_VALUE when closed
     void* mapping_;      // +0x04 HANDLE
@@ -74,16 +72,16 @@ static_assert(sizeof(LoadedFile) == 0x1C);
 // The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
 // deleting destructor): the archive header and tables, and an index table (accelerator) from
 // numbers to entries built by CreateAccelTable (00674910, only called by the unused 00674310).
-// A real virtual class: the compiler makes its vtable (C19; game.exe's 00743324 is retired).
+// A real virtual class: the compiler makes its vtable (game.exe's 00743324 is retired).
 class CResourceBase {
 public:
-    CResourceBase();                                // 00674790: fields cleared
+    CResourceBase();                                // fields cleared
     // 00674810 (006747C0 the scalar deleting destructor): fields cleared, accelerator freed.
     virtual ~CResourceBase();
     // The deleting destructors free into the game's heap (resource_stream.cpp).
     static void operator delete(void* block);
 
-    void FreeAccelTable();                          // 00674A90
+    void FreeAccelTable();
 
     // 00674850 (resource.cpp). Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(const char* name) const;
@@ -97,26 +95,26 @@ public:
 static_assert(sizeof(CResourceBase) == 0x24);
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
-// A real virtual class: the compiler makes its vtable (C19; game.exe's 007432E0 is retired).
+// A real virtual class: the compiler makes its vtable (game.exe's 007432E0 is retired).
 class CMappedResource : public CResourceBase {
 public:
-    // 00671280. An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
+    // An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
     // 193 buckets each, no image, no file.
     CMappedResource();
     // Virtual methods, in vtable order.
     // 0: 006714A0 (006713A0 the scalar deleting destructor). The loaded files freed, the archive
     // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
     ~CMappedResource() override;
-    virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
-    virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
-    virtual void CloseResource();                                     // 3: 00671AC0
+    virtual BOOL OpenResource(const char* path, BOOL writable);
+    virtual BOOL OpenFromMemory(const void* image);
+    virtual void CloseResource();
     virtual void Flush();                                             // 4: 00671390 (empty)
-    virtual void* GetFile(const char* name, std::uint32_t* size);     // 5: 00671B40
+    virtual void* GetFile(const char* name, std::uint32_t* size);
     // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
     // mod_folders.h, which calls this one on the game's and the mod's archives).
     void* GetFilePlain(const char* name, std::uint32_t* size);
-    virtual bool CloseFile(void* data);                               // 6: 00671E00
-    virtual void FreeAllFiles();                                      // 7: 00672040
+    virtual bool CloseFile(void* data);
+    virtual void FreeAllFiles();
 
     // 006714A0, the destructor's body, called qualified where the original reaches it by address (Rebirth patches
     // it): the in-place archives of the loaders and screens.
@@ -138,20 +136,20 @@ public:
 static_assert(sizeof(CMappedResource) == 0x58);
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual
-// class: the compiler makes its vtable (C19; game.exe's 00743300 is retired).
+// class: the compiler makes its vtable (game.exe's 00743300 is retired).
 class CMMIOResource : public CMappedResource {
 public:
     // 006721D0 (resource_stream.cpp). CMappedResource's, a closed mapped file, no image.
     CMMIOResource();
-    // 006722F0. The mapping closed (CloseResource inlined, then the CMappedFile destructor's),
+    // The mapping closed (CloseResource inlined, then the CMappedFile destructor's),
     // then CMappedResource's.
     ~CMMIOResource() override;
 
-    BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
-    BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520
-    void CloseResource() override;                                    // 3: 006725A0
+    BOOL OpenResource(const char* path, BOOL writable) override;
+    BOOL OpenFromMemory(const void* image) override;
+    void CloseResource() override;
     void Flush() override;                                            // 4: 006725D0 (flushes file_)
-    void* GetFile(const char* name, std::uint32_t* size) override;    // 5: 006725E0
+    void* GetFile(const char* name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // 6: 00672640 (nothing to free)
     void FreeAllFiles() override;                                     // 7: 00672650 (empty)
 

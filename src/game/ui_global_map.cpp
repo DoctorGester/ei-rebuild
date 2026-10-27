@@ -2,7 +2,6 @@
 // allod, its zones, the quests the player holds and the links to the zones the player may enter,
 // the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
 // screens").
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
 // as the original does.
@@ -104,7 +103,7 @@ private:
 };
 
 // The scene renderer (007AF060, what 00500960 returns).
-// 006570E0: saves the game into saves\<name> (ECX name, DL flag).
+// Saves the game into saves\<name> (ECX name, DL flag).
 
 // --- Sprite fields set directly -------------------------------------------------------------------
 
@@ -120,7 +119,7 @@ CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSpri
 
 } // namespace
 
-// --- Create (0062D350) ---------------------------------------------------------------------------
+// --- Create ---------------------------------------------------------------------------
 
 namespace {
 
@@ -480,7 +479,7 @@ void CGlobalMap::CreateScreen() {
     SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
-    TheMusicSystem()->Stop();   // 006B4F70
+    TheMusicSystem()->Stop();
     weather_ = new CGlobalMapClouds();
     weather_->Start();
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
@@ -501,14 +500,14 @@ void CGlobalMap::CreateScreen() {
 
 EI_REWRITTEN(0x0062D350, CGlobalMap::CreateScreen);
 
-// --- Update (0062F050) -----------------------------------------------------------------------------
+// --- Update -----------------------------------------------------------------------------
 
 namespace {
 
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
+// fmod(a, *divisor) through the game's _CIfmod, stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
 // The product the original inlines (r = b * a in its operand order), each component stored.
@@ -680,7 +679,7 @@ void DestroyArray(Array* array, void* vtable) {
 CGlobalMap::~CGlobalMap() {
     arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
     stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
-                                        sizeof(GlobalMapStep));   // 005FA7E0
+                                        sizeof(GlobalMapStep));
     DestroyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     DestroyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());

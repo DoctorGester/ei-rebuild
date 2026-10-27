@@ -23,7 +23,7 @@ bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 } // namespace
 
 mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
-    // Rebirth's Maps (0055E9A9): the folder the last site selected.
+    // Rebirth's Maps: the folder the last site selected.
     mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
     return new (out) mfc::CString(folder + MapsFolderName());
 }

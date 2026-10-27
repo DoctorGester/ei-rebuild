@@ -1,5 +1,4 @@
 // Point lights on the landscape (006BF4A0 / 006BF580, 006C4EE0-006C5230, 006CA5D0-006CAF68).
-//
 // The landscape keeps a table of the point lights it was given (by id; the light held, and the
 // area it reaches: a range of sectors and the first / last vertex inside the edge sectors). Each
 // vertex record of a built sector has a list of the lights whose range reaches it (pooled 16-byte

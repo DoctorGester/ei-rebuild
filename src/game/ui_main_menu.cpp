@@ -51,8 +51,8 @@ constexpr float kMenuEdgeFade = 6.0f;
 constexpr float kWeatherStrength = 20.0f;
 constexpr int kWeatherClear = 0;
 constexpr int kWeatherRain = 1;
-constexpr double kDawn = 7.0;    // 0073FF24
-constexpr double kDusk = 21.0;   // 0074054C
+constexpr double kDawn = 7.0;
+constexpr double kDusk = 21.0;
 constexpr int kRainStartHour = 0;
 constexpr int kRainEndHour = 7;
 constexpr int kLightningBeforeHour = 6;
@@ -153,9 +153,9 @@ void CMainMenu::Update() {
             if (IsaacRandom::Global().Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
-                float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));    // 0073CD60
-                float fromY = static_cast<float>(RandomScaled(1.3969838622484784e-08));   // 00742110
-                float toX = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0);   // 0073FA20, 0073CDB8
+                float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));
+                float fromY = static_cast<float>(RandomScaled(1.3969838622484784e-08));
+                float toX = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0);
                 float toY = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromY - 2.0);
                 ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f});
             }

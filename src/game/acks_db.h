@@ -21,7 +21,7 @@ class CUnit;
 namespace acks {
 
 struct Speeches : stlp::vector<SpeechRecord> {
-    // 006D8780 (RET 4): a random speech among those whose chance is at least `roll` (the game's
+    // A random speech among those whose chance is at least `roll` (the game's
     // rand()); null, without drawing, when there is none. (The original also answers null for a
     // null list; SayAck, its only caller, never passes one.)
     const SpeechRecord* Pick(int roll) const;
@@ -38,7 +38,7 @@ struct EnvironmentSpeech {
 static_assert(sizeof(EnvironmentSpeech) == 0x2C);
 
 struct EnvironmentSpeeches : stlp::vector<EnvironmentSpeech> {
-    // 006D88E0 (RET 8): the same among the speeches whose environment flags include `environment`.
+    // The same among the speeches whose environment flags include `environment`.
     const SpeechRecord* Pick(std::uint32_t environment, int roll) const;
 };
 static_assert(sizeof(EnvironmentSpeeches) == 0xC);
@@ -60,22 +60,22 @@ struct UnitAcks {
     // 4 name (and 10 the environment flags). Loading empties each list first and sizes it to the
     // number of speech chunks.
     void Serialize(ChunkArchive* ar);
-    // 006DC390 (S13; the compiler's destructor): the members in reverse, each vector's records
+    // 006DC390 (the compiler's destructor): the members in reverse, each vector's records
     // destroyed in order before its storage is freed.
     void Destruct();
 
     AckRecordHead head;                                     // +0x000
     SpeechList lists[33];                                   // +0x020 the speech lists the map points into
     EnvironmentSpeeches environmentSpeeches;                // +0x1AC kind 0x29
-    SpeechList namedSpeeches;                               // +0x1B8 by SpeechRecord::name (006D8A40)
+    SpeechList namedSpeeches;                               // +0x1B8 by SpeechRecord::name
 };
 static_assert(sizeof(UnitAcks) == 0x1C4);
 
 // Table 1 (0x5C bytes): per unit model name (the fallback of kinds 0x2E..0x32).
 struct ModelAcks {
-    // 006E3FD0 (RET 4). The name, then the lists as chunks 10..14.
+    // The name, then the lists as chunks 10..14.
     void Serialize(ChunkArchive* ar);
-    // 006DC920 (S13): the lists from the last, then the head.
+    // The lists from the last, then the head.
     void Destruct();
 
     AckRecordHead head;
@@ -85,9 +85,9 @@ static_assert(sizeof(ModelAcks) == 0x5C);
 
 // Table 2 (0x38 bytes): per unit prototype name, kinds 0x2A..0x2D.
 struct ExtraAcks {
-    // 006E3DC0 (RET 4). The name, then the lists as chunks 10 and 11.
+    // The name, then the lists as chunks 10 and 11.
     void Serialize(ChunkArchive* ar);
-    // 006DCAF0 (S13): the lists from the last, then the head (all inline in the original).
+    // The lists from the last, then the head (all inline in the original).
     void Destruct();
 
     AckRecordHead head;

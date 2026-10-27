@@ -1,4 +1,4 @@
-// A unit's size class, standing height and radius (00530570). See unit.h and docs/notes/units.md
+// A unit's size class, standing height and radius. See unit.h and docs/notes/units.md
 // ("Creation, databases, save").
 #include "unit.h"
 
@@ -13,11 +13,11 @@
 
 namespace {
 
-constexpr float kHeightScale = 0.9f;      // 0073CD70
-constexpr float kRadiusExtra = 0.05f;     // 0073C52C
-constexpr float kPlayerExtra = 0.2f;      // 0073BAD4
-constexpr float kMaxHeight = 2.0f;        // 0073E9E0
-constexpr float kDeepPrototype = 1.5f;    // 0073C51C
+constexpr float kHeightScale = 0.9f;
+constexpr float kRadiusExtra = 0.05f;
+constexpr float kPlayerExtra = 0.2f;
+constexpr float kMaxHeight = 2.0f;
+constexpr float kDeepPrototype = 1.5f;
 constexpr std::uint32_t kShallowHeight = 0x3C23D70A;   // 0.01f
 constexpr std::uint32_t kDefaultRadius = 0x3F400000;   // 0.75f
 constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementKind
@@ -25,7 +25,7 @@ constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementK
 } // namespace
 
 void CUnit::UpdateSizeClass() {
-    Controller()->UpdateMoveFactors();   // the server's 005536B0; empty (00533D10) on the others
+    Controller()->UpdateMoveFactors();   // the server's 005536B0; empty on the others
     if (controller->GetClassId() != kClassUnitServer) {
         sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
         std::memcpy(&unitRadius, &kDefaultRadius, 4);

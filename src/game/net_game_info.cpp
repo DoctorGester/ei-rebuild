@@ -1,5 +1,5 @@
-// The game announcement record (00401000 / 00401170) and the byte buffer's read helpers
-// (00401310 / 00401340). See net_classes.h and docs/notes/network.md.
+// The game announcement record and the byte buffer's read helpers
+//. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 
 #include "ei/hook.h"
@@ -38,7 +38,7 @@ void Sanitize(stlp::string* s) {
 
 } // namespace net
 
-// 00401310: copies `size` bytes from the read position and moves it on; returns the buffer.
+// Copies `size` bytes from the read position and moves it on; returns the buffer.
 GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
     std::memcpy(to, cur, size);
     cur += size;
@@ -46,7 +46,7 @@ GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
 }
 
 EI_REWRITTEN(0x00401310, GameBuffer::CopyOut);
-// 00401340: reads `size` bytes: past the highest written position through 004DA170, from memory
+// Reads `size` bytes: past the highest written position through 004DA170, from memory
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
     std::uint8_t* next = cur + size;
@@ -60,7 +60,7 @@ unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
 namespace net {
 EI_REWRITTEN(0x00401340, GameBuffer::ReadBytes);
 
-// 00401000: writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
+// Writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
 // +0x1A, then +0x24.
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &masterKey, 4);
@@ -74,7 +74,7 @@ void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &magic, 4);
 }
 
-// 00401170: reads the record in the same order (strings of at most 0x100 bytes), replaces control
+// Reads the record in the same order (strings of at most 0x100 bytes), replaces control
 // characters in both strings with '|'; returns 1 unless the buffer ran short (error bit 3).
 int GameInfoRecord::Read(GameBuffer* buffer) {
     buffer->ReadBytes(&masterKey, 4);

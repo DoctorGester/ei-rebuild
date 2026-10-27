@@ -85,7 +85,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     case 2: {
         if (!tamerPlayer) break;
-        tamerPlayer->ReleaseTamedUnits();   // 00665D20
+        tamerPlayer->ReleaseTamedUnits();
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
         brain.AddMode(new TamedMode());

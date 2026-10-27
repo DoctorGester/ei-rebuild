@@ -14,7 +14,7 @@
 // The picked units' input side (game.exe's table 00740278, 0x20 bytes; one of screen 7's extra inputs). The other
 // slots are the base input side's.
 struct UnitPickInput final : UiInputSide {
-    // 005EB8C0 (RET 4). The interface, an empty id list.
+    // The interface, an empty id list.
     explicit UnitPickInput(CInterface3D* ui);
     // 005EB910, deleting 005EB8F0. The list freed.
     ~UnitPickInput() override;
@@ -23,17 +23,17 @@ struct UnitPickInput final : UiInputSide {
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // 9
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // 11
 
-    // 005EB940 (slot 2, RET 0xC). Without Ctrl: a unit under the point (00565D00) is added to the
-    // list (its id) and controlled (00566030); else each listed unit still in the client world
+    // Without Ctrl: a unit under the point is added to the
+    // list (its id) and controlled; else each listed unit still in the client world
     // walks to the ground point under it. With Ctrl and a unit under the point: each listed unit
     // attacks it (how 6). The event is not marked used.
     void OnLeftDown(int buttons, int x, int y);
-    // 005EBB40 (slot 5, RET 0xC). The list emptied (storage freed), the world's selection cleared.
+    // The list emptied (storage freed), the world's selection cleared.
     void OnRightDown(int buttons, int x, int y);
-    // 005EBB80 (slot 9, RET 0xC). Ctrl (VK_CONTROL) shows cursor 1; Space toggles the server
-    // flag (00578D00 / 00578D10).
+    // Ctrl (VK_CONTROL) shows cursor 1; Space toggles the server
+    // flag.
     void OnKeyDown(int key, int repeat, int flags);
-    // 005EBBC0 (slot 11, RET 0xC). Ctrl released: cursor 0.
+    // Ctrl released: cursor 0.
     void OnKeyUp(int key, int repeat, int flags);
 
     UiDwordArray picked_;            // +0x0C ids of the picked units (CDWordArray, SetSize 0059C660)
@@ -46,12 +46,12 @@ public:
     // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 7): only the container.
     explicit CViewScreen(CInterface3D* ui) : CUiContainer(ui) {}
     // 0062A830 (slot 25, the screen's Create). Three extra inputs: an inert one (vtable 00741154),
-    // UnitPickInput, the battle camera's keys (005EACB0); the camera no longer free, its focus at
+    // UnitPickInput, the battle camera's keys; the camera no longer free, its focus at
     // (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;
-    // 0062AA50 (slot 20, RET 4). The client glue's per-frame step (00578910); returns 1.
+    // The client glue's per-frame step; returns 1.
     BOOL DrawView(int pass);
-    // 0062AA40 (slot 26). The camera free again.
+    // The camera free again.
     void OnClose();
     // The slots of its own in game.exe's tables 00740840 / 0074080C (its input side is the container's).
     BOOL Draw(int pass) override { return DrawView(pass); }   // 20

@@ -18,8 +18,8 @@
 #include "lib/mfc_slots.h"
 
 namespace {
-constexpr float kTargetThreshold = 0.5f;    // 0073B86C
-constexpr float kWallHalfWidth = 1.0f;      // 0073B84C
+constexpr float kTargetThreshold = 0.5f;
+constexpr float kWallHalfWidth = 1.0f;
 constexpr int kPtrListBlockSize = 10;
 
 using UnitList = mfc::CTypedPtrList<CUnit>;

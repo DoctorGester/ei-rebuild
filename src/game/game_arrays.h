@@ -15,11 +15,11 @@
 namespace aligned {
 std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
 void __fastcall ArrayAt8Free(void* self);   // 00454380 (aligned_arrays.cpp)
-void __fastcall ArrayAt4Free(void* self);   // 004543C0
+void __fastcall ArrayAt4Free(void* self);
 } // namespace aligned
 
 namespace zone {
-void __fastcall ZoneRecordDestruct(MapRecord* self);   // 00460970
+void __fastcall ZoneRecordDestruct(MapRecord* self);
 } // namespace zone
 
 namespace gamearrays {
@@ -34,12 +34,12 @@ inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
-// Script groups: the group's vtable, empty (004CC9B0); the destructor body.
+// Script groups: the group's vtable, empty; the destructor body.
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
-inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }   // 004C2290
+inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
-// Quest objectives: the text empty (004CEE80); the destructor.
+// Quest objectives: the text empty; the destructor.
 inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
@@ -53,7 +53,7 @@ inline void InitParticle(EffectParticle* p) {
 inline void DestroyParticle(EffectParticle* p) { p->ReleaseSource(); }
 
 // Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by
-// a release through slot 4, the slot cleared (004CC7D0, 0052CEC0) or left (0059C890).
+// a release through slot 4, the slot cleared or left.
 inline void ReleaseAndClear(ScriptObjectRef* p) {
     if (p->object) p->object->Release();
     p->object = nullptr;
@@ -79,7 +79,7 @@ using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr
 using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 
 // The script's areas (each area's parts array: its base vtable back, the storage freed) and
-// definitions (S13b).
+// definitions.
 inline void DestroyArea(ScriptArea* p) {
     mfc::impl::ArrayHeader<mfc::impl::ScriptAreaClass>::Destruct(reinterpret_cast<mfc::CArray<Bytes<1>>*>(&p->parts));
 }
@@ -88,7 +88,7 @@ using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
 
 // CScript's arrays' vtables (their destructors 004CB150, 004CB650, 004CB310).
-// +0x00: the compiler's vtable (C19). The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
+// +0x00: the compiler's vtable. The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
 // recordarrays::DefinitionArrayClass.
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
@@ -129,7 +129,7 @@ struct ScriptGroupValuesClass final
 // The tags lib/mfc_array.h only declares (their slots need the game's elements).
 namespace mfc::impl {
 
-// A zone's exits, the table a map record's items (0073C400) and the worlds' exit arrays restore; the destructor
+// A zone's exits, the table a map record's items and the worlds' exit arrays restore; the destructor
 // 00460490 frees each exit's target string.
 struct ExitArrayClass
     : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
@@ -141,7 +141,7 @@ struct MapRecordItemsClass final : ExitArrayClass {
 // storage freed).
 struct ObjectRefArrayClass final
     : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &gamearrays::ObjectRefs::Serialize> {};
-// A script group (ScriptGroup): its destructor (004BC9A0) stores ObjectRefArrayClass' table.
+// A script group (ScriptGroup): its destructor stores ObjectRefArrayClass' table.
 struct ScriptGroupClass final
     : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &gamearrays::ObjectRefs::Serialize> {};
 // A save's shared object pointers (constructor 005985C0): derived from ObjectPtrArrayBaseClass.

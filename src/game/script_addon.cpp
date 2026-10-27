@@ -1,7 +1,6 @@
 // Rebirth's AddNewScriptCommands (addon.dll v0.12.4.2): the extended keyword table, the dispatch of
 // addon's script functions and commands, and the parser changes. See script_addon.h and
 // docs/notes/rebirth.md. The handlers are in script_addon_*.cpp.
-//
 // How addon installs it (10022290): a std::vector of 300 entries gets the game's keywords (0078BCA0,
 // script.h's kScriptKeywords, without the terminator); then each of its 69 command records (100BA738, 0x40 bytes: name,
 // signature, handler, flags) is registered (10021C61): a name already in the table (stricmp) with

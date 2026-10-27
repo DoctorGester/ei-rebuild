@@ -65,10 +65,9 @@ bool __fastcall QuitGame(int exitCode) {
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
 
-// 00455E20.
 std::uint8_t __cdecl MovieMode() { return g_movieMode; }
 
-// 00455BA0. The copy protection's sabotage: the options go back to their defaults and every object
+// The copy protection's sabotage: the options go back to their defaults and every object
 // of the object manager gets a random number below 0x1000 as its companion and as its specific
 // half (both are pointers; the game fails some time later).
 void __cdecl ScrambleObjects() {
@@ -82,7 +81,7 @@ void __cdecl ScrambleObjects() {
 }
 
 // 00455B50 (called for every new object of the client, CPlayerClient::OnNewObject; ECX is not
-// read). One call in a hundred looks through the protection's check list (0079BC2C) and scrambles
+// read). One call in a hundred looks through the protection's check list and scrambles
 // the objects when an entry has failed (its byte is 0). Nothing in the exe adds an entry, so the
 // list is empty.
 void __cdecl DelayedProtectionCheck() {
@@ -102,13 +101,11 @@ void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
 
 } // namespace app
 
-// 00455950.
 CWorld* CEngineObject::World() const {
     auto* context = owner_->context_;
     return context ? context->ThisWorld() : nullptr;
 }
 
-// 00457720.
 void CEngineObject::ReleaseAndDelete() {
     if (--refCount_ == 0) delete this;
 }

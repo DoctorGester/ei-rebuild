@@ -1,9 +1,9 @@
 // Interface draws that still talked to the old Direct3D device without handing anything to the new
 // renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
 // - 00600EF0, the container windows' base draw (CUiContainer slot 20): stage-0 state block
-//   007AEDD8 applied, then the window's own sprites and models (005FEB90) and its enabled children;
+//   007AEDD8 applied, then the window's own sprites and models and its enabled children;
 // - 00602BF0 and 00632A90, the slot-20 draws of interface screens 3 (the base / briefing screen,
-//   vtable 007405AC) and 2 (00740688): the menu frame step, (screen 3) a mouse move to the input
+//   vtable 007405AC) and 2: the menu frame step, (screen 3) a mouse move to the input
 //   side, a depth clear, then 00600EF0;
 // - 00622420, the hero equipment panel's draw (CHeroEquipPanel slot 20, vtable 007418E0): the two
 //   highlight frames placed, the quick slots' item models, and with the body (the camp) the seven
@@ -63,7 +63,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 
 } // namespace
 
-// 00600EF0. Nothing when the interface's +0x30 is clear. Returns 1.
+// Nothing when the interface's +0x30 is clear. Returns 1.
 BOOL CUiContainer::Draw(int pass) {
     if (!interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(this);
@@ -88,7 +88,7 @@ EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
-// 00622420. The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
+// The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.

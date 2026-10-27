@@ -1,4 +1,4 @@
-// The console window's constructor (005E3CE0). See console.h and docs/notes/console.md.
+// The console window's constructor. See console.h and docs/notes/console.md.
 #include "console.h"
 #include "ui_gdi.h"
 

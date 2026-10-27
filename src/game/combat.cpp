@@ -41,20 +41,20 @@ constexpr libcrt::Ostream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
 GameOstream* GameLog() { return console::StreamAs<GameOstream>(*kCombatLog); }
 
 namespace {
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kOne = 1.0f;                                        // 0073B84C
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 (0.1)
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073EF28 (0.2)
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
 constexpr float kPointSix = std::bit_cast<float>(0x3F19999Au);      // 0073CDE0 (0.6)
-constexpr float kOnePointFive = 1.5f;                               // 0073C51C
-constexpr float kFive = 5.0f;                                       // 0073EED4
-constexpr float kTen = 10.0f;                                       // 0073BAAC
-constexpr float kDistanceScale = 10.0f;                             // 0073EEDC
-constexpr float kFifteen = 15.0f;                                   // 0073C518
-constexpr float kSpeedScale = 20.0f;                                // 0073EED8
-constexpr float kCalledShotHead = 25.0f;                            // 0073E124
-constexpr float kHundred = 100.0f;                                  // 0073BAB0
+constexpr float kOnePointFive = 1.5f;
+constexpr float kFive = 5.0f;
+constexpr float kTen = 10.0f;
+constexpr float kDistanceScale = 10.0f;
+constexpr float kFifteen = 15.0f;
+constexpr float kSpeedScale = 20.0f;
+constexpr float kCalledShotHead = 25.0f;
+constexpr float kHundred = 100.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
 constexpr float kHitMark = std::bit_cast<float>(0x7F7FFFFFu);       // 0073F13C (FLT_MAX)
 constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // 0073C1A8 (-FLT_MAX)
@@ -62,24 +62,24 @@ constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // 0073C1A8 
 constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
 constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
 
-// Size classes (00552FB0) and movement factors (005536B0).
+// Size classes and movement factors.
 constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // immediate (1.89)
-constexpr float kLoadOverloaded = 1.5f;                             // 0073C51C
+constexpr float kLoadOverloaded = 1.5f;
 constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0073CEB8 (0.85)
 constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 0073F138 (1.7)
-constexpr float kSizeSmall = kPointSix;                             // 0073CDE0
+constexpr float kSizeSmall = kPointSix;
 constexpr float kSizeMedium = std::bit_cast<float>(0x3F99999Au);    // 0073CDF4 (1.2)
 constexpr float kSizeLarge = std::bit_cast<float>(0x3FF33333u);     // 0073CF2C (1.9)
 constexpr float kSizeScale20 = kPointTwo;                           // 0073BAD4 (0.2)
 constexpr float kWorldFactorScale = kPercent;                       // 0073D09C (0.01)
-constexpr float kMode0Factor2 = 0.5f;                               // 0073EF04
-constexpr float kMode1Factor2 = 0.75f;                              // 0073EF08
-constexpr float kMode0Factor3 = 1.0f;                               // 0073EF14
+constexpr float kMode0Factor2 = 0.5f;
+constexpr float kMode1Factor2 = 0.75f;
+constexpr float kMode0Factor3 = 1.0f;
 constexpr float kIdleMode0Factor0 = std::bit_cast<float>(0x3ECCCCCDu);  // 0073EF00 (0.4)
 constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0073EEFC (0.2)
-constexpr float kIdleMode3Scale = 2.0f;                             // 0073EEF4
-constexpr float kIdleMode3Factor1 = 0.5f;                           // 0073EF10
-constexpr float kCastingFactor2 = 1.5f;                             // 0073EF0C
+constexpr float kIdleMode3Scale = 2.0f;
+constexpr float kIdleMode3Factor1 = 0.5f;
+constexpr float kCastingFactor2 = 1.5f;
 constexpr float kSpeedFast = kSizeMedium;                           // 0073CDF4 (1.2)
 constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0073CD18 (0.15)
 
@@ -91,7 +91,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-// Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
+// Difficulty and the attack factor per difficulty (007C54AC, floats).
 float DifficultyAttackFactor() {
     int difficulty = options::TheOptions()->difficulty_;
     return GameLogicSettings().attack[difficulty];
@@ -305,7 +305,7 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     }
     CSpell* spell = unit->GetSpellObject(source);
     if (!spell) return false;
-    if (unit->player != nullptr) {      // 005301A0
+    if (unit->player != nullptr) {
         float cost = SpellCost(spell);
         float mana = ServerMana(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;

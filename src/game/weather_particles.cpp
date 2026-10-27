@@ -1,14 +1,12 @@
 // The rain and snow draws of the world's rain / snow layer (A-S13): 004E4240 (rain) and 004E4C80
 // (snow), thiscall with the scene renderer, RET 4, EAX 1; the layer's draw 004E5680
 // (weather_draw.cpp) calls the one of the mode after the fade's step and the texture's bind.
-//
 // Both walk the 81 x 81 cells (half a unit apart) around the point the wind carries a particle to
 // the camera from. A cell's place gives a 16-bit number; with the world's time it gives the cycle
 // the cell's particle is in (a rain drop falls for 200 ticks, a snowflake for 1000) and how far it
 // has fallen. `density` of 64 cycles show a particle; the cycle also shifts it within the cell and
 // picks one of the texture's four frames. The corners go to the transform library as packets of
 // four, the ones on screen become pre-transformed triangles drawn with the device's current state.
-//
 // Kept as the original has it: the vertices' colour and specular are never written (what the
 // buffer held stays, the distance fog only lowers the specular's alpha), the packets' w neither;
 // the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number
@@ -50,24 +48,24 @@ constexpr int kSeedCount = 32;
 constexpr float kRainSink = 0.5f;                                   // 0073D708 added to the wind's fall
 constexpr float kSnowSink = std::bit_cast<float>(0x3DCCCCCDu);      // 0073D70C (0.1)
 constexpr float kRainCycle = 200.0f;                                // 0073D700 ticks
-constexpr float kSnowCycle = 1000.0f;                               // 0073D704
-constexpr float kCellsPerUnit = 2.0f;                               // 0073D710
+constexpr float kSnowCycle = 1000.0f;
+constexpr float kCellsPerUnit = 2.0f;
 constexpr float kJitterScale = 0.0078125f;                          // 0073D730 (1 / 128)
-constexpr float kJitterHeight = 10.0f;                              // 0073D714
-constexpr float kDropLength = 1.0f;                                 // 0073D718
+constexpr float kJitterHeight = 10.0f;
+constexpr float kDropLength = 1.0f;
 constexpr float kDropHalfWidth = std::bit_cast<float>(0x3D072B02u); // 0073D71C (0.033)
 constexpr float kNearDepth = 4.0f;                                  // 0073BAA0 a drop nearer is not drawn
 constexpr float kFrameWidth = 0.25f;                                // 0073C3B0 a frame of the texture
-constexpr float kFrameMiddle = 0.125f;                              // 0073C520
+constexpr float kFrameMiddle = 0.125f;
 constexpr float kRainTop = 0.75f, kRainBottom = 1.0f;               // the rain's rows of the texture
 constexpr float kSnowTop = 0.5f;                                    // the snow's
 constexpr float kSnowBottom = std::bit_cast<float>(0x3F3D70A4u);    // 0.74
 constexpr float kFlakeWidth = std::bit_cast<float>(0x3E4CCCCDu);    // 0073D720 (0.2)
-constexpr float kHalf = 0.5f;                                       // 0073B86C
+constexpr float kHalf = 0.5f;
 constexpr float kFlakeAbove = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
 constexpr float kFlakeBelow = std::bit_cast<float>(0x3F333333u);    // 0073C538 (0.7)
-constexpr float kSwayShift = 1000.0f;                               // 0073C34C
-constexpr double kSwayPeriod = 50.0;                                // 0073D0A0
+constexpr float kSwayShift = 1000.0f;
+constexpr double kSwayPeriod = 50.0;
 constexpr int kSwayCells = 0x7C;
 
 // Set by static initialisers (004E38A0 .. 004E3920).

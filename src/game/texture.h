@@ -42,7 +42,7 @@ struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
 // to +0x50; directdraw_holder.cpp, A-S13). A failed DirectDraw call throws the game's error object (dx_errors.h).
 class CDXDirectDraw : public CRendererBase {
 public:
-    // 004EDD70 (RET 0x24). The processor's CPUID words into 007CAED0 (no MMX: a fatal error and exit), 2DintMMX.dll
+    // The processor's CPUID words into 007CAED0 (no MMX: a fatal error and exit), 2DintMMX.dll
     // loaded and its graphics processor taken, the DirectDraw object of `driver` made with its display modes
     // (CreateDirectDraw), the cooperative level, for full screen the display mode, the primary and back surfaces,
     // and the YUV formats the driver can make an off-screen and an overlay surface of.
@@ -54,7 +54,7 @@ public:
 
     // 004EEC60 (plain RET). The display mode restored, in full screen only.
     void RestoreDisplayMode();
-    // 004EECF0 (RET 8). The cooperative level of the window: exclusive full screen or normal, with
+    // The cooperative level of the window: exclusive full screen or normal, with
     // DDSCL_FPUSETUP | DDSCL_MULTITHREADED; `screen` (or an empty rectangle) becomes screen_.
     void SetCooperativeLevel(int fullScreen, const RECT* screen);
 
@@ -63,7 +63,7 @@ public:
     GUID* driver_;              // +0x10 the driver the DirectDraw object was made for
     CDXSurface* primary_;       // +0x14 the primary surface's holder
     CDXSurface* renderTarget_;  // +0x18 the render target's holder
-    void* clipper_;             // +0x1C IDirectDrawClipper* of the window (004EF510)
+    void* clipper_;             // +0x1C IDirectDrawClipper* of the window
     std::uint32_t flags_;       // +0x20 the cooperative level; bit 0: full screen (the present flips)
     RECT screen_;               // +0x24 the screen rectangle
     HWND window_;               // +0x34
@@ -113,27 +113,27 @@ public:
     int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
                           int indexCount, int flags);
     // pixel_formats.cpp (A-S11).
-    // 004E7C40 (RET 8). The texture format for an .mmp file's header: the format its id names
+    // The texture format for an .mmp file's header: the format its id names
     // (formats_); for a DXT id the device does not have, the format its channel bit counts name
     // (5:6:5, 5:5:5, 1:5:5:5, 4:4:4:4, 8:8:8:8; anything else looks id 0 up). 1 with `format`
     // filled, 0 with it untouched.
     int ParseMmpHeader(const void* data, PixelFormat* format);
-    // 004E7DA0 (RET 8). The texture format registered under `id` (0x5650, 0x5551, 0x4444, 0x8888,
+    // The texture format registered under `id` (0x5650, 0x5551, 0x4444, 0x8888,
     // a DXT four-character code): 1 with `format` filled, 0 with it untouched.
     int FindFormat(int id, PixelFormat* format);
-    // 004EB300 (RET 8). `holder`'s surface (or none) on texture stage `stage`, when the stage has
+    // `holder`'s surface (or none) on texture stage `stage`, when the stage has
     // another holder: SetTexture (the result in lastLoadResult_), the change
     // counted. Returns 1.
     int BindSurface(int stage, CDXSurface* holder);
-    // 004EBAF0 (RET 8). The same for a texture's surface holder (a null texture: none).
+    // The same for a texture's surface holder (a null texture: none).
     int BindTexture(int stage, CTexture* texture);
-    // 004EB1D0 (RET 8). The same for a texture kept by name: one not looked up yet is found by
+    // The same for a texture kept by name: one not looked up yet is found by
     // its name among the texture manager's registered and cached textures (FindTexture; an empty
     // name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
     // device_object.cpp (A-S13).
-    // 004E5E50 (RET 0x28). The base (one back buffer asked as the caller says, for 3D), IDirect3D7 from the
+    // The base (one back buffer asked as the caller says, for 3D), IDirect3D7 from the
     // DirectDraw object, its devices listed, the HAL device made on the render target, the texture formats
     // (BuildFormatTable) and depth formats listed, the depth buffer (CreateDepthBuffer), the render target and
     // viewport set, and four state blocks of stage 0's colour and alpha operations recorded (007AEDD0 .. 007AEDDC).
@@ -153,10 +153,10 @@ public:
     IDirect3DDevice7* d3dDevice_;   // +0x54
     CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
     CDXSurface* depth2_;        // +0x5C a second depth surface like it (not attached)
-    std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)
+    std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to
     std::uint8_t unused_64[0x7C - 0x64];
     GUID deviceGuid_;           // +0x7C the Direct3D device's GUID
-    // +0x8C the depth buffer's format (a DDPIXELFORMAT). The frame clear (00501A40) clears the
+    // +0x8C the depth buffer's format (a DDPIXELFORMAT). The frame clear clears the
     // stencil too when its flags (words[1]) have DDPF_STENCILBUFFER and its stencil bits
     // (words[4]) are nonzero.
     PixelFormat depthFormat_;
@@ -169,19 +169,19 @@ public:
     stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
     std::uint32_t largestFormatId_;  // +0xD0 the largest id in formats_
     std::uint8_t unused_D4[0x58];    // +0xD4 two vertex-buffer batches and a spare set: never used (4E7820 gives no buffer)
-    CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
+    CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage
     CDeviceMaterial* material_;      // +0x14C the current material (004EB170; device_material.h)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
     std::uint8_t unused_154[4];
     // +0x158 the draws fog their screen vertices by distance (the transform object's FogVertices)
-    // when set; cleared around the sky and hit point draws (00569E40), else 1.
+    // when set; cleared around the sky and hit point draws, else 1.
     int distanceFog_;
-    RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
-    // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene (00503F40).
+    RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw
+    // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene.
     int vertexCount_;           // +0x16C vertices drawn
     int primitiveCount_;        // +0x170 primitives drawn
     int drawCount_;             // +0x174 draw calls
-    int textureChanges_;        // +0x178 texture bindings changed (00501AF0)
+    int textureChanges_;        // +0x178 texture bindings changed
 };
 static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTextureDevice, vertexCount_) == 0x16C);
 static_assert(offsetof(CTextureDevice, lastLoadResult_) == 0x08);
@@ -227,7 +227,7 @@ struct DirectDrawDriver {
 };
 static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDriver, description) == 0x20);
 static_assert(sizeof(DirectDrawDriver) == 0x30);
-// The driver list (007AEE64).
+// The driver list.
 extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;   // static_lists.cpp
 inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 // 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
@@ -291,7 +291,7 @@ public:
     // 7: halves a square image (`width` is the new width).
     virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
     // 8: rasterises one triangle of a shadow: `target` starts with its three corners (a screen and
-    // a texture point each, pairs of ints) and goes on with the surface (004F4850, 005A0E80).
+    // a texture point each, pairs of ints) and goes on with the surface.
     virtual void RasteriseTriangle(RasterTarget* target);
     // 9: the same, masked by a keyed texture's texels (RasterTriangle::keyTexels; 005A0E80).
     virtual void RasteriseKeyedTriangle(RasterTarget* target);
@@ -332,7 +332,7 @@ struct MmpHeader {
     std::uint32_t blueBits;     // +0x44
     std::uint32_t extraSize;    // +0x48
 
-    // 006908E0. Offset of mip level `mip`'s pixels after the header: the extra block plus the
+    // Offset of mip level `mip`'s pixels after the header: the extra block plus the
     // sizes of the larger levels (a geometric sum computed in 32-bit integers).
     std::uint32_t MipOffset(unsigned mip) const;
     // What 0068FA10 returns when it fills a texture surface of `surfaceFormat` from this file
@@ -340,7 +340,7 @@ struct MmpHeader {
     // level of the surface (from `mip`, `levels` of them, no further than the file's last) width x
     // height times the bits it writes, / 8: the file's own bits when it copies (00690970: DXT into
     // the same DXT format, any other format), the surface's for 8888 converted to 16 bits
-    // (00690B30), 16 for DXT decoded to 16 bits (00690D30); 32-bit arithmetic.
+    // 16 for DXT decoded to 16 bits; 32-bit arithmetic.
     std::uint32_t FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const;
     // 00693820 / 00693850 / 006938B0 / 00693910 (texture_slots.cpp, A-H25). The channel fields
     // +0x18..+0x44 zeroed with format and bits per pixel 0; or 1:5:5:5, 4:4:4:4 (both 16 bits) or
@@ -363,28 +363,28 @@ struct ChannelLayout {
     std::uint32_t redMask, redBits, redShift;         // +0x10
     std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
     std::uint32_t blueMask, blueBits, blueShift;      // +0x28
-    // 004EDAA0 (RET 4). Zeroes the layout, then splits `format`'s alpha, red, green and blue masks
+    // Zeroes the layout, then splits `format`'s alpha, red, green and blue masks
     // in that order. 0 for a null format, for one without DDPF_RGB (logged: "Format have no RGB
     // information") and at the first channel wider than 8 bits (the channels before it stay
     // filled); else 1.
     int Split(const void* format);
-    // 004EDC00 (RET 4). An A8R8G8B8 colour into a pixel of this layout, each channel's top bits
+    // An A8R8G8B8 colour into a pixel of this layout, each channel's top bits
     // at its shift.
     std::uint32_t ToNative(std::uint32_t argb) const;
-    // 004EDC70 (RET 4). A pixel of this layout as A8R8G8B8: each channel's bits moved to the top
+    // A pixel of this layout as A8R8G8B8: each channel's bits moved to the top
     // of its byte (the low bits stay 0).
     std::uint32_t FromNative(std::uint32_t pixel) const;
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 
 // Class id 6, "CTexture", 0x68 bytes (the texture manager's 00691810 makes it). A real virtual
-// class: the compiler makes its vtable (C19; game.exe's 00743D24 is retired).
+// class: the compiler makes its vtable (game.exe's 00743D24 is retired).
 class CTexture : public CEngineObject {
 public:
     // The constructor 00691810 inlines: CEngineObject's fields, an empty name and extra block, no
     // surface, then Create's state (no block, sizes 0, an empty format of size 0x20).
     CTexture();
-    // 00691950. Destroy's work, the extra block freed, the name, CEngineObject's.
+    // Destroy's work, the extra block freed, the name, CEngineObject's.
     ~CTexture() override;
     // The deleting destructor (slot 0, 00691930) frees into the game's heap.
 
@@ -397,7 +397,7 @@ public:
     // (LoadBmpFiles), the path's pieces trimmed. 1 without loading when this texture is loaded and
     // named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
-    // 0068F6C0. A surface with no pixels yet, as `header` describes it (texture_blank.cpp): square,
+    // A surface with no pixels yet, as `header` describes it (texture_blank.cpp): square,
     // header->width wide (the height is not read), header->mipCount levels, the texture's format_,
     // the original's managed texture (system memory with flag 0x400); ours only the new renderer's
     // memory (NewMemoryTextureHolder, dx_surface.h; one level). Returns 1.
@@ -418,17 +418,17 @@ public:
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
 
     // texture_slots.cpp (A-H25).
-    // 2: 00691A00. Back to the constructed state: no name, the surface released, sizes and upload
+    // Back to the constructed state: no name, the surface released, sizes and upload
     // result 0, an empty format of size 0x20, the extra block freed; block_ is cleared without
     // being freed. Returns 1.
     int Create() override;
-    // 3: 00691A70. The block freed, the surface released, +0x64 and flags_ 0.
+    // The block freed, the surface released, +0x64 and flags_ 0.
     void Destroy() override;
     // 7: 00691900 (short_functions.cpp). The name's text.
     const char* GetName() override;
     const char* GetClassName() override;   // 11: 00691910 "CTexture"
     int GetClassId() override;             // 12: 00691920 (6)
-    // 00690FA0. Frees block_ (an aligned block) and clears it.
+    // Frees block_ (an aligned block) and clears it.
     void FreeBlock();
 
     mfc::CString* Name() { return &name_; }
@@ -455,9 +455,9 @@ static_assert(offsetof(CTexture, format_) == 0x3C);
 static_assert(offsetof(CTexture, surface_) == 0x5C);
 
 // renderer_lifetime.cpp (A-U11). Counted texture holders (a CTexture* the user keeps).
-// 00500970. Makes sure the held texture is loaded: a null one is a fatal error ("Final loading data to
+// Makes sure the held texture is loaded: a null one is a fatal error ("Final loading data to
 // NULL texture!", its result returned); one with flags_ bit 3 gives 1; otherwise the texture
-// manager's LoadTexture (006922A0) and its result.
+// manager's LoadTexture and its result.
 int __fastcall TextureHolderEnsureLoaded(struct HeldTexture* holder);
 // (A counted engine object pointer's assignment, 004EBE60, is HeldEngineObject::Assign, engine_object.h.)
 // (A counted texture pointer, HeldTexture, is in model.h.)
@@ -472,15 +472,15 @@ constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 void __cdecl DeleteComposedTextures();
 
 // Class id 0x26. Slots 16-22 are CResourceManager's. A real virtual class: the compiler makes its
-// vtable (C19; game.exe's 00743CB0 is retired).
+// vtable (game.exe's 00743CB0 is retired).
 class CTextureManager : public CResourceManager {
 public:
 
     // texture_manager_lifetime.cpp (A-H23).
-    // 00691140. CResourceManager's constructor, an empty cache (blocks of 10), no shadow surface
+    // CResourceManager's constructor, an empty cache (blocks of 10), no shadow surface
     // or device, +0xD8 / +0xE8 / +0xEC 0.
     CTextureManager();
-    // 00691250. The shadow surface released, every cached texture destroyed (slot 3) and deleted,
+    // The shadow surface released, every cached texture destroyed (slot 3) and deleted,
     // the cache emptied, the composed textures deleted, the device dropped,
     // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor.
     ~CTextureManager() override;
@@ -492,21 +492,21 @@ public:
     // the text resources' folder added (slot 16): "textures.res", "redress.res", "menus.res". All
     // three are tried; 1 only when every one opened.
     int Create() override;
-    // 3: 00691630. As the destructor up to CResourceManager::Destroy (without SetDevice).
+    // As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
-    // 23: 00691AA0. CBaseManager::CreateObject, then flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40
+    // CBaseManager::CreateObject, then flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40
     // 0x200, any other 0x40 (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    // 006922A0. Loads a texture: textures\<name>.bmp on disk if present, else <name>.mmp from the
+    // Loads a texture: textures\<name>.bmp on disk if present, else <name>.mmp from the
     // archives, else <data path>textures\<name>.mmp on disk.
     int LoadTexture(CTexture* texture);
-    // 006926F0. Loads <directory><name>.mmp from disk.
+    // Loads <directory><name>.mmp from disk.
     int LoadTextureFrom(CTexture* texture, const char* directory);
-    // 006928C0. Reads the extra block of <name>.mmp into `out` (sized to it, old contents not
+    // Reads the extra block of <name>.mmp into `out` (sized to it, old contents not
     // kept): from <data path>textures\ on disk, else from the archives. Returns 0 (and an empty
     // buffer) when neither has the file.
     int LoadMmpExtra(const char* name, AlignedBuffer* out);
-    // 00691D80. A new texture (CreateObject(kind, -1)) the game fills on the CPU (texture_blank.cpp):
+    // A new texture (CreateObject(kind, -1)) the game fills on the CPU (texture_blank.cpp):
     // `width` x `height` in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; another
     // kind keeps a zero format), its surface square at `width` (CreateBlank): only the new
     // renderer's memory. Null when CreateBlank fails;
@@ -557,20 +557,20 @@ public:
                 const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
     // texture_slots.cpp (A-H25).
-    // 00691CF0 (RET 4). GetFile(name) without the size.
+    // GetFile(name) without the size.
     void* GetFileData(const char* name);
-    // 00691D40 (RET 4). CreateObject(type, -1).
+    // CreateObject(type, -1).
     CTexture* NewTextureOfType(int type);
-    // 00691D00 (RET 8). FindTypedTexture(type, name), else a new texture of `type`; it is given
+    // FindTypedTexture(type, name), else a new texture of `type`; it is given
     // `name` either way (no null check) and returned. Not loaded.
     CTexture* FindOrCreate(int type, const char* name);
-    // 00693F10 (RET 8). FindTexture(name) as it is; else FindOrCreate's texture, loaded
+    // FindTexture(name) as it is; else FindOrCreate's texture, loaded
     // (LoadTexture). Returns it.
     CTexture* FindOrLoad(int type, const char* name);
     // 00693F60 (sets only AL). Every registered and every cached texture loses its loaded flag and
     // is loaded again (after a lost device, 00504780); false when any LoadTexture fails.
     bool ReloadAll();
-    // 00694020. While the cache holds more bytes than videoMemoryTenth_ (signed), its oldest
+    // While the cache holds more bytes than videoMemoryTenth_ (signed), its oldest
     // texture is taken out and deleted (the world client, every 32 ticks).
     void TrimCache();
 

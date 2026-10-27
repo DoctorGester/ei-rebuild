@@ -1,4 +1,4 @@
-// Object shadows through a sun shadow map (R16j; docs/notes/renderer.md section 13). The game hands
+// Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands
 // over the sun (CWorldClient::Render), which object each mesh belongs to (BeginCaster, the object
 // draws of 0056AFE0) and which objects cast this frame (CastsShadow, from their shadow draw 0051CE60:
 // the options' switches and the game's own visibility of the shadow). Once a frame, before the world
@@ -6,8 +6,8 @@
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
 // meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
 // alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
-// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli, R16j2). The
-// game's decals are neither made nor drawn (R16i).
+// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli). The
+// game's decals are neither made nor drawn.
 // R20: objects the game does not draw (outside the view) whose shadow can reach the visible ground
 // cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
 // of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
@@ -16,7 +16,6 @@
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
 // R16i2: a unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
 // (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
-//
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
 // for the landscape's space; that space is the one the map is fitted in (the inverse of the
 // terrain's matrix times a mesh's gives the mesh's model matrix into it).
@@ -59,7 +58,7 @@ constexpr float kStrength = 0.5f;
 constexpr double kDepthBias = 0.04;
 constexpr double kLargestSlope = 4.0;
 constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fading in) do not cast
-// Soft edges (R16j2): the filter's radius in world units is the distance along the light from the
+// Soft edges: the filter's radius in world units is the distance along the light from the
 // receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: far larger
 // than the real sun's, for the old blurred decals' look), at least kLeastRadius texels, at most
 // kWidestRadius units (also the blocker search's radius).
@@ -155,7 +154,7 @@ bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 const void* g_caster = nullptr;     // BeginCaster .. EndCaster
-bool g_casterFigure = false;        // ... a unit's draw (R16i2)
+bool g_casterFigure = false;        // ... a unit's draw
 ShadowInfo g_info, g_lastInfo;
 
 // --- R20: casters outside the view --------------------------------------------------------------------
@@ -187,8 +186,8 @@ std::uint32_t g_strengthsFrame = 0xFFFFFFFFu;
 std::size_t g_strengthsCount = 0;
 bool g_outsideOn = true;   // SetOffscreenCasters: not View
 bool g_walkedOnly = false; // SetOffscreenCasters: Walked
-bool g_shadowView = false; // SetShadowView (R25)
-int g_shadowShift = 0;     // SetShadowShift (R25): texels
+bool g_shadowView = false; // SetShadowView
+int g_shadowShift = 0;     // SetShadowShift: texels
 // How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
 // kept), by the texture's view: a caster outside the view with that texture cuts it out the same way;
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
@@ -216,7 +215,7 @@ struct CasterFs {
 
 sg_shader g_casterShader{};
 sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
-sg_shader g_terrainCasterShader{};    // the ground's casters (R16i, shaders/shadow_terrain.hlsl)
+sg_shader g_terrainCasterShader{};    // the ground's casters (shaders/shadow_terrain.hlsl)
 sg_pipeline g_terrainCasterPipeline{};
 sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
@@ -228,7 +227,7 @@ sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
 sg_view g_cellsAttachment{}, g_cellsTexture{}, g_rangeAttachment{}, g_rangeTexture{};
 sg_sampler g_point{};
-sg_sampler g_rangeLinear{};   // the receivers read the range filtered (R25)
+sg_sampler g_rangeLinear{};   // the receivers read the range filtered
 sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
 sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
@@ -286,7 +285,7 @@ bool MakeCasterPipelines() {
     return ok;
 }
 
-// The ground's casters (R16i): TerrainCasterVertex (position, normal), the light matrix in the vertex
+// The ground's casters: TerrainCasterVertex (position, normal), the light matrix in the vertex
 // uniforms, the sun's direction in the fragment ones.
 bool MakeTerrainCasterPipeline() {
     if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
@@ -396,7 +395,7 @@ sg_sampler PointSampler() {
     return g_point;
 }
 
-// The receivers' read of the range (R25): bilinear between the four cells around the point, clamped at
+// The receivers' read of the range: bilinear between the four cells around the point, clamped at
 // the map's edges (shaders/shadow_receiver.hlsli).
 sg_sampler RangeSampler() {
     if (g_rangeLinear.id) return g_rangeLinear;
@@ -988,7 +987,7 @@ void PrepareShadows(Frame& f) {
     p.soft[3] = static_cast<float>(kMapSize);
     // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
     // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
-    // between the four cells around a pixel (R25), each of which must hold the pixel's taps.
+    // between the four cells around a pixel, each of which must hold the pixel's taps.
     double reachTexels = widestTexels + 1.0;
     g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
     sh.params = p;
@@ -1043,7 +1042,7 @@ void DrawShadowMap(Frame& f) {
             f.shadow.on = false;
             g_info.made = false;
         } else {
-            // The casters outside the view (R20): their stream (appended before the pass).
+            // The casters outside the view: their stream (appended before the pass).
             int outsideVertices = -1, outsideIndices = -1;
             if (!g_outside.empty()) {
                 outsideVertices = g_outsideVertexBuffer.Append(g_outsideVertices.data(),
@@ -1138,7 +1137,7 @@ void DrawShadowMap(Frame& f) {
                 g_info.outsideCasters = static_cast<int>(outside.size());
                 g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
             }
-            // The ground (R16i): the sectors handed over, their faces turned away from the sun.
+            // The ground: the sectors handed over, their faces turned away from the sun.
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = ToMatrix(g_fit.light);
                 sg_range vr{&light, sizeof(light)};

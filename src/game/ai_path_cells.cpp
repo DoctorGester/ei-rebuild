@@ -31,7 +31,7 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
 }
 EI_REWRITTEN(0x005C5CC0, PathCell::Step);
 
-// 00539980: the cells zero filled.
+// The cells zero filled.
 void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElements<PathCell>::Construct(cells, count); }
 
 EI_REWRITTEN(0x005BD200, PathCellList::AddHead);

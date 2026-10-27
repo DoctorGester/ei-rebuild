@@ -1,5 +1,5 @@
 // The spell database's and the item database's loads from their archive at startup and at every
-// switch of the resource database (00684550 / 006A67A0; 0057CB50). A-H26.
+// switch of the resource database. A-H26.
 // Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
 // vanilla functions and install in the vanilla launch only (rule 9); callers go through
 // SpellTablesLoadOriginal / ItemDatabaseLoadOriginal. As unit_db_load.cpp; see

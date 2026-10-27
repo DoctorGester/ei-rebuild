@@ -79,7 +79,7 @@ CPlayer::~CPlayer() {
 EI_REWRITTEN_SPECIAL(0x00664E20, CPlayer::~CPlayer);
 EI_REWRITTEN_SPECIAL(0x00664E00, CPlayer::~CPlayer);
 
-// 00664B70 (__fastcall, RET 4). The message dispatchers' fatal error: `format` ("... prevID=%x
+// The message dispatchers' fatal error: `format` ("... prevID=%x
 // curID=%x") with the previous and the current message type (their low bytes; the callers set
 // only DL) raises FatalError (00480080, patched by Rebirth: through its address); its result.
 int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
@@ -89,9 +89,9 @@ int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, st
 }
 EI_REWRITTEN(0x00664B70, PlayerMessageError);
 
-const char* CPlayer::GetClassName() { return "CPlayer"; }   // 00664DE0
+const char* CPlayer::GetClassName() { return "CPlayer"; }
 EI_REWRITTEN(0x00664DE0, CPlayer::GetClassName);
-int CPlayer::GetClassId() { return 0xF; }   // 00664DF0
+int CPlayer::GetClassId() { return 0xF; }
 EI_REWRITTEN(0x00664DF0, CPlayer::GetClassId);
 
 BOOL CPlayer::CreatePlayer() {

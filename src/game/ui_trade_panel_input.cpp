@@ -1,4 +1,4 @@
-// The trade panel's scroll clamp (00626D70), its left button (00626920) and its update (00626C50):
+// The trade panel's scroll clamp, its left button and its update:
 // scrolling the perk lists and buying school levels, science and perks with experience, a school
 // or science level again every quarter second while the button stays down. See docs/notes/ui.md,
 // section 5.
@@ -30,7 +30,7 @@ constexpr int kFirstLearnable = 11;
 constexpr int kFirstHeld = 34;
 constexpr int kMaxLevel = 100;
 constexpr float kFirstHold = -0.5f;
-constexpr float kHoldRepeat = 0.25f;   // 0073C3B0
+constexpr float kHoldRepeat = 0.25f;
 
 CUiMesh* Arrow(CUiWindow* window, int index) { return window->SceneMesh(index); }
 

@@ -1,4 +1,4 @@
-// The ground's casters into the shadow map (R16i; render_shadows.cpp, render_terrain.cpp): the sectors'
+// The ground's casters into the shadow map (render_shadows.cpp, render_terrain.cpp): the sectors'
 // ground vertices through the light matrix. Only the faces turned away from the sun write their depth (as
 // the vertex normals say): a lit face never hides itself, the far side of a ridge hides what lies behind it.
 cbuffer vs_params : register(b0) { float4 row0; float4 row1; float4 row2; float4 row3; };

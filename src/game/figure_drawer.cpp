@@ -68,14 +68,14 @@ FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
 EI_REWRITTEN_SPECIAL(0x005A7080, FigureMeshDrawer::~FigureMeshDrawer);
 EI_REWRITTEN_SPECIAL(0x005A7060, FigureMeshDrawer::~FigureMeshDrawer);   // deleting
 
-int FigureMeshDrawer::CreateDrawer() {   // 005A70E0
+int FigureMeshDrawer::CreateDrawer() {
     flags_ = 0;
     spare30_ = Vector3{1.0f, 1.0f, 1.0f};
     return 1;
 }
 EI_REWRITTEN(0x005A70E0, FigureMeshDrawer::CreateDrawer);
 
-void FigureMeshDrawer::DestroyDrawer() {   // 005A7130
+void FigureMeshDrawer::DestroyDrawer() {
     mesh_ = nullptr;
     flags_ = 0;
 }

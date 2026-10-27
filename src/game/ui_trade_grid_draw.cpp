@@ -1,7 +1,7 @@
 // The camp trade grid's draw (00627390, CTradeGrid slot 20, vtable 0074170C; thiscall, RET 4).
 // The depth buffer is cleared to 0 over the screen and to 1 over the grid (200..600 x 100..500 in
 // layout coordinates), so the cells' item models draw only there; then the window's sprites and
-// models (005FEB90), and on its surface: every bought item (+0x150) and sold item (+0x154) in its
+// models, and on its surface: every bought item (+0x150) and sold item (+0x154) in its
 // cell of a 4 x 4 layout (100 pixels apart; 005ECA10 draws the item's model), its count when more
 // than one, and unless +0x160 its price (+0x14C slot 54 with the kind +0x158 / +0x15C). Last the
 // depth buffer is cleared to 1 again. The new renderer (src/render) gets the depth clears. See
@@ -68,7 +68,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface
 
 } // namespace
 
-// 00627390. Returns 1.
+// Returns 1.
 int CTradeGrid::DrawGrid(int pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};

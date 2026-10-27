@@ -1,4 +1,4 @@
-// The camp's page switch (0060E9E0) and the camp panels' layout code (see docs/notes/ui.md, "Camp,
+// The camp's page switch and the camp panels' layout code (see docs/notes/ui.md, "Camp,
 // global map, hero screens").
 #include "device.h"   // the old device's calls
 #include "game_lists.h"
@@ -112,7 +112,7 @@ void CCampPages::ShowPage(int page) {
         itemConstructor2_->SetEnabled(0, 1);
         partStrip_->SetEnabled(0, 1);
     }
-    itemStrip_->slots_ = 9;   // 00621F20
+    itemStrip_->slots_ = 9;
 
     bool offered = true;
     switch (page) {
@@ -254,11 +254,11 @@ int ItemType(const CItem* item) { return item->type_; }
 double D(float f) { return f; }
 } // namespace
 
-// 0060FAB0: prices (slot 54); CanEquip follows.
+// Prices (slot 54); CanEquip follows.
 
 namespace {
-constexpr float kPriceZero = 0.0f;   // 0073B858
-constexpr float kPriceOne = 1.0f;    // 0073B84C
+constexpr float kPriceZero = 0.0f;
+constexpr float kPriceOne = 1.0f;
 
 // Slot 16 of an item: its base price, left unrounded in ST0.
 double ItemPrice(const CItem* item) {
@@ -724,7 +724,7 @@ bool CCampPages::CanMakeItem() {
     CResourceManager* factory = itemResults_->ItemManager();
     CSpellManager* manager = itemResults_->SpellManager();
     itemdb::ItemRecordHead* part = nullptr;
-    HeldObject<CSpell> spell{nullptr};   // a counted pointer (0052C690), released on the way out
+    HeldObject<CSpell> spell{nullptr};   // a counted pointer, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
     int type = 0;            // the original's is uninitialised until a part sets it
@@ -737,7 +737,7 @@ bool CCampPages::CanMakeItem() {
         CItem* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
             CSpell* copy = item->spell_->Clone(manager);
-            spell.Assign(copy);   // 0052C690
+            spell.Assign(copy);
         } else if (IsPart(item)) {
             switch (static_cast<int>(RecordType(item))) {
             case 0: type = 0x3004; part = PartRecord(item, 0); break;
@@ -841,14 +841,14 @@ namespace {
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
     for (TradeRow* at = rows.begin(); at != rows.end(); ++at) at->Destroy();
-    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));   // 006135F0
+    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));
 }
 
 } // namespace
 
 CTradePanel::~CTradePanel() {
     texts_.Destruct();
-    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));   // 00613630
+    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));
     DestroyRows(science_);
     DestroyRows(schools_);
     DestroyRows(perks_);
@@ -880,7 +880,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
     int kind = ItemType(item);
     if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) return nullptr;
     PartyUnitRecord* hero = HeroRecord();
-    // 00661DB0: the item among the player's items.
+    // The item among the player's items.
     CItem* result = PlayerParty()->AddItem(item, 0, 1);
     switch (ItemType(item)) {
     case 0x3004: {
@@ -892,7 +892,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
             if (static_cast<std::uint32_t>(i) < hero->weaponIndex) --hero->weaponIndex;
             break;
         }
-        hero->RemoveWeapon(item);   // 00660A50
+        hero->RemoveWeapon(item);
         if (hero->weaponIndex >= hero->weaponCount) hero->weaponIndex = hero->weaponCount - 1;
         RefreshWeapons();
         break;
@@ -905,15 +905,15 @@ CItem* CCampPages::TakeOff(CItem* item) {
             heroes_[hero_]->Controller()->RefreshModel();
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
-        hero->RemoveArmor(item);    // 00660E10
+        hero->RemoveArmor(item);
         RebuildArmourLayers(hero);
         break;
     }
     case 0x3006:
-        hero->RemoveQuickItem(item);    // 00660C30
+        hero->RemoveQuickItem(item);
         break;
     case 0x3008:
-        hero->RemoveSpell(item);   // 00660FF0
+        hero->RemoveSpell(item);
         break;
     default:
         break;
@@ -931,7 +931,7 @@ void CCampPages::PutOn(CItem* item) {
     switch (ItemType(item)) {
     case 0x3004:
         if (hero->weaponCount >= 4) return;
-        hero->AddWeapon(item);   // 006608D0
+        hero->AddWeapon(item);
         if (hero->weaponCount == 1) hero->weaponIndex = 0;
         RefreshWeapons();
         break;
@@ -943,8 +943,8 @@ void CCampPages::PutOn(CItem* item) {
                 TakeOff(hero->armor[i]);
         }
         if (heroes_[hero_]) {
-            CItem* worn = hero->AddArmor(item);   // 00660C90
-            heroes_[hero_]->EquipArmour(worn);         // 00530730
+            CItem* worn = hero->AddArmor(item);
+            heroes_[hero_]->EquipArmour(worn);
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
         RebuildArmourLayers(hero);
@@ -952,16 +952,16 @@ void CCampPages::PutOn(CItem* item) {
     }
     case 0x3006:
         if (hero->quickItemCount >= 4) return;
-        hero->AddQuickItem(item);    // 00660AB0
+        hero->AddQuickItem(item);
         break;
     case 0x3008:
         if (hero->spellCount >= 8) return;
-        hero->AddSpell(item);   // 00660E70
+        hero->AddSpell(item);
         break;
     default:
         return;
     }
-    PlayerParty()->RemoveItem(item, 0);   // 00661F30
+    PlayerParty()->RemoveItem(item, 0);
     statsPanel_->DrawStats();
 }
 EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
@@ -1126,10 +1126,10 @@ void CCampPages::RefreshWeapons() {
     PartyUnitRecord* hero = HeroRecord();
     CUnit* unit = heroes_[hero_];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
-    for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);   // 005310D0
+    for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
-        unit->AddWeapon(hero->weapons[i]);                           // 00531070
-    unit->SendEquipment();                                                      // 00531110
+        unit->AddWeapon(hero->weapons[i]);
+    unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
     RefreshStats();
@@ -1162,11 +1162,11 @@ constexpr int kHeroClass = 0x32;
 } // namespace
 
 void CCampPages::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();   // 006010E0: the container's update
+    static_cast<CUiContainer*>(this)->UpdateBase();   // the container's update
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
-    // 00600270: the frame time in seconds (ST0, unrounded).
+    // The frame time in seconds (ST0, unrounded).
     if (turning == 1) {
         float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, false);
         std::memcpy(&heroTurn_, &turned, 4);
@@ -1180,7 +1180,7 @@ EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
 // class (fatal after more steps than there are records). 00513240 on the map objects manager
-// (007AF5F8): a prototype's object class.
+//: a prototype's object class.
 template <typename Step>
 int FindHero(int start, Step step) {
     CParty* party = PlayerParty();

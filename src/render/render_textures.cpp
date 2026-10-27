@@ -5,7 +5,7 @@
 // memory the renderer owns (render::SurfaceMemory: DIB sections the game code draws into). A texture
 // whose holder has such memory (the save / load screen's pictures, the CPU-written, shadow and .bmp
 // textures) is read from it, again into the same image when the memory was marked written and
-// changed (R16b); so are window surfaces (WindowSurfaceView).
+// changed; so are window surfaces (WindowSurfaceView).
 #include "render_internal.h"
 #include "render_ui.h"
 
@@ -164,7 +164,7 @@ bool DecodeDxtBlocks(const void* data, int width, int height, std::uint32_t four
 
 // 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up:
 // the shadow textures' 4:4:4:4 and the other 16-bit memory (the masks' loop per channel cost more
-// than the rest of a texture's update, R16b). A few layouts are ever in use.
+// than the rest of a texture's update). A few layouts are ever in use.
 struct Table16 {
     std::uint32_t masks[4] = {};
     std::vector<std::uint32_t> rgba;   // 65536 entries, the bytes R, G, B, A in memory order
@@ -334,9 +334,9 @@ void Retire(Texture& t) {
 // The holders' pixels in memory the new renderer owns (render::NewSurfaceMemory).
 std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
 // The memory as the texture was last made from it. A memory texture is converted again when the game
-// marked its memory written since (g_textureMarks) and it differs (compared once a frame, R16b); a
+// marked its memory written since (g_textureMarks) and it differs (compared once a frame); a
 // window surface only where the game marked it written since (render::SurfaceWritten, g_written) and
-// that part differs (R16a).
+// that part differs.
 using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
 Snapshots g_snapshots;          // by holder: window surfaces
 Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
@@ -372,7 +372,7 @@ void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory&
     std::memcpy(snapshot.data(), m.bits, snapshot.size());
 }
 
-// Memory textures (R16b): updated in place (the default) or, the harness's `memorytextures remake`,
+// Memory textures: updated in place (the default) or, the harness's `memorytextures remake`,
 // made again as new images with their levels box-filtered on the CPU, as before R16b (for frame
 // comparisons).
 bool g_memoryInPlace = true;
@@ -645,7 +645,7 @@ void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<st
 }
 
 // Harness build: a memory texture's memory compared with its snapshot though nothing marked it
-// written (R16b). A difference is a writer that set no mark (the product would show the texture
+// written. A difference is a writer that set no mark (the product would show the texture
 // stale): logged and counted as above; true, so that this frame reads it.
 bool CheckTextureMark(const void* holder, const SurfaceMemory& m) {
     StatsTimer timer(&FrameStats::statsMs);
@@ -841,7 +841,7 @@ static_assert(sizeof(MmpFile) == 0x4C);
 // The offset of the first level's pixels after the header, as the game computes it (006908E0, and
 // inline in the fill 00690970; 32-bit arithmetic: the extra block plus a geometric sum of the larger
 // levels). Only for the level the texture starts at: the product overflows from about the sixth
-// level of a 1024 x 1024 texture on (R12b), and the fill steps from level to level instead
+// level of a 1024 x 1024 texture on, and the fill steps from level to level instead
 // (MmpFileLevelBytes).
 std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
     if (mip == 0) return h.extraSize;
@@ -850,7 +850,7 @@ std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
     return levelBytes * (scale - 1) * 4 / (scale * 3) + h.extraSize;
 }
 
-// The bytes level `mip` takes in the file as the game's fill (00690970) copies it and steps over it:
+// The bytes level `mip` takes in the file as the game's fill copies it and steps over it:
 // bits per pixel x width x height / 8 of the level's size (each halved per level, down to 0), no
 // whole DXT blocks for the levels under 4 x 4.
 std::uint32_t MmpFileLevelBytes(const MmpFile& h, unsigned mip) {
@@ -1113,7 +1113,7 @@ sg_sampler AnisotropicSampler(const StageState& s) {
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose
     // texture coordinates change direction and scale from tile to tile (D3DTFP_POINT's level
     // steps showed as seams along the tile edges; renderer.md section 11). The smooth option samples
-    // the world's models so too (dgVoodoo's Filtering 16, R12a).
+    // the world's models so too (dgVoodoo's Filtering 16).
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_LINEAR;
     d.mag_filter = SG_FILTER_LINEAR;
