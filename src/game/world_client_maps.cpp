@@ -237,7 +237,7 @@ struct CellOps {
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
 
-void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
+void __fastcall SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -664,7 +664,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(&record->stats);
-        static_cast<CObject3D*>(unit)->SetFigureScale(&record->scaleX);
+        unit->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();

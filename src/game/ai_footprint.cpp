@@ -122,7 +122,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The object's transform: rotation from its orientation, translation from its position.
     CMapObject* mapObject = ObjectSlots(object);
     float* matrix = mapObject->worldMatrix.m;
-    static_cast<const Quaternion*>(&mapObject->localRotation_)->ToMatrix((float*)matrix);
+    mapObject->localRotation_.ToMatrix((float*)matrix);
     std::memcpy(&matrix[11], &mapObject->localPosition_.z, 4);
     std::memcpy(&matrix[3], &mapObject->localPosition_.x, 4);
     std::memcpy(&matrix[7], &mapObject->localPosition_.y, 4);

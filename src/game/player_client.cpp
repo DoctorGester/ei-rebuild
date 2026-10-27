@@ -576,9 +576,9 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&prototypeValue, 4);
 
     auto* world = Owner()->WorldContext();
-    CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
+    CMapObject* created = world->manager40_->CreateObjectAs<CMapObject>(header.type, header.id);
     if (created == nullptr) return 0;
-    auto* object = static_cast<CMapObject*>(created);
+    CMapObject* object = created;
     CObject3D* figure = object;
     object->name = model;
     bool isUnit = created->GetClassId() == kClassUnitObject;

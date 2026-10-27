@@ -487,8 +487,8 @@ void SectorData::ApplyWaterLevels() {
 // Point queries
 
 namespace {
-double RawHeight(void* terrain, float x, float y, int layer) {
-    return static_cast<Terrain*>(terrain)->HeightAt(x, y, layer);   // ST0 used unrounded
+double RawHeight(Terrain* terrain, float x, float y, int layer) {
+    return terrain->HeightAt(x, y, layer);   // ST0 used unrounded
 }
 } // namespace
 
