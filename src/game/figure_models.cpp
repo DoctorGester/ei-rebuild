@@ -3,7 +3,7 @@
 // the manager's GetFile; without the .mod nothing is created and null is returned. Otherwise a FigureModel is
 // stored under the name, its mesh, bones and animation archives load from the files (OpenFromMemory; the .bon
 // and .anm only when they opened), and the cached entry is looked up again. See docs/notes/models.md.
-#include "figure_manager.h"   // CFigureManager, FigureModel
+#include "figure_manager.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -17,9 +17,6 @@ namespace {
 
 using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
 using AnimationMap = FigureModel::AnimationMap;
-
-// The model map's and the model's animation map's find and find_or_insert (through operator[]). The
-// animations are CMMIOResources (0x6C bytes, CMMIOResource::Construct).
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an allocator
 // and a value, lower_bound over the prime list and insert(pos, n, value); reserve is the vector's own.
@@ -68,7 +65,7 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     if (const AnimationMap::Node* found = map->Find(*name)) return found->value;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();   // 0x6C bytes
+        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
         CMappedResource* animation = memory ? new (memory) CMMIOResource() : nullptr;
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
@@ -111,7 +108,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};
     for (CMappedResource* FigureModel::*archive : kArchives) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();   // 0x6C bytes
+        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
         model->*archive = memory ? new (memory) CMMIOResource() : nullptr;
     }
     return model;

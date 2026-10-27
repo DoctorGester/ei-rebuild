@@ -17,9 +17,8 @@ void __fastcall ShowLoadingMovie(int progress);
 // frames, the screen cleared first, a loading screen step first, unused). Returns 0 when Esc ended it.
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
-// Closes the loading screen's movie once loading is over (game start and zone load):
-// BinkClose on its handle (open or not), the handle and the
-// surface holder forgotten, the holder released, the cursor shown again.
+// Closes the loading screen's movie once loading is over (game start and zone load): the handle and the holder
+// let go, the cursor shown again.
 void CloseLoadingMovie();
 
 // The Bink handle's first fields (Bink 1.x: Width, Height, Frames, FrameNum, LastFrameNum).
@@ -32,8 +31,7 @@ struct BinkHeader {
 };
 static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 
-// CBinkVideo (Open, Frame): the decode surface, its Bink surface type,
-// the letterboxed screen rectangle and the Bink handle.
+// CBinkVideo: the decode surface, its Bink surface type, the letterboxed screen rectangle and the Bink handle.
 struct CBinkVideo {
     unsigned Frame(char toPrimary);
     // Closes the movie open before, opens `name` (with movies on), hides the
@@ -41,8 +39,7 @@ struct CBinkVideo {
     // in movies mode 1, else stretched to the screen's width). Nonzero (the low byte) when it plays.
     char Open(const char* name, char loadingStep);
     CBinkVideo* Construct();
-    // Closes the movie when one is open, lets the
-    // holder go, takes the cursor's background from the primary surface again and shows the cursor.
+    // Closes the movie when one is open, lets the holder go and shows the cursor again.
     void Close();
     void Destruct();
 

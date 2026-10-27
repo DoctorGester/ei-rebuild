@@ -1,10 +1,6 @@
-// Hash tables (STLport hashtables of one-dword keys and values):
-// - the id tables of CBaseManager: MFC-style SetAt / Lookup / RemoveKey, find and
-// operator[] over a hashtable that also keeps the highest key inserted;
-// - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
-// type registry: constructor and destructors, which the compiler inlined from the
-// hashtable's.
-// See docs/notes/core.md.
+// Hash tables of one-dword keys and values: CBaseManager's id tables (MFC-style SetAt / Lookup / RemoveKey over
+// a hashtable that also keeps the highest key), the chunk archive's class registry and the session's type
+// registry. See docs/notes/core.md.
 #include "hash_tables_400.h"
 
 #include "ei/hook.h"
@@ -47,7 +43,7 @@ int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
     *value = node->value;
     return 1;
 }
-// RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
+// RemoveKey of the id -> list position table (also the client world's pending table).
 std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
 std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
     Node* node = map.Find(*key);
@@ -74,8 +70,7 @@ void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
     registry->factories.Destroy();
     registry->classIds.Destroy();
 }
-// The session type registry's destructor (reached from the session constructor's unwind
-// funclets): byType (+0x14), then byVtable.
+// The session type registry's destructor (reached from the session constructor's unwind funclets).
 void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
     registry->byType.Destroy();
     registry->byVtable.Destroy();
