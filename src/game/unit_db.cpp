@@ -11,6 +11,7 @@
 #include "record_vectors.h"
 
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -20,21 +21,23 @@ namespace {
 // fields 0..3; a model's body slot as fields 0..3. The pieces of the vector archive that the NPC serialiser
 // inlines:
 // counting the fields `id` of the current chunk (chunk_archive.cpp), emptying a vector<CString> and resizing it.
-void StringsClear(CStringVector* strings) {
-    strings->EraseRange<stlp::ObjectElement<mfc::CString>>(strings->begin(), strings->end());
+template <typename Text>
+void StringsClear(stlp::vector<Text>* strings) {
+    strings->template EraseRange<stlp::ObjectElement<Text>>(strings->begin(), strings->end());
 }
 
 void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 
 } // namespace
 
-void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
+template <typename Text>
+void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         StringsClear(strings);
         count = ar->CountChunks(1);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));
+        static_cast<stlp::VectorAbi<Text, stlp::ObjectElement<Text>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }
@@ -44,6 +47,8 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     }
     ar->LeaveChunk();
 }
+template void InlineStrings(ChunkArchive*, int, stlp::vector<mfc::CString>*);
+template void InlineStrings(ChunkArchive*, int, stlp::vector<std::string>*);
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);

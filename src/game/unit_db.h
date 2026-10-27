@@ -27,8 +27,9 @@ static_assert(sizeof(CStringVector) == 0xC);
 // A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC and quest
 // briefing serialisers inline it: loading empties the vector (the other serialiser erases the range
 // instead, with the same result) and resizes it to the count of fields 1; each string is the next
-// occurrence of field 1 (the current chunk's occurrence, set before each).
-void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings);
+// occurrence of field 1 (the current chunk's occurrence, set before each). Text: mfc::CString or std::string.
+template <typename Text>
+void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings);
 
 // A unit prototype. Fields whose meaning is known are named after what the statistics
 // builders (unit_create_stats.cpp) make of them.

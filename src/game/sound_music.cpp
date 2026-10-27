@@ -73,10 +73,10 @@ void ThemesSetSize(void* themes, int size) {
 
 // The theme being read, laid out as MusicTheme with constructed members.
 struct LocalTheme {
-    mfc::CString name;
+    std::string name;
     std::int32_t dungeon = 0;
-    mfc::CString briefing;
-    mfc::CString constructor;
+    std::string briefing;
+    std::string constructor;
     console::CStringArray calm;
     console::CStringArray combat;
 };
@@ -149,7 +149,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     TheSoundManager()->StopStream(4);
     holding = 1;
     for (int i = 0; i < themeCount; ++i) {
-        if (CompareNoCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
+        if (CompareNoCase(themes[i].name.c_str(), allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
             calmDue = 1;
@@ -174,11 +174,11 @@ EI_REWRITTEN(0x006B4F70, CMusicSystem::Stop);
 
 namespace {
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
-void PlayThemeFile(CMusicSystem* music, const char* allod, mfc::CString MusicTheme::*file) {
+void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
     std::string name;
     int i = 0;
     for (; i < music->themeCount; ++i) {
-        if (CompareNoCase(music->themes[i].name, allod) == 0) {
+        if (CompareNoCase(music->themes[i].name.c_str(), allod) == 0) {
             name = music->themes[i].*file;
             break;
         }
@@ -206,7 +206,7 @@ EI_REWRITTEN(0x006B5080, CMusicSystem::PlayConstructor);
 void CMusicSystem::PlayCredits() {
     state = 5;
     TheSoundManager()->StopStream(4);
-    std::string path = (credits + kMp3).GetString();
+    std::string path = credits + kMp3;
     TheSoundManager()->RequestStream(path.c_str(), 4);
 }
 EI_REWRITTEN(0x006B5170, CMusicSystem::PlayCredits);
@@ -214,7 +214,7 @@ EI_REWRITTEN(0x006B5170, CMusicSystem::PlayCredits);
 void CMusicSystem::PlayMainMenu() {
     state = 4;
     TheSoundManager()->StopStream(4);
-    std::string path = (mainMenu + kMp3).GetString();
+    std::string path = mainMenu + kMp3;
     TheSoundManager()->RequestStream(path.c_str(), 4);
 }
 EI_REWRITTEN(0x006B51F0, CMusicSystem::PlayMainMenu);
@@ -228,7 +228,7 @@ void CMusicSystem::PlayJingle(const char* name) {
         std::string path = stem + kMp3;
         jingle = path;
     }
-    TheSoundManager()->RequestStream(jingle, 4);
+    TheSoundManager()->RequestStream(jingle.c_str(), 4);
     WaitAndEndAfter(TheSoundManager());
     jinglePlaying = 1;
 }
@@ -244,7 +244,7 @@ int CMusicSystem::UpdateMusic() {
         current = playing;
     }
     if (jinglePlaying != 0) {
-        if (Compare(current.c_str(), jingle) == 0) return 1;
+        if (Compare(current.c_str(), jingle.c_str()) == 0) return 1;
         jinglePlaying = 0;
         inCombat = 0;
         calmDue = CalmDelay();
@@ -256,11 +256,11 @@ int CMusicSystem::UpdateMusic() {
             calmDue = CalmDelay();
         }
     } else if (fighting == 1) {
-        if (Compare(current.c_str(), combatTrack) != 0 || Compare(combatTrack, game::EmptyText()) == 0) {
+        if (Compare(current.c_str(), combatTrack.c_str()) != 0 || Compare(combatTrack.c_str(), game::EmptyText()) == 0) {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += kMp3;
         }
-        snd->RequestStream(combatTrack, 3);
+        snd->RequestStream(combatTrack.c_str(), 3);
     } else if (Compare(current.c_str(), game::EmptyText()) == 0) {
         combatTrack = game::EmptyText();
         if (calmDue == 0) {

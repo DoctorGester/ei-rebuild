@@ -269,7 +269,7 @@ struct QuestItemRecord : ItemRecordHead {
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
-    stlp::vector<mfc::CString> zones;   // the zone names
+    stlp::vector<std::string> zones;    // the zone names
 };
 
 // The prototype of a CItemLoot: kind (the head's category), record type, index.

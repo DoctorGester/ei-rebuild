@@ -44,6 +44,22 @@ void __fastcall DestroyTheme(MusicTheme* p) {
     std::destroy_at(&p->briefing);
     std::destroy_at(&p->name);
 }
+void ThemeElements::Relocate(MusicTheme* to, MusicTheme* from, int count) {
+    auto move = [](MusicTheme* target, MusicTheme* source) {
+        std::memcpy(static_cast<void*>(target), source, sizeof(MusicTheme));
+        std::construct_at(&target->name, std::move(source->name));
+        std::construct_at(&target->briefing, std::move(source->briefing));
+        std::construct_at(&target->constructor, std::move(source->constructor));
+        std::destroy_at(&source->constructor);
+        std::destroy_at(&source->briefing);
+        std::destroy_at(&source->name);
+    };
+    if (to < from) {
+        for (int i = 0; i < count; ++i) move(to + i, from + i);
+    } else {
+        for (int i = count; i-- > 0;) move(to + i, from + i);
+    }
+}
 EI_REWRITTEN(0x006B59A0, Themes::SetSize);
 EI_REWRITTEN(0x006B5BC0, Themes::ConstructElements);
 EI_REWRITTEN(0x006B4D90, DestroyTheme);

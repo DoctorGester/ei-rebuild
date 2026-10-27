@@ -133,7 +133,7 @@ QuickItemRecord::~QuickItemRecord() = default;
 EI_REWRITTEN_SPECIAL(0x006A8A50, QuickItemRecord::~QuickItemRecord);
 
 QuestItemRecord::~QuestItemRecord() {
-    for (mfc::CString& zone : zones) std::destroy_at(&zone);
+    for (std::string& zone : zones) std::destroy_at(&zone);
     zones.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x006A8AE0, QuestItemRecord::~QuestItemRecord);

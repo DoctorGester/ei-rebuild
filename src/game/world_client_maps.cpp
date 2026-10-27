@@ -1166,7 +1166,7 @@ int CWorldClient::Create() {
     ClientArrayManager* arrays = fogMemory ? new (fogMemory) ClientArrayManager() : nullptr;
     arrayManager_ = arrays;
     arrays->Init(this);
-    std::uint8_t* memory = New(0x58);
+    std::uint8_t* memory = New(sizeof(CMusicSystem));
     CMusicSystem* owned = memory ? new (memory) CMusicSystem() : nullptr;
     music_ = owned;
     owned->Create();

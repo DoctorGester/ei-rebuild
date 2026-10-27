@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <windows.h>
 
 #undef GetClassName
@@ -184,7 +185,7 @@ struct CSoundManager : CEngineObject {
     void* waveDriver;                   // HDIGDRIVER
     void* midiDriver;                   // HMDIDRIVER (closed by Close; not opened here)
     CResourceStream streamReader;       // reads the music stream's files
-    mfc::CString soundPath;             // ending in a backslash
+    std::string soundPath;             // ending in a backslash
     CFileRegistry soundRegistry;
     CMappedResource archive074;
     CFileRegistry registry0CC;
@@ -212,8 +213,8 @@ struct CSoundManager : CEngineObject {
     std::uint8_t streamSilence;
     std::uint8_t unused_141[3];
     SoundFader musicFader;              // music volume (options) and fades
-    mfc::CString streamName;            // playing
-    mfc::CString nextName;              // requested
+    std::string streamName;            // playing
+    std::string nextName;              // requested
     lib::AlignedArray<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
     lib::AlignedArray<std::int32_t> markers2;
     CRITICAL_SECTION nameLock;          // guarding streamName
@@ -228,8 +229,8 @@ struct CSoundManager : CEngineObject {
     void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
     void* midiData1D4;                  // Miles memory
     void* midiSequence;                 // HSEQUENCE
-    mfc::CString midiName;
-    mfc::CString midiNextName;
+    std::string midiName;
+    std::string midiNextName;
     lib::AlignedArray<std::int32_t> midiArray1E4;
     lib::AlignedArray<std::int32_t> midiArray1F4;
     std::uint8_t unused_204[8];
@@ -350,42 +351,19 @@ struct CSoundManager : CEngineObject {
     // a new handle. 0 when the wave is nowhere.
     int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
 };
-static_assert(offsetof(CSoundManager, streamState) == 0x100);
-static_assert(offsetof(CSoundManager, musicFader) == 0x144);
-static_assert(offsetof(CSoundManager, streamName) == 0x160);
-static_assert(offsetof(CSoundManager, markers) == 0x168);
-static_assert(offsetof(CSoundManager, switchMode) == 0x1A0);
-static_assert(offsetof(CSoundManager, streamLock) == 0x1B0);
-static_assert(offsetof(CSoundManager, slots) == 0x24C);
-static_assert(offsetof(CSoundManager, emitters) == 0x26C);
-static_assert(offsetof(CSoundManager, sequences) == 0x5F0);
-static_assert(offsetof(CSoundManager, cache) == 0x870);
 static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundManager, soundPath) == 0x58);
-static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundManager, registry0CC) == 0xCC);
-static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
-static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
-static_assert(offsetof(CSoundManager, streamBufferSize) == 0x11C && offsetof(CSoundManager, streamSilence) == 0x140);
-static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, streamThread) == 0x1C8);
-static_assert(offsetof(CSoundManager, midiName) == 0x1DC && offsetof(CSoundManager, midiArray1F4) == 0x1F4);
-static_assert(offsetof(CSoundManager, midiFader) == 0x20C && offsetof(CSoundManager, midiLock) == 0x22C);
-static_assert(offsetof(CSoundManager, cacheList) == 0x854);
-static_assert(offsetof(CSoundManager, deferred) == 0x884);
-static_assert(offsetof(CSoundManager, enabled) == 0x898);
-static_assert(offsetof(CSoundManager, randomStart) == 0x8BC);
-static_assert(sizeof(CSoundManager) == 0x8C0);
 
 // A music theme from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {
     void Assign(const MusicTheme* from);
 
-    mfc::CString name;          // allod
+    std::string name;          // allod
     std::int32_t dungeon;       // 0 open land, 1 dungeon
-    mfc::CString briefing;
-    mfc::CString constructor;
+    std::string briefing;
+    std::string constructor;
     SoundNameArray calm;        // CalmOpen / CalmDungeon
     SoundNameArray combat;      // Combat
 };
-static_assert(sizeof(MusicTheme) == 0x38);
 
 // Picks the music for the game state.
 struct CMusicSystem : CEngineObject {
@@ -403,14 +381,14 @@ struct CMusicSystem : CEngineObject {
     std::int32_t themeCount;
     std::int32_t themeMax;
     std::int32_t themeGrow;
-    mfc::CString credits;               // Common\Credits
-    mfc::CString mainMenu;              // Common\MainMenu
+    std::string credits;               // Common\Credits
+    std::string mainMenu;              // Common\MainMenu
     std::int32_t state;                 // 0 off, 1 zone, 2 briefing, 3 constructor, 4 main menu, 5 credits
     std::int32_t theme;
     std::int32_t inCombat;
     std::int32_t holding;               // set by SetZoneMode, cleared by the world frame
-    mfc::CString combatTrack;
-    mfc::CString jingle;
+    std::string combatTrack;
+    std::string jingle;
     std::int32_t jinglePlaying;
     std::uint32_t calmDue;              // timeGetTime() for the next calm track (0: not chosen)
 
@@ -432,9 +410,6 @@ struct CMusicSystem : CEngineObject {
     void FadeIn();
 };
 static_assert(offsetof(CMusicSystem, credits) == 0x30);
-static_assert(offsetof(CMusicSystem, holding) == 0x44);
-static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
-static_assert(sizeof(CMusicSystem) == 0x58);
 // The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
 // byte count (0 when the read fails).
 int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);

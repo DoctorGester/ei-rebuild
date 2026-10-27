@@ -89,7 +89,7 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
-        if (gamecrt::mbsicmp(info->zones[i].GetString(), zone) == 0)
+        if (gamecrt::mbsicmp(info->zones[i].c_str(), zone) == 0)
             found = true;
     return found;
 }

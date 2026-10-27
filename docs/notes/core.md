@@ -330,7 +330,13 @@ to which template:
   holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
   bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
   `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::
-  CopyMember / AssignMember / DefaultMember for std::string.
+  CopyMember / AssignMember / DefaultMember for std::string, `InlineStrings<Text>` (unit_db.cpp; a vector of either).
+  Batch 5: the 16 GameOptions strings (the loader and writer go by member pointers now: `int` / `float GameOptions::*`
+  per registry value, the camera motions and shortcuts by their structs' members; the `field` offsets went),
+  QuestItemRecord::zones (`stlp::vector<std::string>`), CSoundManager's soundPath / streamName / nextName / midiName /
+  midiNextName, MusicTheme's name / briefing / constructor (and sound_music.cpp's LocalTheme beside it; the theme
+  array's `ThemeElements::Relocate` moves the names) and CMusicSystem's credits / mainMenu / combatTrack / jingle.
+  record_stats.cpp reads game.exe's difficulty at its original options +0x250.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
   BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, global map points / zones,
   lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector) members, and members of objects
@@ -357,7 +363,10 @@ to which template:
   sizeof(T); heap corruption C0000374 about a second into every run once CUnit and CMapObject grew), and
   `FigurePrototypeRecord` read a model record's figure name as a CString at +0xE8 (the multiplayer HUD portraits;
   now the UnitModelRecord itself). Structs that pad up to an offset (`unused_000[0xE8]`) over another class are the
-  same hazard.
+  same hazard: `CameraSettings` (`unused_000[0xFC]`) read the options' camera block through
+  `reinterpret_cast<CameraSettings*>(options)` (camera distance 0 and the random draws off in every scenario once
+  GameOptions grew); CCamera reads the GameOptions members now. The client world allocated CMusicSystem as 0x58 bytes
+  (now sizeof). Grep `reinterpret_cast<...*>(` of the object's pointer too, not only its sizes.
 - Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
   with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
 - c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:

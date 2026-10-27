@@ -15,6 +15,7 @@
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 #include "game/game_slots.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
@@ -110,7 +111,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     soundPath = folder;
     bool missing;
     {
-        std::string last = soundPath.Right(1).GetString();
+        std::string last = str::Right(soundPath, 1);
         missing = CompareText(last.c_str(), kBackslash) != 0;
     }
     if (missing) soundPath += kBackslash;
@@ -519,9 +520,9 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
     m->streamState = 0;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
-    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
+    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = ((modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName).GetString();
-    if (CompareText(m->nextName, game::EmptyText()) == 0 ||
+    if (CompareText(m->nextName.c_str(), game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
@@ -535,8 +536,8 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     gameapi::EnterCriticalSection(&m->nameLock);
     m->streamName = m->nextName;
     gameapi::LeaveCriticalSection(&m->nameLock);
-    m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, &m->markers);
-    m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, &m->markers2);
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
