@@ -170,7 +170,6 @@ EI_REWRITTEN_SPECIAL(0x0059E080, Sector::~Sector);
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
     list7BC_.Destroy();
-    RainSnow()->~CRainSnow();
     handle_.Destroy();
     scorchMarks_.Release<PrintElement>();
     footprints_.Release<PrintElement>();
@@ -188,10 +187,7 @@ CWorldClient::~CWorldClient() {
     objects_.Destroy();
     DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();
-    if (countedA0_.data) {
-        for (int i = 0; i < countedA0_.size; ++i) ReleaseHeld(&countedA0_.data[i]);
-        gamecrt::operator_delete(countedA0_.data);
-    }
+    countedA0_.ReleaseAll();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }
 EI_REWRITTEN_SPECIAL(0x00561B00, CWorldClient::~CWorldClient);

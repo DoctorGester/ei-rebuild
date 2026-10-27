@@ -40,11 +40,11 @@ int LeverRecordTable::Load(const char* folder) {
     // seen before replaces the earlier one.
     ChunkArchive archive;
     archive.Open(&local, 1, 1);
-    archive.SerializeLevers(1, reinterpret_cast<stlp::vector<LeverRecord>*>(this), static_cast<int>(size));
+    archive.SerializeLevers(1, &records, static_cast<int>(size));
     archive.Close(&local);
-    for (LeverRecord* record = begin; record != end; ++record) {
-        stlp::string key(record->name.GetString());
-        byName[key] = record;
+    for (LeverRecord& record : records) {
+        stlp::string key(record.name.GetString());
+        byName[key] = &record;
     }
 
     resource.Get()->CMappedResource::CloseFile(data);
@@ -53,11 +53,8 @@ int LeverRecordTable::Load(const char* folder) {
 }
 EI_REWRITTEN(0x00463390, LeverRecordTable::Load);
 
-LeverRecordTable* LeverRecordTable::Construct() {
-    begin = nullptr;
-    end = nullptr;
-    endOfStorage = nullptr;
+LeverRecordTable::LeverRecordTable() {
+    records.ConstructEmpty();
     byName.InitBuckets(100);
-    return this;
 }
-EI_REWRITTEN(0x004632A0, LeverRecordTable::Construct);
+EI_REWRITTEN_SPECIAL(0x004632A0, LeverRecordTable::LeverRecordTable);

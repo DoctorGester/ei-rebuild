@@ -3,58 +3,12 @@
 // registry. See docs/notes/core.md.
 #include "hash_tables_400.h"
 
+#include "base_manager.h"
+#include "world.h"
+
 #include "ei/hook.h"
 
-#include <cstddef>
-#include <cstdint>
-
 namespace hash400 {
-
-namespace {
-
-using Node = Table::Map::Node;
-
-// operator[] as these instantiations inline it: the highest key kept, then find_or_insert of {key, 0}.
-Node* FindOrInsert(Table* t, const std::int32_t* key) {
-    if (*key > t->maxKey) t->maxKey = *key;
-    return t->map.FindOrInsert({static_cast<std::uint32_t>(*key), 0});
-}
-
-// RemoveKey: the value of `key`'s node (0 when there is none), the node erased.
-std::uint32_t RemoveKey(Table* t, const std::uint32_t* key) {
-    Node* node = t->map.Find(*key);
-    if (!node) return 0;
-    std::uint32_t value = node->value;
-    t->map.Erase(node);
-    return value;
-}
-
-} // namespace
-
-// --- CBaseManager's id tables --------------------------------------------------------------------
-
-void Table::ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value) {
-    FindOrInsert(this, key)->value = *value;
-}
-std::uint32_t Table::ObjectsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
-    Node* node = map.Find(*key);
-    if (!node) return 0;
-    *value = node->value;
-    return 1;
-}
-// RemoveKey of the id -> list position table (also the client world's pending table).
-std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
-    Node* node = map.Find(*key);
-    return node ? &node->value : nullptr;
-}
-std::uint32_t* Table::PositionAt(const std::int32_t* key) {
-    return &FindOrInsert(this, key)->value;
-}
-std::uint32_t* Table::SpareCountAt(const std::int32_t* key) {
-    return &FindOrInsert(this, key)->value;
-}
 
 // --- The registries ------------------------------------------------------------------------------
 
@@ -78,15 +32,20 @@ void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
 
 } // namespace hash400
 
-EI_REWRITTEN(0x00599A80, hash400::Table::ObjectsRemoveKey);
-EI_REWRITTEN(0x00599AE0, hash400::Table::ObjectsFind);
-EI_REWRITTEN(0x00406A10, hash400::Table::PositionAt);
-EI_REWRITTEN(0x00406AA0, hash400::Table::SpareCountAt);
-EI_REWRITTEN(0x00404E80, hash400::Table::ObjectsSetAt);
-EI_REWRITTEN(0x00404F20, hash400::Table::ObjectsRemoveKey);
-EI_REWRITTEN(0x00404F80, hash400::Table::ObjectsLookup);
-EI_REWRITTEN(0x00405350, hash400::Table::PositionsRemoveKey);
-EI_REWRITTEN(0x00406950, hash400::Table::ObjectsFind);
+namespace {
+using MapObjectIds = decltype(MapObjectIdMap::map);
+} // namespace
+// CBaseManager's id tables (SetAt, RemoveKey, Lookup and find of the objects; RemoveKey of the positions, also the
+// client world's dynamic nodes'; operator[] of the positions and the spare counts) and the world's object maps.
+EI_REWRITTEN(0x00404E80, hash400::SetAt<CBaseManager::ObjectMap>);
+EI_REWRITTEN(0x00404F20, hash400::RemoveKey<CBaseManager::ObjectMap>);
+EI_REWRITTEN(0x00404F80, hash400::Lookup<CBaseManager::ObjectMap>);
+EI_REWRITTEN(0x00406950, hash400::Find<CBaseManager::ObjectMap>);
+EI_REWRITTEN(0x00405350, hash400::RemoveKey<CBaseManager::PositionMap>);
+EI_REWRITTEN(0x00406A10, hash400::Entry<CBaseManager::PositionMap>);
+EI_REWRITTEN(0x00406AA0, hash400::Entry<CBaseManager::SpareCountMap>);
+EI_REWRITTEN(0x00599A80, hash400::RemoveKey<MapObjectIds>);
+EI_REWRITTEN(0x00599AE0, hash400::Find<MapObjectIds>);
 EI_REWRITTEN(0x00408EA0, hash400::ClassRegistryConstruct);
 EI_REWRITTEN(0x00408D60, hash400::ClassRegistryDestruct);
 EI_REWRITTEN(0x004368F0, hash400::TypeRegistryDestruct);

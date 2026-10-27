@@ -265,11 +265,11 @@ void CWorldServer::SendFreshObjects() {
         auto* next = node->next;
         CEngineObject* object = node->data;
         unsigned id = static_cast<unsigned>(object->id_);
-        hash400::ObjectsRemoveKey(mapObjects_.map, id);
+        hash400::RemoveKey(mapObjects_.map, id);
         id = static_cast<unsigned>(object->id_);
-        if (hash400::ObjectsFind(otherMapObjects_.map, id)) {
+        if (hash400::Find(otherMapObjects_.map, id)) {
             id = static_cast<unsigned>(object->id_);
-            hash400::ObjectsRemoveKey(otherMapObjects_.map, id);
+            hash400::RemoveKey(otherMapObjects_.map, id);
         }
         objects.SetAtGrow(objects.size, object);
         node = next;

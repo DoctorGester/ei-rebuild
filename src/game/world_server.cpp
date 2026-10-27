@@ -190,7 +190,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!object) return;
     if (object->GetClassId() != kClassNoSector) Sectors()->Remove(*slot);
 
-    hash400::ObjectsRemoveKey(updateMap_.map, id);
+    hash400::RemoveKey(updateMap_.map, id);
     EraseId(objects_, id);
     if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
     if (sentObjects_.map.Find(id)) {

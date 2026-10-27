@@ -16,6 +16,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <array>
 #include <bit>
 #include <cstring>
 
@@ -58,15 +59,6 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
 constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
 void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }
-
-// The cell map's own insert (resize, then insert a copy of the pair unless the key exists; returns the pair) and
-// erase by key: the 28-byte dword-keyed table's.
-using CellTable = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
-CellTable::Table* CellTableOf(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellTable::Table*>(map); }
-std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pair) {
-    return reinterpret_cast<std::uint32_t*>(
-        static_cast<CellTable*>(CellTableOf(map))->FindOrInsert(*reinterpret_cast<const CellTable::Value*>(pair)));
-}
 
 } // namespace
 
@@ -278,7 +270,7 @@ int CVisibilityFog::UpdateCells() {
     std::uint32_t* end = dead.end();
     for (std::uint32_t* key = dead.begin(); key != end; ++key) {
         std::uint32_t copy = *key;
-        CellTableOf(&cells)->EraseKey(copy);
+        cells.EraseKey(copy);
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
@@ -298,9 +290,10 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             }
             // The pair template is filled by an overlapping copy from the key, so every dword of the new value
             // starts as the key.
-            std::uint32_t pair[7];
-            for (std::uint32_t& d : pair) d = key;
-            FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);
+            std::array<std::uint32_t, 7> words;
+            words.fill(key);
+            static_assert(sizeof(CellMap::Pair) == sizeof(words));
+            FogCell* cell = &cells.FindOrInsert(std::bit_cast<CellMap::Pair>(words))->value;
             cell->visible = 1;
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);

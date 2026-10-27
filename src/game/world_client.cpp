@@ -323,7 +323,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     else if (gamecrt::mbscmp(zoneName_.c_str(), "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
-    const int weather = RainSnow()->mode;
+    const int weather = rainSnow_.mode;
     if (weather == 1) return flags | 0x800;
     if (weather == 2) return flags | 0x1000;
     return flags | 0x2000;
@@ -433,11 +433,11 @@ int CWorldClient::Segment() {
             CEngineObject* object = current->data;
             int done = object->RunTick();
             if (done != 0) continue;
-            int key = object->id_;
+            auto key = static_cast<std::uint32_t>(object->id_);
             mfc::CList<CEngineObject*>::Node* position = nullptr;
-            if (dynamicNodes_.Lookup(reinterpret_cast<const std::uint32_t*>(&key), &position)) {
+            if (dynamicNodes_.Lookup(&key, &position)) {
                 dynamicObjects_.RemoveAt(position);
-                hash400::PositionsRemoveKey(dynamicNodes_, key);
+                hash400::RemoveKey(dynamicNodes_, key);
             }
         }
         for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())

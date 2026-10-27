@@ -318,7 +318,7 @@ int CWorldClient::Render() {
         listManager_->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        RainSnow()->Draw(TheSceneRenderer());
+        rainSnow_.Draw(TheSceneRenderer());
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
