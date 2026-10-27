@@ -1,11 +1,9 @@
-// CWorldClient's draw path: Render and DrawPass, with Rebirth's
-// LandscapeDrawRadius and ObjectsDrawRadius behind their flags. See world.h and
-// docs/notes/world.md.
-// Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the
-// IDirect3DDevice7, lastLoadResult_ the last state block result) and to the scene pipeline's matrix
-// stacks (ScenePipeline()), exactly as the original: the same calls in the same order.
-// Callees are reached through their original addresses (the verify
-// build's wrappers see the calls).
+// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and
+// ObjectsDrawRadius behind their flags. See world.h and docs/notes/world.md.
+// Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7,
+// lastLoadResult_ the last state block result) and to the scene pipeline's matrix stacks
+// (ScenePipeline()) with the same calls in the same order as the original. Callees are reached through
+// their registered addresses (the verify build's wrappers see the calls).
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -57,8 +55,8 @@
 
 namespace {
 
-// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState, ApplyStateBlock (its HRESULT goes
-// to the renderer's lastLoadResult_, +0x08).
+// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState, ApplyStateBlock (its HRESULT goes to
+// the renderer's lastLoadResult_).
 void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
     device::SetRenderState(device::D3D(renderer), static_cast<D3DRENDERSTATETYPE>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -70,16 +68,16 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
 
 // The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world
 // draw's, 9 the views.
-constexpr int kStackScene1 = 1;    // +0x1C
-constexpr int kStackScene2 = 2;    // +0x24
-constexpr int kStackWorld = 5;     // +0x3C
-constexpr int kStackView = 9;      // +0x5C
+constexpr int kStackScene1 = 1;
+constexpr int kStackScene2 = 2;
+constexpr int kStackWorld = 5;
+constexpr int kStackView = 9;
 
 // worlddata::SceneCamera: the scene stack's top when the world's draw pushed it, while that draw runs.
 Matrix4 g_sceneCamera;
 bool g_haveSceneCamera = false;
 
-// Pushes `matrix` on `stack`, as the original inlines it.
+// Pushes `matrix` on `stack`.
 void PushMatrix(MatrixStack& stack, const float* matrix) {
     int& depth = stack.count;
     Matrix4* matrices = stack.matrices;
@@ -133,8 +131,8 @@ float ObjectsDrawRadius() {
 float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
 // The length of the shadows' projection along the camera's Z axis.
 float ShadowLength() { return (-0.02f /*0073F750*/); }
-// The light effect settings (the three lists +0x1B8 / +0x1BC /
-// +0x1C0) and the game mode (1 single player).
+// The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
+// single player).
 int LightEffectsSetting(const int& setting) { return setting; }
 int LightEffects1B8() { return LightEffectsSetting(options::TheOptions()->enableBloodprints_); }
 int LightEffects1BC() { return LightEffectsSetting(options::TheOptions()->enableFootprints_); }
@@ -151,7 +149,7 @@ bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
 }
-// The original's mask selects: C0 picks a's bits, else b's (the smaller one) ...
+// Mask selects after FCOMP: C0 picks a's bits, else b's (the smaller one) ...
 float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
@@ -165,7 +163,7 @@ float AnimationTime() {
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
-// floor(log2(n)) as the original counts it (n >= 1).
+// floor(log2(n)) (n >= 1).
 int Log2(int n) {
     int depth = 0;
     while (n != 1) {
@@ -175,8 +173,8 @@ int Log2(int n) {
     return depth;
 }
 
-// Sorts one draw list with UnitOrderLess. (The original pushes the renderer as the empty comparator,
-// which nothing reads.)
+// Sorts one draw list with UnitOrderLess. (The comparator is empty; nothing reads the renderer the
+// original pushes for it.)
 void SortByModel(FrameList list) {
     stlp::vector<CEngineObject*>& v = FrameObjects(list);
     CEngineObject** first = v.begin();
@@ -192,9 +190,8 @@ void DrawEach(FrameList list, Draw draw) {
     CEngineObject** end = FrameObjects(list).end();
     for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) draw(ObjectSlots(*p));
 }
-// The drawn objects' slots 22 / 23 / 24 (+0x58 / +0x5C / +0x60)
-// the old notes) with the scene context; their results are ignored. The new renderer learns which
-// object the meshes of a figure draw belong to (its shadow map's casters).
+// The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
+// new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](CMapObjectVirtuals* object) {
     render::BeginCaster(object, false);
     object->DrawFigure(TheSceneRenderer());
@@ -224,7 +221,7 @@ void EmptyDeferred() {
     deferred->head->prev = deferred->head;
 }
 
-// Calls the ground print draw on the value of every node of an effect list (+0x1B8 / +0x1BC / +0x1C0).
+// Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
 void DrawLightEffects(stlp::list<T>& list) {
     typename stlp::list<T>::Node* head = list.head;
@@ -376,7 +373,7 @@ constexpr std::uint32_t kShowRenderInfo = 2;
 constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
-// The debug info panel loses the line `key` (its slot 1).
+// The debug info panel loses the line `key`.
 void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
 } // namespace
 
@@ -580,8 +577,8 @@ int CWorldClient::DrawPass() {
         PopMatrix(device->stacks_[kStackScene1]);
     }
 
-    // Selection markers (list +0x7BC of object ids) in single-player mode 1 with units drawn: a
-    // marker at each living object (at its named part when it has one); dead ones leave the list.
+    // Selection markers (list7BC_ of object ids) in single-player mode 1 with units drawn: a marker at
+    // each living object (at its named part when it has one); dead ones leave the list.
     stlp::list<int>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
