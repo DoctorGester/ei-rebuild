@@ -1,8 +1,8 @@
 #pragma once
 
 // A global of game.exe's whose constructor and destructor run where the original runs them: the constructor from its
-// static initialiser in the list's order (ported by hand on the name and registered at the initialiser's address),
-// the destructor from the exit function that initialiser registers with the game's atexit (ported the same way).
+// static initialiser in the list's order,
+// the destructor from the exit function that initialiser registers with the game's atexit.
 // docs/notes/standalone.md, "The static initialisers' objects".
 // The storage starts zero (constant initialisation: `constinit lib::StaticObject<T> g_x = /*address*/ {};`, compared
 // with game.exe's bytes by tools/named_data.py) and our own CRT neither constructs nor destroys it: T's constructor

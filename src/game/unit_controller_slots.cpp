@@ -45,7 +45,7 @@ EI_REWRITTEN(0x00533DE0, CUnitController::Destroy);
 // Most are under five bytes (too short to hook); the server's and the client's vtables share them
 // as listed.
 
-// 1.
+// Answers 1.
 int CUnitController::FiguresLoaded() { return 1; }
 EI_REWRITTEN(0x00533B90, CUnitController::FiguresLoaded);
 
@@ -102,7 +102,7 @@ EI_REWRITTEN(0x00533BD0, CUnitController::RefreshVitals);
 int CUnitController::Heal(float) { return 0; }
 EI_REWRITTEN(0x00533BF0, CUnitController::Heal);
 
-// 0.
+// Answers 0.
 int CUnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return 0; }
 EI_REWRITTEN(0x00533BE0, CUnitController::TakeHit);
 
@@ -119,7 +119,6 @@ EI_REWRITTEN(0x00533C90, CUnitController::RemoveWeaponModel);
 PathOrder* __fastcall ClientControllerPath(CUnitClientSpecific* self) { return self->MotionPath(); }
 EI_REPLACE(0x00533DF0, ClientControllerPath);
 
-// (slots 11 / 12).
 const char* CUnitClientSpecific::GetClassName() { return kClientClassName; }
 EI_REWRITTEN(0x00533E00, CUnitClientSpecific::GetClassName);
 int CUnitClientSpecific::GetClassId() { return kClientClassId; }

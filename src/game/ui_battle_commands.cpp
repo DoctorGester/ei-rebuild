@@ -52,8 +52,8 @@ inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView
 // The local view's spell and quick item orders: on a unit (spell) /
 // (quick item) with (slot, member, target, ctrl), at a point with
 // (slot, member, &point, 0).
-// CUnit::CanCastSpell / CanUseQuickItem (rewritten),
-// CHudQuickItems::SetUnit (rewritten), through their addresses.
+// CUnit::CanCastSpell / CanUseQuickItem and
+// CHudQuickItems::SetUnit, called through their addresses.
 // The HUD panels: quick items (slot, 0), spells (index, 0),
 // actions (index, 0); a sprite's scale.
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f

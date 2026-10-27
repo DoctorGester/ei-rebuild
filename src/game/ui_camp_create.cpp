@@ -1,6 +1,6 @@
 // The camp's Create (CCampPages). Rebirth's WideScreen replaces the function with
 // the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
-// which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
+// which this reproduces; nothing in our code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "unit_create.h"

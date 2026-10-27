@@ -1,7 +1,7 @@
 #pragma once
 
-// MFC 4.2 classes statically linked into game.exe, used by rewritten code through the original
-// implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
+// MFC 4.2 classes statically linked into game.exe, used by our code through
+// the library implementations (config/library.csv). Layouts match MFC so objects can be shared with the game's code.
 
 #include "crt.h"
 
@@ -288,7 +288,7 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
-    // The constructor body: the instantiation's vtable (named by its class's accessor, `Class::Vtable()`), empty (e.g.
+    // The constructor body: the instantiation's vtable (named by its class's accessor, `Class::Vtable()`), empty (like
     // CByteArray's).
     CArray* Construct(const void* vtablePointer) {
         vtable = const_cast<void*>(vtablePointer);

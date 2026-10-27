@@ -466,7 +466,7 @@ void AIReports::Report(CMapObject* object, int what) {
             return;
         }
     }
-    ++object->refCount_;    // the temporary counted reference of the original
+    ++object->refCount_;    // the temporary counted reference
     int index = size;
     SetSize(index + 1, -1);
     AIReport& entry = data[index];

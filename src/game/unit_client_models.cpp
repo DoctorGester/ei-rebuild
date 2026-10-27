@@ -453,7 +453,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         auto* request = new (storage) SkinRequest{{}, {}, 0};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        request->layers.SetSize(bytes);   // the aligned CArray SetSize, inlined in the original
+        request->layers.SetSize(bytes);   // the aligned CArray SetSize
         std::memcpy(request->layers.data, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(

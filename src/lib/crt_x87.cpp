@@ -29,8 +29,8 @@ constexpr std::uint64_t kInfinity = 0x7FF0000000000000ull;
 constexpr double kPi = 3.141592653589793;
 constexpr double kHalfPi = 1.5707963267948966;
 
-// The game CRT's math function names by their code (read, its math error reporting, which
-// has no registration: nothing of the image reads the table). Named so that its bytes come from here.
+// The game CRT's math function names by their code (read by its math error reporting, which
+// is not read by the image). Named so that its bytes come from here.
 struct MathFunctionName {
     int code;
     const char* name;

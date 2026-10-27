@@ -535,7 +535,7 @@ struct HashtableAbi : hashtable<Traits> {
         out->table = this;
         return out;
     }
-    // _M_next_size(n) (__stl_next_prime inlined, e.g.): ECX is not read.
+    // _M_next_size(n) (__stl_next_prime inlined).
     std::size_t NextSize(std::size_t n) const { return NextPrime(n); }
     // _M_bkt_num_key(key).
     std::size_t BucketOfKey(const Key& key) const { return Table::BucketOf(key); }
@@ -627,7 +627,7 @@ struct HashtableAbi : hashtable<Traits> {
             *out = old;
             return out;
         }
-        // _Ht_iterator(node, table) (e.g.; also end of some instantiations): returns this.
+        // _Ht_iterator(node, table) (also end of some instantiations): returns this.
         Iterator* ConstructIterator(Node* node, Table* owner) {
             this->cur = node;
             this->table = owner;

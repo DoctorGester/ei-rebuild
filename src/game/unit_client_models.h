@@ -213,7 +213,7 @@ public:
     // Returns 1.
     int FiguresLoaded() override;
     // Virtual slot 43: the fade-in starts again from 0 (the drawn parts take it). Returns
-    // what the original leaves in EAX (0, the walk's end).
+    // 0 (what the original leaves in its result register).
     int RestartFadeIn() override;
     // Virtual slot 24: the level from the packed experience (UnitParams +0x04, CUnit +0x334):
     // ln(experience /) / ln stored as a float and rounded to nearest.

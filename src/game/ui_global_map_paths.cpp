@@ -38,7 +38,7 @@ struct ArrivalPair {
 
 // Insert(hint, value) of the arrivals map (lib_trees::Arrivals').
 
-// operator[] as the original inlines it: lower_bound, and a new {exit, 0} entry
+// operator[]: lower_bound, and a new {exit, 0} entry
 // inserted there when the key is not in the map.
 float& Arrival(Arrivals& arrivals, int exit) {
     Arrivals::Node* at = arrivals.lower_bound(exit);

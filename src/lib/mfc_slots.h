@@ -34,7 +34,7 @@ struct ScalarDeleting {
     }
 };
 
-// std::exception's destructor, which the exception classes' own destructors jump to
+// std::exception's destructor, which the exception classes' own destructors jump to.
 void __fastcall ExceptionDestruct(libcrt::Exception* self);
 
 // ---- Serialize (vtable slot 2) --------------------------------------------------------------
@@ -305,10 +305,10 @@ struct PlatformListClass final
 // The client map's lists (world_client_maps)
 struct ClientListClass final
     : CompiledCollection<ClientListClass, &PtrList::Destruct<ClientListClass>, &PtrList::Serialize> {};
-// 's list
+// The client's second list
 struct ClientList2Class final
     : CompiledCollection<ClientList2Class, &PtrList::Destruct<ClientList2Class>, &PtrList::Serialize> {};
-// 's list
+// The client's third list
 struct ClientList3Class final
     : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &PtrList::Serialize> {};
 // The AI map's node lists

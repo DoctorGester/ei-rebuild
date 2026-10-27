@@ -90,7 +90,7 @@ void SetUv(TLVertex* vertex, const float& v) {
     std::memcpy(&vertex->v, &v, sizeof(float));
 }
 
-// The first cross section of a ribbon, inlined by the original at the line's first point: the
+// The first cross section of a ribbon, at the line's first point: the
 // direction (dx, dy) to the next point rounded to floats, k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 moved by (k*dy, -k*dx) as in EmitSection, vertex 2 by
 // (-(float)(k*dy), k*dx) (its x offset rounded first).

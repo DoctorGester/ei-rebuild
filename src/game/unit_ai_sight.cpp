@@ -109,7 +109,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         for (auto* node = units->head; node; node = node->next) {
             CUnit* other = node->data;
             if (other == self) continue;
-            // At the head, holding a reference (the original's inlined AddHead): See walks the list
+            // At the head, holding a reference (AddHead): See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.AddHead(other);
             if (other) ++other->refCount_;
@@ -210,7 +210,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
-                // The original's inlined AddTail (a second copy follows below).
+                // AddTail (a second copy follows below).
                 memory->seenCorpses.AddTail(other);
                 ++other->refCount_;
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);

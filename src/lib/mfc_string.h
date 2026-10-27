@@ -45,7 +45,7 @@ static_assert(sizeof(CFixedAlloc) == 0x28);
 
 #ifndef EI_VECTORS_REPLAY
 // The four string allocators (_afxAlloc64 ... _afxAlloc512, blocks of 64 entries): each built by its static
-// initialiser (...) and destroyed by the exit function that registers (mfc_string.cpp). In game.exe's
+// initialiser and destroyed by the exit function that registers (mfc_string.cpp). In game.exe's
 // runs the harness builds them itself (tests/verify/harness_startup.cpp): our CString code there (the harness's, the
 // vector recorders') takes its buffers from them, and game.exe's code frees such a buffer into its own allocator of
 // the same size.

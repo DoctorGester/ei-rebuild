@@ -29,7 +29,6 @@ public:
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }               // 11
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }        // 12
 
-    // (ui_camera_keys.cpp).
     void OnKeyDown(int key, int repeat, int flags);
     // A direction key released (actions 5-10 of
     // KeyActions) clears its axis and marks the key used; then, when used, the camera's motion is
@@ -70,4 +69,4 @@ public:
     float z_;                        // +0x28 up / down
 };
 
-// See
+// The key press handler is in ui_camera_keys.cpp.

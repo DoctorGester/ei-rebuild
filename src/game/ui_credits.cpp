@@ -25,8 +25,8 @@ constexpr const char* kOutroSuffix = "fout";
 constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
-// The movie flag (1: movies shown at their own size). __cdecl, AL.
-// CBinkVideo's frame step (whether the movie still plays; rewritten in
+// The movie flag (1: movies shown at their own size).
+// CBinkVideo's frame step (whether the movie still plays;
 // bink_video.cpp) and close.
 
 

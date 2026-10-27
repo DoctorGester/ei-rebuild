@@ -93,7 +93,7 @@ constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxForma
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 constexpr std::uint32_t kPlainSprite = 0x100;
 
-// The original's inlined strcpy into a box's text buffer.
+// strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
 // A message box of `ui` on top (allocation failure: null pushed, as the original).
@@ -103,7 +103,7 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
 }
 
 // The queries Create reads from the address book: an empty vector, its replies and storage
-// released at the end (inline in the original; the node allocator's deallocate).
+// released at the end (the node allocator's deallocate).
 struct LocalQueries {
     LocalQueries() { queries.extra = 0; }
     ~LocalQueries() {
@@ -566,7 +566,7 @@ void CMpConnectScreen::RebuildList() {
         entry.password = server->password_ != 0;
     }
 
-    // std::sort(begin, end, key) as the original inlines it.
+    // std::sort(begin, end, key).
     MpAddressEntry* first = entries_.begin();
     MpAddressEntry* last = entries_.end();
     int key = sortKey_;

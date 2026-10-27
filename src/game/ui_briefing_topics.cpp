@@ -30,7 +30,7 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// A vector<string> of the topics, freed as the original's inlined destructor does.
+// A vector<string> of the topics, freed.
 class TopicList {
 public:
     TopicList() = default;

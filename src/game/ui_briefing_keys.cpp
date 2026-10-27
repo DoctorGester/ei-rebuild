@@ -41,7 +41,7 @@ int CompareNames(const char* a, const char* b) {
 }
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
-// active (inlined in the original).
+// active.
 void OpenObjectives(CInterface3D* ui) {
     MapRecord* zone;
     {

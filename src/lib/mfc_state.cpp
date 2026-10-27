@@ -21,7 +21,7 @@ DWORD Version() { return ei::ImportAs<GetVersionFn>(ei::Imports().GetVersion)();
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 
-// AfxWingdixTerm as the exe's atexit list holds it: its address (ours, through the registration).
+// AfxWingdixTerm as the exe's atexit list holds it: its address.
 using ExitFunction = void(__cdecl*)();
 ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0); }
 
@@ -31,7 +31,7 @@ namespace {
 // _afxThreadData: made on first use of a thread local, which the image never makes (null).
 constinit CThreadSlotData* g_afxThreadData = /*007C9084*/ {nullptr};
 // afxData, zero at the start: built by its static initialiser in the list's order and its menu-dot bitmap deleted by
-// the exit function it registers (both ported on the name below and registered at their addresses).
+// the exit function it registers.
 constinit lib::StaticObject<AuxData> g_afxData = /*007C90C8*/ {};
 } // namespace
 

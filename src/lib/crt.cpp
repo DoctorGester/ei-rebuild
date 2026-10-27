@@ -113,7 +113,7 @@ namespace libcrt {
 
 namespace {
 
-// EI_UTF8 (text_case.h): every string is UTF-8, so case and character classes no longer come from
+// EI_UTF8 (text_case.h): every string is UTF-8, so case and character classes do not come from
 // the locale or the ANSI code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has
 // no class and no case of its own, and is never a double-byte lead byte; the string compares and _mbslwr
 // change case by text_case.h's table.
@@ -392,8 +392,8 @@ EI_REPLACE(0x006E77EA, libcrt::Srand);
 // ---- Maths ----
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
-// The original is FNSTCW, (hardware to abstract), the merge, (abstract to hardware),
-// FLDCW; ported as that, FLDCW only when the hardware word would change (the UCRT's __control87_2 under
+// The original does FNSTCW (hardware to abstract), the merge, FLDCW (abstract to hardware);
+// here FLDCW runs only when the hardware word would change (the UCRT's __control87_2 under
 // terrain lighting's two calls per lit sector). The abstract form is the CRT's: _EM_* in bits 0-4 (in the reverse
 // order of the hardware's) and 19, _RC_* in 8-9, _PC_* in 16-17 (64 bits is 0), _IC_* in 18.
 namespace {

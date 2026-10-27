@@ -127,6 +127,5 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
 void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 EI_REWRITTEN(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
-// (unit_client_models.h).
 void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
 EI_REWRITTEN(0x00535B20, CUnitClientSpecific::MotionChanged);

@@ -281,7 +281,7 @@ public:
     void AdvanceTime(float time) override;
 
     // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
-    // Returns the new mask. (sets the mask and tells the controller; not rewritten.)
+    // Returns the new mask. (sets the mask and tells the controller.)
     std::uintptr_t AddHostileMask(std::uint32_t mask);
     // Sets relationsB; marks part 11.
     std::uintptr_t SetRelationsB(std::uint32_t mask);
@@ -345,7 +345,7 @@ public:
     // The prototype record of index unknown_23C, or null.
     UnitPrototypeRecord* GetPrototype23C();
     // Stores the index of prototype record `record` in unknown_23C.
-    // Returns what the original leaves in EAX (1 when `record` lies before the table).
+    // Returns 1 when `record` lies before the table (what the original leaves in its result register).
     std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
 
     // Is the active weapon (+0x26C) of type 5 or 6 (ranged)?
@@ -358,7 +358,7 @@ public:
     int AddQuickItem(CItem* item);
     int AddSpell(CItem* item);
     // Empty weapon / quick item slot `slot` (releasing the item); part 5.
-    // Return what the original leaves in EAX (the slot when out of range).
+    // Returns the slot when out of range (what the original leaves in its result register).
     std::uintptr_t RemoveWeapon(std::uint32_t slot);
     std::uintptr_t RemoveQuickItem(std::uint32_t slot);
 
@@ -456,7 +456,7 @@ public:
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
     std::uintptr_t SendEquipment();
     // Unknown_23C = the index of the unit prototype named `name`, or -1.
-    // Returns what the original leaves in EAX (-1, or the low half of its division product).
+    // Returns -1, or the low half of the division product (what the original leaves in its result register).
     std::uint32_t SetPrototype23CByName(const char* prototypeName);
     // Unknown_23C = `index`. Returns `index`.
     int SetPrototype23CIndex(int index);
@@ -682,8 +682,7 @@ static_assert(sizeof(UnitStatLayer) == 0x48);
 // One of the six body slots of UnitStats (0xF4 bytes; 0 head, 1 body, 2/3 hands, 4/5 legs, as
 // the hit locations). Names provisional.
 struct UnitStatSlot {
-    // Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0
-    //.
+    // Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0.
     int Reset();
 
     int type;                       // +0x00 2 arms, 3 legs; reset to 4
@@ -717,11 +716,10 @@ struct UnitVitals {
     // A hit on a map object that is not a creature: each damage type
     // beyond the protection comes off the hit points, not below -5 times the maximum. Returns 1.
     BOOL TakeHit(const DamageInfo* hit);
-    // Zeroes everything but the dword at +0. Returns what the original leaves in EAX
-    // (the end of the block).
+    // Zeroes everything but the dword at +0. Returns the end of the block
+    // (the original's leftover register value).
     void* Reset();
-    // The rounded (FISTP) values into `out`. Returns the end of `out`'s protection
-    //.
+    // The rounded (FISTP) values into `out`. Returns the end of `out`'s protection block.
     void* Pack(UnitVitalsPacked* out);
 
     int builtFlags;                     // +0x00 bit 0 set when built from the prototype
@@ -1104,7 +1102,7 @@ static_assert(sizeof(UnitStats) == 0x704);
 
 struct DamageInfo;   // spell.h
 // Resets a hit: all weights 1, multiplier 1, +0x20/+0x24 = 3.4e36, +0x2C = 6,
-// the rest 0. Returns what the original leaves in EAX (0x7C23D70A).
+// the rest 0. Returns 0x7C23D70A (what the original leaves in its result register).
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info);
 // Has the hit a non-zero weight for damage type 3, 4 or 5 (NaN counts as
 // zero)?

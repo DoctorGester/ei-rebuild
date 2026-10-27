@@ -74,7 +74,7 @@ void FpuCopy2(float* a, float* b, const float* src) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-// Not rewritten / rewritten elsewhere, through their game addresses:
+// Called through their game addresses:
 
 // The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
@@ -451,7 +451,7 @@ EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 namespace {
 // UnitStats::ReduceUnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded.
-// Skill database: the index of `record` in its level records, or -1. Not rewritten.
+// Skill database: the index of `record` in its level records, or -1.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {

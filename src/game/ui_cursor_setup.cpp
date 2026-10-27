@@ -125,7 +125,7 @@ void CCursor::DestroyBody() {
 EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
 // The cursor, zero at the start: built by the static initialiser in the list's order and destroyed by the exit
-// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// function it registers; (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
 CCursor* TheCursor() { return &*g_cursor; }

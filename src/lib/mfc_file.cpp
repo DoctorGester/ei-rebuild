@@ -250,7 +250,7 @@ protected:
     const File* This() const { return this->template ObjectAs<File>(); }
 };
 
-// (0: 1: 3-20: ...).
+// The plain CFile's table.
 struct PlainFileTable final : FileTable<PlainFileTable, CFile, &kClassCFile> {};
 
 // CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /

@@ -82,7 +82,7 @@ private:
 
 // A copy of the local player's variables whose names start with a prefix (into an
 // STLport hash_map<CString, float> of 100 buckets), walked in the table's order and
-// freed as the original's inlined destructor does (ui_briefing.cpp).
+// freed (ui_briefing.cpp).
 class BriefingVariables {
 public:
     explicit BriefingVariables(const char* prefix);

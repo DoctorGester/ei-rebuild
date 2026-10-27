@@ -77,7 +77,7 @@ MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
 bool NonEmpty(const mfc::CString& text) { return text.GetLength() != 0; }
 
-// --- Not rewritten ------------------------------------------------------------------------------
+// --- Called through the game ------------------------------------------------------------------------------
 
 // The links' and the quests' SetSize (mfc::impl::GlobalMapPointRecords') and
 // their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
@@ -91,7 +91,7 @@ int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std
 }
 
 // The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
-// buckets), freed the way the original's inlined destructor does.
+// buckets), freed afterwards.
 class VariableTable {
 public:
     VariableTable() { table_.ConstructDefault(); }
@@ -510,7 +510,7 @@ void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void
 // fmod(a, *divisor) through the game's _CIfmod, stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
-// The product the original inlines (r = b * a in its operand order), each component stored.
+// The product (r = b * a in this operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
     float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
@@ -629,7 +629,7 @@ EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
 namespace {
 
-// A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
+// A CArray's constructor body: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
 template <typename Array>
 void EmptyArray(Array* array, void* vtable) {

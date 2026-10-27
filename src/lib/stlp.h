@@ -1,9 +1,9 @@
 #pragma once
 
 // A layout- and allocation-compatible subset of the STLport containers compiled into game.exe.
-// Original code and rewritten code share these objects (for example the loaded-file maps inside
+// The game's code and ours share these objects (for example the loaded-file maps inside
 // CMappedResource), so they must have STLport's exact layout, allocate from the game's own pooled
-// node allocator, and hash and order elements the way STLport does. Only what rewritten code needs
+// node allocator, and hash and order elements the way STLport does. Only what our code needs
 // is implemented; each member names the original routine it mirrors.
 
 #include <cstddef>
@@ -99,7 +99,7 @@ string Plus(const string& a, const string& b);
 
 // The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
 // assigned through assign(first, last), destroyed with the buffer freed. A
-// default-constructed one (resize(n), e.g.) is empty with room for 8 bytes.
+// default-constructed one (from resize(n)) is empty with room for 8 bytes.
 struct StringElement {
     static void Construct(string* to, const string& from) { new (to) string(from); }
     static void Assign(string& to, const string& from) { to.AssignFrom(from); }

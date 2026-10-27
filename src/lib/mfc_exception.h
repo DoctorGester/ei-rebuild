@@ -99,7 +99,6 @@ public:
     explicit CFileException(int causeValue = none, long osErrorValue = -1) : cause(causeValue), osError(osErrorValue) {}
     // The name released (a member).
     ~CFileException() override;
-    // (0).
     const CRuntimeClass* GetRuntimeClass() const override;
     // Prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has
     // none); the help context is that prompt's id. Always TRUE.
@@ -119,7 +118,6 @@ public:
     explicit CArchiveException(int causeValue) : cause(causeValue) {}
     // The name released (a member).
     ~CArchiveException() override;
-    // (0).
     const CRuntimeClass* GetRuntimeClass() const override;
     // As CFileException's, with AFX_IDP_ARCH_NONE + cause.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;

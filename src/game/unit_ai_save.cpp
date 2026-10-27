@@ -36,7 +36,7 @@ void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
 void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
-    looks->SetSize(count, -1);      // inlined by the original
+    looks->SetSize(count, -1);
     for (int i = 0; i < looks->size; ++i) {
         AILook& look = looks->data[i];
         stream->Read(&look.angle, 4);

@@ -676,7 +676,6 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        // (The original inlines the walk, its GetNext.)
         PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
         if (leaderMode && leaderMode->state == kStateCommand) return;
         UpdateCombat(brain);

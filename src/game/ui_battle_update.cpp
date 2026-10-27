@@ -238,7 +238,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             if (!unit) continue;
             if (unitId == ids.camera) {
                 TheClientWorld()->Select(unit);
-                // Insert at the front (the original's inlined InsertAt).
+                // Insert at the front (InsertAt).
                 int n = party->size;
                 if (n <= 0) {
                     party->SetSize(1, -1);

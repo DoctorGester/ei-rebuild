@@ -23,22 +23,22 @@ struct RefEntry {
 };
 static_assert(sizeof(RefEntry) == 8);
 
-// RefPtr copied with Share (e.g: null for a null or detached object, a clone for a
-// copy-on-share one) and destroyed with the owner's release (RefPtr::Destroy, e.g.).
+// RefPtr copied with Share (null for a null or detached object, a clone for a
+// copy-on-share one) and destroyed with the owner's release (RefPtr::Destroy).
 struct SharedRef {
     static void Copy(RefPtr* to, const RefPtr& from) { to->Share(from.ptr); }
     static void Destroy(RefPtr* p) { p->Destroy(); }
 };
 
-// RefPtr copied with one more reference (e.g.) and destroyed with a plain release
-// (RefPtrRelease, e.g.).
+// RefPtr copied with one more reference and destroyed with a plain release
+// (RefPtrRelease).
 struct CountedRef {
     static void Copy(RefPtr* to, const RefPtr& from) { to->FromRawCounted(from.ptr); }
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
 };
 
 // A key and a reference (RefEntry, or another pair of a dword and a RefPtr with the same member
-// names): the key, then the reference as SharedRef (e.g.; destroyed as).
+// names): the key, then the reference as SharedRef (destroyed the same way).
 struct SharedEntry {
     template <typename Entry>
     static void Copy(Entry* to, const Entry& from) {
@@ -49,7 +49,7 @@ struct SharedEntry {
     static void Destroy(Entry* p) { SharedRef::Destroy(&p->ref); }
 };
 
-// The same with the reference as CountedRef (e.g.; destroyed as).
+// The same with the reference as CountedRef (destroyed the same way).
 struct CountedEntry {
     template <typename Entry>
     static void Copy(Entry* to, const Entry& from) {
@@ -60,7 +60,7 @@ struct CountedEntry {
     static void Destroy(Entry* p) { CountedRef::Destroy(&p->ref); }
 };
 
-// A held engine object copied with one more reference (its dword count; e.g.) and
+// A held engine object copied with one more reference (its dword count) and
 // destroyed with its Release when there is one (clear).
 struct HeldObject {
     static void Copy(CEngineObject** to, CEngineObject* const& from) {
@@ -80,15 +80,15 @@ struct PolicyList : list<T> {
     using Base = list<T>;
     using Node = typename Base::Node;
 
-    // insert(pos, x) (e.g.): a copy of x linked in before pos.
+    // insert(pos, x): a copy of x linked in before pos.
     Node* Insert(Node* pos, const T& x) { return Base::template Insert<E>(pos, x); }
-    // push_back(x) (e.g.).
+    // push_back(x).
     void PushBack(const T& x) { Base::template Insert<E>(this->head, x); }
-    // erase(pos) (e.g.): the node after pos.
+    // erase(pos): the node after pos.
     Node* Erase(Node* pos) { return Base::template Erase<E>(pos); }
-    // clear (e.g.).
+    // clear.
     void Clear() { Base::template Clear<E>(); }
-    // ~list (e.g.): clear, then the sentinel back to the pool.
+    // ~list: clear, then the sentinel back to the pool.
     void Release() { Base::template Release<E>(); }
     template <typename Same> void Remove(const T& x, Same same) { Base::template Remove<E>(x, same); }
 };

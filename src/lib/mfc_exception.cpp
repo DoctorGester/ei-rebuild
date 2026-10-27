@@ -18,8 +18,8 @@ namespace {
 
 // The static exceptions MFC throws by pointer, never deleted (_simpleResourceException, _simpleNotSupportedException,
 // _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
-// initialiser in the list's order and destroyed by the exit function it registers (both ported on the name below and
-// registered at their addresses; docs/notes/standalone.md, "The static initialisers' objects").
+// initialiser in the list's order and destroyed by the exit function it registers (
+// docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CResourceException> g_simpleResourceException = /*007C8C58*/ {};
 constinit lib::StaticObject<CNotSupportedException> g_simpleNotSupportedException = /*007C8D50*/ {};
 constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8DE8*/ {};

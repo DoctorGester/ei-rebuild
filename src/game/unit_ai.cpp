@@ -274,14 +274,14 @@ PlayerMode* AIBrain::FindPlayerMode() {
 EI_REWRITTEN(0x005D5E60, AIBrain::FindPlayerMode);
 
 CUnit* AIBrain::PlayerModeLeader() {
-    PlayerMode* mode = FindPlayerMode();   // (the original inlines the walk)
+    PlayerMode* mode = FindPlayerMode();
     return mode ? mode->leader : nullptr;
 }
 EI_REWRITTEN(0x005D5EE0, AIBrain::PlayerModeLeader);
 
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
-    if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;   // (the original inlines the walk)
+    if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;
     if (!leader && action == kActionFollow) return target;
     return leader;
 }

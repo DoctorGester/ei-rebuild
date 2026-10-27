@@ -67,20 +67,20 @@ public:
         finish_ = start_;
     }
 
-    // _Vector_base(const allocator_type&) (e.g.): no storage.
+    // _Vector_base(const allocator_type&): no storage.
     void ConstructEmpty() {
         start_ = nullptr;
         finish_ = nullptr;
         eos_ = nullptr;
     }
 
-    // ~_Vector_base (e.g.): the storage back to the pool (the elements are already
+    // ~_Vector_base: the storage back to the pool (the elements are already
     // destroyed); its size is the capacity in whole elements.
     void FreeStorage() {
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
     }
 
-    // get_allocator (e.g.): the allocator's tag byte, the low byte of the last word.
+    // get_allocator: the allocator's tag byte, the low byte of the last word.
     std::uint8_t AllocatorTag() const { return static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(eos_)); }
 
     // The three pointers by reference, for code that inlines the original's own vector operations
@@ -107,14 +107,14 @@ public:
 
     std::size_t Capacity() const { return static_cast<std::size_t>(eos_ - start_); }
 
-    // _Vector_base(n, allocator) (e.g.): room for n elements, none constructed.
+    // _Vector_base(n, allocator): room for n elements, none constructed.
     void ConstructWithCapacity(std::size_t n) {
         start_ = Allocate(n);
         finish_ = start_;
         eos_ = start_ + n;
     }
 
-    // vector(const vector& x) (e.g.): room for exactly x.size elements (none when
+    // vector(const vector& x): room for exactly x.size elements (none when
     // empty) holding copies of x's.
     template <typename E>
     void CopyConstruct(const vector& x) {
@@ -122,7 +122,7 @@ public:
         finish_ = UninitializedCopy<E>(x.start_, x.finish_, start_);
     }
 
-    // _M_allocate_and_copy(n, first, last) (e.g.): a block of n elements holding copies
+    // _M_allocate_and_copy(n, first, last): a block of n elements holding copies
     // of [first, last).
     template <typename E>
     static T* AllocateAndCopy(std::size_t n, const T* first, const T* last) {
@@ -131,7 +131,7 @@ public:
         return block;
     }
 
-    // _M_insert_overflow(pos, x, n) (e.g.): a block of size + max(size, n) elements with
+    // _M_insert_overflow(pos, x, n): a block of size + max(size, n) elements with
     // [start, pos), n copies of x and [pos, finish); the old elements destroyed, the old block freed.
     template <typename E>
     void InsertOverflow(T* pos, const T& x, std::size_t n) {
@@ -147,7 +147,7 @@ public:
         eos_ = fresh + len;
     }
 
-    // _M_fill_insert(pos, n, x) (e.g.): n copies of x before pos, in place when the room
+    // _M_fill_insert(pos, n, x): n copies of x before pos, in place when the room
     // allows (x copied first by the policy, as it may be an element, and destroyed last), else
     // through InsertOverflow.
     template <typename E>
@@ -177,7 +177,7 @@ public:
         E::Destroy(&copy);
     }
 
-    // _M_range_insert(pos, first, last) (e.g.): copies of [first, last) before pos.
+    // _M_range_insert(pos, first, last): copies of [first, last) before pos.
     template <typename E>
     void RangeInsert(T* pos, const T* first, const T* last) {
         if (first == last) return;
@@ -212,7 +212,7 @@ public:
         eos_ = fresh + len;
     }
 
-    // erase(first, last) (e.g.): the tail assigned down, the left-over elements destroyed;
+    // erase(first, last): the tail assigned down, the left-over elements destroyed;
     // returns first.
     template <typename E>
     T* EraseRange(T* first, T* last) {
@@ -222,13 +222,13 @@ public:
         return first;
     }
 
-    // resize(n, x) (e.g.): erase the tail, or append copies of x.
+    // resize(n, x): erase the tail, or append copies of x.
     template <typename E>
     void Resize(std::size_t n, const T& x) {
         if (n < size()) EraseRange<E>(start_ + n, finish_);
         else FillInsert<E>(finish_, n - size(), x);
     }
-    // resize(n) (e.g.): resize(n, T) with a temporary the policy makes first and
+    // resize(n): resize(n, T) with a temporary the policy makes first and
     // destroys last.
     template <typename E>
     void ResizeDefault(std::size_t n) {
@@ -239,7 +239,7 @@ public:
         E::Destroy(x);
     }
 
-    // reserve(n) (e.g.): a block of exactly n elements when the capacity is smaller.
+    // reserve(n): a block of exactly n elements when the capacity is smaller.
     template <typename E>
     void Reserve(std::size_t n) {
         if (Capacity() >= n) return;
@@ -256,7 +256,7 @@ public:
         eos_ = fresh + n;
     }
 
-    // push_back(x) (e.g.).
+    // push_back(x).
     template <typename E>
     void PushBack(const T& x) {
         if (finish_ != eos_) {
@@ -267,7 +267,7 @@ public:
         }
     }
 
-    // push_back(T) (e.g.): the default element made in place when there is room, else a
+    // push_back(T): the default element made in place when there is room, else a
     // temporary the policy makes, inserted through InsertOverflow and destroyed.
     template <typename E>
     void PushDefault() {
@@ -283,7 +283,7 @@ public:
         E::Destroy(x);
     }
 
-    // operator=(x) (e.g.).
+    // operator=(x).
     template <typename E>
     void AssignVector(const vector& x) {
         if (&x == this) return;
@@ -372,66 +372,66 @@ struct VectorAbi : vector<T> {
     using Vector = vector<T>;
     using Element = E;
 
-    // ~_Vector_base (e.g.).
+    // ~_Vector_base.
     static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
-    // The scalar deleting destructor of a _Vector_base (e.g.): returns this.
+    // The scalar deleting destructor of a _Vector_base: returns this.
     Vector* DeleteBase(unsigned flags) {
         this->FreeStorage();
         if (flags & 1) gamecrt::operator_delete(this);
         return this;
     }
-    // _Vector_base(n, allocator) (e.g.).
+    // _Vector_base(n, allocator).
     void ConstructWithCapacity(std::size_t n, const void*) {
         Vector::ConstructWithCapacity(n);
     }
-    // _M_allocate_and_copy(n, first, last) (e.g.): the new block.
+    // _M_allocate_and_copy(n, first, last): the new block.
     T* AllocateAndCopy(std::size_t n, const T* first, const T* last) {
         return Vector::template AllocateAndCopy<E>(n, first, last);
     }
-    // _M_insert_overflow(pos, x, n) (e.g.).
+    // _M_insert_overflow(pos, x, n).
     void InsertOverflow(T* pos, const T& x, std::size_t n) {
         Vector::template InsertOverflow<E>(pos, x, n);
     }
-    // _M_fill_insert(pos, n, x) / insert(pos, n, x) (e.g.).
+    // _M_fill_insert(pos, n, x) / insert(pos, n, x).
     void FillInsert(T* pos, std::size_t n, const T& x) {
         Vector::template FillInsert<E>(pos, n, x);
     }
-    // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (e.g.,
-    // RET 0x10: the last argument is not read).
+    // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (the last argument
+    // is not read).
     void RangeInsert(T* pos, const T* first, const T* last, const void*) {
         Vector::template RangeInsert<E>(pos, first, last);
     }
-    // erase(first, last) (e.g.): returns first.
+    // erase(first, last): returns first.
     T* EraseRange(T* first, T* last) {
         return Vector::template EraseRange<E>(first, last);
     }
-    // clear (e.g.).
+    // clear.
     static void __fastcall Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
-    // resize(n, x) (e.g.).
+    // resize(n, x).
     void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
-    // resize(n) (e.g.): resize(n, T) with a temporary the policy makes first and
+    // resize(n): resize(n, T) with a temporary the policy makes first and
     // destroys last.
     void ResizeDefault(std::size_t n) { Vector::template ResizeDefault<E>(n); }
-    // ~vector (e.g.): the elements destroyed in order, then the storage freed.
+    // ~vector: the elements destroyed in order, then the storage freed.
     static void __fastcall Destruct(Vector* self) {
         self->template EraseRange<E>(self->begin(), self->end());
         self->FreeStorage();
     }
-    // reserve(n) (e.g.).
+    // reserve(n).
     void Reserve(std::size_t n) { Vector::template Reserve<E>(n); }
-    // push_back(x) (e.g.).
+    // push_back(x).
     void PushBack(const T& x) { Vector::template PushBack<E>(x); }
-    // push_back(T) out of line (e.g.; plain RET).
+    // push_back(T) out of line .
     static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
-    // operator=(x) (e.g.): returns this.
+    // operator=(x): returns this.
     Vector* Assign(const Vector& x) {
         Vector::template AssignVector<E>(x);
         return this;
     }
-    // _STLP_alloc_proxy::deallocate(p, n) (e.g.): the proxy is not read. Also the
+    // _STLP_alloc_proxy::deallocate(p, n): the proxy is not read. Also the
     // list nodes' and hash buckets' allocators.
     void Deallocate(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
-    // The same compiled as a function of p and n (e.g: ECX p, EDX n, plain RET).
+    // The same compiled as a function of p and n.
     static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // uninitialized_copy(first, last, result) (e.g: ECX first, EDX last; the tag
     // argument is not read): the end of the copies.
@@ -448,18 +448,18 @@ struct VectorAbi : vector<T> {
 };
 
 // Helpers of class instantiations compiled out of line, the element done by the policy E:
-// - _Construct(p) (e.g.; ECX p, plain RET): E::Default, nothing for a null p.
+// - _Construct(p) : E::Default, nothing for a null p.
 template <typename T, typename E>
 void __fastcall ConstructDefaultAt(T* p) {
     if (p) E::Default(p);
 }
-// - _Construct(p, x) (e.g.; ECX p, EDX x, plain RET): E::Construct, nothing for a null p.
+// - _Construct(p, x) : E::Construct, nothing for a null p.
 template <typename T, typename E>
 void __fastcall ConstructCopyAt(T* p, const T* x) {
     if (p) E::Construct(p, *x);
 }
-// - __copy(first, last, out, random_access_iterator_tag, distance*) (e.g.; ECX first, EDX
-//   last; the last two arguments are not read): each element assigned by E::Assign;
+// - __copy(first, last, out, random_access_iterator_tag, distance*) (the last two arguments
+//   are not read): each element assigned by E::Assign;
 //   nothing when last is not after first; returns the end of the copy.
 template <typename T, typename E>
 T* __fastcall CopyAssignTagged(const T* first, const T* last, T* out, const void*, const void*) {
@@ -467,9 +467,9 @@ T* __fastcall CopyAssignTagged(const T* first, const T* last, T* out, const void
     return out;
 }
 
-// Helpers of the plain-data instantiations compiled out of line (ECX and EDX the first two
+// Helpers of the plain-data instantiations compiled out of line (the first two
 // arguments):
-// - _Construct(p, x) (e.g.; plain RET): placement new, which skips a null p.
+// - _Construct(p, x) : placement new, which skips a null p.
 template <typename T>
 void __fastcall ConstructAt(T* p, const T* x) {
     if (p) new (p) T(*x);

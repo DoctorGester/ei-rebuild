@@ -1,7 +1,7 @@
 #pragma once
 
 // The software mouse cursor (the object, see docs/notes/ui.md,
-// "Cursor"). Only the members the rewritten draws use; the object is created by original code.
+// "Cursor"). Only the members the draws use; the object is created by original code.
 
 #include <cstddef>
 

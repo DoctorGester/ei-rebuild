@@ -74,8 +74,7 @@ struct CThreadLocalObject {
 struct CProcessLocalObject {
     CNoTrackObject* object;     // +0x00 m_pObject
 
-    // The
-    // object deleted; the pointer stays.
+    // The object is deleted; the pointer stays.
     void Destruct();
 };
 

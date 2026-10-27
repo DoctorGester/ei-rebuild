@@ -1,7 +1,7 @@
 #pragma once
 
-// The original game's statically linked C runtime and MFC helpers (config/library.csv).
-// Rewritten code must call these rather than the modern CRT while it runs inside game.exe:
+// The game's statically linked C runtime and MFC helpers (config/library.csv).
+// Our code must call these rather than the modern CRT while it runs inside game.exe:
 // memory has to come from and go back to the game's own heap, and functions such as tolower
 // depend on the game's locale tables. In the standalone build these become thin wrappers over
 // the modern CRT, after checking the behaviour is identical.

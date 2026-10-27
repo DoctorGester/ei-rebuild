@@ -20,7 +20,7 @@ namespace mfc::impl {
 using ThreadProc = UINT(__cdecl*)(void* parameter);
 
 // CWinThread (0x68 bytes; CCmdTarget's 20 slots, then the thread's; the destructor and
-// Delete ported, the message loop's unported: the game's threads only run their procedure, never InitInstance / Run).
+// Delete are here, the message loop is not: the game's threads only run their procedure, never InitInstance / Run).
 struct WinThread : CCmdTarget {
     // CCmdTarget's constructor, the procedure and its parameter, then CommonConstruct.
     WinThread(ThreadProc procedure, void* parameter);

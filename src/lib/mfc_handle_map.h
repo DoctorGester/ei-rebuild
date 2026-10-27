@@ -62,7 +62,6 @@ public:
     explicit CMapPtrToPtr(int blockSize);
     // RemoveAll.
     ~CMapPtrToPtr() override;
-    // (0).
     const CRuntimeClass* GetRuntimeClass() const override;
 
     void InitHashTable(std::uint32_t size, BOOL allocNow);

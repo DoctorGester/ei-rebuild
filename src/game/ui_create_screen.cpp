@@ -1,7 +1,7 @@
 // CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
 // The original inlines the constructors of screens 1, 2, 3 and 7 (the container base,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
-// through the original addresses.
+// through game.exe's addresses.
 #include "app.h"
 #include "bink_video.h"
 #include "options.h"
@@ -248,7 +248,7 @@ void CInterface3D::OpenHelp(int flag) {
     if (!topic) return;
     int seen = -1;
     // The seen-topics map (find; operator[], lower_bound an insert at that
-    // hint, inlined by the original).
+    // hint).
     decltype(helpTopics_)::Node* found;
     {
         mfc::CString key(topic);

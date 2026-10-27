@@ -1,6 +1,6 @@
 #pragma once
 
-// The locale and multibyte state the ported class, case and conversion functions read (crt.cpp, crt_format.cpp,
+// The locale and multibyte state the class, case and conversion functions read (crt.cpp, crt_format.cpp,
 // mfc_resource.cpp): the host CRT's (setlocale and _setmbcp are the host's; the text manager's Create sets
 // LC_CTYPE from the "Font CharSet" option, then the multibyte code page from it, text_sources.cpp). In a file of
 // its own so ei_vectors links it with crt_format.cpp (its replay takes the decimal point and the class words from

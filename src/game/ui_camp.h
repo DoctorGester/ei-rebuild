@@ -3,7 +3,7 @@
 // The remaining interface screens (see docs/notes/ui.md, "Camp, global map, hero
 // screens"): the battle screen's Create, the global map, the camp's pages and
 // the hero panels, the credits. Names provisional. The classes here describe only the fields
-// the rewritten code uses; the objects are created by original code (sizes asserted where known).
+// the code uses; the objects are created by original code (sizes asserted where known).
 
 #include "object_tables.h"
 #include "options.h"
@@ -649,8 +649,8 @@ public:
     // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
     void DebugFill() override;
 
-    // The rewritten members above through their addresses, so their hooks and wrappers see the
-    // calls the original makes (ui_camp.cpp).
+        // The members above through their addresses, so the harness sees the
+    // calls the game makes (ui_camp.cpp).
     // The camp's virtual slots the pages call (the main) are CItemScreen's
     // Virtual* members: 43 CanEquip (AL), 45 the party's best skill and mana in a school
     // 46 / 47 RefreshWeapons / RefreshStats, 51 the shown hero's record (HeroRecord),

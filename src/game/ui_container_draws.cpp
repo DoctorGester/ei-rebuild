@@ -50,8 +50,8 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     render::ClearDepth(z, rects ? r : nullptr, rects ? n : 0);
 }
 
-// Through their original addresses, as the original calls them.
-// Its body part type (rewritten, item.cpp).
+// Called through their addresses.
+// Its body part type (item.cpp).
 
 // share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
@@ -80,11 +80,11 @@ BOOL CUiContainer::Draw(int pass) {
 }
 EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
-// Returns 's result.
+// Returns ScreenDraw's result.
 int CBriefingScreen::Draw(int pass) { return ScreenDraw(this, pass, true); }
 EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
-// Returns 's result.
+// Returns ScreenDraw's result.
 int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 

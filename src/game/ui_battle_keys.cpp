@@ -82,7 +82,7 @@ CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
 // The action column's button of an action name: "follow" is button 0, any other name button 1
-// (the original compares the two constant names inline).
+// (compared with the constant names).
 int ActionButton(const char* name) { return std::strcmp(name, FollowName()) == 0 ? 0 : 1; }
 
 // A panel's slide key with a choice (the unit panel's body part, the top panel's page): a panel

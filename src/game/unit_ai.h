@@ -195,7 +195,7 @@ public:
     // the unit) and look around there.
     void Execute(AIBrain* brain) override;
     int GetType() override { return kModeGuard; }
-    // Load and Save:
+    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -218,7 +218,7 @@ struct PatrolPoint {
 static_assert(sizeof(PatrolPoint) == 0x20);
 
 // The point array's ConstructElements (zeroed, each look array given) and
-// DestructElements (on each: the look array's base vtable, its data freed);
+// DestructElements (on each: the look array's base vtable, its data freed) (unit_ai_looks.cpp).
 struct PatrolPointElements {
     static void Construct(PatrolPoint* points, int count);
     static void Destruct(PatrolPoint* points, int count);
@@ -264,7 +264,6 @@ public:
     // (from version 0x44 when loading) the stop flag byte; then `current`.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // (through its address, so the verify wrapper sees Evaluate's calls).
     void AddPoint(const Vector3* position);
     // Appends a point with no looks at ((n + 0.5) / 2, z 0) for
     // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
@@ -289,7 +288,7 @@ public:
     // When idle: back to the point and look around.
     void Execute(AIBrain* brain) override;
     int GetType() override;   // 8: 2
-    // (slots 11 / 12).
+    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -339,7 +338,7 @@ public:
     // Clears busy; remark 3.
     void Leave(AIBrain* brain) override;
     int GetType() override;   // 8: 3
-    // (slots 11 / 12).
+    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // Point and level zeroed. The original's constructor leaves them, but Evaluate keeps a point that compares
@@ -454,7 +453,7 @@ public:
     void Enter(AIBrain* brain) override;
     // Clears busy.
     void Leave(AIBrain* brain) override;
-    // (slots 11 / 12).
+    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -475,7 +474,7 @@ static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // A new Fear mode's distance, which `distance` returns to.
 inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
 
-// Player (game.exe's, 0x24 bytes): the party's units. Its lifetime and small slots are in
+// Player (game.exe's, 0x24 bytes): the party's units. Its lifetime and small virtuals are in unit_ai_player_mode_slots.cpp.
 class PlayerMode : public AIActionMode {
 public:
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
@@ -784,8 +783,7 @@ struct AIViewer {
     // the distance hears a call of `kind` at the source unit's position (AIHeardCalls::Hear; the text
     // "Unit %i heard unit %i from %fm distance" only with console filter bit 0).
     void Noise(CUnitServer* source, float loudness, int kind, const Vector3* at);
-    // The
-    // noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x
+    // The noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x
     // valuesE0[3] x the noise of the ground at `position` (the AI map's terrain type). Returns 0
     // (no presence record; the controller keeps the result at +0x918).
     AIEventPresence* StepNoise(const Vector3* position, CUnitServer* source);
@@ -801,8 +799,7 @@ struct AIViewer {
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
 
-// The
-// cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
+// The cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
 // sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
 // height; within hearing all around; within the peripheral range in the front half.
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
@@ -860,8 +857,7 @@ struct AIEventTable : AIViewer {
     void Clear();
     // Every event of the wheel goes to the free list; the grid is freed.
     void Destroy();
-    // The
-    // table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125)
+    // The table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125)
     // cells each way (reallocated unless it has that size) and emptied. Then the 4096 bytes of
     // "normal.dat" in the text resources' "aiinfo.res" are copied. Returns 1; a
     // missing archive or file is a fatal error, whose result is returned.
@@ -999,7 +995,7 @@ struct AIBrain {
     // (both 2D)? The original sets only AL in one path; callers test AL.
     bool IsNearPath(const Vector3* point, float radius);
     // Sets the owner; on a change both remembered positions become "unset" (-1313, 0, 0).
-    // Returns what the original leaves in EAX.
+    // Returns the original's leftover register value.
     std::uint32_t SetOwner(CUnitServer* newOwner);
     // An object is being deleted: tell every mode, drop it as target or seen object and
     // from the perception memory.

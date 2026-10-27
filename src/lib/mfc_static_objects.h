@@ -3,7 +3,7 @@
 // MFC's globals that only game.exe's static initialisers and their exit functions reach: the generated
 // static_init.cpp / static_exit.cpp name them (tools/gen_static_init.py's GENERATED_NAMES) where the original's code
 // has their addresses. Nothing else of ours reads them: the code that does in game.exe (AfxThrowUserException,
-// AfxGetThreadState's locals, _AfxCbtFilterHook) is not ported, the image's MFC state is ImageModuleState and
+// AfxGetThreadState's locals, _AfxCbtFilterHook) is not in our source, the image's MFC state is ImageModuleState and
 // thread_local handle maps (mfc_state.h). docs/notes/standalone.md, "Named data".
 
 #include <cstdint>
@@ -36,7 +36,7 @@ extern CThreadLocalObject g_ctl3dThreadLocal;
 extern CProcessLocalObject g_ctl3dStateLocal;
 extern CProcessLocalObject g_winStateLocal;
 
-// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook,:
+// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook:
 // no game window is a CWnd).
 extern BOOL g_afxDbcs;
 
