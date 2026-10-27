@@ -1,12 +1,11 @@
 #pragma once
 
-// The exe's STLport map instantiations outside the connection (net_connection_trees.h has its five):
-// their value policies and stlp::TreeAbi types, registered at their addresses by
-// Node sizes from each one's _M_create_node.
+// The exe's STLport map instantiations outside the connection (net_connection_trees.h has its five): their value
+// policies and stlp::TreeAbi types. Node sizes from each one's _M_create_node.
 
-#include "console.h"       // CommandMap
-#include "link_figure.h"   // LinkPartHeader, LinkPartRanges, LinkHeaderMap, LinkRangeMap
-#include "ui_camp.h"       // PersonTextMap
+#include "console.h"
+#include "link_figure.h"
+#include "ui_camp.h"
 
 #include "lib/stlp_list.h"
 #include "lib/stlp_list_refs.h"
@@ -71,7 +70,7 @@ using ItemCache = stlp::TreeAbi<ItemObjectCache::Map>;
 
 // The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
-// The interface's help topics (CInterface3D +0x98; 0x18-byte nodes, CString keys by _mbscmp).
+// The interface's help topics (0x18-byte nodes, CString keys by _mbscmp).
 using HelpTopicMap = stlp::map<mfc::CString, int, stlp::CStringLess>;
 using HelpTopics = stlp::TreeAbi<HelpTopicMap>;
 // The "pers" texts by text key (ui_camp.h; 0x18-byte nodes).

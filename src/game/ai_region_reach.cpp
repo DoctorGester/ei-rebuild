@@ -1,11 +1,5 @@
-// CRegionMap::ReachesRegion: whether cell (x, y) can reach a region, for a size class. The region map keeps
-// per size class a u16 region per 8x8 block and the block's representative cell (rows of bytes: low nibble x,
-// high nibble y in the block). When none of the 3x3 blocks around the cell's block is in the region, the
-// cell's block is marked unreachable (2) in `marks`; otherwise the local search floods the 3x3 blocks from the
-// cell, the region is reached when a representative cell of one of them that is in the region was reached,
-// and every reached cell of the window gets the answer (1 yes, 2 no). CRegionMap::LabelRegions: numbers the
-// connected areas of blocks per size class: each class's region grid is cleared, and every block still 0
-// starts a new region (1, 2, ...) flooded from a queue of blocks. See ai_map.h and docs/notes/ai.md.
+// CRegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
+// docs/notes/ai.md ("Regions").
 #include "ai_map.h"
 #include "ai_grids.h"
 #include "core_streams.h"
@@ -35,8 +29,6 @@ std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 std::uint8_t& BlocksGuard() { return g_blocksGuard; }
 void __cdecl DestroyBlocks() { DestroyPoints(*g_blocks); }
 
-// The local search at +0x98: reset.
-
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
 constinit lib::StaticObject<BlockPointArray> g_floodSecond = /*007C2EF8*/ {};
 constinit lib::StaticObject<BlockPointArray> g_floodQueue = /*007C2F10*/ {};
@@ -50,7 +42,7 @@ void __cdecl DestroyFloodSecond() { DestroyPoints(*g_floodSecond); }
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
-// The block grid's size: the first size class's edge grid (+0x124 / +0x128).
+// The block grid's size: the first size class's edge grid.
 int BlocksWide(const CRegionMap* map) { return map->edges[0].width; }
 int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 
@@ -64,12 +56,7 @@ const int* StepY() { return DirectionDy() + 1; }
 void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainElements<BlockCost>::Construct(elements, count); }
 
 namespace {
-// The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
-// count, ctor, dtor).
-
-// The region map's per size class grids (edge words, representative cells, regions) are allocated for their
-// size here.
-
+// A per size class grid of the region map reallocated for the map's size.
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
@@ -79,10 +66,6 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)
     grid.height = height;
     allocate(&grid);
 }
-// The region map's two block searches: BlockSearch.
-
-
-// ConstructElements<PathCell> (zero-fills `count`).
 
 void DestroyPathList(PathCellList& list) {
     list.vtable = PathCellListVtable();
@@ -481,7 +464,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
         return c;
     };
-    // Walk back along the stored directions (+0x10: 1..8; 0 ends), each cell added at the head.
+    // Walk back along the stored directions (1..8; 0 ends), each cell added at the head.
     while (int dir = search.records.rows[y][x].backDirection) {
         PathCellList::Node* node = path->NewNode(nullptr, path->head);
         node->data = cellAt(x, y);

@@ -32,6 +32,16 @@ one function; ours splits it into LoadTerrain (everything read from the files) a
 locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of at the very end
 (nothing reads them in between). Rebirth patches the function.
 
+## Regions (CRegionMap::ReachesRegion, LabelRegions)
+
+The region map keeps, per size class, a u16 region per 8x8 block and the block's representative cell (rows of
+bytes: low nibble x, high nibble y in the block). `ReachesRegion` asks whether cell (x, y) can reach a region:
+when none of the 3x3 blocks around the cell's block is in the region, the cell's block is marked unreachable (2)
+in `marks`; otherwise the local search floods the 3x3 blocks from the cell, the region is reached when a
+representative cell of one of them that is in the region was reached, and every reached cell of the window gets
+the answer (1 yes, 2 no). `LabelRegions` numbers the connected areas of blocks per size class: each class's
+region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded from a queue of blocks.
+
 ## Facts
 
 - The map's grids are `SearchGrid` members (search_grid.h; `grid[y][x]` reads a row): `waterDepth` (+0x1F4),
