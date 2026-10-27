@@ -654,8 +654,7 @@ void CSoundManager::Close() {
     // node's own name is freed.
     while (cacheList.count != 0) {
         gameapi::AIL_mem_free_lock(cacheList.head->data.data);
-        WaveRecord record = cacheList.RemoveHead();
-        record.Name().~string();
+        cacheList.RemoveHead();   // the copy taken out is destroyed at once
     }
     cache.Clear();
     if (midiSequence != nullptr) {

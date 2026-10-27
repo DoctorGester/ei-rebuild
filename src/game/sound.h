@@ -136,19 +136,15 @@ using DeferredNode = DeferredMap::Node;
 static_assert(sizeof(DeferredMap) == 0x14);
 
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
-// list node. The name stays raw words: the record is copied bitwise by the cache list (CList with raw
-// elements, RemoveHead by value) and its name built and freed by hand; Name() is the string.
+// list node. A copy of a record copies its name (RemoveHead returns one by value).
 struct WaveRecord {
-    void* data;                 // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
-    std::uint32_t name[3];      // STLport string (Name())
-    std::uint32_t lastUsed;     // GetTickCount()
-    std::int32_t size;          // bytes
-    std::int32_t uses;          // voices playing it
+    void* data = nullptr;       // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
+    stlp::string name;
+    std::uint32_t lastUsed = 0; // GetTickCount()
+    std::int32_t size = 0;      // bytes
+    std::int32_t uses = 0;      // voices playing it
 
     WaveRecord* Assign(const WaveRecord* from);
-
-    stlp::string& Name() { return *reinterpret_cast<stlp::string*>(name); }
-    const stlp::string& Name() const { return *reinterpret_cast<const stlp::string*>(name); }
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
 // Its NewNode / FreeNode copy and destroy the record themselves.
