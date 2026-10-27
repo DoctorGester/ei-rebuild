@@ -96,7 +96,7 @@ public:
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
     CItem* CopyItem(CItem* item) { return DuplicateItem(item); }
 
-    // Puts `item` among the party's items with a count of 1 (with `keepCount`, the item's own +0x48). With
+    // Puts `item` among the party's items with a count of 1 (with `keepCount`, the item's own count_). With
     // `merge`, an item the list already has that is the same only gets the count added and is returned.
     // Otherwise the party's copy gets the count, a reference and the end of the list, and is returned. Null
     // for a null item. The flags are read as bytes (their low bytes).
@@ -107,8 +107,7 @@ public:
     CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
     // Every quest item (class 0x14) taken out with RemoveItem(item, 1), from the back of the list.
     void RemoveQuestItems();
-    // Every item released (the count re-read after each), the list's storage freed and the list emptied
-    // (what Destroy and Clear inline).
+    // Every item released, the list's storage freed and the list emptied (what Destroy and Clear inline).
     void ReleaseAllItems();
 
     // Appends a unit record: Create when there is no item manager; a constructed record assigned to the new
@@ -117,7 +116,7 @@ public:
     // the record.
     PartyUnitRecord* AddMember(const char* name, const char* prototype, const char* extra);
     // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
-    // scales (+0x724..+0x72C), copies (CItem::Clone) of the starting armour, of the two weapons unless
+    // scales, copies (CItem::Clone) of the starting armour, of the two weapons unless
     // empty or "none", and of the spells; text 6 = text 5. Returns 1. (The lists come from the record: the
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     BOOL FillFromPrototype(PartyUnitRecord* record);
@@ -130,8 +129,7 @@ public:
     BOOL EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId) const;
-    // Destroys the first record whose key is `key` and closes the gap;
-    // 1 when there was one, else 0.
+    // Destroys the first record whose key is `key` and closes the gap; 1 when there was one, else 0.
     BOOL RemoveMember(int key);
     // When the party's zone is an edge zone (map.txt kind 1), every exit's target zone of kind 0
     // gets its variable "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
@@ -139,27 +137,24 @@ public:
 
     // Releases the items and frees their storage, empties the item manager and the spell manager (attached
     // again unless `keepSpells`), empties the record array, the variables (with `clearVariables`) and the
-    // zone name, and clears +0x50 and +0x6C.
+    // zone name, and clears money_ and entrance_.
     void Clear(int clearVariables, int keepSpells);
 
     // Reads what SaveParty writes: Create when there is no item manager, Clear(loadVariables, 0) with the
     // party marked as being loaded (LoadingParty, which the records' item lookups use), the zone name,
-    // +0x6C, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager and
-    // counted), the records (PartyUnitRecord::Load), the variables (with `loadVariables`), +0x50 (from
+    // entrance_, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager and
+    // counted), the records (PartyUnitRecord::Load), the variables (with `loadVariables`), money_ (from
     // version 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
     void LoadParty(CStream* stream, int loadVariables);
-    // Create when there is no item manager; the zone name with its zero, +0x6C, both managers (their Save,
+    // Create when there is no item manager; the zone name with its zero, entrance_, both managers (their Save,
     // then SaveObjects), the item ids (-1 for an empty entry), the record count and records, the variables
-    // (with `saveVariables`), then +0x50 xor an ISAAC key and the key.
+    // (with `saveVariables`), then money_ xor an ISAAC key and the key.
     void SaveParty(CStream* stream, int saveVariables);
     // The party in an archive: a memory stream holding SaveParty's output (with variables) as stream field
-    // 1, read back with the archive's version. ArchivePartyThroughHook goes through the address
-    // (party_manager.cpp), so its check runs.
+    // 1, read back with the archive's version.
     void ArchiveParty(ChunkArchive* ar);
-    // Clear(1, 0), then `source` saved into a memory stream and loaded back into
-    // this party (variables included).
+    // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
     CParty* Assign(CParty* source);
-    // The money (+0x50; the camp's deals and the trade read it).
     int& Money() { return money_; }
 
     CItemManager* itemManager_;

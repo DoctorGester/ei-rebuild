@@ -92,10 +92,10 @@ static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefin
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
-    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch only; called by WinMain at
-    // startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1) and the briefings (chunk 2),
-    // each read through an archive of its own and filed under its records' names. 1; FatalError's result when
-    // the archive (reported as "databases.res") or the file cannot be opened.
+    // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
+    // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
+    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
+    // be opened.
     int Load(const char* folder);
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.

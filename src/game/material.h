@@ -84,7 +84,7 @@ public:
     int GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 
-    // Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's Create (0 when it fails);
+    // Rebirth-patched. CBaseManager's Create (0 when it fails);
     // the archive "materials.res" of the text folder added; then the colours of each of the eight kinds of
     // kMaterialKindFiles (0x11 leather, wood, metal, cloth, skin, stone, 0x17 magic, 0x19 metal again)
     // entered under the kind: the file's colours (after its name: a 16-bit length and the text), or, without
