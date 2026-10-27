@@ -60,7 +60,6 @@ struct DeltaField {
 
     // Identical copies: four empty memory streams.
     DeltaField() = default;
-    // Also inlined: the four streams destroyed, the last first.
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;

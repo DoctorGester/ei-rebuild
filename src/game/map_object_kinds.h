@@ -17,7 +17,6 @@ class PlainMapObject : public CMapObject {
 public:
     // The map object's constructor, then its Create called directly.
     PlainMapObject();
-    // The map object's Destroy, then its destructor.
     ~PlainMapObject() override;
     // The deleting destructor frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name

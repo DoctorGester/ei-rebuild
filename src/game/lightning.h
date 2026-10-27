@@ -70,7 +70,6 @@ struct LightningSegment {
     void Animate(float time, float amplitude);
     // The points empty.
     LightningSegment();
-    // The points' block freed.
     ~LightningSegment();
     LightningSegment(const LightningSegment&) = delete;
     LightningSegment& operator=(const LightningSegment&) = delete;
@@ -81,7 +80,6 @@ public:
     // The construction (lightning_start.cpp): the engine object's fields cleared, no textures, the
     // bounds cleared, the segments empty, then reset like Destroy.
     CLightning();
-    // Reset like Destroy, then the segments (lightning_start.cpp).
     ~CLightning() override;
 
     // Resets the bolt like Destroy, then adds it to the manager's list of new bolts, which holds a
@@ -137,7 +135,6 @@ class CLightningManager : public CBaseManager {
 public:
     // CBaseManager's constructor, then the list of new bolts (block size 10).
     CLightningManager();
-    // Every listed bolt released, the list emptied, then CBaseManager's destructor.
     ~CLightningManager() override;
     const char* GetClassName() override;
     int GetClassId() override;                     // 0x35

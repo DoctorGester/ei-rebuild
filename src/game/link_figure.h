@@ -30,7 +30,6 @@ struct FigureDrawerBase : CEngineObject {
 protected:
     // The engine object's fields (no references, id -1, no owner), no mesh.
     FigureDrawerBase();
-    // No mesh, then the engine object's.
     ~FigureDrawerBase() override;
 };
 
@@ -50,7 +49,6 @@ struct FigureMeshDrawer : FigureDrawerBase {
 
     // figure_drawer.cpp. FigureDrawerBase's constructor (the class adds nothing).
     FigureMeshDrawer();
-    // No flags, then the base's destructor.
     ~FigureMeshDrawer() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
@@ -121,8 +119,6 @@ static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x
 class CLinkMeshBase {
 public:
 
-    // Deleting destructor. Counted users delete
-    // the mesh when its last reference goes.
     virtual ~CLinkMeshBase();
     // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
@@ -189,7 +185,6 @@ public:
     // The base's part, the coefficients stored, the arrays and the ranges map empty, the pipeline taken
     // from the loader's renderer.
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
-    // The ranges map, the arrays (indices first), then the base's destructor.
     ~CLinkMesh() override;
 
     // Every slot of the base.

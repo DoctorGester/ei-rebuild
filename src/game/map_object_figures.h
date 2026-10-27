@@ -105,7 +105,6 @@ public:
         ClearFields();
         object = nullptr;
     }
-    // object3d_specific_slots.cpp. The deleting destructor: no object.
     ~CObject3DSpecific() override;
     // Two unused virtuals (object3d_halves.cpp): nothing.
     void IgnoreArgument(int);
@@ -183,8 +182,6 @@ struct FigureBone : CEngineObject {
     // figure_bone_lifetime.cpp (0xA0 bytes, made by the figure factory): engine object fields, empty names and
     // child list (blocks of 10), then CreateBone's reset.
     FigureBone();
-    // The destructor body: DestroyBone, the matrices' block freed, the list emptied (its destructor), then the
-    // names' and the engine object's.
     ~FigureBone() override;
     // The deleting destructor frees into the game's heap.
 
@@ -256,8 +253,6 @@ public:
     // map_object_animation_bones.cpp.
     // Engine object fields, empty lists (blocks of 10), then Reset.
     CFigureAnimationState();
-    // The destructor body: every bone released, Reset's fields, the lists emptied (their destructors), then the
-    // engine object's.
     ~CFigureAnimationState() override;
     // The deleting destructor frees into the game's heap.
 
@@ -356,8 +351,6 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 // rotation, world rotation).
 class CObject3D : public CTransformObject {
 public:
-    // map_object_lifetime.cpp (deleting destructor): the parts released, the frame array, string array, figure
-    // (counted), part arrays and list blocks freed, then the name (a member).
     ~CObject3D() override;
     int Create() override { return Create3D(); }
     void Destroy() override { Destroy3D(); }

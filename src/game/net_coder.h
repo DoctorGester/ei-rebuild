@@ -92,7 +92,6 @@ public:
     GrowingBuffer(const GrowingBuffer& from);
     // The block freed, then copied as the copy constructor (base kept).
     GrowingBuffer& operator=(const GrowingBuffer& from);
-    // The deleting destructor: the block freed.
     ~GrowingBuffer() override;
 
     // Virtuals 0 / 1 (identical): always moves the contents to a new block of
@@ -119,7 +118,6 @@ public:
         base = 0;
         flags = 2;
     }
-    // The deleting destructor: the view owns nothing.
     ~BufferView() override;
 
     void ReserveRead(std::int32_t) override;    // Virtual 0 (nothing to reserve)

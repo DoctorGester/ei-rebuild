@@ -27,9 +27,6 @@ public:
     // sides -1, flags_ |= 0x80040, the spell released, both arrays SetSize(0,
     // -1), the list emptied, countdown 0, +0x28C 0, period 10.
     MagicTrap();
-    // The map object's Destroy (called directly), the spell released, both
-    // arrays SetSize(0, -1), the list emptied twice (RemoveAll, then CList's destructor), the
-    // arrays' storage freed, then the map object's destructor.
     ~MagicTrap() override;
     // The deleting destructor frees into the game's heap.
 

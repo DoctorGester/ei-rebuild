@@ -61,7 +61,6 @@ static_assert(sizeof(UnitPlacement) == 0x28);
 // base's bodies are empty, 13 and 23 pure.
 class CPlayerConnection : public CEngineObject {
 public:
-    // The deleting destructor (player_client.cpp): no player, then CEngineObject's.
     ~CPlayerConnection() override;
 
     virtual void ForgetSentObjects() = 0;   // Virtual 13: server (sent objects, party units); client empty
@@ -96,9 +95,6 @@ public:
     // The engine object's fields, an empty handler table, the outgoing stream,
     // the placements, both coders, the sent arrays and groups, then ClearServerState.
     CPlayerServer();
-    // The deleting destructor: ClearServerState (an ISAAC draw, as the original), the groups destroyed, the
-    // sent arrays' blocks freed, both coders' output ended, the placements' storage, the handler table's block and
-    // the stream's storage freed, then CPlayerConnection's.
     ~CPlayerServer() override;
 
     int Create() override { return CreateServer(); }
@@ -379,8 +375,6 @@ public:
     // The maps (NextPrime(100) buckets each; their functor bytes are left as they are), the party
     // (constructed, then created), the lists (block size 10), then what DestroyPlayer leaves.
     CPlayer();
-    // The deleting destructor. DestroyPlayer, the party destroyed, the lists emptied, the party
-    // destructed, the maps freed, the link released; CEngineObject's last.
     ~CPlayer() override;
 
     int Create() override { return CreatePlayer(); }

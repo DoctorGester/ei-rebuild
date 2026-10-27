@@ -33,8 +33,6 @@ struct AnimationTrack : CEngineObject {
     // animation_track_lifetime.cpp (A-U10; 0x78 bytes).
     // Engine object fields, empty arrays, then DestroyTrack's reset.
     AnimationTrack();
-    // The destructor body: the reset with both arrays emptied through their SetSize(0), their blocks freed, then
-    // the engine object's.
     ~AnimationTrack() override;
     // The deleting destructor frees into the game's heap.
 

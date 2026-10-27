@@ -369,8 +369,6 @@ public:
 
     // The count and the flags are the creator's.
     SessionBase();
-    // Tells every client it leaves, then destroys the handler
-    // tables, the socket, the type registry and the clients list.
     ~SessionBase() override;
     virtual void RemoveClient(ClientNode* node);                                // the sentinel is ignored
     virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // kind 0
@@ -683,7 +681,6 @@ public:
 
     // The local player's login, the handlers.
     ClientSession();
-    // The destructor (net_client_life.cpp). The parties, the lists and the held messages.
     ~ClientSession() override;
     void CollectReplicated(ReplicatedVector** out) override;
     void Tick(double dt) override;

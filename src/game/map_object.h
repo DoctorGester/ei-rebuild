@@ -99,8 +99,6 @@ public:
     void IgnoreArgument(int);
     void SetScriptPosition(const Vector3* point);
 
-    // map_object_lifetime.cpp (the deleting destructor): the streams' buffers, the network records, the second
-    // name and the effects freed, then the 3D object's destructor.
     ~CMapObject() override;
     int Create() override { return CreateMapObject(); }
     void Destroy() override { DestroyMapObject(); }
@@ -359,7 +357,6 @@ public:
         ClearFields();
         owner = nullptr;
     }
-    // map_object_companion_slots.cpp. The deleting destructor: no map object.
     ~CMapObjectCompanion() override;
     int Create() override;    // no map object; 1
     void Destroy() override;  // no map object

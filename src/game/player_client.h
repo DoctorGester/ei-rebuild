@@ -16,8 +16,6 @@ public:
     // The constructor (player_client.cpp): the members constructed (the streams with the queue's vtable),
     // then Clear inlined.
     CPlayerClient();
-    // The deleting destructor: Clear inlined, both id arrays freed, the coders' outputs ended, the handler
-    // table and the streams freed, then CPlayerConnection's.
     ~CPlayerClient() override;
 
     int Create() override { return CreateClient(); }

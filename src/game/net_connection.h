@@ -44,7 +44,6 @@ public:
     ReplicaEntry();
     // Clone's copy: the same object, one more reference.
     ReplicaEntry(const ReplicaEntry& other);
-    // The object released (the deleting destructor).
     ~ReplicaEntry() override;
     // Serialize (empty).
     int OnShutdown() override;              // Reset: the object let go, version and id cleared
@@ -170,7 +169,6 @@ public:
     explicit Connection(std::uint32_t id);
     // Clone's copy: every container copied.
     Connection(const Connection& other);
-    // The deleting destructor (net_connection_life.cpp).
     ~Connection() override;
 
     // Serialize (empty).

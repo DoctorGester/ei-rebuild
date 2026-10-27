@@ -157,7 +157,6 @@ public:
     virtual void Refresh();
     // Empty. Writes the record as a chunk of its own.
     virtual void Save() {}
-    // The deleting destructor.
     virtual ~Spec();
 
     // On the game's heap (map_spec.cpp): null without memory, and then no constructor runs.
@@ -182,8 +181,6 @@ class ObjectSpec : public Spec {
 public:
     // Kind 1, no model, textures "none", player -1, scale 0.5, visible, no parts.
     ObjectSpec();
-    // The deleting destructor. The quick item effect's record (UseQuickItem) is one too: its destructors are the
-    // same code.
     ~ObjectSpec() override;
 
     void OnChunk() override;                                 // the chunk just read, by its id
@@ -240,7 +237,6 @@ class TrapSpec : public ObjectSpec {
 public:
     // Kind 7, every side, no area or points, period 15.
     TrapSpec();
-    // The deleting destructor. The arrays' destructors inlined: their blocks freed.
     ~TrapSpec() override;
 
     void OnChunk() override;

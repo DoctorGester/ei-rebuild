@@ -50,7 +50,6 @@ public:
     // An engine object with empty names, alpha 1 and an empty deque (one node). The
     // colours stay as they were.
     CMaterial();
-    // The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
     // The deleting destructor frees into the game's heap.
 
@@ -85,7 +84,6 @@ public:
     // CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
     // buckets).
     CMaterialManager();
-    // The colour table freed, then CResourceManager's destructor.
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: "CMaterialManager"
     int GetClassId() override;

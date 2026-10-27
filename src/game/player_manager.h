@@ -17,7 +17,6 @@ class CPlayerManager : public CBaseManager {
 public:
     // CBaseManager's constructor (inlined in CWorld::Create).
     CPlayerManager();
-    // CBaseManager's destructor.
     ~CPlayerManager() override;
     // The deleting destructor.
     int Create() override;

@@ -63,8 +63,6 @@ public:
     // object3d_client_parts.cpp. The empty arrays and names, the shadow sphere zeroed, cursor -1, the shadow
     // texture and the wounds texture / material dropped, bounds and pulse clock 0.
     CObject3DClientSpecific();
-    // The deleting destructor: Destroy, the names, the wounds material and texture and the shadow texture
-    // released, the arrays' blocks freed.
     ~CObject3DClientSpecific() override;
     // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
     // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
@@ -248,8 +246,6 @@ bool ShadowCastStrength(CObject3D* object, float* strength);
 struct WoundsMaterial final : CDeviceMaterial {
     // The constructor ShowWounds inlines (unit_client_wounds.cpp).
     WoundsMaterial();
-    // The deleting destructor (object3d_halves.cpp). Every stage destroyed (its texture released, then its name),
-    // the vector's block freed, the preset released (deleted at its last reference).
     ~WoundsMaterial() override;
 };
 

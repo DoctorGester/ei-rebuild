@@ -73,7 +73,6 @@ public:
     // A copy of `source`, as Assign makes it (it reads its source non-const: saving it
     // makes its managers when it has none).
     explicit CParty(CParty& source);
-    // Deleting destructor: Clear(1, 1), Destroy, then the members.
     ~CParty() override;
     CParty& operator=(const CParty&) = delete;
 

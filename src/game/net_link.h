@@ -46,7 +46,6 @@ public:
     FileStream();
     // A fresh stream; `other` is not read.
     FileStream(const FileStream& other);
-    // The destructor: the CFile destroyed (closing an open file).
     ~FileStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // Virtual 1 (a short read clears ok_)
     void Write(const void* buffer, std::uint32_t size) override;
@@ -89,7 +88,6 @@ using QueueNode = StreamQueue::Node;
 // The link base.
 class NetLink : public CRefObject {
 public:
-    // The deleting destructor: the record stream destroyed.
     ~NetLink() override;
 
     // Serialize (empty); 2 / 3 pure.
@@ -132,7 +130,6 @@ public:
     // Clone's copy: the recording flags, a closed file of its own, a copy of every queued stream and the same
     // peer (counted).
     LoopbackLink(const LoopbackLink& other);
-    // The deleting destructor: the peer released, the queue destroyed, then the base.
     ~LoopbackLink() override;
 
     // 10, 12: NetLink's.
@@ -164,7 +161,6 @@ public:
     ReplayLink();
     // Clone's copy: the recording flags and two closed files of its own.
     ReplayLink(const ReplayLink& other);
-    // The deleting destructor: both file streams destroyed (the replay's first).
     ~ReplayLink() override;
 
     // 7, 8, 10, 12: NetLink's.
@@ -185,7 +181,6 @@ public:
 // The framed link (abstract, 0x50 bytes).
 class FramedLink : public NetLink {
 public:
-    // The destructor: the inbox's buffer freed, then the base.
     ~FramedLink() override;
 
     // 2-5, 11 pure; 10, 12 NetLink's.
@@ -217,7 +212,6 @@ public:
     DriverLink();
     // Clone's copy: the framed link's, then the same player (counted).
     DriverLink(const DriverLink& other);
-    // The deleting destructor: disconnected (called directly), then the framed link's destructor.
     ~DriverLink() override;
 
     // 6-9 FramedLink's; 12 NetLink's.
@@ -248,7 +242,6 @@ class DriverSession final : public CPlayerSource {
 public:
     // Both lists empty.
     DriverSession();
-    // The deleting destructor. Both lists destroyed (holders released, drivers destroyed).
     ~DriverSession() override;
 
     int OnShutdown() override;          // Virtual 2 (both lists emptied, new sentinels)

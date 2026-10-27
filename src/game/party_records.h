@@ -20,7 +20,6 @@ public:
     // The record's constructor (inlined in its creators; the count is theirs): the party constructed and
     // created, an empty name.
     PartyRecord();
-    // Deleting destructor (app_lifetime.cpp): the party destroyed and its destructor, the name.
     ~PartyRecord() override;
     // Serialize: the name as string field 1, the party (SaveParty / LoadParty with variables) as stream
     // field 2.

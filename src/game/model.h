@@ -2,7 +2,6 @@
 
 // Model and resource loading: the 3D library side of figures and the
 // databases read at startup (prints.db, acks.db). See docs/notes/models.md.
-// Names are provisional.
 
 #include "chunk_archive.h"
 #include "maths.h"
@@ -20,9 +19,8 @@
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
-// Matrix4 (row-major 4x4, the transform library's) is in src/lib/vecmath.h.
 
-// Bounding volume of a figure part, tested against the view frustum. 0x2C bytes.
+// Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {
     std::uint32_t flags;   // bit 0: centre/radius valid, bit 1: box valid
     Vector3 center;
@@ -30,17 +28,14 @@ struct ClipBounds {
     Vector3 boxMin;        // box corners, relative to the centre
     Vector3 boxMax;
 
-    // Sets the box and its flag; returns the new flags (left in EAX).
+    // Sets the box and its flag; returns the new flags.
     std::uint32_t SetBox(const float* min, const float* max);
 };
 static_assert(sizeof(ClipBounds) == 0x2C);
 
 // One of the transform pipeline's matrix stacks: aligned storage of matrices and the depth.
 struct MatrixStack {
-    // Room for 16 matrices, empty (the pipeline's constructor runs it for each
-    // of the 16).
     MatrixStack();
-    // The block freed.
     ~MatrixStack();
     MatrixStack(const MatrixStack&) = delete;
     MatrixStack& operator=(const MatrixStack&) = delete;
@@ -59,13 +54,10 @@ class CLight;
 class ITransformPipeline {
 public:
     virtual void Unknown0();
-    // The viewport's size in pixels.
     virtual void SetViewportSize(float width, float height);
     // The sun for the next LightMesh (its localDirection_).
     virtual void AddSun(CLight* sun);
-    // The ambient colour, components in 0..1.
     virtual void SetAmbient(float r, float g, float b);
-    // The projection matrix, transposed.
     virtual void SetProjection(float* transposed);
     // The depth range (the options' fog start and far clip distances).
     virtual void SetDepthRange(float first, float second);
@@ -174,8 +166,6 @@ public:
     // 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s transform object taken. No library, or
     // no such function in it: throws.
     explicit CTransformPipeline(const char* folder);
-    // The destructor: the transform object forgotten, 3DfpFPU.dll
-    // unloaded, the stacks' blocks freed from the last to the first.
     ~CTransformPipeline() override;
     // The push the draw code inlines (the terrain, the world draw
     // and the decal projector keep their own copies): as PushMatrix, but
@@ -226,13 +216,10 @@ class CPixelConverter;
 // with one pure virtual and the plain counted root, neither with fields; render_helper.cpp).
 class CRenderPreset final {
 public:
-    // The helper's recording: no references, a copy of `blocks`.
     CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stages, int index);
-    // The blocks' storage freed.
     virtual ~CRenderPreset();
     virtual unsigned Index() { return static_cast<unsigned>(index_); }
 
-    // On the game's heap.
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
@@ -282,7 +269,6 @@ public:
     // Takes the device and its capabilities, then records the nine built-in presets (`flag`'s low
     // byte: one texture stage each).
     CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
-    // Every record's preset through virtual 3, the tables freed, the device released.
     virtual ~CRenderHelper();
     // Records the state blocks of `states` and keeps the new preset (as
     // built-in preset `index` when that is below 9). `singleStage`: at most one texture stage.
@@ -300,7 +286,6 @@ public:
     // Virtual 6 for preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
 
-    // On the game's heap.
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
@@ -329,12 +314,8 @@ class CVisualizator {
 public:
     // Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
     virtual int SetFogColourState(std::uint32_t colour) = 0;
-    // The scalar deleting destructor (DestroyBase, then operator delete when bit 0 of the flags is set;
-    // returns this).
     virtual ~CVisualizator();
-    // The creation (CreateBase).
     virtual void CreateRenderer(void* window, options::GameOptions* settings);
-    // DestroyBase.
     virtual void DestroyRenderer();
     virtual int BeginScene() = 0;
     virtual int EndScene() = 0;
@@ -364,7 +345,6 @@ public:
     virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
     virtual bool RestoreSurfaces() = 0;
 
-    // Freed into the game's heap (the scalar deleting destructor's operator delete).
     static void operator delete(void* memory);
 
     // The creation (called first by the renderer's creation). A new transform pipeline (with the options' work path) replaces the held
@@ -578,7 +558,6 @@ static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRend
 static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
               offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
 
-// The renderer (the global renderer object).
 CSceneRenderer* __cdecl SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
@@ -627,8 +606,6 @@ struct FigureModel {
     void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
-// A figure model's constructor
-// (returns it) and destructor.
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
 void __fastcall DestroyFigureModel(FigureModel* model);
 
@@ -650,9 +627,6 @@ public:
     // The renderer held, the cache and the figure and menu archives of
     // `folder` opened (a failure is only logged).
     CLinkFigureLoader(CTextureDevice* renderer, const stlp::string* folder);
-    // Each archive closed and deleted, the archive list emptied, each
-    // figure set destroyed and freed, the device object released (the field cleared first), the cache
-    // emptied (ClearCache's walk), then the containers' storage.
     virtual ~CLinkFigureLoader();
     virtual int CacheSize();
     virtual int CacheBytes();
@@ -669,7 +643,6 @@ public:
     // morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
-    // On the game's heap (link_loader_create.cpp).
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
