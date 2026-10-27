@@ -16,6 +16,7 @@ class CWorldClient;
 class CWorldServer;
 class CTextManager;
 class CBaseManager;
+struct CMapObjectManager;
 class CTextureManager;
 class CFigureManager;
 class CParticleManager;
@@ -53,7 +54,7 @@ CWorldServer* TheServerWorld();   // g_serverWorld
 // manager (finds and creates engine objects by id), the figure manager (models and sprites), the texture, material,
 // sound and particle managers, the light factory, the music system and the terrain (also the point lights' manager).
 CTextManager* TheTextManager();
-CBaseManager* TheObjectManager();
+CMapObjectManager* TheObjectManager();
 CFigureManager* TheFigureManager();
 CTextureManager* TheTextureManager();
 CMaterialManager* TheMaterialManager();

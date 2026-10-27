@@ -1,6 +1,7 @@
 // The world's managers released (the base world's Destroy). Their creation is world_create.cpp. See world.h
 // and docs/notes/combat.md.
 #include "world.h"
+#include "figure_manager.h"
 
 #include "base_manager.h"
 #include "core_refcount.h"

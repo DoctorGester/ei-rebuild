@@ -9,6 +9,7 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
+#include "figure_manager.h"
 #include "spell.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"

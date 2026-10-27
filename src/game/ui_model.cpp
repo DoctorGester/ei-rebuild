@@ -19,14 +19,6 @@
 
 namespace {
 
-// Plays `animation` (with `restart` 1 from here).
-void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int restart) {
-    object->PlayAnimation(animation, restart);
-}
-// The object of `kind` named `name`.
-FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
-    return static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind);
-}
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
 // A part is hidden while bit 0x80 of its flags is set.
@@ -64,7 +56,7 @@ EI_REWRITTEN(0x005FC1D0, CUiModel::ReleaseObject);
 // Skill animation `animation` + 1 of the object played.
 void CUiModel::Play(int animation) {
     CObject3D* object = Figure();
-    PlayAnimation(object, nullptr, object->FindSkillAnimation(animation + 1), 1);
+    object->PlayAnimation(object->FindSkillAnimation(animation + 1), 1);
 }
 EI_REWRITTEN(0x005FC3B0, CUiModel::Play);
 
@@ -72,7 +64,7 @@ EI_REWRITTEN(0x005FC3B0, CUiModel::Play);
 void CUiModel::Stop() {
     CObject3D* object = Figure();
     mfc::CString name(object->name);
-    PlayAnimation(object, nullptr, FindNamed(TheObjectManager(), nullptr, &name, kRestPoseKind), 1);
+    object->PlayAnimation(TheObjectManager()->FindAnimation(&name, kRestPoseKind), 1);
 }
 EI_REWRITTEN(0x005FC3D0, CUiModel::Stop);
 

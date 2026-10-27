@@ -11,6 +11,7 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
+#include "figure_manager.h"
 #include "world_data.h"
 
 #include "sky_object.h"   // before windows.h (GetClassName)

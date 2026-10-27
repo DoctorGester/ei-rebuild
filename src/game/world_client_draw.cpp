@@ -12,6 +12,7 @@
 #include "ui_flying_hit_points.h"
 #include "view_matrices.h"
 #include "world.h"
+#include "figure_manager.h"
 #include "world_data.h"
 
 #include "camera.h"

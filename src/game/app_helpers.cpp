@@ -9,6 +9,7 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "unit_create.h"   // CMapObjectManager
 #include "options.h"
 #include "game_singletons.h"
 
