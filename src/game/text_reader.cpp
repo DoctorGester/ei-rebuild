@@ -1,6 +1,6 @@
-// The text manager's line reader (004DEFC0-004DFFFF). See text_reader.h.
-// The original inlines the same few loops many times with small differences (the end test inline
-// or through IsPastEnd 004E0000, the character code inline or through 004DF4E0); `Advance` below
+// The text manager's line reader. See text_reader.h.
+// The game inlines the same few loops many times with small differences (the end test inline
+// or through IsPastEnd, the character code inline or through a helper); `Advance` below
 // reproduces each variant by its call pattern.
 #include "item_db_text.h"
 #include "text_reader.h"
@@ -15,18 +15,18 @@
 
 namespace {
 
-// MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.
+// MBCS CRT: _ismbblead, isleadbyte, _mbsinc, _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
 // CString members not in lib/mfc.h.
 struct TextString : mfc::CString {
-    void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
+    void AppendChar(char c);                    // operator+=(TCHAR)
 };
 void TextString::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
 
-// 004DBE40 (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
+// Split (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
 const char* const kComment = "##";
 const char* const kHeader = "#";
@@ -36,7 +36,7 @@ bool Inside(const CTextManager* t, const char* p) {
     return static_cast<int>(p - t->text_) < static_cast<int>(t->length_);
 }
 
-// 004DF4E0 as inlined: the lead test on the unsigned byte, the code from the signed bytes.
+// The character code as inlined: the lead test on the unsigned byte, the code from the signed bytes.
 int CharCode(const char* p) {
     int high = 0;
     if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {

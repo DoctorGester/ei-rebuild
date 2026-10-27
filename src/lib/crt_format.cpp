@@ -1,7 +1,7 @@
 // The game CRT's formatted text: MSVC 6's _output behind sprintf / vsprintf / fprintf / printf, with the
 // CRT's own number conversion: $I10_OUTPUT's 17 digits from a 12-byte long double (96-bit mantissa products, the
 // exe's power-of-ten tables) and _fptostr's rounding of that digit string. All integer arithmetic, so the results
-// are the same bytes as the original's in either build. atof and sscanf are the
+// are the same bytes as game.exe's in either build. atof and sscanf are the
 // host CRT's; the host's printf differs (two-digit exponents, "inf"), so _output stays.
 #include "crt.h"
 #include "crt_locale_data.h"
@@ -521,7 +521,7 @@ int WideToBytes(char* to, wchar_t c) {
                                                       MbCurMax(), nullptr, &defaultUsed);
         if (size != 0 && !defaultUsed) return size;
     }
-    return -1;   // the original's errno = EILSEQ: its callers never read it
+    return -1;   // errno = EILSEQ is not set: no caller reads it
 }
 
 // ---- _output ----
@@ -559,7 +559,7 @@ struct CountedString {
     void* buffer;
 };
 
-// The original's text buffer is 512 bytes; a wider number would overrun it there.
+// The text buffer is 512 bytes; a wider number would overrun it.
 constexpr int kBufferSize = 512;
 
 template <typename Sink>
@@ -580,7 +580,7 @@ public:
         char prefix[2] = {};
         int radix = 0;
         int hexAdd = 0;
-        // Kept from one conversion to the next, as in the original.
+        // Kept from one conversion to the next.
         const char* text = nullptr;
         int textLength = 0;
         char buffer[kBufferSize];
@@ -948,7 +948,7 @@ int FormatInto(char* buffer, std::size_t room, const char* format, va_list args)
 }
 
 // The text formatted in memory, then written with the game's fwrite (one write, as _stbuf's temporary
-// buffer gives the original for an unbuffered stream).
+// buffer gives an unbuffered stream).
 int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args) {
     std::vector<char> text;
     VectorSink sink{text};

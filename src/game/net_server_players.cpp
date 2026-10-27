@@ -1,6 +1,6 @@
-// The game server's players and their connections: lookups (0041A020, 0041A170, 0041A270,
-// 0041A2E0), admission and the password (0041A050 slot 16, 0041A140), kicking and banning
-// the departure reports (0041A700 slot 11, 0041A770 slot 12) and the lines to
+// The game server's players and their connections: lookups (
+// ), admission and the password, kicking and banning
+// the departure reports and the lines to
 // every guest. See net_classes.h and docs/notes/network.md.
 // Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
 #include "net_messages.h"
@@ -182,7 +182,7 @@ void ServerSession::Ban(Connection* connection) {
 }
 EI_REWRITTEN(0x0041A620, ServerSession::Ban);
 
-// 0041A700 (slot 11, a client lost) and 0041A770 (slot 12, a client left): the client's player is
+// A client lost and a client left: the client's player is
 // announced (text 4 / text 1).
 void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;

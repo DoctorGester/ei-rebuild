@@ -33,10 +33,10 @@ namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
 constexpr float kHalf = 0.5f;
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 (0.1)
-constexpr float kNearPoint = std::bit_cast<float>(0x3DB851ECu);     // 0073F0B0 (0.09)
-constexpr float kShort = std::bit_cast<float>(0x3F7FBE77u);         // 0073F0B4 (0.999)
-constexpr float kLong = std::bit_cast<float>(0x3A83126Fu);          // 0073CCF4 (0.001)
+constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
+constexpr float kNearPoint = std::bit_cast<float>(0x3DB851ECu);     // 0.09
+constexpr float kShort = std::bit_cast<float>(0x3F7FBE77u);         // 0.999
+constexpr float kLong = std::bit_cast<float>(0x3A83126Fu);          // 0.001
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
@@ -91,7 +91,7 @@ bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kC
 bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
 
-// The map objects' virtual slots (map_object.h). Slot 54 is 1 while a unit moves (+0x278).
+// The map objects' virtuals (map_object.h). The movement-state virtual is 1 while a unit moves.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
@@ -111,14 +111,14 @@ void TellParty(CUnit* unit, int message) {
     if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
 }
 
-// 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
+// UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.
 void ClearAction(UnitAction* order) {
     order->Clear();
     order->param = 0;
     order->modifier = 0;
 }
 
-// A CPtrList on the stack (vtable 0073D454), as 005468D0 fills it.
+// A CPtrList on the stack, as LiftNearby fills it.
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 } // namespace
 
@@ -136,7 +136,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
     std::memcpy(&point, &from->point, sizeof(point));
     flag18 = from->flag18;
     param = from->param;
-    param = from->param;   // copied twice by the original
+    param = from->param;   // copied twice, like the original
     modifier = from->modifier;
     return this;
 }
@@ -180,7 +180,7 @@ void CUnitServer::SyncMoveModes() {
 EI_REWRITTEN(0x0054A620, CUnitServer::SyncMoveModes);
 
 namespace {
-// The melee reach test of 0054C8B0 as 0054A6E0 inlines it: false when the target (a living unit
+// The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
 // standing on its own) is too high to reach, else whether the action can be planned.
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
@@ -259,7 +259,7 @@ void StandIdle(CUnitServer* self) {
     self->SetState(2);
 }
 
-// The queued order replaces the current one (0054B320 then 0054B230 on the queued order).
+// The queued order replaces the current one (copy, then reset of the queued order).
 void TakeOver(CUnitServer* self) {
     self->action.Assign(&self->action2);
     self->action2.Reset();
@@ -556,7 +556,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     return x87::fistp(scaled);
 }
 
-// 00546830 as 0054D960 inlines it.
+// As an inlining caller has it.
 void SetModeInline(CUnit* unit, int mode) {
     if (unit->moveMode2 == mode) return;
     unit->moveMode2 = mode;
@@ -582,7 +582,7 @@ EI_REWRITTEN(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
 bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point) {
     if (OutOfReachUp(this, order)) return false;
-    // The position is swapped bitwise, as the original does.
+    // The position is swapped bitwise, like the original.
     Vector3 saved;
     std::memcpy(&saved, &unit->localPosition_, sizeof(saved));
     std::memcpy(&unit->localPosition_, point, sizeof(saved));
@@ -684,8 +684,7 @@ EI_REWRITTEN(0x0054D960, CUnitServer::ExecuteOrder);
 // --- Closing in --------------------------------------------------------------------------------
 
 namespace {
-// Where the motion (+0x3C) is heading: half its +0x58 / +0x5C (as 1.0 * 0.5, the original's
-// constant product).
+// Where the motion is heading: half its two members (as 1.0 * 0.5, the original's constant product).
 double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 } // namespace
 

@@ -1,7 +1,6 @@
-// Particle emit callbacks (+0x1E0 of a CParticleSource) in 0x00490000-0x00497000 and the element
-// array allocator. Names are provisional.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// Particle emit callbacks (of a CParticleSource) and the element array allocator. Names are provisional.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU stack,
+// static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "map_object_figures.h"   // CObject3D
 
@@ -33,7 +32,7 @@ double Unsigned(std::uint32_t value) {
 // Constants the original reads from memory at run time.
 
 
-// 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
+// IsaacRandom::Range leaves its result unrounded in ST0.
 
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
@@ -325,7 +324,7 @@ void PlaceModifierPoints(CParticleSource* s) {
 } // namespace
 
 // Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
-// just below the returned pointer (for operator_delete). __fastcall.
+// just below the returned pointer (for operator_delete).
 ParticleElement* __fastcall AllocateElements(int count) {
     return lib::AlignedArray<ParticleElement>::Allocate(count);
 }

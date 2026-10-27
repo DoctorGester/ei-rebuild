@@ -1,8 +1,8 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
 // script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
-// original's FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
-// computations keep their intermediates unrounded (double locals) as the original keeps them in registers.
+// old x87 FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
+// computations keep their intermediates unrounded (double locals), as x87 registers would.
 #include "script.h"
 #include "game_arrays.h"
 #include "world_glue.h"
@@ -74,7 +74,7 @@ int RoundTimeOffset(int time, float extra) {
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// Copies a float's bits (the original copies through FLD/FSTP, which quiets a signalling NaN; here it is kept).
+// Copies a float's bits (no FLD/FSTP round trip, so a signalling NaN is kept).
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
@@ -83,7 +83,7 @@ constexpr std::uint32_t kOne = 0x3F800000;
 constexpr std::uint32_t kMinusOne = 0xBF800000;
 constexpr std::uint32_t kFar = 0x7149F2CA;     // 1e30: distance when an object is missing
 
-// (float)(int)b: the original converts 0/1 with FILD.
+// (float)(int)b: converts 0/1 exactly.
 float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 
 // ---- Game state reached by the functions --------------------------------------------------------
@@ -91,13 +91,12 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 constexpr int kClassLever = 0x5D;
 
 // The companion holding a map object's vitals. Scripts run on the server, so it is the
-// CMapObjectServer (the original reads it without checking).
+// CMapObjectServer (not checked).
 CMapObjectServer* ServerHalf(CEngineObject* object) {
     return ObjectSlots(object)->ServerCompanion();
 }
 
-// The ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
-// as the original left it.
+// The ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded.
 double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeight(x, y); }
 
 // The game server session when one runs and is not shut down.
@@ -111,7 +110,7 @@ WorldAlarm& Alarm(int index) { return TheServerWorld()->alarms_[index]; }
 
 int WorldTick() { return TheServerWorld()->tick_; }
 
-// _CIfmod: ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
+// GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = TheServerWorld();
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
@@ -166,7 +165,7 @@ EI_REWRITTEN(0x004B4030, SSCCmd::CalcParameters);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
-    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B425A)
+    if (scriptaddon::Enabled()) {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
         if (scriptaddon::Dispatch(&call)) return;
     }
@@ -549,7 +548,7 @@ EI_REWRITTEN(0x004B41E0, SSCCmd::CalcFloat);
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
     *result = script->NewTempObject();
-    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B572F)
+    if (scriptaddon::Enabled()) {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
         if (scriptaddon::Dispatch(&call)) return;
     }
@@ -618,7 +617,7 @@ namespace {
 using TempGroupList = mfc::CList<ScriptGroup>;
 
 // The script's temporary groups: AddTail copies the group into a new node and returns
-// the node. 004C2290: group destructor. 004C1290: group assignment.
+// the node.
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
@@ -651,7 +650,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     }
     ScriptGroup* group = *result;
     bool done = false;
-    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B5BAF)
+    if (scriptaddon::Enabled()) {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
         done = scriptaddon::Dispatch(&call);
     }
@@ -703,7 +702,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             CUnit* unit = node->value;
             if (!unit) break;
             (*result)->Insert(unit);
-            InsertSeen(*result, unit->ServerController());   // no null check, as in the original
+            InsertSeen(*result, unit->ServerController());
         }
         break;
     }

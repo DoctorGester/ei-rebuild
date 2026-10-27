@@ -54,8 +54,8 @@ EI_REWRITTEN(0x00599FA0, CountedEngineList::AddTailCounted);
 
 namespace {
 
-// A command block's copy constructor (inlined by 004C69B0): the array's constructor, SetSize to the
-// source's size, each command a GetAt copy assigned and destroyed; then the id.
+// A command block's copy constructor: the array's constructor, SetSize to the source's size, each command a
+// GetAt copy assigned and destroyed; then the id.
 void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&to->commands);
     mfc::impl::ArrayAs<recordarrays::Cmds>(to->commands).SetSize(from->commands.size, -1);
@@ -69,7 +69,7 @@ void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     to->id = from->id;
 }
 
-// A definition's copy constructor (inlined by 004C7A10): the pairs read through GetAt (8 bytes).
+// A definition's copy constructor: the pairs read through GetAt (8 bytes).
 void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from) {
     to->index = from->index;
     new (&to->name) mfc::CString(from->name);
@@ -80,8 +80,7 @@ void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from)
     to->vars.ScriptVarsCopyConstruct(&from->vars);
 }
 
-// A run's copy constructor (inlined by 004C82B0): the variables through the four value-and-names
-// copy constructors.
+// A run's copy constructor: the variables through the four value-and-names copy constructors.
 void CopyConstructRun(ScriptRun* to, const ScriptRun* from) {
     to->block = from->block;
     to->index = from->index;
@@ -198,7 +197,7 @@ EI_REWRITTEN(0x004C9210, ScriptTempObjects::PushHead);
 ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
     auto* list = As<gamelists::ObjectRefs>(this);
     CEngineObject* object = list->tail->data.object;
-    if (object) ++object->refCount_;   // the original's temporary copy
+    if (object) ++object->refCount_;   // a temporary copy
     list->RemoveAt(list->tail);
     out->object = object;
     if (object) {

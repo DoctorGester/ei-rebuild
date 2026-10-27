@@ -1,9 +1,9 @@
 // CFakeUnit (class id 0x50, 0x580 bytes; derives from CUnit; declared as scene::FakeUnitScene,
 // scene_loader.h): constructor, destructor, Destroy (slot 3), the scene load (slot 62) and the class
-// id. It adds the skin at +0x4E0 (constructor 00508700, destructor 005087B0) and four CArrays: the
-// figures (+0x530, CFigureMesh records, vtable 0073C108), the meshes (+0x544, SceneMesh, 0073C0FC),
-// the bone links (+0x558, a CArray each, 0073C0F0) and the helpers (+0x56C, CMaterial, 0073C0E4).
-// A real virtual class (C19: game.exe's 0073BFE8 is retired). See docs/notes/objects.md
+// id. It adds the skin at +0x4E0 and four CArrays: the
+// figures (+0x530, CFigureMesh records), the meshes (+0x544, SceneMesh),
+// the bone links (+0x558, a CArray each) and the helpers (+0x56C, CMaterial).
+// A real virtual class. See docs/notes/objects.md
 // ("Rewritten").
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -62,7 +62,7 @@ void FakeUnitScene::ReleaseParts() {
     DestroyUnit();
 }
 
-// After the figures' SetSize(0, -1) the original walks the (now empty) figure array dropping each
+// After the figures' SetSize(0, -1) the game walks the (now empty) figure array dropping each
 // figure's count; kept as written.
 FakeUnitScene::~FakeUnitScene() {
     using namespace fakeunit;
@@ -93,7 +93,7 @@ void FakeUnitScene::Destroy() {
 int FakeUnitScene::GetClassId() { return fakeunit::kFakeUnitClassId; }
 
 int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
-    if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;   // 00446C10 (ECX the unit as well, not read)
+    if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;   // the unit is passed in ECX as well, not read
     scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) {
         CBaseManager* manager = WorldContext()->SpecificManager();
@@ -109,7 +109,7 @@ EI_REWRITTEN_SPECIAL(0x004468F0, FakeUnitScene::~FakeUnitScene);   // deleting
 
 namespace fakeunit {
 
-// The slots of game.exe's 0073BFE8 (retired) are the compiled table's; nothing reaches their
+// The compiler's table holds these slots; nothing reaches the old slot
 // addresses (tools/registration_readers.py).
 EI_REWRITTEN(0x00446B20, FakeUnitScene::Destroy);     // slot 3
 EI_REWRITTEN(0x00446BA0, FakeUnitScene::LoadScene);   // slot 62, RET 8

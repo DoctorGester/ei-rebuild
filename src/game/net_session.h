@@ -7,9 +7,9 @@
 
 namespace net {
 
-// Called from the main loop (WinMain 00456440) and from the loading screens (0057C700,
-// 00569E40, 005DA400): ticks the two sessions with the real time since the last call, then the
-// game's per-frame network step (0057F190 on 007AFE20).
+// Called from the main loop and from the loading screens
+// : ticks the two sessions with the real time since the last call, then the
+// game's per-frame network step.
 void __cdecl Pump();
 
 } // namespace net

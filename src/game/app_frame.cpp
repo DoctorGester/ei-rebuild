@@ -1,7 +1,6 @@
-// WinMain's frame step (00458010: the interface and the game ticked, the frame drawn and flipped,
-// a screenshot per frame while recording a movie) and the intro movies (00458270: the list read
-// from an .ini file, each played, the screen cleared before and after). Every
-// callee is reached through its original address. See docs/notes/app.md.
+// WinMain's frame step (the interface and the game ticked, the frame drawn and flipped, a
+// screenshot per frame while recording a movie) and the intro movies (the list read from an .ini
+// file, each played, the screen cleared before and after). See docs/notes/app.md.
 #include "app.h"
 #include "dib.h"
 #include "game_strings.h"
@@ -33,7 +32,7 @@ bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
 // The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame
 // capture reads the finished frame before the cursor is blitted and the frame flipped
-// (tests/verify/harness_capture.cpp; in game.exe's own runs it patches the original CALL at 004580D7).
+// (tests/verify/harness_capture.cpp).
 using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
 CursorLock CursorLockAtCallSite() {
     if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
@@ -45,10 +44,10 @@ CursorLock CursorLockAtCallSite() {
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
-// The original fills the device object's screen rectangle of the primary surface with black (a
-// colour-fill Blt under the render lock, taken twice) and keeps the result in the device's
-// lastLoadResult_. The primary is a holder without a surface (renderer.md section 9): nothing to
-// fill, the result 0.
+// Fills the device object's screen rectangle of the primary surface with black (a colour-fill
+// Blt under the render lock, taken twice) and keeps the result in the device's lastLoadResult_.
+// The primary is a holder without a surface (renderer.md section 9): nothing to fill, the
+// result 0.
 void ClearScreen() {
     CTextureDevice* device = TheRenderDevice();
     gameapi::EnterCriticalSection(TheDeviceLock());
@@ -60,8 +59,8 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 
 } // namespace
 
-// 00458010 (CL draw, DL cursor). Nothing while the application is inactive (a 50 ms sleep when
-// no window of the interface is active).
+// Nothing while the application is inactive (a 50 ms sleep when no window of the interface is
+// active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
     if (!TheInterface()->GetActiveWindow()) {
@@ -86,8 +85,8 @@ void __fastcall FrameStep(bool draw, bool cursor) {
         app::g_recordingFrames = 0;
         return;
     }
-    // {0, 0, width, height} of the render target's surface; without one the original passes two
-    // stack words it never set.
+    // {0, 0, width, height} of the render target's surface; without one the game passes two stack
+    // words it never set.
     std::uint32_t rect[5];
     CTextureDevice* device = TheRenderDevice();
     std::uint32_t width = rect[4], height = rect[4];
@@ -108,13 +107,12 @@ void __fastcall FrameStep(bool draw, bool cursor) {
 }
 EI_REPLACE(0x00458010, FrameStep);
 
-// 00458270 (ECX section, DL clear first): plays the movies listed under `section` in the .ini at
-// 007AF460 + "..." (each from the directory 007AF458 + "..."), clearing the screen before and,
-// with `clearAfter`, after each.
+// Plays the movies listed under `section` in the .ini under the movie folder setting (each
+// from the movie directory), clearing the screen before and, with `clearAfter`, after each.
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
     mfc::CStringArray list;
     list.Construct();
-    lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the original's calls
+    lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();
     ini->Construct();
     {

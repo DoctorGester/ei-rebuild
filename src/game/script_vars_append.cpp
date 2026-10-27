@@ -1,5 +1,5 @@
-// Appending one variable set's values to another, one type at a time (004C2B70 floats, 004C2FE0
-// strings, 004C3450 objects, 004C3DC0 groups); ScriptVars::AppendFrom calls the four.
+// Appending one variable set's values to another, one type at a time (floats, strings, objects,
+// groups); ScriptVars::AppendFrom calls the four.
 // The loader uses it to add a file's GlobalVars to the globals. See script.h and
 // docs/notes/script.md.
 // Each grows the values by the other set's value count (the inlined CArray::SetSize), the names
@@ -21,13 +21,13 @@ using namespace scriptarray;
 
 namespace {
 
-// CArray members called out of line: 004C2510 CStringArray SetSize, 004C2680 GetAt (CString by
-// value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
-// referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
+// CArray members called out of line: CStringArray SetSize, GetAt (CString by
+// value; also on string values), GetAt of a reference array (ScriptObjectRef by value,
+// referenced), GetAt of a group array (ScriptGroup by value).
 mfc::CString* StringAt(const void* array, void* out, int index) {
     return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
 }
-// A reference's destructor (__thiscall (flags)).
+// A reference's destructor (flags).
 
 void Release(CEngineObject* object) {
     if (object) object->Release();
@@ -103,7 +103,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
             group->data[k].Construct(member);
             Release(member.object);
         }
-        // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
+        // The copy's destructor: each reference destroyed, the array freed.
         copy.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (copy.data) {
             for (int k = 0; k < copy.size; ++k) copy.data[k].DestroyElement(0);

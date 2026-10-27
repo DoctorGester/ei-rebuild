@@ -35,7 +35,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 } // namespace
 
-// --- 006242E0: a labelled value ---------------------------------------------------------------------
+// --- A labelled value ----------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maximum) {
     CTextManager* texts = TheTextManager();
@@ -60,7 +60,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
 }
 EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
-// --- 00624590: a body part's armour ------------------------------------------------------------------
+// --- A body part's armour ------------------------------------------------------------------------
 
 float CHeroStatsPanel::PartArmour(int part) {
     const UnitStatSlot& slot = HeroStats(owner_)->slots[part];

@@ -1,12 +1,10 @@
-// The device object's DirectDraw base class (CDXDirectDraw, texture.h; vtable 0073D770, the
-// members up to +0x50). A-S13: IDirectDraw7 is called as the original calls it, through device.h
+// The device object's DirectDraw base class (CDXDirectDraw, texture.h; the
+// members up to +0x50). IDirectDraw7 is called through device.h
 // (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
 // the game in WinMain.
-// The image builds the base without DirectDraw (004EDD70; R11a removed the fallback). The driver
-// list, the DirectDraw object, the display mode change
-// and the primary and back surfaces had no caller of ours left and went in
-// R11b (config/dead_code.csv).
+// The image builds the base without DirectDraw: no driver list, DirectDraw object,
+// display mode change or primary and back surfaces (config/dead_code.csv).
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -34,14 +32,14 @@ constexpr std::uint32_t kEflagsId = 0x00200000;    // EFLAGS.ID: can be flipped 
 constexpr std::uint32_t kFeatureMmx = 1u << 23;     // CPUID.1:EDX bit 23
 
 
-// Whether the processor has CPUID: the ID flag flips. As in the original it stays flipped.
+// Whether the processor has CPUID: the ID flag flips. It stays flipped, as in the game.
 bool HasCpuid() {
     const std::uint32_t before = static_cast<std::uint32_t>(__readeflags());
     __writeeflags(before ^ kEflagsId);
     return (static_cast<std::uint32_t>(__readeflags()) ^ before) != 0;
 }
 
-// IDirectDraw7::EnumDisplayModes's callback (the original's is 004ED7F0, RET 8): the mode appended
+// IDirectDraw7::EnumDisplayModes's callback: the mode appended
 // to the list `context`.
 HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
     static_cast<stlp::list<DDSURFACEDESC2>*>(context)->PushBack(*mode);
@@ -103,7 +101,7 @@ void CDXDirectDraw::SetCooperativeLevel(int fullScreen, const RECT* screen) {
 EI_REWRITTEN(0x004EECF0, CDXDirectDraw::SetCooperativeLevel);
 
 // (The display mode's restore cannot fail in the switch-over, device_null.cpp; its throw would end the game here
-// through std::terminate, the destructor being noexcept, where the original's handler in WinMain ends it.)
+// through std::terminate, the destructor being noexcept, where the game's handler in WinMain ends it.)
 CDXDirectDraw::~CDXDirectDraw() {
     if (flags_ & DDSCL_FULLSCREEN) {
         lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
@@ -121,7 +119,7 @@ CDXDirectDraw::~CDXDirectDraw() {
 EI_REWRITTEN_SPECIAL(0x004EE330, CDXDirectDraw::~CDXDirectDraw);
 EI_REWRITTEN_SPECIAL(0x004EE310, CDXDirectDraw::~CDXDirectDraw);
 
-// Not kept: the original copies the processor's twelve bytes as a string into a local nothing reads.
+// Not kept: the game copies the processor's twelve bytes as a string into a local nothing reads.
 CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                              int /*refreshRate*/, unsigned /*backBuffers*/, int /*for3D*/)
     : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window) {
@@ -157,7 +155,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
     // surfaces. The switch-over takes the cooperative level (the flags and the screen rectangle are
     // kept) and lists the one display mode; the primary and the render target are holders without
-    // a surface; no video formats. Without the new renderer the game cannot run (R11a: no DirectDraw
+    // a surface; no video formats. Without the new renderer the game cannot run (no DirectDraw
     // fallback): the error ends it in WinMain.
     if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
     render::SetPerfOverlay(PerfOverlaySetting());

@@ -1,9 +1,9 @@
-// A texture from loose .bmp files (0068FBF0, from CTexture::LoadBmp 00690260 for a
+// A texture from loose .bmp files (from CTexture::LoadBmp for a
 // textures\<name>.bmp in the game folder, which overrides the archived .mmp: CTextureManager::
 // LoadTexture). The .bmp's 24-bit colours and, when there is an 8-bit a_<name>.bmp beside it, its
-// grey levels as alpha are converted to the texture's 16-bit format; the original writes them into a
-// system-memory surface and loads that into a managed texture.
-// The texture has no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): its holder has
+// grey levels as alpha are converted to the texture's 16-bit format (the pixels go
+// into the holder's memory).
+// The texture has no DirectDraw texture: its holder has
 // only the new renderer's memory (NewMemoryTextureHolder), the pixels are written there and the new
 // renderer reads them. See docs/notes/renderer.md (section 7).
 #include "texture.h"
@@ -32,7 +32,7 @@ const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead
 // The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message
 // box, nothing read), Size gives 0 x 0 without a header.
 
-// The .bmp's pixels as 0068FBF0 writes them into `out` (`pitch` bytes a row): `rows` rows of
+// The .bmp's pixels as written into `out` (`pitch` bytes a row): `rows` rows of
 // `perRow` 16-bit pixels, the colours read on as B, G, R bytes without the .bmp's row padding (and
 // in its row order: a bottom-up .bmp comes out upside down), the alpha the alpha .bmp's byte at the
 // pixel's index (when given, else 255), converted to the texture's format. Pixels from
@@ -54,9 +54,9 @@ void WritePixels(std::uint8_t* out, int pitch, int rows, int perRow, int maxRows
 
 } // namespace
 
-// Original details kept: the loop runs over the width, then the height (a non-square .bmp overran
+// Details kept: the loop runs over the width, then the height (a non-square .bmp overran
 // the surface's rows; in the new renderer's memory the rows and pixels past it are left out); a
-// failed open of the alpha file is silent. No memory for the texture: the original's error for a
+// failed open of the alpha file is silent. No memory for the texture: the error for a
 // surface that cannot be made (the staging surface's: sizes zero) ends the game.
 int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
     if (flags_ & kTextureLoaded) return 1;

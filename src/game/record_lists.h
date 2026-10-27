@@ -3,9 +3,8 @@
 // The game's STLport list<T> instantiations over game records (the plain-data and reference
 // holder ones are in src/lib/stlp_list.cpp): an element policy per record (how _M_create_node
 // copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the record's
-// ported constructors and destructors, and the ListAbi shims they are registered with
-// (record_lists.cpp). Node sizes read from each instantiation's node creation. Checked in game by
-// verify_record_lists.cpp until S21d.
+// constructors and destructors, and the ListAbi adapters they are registered with
+// (record_lists.cpp). Node sizes read from each instantiation's node creation.
 
 #include "chunk_archive.h"
 #include "core_streams.h"
@@ -31,7 +30,7 @@ using ChunkRefElement = ChunkArchive::RefElement;
 
 // The client's finished trades (ClientSession::tradeRecords_, TradeRecordNode; 0x160-byte nodes from
 // operator new): two revisions and three parties. Copied member by member (CParty's copy
-// constructor, 006613C0), destroyed last party first (006611D0, as 00424DB0 does); T() constructs
+// constructor), destroyed last party first (CParty's destructor); T() constructs
 // the parties and leaves the revisions as the stack held them.
 using net::TradeRecord;
 struct TradeElement {
@@ -52,7 +51,7 @@ struct TradeElement {
 
 // The link queues' memory streams (QueueNode, 48-byte nodes). The copy constructs a
 // memory stream, sizes it as the source (SetSize) and calls its slot 1 (Read) with the source's
-// buffer: the original reads the new stream's fresh block into the source rather than writing the
+// buffer: the game reads the new stream's fresh block into the source rather than writing the
 // source's bytes, so both hold the new block's bytes. Destroyed by the destructor; T()
 // is an empty stream.
 struct QueueStreamElement {
@@ -84,8 +83,8 @@ struct LinkArchiveElement {
 };
 
 // The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node
-// copies (0056F880 blood, 0056F940 footprints, 0056F9F0 scorch marks) are the classes' copy
-// constructors (GroundPrint's 00571FC0, then their own members).
+// copies (blood, footprints, scorch marks) are the classes' copy
+// constructors (GroundPrint's, then their own members).
 struct BloodPrintElement {
     static void Copy(BloodPrint* to, const BloodPrint& from) { new (to) BloodPrint(from); }
 };
@@ -96,7 +95,7 @@ struct ScorchMarkElement {
     static void Copy(GroundPrint* to, const GroundPrint& from) { new (to) GroundPrint(from); }
 };
 
-// The titles' script lines (CCreditsScreen::lines_, 24-byte nodes; 0062C0C0): the flag byte, the
+// The titles' script lines (CCreditsScreen::lines_, 24-byte nodes): the flag byte, the
 // speed and both CStrings copied.
 struct TitleLineElement {
     static void Copy(TitleLine* to, const TitleLine& from) {

@@ -1,7 +1,7 @@
 #pragma once
 
-// The hash tables of 00400000-00440000 (hash_tables_400.cpp): the STLport hashtable layout of the
-// one-dword-key tables and the rewritten functions over it.
+// The hash tables (hash_tables_400.cpp): the STLport hashtable layout of the one-dword-key tables and the
+// rewritten functions over it.
 
 #include "chunk_archive.h"
 #include "net_classes.h"
@@ -33,10 +33,9 @@ Table* AsTable(Map* map) {
     return reinterpret_cast<Table*>(map);
 }
 
-// The id tables' members for an owner's hash_map of a one-dword key and a pointer: operator[]
-// the position table's RemoveKey (00405350; the value, null when there is none), the
-// objects table's RemoveKey and find (00406950 / 00599AE0; the value's
-// address or null). operator[] keeps the highest key in the word after the map, as the original.
+// The id tables' members for an owner's hash_map of a one-dword key and a pointer: operator[], the position
+// table's RemoveKey (the value, null when there is none), the objects table's RemoveKey and find (the value's
+// address or null). operator[] keeps the highest key in the word after the map, like the original.
 template <typename K, typename V, typename H>
 V& PositionAt(stlp::hash_map<K, V, H>& map, std::int32_t key) {
     static_assert(sizeof(K) == 4 && std::is_pointer_v<V>);

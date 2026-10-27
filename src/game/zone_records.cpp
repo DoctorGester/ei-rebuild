@@ -25,7 +25,7 @@ EI_REWRITTEN(0x00460460, ExitDestruct);
 // The zone exit's scalar deleting destructor.
 EI_REWRITTEN(0x004608B0, mfc::impl::ScalarDeleting<&ExitDestruct>::Delete);
 
-// A zone record's destructor: the exits' array (base vtable 0073C3F4; each exit's string
+// A zone record's destructor: the exits' array (base vtable; each exit's string
 // destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.
 void __fastcall ZoneRecordDestruct(MapRecord* self) {
     ZoneExits& exits = self->exits;

@@ -15,25 +15,25 @@
 
 namespace {
 
-// The game's messages, passed by address as the original does.
+// The game's messages, passed by address.
 const char* const kNoSpellConstructor = "No valid spell constructor\n";
 const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
 const char* const kCantEnd = "Can't end spell construction\n";
 
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {
-    int Find(char c) const;                     // 00700E91 Find(TCHAR)
-    void TrimLeft();                            // 006FE216 (white space)
-    void TrimRight();                           // 006FE11F (white space)
+    int Find(char c) const;                     // Find(TCHAR)
+    void TrimLeft();                            // white space
+    void TrimRight();                           // white space
     void TrimRight(char c);
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
-// Splits `text` at `separator` into `out` (__fastcall, separator on the stack).
+// Splits `text` at `separator` into `out` (separator on the stack).
 
-// The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
-// Operator[](key) (inserts a null record for a missing name); returns the value.
-// The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
+// The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map. Operator[](key)
+// (inserts a null record for a missing name); returns the value. The spells and modifiers by name
+// (operator[], find_or_insert of {name, null}).
 itemdb::SpellTable::CodeIndex& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
 itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }
 

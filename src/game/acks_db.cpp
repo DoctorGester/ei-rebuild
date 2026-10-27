@@ -1,6 +1,6 @@
-// Unit acknowledgements from acks.db (006D8430-006D9F80): which speech a unit says for an ack kind.
-// The database's loading (006D7620, Rebirth-patched) and the records' STLport plumbing stay original
-// (model_db.cpp has the vector serialisers); the records' Serialize functions are at the end.
+// Unit acknowledgements from acks.db: which speech a unit says for an ack kind.
+// The database's loading is in model_db_open.cpp and the vector serialisers in model_db.cpp;
+// the records' Serialize functions are at the end.
 #include "acks_db.h"
 
 #include "chunk_archive.h"
@@ -31,7 +31,7 @@ namespace {
 int Roll() { return gamecrt::rand() * 100 / 0x7FFF % 100; }
 
 // The ack kinds a party (text-key) unit says differently while it walks slowly (move mode 0 or 1):
-// 0..5 and 7..10 become 0x27, 0x0B..0x13 and 0x1D become 0x28 (the switch's table at 006D8758).
+// 0..5 and 7..10 become 0x27, 0x0B..0x13 and 0x1D become 0x28.
 std::uint32_t PartyKind(std::uint32_t kind) {
     static const std::uint8_t kGroup[0x1E] = {0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 1, 1,
                                               1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1};
@@ -63,8 +63,8 @@ EI_REWRITTEN(0x006D8E30, AckTable<ExtraAcks>::RecordAt);
 // model_db_open.cpp's AckDatabase::Load reads the extra acks by index.
 template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 
-// The original gathers the eligible entries into a temporary vector first; counting them and
-// taking the chosen one by index gives the same speech and the same rand() draws.
+// Counts the eligible entries and takes the chosen one by index: the same speech and the same
+// rand() draws as gathering them into a temporary vector first.
 const SpeechRecord* Speeches::Pick(int roll) const {
     int count = 0;
     for (const SpeechRecord* s = begin(); s != end(); ++s)
@@ -176,7 +176,7 @@ const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool a
 }
 EI_REWRITTEN(0x006D8A40, SayNamedAck);
 
-// ---- Serialising the records (006E3780-006E4F95; loaded once at startup through 006D7620) ----------
+// ---- Serialising the records (loaded once at startup) ---------------------------------------------
 
 namespace {
 
@@ -217,8 +217,8 @@ void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list, void (Abi::*resi
 
 using namespace acks;
 
-// The archive's helpers for the records (thiscall on the archive): 006E4F40 a speech as chunk `id`
-// (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id` (RET 0xC; the
+// The archive's helpers for the records (thiscall on the archive): a speech as chunk `id`, and
+// a speech list / environment speech list as chunk `id` (the
 // third argument is the archive again, unused). The records inline the same code for some lists.
 void ChunkArchive::SerializeSpeech(int id, SpeechRecord* speech) {
     ChunkArchive* ar = this;
@@ -246,7 +246,7 @@ namespace acks {
 
 namespace {
 
-// UnitAcks' chunks in the order the original writes them: the list index, or one of these two.
+// UnitAcks' chunks in the order they are written: the list index, or one of these two.
 constexpr int kEnvironment = -1;   // environmentSpeeches
 constexpr int kNamed = -2;         // namedSpeeches
 struct ListChunk {

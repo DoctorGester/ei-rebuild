@@ -1,6 +1,6 @@
 // The torch's state object, CTorchObjectSpec (server_specific_manager.h): its Create / Destroy,
-// Load / Save and setter slots (0052C490-0052C680, A-U6). The network reader 0052C390 stays
-// original (it applies the values through slots 13-18, which a client-side spec may override).
+// Load / Save and setter slots. The network reader stays
+// the game's own code (it applies the values through slots 13-18, which a client-side spec may override).
 #include "server_specific_manager.h"
 
 #include "core_streams.h"
@@ -53,7 +53,7 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
     const char* name = name_;
     stream->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     std::uint32_t value;
-    std::memcpy(&value, &values_[0], 4);   // through a stack copy, as the original
+    std::memcpy(&value, &values_[0], 4);   // through a stack copy, as in the game
     stream->Write(&value, 4);
     std::memcpy(&value, &values_[1], 4);
     stream->Write(&value, 4);

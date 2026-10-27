@@ -1,8 +1,8 @@
 // The class templates a new game builds and the item and spell lists each template
 // gets from the databases. See class_templates.h and docs/notes/world.md
 // ("Party records and class templates").
-// The templates live in a vector of counted pointers at +0x38 of the object at 007AA5A0 (its +0x24
-// holds the parties). 004A88A0 builds five templates, 004A88C0 (from 0057F280) four.
+// The templates live in a vector of counted pointers at +0x38 of the party manager object (its +0x24
+// holds the parties). The build makes five templates or, with `fourClasses`, four.
 #include "class_templates.h"
 
 #include "console.h"
@@ -26,27 +26,27 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// vector<counted pointer> members (stlp::CountedRefVector's): 004A9A00 erase(first, last), 004AB520
+// vector<counted pointer> members (stlp::CountedRefVector's): erase(first, last),
 // _M_insert_overflow(pos, x, n), and the counted pointer's copy constructor (two identical
-// instantiations, 004A5D50 and 004ABE30, both RefPtr::CopyCounted).
+// instantiations, both RefPtr::CopyCounted).
 
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
-// 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records
-// have the class mask at +0x4C). The spell database (template +0xAC slot 22): 00689570 spells,
-// 00689610 spell modifiers.
+// weapons, armors, quick items, the fourth kind (its records
+// have the class mask at +0x4C). The spell database (template +0xAC slot 22): spells,
+// spell modifiers.
 void ListWeapons(CItemManager* db, void*, console::CStringArray* names) { db->ListWeaponNames(names); }
 void ListArmors(CItemManager* db, void*, console::CStringArray* names) { db->ListArmorNames(names); }
 void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db->ListQuickItemNames(names); }
 void ListFourthKind(CItemManager* db, void*, console::CStringArray* names) { db->ListMaterialNames(names); }
 void ListSpells(CSpellManager* db, void*, console::CStringArray* names) { db->ListSpellNames(names); }
 void ListModifiers(CSpellManager* db, void*, console::CStringArray* names) { db->ListModifierNames(names); }
-// 006893F0 / 006894B0 (SpellCodeByName / SpellModifierCodeByName, spell.cpp; __stdcall, the
+// SpellCodeByName / SpellModifierCodeByName (spell.cpp; __stdcall, the
 // caller passes the database in ECX).
 
-// Record lookups by name. 004AB720 / 004AB820: weapons / armors by char* (hash maps 007C86F8 /
-// 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
-// 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
-// the modifier map 007C853C.
+// Record lookups by name. Weapons / armors by char* (hash maps);
+// operator[] of the string-keyed maps
+// (a missing name is inserted with a null record); find_or_insert of
+// the modifier map.
 // (NamedRecordTable::Named and the tables' name maps.)
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only): ItemStock::AddArmor and
@@ -64,7 +64,7 @@ ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 } // namespace
 
-// ---- 004A7080 -------------------------------------------------------------------------------------
+// ---- ClassTemplateFill ------------------------------------------------------------------------
 
 void __fastcall ClassTemplateFill(ClassTemplate* t) {
     console::CStringArray names;
@@ -120,11 +120,11 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 }
 EI_REWRITTEN(0x004A7080, ClassTemplateFill);
 
-// ---- 004A7630 -------------------------------------------------------------------------------------
+// ---- Building the templates ------------------------------------------------------------------
 
 namespace {
 
-// Float fields +0x10..+0x30 (bit patterns as the original stores them).
+// Float fields +0x10..+0x30 (bit patterns as stored).
 constexpr std::uint32_t kOne = 0x3F800000, kHalf = 0x3F000000, kFifth = 0x3E4CCCCD, kTenth = 0x3DCCCCCD;
 constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne, kHalf, kFifth, kTenth, kFifth};
 constexpr std::uint32_t kZeroWeights[9] = {};
@@ -133,7 +133,7 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // and weights set, filled, then appended to the vector through a temporary counted pointer.
 void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
                  const std::uint32_t (&weights)[9]) {
-    // The original clears the count dword before testing the allocation; ours tests first.
+    // The count dword is cleared before the allocation is tested; ours tests first.
     auto* t = new ClassTemplate();
     t->refs_ = 0;
     t->flags6_ = 0;

@@ -1,4 +1,4 @@
-// Small virtual slots of the 3D object base (CObject3D, vtable 0073DDD4; shared by every map
+// Small virtual slots of the 3D object base (CObject3D; shared by every map
 // object's vtable): the world rotation, copying a figure, the side half, the effect sources and
 // the drawing slots. See map_object_figures.h and docs/notes/map_objects.md.
 #include "effects.h"
@@ -16,11 +16,11 @@ namespace {
 constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
-// The same body as the base's 0040CB80.
+// The same body as the base's.
 void CObject3D::CombineRotation(const Quaternion& parent) { CTransformObject::CombineRotation(parent); }
 EI_REWRITTEN(0x00516370, CObject3D::CombineRotation);
 
-// CTransformObject's 00401510 / 00401540, called directly.
+// CTransformObject's functions, called directly.
 void CObject3D::SaveTransform(mfc::CFileVirtuals* file) { CTransformObject::SaveTransform(file); }
 EI_REWRITTEN(0x00516350, CObject3D::SaveTransform);
 

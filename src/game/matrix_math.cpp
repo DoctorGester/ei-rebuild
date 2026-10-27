@@ -1,4 +1,4 @@
-// The 4x4 matrix helpers of 004D9880-004D9DD0: the product, a quaternion's rotation matrix and the
+// The 4x4 matrix helpers: the product, a quaternion's rotation matrix and the
 // transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
 #include "model.h"
 
@@ -10,8 +10,8 @@
 namespace {
 
 // The order in which each product element sums its four terms a[r][k] * b[k][c], per column, for
-// row 0 and for rows 1-3 (the original's instruction order). The partial sums are rounded to float;
-// on the game's main thread (24-bit x87 precision) they equal the ones the original keeps on the
+// row 0 and for rows 1-3 (the game's instruction order). The partial sums are rounded to float;
+// on the game's main thread (24-bit x87 precision) they equal the ones the game keeps on the
 // FPU stack.
 using SumOrder = std::uint8_t[2][4][4];
 constexpr SumOrder kProductOrder = {
@@ -42,7 +42,7 @@ void Matrix4::Multiply(const float* a, const float* b) { ::Multiply(m, a, b, kPr
 EI_REPLACE_METHOD(0x004D9880, Matrix4::Multiply);
 
 void Quaternion::ToMatrix(float* out) const {
-    // Twice the vector part; the products the original stores as floats are rounded to float.
+    // Twice the vector part; the products the game stores as floats are rounded to float.
     float x2 = x + x;
     float y2 = static_cast<float>(y + y);
     float z2 = static_cast<float>(z + z);

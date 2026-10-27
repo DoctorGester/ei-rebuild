@@ -1,9 +1,7 @@
-// Particle drawing (004976B0-00497EB0): each visible source fills the shared vertex array
-// (007A9BD0: position and size interpolated between the last two ticks) and sprite array
-// (007A9BE0: interpolated colour, texture frame), binds its texture and hands both arrays to the
-// renderer (007AF060, vtable 0073D93C, slot 17 = 00502CA0). Names are provisional.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// Particle drawing: each visible source fills the shared vertex array (position and size interpolated between
+// the last two ticks) and sprite array (interpolated colour, texture frame), binds its texture and hands both
+// arrays to the renderer. Names are provisional. Floating point follows the original's x87 code: `double`
+// for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "at_exit_functions.h"
 #include "lib/static_object.h"
@@ -38,15 +36,15 @@ void __cdecl FreeVertices() { g_vertices.FreeData(); }
 static_assert(sizeof(ParticleSpriteArray) == 0x14);
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00497D30
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
 constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
-// The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, the
-// destructors 00497D30 / 00497D10 registered with atexit).
+// The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, their
+// destructors registered with atexit).
 void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
@@ -83,7 +81,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 // The list's GetNext (the list itself not read).
 EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
-// Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
+// Byte-identical copies (other CTypedPtrList iterators in the world range).
 EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REWRITTEN(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REWRITTEN(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
@@ -112,7 +110,7 @@ int CParticleSource::Draw(void* renderer) {
     ConstructArrays();
     float t = Interpolation();
     Sprites().SetSize(kReserve, -1);
-    Vertices().SetSize(kReserve);   // SetSize inlined by the original
+    Vertices().SetSize(kReserve);   // SetSize inlined, like the original
     Sprites().SetSize(particles.count, -1);
     Vertices().SetSize(particles.count);
     if (!static_cast<CSceneRenderer*>(renderer)->BindHeldTexture(0, &texture)) return 0;

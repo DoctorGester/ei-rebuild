@@ -1,7 +1,6 @@
 // Magic traps: who is inside, and casting at newcomers, the living units of the trap's
 // sides in its circles, casting the spell, set-up from the zone record
-// the constructor and destructor body, Save and Load (0052B070 /
-// 0052ADC0), Create / Destroy, the update, firing and
+// the constructor and destructor body, Save and Load, Create / Destroy, the update, firing and
 // forgetting a removed object. See magic_trap.h and docs/notes/units.md ("Magic traps").
 #include "base_manager.h"
 #include "magic_trap.h"
@@ -39,22 +38,21 @@ bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 using VictimList = mfc::CTypedPtrList<CUnit>;
 using VictimNode = VictimList::Node;
 
-// MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
+// MFC CPtrList (blocks of 10) as the game keeps it on the stack.
 using PtrList = mfc::CTypedPtrList<CUnit>;
 using PtrNode = PtrList::Node;
 PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
-// The trap's map object context [00455940, rewritten in object.cpp]; the living units of the sides
-// `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
-// with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
-// wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
-// below].
-// The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
-// in sector_map.cpp].
+// The trap's map object context (object.cpp); the living units of the sides
+// `sides` in the circles of `area` (+0x240), appended to `out` after emptying it (a fastcall
+// with the context in ECX; FindTrapVictims below, called through its address so its verify
+// wrapper sees the call); casting the spell at the newcomers `units` (MagicTrap::CastAtUnits
+// below).
+// The sector map's units within `radius` of `point` into `list` (emptied first; sector_map.cpp).
 constexpr int kPtrListBlockSize = 10;
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
-// reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
-// [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
+// reference) and FreeNode (releases it); a counted reference's assignment;
+// the pointer list's NewNode(prev, next) and RemoveAll.
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -145,10 +143,10 @@ void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std
 EI_REWRITTEN(0x0052A920, FindTrapVictims);
 
 namespace {
-// The object's world [00455950]; the world server casts `spell` from `caster` at
-// `from` on `target` at `at` [0058E850 (spell, caster, from, target, at, 0), RET 0x18].
+// The object's world; the world server casts `spell` from `caster` at
+// `from` on `target` at `at` (arguments: spell, caster, from, target, at, 0).
 constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell +0x3C (targetFlags_): cast at the units
-constexpr float kFar = 1e30f;                        // 0073E73C, a squared distance
+constexpr float kFar = 1e30f;                        // a squared distance
 } // namespace
 
 void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
@@ -179,7 +177,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             }
             if (!closest) return;
             units->RemoveAll();
-            units->AddTail(closest);   // the original's AddTail calls the list's NewNode
+            units->AddTail(closest);   // AddTail calls the list's NewNode
         }
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
@@ -194,7 +192,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
 EI_REWRITTEN(0x0052A4B0, MagicTrap::CastAtUnits);
 
 namespace {
-// The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten).
+// The spell manager's CreateSpellFromText (the game's own code).
 // The map object context's (the world's) slot 22.
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
@@ -227,7 +225,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     if (old) old->Release();
     std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // copied as dwords
 
-    // The loop bounds are read again on every pass, as in the original.
+    // The loop bounds are read again on every pass, as in the game.
     area.SetSize(record->area.size, -1);
     for (int i = 0; i < record->area.size; ++i)
         std::memcpy(&area.data[i], &record->area.data[i], sizeof(TrapCircle));
@@ -243,16 +241,15 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 }
 EI_REWRITTEN(0x0052A2C0, MagicTrap::SetUp);
 
-// --- Construction, destruction, Save / Load (ticket U8) ------------------------------------------
+// --- Construction, destruction, Save / Load ------------------------------------------
 
 namespace {
-// The map object's constructor and destructor body [0050E2D0 / 0050E660, map_object_lifetime.cpp], its
-// Create and Destroy (slots 2 and 3) [0050E770 / 0050E840], the map object part of Load / Save [0050F7A0 /
-// 0050F900].
-// A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
-// read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
-// stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
-// [00403F40, rewritten in base_manager.cpp].
+// The map object's constructor and destructor body (map_object_lifetime.cpp), its
+// Create and Destroy (slots 2 and 3), the map object part of Load / Save.
+// A counted reference's Save (its object's id, -1 for none); the units inside
+// read back and appended, each resolved in `context` (fastcall: ECX the list, EDX the
+// stream; MFC template code with the reference's Load); CBaseManager::FindObject
+// (base_manager.cpp).
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
@@ -265,7 +262,7 @@ void* TailFields(MagicTrap* trap, int i) {
 constexpr int kTailFieldCount = 4;
 
 // An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the
-// original's order).
+// game's order).
 template <typename T>
 void EmptyArray(mfc::CArray<T>& array) {
     array.data = nullptr;
@@ -313,11 +310,11 @@ EI_REWRITTEN_SPECIAL(0x00529DD0, MagicTrap::MagicTrap);
 
 MagicTrap::~MagicTrap() {
     DestroyMapObject();
-    SetSpell(this, nullptr);   // 0052C690(0)
+    SetSpell(this, nullptr);
     area.SetSize(0, -1);
     points.SetSize(0, -1);
-    ClearVictims(this);        // RemoveAll (each element through 0052D030(0))
-    // CList's destructor: its vtable, then RemoveAll again (elements through 0052CEC0).
+    ClearVictims(this);        // RemoveAll (each element released)
+    // CList's destructor: its vtable, then RemoveAll again.
     inside.vtable = gameslots::VictimListClass::Vtable();
     ClearVictims(this);
     // The arrays' destructors (no element destructors; SetSize has already freed the storage).
@@ -359,7 +356,7 @@ EI_REWRITTEN(0x0052B070, MagicTrap::SaveTrap);
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
     CSpellManager* manager = SpellManagerOf(WorldContext());
-    // The original reads the id and the two counts into its argument's stack slot: a read that
+    // The game reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&value, 4);
@@ -375,12 +372,12 @@ void MagicTrap::LoadTrap(CStream* stream) {
 }
 EI_REWRITTEN(0x0052ADC0, MagicTrap::LoadTrap);
 
-// --- Create, Destroy, the update, firing, forgetting a removed object (ticket U10) ---------------
+// --- Create, Destroy, the update, firing, forgetting a removed object -------------
 
 namespace {
 
 // The circles' SetSize(0, -1), inlined by Create and Destroy: the storage freed, count and
-// capacity 0 (in the original's order).
+// capacity 0 (in the game's order).
 void FreeCircles(TrapArea& area) {
     if (area.data) {
         gamecrt::operator_delete(area.data);

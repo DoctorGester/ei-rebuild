@@ -1,5 +1,5 @@
-// Random animations of a 3D object's figure (CObject3D::RandomAnimation 005190C0 and
-// RandomAnimationOfKind 00519380; units' FindAnimation 005301B0 picks idle, attack and death
+// Random animations of a 3D object's figure (CObject3D::RandomAnimation and
+// RandomAnimationOfKind; units' FindAnimation picks idle, attack and death
 // animations with them). See map_object_figures.h.
 #include "map_object_figures.h"
 
@@ -14,8 +14,8 @@ constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 constexpr int kRandMax = 0x7FFF;
 
-// The two growing helpers of the original's local candidate list: 0051A010 (SetAtGrow) and
-// 0051A190 (SetSize), copies of AlignedPtrArray's 00519E80 / 00519D70 (registered with the same
+// The two growing helpers of the game's local candidate list: SetAtGrow and
+// SetSize, copies of AlignedPtrArray's (registered with the same
 // members below); through their addresses so their wrappers run.
 
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
@@ -30,7 +30,7 @@ void FreeCandidates(AnimationList& list) {
     if (list.data) gamecrt::operator_delete(list.data[-1]);
 }
 
-// rand() scaled to 0..count-1 as the original does.
+// rand() scaled to 0..count-1 as the game does.
 int RandomIndex(int count) { return (gamecrt::rand() * count / kRandMax) % count; }
 } // namespace
 

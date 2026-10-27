@@ -262,7 +262,7 @@ EI_REPLACE(0x0070C215, DestroySimpleNotSupportedException);
 namespace mfc {
 
 namespace {
-// MFC's thread state lookup: the address of the thread's top link (the original's in the hook
+// MFC's thread state lookup: the address of the thread's top link (game.exe's in the hook
 // build, ExceptionLinkTop below in the image).
 } // namespace
 

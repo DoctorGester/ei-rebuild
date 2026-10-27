@@ -27,7 +27,7 @@
 
 namespace {
 
-// The spell manager of an item's manager context (slot 22 of the world or the party).
+// The spell manager of an item's manager context (of the world or the party).
 CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 // A counted copy of `item` (CItem::Clone with its context's spell manager); `item` is held
@@ -101,10 +101,12 @@ EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();
-    // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the
-    // constructor leaves the statistics, and BuildNpcStats' reset leaves some of theirs (the
-    // layers' spare values, ...), which the original took from its stack and saved with the party
-    // (a determinism fix, SV7b3; the harness zeroes the original's too, harness_leftovers.h).
+    // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the constructor
+    // leaves the
+    // statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...), which the
+    // game took
+    // from its stack and saved with the party (a determinism fix; the harness zeroes the game's too,
+    // harness_leftovers.h).
     alignas(PartyUnitRecord) unsigned char storage[sizeof(PartyUnitRecord)] = {};
     auto* temporary = reinterpret_cast<PartyUnitRecord*>(storage);
     temporary->Construct();
@@ -132,7 +134,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;
 
-    // What 005143E0 copies out of the prototype: armour names, the two weapon names, spell names.
+    // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
     const CStringVector& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         CItem* item = MakeItem(this, armour.begin()[i]);
@@ -164,7 +166,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
 EI_REWRITTEN(0x006621F0, CParty::FillFromPrototype);
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
-    // Each list emptied from the front (the original looks the first entry up, finding it at 0).
+    // Each list emptied from the front (the first entry is looked up and found at 0).
     for (PartyItemArray* list : {&ItemList(record->spells), &ItemList(record->weapons)}) {
         while (list->size != 0) {
             list->data[0]->Release();
@@ -219,7 +221,6 @@ BOOL CParty::RemoveMember(int key) {
 }
 EI_REWRITTEN(0x006620F0, CParty::RemoveMember);
 
-// --- A-H17 -----------------------------------------------------------------------------------
 
 namespace {
 const char* ZoneVariableFormat() { return "z.%s"; }

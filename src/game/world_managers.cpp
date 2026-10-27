@@ -1,5 +1,5 @@
-// The world's managers released (0055F8E0, the base world's slot 3; A-U7). Their creation is
-// world_create.cpp. See world.h and docs/notes/combat.md.
+// The world's managers released (the base world's Destroy). Their creation is world_create.cpp. See world.h
+// and docs/notes/combat.md.
 #include "world.h"
 
 #include "base_manager.h"
@@ -19,7 +19,7 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
-// The original drops the world's reference and deletes the manager without testing the count.
+// The world's reference is dropped and the manager deleted without testing the count.
 template <typename T>
 void DeleteManager(T*& manager) {
     if (!manager) return;
@@ -60,10 +60,10 @@ void CWorld::Destroy() {
 }
 EI_REWRITTEN(0x0055F8E0, CWorld::Destroy);
 
-// ---- The managers' own small slots (0055F310-0055F400, A-U8) -------------------------------------
-// GetClassName (11) / GetClassId (12) and the destructors of the player manager, the effect manager
-// (the world's +0x48) and the item manager (compiler-made vtables, C19; the item manager's slot 25,
-// 0055F3B0 "items", is registered in world_class_slots.cpp). Slot 0 adds the delete.
+// ---- The managers' own small virtuals -------------------------------------
+// GetClassName / GetClassId and the destructors of the player manager, the effect manager (the world's
+// +0x48) and the item manager (compiler-made vtables; the item manager's folder name "items" is in
+// world_class_slots.cpp). The deleting destructor adds the delete.
 
 namespace {
 constexpr const char* kPlayerManagerName = "CPlayerManager";
@@ -95,7 +95,6 @@ EI_REWRITTEN(0x0055F360, CEffectManager::GetClassName);
 EI_REWRITTEN(0x0055F370, CEffectManager::GetClassId);
 EI_REWRITTEN_SPECIAL(0x0055F3A0, CEffectManager::~CEffectManager);
 EI_REWRITTEN_SPECIAL(0x0055F380, CEffectManager::~CEffectManager);   // deleting
-// 0067E150 (slot 2; A-H24).
 EI_REWRITTEN(0x0067E150, CEffectManager::Create);
 
 CItemManager::CItemManager() {}

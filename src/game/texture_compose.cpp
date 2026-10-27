@@ -1,8 +1,8 @@
-// The texture manager's composed textures (00693180, thiscall, RET 0x1C): a party unit's skin is
+// The texture manager's composed textures: a party unit's skin is
 // made of layers (the skin and the armour / weapon textures), drawn into one square image and
 // cached on disk as <game folder>textures\<name>.mmp. The cached file keeps the request's layer
 // bytes after its header (the extra block), so an unchanged request reuses the file. Callers:
-// 00536670 / 005370F0 (CUnitClientSpecific::ComposeSkin), 00568800 (BuildUnitSkins). See
+// CUnitClientSpecific::ComposeSkin, BuildUnitSkins. See
 // docs/notes/items_spells.md ("Composed textures").
 #include "texture.h"
 #include "game_strings.h"
@@ -30,7 +30,7 @@ constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
 constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeWrite
 
 
-// The aligned byte allocation [004ECB50].
+// The aligned byte allocation.
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
 const char* const kCantFindLayer = "Can't find texture \"%s\" for layer composition.\n";    // "Can't find texture \"%s\" for layer composition.\n"
 const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n";   // "Texture \"%s\" dimentions are incorrect.\n"
@@ -42,7 +42,7 @@ T* NewAligned(std::size_t bytes) {
 }
 void DeleteAligned(void* data) { lib::FreeAligned32(data); }
 
-// The cached file's extra block (the original keeps it as an aligned byte array).
+// The cached file's extra block (kept as an aligned byte array).
 struct ReadBuffer {
     std::uint8_t* data = nullptr;
     int size = 0;
@@ -146,7 +146,6 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
 
 } // namespace
 
-// --- 00693010 ----------------------------------------------------------------------------------------
 
 int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width) {
     CPixelConverter* converter = PixelConverter();

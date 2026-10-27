@@ -1,6 +1,6 @@
 // The memory stream's own slots (Read, Write, Seek, CopyFrom), its Resize / SetSize and bit helpers,
 // CStream::CopyFrom and the stream helpers that write and read a sized block or a format header
-// (004A4D40-004A5650). See core_streams.h and docs/notes/core.md.
+// See core_streams.h and docs/notes/core.md.
 #include "core_streams.h"
 
 #include "ei/hook.h"

@@ -10,8 +10,8 @@
 
 namespace scriptaddon {
 
-// What addon passes its handlers (built by the hooks at 004B425A and the others, called through
-// 10021D96). Calc functions: `result` is CalcFloat's float*, CalcObject's ScriptObjectRef**
+// What addon passes its handlers (built by the dispatch hooks and called through
+// the command map). Calc functions: `result` is CalcFloat's float*, CalcObject's ScriptObjectRef**
 // (holding the new temporary), CalcGroup's ScriptGroup** (holding the new temporary group) or
 // CalcString's mfc::CString*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
 // flag (1 on entry) and `run` the running script; `result` is null.
@@ -41,16 +41,16 @@ const ScriptKeyword* Table();
 // handler declines (then the game's own code for the id runs, as after addon's hooks).
 bool Dispatch(Call* call);
 
-// ClassifyToken (hook at 004CF6F0): a keyword starting with a letter does not match when the
+// ClassifyToken: a keyword starting with a letter does not match when the
 // text goes on with a letter, a digit, '_' or '#' (the match still sets the best length).
 bool RejectsMatch(const char* keyword, char next);
 
-// LoadFunction (hook at 004D02CC, after the separator token is classified): the signature's '?'
+// LoadFunction (after the separator token is classified): the signature's '?'
 // and '+'. At ')' a '+' is passed and a '?' drops the optional parameters' slots; otherwise a '+'
 // steps back to the repeated type (adding a slot for it) and a '?' is skipped.
 void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId);
 
-// SSCCmd::CalcString (004B5650, which the patched CalcParameters calls for a string argument):
+// SSCCmd::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then addon's string function or the game's fatal error.
 void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, mfc::CString* result);
 

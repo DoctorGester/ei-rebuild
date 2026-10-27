@@ -66,8 +66,8 @@ EI_REWRITTEN(0x005CCD40, AIHeardCalls::Hear);
 void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     std::string copy;
     copy = text;
-    // The original leaves the point as its stack held it (saved as memory.callN.point); 0,0,0 is the
-    // canonical value, which the harness gives the original too (harness_save_leftovers.cpp).
+    // The point is left as the stack held it (saved as memory.callN.point); 0,0,0 is the
+    // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
     AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
 EI_REWRITTEN(0x005CCEA0, AIHeardCalls::AddClaim);

@@ -100,9 +100,9 @@ void SavedParties::Destruct() {
 }
 EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 
-// The saved parties, empty at the start: built by the static initialiser 0065F2A0 in the list's order and destroyed by the
-// exit function it registers; both ported on the name and registered at their addresses
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// The saved parties, empty at the start: built by a static initialiser in the list's order and destroyed by
+// the exit
+// function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 namespace {

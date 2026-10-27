@@ -26,9 +26,9 @@ using PairTree = stlp::TreeAbi<stlp::map<K, typename Second::Type>,
 // The debug panel's entries (string_map.cpp; 0x28-byte nodes).
 using StringPairs = stlp::TreeAbi<stlp::map<stlp::string, stlp::string>>;
 
-// The .mob loader's tint lists by name (00481660's local, in a branch that never runs; 0x20-byte
-// nodes): list<16-byte record> values, copied by list(const list&) (00483F00: a sentinel, then the
-// elements in order) and destroyed with the list (004824B0: the nodes, then the sentinel).
+// The .mob loader's tint lists by name (a local in a branch that never runs; 0x20-byte
+// nodes): list<16-byte record> values, copied by list(const list&) (a sentinel, then the
+// elements in order) and destroyed with the list (the nodes, then the sentinel).
 using TintList = stlp::list<stlp::Opaque<16>>;
 struct TintListValue {
     using Type = TintList;
@@ -83,7 +83,7 @@ using Arrivals = stlp::TreeAbi<ArrivalMap>;
 static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 
-// The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors 00633F50 /
+// The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:
 // Map() (the header from the pool, empty), then the limit 50.
 using HeroItemCache = ItemObjectCache;
 HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);

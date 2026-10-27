@@ -1,4 +1,4 @@
-// The torch map object (0052BEE0-0052C2C0, A-U6): lifetime, update, save / load, its spec and the
+// The torch map object: lifetime, update, save / load, its spec and the
 // network state. See torch.h and docs/notes/units.md.
 #include "torch.h"
 

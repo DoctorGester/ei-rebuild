@@ -1,7 +1,6 @@
-// The camera's recorded path file load (0040ECD0; A-E1). Rebirth patches the function (it redirects
-// the file open, the call at 0040ED42, to a mod folder's copy): it installs in the vanilla launch only
-// (rule 9), and the standalone image does the redirect itself behind CameraPatch (mod_folders.h). Its callers (the camera commands' glue 00578820 /
-// 00578880) reach it through its address. Main thread. See docs/notes/core.md.
+// The camera's recorded path file load: the file open is redirected to a mod folder's copy
+// (CameraPatch, mod_folders.h). Its callers (the camera commands' glue) reach it through its address. Main thread.
+// See docs/notes/core.md.
 #include "camera.h"
 
 #include "mod_folders.h"
@@ -27,7 +26,7 @@ int CCamera::LoadPath(const char* name, int settle) {
         std::string folder = TheDataFolder().GetString();
         std::string path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
-            // Rebirth's CameraPatch: the mod's Camera\ copy when there is one.
+            // CameraPatch: the mod's Camera\ copy when there is one.
             opened = file.Open(modfolders::CameraFile(path.c_str()).c_str(), mfc::CFile::modeRead, nullptr);
         } else {
             opened = file.Open(path.c_str(), mfc::CFile::modeRead, nullptr);

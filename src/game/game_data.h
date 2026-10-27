@@ -1,29 +1,29 @@
 #pragma once
 
-// The seam for game.exe's data at fixed addresses (its settings, databases, generator, vtables and import
-// slots): code names such data by the original's address and reaches it only through GameAddress,
-// GameData<T> or GamePointer<T> (docs/notes/standalone.md "Own data"; tools/data_seam.py checks it).
-// In game.exe (the original's runs, where the harness and the vector recorders read the original's
-// data) that is the address itself. The standalone image keeps game.exe's .rdata (its import address table
-// included) and .data (its .bss included) in ei_hook.dll's storage (
-// src/standalone/image_data.cpp, image_imports.cpp): their addresses move by g_dataShift, a multiple of 0x10000
-// (the low 16 bits of each address stay), set before any static constructor.
-// ei_vectors.exe (EI_VECTORS_REPLAY) links the formulas without game.exe;
-// there GameData leads to a stand-in its checks fill with a recorded call's values
-// (tests/vectors/replay_game_data.cpp; docs/notes/standalone-verification.md).
+// The seam for game.exe's data at fixed addresses (its settings, databases, generator, vtables and import slots):
+// code names such data by its address and reaches it only through GameAddress, GameData<T> or GamePointer<T>
+// (docs/notes/standalone.md "Own data"; tools/data_seam.py checks it).
+// In game.exe (the original's runs, where the harness and the vector recorders read the original's data) that is
+// the address itself. The standalone image keeps game.exe's .rdata (its import address table included) and .data
+// (its .bss included) in ei_hook.dll's storage (src/standalone/image_data.cpp, image_imports.cpp): their addresses
+// move by g_dataShift, a multiple of 0x10000 (the low 16 bits of each address stay), set before any static
+// constructor.
+// ei_vectors.exe (EI_VECTORS_REPLAY) links the formulas without game.exe; there GameData leads to a stand-in its
+// checks fill with a recorded call's values (tests/vectors/replay_game_data.cpp;
+// docs/notes/standalone-verification.md).
 
 #include <cstddef>
 #include <cstdint>
 
 namespace ei {
 
-// The original's address of a data object, kept as a name in a table or constant: resolve it with
-// GameAddress (or GameData / GamePointer) before use.
+// A game address of a data object, kept as a name in a table or constant: resolve it with GameAddress (or
+// GameData /
+// GamePointer) before use.
 constexpr std::uintptr_t DataId(std::uintptr_t address) { return address; }
 
 // What the image moves, whole: game.exe's .rdata (its import address table first) and .data with its zero-filled
-// tail (the .bss), 0073B000 up to .rsrc. Both ends are page boundaries (.text ends at 0073A670, .rdata at
-// 007828B2, .data's tail at 007CD000).
+// tail (the .bss). Both ends are page boundaries.
 constexpr std::uintptr_t kMovedBegin = DataId(0x0073B000);
 constexpr std::uintptr_t kMovedEnd = DataId(0x007CD000);
 
@@ -58,8 +58,8 @@ inline std::uintptr_t GameAddress(std::uintptr_t address) {
     return address;
 }
 
-// The original's address of `address`, a pointer into this process's copy of game.exe's data (a vtable read from
-// an object, for a message or a label that names it as the original does); any other address as it is.
+// The game address of `address`, a pointer into this process's copy of game.exe's data (a vtable read from an
+// object, for a message or a label that names it); any other address as it is.
 inline std::uintptr_t OriginalAddress(std::uintptr_t address) {
     return address - (kMovedBegin + g_dataShift) < kMovedEnd - kMovedBegin ? address - g_dataShift : address;
 }

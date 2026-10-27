@@ -25,15 +25,15 @@
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kHundred = 100.0f;
-constexpr float kLowerPart = std::bit_cast<float>(0x3ECCCCCDu);     // 0073B868 (0.4)
-constexpr float kUpperPart = std::bit_cast<float>(0x3F4CCCCDu);     // 0073CCA8 (0.8)
-constexpr float kEyeLevel = std::bit_cast<float>(0x3F333333u);      // 0073C538 (0.7)
+constexpr float kLowerPart = std::bit_cast<float>(0x3ECCCCCDu);     // 0.4
+constexpr float kUpperPart = std::bit_cast<float>(0x3F4CCCCDu);     // 0.8
+constexpr float kEyeLevel = std::bit_cast<float>(0x3F333333u);      // 0.7
 constexpr float kNearReach = 5.0f;
-constexpr float kSteepUp = std::bit_cast<float>(0x3FDDB3D0u);       // 0073F0C0 (1.73205)
-constexpr float kSteepDown = std::bit_cast<float>(0xBFDDB3D0u);     // 0073F0BC (-1.73205)
-constexpr float kReachSlack = std::bit_cast<float>(0x3E19999Au);    // 0073CD18 (0.15)
+constexpr float kSteepUp = std::bit_cast<float>(0x3FDDB3D0u);       // 1.73205
+constexpr float kSteepDown = std::bit_cast<float>(0xBFDDB3D0u);     // -1.73205
+constexpr float kReachSlack = std::bit_cast<float>(0x3E19999Au);    // 0.15
 
 constexpr int kUnitTypeHeroes = 0x32;     // CEngineObject::type_ of the player's own units
 constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
@@ -44,7 +44,7 @@ constexpr int kOrderSkill = 6;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr int kNoSizeClasses = 2;         // CombatStats +0x60
 
-// Animation key bits (the unit's entries are looked up by them, 005301B0).
+// Animation key bits (the unit's entries are looked up by them).
 constexpr std::uint32_t kKeyAction = 0x40000;
 constexpr std::uint32_t kKeyAttack = 0x90000;
 constexpr std::uint32_t kKeyCast = 0xC0000;
@@ -69,12 +69,12 @@ constexpr int kSkillLocations[20] = {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4
 constexpr int kLocationBody = 1;
 constexpr int kLocationCount = 6;
 
-// 0078FD48, printed when not even the fallback attack animation exists.
+// Printed when not even the fallback attack animation exists.
 const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!\n";
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-// The original's branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
+// Branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
 float Select(float a, float b, float ifLess, float otherwise) {
     return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
 }
@@ -112,9 +112,9 @@ namespace {
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
-// Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the
-// action): the frame count (FILD of the zero-extended dword, stored as a float) divided by the
-// unit's speed factor for the entry, truncated. Inlined many times by the original.
+// Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
+// frame count (FILD of the zero-extended dword, stored as a float) divided by the unit's speed factor for the
+// entry, truncated.
 int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
@@ -124,14 +124,14 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
     return FtolQuotient(frameCount, speed);
 }
 
-// Appends the first step of `steps` (as the original copies it) to `out`.
+// Appends the first step of `steps` to `out`.
 void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
     int index = out->size;
     out->SetSize(index + 1, -1);
     out->data[index] = steps->data[0];
 }
 
-// An AnimationSteps on the stack (00557B60 with the derived vtable; destroyed through 00557E70).
+// An AnimationSteps on the stack (with the derived vtable).
 struct ScratchSteps {
     AnimationSteps steps;
     ScratchSteps() {
@@ -205,9 +205,9 @@ EI_REWRITTEN(0x005516D0, CUnitServer::BuildTransition);
 // --- Orders ----------------------------------------------------------------------------------
 
 namespace {
-// The animation key of an order of `kind` with `source` (`steps` stands in for the source of an
-// unknown skill, as in the original). Sets *frame when the unit steps out of its movement mode
-// for it (skills, unless walking).
+// The animation key of an order of `kind` with `source` (`steps` stands in for the source of an unknown
+// skill, as in the original). Sets *frame when the unit steps out of its movement mode for it (skills, unless
+// walking).
 std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const AnimationSteps* steps,
                        std::uint32_t* weaponBit, bool* frame) {
     *weaponBit = 0;
@@ -596,7 +596,7 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     FigureAnimation* animation = unit->FindAnimation(key, 1);
     bool add;
     if (isDying) {
-        // (The original reads the dying argument here: after its PUSH ESI, [ESP+0x28] is it.)
+        // (The original reads the dying argument here.)
         if (!animation) animation = unit->FindAnimation(key & kKeyNoSide, 1);
         add = animation != nullptr;
     } else {

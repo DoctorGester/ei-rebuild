@@ -51,13 +51,13 @@ bool IsZero(float value) {
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 // ScriptVars constructor / destructor and the value arrays' Copy.
 // The run list's NewNode(prev, next): a node from the free list, its ScriptRun
-// constructed (ConstructElements 004CECB0).
+// constructed.
 RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node* next) {
     return mfc::impl::NewNodeAs<gamelists::Runs>(list, prev, next);
 }
 // ScriptVars::operator= (all eight arrays).
 
-// The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
+// The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
 // An effect object took a new position.
@@ -68,7 +68,7 @@ constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
 
 // FX source position: (r - (-r)) * random * (1 / (2^32 - 1)) + (-r), with the random value loaded
 // as a 64-bit integer; for x the source's x is added before rounding, for y the rounded offset is
-// added to the source's y afterwards (as the original does).
+// added to the source's y afterwards (the goldens depend on the order).
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
     return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative);
@@ -175,13 +175,13 @@ void UpdateParticleSources(CScript* script) {
                 if (source.deleteAfterMove) remove = true;
             }
         }
-        // RemoveAt (inlined by the original): unlink, drop the effect, free the node; the last
+        // RemoveAt: unlink, drop the effect, free the node; the last
         // node drops every effect and frees all blocks.
         if (remove) list.RemoveAt(node);
     }
 }
 
-// CList::RemoveAt's unlink of `node` (the original then frees the node out of line).
+// CList::RemoveAt's unlink of `node` (the node is freed separately).
 template <typename T>
 void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
     if (node == list.head) list.head = node->next;
@@ -258,9 +258,8 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->sleepStart = -1;
     run->killFlag = reinterpret_cast<int*>(instance);
     if (run->Execute(this)) {
-        // Not finished: a copy goes to the head of the run list (AddHead inlined; the original
-        // also inlines NewNode, which is 004CDA30's code).
-        // 004BC420 clears the kill flag (the instance pointer) before the copy.
+        // Not finished: a copy goes to the head of the run list (AddHead with an inlined NewNode).
+        // The kill flag (the instance pointer) is cleared before the copy.
         run->killFlag = nullptr;
         RunList& runs = runs_;
         RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
@@ -342,7 +341,7 @@ void __fastcall ScriptTick(CScript* script) {
         nextRun = nextRun->next;
         if (node->data.Execute(script)) continue;
         Unlink(runs, node);
-        mfc::impl::FreeNodeAs<gamelists::Runs>(&runs, node);   // 004CDAB0 (the run destroyed)
+        mfc::impl::FreeNodeAs<gamelists::Runs>(&runs, node);
     }
 
     // Script instances: every if-then pair until the instance is killed; killed instances are

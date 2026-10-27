@@ -1,5 +1,5 @@
-// CWorldServer: casting spells into the world (CastSpell 0058E850) and the missile that carries
-// one (CreateMissile 0058E670). See world.h and docs/notes/world.md.
+// CWorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
+// world.h and docs/notes/world.md.
 #include "object_diplomacy.h"
 #include "world.h"
 #include "combat.h"
@@ -32,17 +32,16 @@ constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 using UnitList = mfc::CTypedPtrList<CUnit>;
-// SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
-// constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
-// 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
-// CDiplomacy: `a` attacked `b` (strength).
+// SpellHasLineOfSight (combat.h): whether the spell may hit a target. The missile: constructor (returns this),
+// CSpellEffect::Init, Update. AIBrain::SetSeen: the target's AI brain is attacked by `caster`. CDiplomacy: `a`
+// attacked `b` (strength).
 
 // The spell's type (the prototype index in the packed id). Its +0x34 is the radius (float bits) and +0x38
 // the number of targets.
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
-// Whether the spell type turns the target against the caster (the original's switch at
-// 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).
+// Whether the spell type turns the target against the caster (a switch over 0x13, 0x19, 0x1E, 0x20, 0x22,
+// 0x26).
 bool IsHostileType(int type) {
     switch (type) {
     case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x26: return true;
@@ -80,7 +79,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     if (caster) std::memcpy(&from, &caster->localPosition_, sizeof(from));
 
     auto* missile = new CSpellEffect();
-    missile->refs_ = 0;   // the original clears the count and flags before its null test
+    missile->refs_ = 0;   // the count and flags are cleared before the null test
     missile->flags6_ = 0;
     missile->flags7_ = 0;
     missile->Init(this, spell, caster, &from, target, &end, static_cast<std::uint8_t>(extra));

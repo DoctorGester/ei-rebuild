@@ -25,7 +25,7 @@ constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 // The timeval the socket steps' select waits at most: 0 s, 0 µs (a poll).
 constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
-// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (00441180, plain elements).
+// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (plain elements).
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {
@@ -287,7 +287,7 @@ int __fastcall MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         if (n == 0) {
-            // EI_Plugin's NewMaster (its 10005490 called at 00440F9F): a link closed before anything
+            // EI_Plugin's NewMaster (its 10005490): a link closed before anything
             // arrived (base - begin + high of +0x1C, `high` as it stands) is left as it is.
             GameBuffer* received = &self->in;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
@@ -328,8 +328,8 @@ int __fastcall MasterLinkTick(MasterLink* self) {
 }
 EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 
-// 0047C330, the exit function of Winsock's static initialiser 0047C300 (WSAStartup 1.1): WSACleanup once the network
-// threads are gone. The original waits while their count is non-zero; only the thread procedure 0047C3A0
+// The exit function of Winsock's static initialiser (WSAStartup 1.1): WSACleanup once the network
+// threads are gone. The original waits while their count is non-zero; only the thread procedure
 // counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
 void __cdecl CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
 EI_REPLACE(0x0047C330, CleanUpWinsock);

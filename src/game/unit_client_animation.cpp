@@ -134,7 +134,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (weapon != kNoWeapon) {
         std::uint32_t prototype = weapon >> 16;
         if (prototype != kNoPrototype) {
-            // An index beyond the table reads the type at address 0xC in the original too (a fault).
+            // An index beyond the table reads the type at address 0xC (a fault).
             const auto* record =
                 itemdb::WeaponAt(prototype);
             key = 1u << (record->type & 0x1F);

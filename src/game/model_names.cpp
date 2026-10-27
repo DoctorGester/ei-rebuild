@@ -1,4 +1,4 @@
-// A length-prefixed name in a model file's data (A-S4): 004DBCA0. See model.h.
+// A length-prefixed name in a model file's data. See model.h.
 #include "model.h"
 
 #include "ei/hook.h"

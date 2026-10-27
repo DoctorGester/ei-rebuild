@@ -16,7 +16,7 @@ namespace net {
 namespace {
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 
-// A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
+// A read the way the buffer helpers inline it: past the end through the overflow handler, beyond `end`
 // through slot 3, else from memory.
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     if (buffer->cur + size > buffer->high) buffer->ReadPastEnd(to, size);

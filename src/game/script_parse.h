@@ -11,7 +11,7 @@
 
 namespace scriptparse {
 
-// The lexer's constants (CScript::Tokenize, ClassifyToken; the quote is the byte at 0078BC98).
+// The lexer's constants (CScript::Tokenize, ClassifyToken).
 inline constexpr char kQuote = '"';
 inline constexpr const char* kCommentOpen = /*0078BC8C*/ "/*";
 inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
@@ -24,7 +24,7 @@ int __cdecl Mbscmp(const char* a, const char* b);
 
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {
-    StringOps* InitN(const char* text, int length);   // 006FD4DE CString(LPCTSTR, int) on raw memory
+    StringOps* InitN(const char* text, int length);
     char* LockBuffer();
     void UnlockBuffer();
 };
@@ -37,7 +37,7 @@ inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s);
 int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
 int __cdecl ScriptError(CScript* script, int line, int code, const char* format, ...);
 
-// 004D5880 (ECX the path, EDX the text; script_text_file.cpp): a text file's lines joined into
+// script_text_file.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read (MFC's CFileException, caught).
 int __fastcall ReadTextFile(const char* path, mfc::CString* text);
 

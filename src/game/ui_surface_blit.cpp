@@ -1,14 +1,12 @@
-// A window surface's draw (CUiSurface::Blit, slot 0, 005FDA80; called by
-// CUiWindow's surface pass 005FECC0 and the interface's draw 005F5320 for the backdrop and the frame
-// rate surface): when the surface exists and is shown (flags_ bit 4), the part of its screen
-// rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
-// surface (holder_) onto the render target (the holder's device object's renderTarget_): with the
-// matching source rectangle, or the whole surface stretched when bit 2 is set; with the source
-// colour key background_ when bit 1 is set. Nothing when the surface is the render target itself.
-// The new renderer (src/render) takes the blit (render::SurfaceBlit); the holder has no DirectDraw
-// surface, only the new renderer's memory (the original's Blt is gone with the DirectDraw fallback,
-// R11a). A native surface (ui_native.h, ticket P1) can draw its canvas instead. See
-// docs/notes/renderer.md and docs/notes/ui-native.md.
+// A window surface's draw (CUiSurface::Blit; called by CUiWindow's surface pass and the interface's draw for
+// the backdrop and the frame rate surface): when the surface exists and is shown (flags_ bit 4), the part of
+// its screen rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
+// surface (holder_) onto the render target (the holder's device object's renderTarget_): with the matching
+// source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
+// when bit 1 is set. Nothing when the surface is the render target itself. The new renderer (src/render)
+// takes the blit (render::SurfaceBlit); the holder has no DirectDraw surface, only the new renderer's memory
+// (the original's Blt is gone with the DirectDraw fallback). A native surface (ui_native.h) can draw its
+// canvas instead. See docs/notes/renderer.md and docs/notes/ui-native.md.
 #include "device.h"
 #include "ui.h"
 

@@ -1,10 +1,8 @@
-// Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
-// every creature on the server) and the animation queue and order states it drives. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Update").
-// The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
-// the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
-// +0x15C) and sets +0x144 until it is restored. The plan of the order being carried out is the
-// OrderPlan at +0xC4; the motion (an AIPath) is at +0x3C.
+// Combat, sixth part: the controller's update (called once per world update for every creature on the server)
+// and the animation queue and order states it drives. See combat.h, combat_plan.h and docs/notes/combat.md
+// ("Update"). The controller's animation queue is an AnimationSteps with the game time its first step started;
+// a hit reaction saves it (and its time) and sets a flag until it is restored. The plan of the order being
+// carried out is the OrderPlan; the motion is an AIPath.
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -62,7 +60,7 @@ constexpr std::uint32_t kFlagFrozen = 0x1000000;      // CUnit flags_: no update
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // spell +0x3C
-constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect (world slot 23)
+constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38: OrderPlan.rangeSq of no plan
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
@@ -97,7 +95,7 @@ void DropEffectObject(CUnitServer* self) {
     if (effect) effect->Release();
 }
 
-// The weapon slot the unit wants (+0x270) taken up when it differs from the active one.
+// The weapon slot the unit wants taken up when it differs from the active one.
 void SwitchWeaponIfWanted(CUnit* unit) {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
@@ -125,7 +123,7 @@ void EmptyAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-// An animation list on the stack (00557B60 with the derived vtable; 00557E70 at the end).
+// An animation list on the stack (with the derived vtable).
 struct LocalSteps {
     AnimationSteps steps;
     LocalSteps() {
@@ -149,9 +147,9 @@ struct PlanCopy {
     PlanCopy& operator=(const PlanCopy&) = delete;
 };
 
-// The queue replaced by `steps`, twice as the original does, then started.
+// The queue replaced by `steps`, twice like the original, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
-    Queue(self).Assign(*steps);   // 005483C0 (twice, as the original)
+    Queue(self).Assign(*steps);   // twice, like the original
     Queue(self).Assign(*steps);
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
@@ -187,7 +185,7 @@ int CUnitServer::RunTick() {
             unit->MarkChanged(0);
             unit->MarkChanged(4);
         }
-        // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
+        // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
         if ((static_cast<std::uint32_t>(TheServerWorld()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
@@ -412,7 +410,7 @@ void CUnitServer::ShowCurrentStep() {
 EI_REWRITTEN(0x00546C10, CUnitServer::ShowCurrentStep);
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
-    // The steps are copied in twice (each time resized first), as the original does.
+    // The steps are copied in twice (each time resized first), like the original.
     for (int pass = 0; pass < 2; ++pass) {
         queue.SetSize(steps->size, -1);
         for (int i = 0; i < steps->size; ++i) queue.data[i] = steps->data[i];
@@ -655,16 +653,13 @@ void CUnitServer::TickItemSpells() {
 EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 
 namespace {
-// The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
-// and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, ArmourSpellList).
+// The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (blocks of 10) and the armour
+// spell list (ArmourSpellList).
 using UnitItems = mfc::CTypedPtrList<CItem>;
 using SpellList = mfc::CTypedPtrList<CSpell>;
 using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
-// 005316F0 CUnit: its items into two lists; 005318B0 CUnit::GetWeapon; the list instantiations
-// 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80 (NewNode / FreeNode of the spell
-// list), 00558840 (its element's assignment), 00429B50 (a reference's assignment).
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
@@ -687,8 +682,8 @@ void CUnitServer::RefreshItemSpells() {
     SpellEntry*& head = armourSpells.head;
     SpellEntry*& tail = armourSpells.tail;
     for (SpellEntry* entry = head; entry; entry = entry->next) entry->data.worn = 0;
-    // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the
-    // previous item's spell (as the original does).
+    // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
+    // item's spell (like the original).
     CSpell* spell = nullptr;
     for (UnitItems::Node* node = items.head; node;) {
         CItem* item = node->data;

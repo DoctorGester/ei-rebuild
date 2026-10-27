@@ -43,7 +43,7 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
 }
 // Matrices (model.cpp, called through their addresses): viewport,
 // the axis swap (x, -y, z; patched by Rebirth); the product (Matrix4::Multiply).
-// The capability records as the original reads them.
+// The capability records' layout.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
 
@@ -66,7 +66,7 @@ void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE
 
 // --- Matrix stacks -------------------------------------------------------------------------------
 
-// A push onto one of the pipeline's matrix stacks, as the original inlines it: the first entry is
+// A push onto one of the pipeline's matrix stacks: the first entry is
 // `m` itself, later ones are the previous top times `m` (with the new top as out).
 void StackPush(MatrixStack& stack, const Matrix4* m) {
     if (stack.count == 0) {
@@ -90,7 +90,7 @@ constexpr int kStackD = 5;   // the same
 constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
-// Transposes a 4x4 float matrix the way the original does: the upper-triangle elements move
+// Transposes a 4x4 float matrix: the upper-triangle elements move
 // through the FPU (FLD / FSTP), the lower ones as dwords.
 void Transpose(float* m) {
     static constexpr int kPairs[6][2] = {{1, 4}, {2, 8}, {3, 12}, {6, 9}, {7, 13}, {11, 14}};
@@ -202,7 +202,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the original
+// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the caller
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
@@ -234,7 +234,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     SetRenderState(this, D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD);
 
     // The device's capabilities, then DirectDraw's (driver and emulation, 0x17C bytes each).
-    D3DDEVICEDESC7 deviceDesc;   // not cleared, as in the original
+    D3DDEVICEDESC7 deviceDesc;   // not cleared
     CTextureDevice* holder = device_;
     long result = device::GetCaps(holder->d3dDevice_, &deviceDesc);
     holder->lastLoadResult_ = result;

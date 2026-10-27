@@ -1,9 +1,7 @@
-// 005ACCF0 (thiscall on the figure manager, RET 0xC): sets a figure's animation by name. Without
-// an animation name the figure's animation is cleared (0050D950, whose EAX is returned). Otherwise
-// the model is looked up and its animation part asked for the name; each
-// failure logs "Can't open model" / "Can't open animation ... for model" and returns
-// 0; a found animation goes to the figure (0050DA10, whose EAX is returned). See
-// docs/notes/models.md.
+// Sets a figure's animation by name (figure manager). Without an animation name the figure's animation is
+// cleared (and the clear's result returned). Otherwise the model is looked up and its animation part asked
+// for the name; each failure logs "Can't open model" / "Can't open animation ... for model" and returns 0; a
+// found animation goes to the figure (its result returned). See docs/notes/models.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 
@@ -13,9 +11,8 @@
 
 namespace {
 
-// The manager's model of a name; 005A9EF0 (FigureModel::FindAnimation): the model's animation of a name.
-// The figure: set an animation (0050DA10, CFigureAnimationState::LoadBoneTracks; the name is the
-// bones' animation).
+// The manager's model of a name; FigureModel::FindAnimation: the model's animation of a name.
+// The figure: set an animation (CFigureAnimationState::LoadBoneTracks; the name is the bones' animation).
 // The game's debug message (cdecl, printf-style).
 
 } // namespace

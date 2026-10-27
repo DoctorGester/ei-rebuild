@@ -24,7 +24,7 @@
 
 // The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text (LoadKeyBindings
 // fills it).
-// The actions' table (kActionDefinitions) follows it in the original.
+// The actions' table (kActionDefinitions) follows it in memory.
 UiKeyName g_keyNames[88] = /*007857B0*/ {
     {2, "1", ""}, {3, "2", ""}, {4, "3", ""}, {5, "4", ""}, {6, "5", ""}, {7, "6", ""}, {8, "7", ""}, {9, "8", ""},
     {10, "9", ""}, {11, "0", ""}, {12, "-", ""}, {13, "+", ""}, {15, "TAB", ""}, {16, "Q", ""}, {17, "W", ""},
@@ -55,7 +55,7 @@ signed char* ActionOfScan() { return g_keyActions; }
 // Operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 
-// Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
+// Opens the bindings file with `flags`; the path is a temporary CString.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
     mfc::CString path(mfc::CString::kUnset);
     return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), flags, nullptr) != 0;

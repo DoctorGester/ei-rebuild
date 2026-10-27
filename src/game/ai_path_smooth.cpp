@@ -1,12 +1,8 @@
-// The path smoother (PathSmoother, CAIMap + 0x22CC): a dynamic programme over the path's cells
-// that may move each cell to a neighbour when that makes the path cheaper, counting step costs and
-// turns. CAIMap::FindPath runs it on every new path (through its address). See ai_map.h and
-// docs/notes/ai.md.
-// Its transition tables (SmoothTables, 81 of them) are built once by a static initialiser, before
-// the hooks are installed: the builder at the end of this file is registered at the original's
-// addresses, but in a running game only its exit half (SmoothTable::Destruct) is ever called. What
-// it builds was compared with the original's tables once at start-up (verify_ai_static_tables.cpp,
-// until S21d); the goldens check it now.
+// The path smoother (PathSmoother, in CAIMap): a dynamic programme over the path's cells that may move each
+// cell to a neighbour when that makes the path cheaper, counting step costs and turns. CAIMap::FindPath runs
+// it on every new path. See ai_map.h and docs/notes/ai.md. Its transition tables (SmoothTables, 81 of them)
+// are built once by a static initialiser; in a running game only its exit half (SmoothTable::Destruct) is
+// ever called. The goldens check what it builds.
 #include "ai_map.h"
 #include "game_arrays.h"
 
@@ -45,7 +41,7 @@ int CdqAbs(int v) {
     return static_cast<int>((u ^ sign) - sign);
 }
 
-// The cost of `turn` eighths of a turn, as the original rounds it.
+// The cost of `turn` eighths of a turn, rounded like the original.
 int TurnCost(int turn, float scale) { return x87::fistp(static_cast<float>(static_cast<float>(turn) * scale * kTurnCost)); }
 
 
@@ -164,9 +160,9 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         }
         if (best >= previousBest) return best;
         previousBest = best;
-        // Rebuild the cells from the tail back along the chain. The original gives their speed
-        // words and terrain bits two stack slots it never writes (the tail what the path's builder
-        // left: the join's open cost or the planner's list vtable); ours get the plain words.
+        // Rebuild the cells from the tail back along the chain. The original gives their speed words and terrain bits
+        // two stack slots it never writes (the tail what the path's builder left: the join's open cost or the
+        // planner's list vtable); ours get the plain words.
         path->RemoveAll();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};
         path->AddHead(tail);
@@ -189,9 +185,9 @@ int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direct
 
 } // namespace
 
-// 005C3840 (thiscall on the array, RET 0x10). The seven states of a cell crossed by the straight
-// step (mx, my), with (sx, sy) the step to its side: the step itself, the same step one cell to
-// either side, the diagonal moves into and out of the cell on either side.
+// The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side: the
+// step itself, the same step one cell to either side, the diagonal moves into and out of the cell on either
+// side.
 void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
     Add(SmoothEdge{0, 0, mx, my, 0});
     Add(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
@@ -203,8 +199,8 @@ void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
 }
 EI_REWRITTEN(0x005C3840, SmoothEdges::AddStraightEdges);
 
-// 005C3A00 (thiscall on the array, RET 0x10). The nine states of a cell crossed by the diagonal
-// step (mx, my), with (sx, sy) one of its two straight halves and (ox, oy) the other.
+// The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its two straight
+// halves and (ox, oy) the other.
 void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
     const int ox = mx - sx, oy = my - sy;
     Add(SmoothEdge{0, 0, mx, my, 0});
@@ -221,9 +217,8 @@ EI_REWRITTEN(0x005C3A00, SmoothEdges::AddDiagonalEdges);
 
 namespace {
 
-// 005C4050 (fastcall: the step in ECX, `from` in EDX; RET 4). The step from the state `from` to the
-// state `to` that starts where it ends: the move `to` makes, the turn between the two moves less
-// one eighth, the cost factor of that turn, and the way back along `to`.
+// The step from the state `from` to the state `to` that starts where it ends: the move `to` makes, the turn
+// between the two moves less one eighth, the cost factor of that turn, and the way back along `to`.
 void __fastcall MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* to) {
     const int fromDirection = DirectionSteps()[(from->y1 - from->y0) * 3 + from->x1 - from->x0];
     const int toDirection = DirectionSteps()[(to->y1 - to->y0) * 3 - to->x0 + to->x1];
@@ -354,16 +349,15 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
     }
 }
 
-// 005C42B0 (cdecl, no arguments; the static initialiser's second half, after the 81 tables have
-// been constructed empty).
+// The static initialiser's second half, after the 81 tables have been constructed empty.
 void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 EI_REPLACE(0x005C42B0, BuildSmoothTables);
 
 // ---- The pool and the tables (ai_map.h) ----------------------------------------------------------
 
 // Zero at the start; each is built empty by its static initialiser in the list's order (the tables first) and
-// destroyed by the exit function the initialiser registers with the game's atexit; both are ported on the names and
-// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// destroyed by the exit function the initialiser registers (docs/notes/standalone.md, "The static
+// initialisers' objects").
 static_assert(sizeof(SmoothTable[81]) == 0x12FC);
 constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
 constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
@@ -373,12 +367,12 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
-// The tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
+// The tables built empty in order (the `eh vector constructor iterator`).
 void __cdecl ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
     RegisterExit(0x005C41F0);
 }
-// The tables destroyed, the last one first (the `eh vector destructor iterator` 006E859F over 005C4250).
+// The tables destroyed, the last one first (the `eh vector destructor iterator`).
 void __cdecl DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();

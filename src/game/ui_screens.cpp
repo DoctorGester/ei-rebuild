@@ -1,5 +1,5 @@
-// Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
-// escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
+// Interface screens: the camp's item strips, the multiplayer hero screen, the escape menu, the credits and the
+// exchange window. See ui_screens.h and docs/notes/ui.md.
 #include "spell.h"
 #include "options.h"
 #include "ui.h"
@@ -53,7 +53,7 @@ const CItemLoot* LootOrNull(const CItem* item) {
 } // namespace
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
-// static __stdcall functions here (the same RET 4).
+// static __stdcall functions here.
 bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;

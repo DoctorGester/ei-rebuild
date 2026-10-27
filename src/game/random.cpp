@@ -11,7 +11,7 @@
 #include <cstring>
 #include <string>
 
-// The game's generator: unseeded (the static initialiser 0049EE60 zeroes seeded_; Init seeds it on first use).
+// The game's generator: unseeded (the static initialiser zeroes seeded_; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
 
 IsaacRandom& IsaacRandom::Global() { return g_random; }
@@ -46,7 +46,7 @@ double Unsigned(std::uint32_t value) {
 }
 } // namespace
 
-// 00488970 (moved here from effects.cpp so that the function vectors link it).
+// Defined here so that the function vectors link it.
 float IsaacRandom::Range(float min, float max) {
     return static_cast<float>(Unsigned(Next()) * (max - min) * kRangeScale + min);
 }
@@ -103,13 +103,13 @@ constexpr unsigned long kMinimumFileSize = 0x800;
 constexpr unsigned kOpenReadShared = 0x8040;          // CFile modeRead | shareDenyNone | typeBinary
 constexpr int kSeedBytes = 0x400;
 
-// The original's 284-byte path buffer on its stack.
+// The game's 284-byte path buffer on its stack.
 constexpr int kPathBuffer = 0x11C;
 
-// rand() % 512 as the original computes it (rand() is never negative).
+// rand() % 512 as the game computes it (rand() is never negative).
 int RandomBelow512() { return gamecrt::rand() & 0x1FF; }
 
-// CFileFind::MatchesMask through the vtable, as the original calls it.
+// CFileFind::MatchesMask through the vtable, as the game calls it.
 BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&finder)->MatchesMask(mask);
 }
@@ -138,7 +138,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             if (finder.GetLength() >= kMinimumFileSize) {
                 std::string path = finder.GetFilePath().GetString();
                 const char* text = path.c_str();
-                std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
+                std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the game
                 return 1;
             }
             --*counter;
@@ -149,10 +149,10 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
 }
 EI_REWRITTEN(0x0049F4B0, IsaacRandom::FindSeedFile);
 
-// The original opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
+// The game opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
 // a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
 // the handle directly (as CFile::Seek / Read do), so nothing throws. Kept: when the first search
-// counts exactly one file, rand() % 0 faults as in the original.
+// counts exactly one file, rand() % 0 faults as in the game.
 void IsaacRandom::Seed() {
     if (g_seedHook) {
         g_seedHook(*this);

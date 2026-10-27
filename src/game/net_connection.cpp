@@ -35,7 +35,7 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
-// The static vector of 004346D0: constructor, erase of a range, introsort loop and final
+// The static vector: constructor, erase of a range, introsort loop and final
 // insertion sort by object, atexit.
 // CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
 // storage.
@@ -51,7 +51,7 @@ void LogLine(const char* text) {
     if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
 }
 
-// 00419CC0 (inlined helper of the buffers): `high` follows `cur` upwards.
+// Inlined helper of the buffers: `high` follows `cur` upwards.
 void UpdateHigh(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
 }
@@ -80,8 +80,8 @@ void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObj
 void WriteObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Write(cursor); }
 void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
 
-// records_.insert(hint, pair(key, Record())) as ReadRecord inlines it (the pair 0043A090, the
-// insert 00439A70); returns the new node.
+// records_.insert(hint, pair(key, Record())) as ReadRecord inlines it (the pair constructor, the
+// insert); returns the new node.
 RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::int32_t key) {
     Record empty;
     ::RefPtrNull(&empty.object);
@@ -112,7 +112,7 @@ std::uint16_t IdPool::Allocate() {
 }
 EI_REWRITTEN(0x00435F10, IdPool::Allocate);
 
-// 00433B10 (no Ghidra function; the client base's 00442A20 jumps to it with its first
+// (No Ghidra function; the client base jumps to it with its first
 // connection). Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit
 // may be judged one call apart from the original.
 int Connection::Silent() const {
@@ -424,7 +424,7 @@ void Connection::Track(Replicated* item) {
     TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
-    // A new entry (vtable 0073BF4C) with no version and no id yet.
+    // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
 
     CRefObject* key = item->object;

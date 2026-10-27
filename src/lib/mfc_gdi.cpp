@@ -161,7 +161,7 @@ CDC::~CDC() {
     if (hdc) gameapi::DeleteDC(Detach());
 }
 
-// The original releases the attribute DC through slot 5, which no class of the game overrides.
+// The attribute DC is released through slot 5, which no class of the game overrides.
 HDC CDC::Detach() {
     const HDC dc = hdc;
     if (dc) {

@@ -1,6 +1,6 @@
 #pragma once
 
-// The diplomacy table between the 32 players (global at 007C2BC4). Name provisional.
+// The diplomacy table between the 32 players (a global). Name provisional.
 
 #include <cstddef>
 #include <cstdint>
@@ -32,7 +32,7 @@ struct CDiplomacy {
     // Row `player` of the hostile table; -1 outside 0..31.
     int GetHostileMask(int player) const;
 
-    // 004557C0 / 004557F0. Both tables read from / written to a stream, 0x80 bytes each.
+    // Both tables read from / written to a stream, 0x80 bytes each.
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream);
 

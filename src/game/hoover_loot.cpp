@@ -1,4 +1,4 @@
-// The loot of a dead unit (00461CB0; the server's world calls it on its CHoover, +0x140, which the
+// The loot of a dead unit (the server's world calls it on its CHoover, +0x140, which the
 // function does not use): the prototype's items (new objects from the item manager, put on both
 // lists), the gold (two rolls of the prototype: an amount between a minimum and a maximum, kept
 // when a percent roll is within the chance), the quick items and carried items, and for units with
@@ -29,8 +29,8 @@ namespace {
 using PtrList = mfc::CTypedPtrList<CItem>;
 using PtrListNode = PtrList::Node;
 
-// CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
-// and weapons (with the same effects).
+// CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it
+// (with the same effects).
 
 
 // An object referenced once more and appended to `list`.

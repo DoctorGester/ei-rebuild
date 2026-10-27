@@ -1,4 +1,4 @@
-// View and light matrices: see view_matrices.h. The sums keep the original's order.
+// View and light matrices: see view_matrices.h. The sums keep the game's order.
 #include "view_matrices.h"
 
 #include "core_maths.h"
@@ -16,7 +16,7 @@ void __stdcall CameraViewMatrix(float* out, const CTransformObject* camera) {
     const Quaternion& q = camera->localRotation_;
     Vector3 axisX;
     q.AxisX(&axisX);
-    Vector3 axisY = RotatedAxisY(q);   // inlined copies of 0040F560 / 0040D6B0, the same orders
+    Vector3 axisY = RotatedAxisY(q);   // inlined copies, the same orders
     Vector3 axisZ = RotatedAxisZ(q);
     const Vector3 p = camera->localPosition_;
     out[0] = axisX.x;
@@ -96,5 +96,5 @@ EI_REWRITTEN(0x004F15C0, view::LightRotation);
 EI_REWRITTEN(0x004F1440, view::LightShearMatrix);
 EI_REWRITTEN(0x004E5710, view::AllocateBlocks32);
 EI_REWRITTEN(0x004F65B0, view::AllocateBlocks8);
-// 004E5660 is a byte-for-byte copy of CubicSegment::Evaluate.
+// A byte-for-byte copy of CubicSegment::Evaluate.
 EI_REPLACE_METHOD(0x004E5660, CubicSegment::Evaluate);

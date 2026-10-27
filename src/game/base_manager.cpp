@@ -1,4 +1,4 @@
-// CBaseManager (00402B20-004048F0) and the object list iterator. See base_manager.h and
+// CBaseManager and the object list iterator. See base_manager.h and
 // docs/notes/core.md.
 #include "base_manager.h"
 #include "hash_tables_400.h"
@@ -37,7 +37,7 @@ const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't f
 
 // The positions and spare counts tables are built by hand (the hashtable constructor inlined):
 // functors, empty bucket vector, count 0, 100 buckets; then the table's highest key is zeroed. The
-// original copies the three empty functor bytes from an uninitialised stack byte; they are never
+// game copies the three empty functor bytes from an uninitialised stack byte; they are never
 // read, so they are zeroed here.
 template <typename Map>
 void BuildTable(Map& table, int& maxKey) {
@@ -76,7 +76,7 @@ ObjectNode* AddTail(ObjectList* list, CEngineObject* object) {
     return node;
 }
 
-// The id tables' operator[] that keeps the highest key (00406AA0, hash_tables_400.cpp).
+// The id tables' operator[] that keeps the highest key (hash_tables_400.cpp).
 template <typename Map>
 typename Map::Node* InsertKey(Map& table, int& maxKey, int key) {
     if (key > maxKey) maxKey = key;
@@ -233,7 +233,7 @@ void CBaseManager::DestroyAll() {
 }
 
 // --- Slots 16-22: no archives -------------------------------------------------------------------
-// 18 and 22 are shorter than the hook's jump and stay original.
+// 18 and 22 are shorter than a hook's jump and stay unregistered.
 
 BOOL CBaseManager::AddArchive(const char*) { return 0; }
 BOOL CBaseManager::RemoveArchive(const char*) { return 0; }

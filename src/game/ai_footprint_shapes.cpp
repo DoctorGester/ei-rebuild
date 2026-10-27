@@ -1,8 +1,8 @@
-// The footprints of walls and clouds (spell effects): 005B2A00 fills a cell set with the cells of
-// a disc around a point limited by a line along a direction, 005B2760 with the cells of a disc.
-// Positions are scaled to cells by 1 / (0x73FD18 * 0.5) (2: half-metre cells); the radius is grown
-// by a cell. Each cell gets low 0, high 1, kind 3, transparency 3 and is appended without hashing
-// (the buckets are emptied when the set was hashed). See ai_map.h and docs/notes/ai.md.
+// The footprints of walls and clouds (spell effects): one function fills a cell set with the cells of a disc
+// around a point limited by a line along a direction, the other with the cells of a disc. Positions are
+// scaled to cells by 1 / (0x73FD18 * 0.5) (2: half-metre cells); the radius is grown by a cell. Each cell gets
+// low 0, high 1, kind 3, transparency 3 and is appended without hashing (the buckets are emptied when the set
+// was hashed). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
 
@@ -21,9 +21,8 @@ void ResetSet(FootprintCellSet* set) {
         for (int& bucket : set->buckets) bucket = -1;
 }
 
-// The cell record of these footprints. The original appends it from a stack copy whose byte 0x13
-// and `next` it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the
-// cells are in no bucket.
+// The cell record of these footprints. The original appends it from a stack copy whose byte 0x13 and `next`
+// it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the cells are in no bucket.
 void AddCell(FootprintCellSet* set, int x, int y) {
     int index = set->cells.size;
     set->SetSize(index + 1, -1);
@@ -60,7 +59,7 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 
 } // namespace
 
-// 005B2A00 (thiscall on the set, RET 0x10).
+// The disc limited by a line.
 void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
     double scale = static_cast<double>(worlddata::One()) /
                    (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
@@ -92,7 +91,7 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
         }
 }
 
-// 005B2760 (thiscall on the set, RET 0xC).
+// The disc.
 void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
     double scale = static_cast<double>(worlddata::One()) /
                    (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));

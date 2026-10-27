@@ -27,7 +27,7 @@ int TruncateX87(float value);
 float Distance(float x0, float y0, float x1, float y1);
 // _stricmp in the "C" locale.
 int Stricmp(const char* a, const char* b);
-// 10010D04: the object's class (virtual slot 12) is a unit's (0x50).
+// The object's class (virtual 12) is a unit's (0x50).
 bool IsUnit(CEngineObject* object);
 // 10010E2D: a unit's data object (+0x240), null for a missing reference, object or non-unit.
 CUnitServer* UnitData(const ScriptObjectRef* ref);

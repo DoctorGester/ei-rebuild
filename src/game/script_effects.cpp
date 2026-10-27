@@ -96,7 +96,7 @@ constexpr int kClassParticles = 0x4A;   // CEffectParticle
 constexpr int kClassLightning = 0x4D;   // CEffectLightning
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
-// The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
+// The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
 // The id saved for an effect object: -1 for none.
@@ -135,7 +135,6 @@ void DropEffect(T** slot) {
 void ScriptPointLight::ScriptPointLightDestruct() { DropEffect(&object); }
 void ScriptLightning::ScriptLightningDestruct() { DropEffect(&object); }
 void ScriptParticleSource::ScriptParticleSourceDestruct() { DropEffect(&object); }
-// 004B1880 (the name is the caller's to destroy)
 void ScriptFxSource::ScriptFxSourceDropSound() { DropEffect(&object); }
 // The FX source's destructor body (the sound dropped, then the name).
 void ScriptFxSource::ScriptFxSourceDestruct() {
@@ -164,7 +163,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
 }
 
 // CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
-// list's NewNode's (zeroed, the name empty); the original then copies a stack temporary over it
+// list's NewNode's (zeroed, the name empty); the list append then copies a stack temporary over it
 // whose object is null, whose name is empty and whose other fields were never written. Every field
 // is written below except, for CreateFXSource, spread, the delays and the countdown: the tick
 // counts such a source down and replaces its sound at zero, so a zero countdown would
@@ -277,7 +276,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     if (source) {
         DropEffect(&source->object);
     } else {
-        // The original copies a temporary whose fields are all written below.
+        // The temporary copied over the element has all fields written below.
         auto* node = mfc::impl::NewNodeAs<mfc::impl::ParticleSourceList>(&list, list.tail, nullptr);
         node->data.object = nullptr;
         if (list.tail) list.tail->next = node;

@@ -1,15 +1,13 @@
-// CAIMap::Load (005B43C0, A-W15): the navigation grid of a map from its archive. Rebirth patches
-// the function, so this is the vanilla body and it is installed in the vanilla launch only; the
-// Rebirth-patched callees (the archive's open 00671730 and destructor 006714A0, FatalError
-// 00480080, the AI events' Setup 005C9310) are called through their addresses.
-// A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
-// animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33
-// vertices, the same again for the water when the sector has any, then 16 x 16 tile words, the
-// water's tile words and the water's material indices). The AI map has 2 x 2 cells per terrain
-// square and 4 x 4 per tile: 64 x 64 cells per sector.
-// The original is one function; it is split here into LoadTerrain (everything read from the files)
-// and AttachTerrain (the rest), and its locals (archives, registry, strings) are destroyed at the
-// end of the step that uses them instead of at the very end. Nothing reads them in between.
+// CAIMap::Load: the navigation grid of a map from its archive. Rebirth patches the function, so this is the
+// vanilla body and it is installed in the vanilla launch only; the Rebirth-patched callees (the archive's open
+// and destructor, FatalError, the AI events' Setup) are called through their addresses. A map archive holds one
+// .mp file (MapHeader, the materials, a type word per tile texture, the animated tiles) and a .sec file per
+// sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again for the water when the
+// sector has any, then 16 x 16 tile words, the water's tile words and the water's material indices). The AI
+// map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector. The original is one
+// function; it is split here into LoadTerrain (everything read from the files) and AttachTerrain (the rest),
+// and its locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of
+// at the very end. Nothing reads them in between.
 #include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
@@ -38,11 +36,11 @@
 
 namespace {
 
-// AIEventTable::Setup at its address (RET 0xC): Rebirth patches it.
+// AIEventTable::Setup at its address: Rebirth patches it.
 
 // ---- The files -------------------------------------------------------------------------------------
 
-// The files' extensions: this file's copies of the header constants (each of the original's files had its own).
+// The files' extensions: this file's copies of the header constants.
 constexpr const char* kMapExtension = /*0073FD1C*/ ".MP";
 constexpr const char* kSectorExtension = /*0073FD20*/ ".SEC";
 constexpr std::uint32_t kMapMagic = 0xCE4AF672;
@@ -172,8 +170,8 @@ constexpr float kFlatCost = 1024.0f;
 constexpr int kFlatCostUnits = 0x400;
 constexpr float kLargeLimit = 40.0f;        // degrees
 constexpr float kSmallLimit = 60.0f;
-// The original divides and multiplies these on the FPU as it goes, at the thread's precision; they
-// are read at run time so the compiler does not fold them at its own.
+// These are divided and multiplied on the FPU as the original goes, at the thread's precision; they are read at
+// run time so the compiler does not fold them at its own.
 const volatile double kPi = 3.141592653589793;
 const volatile double kHalfTurn = 180.0;
 const volatile double kPerDegree = 1.0 / 180.0;
@@ -252,11 +250,11 @@ int ReadTerrainTypes(CAIMap& map) {
 
 // ---- The sectors -------------------------------------------------------------------------------------
 
-// A vertex's altitude as a fraction of the map's highest point. The game's constant (0073FD84,
-// which the landscape's sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not
-// 1 / 65535 (X31: with that the ground levels of a few dozen cells per map were one unit off).
-// Written as the exact fraction: /fp:fast folds `1.0f / 65534.0f` at double precision wherever the
-// constant meets a double, and the heights below are doubles.
+// A vertex's altitude as a fraction of the map's highest point. The game's constant (which the landscape's
+// sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not 1 / 65535 (with that the ground levels
+// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds
+// `1.0f / 65534.0f` at double precision wherever the constant meets a double, and the heights below are
+// doubles.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
 static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
@@ -273,20 +271,19 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* all
     allocate(&grid);
 }
 
-// The grids of plain bytes (the marks 005B14C0; the water depths' is the same code inline) are left
-// as allocated.
+// The grids of plain bytes (the marks; the water depths' is the same code inline) are left as allocated.
 void __fastcall AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
 constexpr float kHalf = 0.5f;
 constexpr float kQuarter = 0.25f;
 
-// The heights follow the original's x87 sequence value by value: a float below is one it stores
-// (FSTP to a float), a double one it keeps on the FPU stack. At the main thread's 24-bit precision
-// the two are the same number; told apart, the results are also the original's at 53 bits (and at
-// 64 while the compiler keeps the doubles in registers: nothing unrounded is alive across a call).
+// The heights follow the original's x87 sequence value by value: a float below is one it stores, a double one
+// it keeps on the FPU stack. At the main thread's 24-bit precision the two are the same number; told apart,
+// the results are also the original's at 53 bits (and at 64 while the compiler keeps the doubles in
+// registers: nothing unrounded is alive across a call).
 
-// A vertex's height in world units as the original leaves it on the FPU stack: the altitude times
-// the map's highest point times the altitude unit, in that order, neither product stored.
+// A vertex's height in world units as the original leaves it on the FPU stack: the altitude times the map's
+// highest point times the altitude unit, in that order, neither product stored.
 __forceinline double VertexHeight(const SectorFileVertex& vertex, float maxZ) {
     return static_cast<double>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
@@ -297,10 +294,9 @@ struct SquareHeights {
     float cell[4];
 };
 
-// The ground's height at the four cells of a terrain square: half of the cell's own corner and a
-// quarter of each of the two corners beside it. The original stores the heights of the three other
-// corners and keeps the first one, and the quarter of the first and the opposite corner, on the
-// stack.
+// The ground's height at the four cells of a terrain square: half of the cell's own corner and a quarter of
+// each of the two corners beside it. The original stores the heights of the three other corners and keeps the
+// first one, and the quarter of the first and the opposite corner, on the stack.
 SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
     const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
     const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));
@@ -316,9 +312,9 @@ SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
     return heights;
 }
 
-// The water's depth over the four cells of a terrain square: its surface, weighted like the ground,
-// less the ground `land`. Here the original keeps the third cell's surface on the stack as well
-// and subtracts the ground from it there.
+// The water's depth over the four cells of a terrain square: its surface, weighted like the ground, less the
+// ground `land`. The original keeps the third cell's surface on the stack here as well and subtracts the
+// ground from it there.
 SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const SquareHeights& land) {
     const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
     const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));

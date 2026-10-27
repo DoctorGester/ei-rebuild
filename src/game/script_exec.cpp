@@ -1,7 +1,7 @@
 // Script command execution: ScriptRun::Execute, the switch over every world script
 // command. See script.h and docs/notes/script.md.
 // Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
-// vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError, 005935C0,
+// vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError,
 // Execute itself for For bodies).
 #include "ai_map.h"
 #include "options.h"
@@ -58,7 +58,7 @@ namespace {
 // The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// FCOMP against the constant 0.0 at 0073B858, the test every command uses for "flag argument is zero".
+// Compare against the constant 0.0, the test every command uses for "flag argument is zero".
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -66,9 +66,9 @@ bool IsZero(float value) {
 
 int Round(float value) { return x87::fistp(value); }
 
-// ---- Original code reached by the commands ------------------------------------------------------
+// ---- Helpers for the commands -------------------------------------------------------------------
 // The commands call the game's classes directly; what is left here are the container entry points
-// (MFC lists and arrays of script records) the original reaches out of line.
+// (MFC lists and arrays of script records).
 
 constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
@@ -89,10 +89,10 @@ using InstanceList = mfc::CList<ScriptDefinition>;
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
-// The party records of `player` for a "party name" string (ECX player, EDX string).
-// Object id of a name (ECX = name).
-// Plays a movie file (ECX path, EDX 0, five flags).
-// The renderer (returns the object whose 004BA120 sets the background colour).
+// The party records of `player` for a "party name" string.
+// Object id of a name.
+// Plays a movie file.
+// The renderer.
 void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
@@ -101,16 +101,14 @@ CWorldServer* TheWorld() { return TheServerWorld(); }
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
-// The named party records (party_records.h), through the originals: find 004A5E10 (a party),
-// add 004A5E90, remove 004A5FA0.
+// The named party records (party_records.h): find (a party), add, remove.
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
 
-// The multiplayer game server's variables, named by STLport strings (the original builds them
-// two ways, and 0040C5A0, with an empty allocator; the same string).
+// The multiplayer game server's variables, named by STLport strings.
 net::ServerSession* ServerPointer() { return net::GameServer(); }
 // The server exists and is not shutting down.
 bool ServerActive() {
@@ -126,17 +124,17 @@ CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 
 
-// MFC containers the commands keep on the stack, built and destroyed through the originals: the
-// units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
-// (constructor 004C98C0, AddTail 004C98F0, destructor 00427830) and the party slots (CArray of
-// unit placements: constructor 004BB000, destructor 004BB020).
+// MFC containers the commands keep on the stack: the
+// units found (CPtrList), the items given to a player
+// and the party slots (CArray of
+// unit placements).
 using PtrList = mfc::CList<CUnit*>;
 using PartyArray = mfc::CArray<UnitPlacement>;
 using ObjectIterator = ObjectListIterator;
 
 // Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo.
 
-// ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
+// ---- Small accessors ---------------------------------------------------------------------------
 
 // The unit's server half (CUnit::controller).
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
@@ -259,7 +257,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
 void GiveSkill(const SSCCmd* cmd) {
     CUnitServer* state = cmd->objectArgs.data[0]->GetUnitPerception();
     if (!state) return;
-    // The skill names (0078B8FC..0078B8B0) in the order the original tests them; science goes to
+    // The skill names in the order they are tested; science goes to
     // SetScience, the others to SetSkill with their index.
     static const char* const kNames[] = {"science", "melee", "archery", "backstab", "elemental",
                                          "sense", "astral", "stealth", "awareness"};
@@ -396,7 +394,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             cmd->CalcParameters(script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
         bool done = false;
-        if (scriptaddon::Enabled()) {   // Rebirth's AddNewScriptCommands (hook at 004B684E)
+        if (scriptaddon::Enabled()) {
             scriptaddon::Call call{cmd, script, nullptr, &cont, this};
             done = scriptaddon::Dispatch(&call);
         }
@@ -609,7 +607,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             SceneRenderer()->SetFogColour(r, g, b);
             break;
         }
-        case 0xB6:   // RunWorldTime(time): the configured speed (int at 0079BE5C)
+        case 0xB6:   // RunWorldTime(time): the configured speed (int)
             TheWorld()->SetTimeSpeed(static_cast<float>(ConfiguredTimeSpeed()));
             TheWorld()->SetTime(f[0]);
             break;
@@ -724,7 +722,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x35: {   // KillUnit(object)
             CEngineObject* object = Arg(cmd, 0);
-            DamageInfo damage;   // (the original reserves 0x4C bytes)
+            DamageInfo damage;
             ResetDamageInfo(&damage);
             if (object) ObjectSlots(object)->ReceiveHit(&damage, nullptr, nullptr);
             break;
@@ -739,7 +737,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             damage.amount = f[0];
             damage.multiplier = 1.0f;
             damage.location = 1;
-            // TakeHit(hit, attacker, source): three arguments (the original pushes the first 0 early).
+            // TakeHit(hit, attacker, source): three arguments.
             static_cast<CUnitController*>(state)->TakeHit(&damage, nullptr, nullptr);
             break;
         }

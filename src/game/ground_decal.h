@@ -1,7 +1,7 @@
 #pragma once
 
-// Ground decals (004D6C50-004D8BCC): the mesh builder the shadow projector 0056C750 lays a shadow
-// texture on the ground with (and its terrain part 006CCF20). Every ground triangle under the
+// Ground decals: the mesh builder the shadow projector lays a shadow
+// texture on the ground with (and its terrain part). Every ground triangle under the
 // projected quad is clipped to the decal: a plane facing along the projection direction, then
 // u >= 0, v >= 0, u <= 1 and v <= 1 (u, v the triangle corners' texture coordinates in the
 // decal); what is left is appended to the caller's vertex, texture coordinate and index arrays.
@@ -45,7 +45,7 @@ public:
     // Makes room for `triangles` more triangles (three vertices and indices each;
     // the point array is grown by triangles * 3 / 4 + 1 + the vertex count packets).
     void Reserve(int triangles);
-    // 004D85F0 / 004D8490 (RET 0xC, the same code with their own static triangle). Clips the
+    // Two copies of the same code with their own static triangle. Clips the
     // triangle (a, b, c) and appends what is left.
     void AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
     void AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
@@ -54,7 +54,7 @@ public:
     void Finish();
 
     // The clipping stages; `tri` is clipped in place (and may be one of the stage buffers).
-    // From the plane on. 004D74B0: from v >= 0 on. 004D71D0: from u <= 1 on.
+    // From the plane on. Another stage runs from v >= 0 on, another from u <= 1 on.
     void ClipPlane(DecalVertex* tri);
     void ClipFromV(DecalVertex* tri);
     void ClipFromUMax(DecalVertex* tri);

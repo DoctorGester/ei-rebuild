@@ -1,4 +1,4 @@
-// The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
+// The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "library_net_lists.h"
 #include "net_classes.h"
@@ -114,8 +114,8 @@ namespace net {
 
 namespace {
 
-// The clients list (STLport list<RefPtr<Connection>>, +0x28): end 00438830, begin 00438820,
-// erase (00438840, list<RefPtr>'s with SharedRef); the find by peer address (0043D780, an instantiation of find_if over the nodes) is
+// The clients list (STLport list<RefPtr<Connection>>, +0x28):
+// erase (list<RefPtr>'s with SharedRef); the find by peer address (an instantiation of find_if over the nodes) is
 // ClientsIterator::FindByAddress (library_net_lists.h, over its ClientsNode of the same layout).
 
 
@@ -153,7 +153,7 @@ void SessionBase::RemoveClient(ClientNode* node) {
     stlp::list<RefPtr>::Erase<stlp::SharedRef>(stlp::AsRefNode(node));
 }
 
-// 00437080 (slot 3, packet kind 0): an update from a client. Unknown senders are logged (returns
+// Packet kind 0: an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported (slot 11) and removed (slot 2).
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* node = ClientAt(from);
@@ -169,7 +169,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return true;
 }
 
-// 00437240 (slot 6, packet kind 1): a client leaves: its connection id follows; when it matches,
+// Packet kind 1: a client leaves: its connection id follows; when it matches,
 // the client is reported (slot 12) and removed (slot 2).
 void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
@@ -293,12 +293,12 @@ SessionBase::~SessionBase() {
     libcrt::DestroyElements(handlers_[1], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     libcrt::DestroyElements(handlers_[0], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     socket_.Destruct();
-    types_.byType.Destroy();     // clear 0043D590, the buckets 0043AAB0
-    types_.byVtable.Destroy();   // clear 0043B4D0, the buckets 0043A2B0
+    types_.byType.Destroy();     // clear, the buckets
+    types_.byVtable.Destroy();   // clear, the buckets
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // 0043DCA0 with 0: RefPtr::Destroy
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // With 0: RefPtr::Destroy
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
@@ -317,11 +317,11 @@ EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 namespace net {
 
 namespace {
-// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
+// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef):
 // another STLport string destructor.
 } // namespace
 
-// The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].
+// The send interval is the constant over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
     if (g_netLog) {
         stlp::string peer;

@@ -66,14 +66,14 @@ CParticleManager* TheParticleManager();
 CLightFactory* TheLightFactory();
 Terrain* TheTerrain();
 
-// The scene renderer; its device object (world_singletons.cpp); 007AEE78: the critical section held
-// around the device's DirectDraw / Direct3D calls.
+// The scene renderer; its device object (world_singletons.cpp); the critical section held around the device's
+// DirectDraw / Direct3D calls.
 CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer (renderer_lifetime.cpp)
 CTextureDevice* TheRenderDevice();
 _RTL_CRITICAL_SECTION* TheDeviceLock();   // g_deviceLock (renderer_lifetime.cpp)
 
-// The cursor. 0079BF00: the map database. The server world's mission script and sector map
-// (world_singletons.cpp). 0079B2A8: the camera.
+// The cursor. The map database. The server world's mission script and sector map (world_singletons.cpp). The
+// camera.
 CCursor* TheCursor();   // g_cursor (ui_cursor_setup.cpp)
 CMapDatabase* TheMapDatabase();   // g_mapDatabase (map_database.cpp)
 CScript* TheMissionScript();

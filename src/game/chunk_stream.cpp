@@ -1,5 +1,5 @@
 // Chunked files. See chunk_stream.h.
-// Every file operation asks for the file again through slot 1 (File), as the original does.
+// Every file operation asks for the file again through slot 1 (File), as the game does.
 #include "chunk_stream.h"
 
 #include "asset_text.h"
@@ -41,7 +41,7 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
     chunk->consumed_ += static_cast<int>(size);
 }
 
-// The decoder of 004D8E10 (outside this range): two byte vectors, the decoded text and the coded
+// The decoder: two byte vectors, the decoded text and the coded
 // input; vector<uint8_t> members (library): constructor, erase, fill insert.
 using ByteVector = stlp::vector<std::uint8_t>;
 struct TextDecoder {
@@ -65,7 +65,7 @@ void Chunk::Advance(int bytes) {
 }
 EI_REWRITTEN(0x0042BF00, Chunk::Advance);
 
-void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
+void Chunk::OnChunk() {}
 
 mfc::CFileVirtuals* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
 EI_REWRITTEN(0x0042BF40, Chunk::File);
@@ -164,7 +164,7 @@ void Chunk::ReadHeader() {
 }
 EI_REWRITTEN(0x0042C0B0, Chunk::ReadHeader);
 
-// The parent is not checked for null (the original reads its fields unconditionally).
+// The parent is not checked for null (its fields are read unconditionally).
 void Chunk::ForEachChild() {
     ReadHeader();
     for (;;) {
@@ -197,7 +197,7 @@ std::uint8_t Chunk::ReadByte() {
 }
 EI_REWRITTEN(0x0042C4C0, Chunk::ReadByte);
 
-// x and z are copied through the FPU, y as an integer (as the original does).
+// x and z are copied through the FPU, y as an integer.
 Vector3* Chunk::ReadVector3(Vector3* out) {
     std::uint32_t v[3];
     ReadCounted(this, &v[0], 4);
@@ -312,7 +312,7 @@ void Chunk::ReadStringArray(mfc::CStringArray* array) {
     array->SetSize(0, -1);
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        mfc::CString text(mfc::CString::kUnset);   // the original reuses a stack slot
+        mfc::CString text(mfc::CString::kUnset);   // reuses a stack slot
         array->SetAtGrow(array->GetSize(), *child.ReadString(&text));
     }
 }
@@ -350,7 +350,7 @@ int RootChunk::Open(mfc::CString path, unsigned flags) {
 }
 EI_REWRITTEN(0x0042D160, RootChunk::Open);
 
-mfc::CFileVirtuals* RootChunk::File() { return file_.Virtuals(); }   // 0042D260 (short_functions.cpp)
+mfc::CFileVirtuals* RootChunk::File() { return file_.Virtuals(); }
 
 RootChunk::~RootChunk() = default;
 EI_REWRITTEN_SPECIAL(0x0042D270, RootChunk::~RootChunk);

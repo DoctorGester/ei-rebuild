@@ -176,7 +176,7 @@ EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
 
 namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
-// 005BF7D0 (RadiusTree::Find) maps a radius to a table index.
+// RadiusTree::Find maps a radius to a table index.
 const RadiusTree* Spiral() { return SpiralRadiusTree(); }
 const int* SpiralLengths() { return SpiralLengthArray()->data; }
 const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data->x; }
@@ -216,9 +216,8 @@ void RadiusTree::Build(const float* values, int count) {
 EI_REWRITTEN(0x005BF5F0, RadiusTree::Build);
 
 // ---- The spiral's tables ------------------------------------------------------------------------
-// Built by a static initialiser, before the hooks are installed: the builder is registered at the
-// original's addresses, but a running game never calls it. What it builds was compared with the
-// original's tables once at start-up (verify_ai_static_tables.cpp until S21d).
+// Built by a static initialiser at start-up; the builder is also registered at its
+// addresses, but a running game never calls it.
 
 namespace {
 
@@ -233,7 +232,7 @@ struct SpiralCell {
 };
 static_assert(sizeof(SpiralCell) == 8);
 
-// 005BFC10 (the sort's comparison): by distance, ascending.
+// The sort's comparison: by distance, ascending.
 int __cdecl ByDistance(const void* a, const void* b) {
     const float da = static_cast<const SpiralCell*>(a)->distance;
     const float db = static_cast<const SpiralCell*>(b)->distance;
@@ -254,7 +253,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
     int filled = 0;
     for (int y = -kSpiralReach; y <= kSpiralReach; ++y) {
         for (int x = -kSpiralReach; x <= kSpiralReach; ++x) {
-            // The original sums the squares as integers (FILD, FSQRT, stored as a float); the gaps
+            // The squares are summed as integers (FILD, FSQRT, stored as a float); the gaps
             // are 9 at most, so the float sum is the same number.
             const Vector2 gap{static_cast<float>(Gap(x)), static_cast<float>(Gap(y))};
             SpiralCell& cell = cells.data[filled++];
@@ -289,14 +288,14 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
     cells.FreeData();
 }
 
-// 005BF8F0 (thiscall on its static initialiser's object, which has no fields; returns it).
+// Builds the spiral in the tables (the static initialiser's object has no fields; returns it).
 void* __fastcall BuildSectorSpiral(void* self) {
     BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
     return self;
 }
 EI_REWRITTEN(0x005BF8F0, BuildSectorSpiral);
 
-// 005BF8E0, the static initialiser (cdecl) that builds the spiral at its place in the list. The object it passes
+// The static initialiser that builds the spiral at its place in the list. The object it passes
 // has no fields and nothing reads it.
 void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
 EI_REPLACE(0x005BF8E0, BuildSectorSpiralStatic);
@@ -331,7 +330,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
 EI_REWRITTEN(0x005C0BD0, CSectorMap::FindUnitsInRadius);
 
 bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
-    // Rebirth's FixMoveObject runs before the original: no move to a negative (or NaN) x or y.
+    // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
         return false;
@@ -339,7 +338,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
     Vector3 saved;
-    std::memcpy(&saved, &current, sizeof(saved));   // bitwise, like the original (no x87 round trip)
+    std::memcpy(&saved, &current, sizeof(saved));   // bitwise (no x87 round trip)
 
     int oldSx = object->sectorCellX / 32, oldSy = object->sectorCellY / 32;
     if (oldSx >= width || oldSy >= height) return false;

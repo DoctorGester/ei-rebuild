@@ -1,10 +1,8 @@
-// Small allocation helpers of the script runtime (ticket S4): the parser's new command blocks
-// and WorldScript block, the area lookup that creates missing areas
-// the temporary object references of the evaluator and SSCCmd::Clear
-//. See script.h and docs/notes/script.md.
-// The original inlines CList::AddTail / NewNode and builds a temporary element on its stack that it
-// copies into the new node or array slot. Both temporaries are empty, so the copies (the
-// instantiations' Copy, called through their addresses as the original does) leave the new element
+// Small allocation helpers of the script runtime: the parser's new command blocks and WorldScript
+// block, the area lookup that creates missing areas, the temporary object references of the
+// evaluator and SSCCmd::Clear. See script.h and docs/notes/script.md.
+// The list appends build a temporary element on the stack that is copied into the new node or array
+// slot. Both temporaries are empty, so the copies leave the new element
 // empty; their uninitialised +0x14 word is copied too and then overwritten by the id, which is not
 // reproduced. The temporaries own nothing, so their destruction is a no-op and is left out.
 #include "script.h"
@@ -24,17 +22,17 @@ namespace {
 
 // ---- Original code (MFC template instantiations, config/library.csv) ------------------------------
 
-// CList<ScriptDecl>::NewNode (__thiscall (prev, next)); the element is constructed (vtable 0073D3DC).
+// CList<ScriptDecl>::NewNode (prev, next); the element is constructed.
 using BlockList = mfc::CList<ScriptDecl>;
 BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList::Node* next) {
     return mfc::impl::NewNodeAs<mfc::impl::CommandBlockList>(list, prev, next);
 }
-// CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
-// SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,
+// CArray<ScriptArea>::SetSize (size, growBy); CArray<ScriptAreaPart>::Copy.
+// SetSize of SSCCmd's arrays (size, growBy): strings, object pointers, group pointers,
 // bindings (both arrays), nested calls (dropped elements delete their command).
 
 
-// CList::AddTail of an empty ScriptDecl, as 004BF540 / 004BF900 inline it: the node after the tail,
+// CList::AddTail of an empty ScriptDecl: the node after the tail,
 // the empty temporary's commands copied in, linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
 ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
@@ -54,20 +52,20 @@ ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
 
 } // namespace
 
-// 004BF540 CScript::NewCommandList.
+// CScript::NewCommandList.
 ScriptDecl* CScript::NewCommandList() {
     return AppendBlock(&blocks_, 0);
 }
 EI_REWRITTEN(0x004BF540, CScript::NewCommandList);
 
-// 004BF900 CScript::NewWorldScript.
+// CScript::NewWorldScript.
 ScriptDecl* CScript::NewWorldScript() {
     return AppendBlock(&worldBlocks_, 0x80000000u);
 }
 EI_REWRITTEN(0x004BF900, CScript::NewWorldScript);
 
-// 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
-// 004CDB30 constructs the slot), the empty temporary's parts are copied in and the last
+// CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
+// constructs the slot), the empty temporary's parts are copied in and the last
 // slot gets the id.
 ScriptAreaParts* CScript::FindArea(int id) {
     auto& areas = areas_;
@@ -83,7 +81,7 @@ ScriptAreaParts* CScript::FindArea(int id) {
 }
 EI_REWRITTEN(0x004BCE10, CScript::FindArea);
 
-// 004B59F0 CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
+// CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
 // it is empty; the element is constructed and then assigned null (released if set).
 ScriptObjectRef* CScript::NewTempObject() {
@@ -100,7 +98,7 @@ ScriptObjectRef* CScript::NewTempObject() {
 }
 EI_REWRITTEN(0x004B59F0, CScript::NewTempObject);
 
-// 004B5F70 SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
+// SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
 // their SetSize(0, -1).
 void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     cmd->id = 0;

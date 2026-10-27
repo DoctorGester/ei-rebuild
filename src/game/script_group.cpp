@@ -42,7 +42,7 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 }
 
 
-// 004B2D80 (the game's: by object address, unsigned; ours: ScriptGroup::After).
+// The game's order: by object address, unsigned (ours: ScriptGroup::After).
 int __cdecl CompareMembers(const void* a, const void* b) {
     const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
     const CEngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
@@ -162,7 +162,7 @@ void ScriptGroup::Resize(int newSize) {
 }
 
 // The merges walk both arrays in member order (After). Each source element is read before
-// the destination slot is released, like the original (it matters only if `this` is a or b).
+// the destination slot is released (it matters only if `this` is a or b).
 void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
     int aSize = a.size, bSize = b.size;
     Resize(aSize + bSize);

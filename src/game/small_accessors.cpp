@@ -1,5 +1,5 @@
-// Small out-of-line accessors of 0x00455610-0x004BC1F0 (A-E1): a few instructions each. The script
-// ones (004B2520-004BC1F0) are called by SSCCmd::Execute and the script definition's
+// Small out-of-line accessors: a few instructions each. The script
+// ones are called by SSCCmd::Execute and the script definition's
 // Save only; both are rewritten with the same work inline (script_exec.cpp,
 // script_save.cpp), so those hooks fire only for a caller still in the exe. All main thread.
 #include "base_manager.h"
@@ -24,7 +24,7 @@
 
 // ---- Scene loader ---------------------------------------------------------------------------------
 
-// A Vector3 from its three parts (a second copy of 00401DE0); returns it.
+// A Vector3 from its three parts (a second copy of an earlier function); returns it.
 Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
     x = x_;
     y = y_;
@@ -33,9 +33,9 @@ Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
 }
 EI_REWRITTEN(0x00471A90, Vector3::ConstructScene);
 
-// 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
+// Three functions (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
 // specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
-// of the file with 00471A90); the alphas stay.
+// of the file); the alphas stay.
 void CMaterial::SetDiffuse(const Vector3* value) {
     std::memcpy(&colors.diffuse, value, sizeof(Vector3));
 }
@@ -58,8 +58,8 @@ EI_REWRITTEN(0x00471AF0, CMaterial::SetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 
-// The particle manager's own part of its constructor (the client world's manager set-up,
-// 00561E50, calls it after the base manager's): quietStart cleared.
+// The particle manager's own part of its constructor (the client world's manager set-up
+// calls it after the base manager's): quietStart cleared.
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
     manager->quietStart = 0;
 }
@@ -67,7 +67,7 @@ EI_REWRITTEN(0x004981A0, ParticleManagerClearQuietStart);
 
 // ---- Script commands' accessors -------------------------------------------------------------------
 
-// 004B9F50 / 004B9F60 (RET 4): bits of the object's flags set / cleared (the commands pass 0x10000).
+// Bits of the object's flags set / cleared (the commands pass 0x10000).
 void CEngineObject::SetFlagBits(std::uint32_t bits) {
     flags_ |= bits;
 }

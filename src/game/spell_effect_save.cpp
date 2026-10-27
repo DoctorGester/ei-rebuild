@@ -16,8 +16,8 @@ namespace {
 
 constexpr int kNoObject = -1;
 
-// One of the three counted effect objects by the id read (-1 none), looked up in the world's timed
-// object manager; `id` keeps what the previous read left (the original's one stack slot).
+// One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
+// manager; `id` keeps what the previous read left (one stack slot in the game).
 template <class T>
 void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
     CBaseManager* manager = world->TimedObjectManager();

@@ -32,7 +32,7 @@ constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// A list on the stack as the original builds it (CPtrList, blocks of 10).
+// A list on the stack (CPtrList, blocks of 10).
 void InitList(AIObjectList& list) {
     list = {};
     list.vtable = mfc::impl::PtrListClass::Vtable();
@@ -63,7 +63,7 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     order.target = nullptr;
     order.Clear();
     if (clearTwice) {
-        // 's second attack builds the order by hand after a second Clear.
+        // The second attack builds the order by hand after a second Clear.
         order.Clear();
         order.kind = 3;
         order.source = kAttackHow;
@@ -90,7 +90,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && ObjectSlots(target)->IsDead() == 0) {
-        AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit, as the original does
+        AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit
         if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);
             return;
@@ -225,7 +225,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CUnit* member = node->value;
         PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
-        // The original reads the leader of a unit without a Player mode at address 0x0C (a crash).
+        // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
         double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
         double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;

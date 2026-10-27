@@ -1,5 +1,5 @@
 // The handler registration template (one instantiation per message class, called by the session
-// constructors 00412D80 and 0041BC40 as `session->Register<T>(channel, handler)`): a prototype of
+// constructors as `session->Register<T>(channel, handler)`): a prototype of
 // the class is made and shared to learn its type id (looked up by vtable), `handler` is added for
 // that type on `channel`, and the prototype is released. The instantiations inline the class
 // constructors; the prototypes here come from the classes' factories (net_messages.cpp),

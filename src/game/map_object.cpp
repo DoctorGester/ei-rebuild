@@ -17,7 +17,7 @@
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
 
 namespace {
-constexpr float kScaleStep = std::bit_cast<float>(0x3ECCCCCDu);   // 0073B868 (0.4)
+constexpr float kScaleStep = std::bit_cast<float>(0x3ECCCCCDu);   // 0.4
 constexpr std::uint32_t kFlagDirty = 2;
 constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 constexpr int kClassMapObjectServer = 0x39;
@@ -30,7 +30,7 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
 
-// The world's slot 27 (GridHeightAt): the height at (x, y), in ST0.
+// The world's GridHeightAt: the height at (x, y), in ST0.
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
@@ -53,7 +53,7 @@ EI_REWRITTEN(0x0050E9F0, CMapObject::MarkChanged);
 
 int CMapObject::HasEffect(std::uint32_t type) {
     for (int i = 0; i < effectCount; ++i) {
-        MapEffect effect = effects[i];   // the original copies the whole record
+        MapEffect effect = effects[i];   // the whole record is copied, like the original
         if (effect.type == type) return 1;
     }
     return 0;
@@ -79,10 +79,10 @@ float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatBits(T) = delete;
 
-// Rebirth (addon.dll 100181D5): after adding `effect`, older effects (not the new last one) of
-// the same type and end flag whose +0x0C is within 0.001 of the new one's, that last no longer and
-// whose value is not above it, are removed. The loop steps on after a removal (the next record,
-// moved into the gap, is not looked at) and reads the count each time.
+// Rebirth fix (FixSpellEffectsOverflow): after adding `effect`, older effects (not the new last one) of the
+// same type and end flag whose second float is within 0.001 of the new one's, that last no longer and whose
+// value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
+// is not looked at) and reads the count each time.
 void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
     for (int i = 0; i < object->effectCount - 1; ++i) {
         MapEffect* e = &object->effects[i];
@@ -115,8 +115,7 @@ std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    // The original keeps the flag in the low byte of its argument's stack slot and passes the whole
-    // dword to slot 33.
+    // The original keeps the flag in the low byte of its argument's stack slot and passes the whole dword on.
     int type = effect->type;
     bool scales = type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
                   type == mapeffect::kShrink;
@@ -130,8 +129,8 @@ std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     return result;
 }
 EI_REWRITTEN(0x0050F1E0, CMapObject::AddEffect);
-// Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is
-// in CWorldServer::UpdateUnits (0058D670, original).
+// Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is in
+// CWorldServer::UpdateUnits (original).
 
 std::uintptr_t CMapObject::ClearEffects() {
     if (effects) {
@@ -154,7 +153,7 @@ EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 float CMapObject::EffectValue(std::uint32_t type) {
     std::uint32_t best = 0;   // 0.0f
     for (int i = 0; i < effectCount; ++i) {
-        MapEffect effect = effects[i];   // the original copies the record (twice)
+        MapEffect effect = effects[i];   // the record is copied twice, like the original
         if (effect.type != type) continue;   // the record's first dword & 0xFF
         float current = std::bit_cast<float>(best);
         float value = std::bit_cast<float>(effect.value);
@@ -260,13 +259,13 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
 EI_REWRITTEN(0x0050E8F0, CMapObject::AttachCompanion);
 
 namespace {
-constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions slot 19 accepts
+constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
 
 } // namespace
 
 std::uintptr_t CMapObject::AttachObject(CEngineObject* object) {
     if (!object || object->type_ != kTypeMapCompanion) {
-        CObject3D::AttachSpecific(object);   // 00516D50, the 3D object's slot 19 (no result)
+        CObject3D::AttachSpecific(object);   // the 3D object's attach virtual (no result)
         return 0;
     }
     if (companion) {

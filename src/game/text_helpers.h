@@ -1,6 +1,6 @@
 #pragma once
 
-// Small text helpers of the engine base (0x00445D20-0x00447F50; A-E1). See docs/notes/core.md.
+// Small text helpers of the engine base. See docs/notes/core.md.
 
 #include "lib/mfc.h"
 
@@ -23,7 +23,7 @@ static_assert(sizeof(TextTokenizer) == 0x10);
 // Removes every carriage return from `text` (CString::Remove); returns the count.
 int __fastcall RemoveCarriageReturns(mfc::CString* text);
 
-// 00447F50 (RET 4; `name` is passed by value and destroyed here). Constructs `out` as the entry of
+// (`name` is passed by value and destroyed here). Constructs `out` as the entry of
 // `names` that equals `name` ignoring case (_mbsicmp), or as `name` itself when there is none.
 // Returns `out`.
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name);

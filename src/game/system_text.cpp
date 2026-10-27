@@ -96,7 +96,7 @@ struct Route {
     const void* utf8;
 };
 #define EI_UTF8_ROUTE(name) {#name, reinterpret_cast<const void*>(&utf8::name)}
-// game.exe's imports that take or give text, and their UTF-8 versions.
+// The game's imports that take or give text, and their UTF-8 versions.
 const Route kRoutes[] = {
     EI_UTF8_ROUTE(CreateFileA),       EI_UTF8_ROUTE(FindFirstFileA),        EI_UTF8_ROUTE(FindNextFileA),
     EI_UTF8_ROUTE(DeleteFileA),       EI_UTF8_ROUTE(MoveFileA),             EI_UTF8_ROUTE(CopyFileA),
@@ -146,7 +146,7 @@ std::string Narrow(std::wstring_view wide) {
 }
 
 const void* SystemRoute(const char* dll, const char* function) {
-    (void)dll;   // the names are unique among game.exe's imports
+    (void)dll;   // the names are unique among the game's imports
     if constexpr (!kUtf8) {
         (void)function;
         return nullptr;

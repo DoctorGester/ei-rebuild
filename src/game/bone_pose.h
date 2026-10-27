@@ -1,10 +1,10 @@
 #pragma once
 
-// The vector turn the skeleton code inlines (0050C230 FigureBone::Place, 00507E80
-// CAnimationNode::ResetPose): `v` turned by the unit quaternion `q` as
-// (w^2 - u.u) v + 2w (u x v) + 2 (u.v) u, with the original's helpers' rounding: the dot products
-// summed z, y, x, each scaled term rounded (00448A10 / 00410770, the cross product
-// 004489D0), then summed in that order.
+// The vector turn the skeleton code inlines (FigureBone::Place, CAnimationNode::ResetPose):
+// `v` turned by the unit quaternion `q` as
+// (w^2 - u.u) v + 2w (u x v) + 2 (u.v) u, with the game's helpers' rounding: the dot products
+// summed z, y, x, each scaled term rounded (the dot-product and cross-product helpers),
+// then summed in that order.
 
 #include "lib/vecmath.h"
 

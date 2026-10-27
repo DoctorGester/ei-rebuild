@@ -1,7 +1,7 @@
 // The Direct3D device's screen bounds of a mesh draw (mesh draw flag 1): the smallest and largest
 // x and y of its clipped TL vertices or of its projected positions, rounded
 // into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's draws read
-// back. A-S12; see docs/notes/renderer.md (section 12).
+// back. See docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex
 #include "device_buffers.h"  // ProjectedVertex
 #include "texture.h"         // CTextureDevice
@@ -45,8 +45,7 @@ constexpr int kBlock = 4;   // projected positions come in blocks of four
 
 } // namespace
 
-// 004E86B0 (thiscall, RET 8): the bounds of TL vertices; with `outcodes` only of those whose
-// outcode is 0 (the clipper's output: on screen).
+// The bounds of TL vertices; with `outcodes` only of those whose outcode is 0 (the clipper's output: on screen).
 int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices,
                                       const std::uint8_t* outcodes) {
     ScreenBounds bounds;
@@ -59,8 +58,8 @@ int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices
 }
 EI_REWRITTEN(0x004E86B0, CTextureDevice::BoundsOfVertices);
 
-// 004E8900 (thiscall, RET 8): the same of projected positions, whole blocks of four at a time (a
-// size that is not a multiple of four reads to the end of its last block).
+// The same of projected positions, whole blocks of four at a time (a size that is not a multiple of four reads to
+// the end of its last block).
 int CTextureDevice::BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
                                        const std::uint8_t* outcodes) {
     ScreenBounds bounds;

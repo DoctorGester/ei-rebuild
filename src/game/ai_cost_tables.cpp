@@ -1,6 +1,6 @@
-// 005B6070 (thiscall on CAIMap): the three passability cost tables, 16 ints each indexed by a
-// cell's passability nibble (entry 0, impassable, is -1): +0x14 the per-nibble costs, +0x54 a flat
-// 0x400, +0x94 the step costs (PassCostContext and SetStepSpeeds use them). See ai_map.h.
+// The three passability cost tables of CAIMap, 16 ints each indexed by a cell's passability nibble (entry 0,
+// impassable, is -1): the per-nibble costs, a flat 0x400, and the step costs (PassCostContext and
+// SetStepSpeeds use them). See ai_map.h.
 #include "ai_map.h"
 
 #include "ei/hook.h"

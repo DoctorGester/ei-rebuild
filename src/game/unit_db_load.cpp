@@ -1,7 +1,6 @@
-// The unit database's and the skill database's loads from their archive at startup (0053A200 /
-// 00520220) and the model and level tables' name lookups. A-U12.
-// Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
-// vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
+// The unit database's and the skill database's loads from their archive at startup and the model and level
+// tables' name lookups. Rebirth patches both loads (it redirects their file lookup to a mod folder's copy):
+// these are the vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
 #include "chunk_archive.h"
 #include "unit_db.h"
 
@@ -29,14 +28,13 @@ constexpr int kModelSlots = 6;
 using dbfile::FillStream;
 using dbfile::LocalResource;
 
-// The tables' vector serialisers (RET 0xC: id, vector, unused; ChunkArchive::SerializeUnitLevels /
-// SerializeModels / SerializePrototypes / SerializeNpcs, unit_db.cpp: 0053E1B0, 0053DF50, 0053DC10,
-// 0053DD00).
+// The tables' vector serialisers (id, vector, unused; ChunkArchive::SerializeUnitLevels / SerializeModels /
+// SerializePrototypes / SerializeNpcs, unit_db.cpp).
 template <typename Record>
 using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*);
 
-// Every record of [begin, end) entered into the name index under its name (operator[]: 0053C8B0,
-// 0053C780, 005335E0, 0053C650; a record of a name seen before replaces the earlier one).
+// Every record of [begin, end) entered into the name index under its name (operator[]; a record of a name
+// seen before replaces the earlier one).
 template <typename Record, typename Index>
 void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
@@ -46,9 +44,9 @@ void IndexNames(Record* begin, Record* const& end, Index* index) {
     }
 }
 
-// One pass over the file: an archive of its own opened for loading, the table's records read as
-// chunk `id` and, after the archive is closed, entered into the name index. `levels` is the
-// serialisers' unused third argument, as the original passes it.
+// One pass over the file: an archive of its own opened for loading, the table's records read as chunk `id`
+// and, after the archive is closed, entered into the name index. `levels` is the serialisers' unused third
+// argument.
 template <typename Record, typename Index>
 void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, void* table, void* levels, Record*& begin,
                Record*& end, Index* index) {

@@ -1,6 +1,5 @@
-// The Rebirth flags in the standalone image (hook.cpp InstallHooks). Until S21e this also found which
-// patches addon.dll and EI_Plugin.asi applied to game.exe and whether a rewrite could be hooked over
-// them; game.exe now runs only as the original game, so only the flags are left.
+// The Rebirth flags in the standalone image (hook.cpp InstallHooks). game.exe runs only as the original game,
+// so only the flags are left.
 #pragma once
 
 #include "ei/rebirth.h"

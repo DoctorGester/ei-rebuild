@@ -58,7 +58,7 @@ int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 template <typename T>
 void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
 
-// The original's Save functions copy each scalar into a stack slot before writing it.
+// Each scalar is copied into a stack slot before it is written.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     T copy = value;
@@ -118,8 +118,8 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on first use and
-// destroyed at exit.
+// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
+// first use and destroyed at exit.
 static_assert(sizeof(AIObjectList) == 0x1C);
 constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
 AIObjectList& Candidates() { return *g_candidates; }
@@ -234,7 +234,7 @@ void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
-    // "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
+    // "Unit %i has no patrol points, switching to guard" (passed by address).
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
@@ -302,7 +302,7 @@ void PatrolMode::Save(CStream* stream) {
         WriteCopy(stream, point.looks.size);
         for (int j = 0; j < point.looks.size; ++j) {
             const AILook& look = point.looks.data[j];
-            // Each float goes through a stack copy as a dword (integer moves in the original).
+            // Each float goes through a stack copy as a dword (integer moves).
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.wait));

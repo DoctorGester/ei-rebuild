@@ -1,8 +1,7 @@
 #pragma once
 
-// The material the old renderer's device draws with (CTextureDevice::material_): set by 004EB170
-// (device_states.cpp), applied by the indexed draw 004EB550 (device_draw.cpp). See
-// docs/notes/models.md ("Material draw").
+// The material the old renderer's device draws with (CTextureDevice::material_): set in device_states.cpp,
+// applied by the indexed draw (device_draw.cpp). See docs/notes/models.md ("Material draw").
 
 #include "engine_object.h"
 #include "texture.h"
@@ -14,8 +13,8 @@
 
 class CRenderPreset;   // model.h
 
-// A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
-// reference), destroyed by releasing the texture and freeing the name.
+// A texture stage of a material (0x14 bytes): copied with the texture gaining a reference, destroyed by releasing
+// the texture and freeing the name.
 struct MaterialStage {
     explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {
         if (texture) ++texture->refCount_;

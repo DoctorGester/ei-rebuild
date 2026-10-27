@@ -1,6 +1,5 @@
-// FogGrid (effects.h): the squares a seer sees, rows of bytes. Clear 005C8B60, Read 005C8BF0 and
-// Write 005C8CC0 (thiscall, RET 4 for the stream ones); used by CEffectShowVisibility
-// (world_effect_visibility.cpp). See docs/notes/world.md.
+// FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
+// CEffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
 #include "effects.h"
 
 #include "core_streams.h"
@@ -37,7 +36,7 @@ void FogGrid::Clear() {
 void FogGrid::Read(CMemoryStream* stream) {
     stream->Read(&x0, 4);
     stream->Read(&y0, 4);
-    // The original's locals hold the stream and the grid pointers when a read fails.
+    // Like the original, the locals hold the stream and the grid pointers when a read fails.
     int newWidth = 0;
     int newHeight = 0;
     stream->Read(&newWidth, 4);

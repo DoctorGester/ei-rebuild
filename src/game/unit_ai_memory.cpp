@@ -27,7 +27,7 @@ const float kFar = 1e30f;                       // 7149F2CA
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
-// (a - b) squared in 3D, summed as the original: z, then x, then y.
+// (a - b) squared in 3D, summed z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
     double dx = static_cast<double>(a->localPosition_.x) - b[0];
     double dy = static_cast<double>(a->localPosition_.y) - b[1];

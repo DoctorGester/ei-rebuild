@@ -1,6 +1,6 @@
 // The network message classes (net_messages.h) and the message base: for each class its factory,
 // constructor, copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's
-// server entry (0073BB28, net_classes.h; no factory). See docs/notes/network.md and
+// server entry (net_classes.h; no factory). See docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 // The original inlines several STLport copies of the same string and vector code (copy
 // construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,
@@ -104,7 +104,7 @@ EI_REWRITTEN_SPECIAL(0x00413430, Message::~Message);
 EI_REWRITTEN_SPECIAL(0x00413410, Message::~Message);
 
 // ================================================================================================
-// 0073BBF8 LoginMessage.
+// LoginMessage.
 
 LoginMessage::LoginMessage() {
     StringEmpty(name_);
@@ -142,7 +142,7 @@ void LoginMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// TextMessage: SayMessage 0073BC28, ZoneMessage 0073BCD0, MapMessage 0073BD00.
+// TextMessage: SayMessage, ZoneMessage, MapMessage.
 
 TextMessage::TextMessage() { StringEmpty(text_); }
 TextMessage::TextMessage(const TextMessage& other) : Message(other), text_(other.text_) {}
@@ -188,7 +188,7 @@ void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 // ================================================================================================
-// 0073BC40 CommandMessage.
+// CommandMessage.
 
 CommandMessage::CommandMessage() { StringEmpty(text_); }
 EI_REWRITTEN_SPECIAL(0x00413C90, CommandMessage::CommandMessage);
@@ -212,7 +212,7 @@ void CommandMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// PairMessage: BindingMessage 0073BCB8, FileRequestMessage 0073BC58.
+// PairMessage: BindingMessage, FileRequestMessage.
 
 PairMessage::PairMessage(const PairMessage& other) : Message(other) {
     CopyCounted(first_, other.first_);
@@ -252,7 +252,7 @@ void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 // ================================================================================================
-// 0073BC70 PlayerMessage.
+// PlayerMessage.
 
 PlayerMessage::PlayerMessage() {
     StringEmpty(name_);
@@ -289,7 +289,7 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BC88 LineMessage.
+// LineMessage.
 
 LineMessage::LineMessage() { StringEmpty(text_); }
 EI_REWRITTEN_SPECIAL(0x0041C740, LineMessage::LineMessage);
@@ -316,7 +316,7 @@ void LineMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BCA0 HostMessage.
+// HostMessage.
 
 HostMessage::HostMessage() {
     StringEmpty(address_);
@@ -343,7 +343,7 @@ void HostMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BCE8 VariableMessage.
+// VariableMessage.
 
 VariableMessage::VariableMessage() { StringEmpty(name_); }
 VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name_(other.name_) {
@@ -371,7 +371,7 @@ void VariableMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD18 FileMessage.
+// FileMessage.
 
 FileMessage::FileMessage() {
     StringEmpty(name_);
@@ -389,7 +389,7 @@ FileMessage::FileMessage(const FileMessage& other)
     chunks_.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);
 }
 FileMessage::~FileMessage() {
-    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
+    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
 }
 EI_REWRITTEN_SPECIAL(0x00416640, FileMessage::~FileMessage);
@@ -413,7 +413,7 @@ void FileMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD30 FileChunkMessage.
+// FileChunkMessage.
 
 FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(other) {
     CopyCounted(file_, other.file_);
@@ -442,7 +442,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD48 AwardMessage.
+// AwardMessage.
 
 AwardMessage::AwardMessage() { StringEmpty(text_); }
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
@@ -472,7 +472,7 @@ void AwardMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD60 TradeMessage.
+// TradeMessage.
 
 TradeMessage::TradeMessage(const TradeMessage& other)
     : Message(other), done_(other.done_), revision_(other.revision_), partnerRevision_(other.partnerRevision_) {
@@ -512,7 +512,7 @@ void TradeMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD78 PartyMemberMessage.
+// PartyMemberMessage.
 
 // Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
 // read into ours (slot 1, Read) instead of ours being written into it.
@@ -546,7 +546,7 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BDD0 PartyMessage.
+// PartyMessage.
 
 PartyMessage::PartyMessage() { members_.ConstructEmpty(); }
 PartyMessage::PartyMessage(const PartyMessage& other)
@@ -600,8 +600,8 @@ void PartyMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BB40 ServerEntryBase and 0073BB28 ServerEntry (net_classes.h): made by 0041A7E0, 0041D420 and 0041D600 (the
-// server list). Slot 1 is the empty 00412580.
+// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the
+// server list).
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
     std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied as dwords

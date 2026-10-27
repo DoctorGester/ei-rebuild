@@ -24,7 +24,7 @@ struct Startup {
 };
 
 // _AfxThreadEntry: the thread object made current, the creator released, then (once the
-// creator has set the priority) the procedure, and AfxEndThread with its result. The original runs
+// creator has set the priority) the procedure, and AfxEndThread with its result. game.exe's MFC runs
 // InitInstance / Run for a thread without a procedure; the game has none.
 unsigned __stdcall ThreadEntry(void* argument) {
     Startup* startup = static_cast<Startup*>(argument);

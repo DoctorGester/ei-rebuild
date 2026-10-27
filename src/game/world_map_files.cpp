@@ -1,6 +1,5 @@
-// The maps folder and its files (A-W14): 0055E990 MapsFolder, 00595BA0 MapPath, 005812F0
-// MapFileExists, 005813A0 WriteMapFile, with Rebirth's Maps in the standalone image (mod_folders.h). See
-// world_map_files.h and docs/notes/world.md.
+// The maps folder and its files (MapsFolder, MapPath, MapFileExists, WriteMapFile), with Rebirth's Maps in
+// the standalone image (mod_folders.h). See world_map_files.h and docs/notes/world.md.
 #include "world_map_files.h"
 
 #include "mod_folders.h"

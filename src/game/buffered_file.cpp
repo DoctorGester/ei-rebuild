@@ -1,4 +1,4 @@
-// The buffered file streams (004DA580-004DB9C0); see buffered_file.h.
+// The buffered file streams; see buffered_file.h.
 #include "buffered_file.h"
 
 #include "net_classes.h"   // BufferRead
@@ -88,7 +88,7 @@ void BufferedStream::Rebase() {
     MoveWindow(position);
 }
 
-// The original leaves EAX as Rebase does; no caller reads it.
+// No caller reads the result.
 std::uint32_t BufferedStream::Commit() {
     Rebase();
     return 0;
@@ -224,9 +224,9 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 }
 EI_REWRITTEN(0x004DB700, BufferedFile::Open);
 
-// A hash_set<int> that nothing of ours reads (game.exe's code near 004DC400 does): empty at the start, built by the
-// static initialiser 004DB870 in the list's order and destroyed by the exit function it registers; both
-// ported on the name and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// A hash_set<int> that nothing of ours reads: empty at the start, built by its static initialiser in the
+// list's order and destroyed by the exit function it registers; both defined
+// under the name and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {

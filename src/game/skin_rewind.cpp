@@ -1,6 +1,6 @@
 // Rewinding a fake unit's skeleton: each bone (CAnimationNode,
 // figure.h) goes back to the pose of its animation's first key and places its mesh there. The scene
-// loader (LoadFakeUnitScene 00446C10) rewinds the skin once its bones are bound. See
+// loader (LoadFakeUnitScene) rewinds the skin once its bones are bound. See
 // docs/notes/objects.md ("Facts").
 #include "figure.h"         // CAnimationNode
 #include "figure_mesh.h"    // CFigureMesh
@@ -15,7 +15,7 @@
 
 namespace {
 
-// The parent's rotation `p` times the key's `k` (Hamilton order) with the original's sums.
+// The parent's rotation `p` times the key's `k` (Hamilton order) with the game's sums.
 Quaternion ParentTimesKey(const Quaternion& p, const Quaternion& k) {
     Vector3 kv = {k.x, k.y, k.z};
     Vector3 pv = {p.x, p.y, p.z};
@@ -87,7 +87,7 @@ EI_REWRITTEN(0x00507C50, CAnimationNode::AttachMeshes);
 namespace scene {
 
 void SceneSkin::Rewind() {
-    if (root) root->Rewind();   // the original inlines the root's Rewind
+    if (root) root->Rewind();   // inlined in the game
     clock[0] = 0;
     clock[1] = 0;
 }

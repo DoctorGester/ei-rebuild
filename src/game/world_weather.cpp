@@ -1,6 +1,5 @@
-// CWorldServer::UpdateWeather (0058CCD0, every 64 ticks from Tick): the day-time value, rain
-// starting and stopping, lightning strikes and the lightning bolts during a storm. See world.h and
-// docs/notes/world.md.
+// CWorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
+// lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "world.h"
 
@@ -49,7 +48,7 @@ constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
 constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
-// Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
+// Shows a lightning bolt from `from` to `to` (the client glue).
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
 
@@ -143,7 +142,7 @@ void CWorldServer::UpdateWeather() {
     std::memcpy(&weatherFactor_, &factor, 4);
 
     for (auto* node = objects_.map.First(); node; node = objects_.map.After(node))
-        node->value->UpdateMoveFactors();   // slot 57: the weather changed
+        node->value->UpdateMoveFactors();   // the weather changed
     if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 
@@ -154,13 +153,13 @@ namespace {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (004D23A0 adds a line)
+CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (adds a line)
 
 float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 
 } // namespace
 
-// The client glue's thiscall member in the original; ECX is not read.
+// The client glue's thiscall member; ECX is not read.
 void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
     mfc::CString text;

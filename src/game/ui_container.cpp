@@ -19,7 +19,7 @@ std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 
 CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
     children_ = UiPtrArray<CUiWindow>{};
-    // The extra input sides (an empty STLport vector; the original stores the low byte of `ui` as
+    // The extra input sides (an empty STLport vector; the low byte of `ui` is stored as
     // its allocator into +0x160 and overwrites it with the null capacity at once).
     inputsBegin_ = nullptr;
     inputsEnd_ = nullptr;
@@ -41,7 +41,7 @@ EI_REWRITTEN_SPECIAL(0x00600BA0, CUiContainer::~CUiContainer);
 
 extern "C" int __cdecl _purecall();
 
-// Slots 25 / 26 are pure in game.exe's table: a screen that does not override them never gets on the screen.
+// Pure: a screen that does not override CreateScreen never gets on the screen.
 void CUiContainer::CreateScreen() { _purecall(); }
 void CUiContainer::CloseScreen() { _purecall(); }
 

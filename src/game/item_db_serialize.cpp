@@ -1,6 +1,5 @@
-// The item records' Serialize (A-H23): what the item database's vector serialisers
-// (item_db_load.cpp) run for every material, weapon, armour, quick, quest and loot record. Fields
-// by id through the chunk archive; see item_db.h.
+// The item records' Serialize: what the item database's vector serialisers (item_db_load.cpp) run for every
+// material, weapon, armour, quick, quest and loot record. Fields by id through the chunk archive; see item_db.h.
 #include "item_db.h"
 
 #include "chunk_archive.h"
@@ -89,8 +88,7 @@ EI_REWRITTEN(0x0069F940, QuickItemRecord::Serialize);
 void QuestItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
-    // The original erases the list through 0051F970 and the element destructors instead of
-    // The result is the same.
+    // The list is emptied by the element destructors; the result is the same.
     InlineStrings(ar, 0x16, &zones);
 }
 EI_REWRITTEN(0x0069F9C0, QuestItemRecord::Serialize);

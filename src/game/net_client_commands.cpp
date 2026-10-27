@@ -1,6 +1,6 @@
 // The game client's timed entries and commands: an object kept on the timers list, a
-// command message for the server, the client's own server entry (0041D420, slot 16), the
-// start of the game (0041D410, slot 15) and the ratio of a received buffer.
+// command message for the server, the client's own server entry, the
+// start of the game and the ratio of a received buffer.
 // See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
@@ -99,7 +99,7 @@ EI_REWRITTEN(0x0041D420, ClientSession::CreateEntry);
 void ClientSession::OnJoined() { TheGameFlow()->BeginMultiplayerGame(); }
 EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 
-// 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
+// Called by the transfer screen: a buffer's stream size (its
 // base plus the highest written position, from `begin`) over the dword at its start (1 when 0),
 // both as signed integers; 0 for fewer than 4 bytes. Reading the dword moves the read position to
 // 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it). Returned unrounded: the

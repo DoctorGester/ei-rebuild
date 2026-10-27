@@ -1,4 +1,4 @@
-// CPlayerServer: the last client messages (A-H23): leave, the game state request, pause, casts,
+// CPlayerServer: the last client messages: leave, the game state request, pause, casts,
 // weapon and movement style, follow and two small ones. See player_messages.h and
 // docs/notes/objects.md ("Players").
 #include "player_messages.h"
@@ -96,9 +96,9 @@ int CPlayerServer::OnPause() {
     std::uint8_t pause = 0;
     ReceivedMessages().Read(&pause, 1);
     net::ServerSession* server = net::GameServer();
-    // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump from 0066FAFE to their bytes at 0066FB62,
+    // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
-    // test at 0066FB10 by the pausing player's own leader; 3 skips the announcement.
+    // test by the pausing player's own leader; 3 skips the announcement.
     const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
     const bool announceResume = mode == 1 || mode == 2;
     if (IsMultiplayerClient() && server && !(server->flags7_ & CRefCounted::kDetached) && (pause || announceResume)) {

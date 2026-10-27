@@ -1,8 +1,7 @@
-// 005A7290 (thiscall on a figure part's scene node, RET 4): the finishing call of the part draws
-//. With the debug flag 0x4000 of the owning manager's context (+8) set, the
-// mesh's clip box is drawn as lines through the renderer (slot 15): the corners are the bounds'
-// centre plus, per axis, either the box minimum or the maximum; eight edges, two points each, in
-// the original's order. See docs/notes/models.md ("Figure parts").
+// The finishing call of the part draws. With the debug flag 0x4000 of the owning manager's context set, the
+// mesh's clip box is drawn as lines through the renderer: the corners are the bounds' centre plus, per axis,
+// either the box minimum or the maximum; eight edges, two points each, in the original's order. See
+// docs/notes/models.md ("Figure parts").
 #include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"         // CSceneRenderer
 #include "renderer_lines.h"   // LineBatch
@@ -15,8 +14,7 @@
 
 namespace {
 
-// 00455940 the owning manager's context (object.cpp; the world, an engine object). 0049B140 (RET 4)
-// appends a point.
+// The owning manager's context (object.cpp; the world, an engine object), and appending a point.
 CEngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<CEngineObject*>(node->ManagerContext()); }
 
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_

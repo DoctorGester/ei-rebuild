@@ -1,7 +1,7 @@
 // The constructors of the unit AI modes the script's UM* commands create (Guard, Sentry, Follow,
 // Suspection, Aggression / Revenge, CorpseWatcher) and of a patrol point's look entry; the layouts
-// are in unit_ai.h. Then the modes' own small slots (clone, reset, destructors, types;
-// 004BA250-004BA9B0). See docs/notes/script.md.
+// are in unit_ai.h. Then the modes' own small virtuals (clone, reset, destructors, types).
+// See docs/notes/script.md.
 #include "unit_ai.h"
 
 #include "ei/hook.h"
@@ -52,7 +52,7 @@ int GuardMode::OnShutdown() {
 }
 EI_REWRITTEN(0x004BA2D0, GuardMode::OnShutdown);
 
-// Floats are copied as dwords (memcpy), as the original moves them.
+// Floats are copied as dwords (memcpy).
 GuardMode* GuardMode::Clone() {
     auto* copy = new GuardMode();
     if (!copy) return nullptr;
@@ -198,7 +198,7 @@ EI_REWRITTEN(0x004BA980, CorpseWatcherMode::GetType);
 
 // ---- A patrol point's look ----------------------------------------------------------------------
 
-// 004BA1A0 (RET 0x10; UMPatrolLook's entry): angle, wait, turning time, stop first (low byte). The
+// UMPatrolLook's entry: angle, wait, turning time, stop first (low byte). The
 // arguments come in a different order from the fields: the second goes to +0x08, the third to +0x04.
 AILook* AILook::ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst) {
     angle = newAngle;

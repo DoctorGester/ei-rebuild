@@ -21,9 +21,9 @@ FootprintCellSet* FootprintCellSet::Construct() {
 }
 EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
-// The spells' footprint set (spell_effect_internal.h), empty at the start: built by the static initialiser 0067E4C0 in the
-// list's order and freed by the exit function it registers; both ported on the name and registered at their
-// addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// The spells' footprint set (spell_effect_internal.h), empty at the start: built by a static initialiser in the
+// list's order and freed by the exit function it registers (docs/notes/standalone.md, "The static
+// initialisers' objects").
 namespace spellfx {
 constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {};
 }
@@ -104,7 +104,7 @@ EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 
 namespace {
 // Object model helpers not rewritten yet.
-// CStringArray element by value (004698A0, PartNames::CopyAt: a CString copy-constructed into `out`).
+// CStringArray element by value (PartNames::CopyAt: a CString copy-constructed into `out`).
 mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
     new (out) mfc::CString(names->data[index]);
     return out;

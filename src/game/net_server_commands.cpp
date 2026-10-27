@@ -1,4 +1,4 @@
-// The game server's command messages (0041B2A0, CommandMessage) and the file requests a client
+// The game server's command messages (CommandMessage) and the file requests a client
 // hands in, with the host check they use. See net_messages.h and
 // docs/notes/network.md.
 #include "net_messages.h"
@@ -50,8 +50,8 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
     return false;
 }
 
-// 0041B690 (file requests): the request keeps its sender's connection and is listed on +0x259C
-// (0041B720 drops it).
+// File requests: the request keeps its sender's connection and is listed on +0x259C
+// (dropped again on removal).
 void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     CRefObject* connection = CurrentConnectionObject();
     CRefObject* previous = message->ConnectionRef().ptr;
@@ -66,7 +66,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
     self->fileRequests_.Insert(self->fileRequests_.End(), *value);
 }
 
-// 0041B2A0 (commands, from the connection being read). Kinds 0-2 need the host's
+// Commands, from the connection being read. Kinds 0-2 need the host's
 // connection, 3-5 the same through IsHostConnection:
 //   0: the world prepares map `text`;
 //   1: when a queued map message (+0x25AC) is named `text`, its suffix picks SetMap (_1),

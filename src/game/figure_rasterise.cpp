@@ -1,11 +1,10 @@
-// 005A0E80 (thiscall on a CFigureMesh, RET 0xC): feeds the mesh's triangles to a rasteriser (the
-// map object shadows, map_object_shadow.cpp). The texture coordinates (buffers_.texCoords) are
-// scaled by 0073C370 to integers in a function-local static array (007C2E00, guard 007C2E10 bit
-// 1, freed at exit by 005A1170; resized without keeping its contents); each triangle (three corner
-// indices of buffers_.indices, corners of buffers_.corners: position index, -, texture index) gets
-// its three projected points (from `points`) and texture coordinates into `target`'s triangle,
-// which goes to the pixel converter's slot 9 when its colour key is set, else slot 8.
-// Returns 4 * the vertex packet count. See docs/notes/models.md.
+// Feeds a CFigureMesh's triangles to a rasteriser (the map object shadows, map_object_shadow.cpp). The
+// texture coordinates (buffers_.texCoords) are scaled to integers in a function-local static array (freed at
+// exit; resized without keeping its contents); each triangle (three corner indices of buffers_.indices,
+// corners of buffers_.corners: position index, -, texture index) gets its three projected points (from
+// `points`) and texture coordinates into `target`'s triangle, which goes to the pixel converter's keyed draw
+// when its colour key is set, else the plain one. Returns 4 * the vertex packet count. See
+// docs/notes/models.md.
 #include "core_maths.h"
 #include "figure_mesh.h"
 #include "texture.h"   // CPixelConverter, RasterTriangle
@@ -21,7 +20,7 @@
 namespace {
 
 using IntPoint = RasterTriangle::Point;
-using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocates through 004F65B0
+using PointArray = lib::AlignedArray<IntPoint>;
 constinit lib::AlignedArray<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
 lib::AlignedArray<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
 void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }

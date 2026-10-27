@@ -7,14 +7,14 @@
 // - ResOverride (25 sites): the mod's config.reg [Res] lists archives that come before (or, with '-',
 //   instead of) the game's twelve archives, plus extra figure and texture archives; every
 //   CMappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls).
-// - MoviesPatch (the BinkOpen import), CameraPatch (0040ECD0's CFile::Open), StreamPatch (006BB3A0's
+// - MoviesPatch (the BinkOpen import), CameraPatch (the camera path's CFile::Open), StreamPatch (the stream file's
 //   path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // In a hooked Rebirth launch addon does all of it (the patched functions stay original there) and a
 // vanilla launch has no mod, so the layer runs in the standalone image only, behind the flags. With
 // the Standard mod (no folders, no [Res]) everything passes through, except two things addon changes
 // for every archive: a failed GetFile of "t\<name>" / "s\<name>" is tried again as "<name>", and
 // ListFiles appends to the caller's array instead of refilling it. docs/notes/rebirth.md, "Resources
-// and paths"; addon's code: build\S19b (scratch disassembly).
+// and paths"; addon's code: its scratch disassembly under build.
 
 #include "ei/rebirth.h"
 
@@ -37,12 +37,12 @@ bool Active(ei::rebirth::Patch p);
 const std::string& ModPath();
 
 // ---- ResOverride ----
-// OpenResource's entry (00671730+8), before the archive opens: the first call loads the mod's
+// OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).
 void OnOpenResource(CMappedResource* res, const char* path);
-// The destructor's entry (006714A0+2): `res` is forgotten.
+// The destructor's entry (+2): `res` is forgotten.
 void OnDestroyResource(const CMappedResource* res);
-// CMaterialManager::Create's entry (0068E640+8): loads the mod's archives (once).
+// CMaterialManager::Create's entry (+8): loads the mod's archives (once).
 void LoadModArchives();
 // CMappedResource::GetFile through addon: the mod's archives for this archive first, then the
 // archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.
@@ -51,8 +51,8 @@ void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size);
 // (unless ignored) to `out`.
 void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* pattern);
 // The mod's extra archives (their full paths): figures.res / menus.res entries for the figure
-// manager (005AA510+34) and the link figure loader (004F68C0+92), textures.res / redress.res /
-// menus.res entries for the texture manager (00691500+EF).
+// manager and the link figure loader, textures.res / redress.res /
+// menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
 const std::vector<std::string>& TextureArchives();
 

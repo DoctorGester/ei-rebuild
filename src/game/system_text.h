@@ -1,9 +1,9 @@
 #pragma once
 
-// Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4, ticket U2). With EI_UTF8 every
+// Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). With EI_UTF8 every
 // string inside the game is UTF-8, so the Windows calls that take or give text (file names, the registry,
 // the window title, the message box, key names, resource strings) are the wide ones, converting at the call:
-//   - game.exe's imports (gameapi.h, and through it CFile, CFileFind and the CRT's file calls): the image's
+//   - the game's imports (gameapi.h, and through it CFile, CFileFind and the CRT's file calls): the image's
 //     slot of each ANSI call below takes its UTF-8 version (text::utf8, SystemRoute; image_imports.cpp asks
 //     for it), so a call through gameapi:: passes and receives UTF-8. The harness takes those slots after,
 //     as it does the ANSI exports' (its redirects work on the bytes).
@@ -91,7 +91,7 @@ int WINAPI MessageBoxA(HWND owner, LPCSTR text, LPCSTR caption, UINT type);
 int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size);
 int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size);
 
-// The interface's text draw and extent (MFC's CDC::DrawText, CInterface3D::TextExtent 005F8340, the
+// The interface's text draw and extent (MFC's CDC::DrawText, CInterface3D::TextExtent, the
 // console's prompt width) and its fonts: the wide calls, so text past the assets' code page draws as itself.
 // The lengths are in bytes, as the ANSI calls take them. The fonts keep their LOGFONT, DEFAULT_CHARSET (MFC's
 // CreatePointFont): with the wide calls a font's charset no longer decides which glyph a byte is.
@@ -106,7 +106,7 @@ LPSTR WINAPI CharLowerA(LPSTR text);
 
 } // namespace utf8
 
-// The calls our own code makes directly (not through game.exe's imports): UTF-8 with EI_UTF8, else ANSI.
+// The calls our own code makes directly (not through the game's imports): UTF-8 with EI_UTF8, else ANSI.
 namespace sys {
 #if EI_UTF8
 using utf8::CharLowerA;

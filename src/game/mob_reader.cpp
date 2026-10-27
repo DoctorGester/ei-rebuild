@@ -1,9 +1,9 @@
-// The .mob zone file reader (A-S4): 00481F00 reads the top-level chunks, 00481660 turns the
+// The .mob zone file reader: one function reads the top-level chunks, another turns the
 // records into world objects. Names are provisional; the record classes are map_spec.h.
-// 00481660 has a branch under the global 0079BCF4 (a colour quantisation of the objects' tints,
-// 0049BEA0, through STLport map / list / introsort instantiations). Nothing in game.exe,
+// The record loader has a branch under a global (a colour quantisation of the objects' tints,
+// through STLport map / list / introsort instantiations). Nothing in the game,
 // addon.dll or EI_Plugin.asi writes that global (it sits in zero-initialised data; a byte search
-// finds its address only in the test at 00481704), so the branch never runs and is not
+// finds its address only in the test), so the branch never runs and is not
 // reproduced: see docs/notes/script.md.
 #include "map_spec.h"
 #include "options.h"
@@ -44,7 +44,7 @@ constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
 float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
-// The mission script (CScript at 007C27D4).
+// The mission script (a CScript global).
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {

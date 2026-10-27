@@ -2,7 +2,7 @@
 // motion it follows. See docs/notes/units.md ("Client path placement").
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
-// (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
+// (the two angles are rounded to float, which removes the common 1-ULP shift).
 #include "ai_motion.h"
 #include "core_transform.h"
 #include "map_object_figures.h"
@@ -65,7 +65,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
         unit->localRotation_.AxisY(&axis);
-        // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
+        // Both angles are stored as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
         float current = static_cast<float>(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));

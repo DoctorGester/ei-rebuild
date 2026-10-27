@@ -1,5 +1,5 @@
-// The DirectInput mouse (CDirectInputMouse, 0065EAD0-0065ECD6): set up at the application's start,
-// acquired with the window's activation and polled by the cursor (A-H25). See ui_cursor.h.
+// The DirectInput mouse (CDirectInputMouse): set up at the application's start,
+// acquired with the window's activation and polled by the cursor. See ui_cursor.h.
 #define DIRECTINPUT_VERSION 0x0700
 #include "app.h"
 #include "ui_cursor.h"
@@ -31,7 +31,7 @@ const char* const kNoAcquire = "Can't acquire mouse device\n";      // "Can't ac
 
 constexpr DWORD kInputVersion = 0x0700;
 
-// A counted pointer taking `value` (the original's smart pointer assignment, then the temporary's
+// A counted pointer taking `value` (the game's smart pointer assignment, then the temporary's
 // release, which is not null-checked).
 template <typename T>
 void Adopt(T*& slot, T* value) {

@@ -1,8 +1,7 @@
 #pragma once
 
-// The CList<T> instantiations whose elements the game destroys through its own code (ticket S7):
-// lib/mfc_list.h's templates over the game's element types, the element destructors ours (called
-// directly). Registered in game_lists.cpp; checked in game by verify_mfc_list.cpp until S21d.
+// The CList<T> instantiations whose elements the game destroys through its own code: lib/mfc_list.h's templates
+// over the game's element types, the element destructors ours (called directly). Registered in game_lists.cpp.
 
 #include "lib/mfc_list.h"
 #include "lib/stlp.h"
@@ -41,15 +40,15 @@ using mfc::impl::ListAbi;
 // Counted pointers released by their plain release (RefPtrRelease) or by the owner's (Destroy).
 inline void ReleaseRef(RefPtr* p) { RefPtrRelease(p); }
 inline void DestroyRef(RefPtr* p) { p->Destroy(); }
-// The armour spells' records: their engine object released through slot 4.
+// The armour spells' records: their engine object released (a virtual release).
 inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object); }
-// The world's shared objects: the object array at +0x0C destroyed (00594950, 0059A100 inlined).
+// The world's shared objects: the object array at +0x0C destroyed.
 inline void DestroySharedObject(SharedObject* p) {
     gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>(
         reinterpret_cast<gamearrays::ObjectPtrs::Array*>(&p->objects));
 }
-// The sound manager's wave records: the name an empty string with room for 8 bytes (006BE240, after
-// the zero fill); its buffer freed.
+// The sound manager's wave records: the name an empty string with room for 8 bytes (after the zero fill);
+// its buffer freed.
 inline stlp::string* WaveName(WaveRecord* p) { return &p->Name(); }
 inline void InitWave(WaveRecord* p) { stlp::StringElement::Default(WaveName(p)); }
 inline void DestroyWave(WaveRecord* p) { stlp::StringElement::Destroy(WaveName(p)); }
@@ -70,10 +69,10 @@ inline void DestroyLightning(ScriptLightning* p) { p->ScriptLightningDestruct();
 inline void DestroyToken(ScriptToken* p) { p->text.~CString(); }
 inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
 inline void DestroyRun(ScriptRun* p) { ScriptRunDestruct(p); }
-// A command block (CScript +0x70 / +0x178): 004C54A0, the body of ScriptDeclDestruct.
+// A command block (CScript +0x70 / +0x178): the body of ScriptDeclDestruct.
 inline void DestroyDecl(ScriptDecl* p) { ScriptDeclDestruct(p); }
-// After the zero fill (ConstructElements 004CEB80 / 004CECB0): a definition's name and parameters
-// empty, its if-then array (ScriptIfThenPairsClass) and variables constructed, index 0; a run's variables.
+// After the zero fill (ConstructElements): a definition's name and parameters empty, its if-then array
+// (ScriptIfThenPairsClass) and variables constructed, index 0; a run's variables.
 void InitDefinition(ScriptDefinition* p);
 void InitRun(ScriptRun* p);
 using DefinitionElements = EachElements<ScriptDefinition, InitDefinition, DestroyDefinition>;
@@ -88,8 +87,8 @@ using Runs = ListAbi<ScriptRun, RunElements>;
 using Decls = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
 using Groups = ListAbi<ScriptGroup, EachElements<ScriptGroup, gamearrays::InitGroup, gamearrays::DestroyGroup>>;
 
-// The counted engine objects' list. 00599FA0 (RET 4): AddTail of a counted engine object (the node's
-// slot zeroed, then assigned: the object gains a reference); returns the node.
+// The counted engine objects' list. AddTail of a counted engine object (the node's slot zeroed, then
+// assigned: the object gains a reference); returns the node.
 struct CountedEngineObjects : EngineObjects::List {
     Node* AddTailCounted(CEngineObject* object);
 };

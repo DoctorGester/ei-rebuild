@@ -1,6 +1,6 @@
-// The torch's client half (CTorchObjectClientSpecific, 0052D0D0-0052D670; torch_client_spec.h):
+// The torch's client half (CTorchObjectClientSpecific; torch_client_spec.h):
 // lifetime, its effects shown / hidden, and the setters that rebuild the particles, the light and
-// the sound. A-U11.
+// the sound.
 #include "terrain.h"
 #include "torch_client_spec.h"
 

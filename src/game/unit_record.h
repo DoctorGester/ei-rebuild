@@ -1,9 +1,8 @@
 #pragma once
 
-// The unit record the world server applies to a unit it creates (00477B00, called from
-// CWorldServer's object creation 005927C0): base stats, skills, the inventory, spells and
-// equipment. It is the tail of a .mob unit record (mapspec::UnitSpec + 0x210). Names are
-// provisional; see docs/notes/objects.md ("Rewritten").
+// The unit record the world server applies to a unit it creates (called from CWorldServer's object
+// creation): base stats, skills, the inventory, spells and equipment. It is the tail of a .mob unit record
+// (mapspec::UnitSpec + 0x210). Names are provisional; see docs/notes/objects.md ("Rewritten").
 
 #include "lib/mfc.h"
 
@@ -62,8 +61,8 @@ public:
     void ApplyTo(CUnit* unit);
 
     UnitRecordStats stats;          // +0x000 (chunk BBBB0004)
-    // +0x0AC (chunks BBBB0005 ... BBBB0009) the item names: carried, quick items (worn; also
-    // CreateObject 005927C0), spells, weapons, armour.
+    // +0x0AC (chunks BBBB0005 ... BBBB0009) the item names: carried, quick items (worn; also CreateObject),
+    // spells, weapons, armour.
     mfc::CStringArray lists[5];
     std::uint32_t applyStats;       // +0x110 (chunk BBBB000A, a byte) 0: only the items are applied
 

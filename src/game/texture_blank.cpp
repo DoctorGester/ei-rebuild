@@ -1,8 +1,8 @@
-// Textures the game fills on the CPU: the texture manager's new texture (00691D80: the save / load
-// screen's pictures, the global map's weather, the item pictures and the other interface textures
-// made through 005FF0B0 / 005EC020) and the blank surface it gets (0068F6C0, also used by the
-// shadow textures 00692010 / 00692140).
-// The blank surface is no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): its holder
+// Textures the game fills on the CPU: the texture manager's new texture (the save / load
+// screen's pictures, the global map's weather, the item pictures and the other interface textures)
+// and the blank surface it gets (also used by the
+// shadow textures).
+// The blank surface is no DirectDraw texture: its holder
 // has only the new renderer's memory (NewMemoryTextureHolder, dx_surface.cpp), which the writers
 // fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp,
 // texture_shadow.cpp) and the new renderer reads. The binders' SetTexture gets the holder's null
@@ -23,7 +23,7 @@ namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
 
-// The formats of 00691D80's kinds: the device's format id and the channels it writes into the
+// The formats of the texture kinds: the device's format id and the channels it writes into the
 // header (mask, shift, bits; the header's other fields stay zero).
 struct Channel {
     std::uint32_t mask, shift, bits;
@@ -47,14 +47,13 @@ const BlankFormat* FormatOfKind(int kind) {
 
 } // namespace
 
-// --- 0068F6C0 ----------------------------------------------------------------------------------------
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     if (block_) lib::FreeAligned32(block_);
     block_ = nullptr;
     // A square of header->width (the height is not read). The holder: only the new renderer's memory,
-    // one level (the original: 004EFA60's DirectDraw texture with header->mipCount levels and caps by
-    // the kind flags, which throws, with the holder's sizes zero, when it cannot be made).
+    // one level (the mipCount levels and caps by the kind flags are not made), which throws, with the
+    // holder's sizes zero, when it cannot be made).
     const std::uint32_t size = header->width;
     CDXSurface* surface = NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format_.words);
     if (!surface) ThrowSurfaceNotMade(device, 0, 0);
@@ -63,8 +62,8 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     if (surface) ++surface->refs_;
     if (previous) previous->Release();
 
-    // The byte size is meant to be bits * width * height / 8, but the original takes the bits from
-    // the channel split's first field, which 004EDAA0 never writes: it is always 0.
+    // The byte size is meant to be bits * width * height / 8, but the bits are taken from
+    // the channel split's first field, which is never written: it is always 0.
     ChannelLayout layout;
     layout.Split(&format_);
     uploadResult_ = static_cast<int>((layout.bitCount * size * size) >> 3);
@@ -72,7 +71,6 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
 }
 EI_REWRITTEN(0x0068F6C0, CTexture::CreateBlank);
 
-// --- 00691D80 ----------------------------------------------------------------------------------------
 
 CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     CTexture* texture = NewTextureOfType(kind);

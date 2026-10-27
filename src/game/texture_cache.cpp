@@ -1,9 +1,9 @@
 // The texture manager's cache of released textures: a texture nobody references any more is kept
-// (00691B00, the manager's ReleaseObject) and taken back when the game asks for it again by type and
-// name (00691BF0, from 00692D30) or by name (00693C60, FindTexture: the material stages 004EB550,
-// the terrain decals, 00693F10, 004EB1D0). The original lowers a cached texture's DirectDraw
-// priority to 0 and raises it to 100 when it is taken back; no holder has a DirectDraw surface
-// (ticket R8), so that is left out. See docs/notes/renderer.md (section 7).
+// (ReleaseObject) and taken back when the game asks for it again by type and
+// name or by name (FindTexture: the material stages,
+// the terrain decals). A cached texture's DirectDraw
+// priority was lowered to 0 and raised to 100 when it is taken back; no holder has a DirectDraw surface,
+// so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 
@@ -25,7 +25,6 @@ constexpr std::uint32_t kCacheable = 0x38;
 
 } // namespace
 
-// --- 006916F0 ----------------------------------------------------------------------------------------
 
 namespace {
 const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
@@ -39,7 +38,7 @@ void __cdecl DeleteComposedTextures() {
     int more;
     do {
         more = find.FindNext();
-        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());   // 006E6722, the path released after
+        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());
         if (!deleted) {
             const std::string name = find.GetFileName().GetString();
             game::DebugLog(CantDeleteText(), name.c_str(), gameapi::GetLastError());
@@ -48,9 +47,8 @@ void __cdecl DeleteComposedTextures() {
 }
 EI_REWRITTEN(0x006916F0, DeleteComposedTextures);
 
-// --- 00691B00 ----------------------------------------------------------------------------------------
 
-// Returns 0 (the original's EAX is the priority call's result, or a list node, on the cache path;
+// Returns 0 (the result is the priority call's, or a list node, on the cache path;
 // CEngineObject::Release, its caller, returns it but no caller reads it).
 int CTextureManager::ReleaseObject(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
@@ -73,7 +71,6 @@ namespace {
 } // namespace
 EI_REWRITTEN(0x00691B00, CTextureManager::ReleaseObject);
 
-// --- 00691BF0 ----------------------------------------------------------------------------------------
 
 CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
     for (auto* node = cache_.head; node;) {
@@ -91,10 +88,9 @@ CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
 }
 EI_REWRITTEN(0x00691BF0, CTextureManager::TakeFromCache);
 
-// --- 00693C60 ----------------------------------------------------------------------------------------
 
-// Original details kept: a texture taken back from the cache here is not subtracted from
-// cachedBytes_ (00691BF0 does subtract it).
+// Details kept: a texture taken back from the cache here is not subtracted from
+// cachedBytes_ (the by-type lookup does subtract it).
 CTexture* CTextureManager::FindTexture(const char* name) {
     ObjectListIteratorOf<CTexture> registered{};
     CTexture* found = nullptr;
@@ -122,7 +118,6 @@ CTexture* CTextureManager::FindTexture(const char* name) {
 }
 EI_REWRITTEN(0x00693C60, CTextureManager::FindTexture);
 
-// --- 00692D30 ----------------------------------------------------------------------------------------
 
 CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
     ObjectListIteratorOf<CTexture> registered{};
@@ -139,7 +134,6 @@ CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
 }
 EI_REWRITTEN(0x00692D30, CTextureManager::FindTypedTexture);
 
-// --- 00692F00 ----------------------------------------------------------------------------------------
 
 void CTextureManager::FreeCache() {
     for (auto* node = cache_.head; node;) {

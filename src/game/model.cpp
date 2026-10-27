@@ -1,4 +1,4 @@
-// The 3D library side of figure loading and drawing (004F0000-00500000): bounding-volume clip
+// The 3D library side of figure loading and drawing: bounding-volume clip
 // test, transform matrices, triangle index buffers and the link-file loader's archive list.
 #include "model.h"
 
@@ -49,7 +49,7 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
 EI_REWRITTEN(0x004F93A0, ClipBounds::SetBox);
 
 // Clip code of one corner p under matrix m: M * (p, 1), rows x, y and w summed ZXY, z ZYX, each
-// rounded to float as the original stores them. The original keeps the corner coordinates on the
+// rounded to float. The corner coordinates are kept on the
 // FPU stack (the same at the main thread's 24-bit precision).
 //   bit 0  X + W < 0 (sign)     bit 1  2W < X + W (or unordered)
 //   bit 2  Y + W < 0 (sign)     bit 3  2W < Y + W
@@ -186,8 +186,8 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     node->resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 
-    // Failure: drop the node again (the resource object is leaked) and log. The original passes
-    // the string object by value to "%s", so the three words of the string go on the stack.
+    // Failure: drop the node again (the resource object is leaked) and log. The string object
+    // is passed by value to "%s", so the three words of the string go on the stack.
     Archives::Erase<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_->prev));
     auto words = reinterpret_cast<const char* const*>(path);
     game::DebugLog("Can't open resource file \"%s\"\n", words[0], words[1], words[2]);

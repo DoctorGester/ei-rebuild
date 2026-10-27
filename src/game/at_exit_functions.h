@@ -12,5 +12,5 @@ void __cdecl Exit004E2280();   // the weather draw's records (effects_weather_dr
 } // namespace ei::static_init
 
 namespace ei::short_functions {
-void Ret();   // 0058D5C0 among others: nothing to destroy (the wake cache)
+void Ret();   // nothing to destroy (the wake cache)
 } // namespace ei::short_functions

@@ -1,9 +1,9 @@
 #pragma once
 
-// The old renderer's device layer (A-S13): what the ports of the device object (CTextureDevice,
-// texture.h), its DirectDraw base and the weather draws share. DirectDraw 7 / Direct3D 7 are called
-// through their COM interfaces as the original does: they are the boundary the new renderer sits
-// behind (docs/notes/renderer.md, sections 10 and 12).
+// The old renderer's device layer: what the device object (CTextureDevice, texture.h), its
+// DirectDraw base and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their
+// COM interfaces: they are the boundary the new renderer sits behind (docs/notes/renderer.md,
+// sections 10 and 12).
 
 #include "game_strings.h"
 #include "device_switchover.h"   // device::SwitchOverRenderState
@@ -25,13 +25,13 @@ static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRe
 
 namespace device {
 
-// The interface and device ids as game.exe has them.
+// The interface and device ids as the game has them.
 inline constexpr GUID kIidTnLHalDevice = /*00745A10*/ {0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E}};
 inline constexpr GUID kIidDirect3D7 = /*00745A80*/ {0xF5049E77, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 
 // The game's device lock, held around Direct3D draws and surface locks.
-// The surface holders alive (004EFA60 and the other constructors count them).
+// The surface holders alive (the holders' constructors count them).
 inline int g_holderCount = /*007AEE94*/ {};
 inline int& HolderCount() { return g_holderCount; }
 // The texture manager.
@@ -48,21 +48,19 @@ inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     if (old) old->Release();
 }
 
-// Whether two holders stand for the same surface (the original compares their DirectDraw surfaces:
-// a window's holder and the render target's, a movie's and the primary's). No holder has a
-// DirectDraw surface: the same only when they are one holder.
+// Whether two holders stand for the same surface (their DirectDraw surfaces compare equal: a window's holder and the
+// render target's, a movie's and the primary's). No holder has a DirectDraw surface: the same only when they are one
+// holder.
 inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == b; }
 
-// ---- The switch-over device (device_null.cpp; ticket R9a, docs/notes/renderer.md section 9) ----
-// The device object is built without DirectDraw and
-// Direct3D: no DirectDraw object, display mode, primary, render target or depth surface and no
-// Direct3D device; the new renderer presents through its own swap chain on the game window. The
-// object is filled for the game: the screen rectangle, holders without a surface for the primary
-// and the render target (the screen's width, height and bits), 2DintMMX's converter, the texture
-// formats from a fixed table, the four state blocks as tokens. In place of the IDirectDraw7 and
-// IDirect3DDevice7 pointers it holds two tokens that are not interfaces: the calls below know them
-// and answer from the switch-over device's state (ticket R9b2). A method called through a token
-// directly ends the run naming its caller.
+// ---- The switch-over device (device_null.cpp, docs/notes/renderer.md section 9) ----
+// The device object is built without DirectDraw and Direct3D: no DirectDraw object, display mode, primary, render
+// target or depth surface and no Direct3D device; the new renderer presents through its own swap chain on the game
+// window. The object is filled for the game: the screen rectangle, holders without a surface for the primary and the
+// render target (the screen's width, height and bits), 2DintMMX's converter, the texture formats from a fixed table,
+// the four state blocks as tokens. In place of the IDirectDraw7 and IDirect3DDevice7 pointers it holds two tokens
+// that are not interfaces: the calls below know them and answer from the switch-over device's state. A method called
+// through a token directly ends the run naming its caller.
 
 // The device object is being built without DirectDraw for a `width` x `height` screen of
 // `bitsPerPixel` (16 or 32): from now on the calls below answer for the tokens. Returns the
@@ -77,15 +75,13 @@ void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 // 5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1 and DXT3, as the old device listed them.
 const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 
-// ---- The rewritten code's calls into the old device (ticket R9b) ----
-// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given the device object's
-// +0x54 / +0x0C (a token, not used) as the original calls it: the render and texture stage states,
-// state blocks, bound textures, viewport and scene bracket are kept in the switch-over device's
-// state (the states also go to the new renderer's mirror, render_state.h), the capability, display
-// mode, texture format and video memory queries answer the fixed values, and the draws, clears, mode
-// and cooperative level changes and surface restores do nothing (D3D_OK / DD_OK: the new renderer
-// draws from the hand-over and presents on its own swap chain). No call reaches an interface: game.exe
-// runs only the original (its harness calls its own interface directly).
+// ---- The calls into the old device ----
+// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given the device object's +0x54 / +0x0C (a
+// token, not used): the render and texture stage states, state blocks, bound textures, viewport and scene bracket are
+// kept in the switch-over device's state (the states also go to the new renderer's mirror, render_state.h), the
+// capability, display mode, texture format and video memory queries answer the fixed values, and the draws, clears,
+// mode and cooperative level changes and surface restores do nothing (D3D_OK / DD_OK: the new renderer draws from
+// the hand-over and presents on its own swap chain). No call reaches an interface.
 HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc);
 HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context);
 HRESULT BeginScene(IDirect3DDevice7* d3d);

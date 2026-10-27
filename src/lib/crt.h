@@ -23,16 +23,16 @@ inline void* operator_new_zeroed(std::size_t size) {
     return block;
 }
 // operator_new for one T, the raw block typed as T: the caller runs the constructor body on it, as
-// the original does after its operator new (null when the allocation fails).
+// after its operator new (null when the allocation fails).
 template <class T> T* operator_new_as() { return static_cast<T*>(operator_new(sizeof(T))); }
 // operator_new_zeroed for one T, typed the same way.
 template <class T> T* operator_new_zeroed_as() { return static_cast<T*>(operator_new_zeroed(sizeof(T))); }
-// operator_new of `bytes` typed as T, for objects the original allocates shorter than the class
+// operator_new of `bytes` typed as T, for objects allocated shorter than the class
 // (a figure strip stops before CUiItemStrip's item list: 0x198 bytes) or with data after it (a
 // CString's CStringData header and its characters).
 template <class T> T* operator_new_bytes_as(std::size_t bytes) { return static_cast<T*>(operator_new(bytes)); }
 // operator_new for `count` T, the raw block typed as T[count] (nothing constructed; null when the
-// allocation fails). The size is count * sizeof(T) in 32 bits, as the original computes it.
+// allocation fails). The size is count * sizeof(T) in 32 bits.
 template <class T> T* operator_new_array(std::size_t count) { return static_cast<T*>(operator_new(count * sizeof(T))); }
 void __cdecl operator_delete(void* p);
 void* __cdecl malloc(std::size_t size);
@@ -204,7 +204,7 @@ gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);
 
 // Formatted text (src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from
 // a 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and
-// friends). Byte-exact with the originals (the host's printf differs). atof and sscanf are the host CRT's.
+// friends). Byte-exact with game.exe's (the host's printf differs). atof and sscanf are the host CRT's.
 int __cdecl Sprintf(char* buffer, const char* format, ...);
 int __cdecl Vsprintf(char* buffer, const char* format, va_list args);
 int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);
@@ -344,7 +344,7 @@ namespace game {
 
 // Reports a fatal error (printf-style) and normally exits the game.
 int __cdecl FatalError(const char* format, ...);
-// FatalError's result as the pointer a caller hands back in EAX (the originals return what the
+// FatalError's result as the pointer a caller hands back in EAX (it returns what the
 // report returns, when it returns at all).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {

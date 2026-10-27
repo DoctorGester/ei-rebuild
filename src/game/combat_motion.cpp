@@ -62,34 +62,9 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-// CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
-// the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
-// 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
-// UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
-// (1: running), 005233E0 Reset.
-// The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
-// IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
-// The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
-// 005C0BD0 FindUnitsInRadius.
-// 004B3330 ScriptGroup::Contains (script_group.cpp).
-// The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
-// 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
-// The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
-// (block size), 00556D40 RemoveAll.
-// The world server's timed objects (world_server.cpp).
-// The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
-// alarm's reset.
-// The player's message about a path to `point` (kind, flag, distance limit); the motion
-// order (the path, serialised for kinds other than 3).
-// Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
-// Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
-// 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
-// blank step; 00544FD0 OrderPlan's reset.
-// MFC: CPlex::FreeDataChain; the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
-// next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The world server, its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
+// The world server, its AI map and sector map.
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -116,7 +91,7 @@ void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
-// The first step of the queue shown on the unit (00546C10 inlined).
+// The first step of the queue shown on the unit.
 void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
     if (queue.size == 0) return;
@@ -133,8 +108,8 @@ void DropEffectObject(CUnitServer* self) {
     if (effect) effect->Release();
 }
 
-// The unit stops where it is, facing its direction (the motion restarted with the reversed Y
-// axis of its rotation), then stands (0) and takes state 6: the sequence 0054A150 inlines twice.
+// The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
+// rotation), then stands (0) and takes state 6.
 void FaceAndStop(CUnitServer* self) {
     Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
@@ -150,8 +125,7 @@ void FaceAndStop(CUnitServer* self) {
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
 int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : state.mode; }
 
-// A pause step for an emote (`value` into its +1 byte, open-ended), reusing a trailing one: the
-// code 00544D50 is and the idle builders inline.
+// A pause step for an emote (`value` as its variant byte, open-ended), reusing a trailing one.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
     int count = steps->size;
     if (count == 0 || steps->data[count - 1].variant != 0xFF) {
@@ -168,14 +142,13 @@ void AddEmote(AnimationSteps* steps, std::uint8_t value) {
     last.duration = -1;
 }
 
-// The weapon and movement bits of the unit's animation key for the current movement mode
-// (00550050 | 005500A0, as the idle builders inline them).
+// The weapon and movement bits of the unit's animation key for the current movement mode.
 std::uint32_t WeaponAndModeBits(CUnitServer* self) {
     return self->WeaponTypeMask() | self->MoveModeMask(&self->moveMode);
 }
 
-// The idle animation into `steps` (00550D90's body; 00550F30 / 005474B0 inline it): a walking hero
-// stands with the emote 0xFE, the others with their idle animation for the key, if any.
+// The idle animation into `steps`: a walking hero stands with the emote 0xFE, the others with their idle
+// animation for the key, if any.
 void FillIdle(CUnitServer* self, AnimationSteps* steps) {
     steps->SetSize(0, -1);
     steps->extra = -1;
@@ -190,9 +163,9 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
 // The idle key of the unit now (weapon and movement bits).
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
-// A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a
-// CList of path cells, vtable 0073EDB0, blocks of 0x80), as 005B22C0 (AIPath::ToMotionOrder)
-// fills it. The header is zeroed (the original leaves it uninitialised).
+// A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a CList of path
+// cells, blocks of 0x80), as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
+// uninitialised).
 struct LocalMotionOrder : PathOrder {
     LocalMotionOrder() {
         std::memset(&motionOrder, 0, sizeof(motionOrder));
@@ -210,8 +183,8 @@ static_assert(sizeof(LocalMotionOrder) == 0x3C);
 // A CList<CUnit*> as the controller fills them (vtable, head, tail, count, free list, blocks).
 using UnitList = mfc::CTypedPtrList<CUnit>;
 
-// A player's party: CPlayer::units_ (+0x40), walked as 00455830 (begin) and 004558B0 (the next
-// bucket's head) do: stlp::hash_map::First / After.
+// A player's party (CPlayer::units_), walked like the original's hash_map iteration: stlp::hash_map::First /
+// After.
 using PartyMap = CPlayer::UnitMap;
 
 } // namespace
@@ -229,7 +202,7 @@ EI_REWRITTEN(0x00549D00, CUnitServer::CanReactFor);
 // --- Playing an animation ----------------------------------------------------------------------
 
 namespace {
-// 00548DE0 / 00548FA0: the two differ only in the state they set.
+// The two variants differ only in the state they set.
 void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
@@ -248,7 +221,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
     if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
-    // Standing 0 (005467B0 inlined; CUnit +0x278).
+    // Standing 0.
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = world->Sectors();
@@ -295,7 +268,7 @@ void CUnitServer::PlayIdle() {
         IdleKey(this) = key;
         FillIdle(this, &IdleSteps(this));
     }
-    // The idle list into the queue (twice), started (00546C40's body inlined).
+    // The idle list into the queue (twice), started.
     Queue(this).CopySteps(IdleSteps(this));
     QueueTime(this) = IdleTime(this);
     Queue(this).CopySteps(IdleSteps(this));
@@ -390,11 +363,11 @@ AnimationSteps* CUnitServer::NextAnimation() {
     for (int i = 0; i < loop.size; ++i) {
         AnimationStep step = loop.data[i];
         if (step.animation == 0xFF) {
-            // A pause: an emote of its variant byte (the original passes the misaligned dword at
-            // step + 1; AddEmote keeps its low byte only).
+            // A pause: an emote of its variant byte (the original passes a misaligned dword; AddEmote keeps its low byte
+            // only).
             steps.AddEmote(step.variant);
         } else if (step.variant == 0xFF) {
-            AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
+            AnimationStep blank{};   // padding 0, not a stack byte (the harness zeroes the original's)
             steps.Add(*ConstructAnimationStep(&blank));
             AnimationStep& last = steps.data[steps.size - 1];
             last.animation = step.animation;
@@ -543,8 +516,8 @@ bool CUnitServer::ChangeMoveMode() {
         transition.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
-            // The transition is played as an animation order (a by-value copy, built as the
-            // original does: SetSize, then the steps one by one).
+            // The transition is played as an animation order (a by-value copy, built like the original: SetSize, then the
+            // steps one by one).
             AnimationSteps copy;
             copy.ConstructBase();
             copy.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
@@ -578,7 +551,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
     unit->altPassCosts = before;
     if (!found) {
-        // +0xA9, read as a byte: the original compares it with 1.
+        // Read as a byte: the original compares it with 1.
         std::uint8_t blocked = Motion(this)->failed;
         movingAnimation = 0;
         StandStill();
@@ -682,8 +655,8 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
     CUnit* self = unit;
     const float* goal = &path->goal.x;
-    // The path as a motion order for the message. The original leaves its header uninitialised
-    // when the path is not partial (the message does not read it for kind 3).
+    // The path as a motion order for the message. The header is left uninitialised when the path is not partial
+    // (the message does not read it for kind 3).
     LocalMotionOrder end;
     int message;
     if (!partial) {
@@ -716,7 +689,7 @@ EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 // --- Resync with the unit ---------------------------------------------------------------------
 
 namespace {
-// 00544E70 does the queue hold `steps`.
+// Does the queue hold `steps`.
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -760,7 +733,7 @@ void CUnitServer::ResyncWithUnit() {
     unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
-        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));   // slot 25
+        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
     if (state == kStateTurning) return;
     std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (IdleKey(this) == key) {
@@ -773,7 +746,7 @@ void CUnitServer::ResyncWithUnit() {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).size == 0 && QueueTime(this) == -1)
             IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
-        Queue(this).Assign(IdleSteps(this));   // 005483C0 (twice, as the original)
+        Queue(this).Assign(IdleSteps(this));   // twice, like the original
         Queue(this).Assign(IdleSteps(this));
         StartQueueIfUnset(this);
         PopFinishedSteps();
@@ -787,7 +760,7 @@ EI_REWRITTEN(0x00554450, CUnitServer::ResyncWithUnit);
 // --- Reset ---------------------------------------------------------------------------------------
 
 void CUnitServer::ResetController() {
-    auto releaseRef = [](AIRefTo<CMapObject>& ref) {   // 0052B030 inlined
+    auto releaseRef = [](AIRefTo<CMapObject>& ref) {
         if (ref) ref->Release();
         ref = nullptr;
     };
@@ -869,8 +842,8 @@ void CUnitServer::ResetController() {
     IdleSteps(this).SetSize(0, -1);
     IdleSteps(this).extra = -1;
     boredTicks = 0;
-    // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the
-    // instantiation's DestructElements), then count, free list, tail, head and blocks cleared.
+    // The armour spell list emptied: each element's item released (the instantiation's DestructElements), then
+    // count, free list, tail, head and blocks cleared.
     for (auto* node = armourSpells.head; node; node = node->next)
         if (node->data.item) node->data.item->Release();
     armourSpells.RemoveAll();

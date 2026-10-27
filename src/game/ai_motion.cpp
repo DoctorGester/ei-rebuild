@@ -1,8 +1,7 @@
-// A unit's motion: the order header of AIPath (005C7B00-005C7DA9, 005B23A0) and the trajectory at
-// CUnit + 0x27C that the unit follows (005C6270-005C7843). The trajectory is rebuilt when a path is
-// advanced (Build) and sampled every tick by the unit's movement (Sample).
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// A unit's motion: the order header of AIPath and the trajectory the unit follows. The trajectory is rebuilt
+// when a path is advanced (Build) and sampled every tick by the unit's movement (Sample). Floating point
+// follows the original's x87 code: `double` for values the original keeps on the FPU stack,
+// static_cast<float> where it stores to a float.
 #include "ai_motion.h"
 #include "core_streams.h"
 
@@ -39,14 +38,14 @@ template <std::floating_point T> float AsFloat(T) = delete;
 
 void CopyBits(float* dst, const void* src) { std::memcpy(dst, src, sizeof(float)); }
 
-// The turn direction factors the original loads from memory (-1, 0, 1). Read through volatile so
-// the compiler cannot fold 0 * x to 0 (the original multiplies, which keeps NaN and -0).
+// The turn direction factors (-1, 0, 1). Read through volatile so the compiler cannot fold 0 * x to 0 (the
+// multiplication keeps NaN and -0).
 const volatile float kMinusOne = -1.0f;
 const volatile float kZero = 0.0f;
 const volatile float kOne = 1.0f;
 
 constexpr float kPi = 3.14159274f;
-constexpr double kHalfCellScale = 2.0;      // 1 / (cell size 1.0 * 0.5), computed by the original
+constexpr double kHalfCellScale = 2.0;      // 1 / (cell size 1.0 * 0.5)
 constexpr float kSpeedUnit = 0.001953125f;  // 1/512
 constexpr float kMinLength = 9.99999975e-06f;
 
@@ -224,7 +223,7 @@ EI_REWRITTEN(0x005B23A0, AIPath::Clear);
 
 // --- The trajectory --------------------------------------------------------------------------------
 
-// 004E5660 (a byte-for-byte copy of CubicSegment::Evaluate, 0040E440): Horner's scheme, unrounded.
+// A copy of CubicSegment::Evaluate: Horner's scheme, unrounded.
 double MotionCubic::Value(float u) { return ((u * c3 + c2) * u + c1) * u + c0; }
 
 void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
@@ -430,8 +429,8 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
 EI_REWRITTEN(0x005C6FC0, UnitMotion::SamplePath);
 
 namespace {
-// Brings `turn` (stored as float) into [-pi, pi] the way 005C67D0 does: the first comparison is
-// on the unrounded difference, the later ones on each unrounded step.
+// Brings `turn` (stored as float) into [-pi, pi]: the first comparison is on the unrounded difference, the
+// later ones on each unrounded step.
 void NormalizeTurn(UnitMotion* m, double turn) {
     m->turn = static_cast<float>(turn);
     const double twoPi = static_cast<double>(kPi) + kPi;
@@ -698,7 +697,7 @@ EI_REWRITTEN(0x005C6290, UnitMotion::LimitSpeeds);
 
 void UnitMotion::LoadState(CStream* stream) {
     segment = -1;
-    // The original reads each count into its argument slot: a failed read leaves the stream pointer.
+    // Each count is read into its argument slot: a failed read leaves the stream pointer.
     int count = 0;
     stream->Read(&count, 4);
     points.SetSize(count, -1);

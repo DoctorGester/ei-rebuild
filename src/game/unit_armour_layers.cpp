@@ -73,14 +73,14 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::i
 EI_REWRITTEN(0x00523020, UnitStats::PackBodyProtection);
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
-    if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index, as the original
+    if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index
     float best = kZero;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
         CItem* item = unit->GetQuickItem(i);
         if (!item) continue;
         const auto* prototype = itemdb::RecordAs<itemdb::QuickItemRecord>(item->GetPrototype());
-        float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index, as the original
-        best = best >= bonus ? best : bonus;   // the original's select
+        float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index
+        best = best >= bonus ? best : bonus;   // a select
     }
     switch (index) {
     case 0: return (stat18 - kStatBase) + static_cast<double>(attributes[0]) + best;

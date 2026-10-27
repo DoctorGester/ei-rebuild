@@ -1,8 +1,8 @@
 #pragma once
 
-// Interpolation inside a deformation cage (the figure manager's morphing, 005ACB80): a point at
-// parameters (t, u, w) between the corners of a cube (8 points) or a prism (6 points) read from a
-// record stream. Names provisional; see docs/notes/map_objects.md ("Cages").
+// Interpolation inside a deformation cage (the figure manager's morphing): a point at parameters (t, u, w)
+// between the corners of a cube (8 points) or a prism (6 points) read from a record stream. Names
+// provisional; see docs/notes/map_objects.md ("Cages").
 
 #include "maths.h"
 

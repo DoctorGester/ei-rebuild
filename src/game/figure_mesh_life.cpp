@@ -1,8 +1,7 @@
-// The figure meshes' lifetime (A-W13): the constructor body the figure classes share, Create and
-// Clear (vtable slots 2 and 3), the classes 0x41 and 0x42's constructors, destructors and virtual
-// slots, the drawer and owner setters, and the figure manager's constructor and its
-// CreateObject (slot 23), which gives every new figure a drawer.
-// See figure_mesh.h, figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
+// The figure meshes' lifetime: the constructor body the figure classes share, Create and Clear, the classes
+// 0x41 and 0x42's constructors, destructors and virtuals, the drawer and owner setters, and the figure
+// manager's constructor and its CreateObject, which gives every new figure a drawer. See figure_mesh.h,
+// figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 
@@ -68,8 +67,7 @@ int CFigureMesh::CreateMesh() {
 }
 EI_REWRITTEN(0x0059F210, CFigureMesh::CreateMesh);
 
-// 005A6C70 / 005A6E00: the jumps of the figure classes' slot 2 to CreateMesh (through its address,
-// so its check runs).
+// The figure classes' Create jumps to CreateMesh (through its address, so its check runs).
 int __fastcall CreateMeshJump(CFigureMesh* self) { return self->CreateMesh(); }
 EI_REWRITTEN(0x005A6C70, CreateMeshJump);
 EI_REWRITTEN(0x005A6E00, CreateMeshJump);
@@ -162,9 +160,8 @@ CPlainFigureMesh::~CPlainFigureMesh() {
 EI_REWRITTEN_SPECIAL(0x00454510, CPlainFigureMesh::~CPlainFigureMesh);
 EI_REWRITTEN_SPECIAL(0x004543A0, CPlainFigureMesh::~CPlainFigureMesh);
 
-// 00453240 (the scene's figure records, record_arrays.h) inlines 005AABC0, then writes zeros
-// over the mesh's six arrays (+0x1C0..+0x21C) and stores the class 0x42 vtable: CPlainFigureMesh's
-// constructor.
+// CPlainFigureMesh's constructor, as the scene's figure records (record_arrays.h) inline it: the shared
+// constructor, then zeros over the mesh's six arrays and the class 0x42 vtable.
 void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
 // --- Small virtuals ----------------------------------------------------------------------------

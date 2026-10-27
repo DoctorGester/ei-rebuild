@@ -1,4 +1,4 @@
-// CPlayerClient's remaining message handlers and its slot 14 (A-H23). See player_client.h and
+// CPlayerClient's remaining message handlers and its slot 14. See player_client.h and
 // docs/notes/objects.md ("Players").
 #include "effects.h"
 #include "player_client.h"
@@ -39,7 +39,7 @@ constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
 const char* FixedViewZone() { return "gz20g"; }
-// An identity rotation (set by the static initialiser 00666CC0).
+// An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 // pi, 1/180 and 30: the fixed view's pitch, read from the exe.
 

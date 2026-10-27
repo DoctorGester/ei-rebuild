@@ -12,8 +12,8 @@ namespace net {
 namespace {
 
 // The growing buffer's out-of-line string and overflow handling (outside the range):
-// 004DA200 reads a length-prefixed string (at most `maxLength` bytes),
-// 004DA170 reads past the end (zeroes the target, sets error bit 3, takes what is left).
+// Reads a length-prefixed string (at most `maxLength` bytes),
+// Reads past the end (zeroes the target, sets error bit 3, takes what is left).
 
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.
@@ -46,7 +46,7 @@ GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
 }
 
 EI_REWRITTEN(0x00401310, GameBuffer::CopyOut);
-// Reads `size` bytes: past the highest written position through 004DA170, from memory
+// Reads `size` bytes: past the highest written position through the overflow handler, from memory
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
     std::uint8_t* next = cur + size;

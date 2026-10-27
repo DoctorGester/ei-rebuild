@@ -1,9 +1,8 @@
-// The CFakeUnit scene loader. See scene_loader.h for the file layout.
-// The original inlines MFC's CArray::SetSize and CMap::operator[] many times over; here they are
-// the shared templates: mfc::CArray with the element constructors of each instantiation (plain ones
-// zero-fill; the others call the original's out of line), lib::AlignedArray for the vertex arrays.
-// The template functions the original calls out of line (SetAtGrow, the local arrays' destructors,
-// ...) are the library's instantiations (lib/mfc_array.h, lib/mfc_list.h, record_arrays.h).
+// The CFakeUnit scene loader. See scene_loader.h for the file layout. MFC's CArray::SetSize and CMap::operator[]
+// are inlined many times over in the game; here they are the shared templates: mfc::CArray with the element
+// constructors of each instantiation (plain ones zero-fill; the others call the game's out of line),
+// lib::AlignedArray for the vertex arrays. The template functions the game calls out of line (SetAtGrow, the local
+// arrays' destructors, ...) are the library's instantiations (lib/mfc_array.h, lib/mfc_list.h, record_arrays.h).
 #include "material.h"
 #include "registry.h"
 #include "scene_loader.h"
@@ -35,7 +34,7 @@
 namespace scene {
 namespace {
 
-// Through the file's vtable (slot 13), as the original reads.
+// Read through the file's virtual 13.
 void Read(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { file->Read(data, size); }
 
 // A float stored from the bits the loader copied.
@@ -43,10 +42,9 @@ void SetBits(float& to, std::uint32_t bits) { std::memcpy(&to, &bits, 4); }
 
 // --- Element types of the arrays the loader fills ----------------------------------------------------
 
-using mfc::impl::Map32;   // CMap<DWORD, DWORD>: 00477340 GetAssocAt, 00476050 operator[], 00476140 the destructor
+using mfc::impl::Map32;   // CMap<DWORD, DWORD>: GetAssocAt, operator[], the destructor
 
-// The records the file stores (the construction of all of them zero-fills: 00477130 .. 00477530,
-// 00454ED0, 00454F00, 00452DC0, i.e. mfc::PlainElements).
+// The records the file stores (the construction of all of them zero-fills, i.e. mfc::PlainElements).
 struct FileUv {
     std::uint32_t v[3];   // u, v, unused
 };
@@ -84,7 +82,7 @@ using PosKeyRecords = mfc::CArray<FilePositionKey>;          // F
 using MorphHeadRecords = mfc::CArray<FileMorphHead>;         // G
 using NormalRecords = mfc::CArray<FileNormal>;               // H
 
-// One CMap<DWORD, DWORD> per group (00477380 builds them; destroyed through slot 1 by 004763C0).
+// One CMap<DWORD, DWORD> per group, destroyed through its virtual destructor.
 using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
 using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
@@ -93,7 +91,7 @@ using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> 
 } // namespace
 
 
-// The keys zero filled. 00453700: each key's points freed (the block at +4).
+// The keys zero filled; each key's points freed (the block at +4).
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
     for (; count--; ++keys) keys->points.FreeData();
@@ -101,9 +99,8 @@ void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
 
 namespace {
 
-// The record's local arrays are built and destroyed as their instantiations (mfc::impl
-// ConstructArrayOf / DestructArrayOf: 00474F30 A, 00475110 B, 004752F0 C, 00475680 E, 004759E0 F,
-// 00475D40 G, 00476AB0 H, 00476780 the index lists; 00475500 .. 00476930 the skipped records' E .. H).
+// The record's local arrays are built and destroyed as their instantiations (mfc::impl ConstructArrayOf /
+// DestructArrayOf: arrays A, B, C, E, F, G, H and the index lists; the skipped records' E .. H).
 using mfc::impl::ConstructArrayOf;
 using mfc::impl::DestructArrayOf;
 
@@ -152,7 +149,7 @@ struct GroupHeader {
 #pragma pack(pop)
 static_assert(sizeof(GroupHeader) == 6);
 
-// The arrays of one record, local to the loader (fr = the original's frame offsets).
+// The arrays of one record, local to the loader (fr = the frame offsets).
 struct RecordArrays {
     FilePointArray points;       // A (fr-0x21C)
     FileUvArray texCoords;       // B (fr-0x230)
@@ -356,7 +353,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     m.positions = {};
     m.texCoords = {};
 
-    // One map per group, never used (the original allocates them all the same).
+    // One map per group, never used (all of them are allocated all the same).
     m.maps.SetSize(r.groups.size);
 
     for (int g = 0; g < r.groups.size; ++g) {
@@ -375,7 +372,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     mesh->texCoords.Copy(m.texCoords);
     m.positions.SetSize(0);
     m.texCoords.SetSize(0);
-    // The mesh's groups sized as their instantiation (00474DB0: FaceGroup's constructor and destructor).
+    // The mesh's groups sized as their instantiation (FaceGroup's constructor and destructor).
     FaceGroupArray* groups = &mesh->groups;
     groups->SetSize(r.groups.size, -1);
     for (int g = 0; g < r.groups.size; ++g) {
@@ -450,7 +447,7 @@ void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
     DestructArrayOf<mfc::impl::MorphHeadArrayClass>(r.morphHeads);
     DestructArrayOf<mfc::impl::PosKeyArrayClass>(r.posKeys);
     DestructArrayOf<mfc::impl::RotKeyArrayClass>(r.rotKeys);
-    FaceGroupArrayDestruct(&r.groups);   // D, 00454CE0
+    FaceGroupArrayDestruct(&r.groups);   // D
     DestructArrayOf<mfc::impl::FileFaceArrayClass>(r.faces);
     DestructArrayOf<mfc::impl::FileUvArrayClass>(r.texCoords);
     DestructArrayOf<mfc::impl::FilePointArrayClass>(r.points);
@@ -614,8 +611,8 @@ EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
 // ---- Element constructors (their ConstructElements are record_arrays.cpp's) -----------------
 
-// 00454F80's element. The original then sizes the rotation and position keys, the frames and the
-// children to 0, which leaves empty arrays as they are.
+// The node element. The rotation and position keys, the frames and the children are then sized to 0, which leaves
+// empty arrays as they are.
 void SceneNode::Construct() {
     new (&name) mfc::CString();
     new (&parent) mfc::CString();
@@ -631,7 +628,7 @@ void SceneNode::Construct() {
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());
 }
 
-// 004545C0's element.
+// The mesh element.
 SceneMesh::SceneMesh() {
     ClearFields();
     localRotation_.SetIdentity();
@@ -668,14 +665,14 @@ int SceneMesh::GetClassId() { return 0x47; }
 void SceneMesh::SaveTransform(mfc::CFileVirtuals*) {}
 void SceneMesh::LoadTransform(mfc::CFileVirtuals*) {}
 
-// --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
+// --- Building a CFakeUnit's figure from its scene ---------------------------------------
 
 void __fastcall ComputeMeshNormals(MeshArray*);
 void __fastcall IndexMeshCorners(MeshArray*);
 namespace {
 
-// The loader's locals that need cleaning up, as small owners. Declared in the original's
-// construction order, so C++ destroys them in its order.
+// The loader's locals that need cleaning up, as small owners. Declared in the construction order, so C++ destroys
+// them in the order the game does.
 struct SceneNodes : NodeArray {
     SceneNodes() : NodeArray{recordarrays::SceneNodeArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
@@ -714,8 +711,9 @@ struct SceneLoad {
     TextureLinks textureLinks;
     TextureNames textureNames;
     console::CStringArray roots;   // the nodes without parent
-    // The scene's flags. BuildSkeleton is given them as a dword minus one; the original leaves the
-    // upper word uninitialised (its callees only read the low word, with MOVSX).
+    // The scene's flags. BuildSkeleton is given them as a dword minus one; the upper word is left
+    // uninitialised (its
+    // callees only read the low word, with MOVSX).
     union {
         SceneInfo info;
         std::uint32_t infoDword;
@@ -726,11 +724,10 @@ struct SceneLoad {
 
 } // namespace
 
-// Loads the scene `fileName` (an .amf) into the fake unit: meshes, helpers and nodes,
-// then the figure's .reg file (`registryName`, or "Ini's\\<name>.reg" for a scene under
-// "scenes\\"), the figures, skeleton and textures. Returns 0 if the file cannot be opened or the
-// scene has more than one top-level node (a fatal error). The caller also passes the unit in ECX;
-// it is not read.
+// Loads the scene `fileName` (an .amf) into the fake unit: meshes, helpers and nodes, then the figure's
+// .reg file (`registryName`, or "Ini's\\<name>.reg" for a scene under "scenes\\"), the figures, skeleton
+// and textures. Returns 0 if the file cannot be opened or the scene has more than one top-level node (a
+// fatal error).
 mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
     FakeUnitScene* u = fakeUnit;
     MeshArray* meshes = &u->meshes;
@@ -855,7 +852,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             texture = s.textureNames[t].name.GetString();
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
-            // The manager context's slot 33 (CWorld::MaterialManager).
+            // The manager context's material manager (CWorld::MaterialManager).
             CMaterialManager* manager = fakeUnit->WorldContext()->MaterialManager();
             std::uint32_t id = s.textureLinks[l].id;
             if (id != s.textureNames[t].id) continue;

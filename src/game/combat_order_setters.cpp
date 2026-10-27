@@ -1,4 +1,4 @@
-// Combat orders, the rest of the setters (A-U5): movement style, wanted weapon, the skill and use
+// Combat orders, the rest of the setters: movement style, wanted weapon, the skill and use
 // orders, playing an animation as an order, dropping everything, and two armour queries. See
 // combat.h and docs/notes/combat.md.
 #include "combat.h"
@@ -27,8 +27,8 @@ constexpr int kOrderEmote = 8;
 constexpr int kStateStopped = 6;        // CUnitServer::state after StopAction
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
-// CEngineObject::prototypeId_ (+0x18, not type_) of a unit that cannot be tamed (0x32, the value type_
-// has for heroes; the original compares +0x18).
+// CEngineObject::prototypeId_ (not type_) of a unit that cannot be tamed (0x32, the value type_ has for
+// heroes; the original compares prototypeId_).
 constexpr std::uint32_t kUntameable = 0x32;
 constexpr int kMessageMoveStyle = 9;    // CPlayerServer::SendObject0B code
 
@@ -38,7 +38,7 @@ constexpr std::uint32_t kSourceSteal = 1;
 constexpr std::uint32_t kSourceTame = 2;
 constexpr std::uint32_t kSourceSearchBody = 0x18A95;
 
-// The planner's shout codes per order (0054E600's second argument).
+// The planner's shout codes per order (its second argument).
 constexpr int kShoutSteal = 6;
 constexpr int kShoutTame = 5;
 constexpr int kShoutUse = 5;
@@ -50,9 +50,8 @@ constexpr int kStateActing = 5;                       // CUnitServer::state
 
 CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
 
-// The shared tail of the kind 6 setters: the queued order (reset first, inlined 0054B230) becomes
-// a use of `target` with `source`, +0x1C `spot` and +0x20 `run`, and is planned; reset again when the
-// planner refuses.
+// The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
+// `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
 void QueueUse(CUnitServer* self, CMapObject* target, std::uint32_t source, int spot, int run, int shout) {
     UnitAction& order = self->action2;
     order.Reset();
@@ -167,8 +166,8 @@ void CUnitServer::StopAction() {
         effectObject = nullptr;
         if (old) old->Release();
     }
-    OrderPlanReset(&currentPlan);   // inlined in the original (SetSize(0, -1) instead of the free)
-    StandStill();              // inlined in the original
+    OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original
+    StandStill();
     action.Reset();
     action2.Reset();
     // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.

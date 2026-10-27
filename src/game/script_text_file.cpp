@@ -1,4 +1,4 @@
-// The script loader's text file reader (004D5880; A-E2): a file read line by line through MFC's
+// The script loader's text file reader: a file read line by line through MFC's
 // CStdioFile inside TRY / CATCH(CFileException) (lib/mfc_try.h). The file is opened by the
 // constructor, which throws when it cannot; so does a failed read. Either ends with a result of 0
 // and what was read so far in the text.

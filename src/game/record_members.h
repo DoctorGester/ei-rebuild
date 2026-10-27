@@ -4,12 +4,11 @@
 // compiler wrote them for the records' STLport vectors (record_vectors.h). A record lists
 // the members its copy constructor and operator= touch, in declaration order:
 //   CString            copy-constructed / assigned, empty by default;
-//   stlp::string       copy-constructed / AssignFrom, by default empty with room for 8 bytes
-//                      (00421800 / 0041F460 with 8);
+//   stlp::string       copy-constructed / AssignFrom, by default empty with room for 8 bytes;
 //   stlp::vector<T>    copy-constructed (room for exactly the size) / operator=, empty by default,
 //                      its elements by the policy of T (plain bytes, CString, stlp::string);
 //   arrays             element by element;
-//   plain data         copied as bytes, left as it is by default (the original's stack
+//   plain data         copied as bytes, left as it is by default (the game's stack
 //                      temporaries leave it uninitialised).
 // Members a record's copies skip (padding, bytes no constructor sets) are simply not listed.
 
@@ -114,7 +113,7 @@ struct DerivedVectorCheck : stlp::vector<int> {};
 static_assert(!kPlain<DerivedVectorCheck> && !kPlain<DerivedVectorCheck[2]>, "derived vectors are not bytes");
 
 // The copy constructor, operator= and resize(n) default of R over the members M (member pointers,
-// declaration order). The destructor is the record's own (its S13 or earlier port).
+// declaration order). The destructor is the record's own.
 template <typename R, auto... M>
 struct Memberwise {
     static void Construct(R* to, const R& from) { (CopyMember(to->*M, from.*M), ...); }

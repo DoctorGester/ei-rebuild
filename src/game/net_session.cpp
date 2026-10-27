@@ -14,12 +14,12 @@ namespace {
 // timeGetTime() at the previous pump.
 std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 
-// The session pointers' exit functions (00412250 / 004122A0; each through a copy of the counted pointer's
-// release, 00412260 / 004122B0): the last reference deletes the session.
+// The session pointers' exit functions (each through a copy of the counted pointer's
+// release): the last reference deletes the session.
 void __cdecl ReleaseGameServer() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net::g_gameServer)); }
 void __cdecl ReleaseGameClient() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net::g_gameClient)); }
 
-// Their static initialisers (00412230 / 00412280, in the list's order): the counted pointer's constructor
+// Their static initialisers (in the list's order): the counted pointer's constructor
 // clears it, then the exit function is registered.
 void __cdecl InitGameServerPointer() {
     net::g_gameServer = nullptr;
@@ -45,7 +45,7 @@ void __cdecl DestroyReceiveBuffer() {
     g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
     net::g_receiveBuffer.Destroy();
 }
-// Their static initialisers (00432CA0 / 00432CE0, in the list's order).
+// Their static initialisers (in the list's order).
 void __cdecl ConstructSendBuffer() {
     net::g_sendBuffer.Construct();
     libcrt::AtExit(DestroySendBuffer);
@@ -83,7 +83,7 @@ void __cdecl Pump() {
     g_lastPumpTime = now;
     TickSession(GameServer(), elapsed);
     TickSession(GameClient(), elapsed);
-    TheGameFlow()->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
+    TheGameFlow()->UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
 }
 EI_REWRITTEN(0x004122D0, Pump);
 

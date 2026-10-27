@@ -1,7 +1,6 @@
-// The zone file's unit records (vtable 0073C6E0, kind 5; map_spec.h) with their five behaviour
-// records (0x4C bytes: patrols of waypoints and the guard settings), the small chunk classes that
-// read and write those (vtables 0073C710 waypoint, 0073C718 patrol, 0073C720 behaviour) and the
-// patrol array's copy. See docs/notes/objects.md ("Rewritten").
+// The zone file's unit records (kind 5; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
+// waypoints and the guard settings), the small chunk classes that read and write those (waypoint, patrol,
+// behaviour) and the patrol array's copy. See docs/notes/objects.md ("Rewritten").
 #include "ai_map.h"
 #include "map_object.h"
 #include "combat.h"
@@ -32,17 +31,17 @@ template <typename T>
 using Array = mfc::CArray<T>;
 
 
-// UnitSpec (vtable 0073C6E0, 0x324 bytes): map_spec.h.
+// UnitSpec (0x324 bytes): map_spec.h.
 
 // The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
-// constructor). Slot 0 is OnChunk; the behaviour record's writer is called directly.
+// constructor). OnChunk is the first virtual; the behaviour record's writer is called directly.
 template <typename T>
 class TargetChunk : public Chunk {
 public:
     explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
     T* target;                   // +0x18
 };
-// A waypoint (game.exe's vtable 0073C710), a patrol and a behaviour record.
+// A waypoint, a patrol and a behaviour record.
 class WaypointChunk : public TargetChunk<Waypoint> {
 public:
     using TargetChunk::TargetChunk;
@@ -67,19 +66,18 @@ template <typename Constructor, typename Destructor>
 void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 template <typename Destructor>
 void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
-// MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
-// SetSize 0045DAE0, ConstructElements 0045E180, DestructElements 0046F0B0.
+// MFC (library): CStringArray, the CArray instantiations of patrols and waypoints (SetSize,
+// ConstructElements, DestructElements).
 void PatrolsSetSize(Array<Patrol>* patrols, int size) { mfc::impl::ArrayAs<mfc::impl::OwnedPatrols>(*patrols).SetSize(size, -1); }
 constexpr auto ConstructPatrols = mfc::impl::ConstructElementsAt<mfc::impl::Patrols>;
 constexpr auto DestructPatrols = mfc::impl::DestructElementsAt<mfc::impl::OwnedPatrols>;
-// A patrol's destructor (0045E1E0, also 0046F160 with flags 0): its waypoint array destroyed by the
-// array base class's destructor.
+// A patrol's destructor (also with flags 0): its waypoint array destroyed by the array base class's
+// destructor.
 void DestroyPatrol(Patrol& p) {
     ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
     if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
 }
-// The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection move and turn an
-// object; the world object's updates.
+// The world server's sector map and the selection move and turn an object; the world object's updates.
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -134,8 +132,8 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
 }
 EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
-// The patrol array becomes a copy of `from` (each patrol copied through a temporary
-// returned by value, as the original does).
+// The patrol array becomes a copy of `from` (each patrol copied through a temporary returned by value, as the
+// original does).
 void Patrols::CopyFrom(const Patrols& from) {
     int n = from.size;
     if (n == 0) {
@@ -190,7 +188,7 @@ EI_REWRITTEN(0x0046E680, Patrols::CopyFrom);
 
 // ---- The chunk classes ---------------------------------------------------------------------------
 
-// 0046C610 (0073C710 slot 0): a waypoint's values.
+// A waypoint's values (OnChunk).
 void WaypointChunk::OnChunk() {
     Waypoint* w = target;
     Chunk& c = *this;
@@ -204,7 +202,7 @@ void WaypointChunk::OnChunk() {
 }
 EI_REWRITTEN(0x0046C610, WaypointChunk::OnChunk);
 
-// 0046C7F0 (0073C718 slot 0): a patrol's start, or a waypoint appended and read.
+// A patrol's start, or a waypoint appended and read (OnChunk).
 void PatrolChunk::OnChunk() {
     Chunk& c = *this;
     if (c.id_ == 0xBBBD0001) {
@@ -222,8 +220,8 @@ void PatrolChunk::OnChunk() {
 }
 EI_REWRITTEN(0x0046C7F0, PatrolChunk::OnChunk);
 
-// 0046CBC0 (0073C720 slot 0): a behaviour record's values, or a patrol appended and read. The
-// three alarm flags only lower the level (0, 1, 2) when set.
+// A behaviour record's values, or a patrol appended and read (OnChunk). The three alarm flags only lower the
+// level (0, 1, 2) when set.
 void BehaviourChunk::OnChunk() {
     Chunk& c = *this;
     Behaviour* b = target;
@@ -411,15 +409,14 @@ void UnitSpec::OnChunk() {
 EI_REWRITTEN(0x0046D080, UnitSpec::OnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
-// The stream (CStream, core_streams.h) reads and writes through its vtable (slots 1 and 2).
+// The stream (CStream, core_streams.h) reads and writes through its read and write virtuals.
 
 namespace {
 void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
 void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
 } // namespace
 
-// 0045DE30 (ECX array, EDX stream): the count, the array sized to it (MFC SetSize inlined, new
-// waypoints cleared as 0045E130 does), then the raw waypoints.
+// The count, the array sized to it (MFC SetSize inlined, new waypoints cleared), then the raw waypoints.
 void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
@@ -458,7 +455,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
 }
 EI_REWRITTEN(0x0045DE30, WaypointsRead);
 
-// 0045DFB0 (ECX array, EDX stream): the count, then the raw waypoints.
+// The count, then the raw waypoints.
 void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
     int n = a->size;
     StreamWrite(stream, &n, 4);

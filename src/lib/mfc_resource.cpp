@@ -44,7 +44,8 @@ namespace {
 // longer has). They are loaded by CString::LoadResourceString and AfxFormatString1, which CException::ReportError
 // and the exceptions' GetErrorMessage (mfc_exception.cpp) call:
 //   0xF006 the unnamed file's name; 0xF020 ReportError's "no error" fallback;
-//   0xF021-0xF024 the four static exceptions' messages (not supported, resource, memory, user: CSimpleException::InitString);
+//   0xF021-0xF024 the four static exceptions' messages (not supported, resource, memory, user:
+//                 CSimpleException::InitString);
 //   0xF1A0-0xF1AE a CFileException's cause (none ... endOfFile: OsErrorToException can answer each);
 //   0xF1B3 a CArchiveException's endOfFile (the only cause ThrowArchiveException is called with).
 // Every other id (the file dialogs' captions, the validation prompts, the property and mail texts, the other archive

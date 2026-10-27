@@ -1,6 +1,5 @@
-// The sound manager's engine object slots, its wave sources and sound folder, and the music
-// stream's file reading (A-H14); the constructor / destructor bodies (006B6040 / 006B65D0, A-H15);
-// the Miles setup Open / Close / Reset (006B6A30 / 006B6D80 / 006B73E0, A-H18).
+// The sound manager's engine object slots, its wave sources and sound folder, and the music stream's file
+// reading; the constructor / destructor bodies; the Miles setup Open / Close / Reset.
 #include "sound.h"
 #include "options.h"
 #include "game_strings.h"
@@ -32,8 +31,7 @@ int CompareText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// The manager's MP3 stream part (+0x100, from streamState on): what 006BA9C0 / 006BAAC0 / 006BAC90
-// get as `this`.
+// The manager's MP3 stream part (+0x100, from streamState on): what the stream functions get as `this`.
 void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
 CSoundManager* ManagerOf(void* stream) {
     return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
@@ -60,8 +58,8 @@ void CSoundManager::ClearWaveSources() {
 }
 EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 
-// Called at startup for the two sound archives. A failed allocation is not
-// tested (the open call goes through a null object, as in the original).
+// Called at startup for the two sound archives. A failed allocation is not tested (the open call goes
+// through a null object).
 int CSoundManager::AddWaveSource(const char* path) {
     if (enabled == 0) return 1;
     CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
@@ -90,9 +88,8 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 }
 EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
-// 006B7110 (A-H26; Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body,
-// hooked in the vanilla launch only). From the unit database's sound counts, on the
-// game's main thread.
+// Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body, hooked in the vanilla
+// launch only). From the unit database's sound counts, on the game's main thread.
 void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
     out->SetSize(0, -1);
     mfc::CStringArray names;
@@ -144,7 +141,7 @@ int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, in
 }
 EI_REPLACE(0x006BA950, SoundStreamRead);
 
-// --- A-H15: constructor, destructor, stream reset ---------------------------------------------------
+// --- Constructor, destructor, stream reset ---------------------------------------------------
 
 namespace {
 
@@ -179,7 +176,7 @@ void ConstructFader(SoundFader& fader) {
 } // namespace
 
 // The emitters' and sequences' element constructors (thiscall, return this) and destructors
-// (compiler-generated: the name array at +4; S16, on the standalone boot path).
+// (compiler-generated: the name array at +4).
 SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter) {
     emitter->names.Construct();
     return emitter;
@@ -195,8 +192,8 @@ EI_REWRITTEN(0x006B63F0, ConstructSequence);
 void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
 EI_REWRITTEN(0x006B6400, DestructSequence);
 
-// The stream reader, the strings and the archive are members the compiler constructs (before the
-// body here; the stream reader first in the original's body, the archive between the registries).
+// The stream reader, the strings and the archive are members the compiler constructs (here before the body;
+// the game constructs the stream reader first and the archive between the registries).
 CSoundManager::CSoundManager() {
     ClearFields();
     soundRegistry.Construct();
@@ -218,8 +215,8 @@ CSoundManager::CSoundManager() {
     for (SoundEmitter& emitter : emitters) ConstructEmitter(&emitter);
     for (SoundSequence& sequence : sequences) ConstructSequence(&sequence);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
-    // hashtable(n, hash, equal, allocator); the functor bytes, never read,
-    // are 0 here (the original's are stack bytes).
+    // hashtable(n, hash, equal, allocator); the functor bytes, never read, are 0 here (the game's are stack
+    // bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
     deferred.Construct(kMapBuckets);
     AilStartup()();
@@ -229,13 +226,12 @@ CSoundManager::CSoundManager() {
 EI_REWRITTEN_SPECIAL(0x006B6040, CSoundManager::CSoundManager);
 
 // The archive, the strings and the stream reader are destroyed after the body (the archive after the
-// registries; in the original between them, through 006714A0's address for Rebirth: the same
-// destructor in the image; the stream reader last in the original's body).
+// registries; the game destroys it between them and the stream reader last).
 CSoundManager::~CSoundManager() {
     Close();
     AilShutdown()();
-    deferred.Destroy();   // clear 006BD100, the buckets 006BC510
-    cache.Destroy();      // clear 006BCE00, the buckets 006BC4D0
+    deferred.Destroy();   // clear, then the buckets
+    cache.Destroy();      // clear, then the buckets
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
@@ -282,12 +278,12 @@ void CSoundManager::ResetStream() {
     ConstructFader(musicFader);
 }
 
-// 006BA9C0 runs on the manager's +0x100 (the MP3 stream part).
+// ResetStream runs on the manager's +0x100 (the MP3 stream part).
 void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
 
 EI_REWRITTEN(0x006BA9C0, SoundResetStream);
 
-// --- A-H18: Open, Close, Reset ------------------------------------------------------------------------
+// --- Open, Close, Reset ------------------------------------------------------------------
 
 int __fastcall SoundCloseStream(void* /*stream*/);
 namespace {
@@ -313,8 +309,7 @@ constexpr unsigned kPrefUseWaveOut = 0xF;
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
 int SoundOption() { return options::TheOptions()->audio_; }
 
-// The DirectSoundEnumerateA callback appending each device's GUID pointer to an aligned array
-// the stream thread's entry (006B6A10 -> 006BB910).
+// The address of the DirectSoundEnumerateA callback that appends each device's GUID pointer to an aligned array.
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
@@ -421,7 +416,7 @@ int CSoundManager::OpenStream(void* driver) {
     for (void* buffer : streamBuffers) std::memset(buffer, 0, static_cast<std::uint32_t>(streamBufferSize));
     AilSetSampleProcessor()(streamDecoder, 0, codec);
     AilInitSample()(streamDecoder);
-    // (The original also closes the stream when this address is null, which it cannot be.)
+    // (The game also closes the stream when this address is null, which it cannot be.)
     streamCodec = &static_cast<MilesSample*>(streamDecoder)->codec;
     streamHalfBuffer[0] = 0;
     streamHalfBuffer[1] = 1;
@@ -462,17 +457,16 @@ void CSoundManager::StreamThread() {
 }
 EI_REWRITTEN(0x006BB910, CSoundManager::StreamThread);
 
-// The stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached:
-// StreamThread ends the thread). S16, on the standalone boot path.
+// The stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached: StreamThread ends
+// the thread).
 unsigned __cdecl StreamThreadEntry(void* manager) {
     static_cast<CSoundManager*>(manager)->StreamThread();
     return 0;
 }
 EI_REWRITTEN(0x006B6A10, StreamThreadEntry);
 
-// 006B68A0 (kDeviceCallback; no Ghidra function): DirectSoundEnumerateA's callback in Open. The
-// device's GUID pointer is appended to the aligned array `devices` (its SetSize by one, inlined in the
-// original); the enumeration goes on (TRUE).
+// kDeviceCallback: DirectSoundEnumerateA's callback in Open. The device's GUID pointer is appended to the
+// aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
 int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedArray<int>* list) {
     const int at = list->size;
     list->SetSize(at + 1);
@@ -481,7 +475,7 @@ int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedA
 }
 EI_REPLACE(0x006B68A0, AddSoundDevice);
 
-// --- A-H26: the stream's reader -----------------------------------------------------------------------
+// --- The stream's reader -----------------------------------------------------------------
 
 namespace {
 
@@ -574,10 +568,9 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 
 } // namespace
 
-// The original leaves "from the beginning again" (a local) unwritten when neither a loop point
-// nor a switch point is in the buffer, and reads it in one such case: a switch at the file's end
-// (mode 1) when the file ends in this buffer. Here that case is the switch, which is what the
-// mode asks for.
+// The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
+// point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
+// ends in this buffer. Here that case is the switch, which is what the mode asks for.
 void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
     auto* const buffer = static_cast<std::uint8_t*>(streamBuffers[streamSpareBuffer]);
     const std::int32_t state = streamState;
@@ -633,22 +626,22 @@ void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
 }
 EI_REWRITTEN(0x006BB3A0, CSoundManager::ReadStreamVanilla);
 
-// 006B75E0 (A-H25; Miles calls it on its own thread when a voice's sample ends; registered by its
-// address in sound_manager.cpp). The voice (the sample's user data 1) is marked finished; the
-// original also reads user data 0 (the manager) and drops it.
+// Miles calls it on its own thread when a voice's sample ends (registered in sound_manager.cpp). The voice
+// (the sample's user data 1) is marked finished; the game also reads user data 0 (the manager) and drops
+// it.
 void __stdcall SoundEndOfSample(void* sample) {
     AilSampleUserData()(sample, 0);
     reinterpret_cast<SoundSlot*>(AilSampleUserData()(sample, 1))->finished = 1;
 }
 EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
-// 006BAAC0's `this` is the manager's +0x100 (StreamOf); CSoundManager::OpenStream takes the manager.
+// Open's `this` is the manager's +0x100 (StreamOf); CSoundManager::OpenStream takes the manager.
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
 EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
 EI_REWRITTEN(0x006BAC90, SoundCloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
-    Destroy();   // slot 3: Close
+    Destroy();   // Close
     const bool waveOut = SoundOption() == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {
@@ -677,7 +670,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (block != nullptr) {
         block->count = kVoiceCount;
         voices = block->voices;
-        // The CRT's eh vector constructor iterator: each voice's name string (006B6CC0, basic_string()).
+        // The CRT's eh vector constructor iterator: each voice's name string (basic_string()).
         for (int i = 0; i < kVoiceCount; ++i) stlp::StringAbi::ConstructDefault(&voices[i].name);
     }
     slots = voices;
@@ -724,8 +717,8 @@ void CSoundManager::Close() {
         gamecrt::operator_delete(block);
     }
     DeleteDeferred();
-    // The original takes each record out by value (RemoveHead 006BC6F0 copies its name) and
-    // destroys the copy; here the node's own name is freed.
+    // The game takes each record out by value (RemoveHead copies its name) and destroys the copy; here the
+    // node's own name is freed.
     while (cacheList.count != 0) {
         AilMemFree()(cacheList.head->data.data);
         WaveRecord record = cacheList.RemoveHead();

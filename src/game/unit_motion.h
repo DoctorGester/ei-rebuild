@@ -26,8 +26,8 @@ static_assert(sizeof(MotionPoint) == 0x1C);
 
 // A corner of the path the trajectory is built from (0x0C bytes): `cells` path cells lead to it.
 struct MotionWaypoint {
-    // 005C6E30 (RET 8; ai_motion.cpp, A-W14). The constructor: the corner (x, y) (the floats moved as
-    // dwords), no cells. Returns the waypoint. UnitMotion::Build builds its corners in place.
+    // The constructor: the corner (x, y) (the floats moved as dwords), no cells. Returns the waypoint.
+    // UnitMotion::Build builds its corners in place.
     MotionWaypoint* Construct(std::uint32_t xBits, std::uint32_t yBits);
     float x, y;
     int cells;
@@ -59,7 +59,7 @@ struct UnitMotion {
                     int* cellY);
     // Rebuilds the trajectory for `order` (a PathOrder with its steps).
     void Build(PathOrder* order);
-    // Empties the trajectory. Returns 0 (EAX, as the original).
+    // Empties the trajectory. Returns 0.
     int Clear();
     // Stores the path cells of the steps in the trajectory points.
     void AssignCells(PathOrder* order);
@@ -70,9 +70,8 @@ struct UnitMotion {
                           float endOffset, int* stepIndex);
     // Slows the points down where the turn to the next one takes longer than the way.
     void LimitSpeeds(float turnRate);
-    // 005C7860 / 005C79B0 (RET 4; the unit's save, unit_save.cpp). The points (count, then 0x1C
-    // bytes each), the waypoints (0xC each), the step speeds (4 each), then +0x3C..+0x4C as dwords.
-    // Loading sizes each array to the count read and clears `segment` (-1) first.
+    // The points (count, then 0x1C bytes each), the waypoints (0xC each), the step speeds (4 each), then
+    // +0x3C..+0x4C as dwords. Loading sizes each array to the count read and clears `segment` (-1) first.
     void LoadState(CStream* stream);
     void SaveState(CStream* stream);
 

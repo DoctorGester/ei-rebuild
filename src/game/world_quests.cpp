@@ -40,8 +40,7 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-// The text key (object id) of a name (object_tables.cpp), ECX = name.
-// Named float table Get; the value is left in ST0.
+// The text key (object id) of a name (object_tables.cpp). Named float table Get; the value is left in ST0.
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
@@ -156,12 +155,11 @@ namespace {
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
-// The item manager creates an item by name. Patched by Rebirth.
-// 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
-// item creation, unused.
+// The item manager creates an item by name. Patched by Rebirth. A pointer list built and destroyed around
+// each item creation, unused.
 
-// The item named `name`, with the original's unused temporary lists around the creation (built
-// in the order `firstAt`, then the other).
+// The item named `name`, with the game's unused temporary lists around the creation (built in the order
+// `firstAt`, then the other).
 CItem* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void> lists[2];
     mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
@@ -239,9 +237,9 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         console::CStringArray parts;
         text::Split(name, &parts, '.');
         if (parts.GetSize() == 3) TheGameFlow()->RequestBriefing(parts[2]);
-        // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
-        // 005924D1): the client queues the completion script as well. The plugin formats it with the
-        // caller's EBX as the name; the client's only caller holds the name there.
+        // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
+        // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
+        // only caller holds the name there.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
@@ -282,11 +280,10 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
 
 namespace {
 
-// CWorld: the unit object with a text key.
-// 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
+// CWorld: the unit object with a text key. Patched by Rebirth. CWorldServer: removes the object with an id.
 
-// One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
-// n2, n8, n9, n3, n1, merc.
+// One slot's names, declared so that they are destroyed in the game's order: amerc, n10, n2, n8, n9, n3,
+// n1, merc.
 struct MercNames {
     mfc::CString merc, n1, n3, n9, n8, n2, n10, hired;
 };
@@ -347,9 +344,8 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-// The unit controller gains experience.
-// A party record's statistics (+0x20) gain experience.
-// 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
+// The unit controller gains experience. A party record's statistics (+0x20) gain experience. The player
+// state tells its client about experience.
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
 // controller's statistics (+0x8E0, +0x1E4).
@@ -387,7 +383,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     }
     float minimum;
     std::memcpy(&minimum, &kMinimumWeight, 4);
-    float divisor = total >= minimum ? total : minimum;   // the original's branch-free select
+    float divisor = total >= minimum ? total : minimum;   // branch-free select
 
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
@@ -467,12 +463,11 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-// The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
-// ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
-// 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
-// The unit's slots: quick, worn, belt, spells.
+// The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740 ("belt"),
+// armour +0x750 ("worn"), spells +0x760): remove an entry; add an entry (they return the record entry). The
+// unit's slots: quick, worn, belt, spells.
 
-// The party's copy of an item (CParty slot 24; the record entry's source).
+// The party's copy of an item (CParty's copy virtual; the record entry's source).
 CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
 
 // The record entry for `item` from the party records, with a reference held across `add`.
@@ -685,7 +680,7 @@ void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* server = player->Server();
-        // The original tests AL only.
+        // Only AL is tested.
         if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, value);
     }
 }

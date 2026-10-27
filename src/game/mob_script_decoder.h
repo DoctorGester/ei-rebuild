@@ -1,10 +1,10 @@
 #pragma once
 
 // The decoder of the .mob file's coded script text (chunk 0xACCEECCB) and of encoded chunk strings
-// (A-S7): two STLport vector<char>, the decoded text and the coded input. The input's first dword
+// two STLport vector<char>, the decoded text and the coded input. The input's first dword
 // seeds the MSVC rand LCG (x = x * 0x343FD + 0x269EC3); each following byte is XORed with x >> 16.
-// Users: CWorldServer::LoadZoneScripts 00596350 (world_game.cpp), Chunk::ReadEncodedString
-// 0042C650 (chunk_stream.cpp, its own vector declaration and members).
+// Users: CWorldServer::LoadZoneScripts (world_game.cpp), Chunk::ReadEncodedString
+// (chunk_stream.cpp, its own vector declaration and members).
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"

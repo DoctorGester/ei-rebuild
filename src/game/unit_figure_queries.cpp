@@ -41,15 +41,14 @@ constexpr double kNoExtent = 0.0;
 constexpr float kExtentScale = 1.0f;
 constexpr float kMosquitoExtentScale = 2.0f;
 
-// A random animation entry of the figure matching `key` (005190C0: the entries whose kind equals
-// the key's and whose variant bits include the key's, or exactly none for a key without them, and
-// which virtual slot 18 accepts; one picked with rand()), or of the key's kind only;
-// null when none (both RET 4).
+// A random animation entry of the figure matching `key` (the entries whose kind equals the key's and whose
+// variant bits include the key's, or exactly none for a key without them, and which a virtual of the figure
+// accepts; one picked with rand()), or of the key's kind only; null when none.
 FigureAnimation* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return unit->RandomAnimation(key); }
 FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) { return unit->RandomAnimationOfKind(key); }
 
-// `v` turned by the rotation `q` as the original spells it out: 2 (u.v) u + (s^2 - u.u) v +
-// 2 s (u x v), with u the vector part and s the scalar part.
+// `v` turned by the rotation `q`, spelled out as: 2 (u.v) u + (s^2 - u.u) v + 2 s (u x v), with u the
+// vector part and s the scalar part.
 Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
     float ux = q.x;
     float uy = q.y;
@@ -113,8 +112,8 @@ double CUnit::GroundHeight(float x, float y) {
 EI_REWRITTEN(0x00530280, CUnit::GroundHeight);
 
 Vector3* CUnit::EffectPoint(Vector3* out) {
-    // The original leaves this uninitialised on the server and for a hero without a right hand,
-    // and turns whatever the stack holds; zero gives the position there (docs/notes/units.md).
+    // The game leaves this uninitialised on the server and for a hero without a right hand, and turns
+    // whatever the stack holds; zero gives the position there (docs/notes/units.md).
     Vector3 local = {0.0f, 0.0f, 0.0f};
     auto* world = WorldContext();
     if (!world->IsServer()) {

@@ -1,5 +1,5 @@
 // CScript reset: empties a script before a zone's mission script is loaded (world
-// creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
+// creation and zone changes call it for both world scripts, from the constructor).
 // See script.h and docs/notes/script.md.
 #include "game_arrays.h"
 #include "game_lists.h"
@@ -24,7 +24,7 @@ namespace {
 
 // ---- Original code ------------------------------------------------------------------------------
 
-// Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
+// Element destructors: ScriptDefinition, ScriptVars, ScriptDecl, group.
 inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // The world: timed objects.
@@ -115,10 +115,10 @@ void __fastcall ScriptReset(CScript* script) {
 }
 EI_REWRITTEN(0x004BE6E0, ScriptReset);
 
-// ScriptDefinition reset (004D3320; CScript::Load calls it before each `Script` section): the if-then
+// ScriptDefinition reset (CScript::Load calls it before each `Script` section): the if-then
 // pairs freed inline (no element destructor), each variable array through its instantiation's
 // SetSize(0, -1) in member order, then index 0 and the parameters and name assigned the empty
-// string constant 0079B298 (in that order).
+// string constant (in that order).
 void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     if (definition->ifThen.data) {
         gamecrt::operator_delete(definition->ifThen.data);

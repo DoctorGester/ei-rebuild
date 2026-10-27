@@ -1,6 +1,5 @@
-// The particle manager's own members (00497FC0-00498630): create / destroy, making sources it holds,
-// ticking every source and letting go of the held ones. See effects.h (CParticleManager) and
-// docs/notes/particles.md.
+// The particle manager's own members: create / destroy, making sources it holds, ticking every source and
+// letting go of the held ones. See effects.h (CParticleManager) and docs/notes/particles.md.
 #include "effects.h"
 
 #include "ei/hook.h"
@@ -15,7 +14,7 @@ constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
 
 
-// The original's inlined iterator destructor: the manager's count drops without a release.
+// The inlined iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
 }
@@ -27,9 +26,9 @@ int CParticleManager::Create() {
     return CBaseManager::Create() != 0 ? 1 : 0;
 }
 
-// The held sources are released walking the table (a null value ends the walk,
-// as in the original's for_each); the table is cleared (count and highest id 0); every pooled
-// particle is deleted (RemoveHead, which frees the list's blocks with the last node).
+// The held sources are released walking the table (a null value ends the walk, as in the original's
+// for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (RemoveHead,
+// which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
     for (HeldMap::Node* node = held_.First(); node && node->value; node = held_.After(node))
         node->value->Release();
@@ -54,9 +53,9 @@ CParticleSource* CParticleManager::CreateSource(int type) {
     return source;
 }
 
-// 00498480 and 00498630 share the walk: the ids of the held sources `drop` picks are listed while
-// the sources are released, then they leave the table. The id list is a local stlp::list (its
-// sentinel and nodes come from the node pool in the original's order).
+// The two callers share the walk: the ids of the held sources `drop` picks are listed while the sources are
+// released, then they leave the table. The id list is a local stlp::list (its sentinel and nodes come from
+// the node pool in the original's order).
 namespace {
 
 template <typename Pick>

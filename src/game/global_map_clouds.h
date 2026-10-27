@@ -1,9 +1,9 @@
 #pragma once
 
-// The global map's moving cloud layer (A-S4; global_map_clouds.cpp): an abstract noise texture
-// (CCloudNoise; game.exe's 0073D030: two pure slots and its deleting destructor 00499E30) whose only
-// class is the global map's (CGlobalMapClouds; 007420D4: 0049A090, 0049A220, 0062EDA0; both real
-// classes since C28f, the tables retired). Three greyscale frames of
+// The global map's moving cloud layer (global_map_clouds.cpp): an abstract noise texture
+// (CCloudNoise: two pure slots and its deleting destructor) whose only
+// class is the global map's (CGlobalMapClouds); both real
+// classes. Three greyscale frames of
 // `size` x `size` (the map uses 256) are kept: the one shown fades from the first into the second
 // while the third is built a slice per step from four layers of value noise; every 16 steps they
 // rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
@@ -27,7 +27,7 @@ public:
     // 0 / 1 (pure in the base).
     virtual void MakeLayer(std::uint8_t* out) = 0;
     virtual void Generate(std::uint8_t* out, int step) = 0;
-    // 2: 00499E90 (deleting: 00499E30). The six buffers freed.
+    // 2: the deleting destructor. The six buffers freed.
     virtual ~CCloudNoise();
 
     // Builds the first two frames (all 16 steps each).
@@ -55,7 +55,7 @@ public:
 class CGlobalMapClouds final : public CCloudNoise {
 public:
     CGlobalMapClouds() : CCloudNoise(0x100) {}
-    // 0062EDC0 (deleting: 0062EDA0): the base's.
+    // the base's deleting destructor.
     ~CGlobalMapClouds() override;
 
     // A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by

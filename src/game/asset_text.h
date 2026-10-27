@@ -1,6 +1,6 @@
 #pragma once
 
-// Text in UTF-8 (docs/notes/standalone.md section 4, tickets U1-U5). The game's assets hold their
+// Text in UTF-8 (docs/notes/standalone.md section 4). The game's assets hold their
 // display text in one 8-bit code page (Windows-1251 for the Russian data); with EI_UTF8 every string
 // inside the game is UTF-8, and asset text is converted where it is read:
 //   - the text database (texts.res: TextSources::Find, text_sources.cpp)
@@ -40,7 +40,7 @@ void FromAssetText(std::string* text, unsigned codepage = kAssetCodePage);
 // and the result is true; otherwise false (`text` is the asset's bytes as it is).
 bool ToAssetText(std::string_view text, std::string* out, unsigned codepage = kAssetCodePage);
 
-// The length the original measured `text` by where a length means time (a briefing phrase lasts 0.05 s
+// The length the game measures `text` by where a length means time (a briefing phrase lasts 0.05 s
 // a character) or a limit (a typed line's): its bytes in the asset code page. With EI_UTF8 a character's
 // UTF-8 sequence counts once; a colour escape ("\007C" and three raw bytes, built by the game, never in
 // the assets or typed) counts its 5 bytes.
@@ -49,9 +49,9 @@ int CharacterCount(const mfc::CString& text);
 inline int CharacterCount(const std::string& text) { return CharacterCount(std::string_view(text)); }
 
 // --- Lengths and cuts by character -----------------------------------------------------------
-// Where the original limits or indexes text by bytes (one byte one character in the asset code page),
+// Where the game limits or indexes text by bytes (one byte one character in the asset code page),
 // with EI_UTF8 these count characters as CharacterCount does and never cut inside a UTF-8 sequence.
-// Without EI_UTF8 each is the original's byte count.
+// Without EI_UTF8 each is the plain byte count.
 
 // The bytes of the character at `p` (not its terminator): with EI_UTF8 its lead byte and the continuation
 // bytes after it, else 1.
@@ -74,15 +74,15 @@ void CopyFitting(char* to, std::size_t size, const char* from);
 // (the message box's edit field, the console line, the chat line, the save window's name) as its code point
 // (app.cpp's DispatchInput joins a surrogate pair) and is stored as UTF-8. The editors' caret stays a byte
 // offset, always at a character's start: it moves, deletes and limits the length by character. Without
-// EI_UTF8 a character is the byte the original took, and each step below is the original's one byte.
+// EI_UTF8 a character is the byte the game took, and each step below is one byte.
 
 // `head` with typed character `character` after it: its UTF-8 bytes with EI_UTF8, else the byte
-// (mfc::operator+(head, char), as the original joined them).
+// (mfc::operator+(head, char), as the game joined them).
 mfc::CString Typed(const mfc::CString& head, int character);
 // The bytes typed character `character` takes: its UTF-8 length with EI_UTF8, else 1.
 int TypedLength(int character);
 // The caret's step right from byte offset `at` of `text`: the next character's start (`at` + 1 at or past
-// either end, as the original stepped before clamping).
+// either end, as the game stepped before clamping).
 int NextCharacter(const mfc::CString& text, int at);
 // The caret's step left: the previous character's start (`at` - 1 at or past either end).
 int PreviousCharacter(const mfc::CString& text, int at);

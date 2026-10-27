@@ -1,4 +1,4 @@
-// The client half of a 3D object (CObject3DClientSpecific, class id 0x37, vtable 0073DE90; A-U12):
+// The client half of a 3D object (CObject3DClientSpecific, class id 0x37):
 // its lifetime, the part sets (the figure's parts grouped by texture and material, which Draw
 // walks), the skin textures and the materials' lit state. Layouts: map_object_shadow.h.
 #include "map_object_shadow.h"
@@ -33,8 +33,8 @@ void AssignCounted(T** slot, T* value) {
     if (old) old->Release();
 }
 
-// Whether a texture of `kind` belongs to the first part set (the switch of 0051B2F0: the table at
-// 0051B460 for kinds 1..0x10; any other kind goes to the second).
+// Whether a texture of `kind` belongs to the first part set (a table for kinds 1..0x10;
+// any other kind goes to the second).
 bool IsPrimaryKind(int kind) {
     switch (kind) {
     case 1: case 3: case 4: case 6: case 7: case 8: case 9: case 0xB: case 0xD: case 0xE: case 0xF: case 0x10:
@@ -45,7 +45,7 @@ bool IsPrimaryKind(int kind) {
 }
 
 // A zeroed 0x14-byte part set or group; null when the allocation fails (the callers then write
-// through null, as the original does).
+// through null, as the game does).
 template <typename T>
 T* NewZeroed() {
     auto* p = gamecrt::operator_new_as<T>();
@@ -161,7 +161,7 @@ EI_REWRITTEN(0x0051AEC0, CObject3DClientSpecific::Create);
 void CObject3DClientSpecific::Destroy() {
     AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    woundsMaterial.Assign(nullptr);   // the call to 0051E570
+    woundsMaterial.Assign(nullptr);
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set) continue;

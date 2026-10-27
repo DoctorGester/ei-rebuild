@@ -82,7 +82,7 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
 bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
 // An import of game.exe: from the working directory, the game folder (mss32.dll, binkw32.dll in its root), else
-// System32. game.exe's own folder is not looked in (S18k: the image needs no game.exe). dinput.dll is always the
+// System32. game.exe's own folder is not looked in (the image needs no game.exe). dinput.dll is always the
 // system one: Rebirth's beside its game.exe is a proxy that loads addon.dll, which patches game.exe's code.
 HMODULE LoadImport(const char* name) {
     if (_stricmp(name, "dinput.dll") != 0) {

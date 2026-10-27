@@ -9,7 +9,8 @@
 // times out on the main thread adds n and returns at once. Other threads (the cursor thread, the
 // sound threads) read the counter and never move it; their own sleeps and waits stay real.
 // GetLocalTime / GetSystemTime return a fixed date, and the ISAAC seeding (0049F660) a fixed
-// sequence (harness.cpp).
+// sequence (harness.cpp); GetTimeZoneInformation gives the daylight state of the game's date, not
+// today's (game.exe's time(), save times).
 //
 // Clock trace ("clocktrace"): every clock read and wait the game makes through its import table,
 // and those of the DLLs in the game's folder (Miles, Bink, dgVoodoo, Rebirth), counted by function,
@@ -24,7 +25,8 @@ namespace ei::verify::clock {
 DWORD MainThread();
 
 // Virtual clock: patches timeGetTime, GetTickCount, Sleep and WaitForSingleObject in game.exe's
-// import table. `tickLength` is the game's world update length in ms (0078FF34).
+// import table, and GetTimeZoneInformation (the fixed date's daylight state). `tickLength` is the
+// game's world update length in ms (0078FF34).
 void InstallVirtual(const unsigned* tickLength);
 bool Virtual();
 // The virtual clock's advance at each main loop frame ("frametime <ms>", R18): `ms`, or with 0 (the
@@ -32,7 +34,7 @@ bool Virtual();
 void SetFrameTime(unsigned ms);
 
 // Held clocks for "freeze" outside deterministic mode: timeGetTime and GetTickCount hold still
-// while frozen and resume without a jump.
+// while frozen and resume without a jump. GetTimeZoneInformation as in InstallVirtual.
 void InstallHeld();
 
 // While frozen, no game clock moves (virtual or held).

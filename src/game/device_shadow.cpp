@@ -1,10 +1,8 @@
-// The device's draw of flat-coloured textured geometry (004EA4A0, thiscall on the device at the
-// renderer's +0x20, RET 0x24): used for object shadows, by the renderer and
-// The positions (blocks of four vertices) are projected by the pipeline (004F2650, with
-// outcodes); every vertex gets one colour / specular pair and its own texture coordinate; z can be
-// scaled. Crossing the screen edges, the triangles go through the transform object's clipper (slot
-// 37) and the vertices are projected again (slot 34). Shares the buffers of device_mesh.cpp
-// (007AEDE0..007AEE3C). See docs/notes/models.md ("Mesh draws").
+// The device's draw of flat-coloured textured geometry (thiscall on the device at the renderer's +0x20): used for
+// object shadows. The positions (blocks of four vertices) are projected by the pipeline (with outcodes); every
+// vertex gets one colour / specular pair and its own texture coordinate; z can be scaled. Crossing the screen
+// edges, the triangles go through the transform object's clipper and the vertices are projected again. Shares
+// the buffers of device_mesh.cpp. See docs/notes/models.md ("Mesh draws").
 #include "clip.h"
 
 #include "ei/hook.h"
@@ -66,7 +64,7 @@ void HandOver(CTextureDevice* device, const void* positions, const char* uvs, in
     m.matrix = device->pipeline_->Top(kScreenStack);
     m.screenMatrix = true;
     m.clipped = clipped;
-    m.distanceFog = false;   // no fog pass (slot 35) here
+    m.distanceFog = false;   // no fog pass here
     m.zScale = *zScale;   // the scale Scale applies (1: none)
     render::BeginMesh(device, m);
 }
@@ -85,7 +83,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
-        // (004E7820, the device's vertex-buffer batch, never gave a buffer: the vertices are drawn.)
+        // (The device's vertex-buffer batch never gave a buffer: the vertices are drawn.)
         Vertices().SetSizeDiscard(count);
         Fill(Vertices().data, count, colours, uvs);
         Scale(count, &zScale);

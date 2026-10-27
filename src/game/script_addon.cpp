@@ -1,15 +1,15 @@
 // Rebirth's AddNewScriptCommands (addon.dll v0.12.4.2): the extended keyword table, the dispatch of
 // addon's script functions and commands, and the parser changes. See script_addon.h and
 // docs/notes/rebirth.md. The handlers are in script_addon_*.cpp.
-// How addon installs it (10022290): a std::vector of 300 entries gets the game's keywords (0078BCA0,
-// script.h's kScriptKeywords, without the terminator); then each of its 69 command records (100BA738, 0x40 bytes: name,
-// signature, handler, flags) is registered (10021C61): a name already in the table (stricmp) with
+// How addon installs it: a std::vector of 300 entries gets the game's keywords (script.h's
+// kScriptKeywords, without the terminator); then each of its 69 command records (0x40 bytes: name,
+// signature, handler, flags) is registered: a name already in the table (stricmp) with
 // an id below 300 keeps its id and gets the record's signature as its function signature (the
 // first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
 // with id 300 + the number of records registered before it. The terminator is appended, the vector
-// shrunk to fit, and the 15 references to 0078BCA0 in the loader (and the dumper 004D41C0) are
+// shrunk to fit, and the loader's (and the dumper's) references to the keyword table are
 // pointed at it. The records also go into a hash map by id that the hooks look the command up in
-// (10021D96) before the game's own switch.
+// before the game's own switch.
 #include "script_addon.h"
 #include "script_addon_handlers.h"
 

@@ -61,11 +61,11 @@ void DestroyList(stlp::list<T>& list, F destroy) {
 void* UiInputSide::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void UiInputSide::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// The base input side's deleting destructor (slot 0 of 007401D0).
+// The base input side's deleting destructor.
 UiInputSide::~UiInputSide() {}
 EI_REWRITTEN_SPECIAL(0x005EA850, UiInputSide::~UiInputSide);
 
-// 00602BA0, deleting 00602B80: the inert extra side's, the base side's table back.
+// The inert extra side's deleting destructor, the base side's table back.
 UiInertInput::~UiInertInput() {}
 EI_REWRITTEN_SPECIAL(0x00602BA0, UiInertInput::~UiInertInput);
 EI_REWRITTEN_SPECIAL(0x00602B80, UiInertInput::~UiInertInput);
@@ -248,7 +248,7 @@ EI_REWRITTEN_SPECIAL(0x00635DA0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00635DD0, CUiWindow::~CUiWindow);
 // --- Deleting destructors (slot 0) --------------------------------------------------------------
 
-// 005FE910 (the plain window, 00740F60) and the windows whose body is the window's.
+// The plain window and the windows whose body is the window's.
 EI_REWRITTEN_SPECIAL(0x005FE910, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x005EE020, CUiWindow::~CUiWindow);   // the item screens' icon window
 EI_REWRITTEN_SPECIAL(0x0060E240, CUiWindow::~CUiWindow);
@@ -262,14 +262,14 @@ EI_REWRITTEN_SPECIAL(0x006157D0, CUiWindow::~CUiWindow);   // the figure strips
 EI_REWRITTEN_SPECIAL(0x00635D80, CUiWindow::~CUiWindow);   // the game clock
 EI_REWRITTEN_SPECIAL(0x00635DB0, CUiWindow::~CUiWindow);   // the movement panel
 
-// 00600B80 (the plain container, 00741008) and the containers whose body is the container's.
+// The plain container and the containers whose body is the container's.
 EI_REWRITTEN_SPECIAL(0x00600B80, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7
 EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu
 EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu
 
 
-// 005F6450 / 005F6600 / 005F6FF0: the item screen, the camp, screen 9
+// The item screen, the camp, screen 9
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 

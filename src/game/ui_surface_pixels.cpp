@@ -1,13 +1,11 @@
-// The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface
-// a 16-bit 5:6:5 copy of a surface at a given size (005FD440, the save game's picture)
-// and greying a surface in place (005FE440, the escape menu's background). The escape menu's
-// drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md, "Item
-// descriptions, item view".
-// These work on the surfaces' memory (the new renderer's; the holders have no DirectDraw surface)
-// directly (DirectPixels): no Lock, the screen copy from the new renderer's frame, the stretched
-// copy on the CPU. A holder without that memory (none is made) is left alone. A native surface
-// (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative instead of in its
-// memory), and its canvas is read back before its memory is read or kept.
+// The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5
+// copy of a surface at a given size (the save game's picture) and greying a surface in place (the escape
+// menu's background). The escape menu's drawing (Rebirth-patched) runs all three when the menu opens. See
+// docs/notes/ui.md, "Item descriptions, item view". These work on the surfaces' memory (the new renderer's;
+// the holders have no DirectDraw surface) directly (DirectPixels): no Lock, the screen copy from the new
+// renderer's frame, the stretched copy on the CPU. A holder without that memory (none is made) is left alone.
+// A native surface (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative
+// instead of in its memory), and its canvas is read back before its memory is read or kept.
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"
@@ -37,8 +35,8 @@ SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 
 
-// Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
-// Split 004EDAA0, FromNative 004EDC70, ToNative 004EDC00).
+// Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h: Split,
+// FromNative, ToNative).
 ChannelLayout LayoutOf(const SurfacePixels& pixels) {
     ChannelLayout layout;
     const PixelFormat format = pixels.Format();
@@ -209,7 +207,7 @@ void CUiSurface::Greyscale() {
 
 namespace {
 
-// 004E6BA0 (thiscall): drops a holder reference.
+// Drops a holder reference.
 void ReleaseHolder(SurfaceHolder* holder) { holder->Release(); }
 
 
@@ -262,8 +260,8 @@ void CUiSurface::SwapContents(int restore) {
     if (released) released->Release();
 }
 
-// 005FD240 (thiscall, RET 8). The pixel at (x, y) of the surface as 0x00RRGGBB (through the
-// format converter); 0 outside the surface or without one.
+// The pixel at (x, y) of the surface as 0x00RRGGBB (through the format converter); 0 outside the surface or
+// without one.
 std::uint32_t CUiSurface::PixelAt(int x, int y) {
     ObservePixels(this, "PixelAt", false, _AddressOfReturnAddress());
     SurfaceHolder* holder = HolderOf(this);

@@ -1,6 +1,6 @@
-// Tagged blocks and text in a stream (A-S4): CStream::ReadTagged, FindTagged
-// ReplaceTagged (004A4AF0, A-S9) and ReadText. Every stream access goes through the virtual functions, in
-// the original's order.
+// Tagged blocks and text in a stream: CStream::ReadTagged, FindTagged
+// ReplaceTagged and ReadText. Every stream access goes through the virtual functions, in
+// the game's order.
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -77,7 +77,7 @@ EI_REWRITTEN(0x004A4AF0, CStream::ReplaceTagged);
 
 void CStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
-    // The original reads each byte over the low byte of its `buffer` argument's stack slot (a
+    // Each byte is read over the low byte of its `buffer` argument's stack slot (a
     // failed read of a stream that does not zero-fill leaves the old byte).
     auto slot = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(buffer));
     for (int left = capacity; left > 0;) {

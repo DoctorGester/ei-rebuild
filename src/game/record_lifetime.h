@@ -17,8 +17,8 @@ void DestroyVector(stlp::vector<T>& vector) {
     vector.FreeStorage();
 }
 
-// 005AE5B0 / 005AE5D0 (RET 4): the deleting destructors of the figure maps' pairs, whose only
-// member with a destructor is the leading string key (bodies 005AD4D0 / 004FAF10: its storage back
+// The deleting destructors of the figure maps' pairs, whose only
+// member with a destructor is the leading string key (its storage back
 // to the node pool): mfc::impl::ScalarDeleting<&DestructLeadingString>::Delete. Returns the pair.
 inline void __fastcall DestructLeadingString(stlp::string* pair) { pair->~string(); }
 

@@ -1,5 +1,5 @@
-// Out-of-line copies of the RefPtr helpers (core_refcount.h) in 00410000-00430000 and
-// 00470000-00480000: the compiler emitted one per template instantiation of the owning pointer, with
+// Out-of-line copies of the RefPtr helpers (core_refcount.h):
+// the compiler emitted one per template instantiation of the owning pointer, with
 // byte-identical code. They are registered with the core implementation.
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -40,7 +40,7 @@ EI_REWRITTEN(0x00438AA0, RefPtr::Destroy);
 EI_REWRITTEN(0x00438B30, RefPtr::Destroy);
 // The plain release of a RefPtr (the destructor of the instantiations without the owner's detach):
 // drops one reference of the object, destroying it at zero. The pointer is left as it is.
-// __fastcall shim of a thiscall without stack arguments. 21 copies.
+// A __fastcall function standing for a thiscall without stack arguments. 21 copies.
 void __fastcall RefPtrRelease(RefPtr* self) {
     CRefObject* object = self->ptr;
     if (!object) return;
@@ -74,7 +74,7 @@ EI_REWRITTEN(0x00439910, RefPtrRelease);
 EI_REWRITTEN(0x0059B4B0, RefPtrRelease);
 EI_REWRITTEN(0x0069FD50, RefPtrRelease);
 EI_REWRITTEN(0x004A5D70, RefPtrRelease);
-EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, 007C2F64's exit function (no Ghidra function)
+EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, as an exit function (no Ghidra function)
 
 // Counted_ptr<T>'s scalar deleting destructor (the release, then operator
 // delete when bit 0 of `flags` is set). Returns the holder.
@@ -105,7 +105,7 @@ EI_REWRITTEN(0x004214F0, RefPtrClear);
 EI_REWRITTEN(0x00421550, RefPtrClear);
 EI_REWRITTEN(0x00438A00, RefPtrClear);
 
-// The default constructor (null), returning the holder. 10 copies (00478FB0: the loopback link's
+// The default constructor (null), returning the holder. 10 copies (one is the loopback link's
 // peer, net_link.cpp).
 RefPtr* __fastcall RefPtrNull(RefPtr* self) {
     self->ptr = nullptr;
@@ -126,7 +126,7 @@ EI_REWRITTEN(0x005683A0, RefPtrNull);
 EI_REWRITTEN(0x0058DFE0, RefPtrNull);
 
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
-// the holder (the original also zeroes a dead stack slot). 16 copies.
+// the holder (the game also zeroes a dead stack slot). 16 copies.
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object) {
     self->ptr = object;
     return self;
@@ -150,7 +150,7 @@ EI_REWRITTEN(0x00428DE0, RefPtrFromRaw);
 EI_REWRITTEN(0x0047A690, RefPtrFromRaw);
 EI_REWRITTEN(0x0047A6A0, RefPtrFromRaw);
 
-// The released holder's scalar deleting destructor (0047A6D0: the release 0047A430, then the
+// The released holder's scalar deleting destructor (the release, then the
 // holder freed when bit 0 of the flags is set); returns the holder.
 RefPtr* RefPtr::DeleteReleased(unsigned flags) {
     RefPtrRelease(this);
@@ -172,7 +172,7 @@ RefPtr* RefPtr::CopyCounted(const RefPtr* from) { return FromRawCounted(from->pt
 EI_REWRITTEN(0x004A5D50, RefPtr::CopyCounted);
 EI_REWRITTEN(0x004ABE30, RefPtr::CopyCounted);
 
-// The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
+// The owning pointer's constructor from a raw pointer (RefPtr::Share, which returns
 // nothing) as the instantiations emit it out of line: the same body, returning the holder.
 // 9 copies.
 RefPtr* RefPtr::ShareReturn(CRefObject* object) {
@@ -189,7 +189,7 @@ EI_REWRITTEN(0x004299F0, RefPtr::ShareReturn);
 EI_REWRITTEN(0x00429A50, RefPtr::ShareReturn);
 EI_REWRITTEN(0x00429AB0, RefPtr::ShareReturn);
 
-// Assignment of an owning pointer (the original inlines Destroy and Share): from another holder
+// Assignment of an owning pointer (the game inlines Destroy and Share): from another holder
 // and from a raw object. Nothing happens when it already holds the object.
 RefPtr* RefPtr::AssignHolder(const RefPtr* other) {
     if (other->ptr == ptr) return this;
@@ -222,7 +222,7 @@ EI_REWRITTEN(0x00598980, ObjectHolderRelease);
 EI_REWRITTEN(0x00598990, ObjectHolderRelease);
 EI_REWRITTEN(0x00421350, ObjectHolderRelease);
 
-// 004EBE60 and its byte-identical copies (00429B50, a particle source's 0056F1A0, ...): assignment;
+// Assignment, with byte-identical copies (a particle source's among them):
 // the new object gains a reference, then the old one is released (HeldObject::Assign,
 // engine_object.h).
 EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);

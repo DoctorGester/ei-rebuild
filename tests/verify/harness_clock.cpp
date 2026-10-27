@@ -35,6 +35,7 @@ constexpr std::uintptr_t kGetMessageTimeSlot = 0x0073B5BC;
 constexpr std::uintptr_t kGetMessageASlot = 0x0073B454;
 constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
+constexpr std::uintptr_t kGetTimeZoneInformationSlot = 0x0073B378;
 constexpr std::uintptr_t kCreateThreadSlot = 0x0073B348;
 
 // A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f) or of another module's.
@@ -126,6 +127,35 @@ decltype(&::timeGetTime) g_timeGetTime;
 decltype(&::GetTickCount) g_getTickCount;
 decltype(&::Sleep) g_sleep;
 decltype(&::WaitForSingleObject) g_waitForSingleObject;
+decltype(&::GetTimeZoneInformation) g_getTimeZoneInformation;
+
+// The time zone as the game's date finds it. game.exe's time() (VC6's CRT) turns GetLocalTime's date
+// into a time_t with the daylight state GetTimeZoneInformation returns: the state in force now, not
+// the date's. With the harness's fixed date (2001-03-26 12:00, harness.cpp) a save's time (info.sav)
+// then moved by an hour with the machine's summer time. This returns the state of the date the
+// game's GetLocalTime gives (the fixed one, read through the patched slot) under the zone's rules,
+// as the image's mktime (the host CRT's) finds it; the zone's information is the machine's.
+DWORD WINAPI DateTimeZone(LPTIME_ZONE_INFORMATION zone) {
+    const DWORD state = g_getTimeZoneInformation(zone);
+    if (state == TIME_ZONE_ID_INVALID || zone->DaylightDate.wMonth == 0 || zone->DaylightBias == 0) return state;
+    SYSTEMTIME local;
+    (*ei::GamePointer<decltype(&::GetLocalTime)>(kGetLocalTimeSlot))(&local);
+    SYSTEMTIME utc;
+    FILETIME localFile;
+    FILETIME utcFile;
+    if (!TzSpecificLocalTimeToSystemTime(zone, &local, &utc) || !SystemTimeToFileTime(&local, &localFile) ||
+        !SystemTimeToFileTime(&utc, &utcFile))
+        return state;
+    const auto ticks = [](const FILETIME& t) {
+        return static_cast<long long>((static_cast<unsigned long long>(t.dwHighDateTime) << 32) | t.dwLowDateTime);
+    };
+    const long long biasMinutes = (ticks(utcFile) - ticks(localFile)) / (60 * 10000000LL);
+    return biasMinutes == zone->Bias + zone->DaylightBias ? TIME_ZONE_ID_DAYLIGHT : TIME_ZONE_ID_STANDARD;
+}
+
+void InstallDateTimeZone() {
+    if (!g_getTimeZoneInformation) PatchSlot(kGetTimeZoneInformationSlot, &DateTimeZone, g_getTimeZoneInformation);
+}
 
 // Whether a timeGetTime call is the main loop's frame time: the original WinMain's by its return
 // address, the rewritten one's (src/game/app_main.cpp) by the site it names.
@@ -680,6 +710,7 @@ void InstallVirtual(const unsigned* tickLength) {
     PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
     PatchSlot(kSleepSlot, &VirtualSleep, g_sleep);
     PatchSlot(kWaitForSingleObjectSlot, &VirtualWaitForSingleObject, g_waitForSingleObject);
+    InstallDateTimeZone();
     InstallSampleTimers();
 }
 
@@ -690,6 +721,7 @@ void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 void InstallHeld() {
     PatchSlot(kTimeGetTimeSlot, &HeldTimeGetTime, g_heldTimeGetTime.base);
     PatchSlot(kGetTickCountSlot, &HeldGetTickCount, g_heldTickCount.base);
+    InstallDateTimeZone();
 }
 
 void Freeze(bool on) {

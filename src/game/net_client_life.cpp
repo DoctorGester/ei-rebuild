@@ -1,4 +1,4 @@
-// The game client's destructor, scalar deleting destructor (0041C8B0, slot 0) and its
+// The game client's destructor, scalar deleting destructor and its
 // base layer's destructor body. The members are torn down in reverse order through
 // their STLport destructors and the counted pointers' releases, then the session base. See
 // net_classes.h and docs/notes/network.md.
@@ -58,8 +58,8 @@ ClientSession::~ClientSession() {
 EI_REWRITTEN_SPECIAL(0x0041CA10, ClientSession::~ClientSession);
 EI_REWRITTEN_SPECIAL(0x0041C8B0, ClientSession::~ClientSession);
 
-// The destructor body of the client's base layer (vtable 0073BE30; reached from its
-// scalar deleting destructor 0041C450 and the constructor's unwind funclets): the list +0x25BC,
+// The destructor body of the client's base layer (reached from its
+// scalar deleting destructor and the constructor's unwind funclets): the list +0x25BC,
 // the vector of buffers +0x25AC, the list +0x25A8, the buffer +0x2578, then the session base. The
 // original inlines the three container destructors (with the same element destructors and node
 // frees as the out-of-line ones called here, which ClientSession::Destruct uses too).

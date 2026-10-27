@@ -1,10 +1,9 @@
-// Loading the mission script from a savegame (CScript::Load 004C0D00) and the loaders of its parts
-// in this range: the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
+// Loading the mission script from a savegame (CScript::Load) and the loaders of its parts:
+// the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
 // arrays, the four kinds of variables, script instances and runs. The mirror image of
 // script_save.cpp; see script.h and docs/notes/script.md.
-// Every piece is read through the stream's Read (vtable slot 1) in the original's order and in the
-// original's pieces. The original inlines CArray::SetSize(n, -1) and CList::AddTail into most
-// loaders; both are written out here (InlineSetSize, AppendNode) with the instantiation's own
+// Every piece is read through the stream's Read in the save's order and in its pieces. CArray::SetSize(n, -1)
+// and CList::AddTail are written out (InlineSetSize, AppendNode) with the instantiation's own
 // element helpers, which are called through their addresses (MFC template code, config/library.csv).
 #include "base_manager.h"
 #include "core_streams.h"
@@ -33,24 +32,24 @@ namespace {
 
 // ---- Original code called by the loaders ---------------------------------------------------------
 
-// Loaders of the 004B range, __thiscall with the stream: 004B18B0 point light (0x20 slot) and
-// 004B1B40 FX source (list node data) are script_effects.cpp's; 004B3AD0 ScriptVars, 004B5FE0 SSCCmd
-// and 004BB590 one if-then pair of an instance are rewritten below. 00461190 (CStream::ReadString):
+// Loaders taking the stream: the point light (0x20 slot) and
+// the FX source (list node data) are script_effects.cpp's; ScriptVars, SSCCmd
+// and one if-then pair of an instance are defined below. CStream::ReadString:
 // bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
 
-// Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
-// 00593AA0 the world's FindObject.
+// Object lookups: the id registry (refcount raised by the caller),
+// the world's FindObject.
 CBaseManager* Registry() { return TheServerWorld()->manager48_; }
 
-// CArray template members (out of line), __thiscall (size, growBy).
-// Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
+// CArray template members (out of line) (size, growBy).
+// Copies (CArray::Copy / ScriptVars assignment) (source).
 // ScriptVars constructor / destructor body.
 
-// ConstructElements / DestructElements instantiations (__stdcall (first, count); ConstructAs /
-// DestructAs of the instantiation) and element destructors (__thiscall (flags); 0 = destroy in
+// ConstructElements / DestructElements instantiations (first, count) and element
+// destructors (flags; 0 = destroy in
 // place).
 
-// SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
+// SSCCmd's argument arrays (out of line) (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
 
 } // namespace
@@ -123,8 +122,8 @@ namespace {
 
 using namespace scriptarray;
 
-// CList::NewNode instantiations (004CD540 particle sources, 004CD5B0 FX sources, 004CD620 lightning, 004CD6D0
-// command blocks, 004CD930 instances, 004CDA30 runs): mfc::impl::NewNodeAs<Abi>. AddTail as inlined: a new node
+// CList::NewNode instantiations (particle sources, FX sources, lightning,
+// command blocks, instances, runs): mfc::impl::NewNodeAs<Abi>. AddTail: a new node
 // after the tail, its element filled by `fill`, then linked.
 template <typename Abi, typename T, typename E, typename Fill>
 void AppendNode(mfc::CList<T, E>* list, Fill fill) {
@@ -157,7 +156,7 @@ T* AcquireById(int id) {
     return object;
 }
 
-// The world's first script (007C27D4 = world +0x12874, the only script a savegame holds): block
+// The world's first script (the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
 const CScript* SavedScript() { return TheServerWorld()->MainScript(); }
 
@@ -249,8 +248,8 @@ EI_REWRITTEN(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
 
 // The mirror of SSCCmd::Save. Object and group arguments are saved as counts only: the
-// slots are made and left null (the original inlines the object array's SetSize, not the group
-// array's). The called block is found with 004BFA50 in the lists of 007C27D4 (-1, an unset block,
+// slots are made and left null (only the object array's SetSize is inlined, not the group
+// array's). The called block is found in the lists of the world's first script (-1, an unset block,
 // finds a WorldScript block with id -1 if any).
 void SSCCmd::Load(ScriptStream* stream) {
     stream->Read(&id, 4);
@@ -290,7 +289,7 @@ void ScriptSubCall::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 
-// A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
+// A string: read into a temporary CString, assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     mfc::CString temporary(mfc::CString::kUnset);
     *out = *stream->ReadString(&temporary);
@@ -347,8 +346,8 @@ EI_REWRITTEN(0x004BFA50, CScript::FindBlock);
 
 // ---- ScriptVars::Load ------------------------------------------------------------------------------
 
-// The variable loaders' format for all four kinds, with the arrays' out-of-line SetSize (004C2880,
-// 004C2510, 004C2050, 004C3980), objects assigned through 004B24D0 and group members read with
+// The variable loaders' format for all four kinds, with the arrays' out-of-line SetSize,
+// objects assigned through the reference's assignment and group members read with
 // ScriptObjectRef::Load. One stack variable holds the float count and index and then receives every
 // object id and group size (it is never reset in between); the other counts start at 0.
 void ScriptVars::Load(ScriptStream* stream) {
@@ -411,7 +410,7 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         AppendNode<mfc::impl::ParticleSourceList>(list, [](ScriptParticleSource* source) {
-            std::memset(source, 0, sizeof(*source));   // the original copies a stack temporary: +0 = 0, the rest unset
+            std::memset(source, 0, sizeof(*source));
         });
     }
     for (auto* node = list->head; node;) {
@@ -428,12 +427,12 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
 }
 EI_REWRITTEN(0x004CA480, ScriptParticlesLoad);
 
-// FX sources (CScript +0x30; element 0x34 bytes): each node is filled by 004B1B40.
+// FX sources (CScript +0x30; element 0x34 bytes): each node is filled by the FX source loader.
 void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        // The original builds a temporary element (effect 0, empty name, the rest unset), copies it
-        // into the node and destroys it (releasing its effect, which is always null).
+        // A temporary element (effect 0, empty name, the rest unset) is copied
+        // into the node and destroyed (releasing its effect, which is always null).
         std::string emptyName;
         AppendNode<mfc::impl::FxSourceList>(list, [&](ScriptFxSource* source) {
             source->object = nullptr;
@@ -472,7 +471,7 @@ EI_REWRITTEN(0x004CA720, ScriptLightningLoad);
 void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
+        // A temporary empty block (id unset) is copied into the node.
         ScriptDecl temp{};
         temp.commands.vtable = mfc::impl::ScriptCommandsClass::Vtable();
         AppendNode<mfc::impl::CommandBlockList>(list, [&](ScriptDecl* block) {
@@ -493,7 +492,7 @@ void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
 EI_REWRITTEN(0x004CA810, ScriptWorldBlocksLoad);
 
 // Script instances (CScript +0x140; element ScriptDefinition): killed flag, name, parameter
-// types, if-then pairs (004BB590 each), variables.
+// types, if-then pairs, variables.
 void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -520,7 +519,7 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         ScriptDefinition* instance = &node->data;
         node = node->next;
         stream->Read(&instance->index, 4);
-        // The original reads each string into a temporary and assigns it: 004B3D10.
+        // Each string is read into a temporary and assigned.
         ScriptStringLoad(&instance->name, stream);
         ScriptStringLoad(&instance->params, stream);
         int pairs = ReadInt(stream);
@@ -578,8 +577,8 @@ EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 
 // ---- CScript::Load --------------------------------------------------------------------------------
 
-// Reads what ScriptSave wrote, in the same order. Sets 007AA620 to the script while
-// the runs are read. Areas are read only from stream version 0x57 on.
+// Reads what ScriptSave wrote, in the same order. Sets the script pointer the loaders use to the
+// script while the runs are read. Areas are read only from stream version 0x57 on.
 void CScript::LoadState(ScriptStream* stream) {
     g_streamedScript = this;
 

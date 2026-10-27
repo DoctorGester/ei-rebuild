@@ -1,4 +1,4 @@
-// The options' defaults (00458DA0; called by 00455BA0 before the registry is read): the subkey
+// The options' defaults (called before the registry is read): the subkey
 // names, the video mode (640 x 480, 16 bits), the camera, shadows and lights, the paths ("." and
 // ".\res\"), the map and stream names and the master server ("a3master.nival.com"). See
 // docs/notes/objects.md ("Rewritten").
@@ -125,8 +125,8 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
 }
 EI_REWRITTEN(0x00458DA0, OptionsResetDefaults);
 
-// The options object's destructor (at exit, registered by the static initialiser
-// 00458700): its eighteen CStrings, the last first (the members' destruction order).
+// The options object's destructor (at exit, registered by the static initialiser):
+// its eighteen CStrings, the last first (the members' destruction order).
 EI_REWRITTEN_SPECIAL(0x00458730, GameOptions::~GameOptions);
 
 } // namespace options

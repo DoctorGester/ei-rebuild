@@ -40,10 +40,10 @@ constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
 
-// STLport containers (library): the query vector (00443E30 construct, 004439C0 insert overflow,
-// 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize; recordvec::QueryElement).
-// The game's stlp::vector<Query> instantiation: 004439C0 _M_insert_overflow(pos, x, n), 00443BF0
-// operator=, 004442B0 erase(first, last), 00444090 resize(n).
+// STLport containers (library): the query vector (construct, insert overflow,
+// copy, assign, erase, resize; recordvec::QueryElement).
+// The game's stlp::vector<Query> instantiation: _M_insert_overflow(pos, x, n),
+// operator=, erase(first, last), resize(n).
 using QueryList = stlp::vector<Query>;
 
 
@@ -141,7 +141,7 @@ std::int32_t __fastcall BufferLength(GameBuffer* b) {
 EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
 EI_REWRITTEN(0x00441640, BufferLength);
 
-// 00443770 / 00443790 / 00443E90 / 00444270: the query's constructor (a zero address and an empty
+// The query's constructor (a zero address and an empty
 // growing buffer), destructor, deleting destructor and copy constructor.
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
@@ -151,7 +151,7 @@ EI_REWRITTEN_SPECIAL(0x00443E90, Query::~Query);   // deleting
 Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
 EI_REWRITTEN_SPECIAL(0x00444270, Query::Query);
 
-// 00443E20 / 00443760: the temporary counted pointer handed to the list insert (set from a raw
+// The temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
 RefPtr* __fastcall HolderInit(RefPtr* self, CRefObject* raw) {
     self->ptr = raw;
@@ -197,7 +197,7 @@ bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return SessionBase::OnUpdate(from, cursor);
 }
 
-// 00441940 (slot 8, packet 6): the host accepted the join.
+// The host accepted the join.
 void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
@@ -221,7 +221,7 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     }
 }
 
-// 00441B40 (slot 9, packet 7): the host refused the join (a reason byte follows the id).
+// The host refused the join (a reason byte follows the id).
 void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
@@ -245,7 +245,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     }
 }
 
-// 00441D40 (slot 7, packet 5): a server's description. Its magic must match in all but the low
+// Packet 5: a server's description. Its magic must match in all but the low
 // byte. A new entry (slot 16) reads itself from the packet and gets the sender's address, the
 // ping (now - the echoed time) and when to look again: local servers and those asked directly
 // soon, others from the list never; unknown servers neither local nor asked are ignored. A known
@@ -530,7 +530,7 @@ void ClientBase::Tick(double dt) {
         }
         node = node->next;
     }
-    SessionBase::Tick(dt);   // 00437370, the receive step
+    SessionBase::Tick(dt);
     if (joinState_ != kAsking) return;
     double left = static_cast<double>(retryTimer_) - dt;
     retryTimer_ = static_cast<float>(left);
@@ -584,7 +584,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 }
 EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
-// 00443060 (slot 4, packet 3): a ping; the time it carries is echoed.
+// Packet 3: a ping; the time it carries is echoed.
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
     std::memcpy(&echo, cursor->p, 4);
@@ -609,7 +609,7 @@ bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return SessionBase::OnUpdate(from, cursor);
 }
 
-// Ages the pending joins (dropping those older than 0073BF9C, logged), then
+// Ages the pending joins (dropping those older than the join timeout, logged), then
 // the session's receive step.
 void ServerBase::Tick(double dt) {
     JoinNode* node = joins_.End()->next;
@@ -624,7 +624,7 @@ void ServerBase::Tick(double dt) {
             node = node->next;
         }
     }
-    SessionBase::Tick(dt);   // 00437370, the receive step
+    SessionBase::Tick(dt);
 }
 
 namespace {
@@ -638,14 +638,14 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 }
 } // namespace
 
-// 00443080 (slot 5, packet 4): a login. The magic must be the session's; the id and the rate
+// Packet 4: a login. The magic must be the session's; the id and the rate
 // follow (the rate is cut to what the session allows for the address, compared signed). A peer
 // that is connected already is ignored. One that was told to join before is told again (its id
 // and rate replaced). Anybody else is asked about (slot 16) and either put on the joins list and
 // accepted, or refused with the reason slot 16 gave.
 // The original builds the new join on the stack and never sets its age (+0x18): the list gets
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
-// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6 to a stub that clears it) is what
+// is not defined. Rebirth's FixProcessLogin (clears it) is what
 // this body always does: garbage cannot be reproduced, so the flag changes nothing here.
 void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;

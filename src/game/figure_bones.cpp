@@ -1,7 +1,6 @@
-// The skeleton's pose: each bone of a figure takes its place from its parent and its
-// animator, and places the mesh it carries. Called from the root (CFigureAnimationState +0x20) by
-// 0050D3E0 / 0050D450 (the animation changed) and 0050D7C0 (the figure was rescaled), with the
-// figure's scaled time factor as the origin. See docs/notes/map_objects.md.
+// The skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places the
+// mesh it carries. Called from the root (CFigureAnimationState) when the animation changed or the figure was
+// rescaled, with the figure's scaled time factor as the origin. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone, AnimationDatabase
 
 #include "figure_mesh.h"          // CFigureMesh
@@ -13,8 +12,8 @@
 
 namespace {
 
-// The pose's rotation `t` times the parent's `r` (Hamilton order) with the original's sums (its w
-// subtracts the vector parts' dot, z + x first).
+// The pose's rotation `t` times the parent's `r` (Hamilton order) with the original's sums (its w subtracts
+// the vector parts' dot, z + x first).
 Quaternion Combine(const Quaternion& r, const Quaternion& t) {
     Vector3 tv = {t.x, t.y, t.z};
     Vector3 rv = {r.x, r.y, r.z};
@@ -46,8 +45,7 @@ void FigureBone::Place(const Vector3* origin) {
     if (mesh) {
         mesh->localPosition_ = position;
         mesh->localRotation_ = rotation;
-        // The pose's morphed vertices ({data, count} at +0x68; read even without a pose, as the
-        // original does).
+        // The pose's morphed vertices ({data, count}; read even without a pose, like the original).
         CFigureMesh::OffsetSpan vertices{pose->vertices.data, pose->vertices.size};
         mesh->SetOffsets(&vertices);
     }

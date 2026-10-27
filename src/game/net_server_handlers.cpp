@@ -1,10 +1,10 @@
-// The game server's talk with the master server and a chat handler (A-E1): the announcement
-// (0041AA10, from the tick), the master server's answer (0041ACA0, slot 10) and a client's chat
-// line (0041B1C0, registered for SayMessage by ServerSession's constructor). All run from the
-// session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches 0041AA10 and
-// 0041ACA0 (NewMaster, at 0041ABDA and 0041ACB7; both reproduced: 0041ACA0's NOPs and 0041AA10's
-// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a site in 0041B1C0
-// (0041B25B, disabled in this install). See docs/notes/network.md and rebirth.md.
+// The game server's talk with the master server and a chat handler: the announcement
+// (from the tick), the master server's answer and a client's chat
+// line (registered for SayMessage by ServerSession's constructor). All run from the
+// session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches the announcement and
+// the master answer (NewMaster; both reproduced: the answer's NOPs and the announcement's
+// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a site in the chat handler
+// (disabled in this install). See docs/notes/network.md and rebirth.md.
 #include "net_classes.h"
 
 #include "core_refcount.h"
@@ -71,14 +71,14 @@ void ServerSession::AnnounceToMaster() {
     info.magic = kSessionMagic;
     info.Write(&buffer);
     socket_.SendTo(&masterAddress_, &buffer);
-    // EI_Plugin's NewMaster (its call at 0041ABDA sends as SendTo does, then the copy).
+    // EI_Plugin's NewMaster (its call sends as SendTo does, then the copy).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
 }
 EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 
 // A packet of kind -1: only from the master server's address (all 16
-// bytes compared; from any address with EI_Plugin's NewMaster, which NOPs the JNE at 0041ACB7 so the
+// bytes compared; from any address with EI_Plugin's NewMaster, which NOPs a jump so the
 // answer of its second master server counts). Its first dword must be the session's +0x25FC; the
 // second is then kept at +0x2578 (the next announcement sends it back). The first dword is consumed
 // either way.
@@ -91,7 +91,7 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
 }
 EI_REWRITTEN(0x0041ACA0, ServerSession::OnMaster);
 
-// 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
+// A chat line from the connection being read
 // (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the
 // player (nothing without one, or when the binding is detached), and the line is announced to
 // everybody as "^<number><name>^7: <text>".
@@ -113,7 +113,7 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
 }
 EI_REPLACE(0x0041B1C0, ServerOnSay);
 
-// 0041BA20 (the server in ECX, the message in EDX; INC [EDX+8]; RET, no Ghidra function): the
+// The
 // handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's
 // version moves on, so the connections send it again.
 void __fastcall ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }

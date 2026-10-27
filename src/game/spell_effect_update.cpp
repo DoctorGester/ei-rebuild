@@ -1,6 +1,5 @@
-// A spell effect's later states: the per-tick dispatch, the missiles' flight and impact
-// (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
-// 0067EE00-0067EE80. See docs/notes/items_spells.md.
+// A spell effect's later states: the per-tick dispatch, the missiles' flight and impact (state 1) and the
+// lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
 #include "ai_map.h"
 #include "map_object.h"
 #include "script.h"

@@ -1,5 +1,5 @@
-// Reading a surface back into a bitmap (006D6D40, 006D6FC0; dib.h): the screenshots (Scroll Lock,
-// ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The original locks the
+// Reading a surface back into a bitmap (dib.h): the screenshots (Scroll Lock,
+// ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The game locks the
 // surface for reading and copies its rows from the last to the first, as a .bmp keeps them; no
 // holder has a DirectDraw surface, so the rows come from the new renderer's last frame.
 #include "dib.h"

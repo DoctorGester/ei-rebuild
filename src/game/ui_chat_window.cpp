@@ -86,7 +86,7 @@ bool SameText(const char* a, const char* b) {
 
 // --- the constructor -----------------------------------------------------------------------------
 
-// game.exe's tables: its own update (24); the input side's click (2) and mouse move (4).
+// Its own update; the input side's click and mouse move.
 CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     texts_.Construct();
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
@@ -114,7 +114,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     case 1: u = 0x80; break;
     case 2: v = 0x80; break;
     case 3: u = 0x80; v = 0x80; break;
-    default: break;   // a negative count (the original then uses an unset u and `texture` as v)
+    default: break;   // a negative count: u is unset and `texture` is used as v
     }
     CopyImage(objects_.data[objects_.size - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 
@@ -188,7 +188,7 @@ void CChatWindow::ShowPlayers() {
         ++listed_;
     }
 
-    // The faces (the strings live across players, as the original's: the sex letter carries over).
+    // The faces (the strings live across players: the sex letter carries over).
     std::string model, picture, sex, build;
     for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p) {
         net::PlayerMessage* player = PlayerOf(*p);

@@ -1,4 +1,4 @@
-// Placed traps (trap_object.h) and the magic trap's class slots and deleting destructor (A-U6).
+// Placed traps (trap_object.h) and the magic trap's class slots and deleting destructor.
 #include "trap_object.h"
 
 #include "core_streams.h"

@@ -1,7 +1,7 @@
 // CCamera helpers the per-frame update uses: aiming along a direction, turning the
 // camera upright towards its target and keeping it above nearby objects.
 // See camera.h and docs/notes/core.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "camera.h"
 

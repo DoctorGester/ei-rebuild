@@ -1,11 +1,10 @@
-// The options object's constructor (00458870; A-E2). The static initialiser 00458700 runs it on
-// the global at 0079BC70 before WinMain (and registers the destructor 00458730 with atexit), so the
-// original has already run when the hooks install; verify_static_initialisers.cpp built a second
-// object with this one at that point and compared the two (until S21d).
-// These are not the defaults the game plays with: 00455BA0 calls OptionsResetDefaults
+// The options object's constructor. The static initialiser runs it on
+// the global before WinMain (and registers the destructor with atexit), so the
+// constructor has already run when the hooks install.
+// These are not the defaults the game plays with: OptionsResetDefaults is called
 // before the registry is read, and that sets most of them again (640 x 480 and so on). What stays
 // from here: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
-// layout, both lights' radius and a few values 00458DA0 does not touch. The master server's name
+// layout, both lights' radius and a few values the defaults function does not touch. The master server's name
 // stays empty.
 #include "options.h"
 #include "game_strings.h"
@@ -141,8 +140,8 @@ GameOptions::GameOptions() {
 
     keyboardLayout_ = 0x409;   // US English
     objectsLightingCoeff_ = 1.0f;
-    heroLight_ = {1.0f, 0.925490201f, 0.666666687f, 10.0f};   // 255, 236, 170 of 255 (3F6CECED, 3F2AAAAB)
-    questLight_ = {0.784313738f, 1.0f, 1.0f, 10.0f};          // 200 of 255 (3F48C8C9)
+    heroLight_ = {1.0f, 0.925490201f, 0.666666687f, 10.0f};   // 255, 236, 170 of 255
+    questLight_ = {0.784313738f, 1.0f, 1.0f, 10.0f};          // 200 of 255
     difficulty_ = 0;
     difficultyStored_ = 0;
 
@@ -152,11 +151,11 @@ GameOptions::GameOptions() {
     fogDayStartDistance_ = 90.0f;
 }
 
-// 00458870 (thiscall; returns the object).
+// The constructor (thiscall; returns the object).
 GameOptions* __fastcall OptionsConstruct(GameOptions* self) { return new (self) GameOptions; }
 EI_REWRITTEN(0x00458870, OptionsConstruct);
 
-// The static initialiser 00458700 and the exit function 00458720 it registers, ported on the name (g_options,
+// The static initialiser and the exit function it registers, defined on the name (g_options,
 // options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 namespace {
 void __cdecl ConstructGameOptions() {

@@ -1,9 +1,9 @@
 #pragma once
 
-// The unit look records of a zone's state block: what the client needs to build each unit's skin
-// and figure before the units themselves arrive. ReadUnitLooks (0055A190, world_unit_set.cpp)
-// reads the two lists, BuildUnitSkins (00568800, unit_skins.cpp) uses them, and the client's zone
-// load (00567AB0, world_client_maps.cpp) owns them meanwhile.
+// The unit look records of a zone's state block: what the client needs to build each unit's skin and figure
+// before the units themselves arrive. ReadUnitLooks (world_unit_set.cpp) reads the two lists,
+// BuildUnitSkins (unit_skins.cpp) uses them, and the client's zone load (world_client_maps.cpp) owns them
+// meanwhile.
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -20,11 +20,10 @@ using UnitIdList = stlp::vector<std::uint32_t>;
 // [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown. The server's
 // unit set (world.h, UnitSet) holds the same records; its figured records start with this head.
 struct DressedUnitRecord {
-    // Body of the slot at 0055A9F0 (registered by member pointer).
+    // Body of a virtual (registered by member pointer).
     DressedUnitRecord* CopyConstruct(const DressedUnitRecord* from);
-    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the prototype (2 bytes), each id list's
-    // count and dwords (the data written even when empty), the byte and the dword through
-    // `stream`'s slot 2 (also called on a FiguredUnitRecord's head).
+    // Writes the prototype (2 bytes), each id list's count and dwords (the data written even when empty),
+    // the byte and the dword through `stream`'s Write (also called on a FiguredUnitRecord's head).
     void Write(CStream* stream);
 
     std::uint16_t prototype;        // +0x00
@@ -38,12 +37,12 @@ struct DressedUnitRecord {
 static_assert(offsetof(DressedUnitRecord, extraWeapons) == 0x10);
 static_assert(sizeof(DressedUnitRecord) == 0x24);
 
-// Another unit of the zone (the first list read, 0x3C bytes): a dressed record's head (its
-// prototype, the armour ids in `items`, the weapon ids in `extraWeapons`, the weapon in hand and
-// the model number; the dressed copy and Write take that head), the figure's morph coefficients and
-// the texture names (none: from the prototype, 00535CB0).
+// Another unit of the zone (the first list read, 0x3C bytes): a dressed record's head (its prototype, the
+// armour ids in `items`, the weapon ids in `extraWeapons`, the weapon in hand and the model number; the
+// dressed copy and Write take that head), the figure's morph coefficients and the texture names (none: from
+// the prototype).
 struct FiguredUnitRecord : DressedUnitRecord {
-    // Body of the slot at 0055A860 (registered by member pointer).
+    // Body of a virtual (registered by member pointer).
     FiguredUnitRecord* CopyConstruct(const FiguredUnitRecord* from);
     float morphS;                   // +0x24 the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
@@ -53,9 +52,9 @@ struct FiguredUnitRecord : DressedUnitRecord {
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);
 
-// Both lists as a zone load holds them on its stack: empty vectors, destroyed as the original's
-// inlined destructors do it (the dressed records first; per record the id lists from the back, a
-// figured record's names before them; then each list's storage).
+// Both lists as a zone load holds them on its stack: empty vectors, destroyed as the game's inlined
+// destructors do it (the dressed records first; per record the id lists from the back, a figured record's
+// names before them; then each list's storage).
 struct UnitLooks {
     UnitLooks() = default;
     UnitLooks(const UnitLooks&) = delete;

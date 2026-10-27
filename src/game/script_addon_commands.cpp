@@ -1,6 +1,5 @@
-// AddNewScriptCommands: addon's commands, plus GSGetPlayerVar and IsFileExists (handlers
-// 100115AC-10011703, 10011CC5-10011F43, 100124F4, 10012813-10012C7B, 10012D0F-10012EFB). The game
-// functions they call are the rewritten members, or their original addresses where not rewritten.
+// AddNewScriptCommands: addon's commands, plus GSGetPlayerVar and IsFileExists. The game
+// functions they call are the rewritten members.
 #include "script_addon_handlers.h"
 #include "options.h"
 #include "bink_video.h"   // g_loadingMovieOff

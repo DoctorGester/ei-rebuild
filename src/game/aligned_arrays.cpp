@@ -1,6 +1,6 @@
 // The engine's arrays of plain elements in 32-byte aligned blocks (the block operator new returned
 // is kept just before the data and freed through it), as instantiated around the animation and
-// figure loaders (0044F1B0-00454A30): {data, size, capacity, growBy}. One template per operation;
+// figure loaders: {data, size, capacity, growBy}. One template per operation;
 // each instantiation is registered under its own name with its element size. The growth step is
 // MFC's (growBy, else size / 8 clamped to 4 .. 1024). See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
@@ -47,7 +47,7 @@ EI_REWRITTEN(0x0051A170, AllocateDwords);
 EI_REWRITTEN(0x0051EF90, AllocateDwords);
 EI_REWRITTEN(0x00453A10, AllocateDwords);
 EI_REWRITTEN(0x00600A80, AllocateDwords);
-// Byte-identical copies in the HUD / items range (A-H24).
+// Byte-identical copies in the HUD / items range.
 EI_REWRITTEN(0x00664910, AllocateDwords);
 EI_REWRITTEN(0x00671240, AllocateDwords);
 Blob<32>* __fastcall AllocateBlocks32(int count) { return lib::AlignedArray<Blob<32>>::Allocate(count); }
@@ -83,7 +83,7 @@ EI_REWRITTEN(0x00600390, ArrayFree1);
 EI_REWRITTEN(0x006003B0, ArrayFree1);
 EI_REWRITTEN(0x00601B50, ArrayFree1);
 EI_REWRITTEN(0x0044F1B0, ArrayFree1);
-// Byte-identical copies in the world range (A-W12).
+// Byte-identical copies in the world range.
 EI_REWRITTEN(0x0058A880, ArrayFree1);
 EI_REWRITTEN(0x005995C0, ArrayFree1);
 EI_REWRITTEN(0x00599780, ArrayFree1);

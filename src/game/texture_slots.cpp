@@ -1,6 +1,6 @@
-// CTexture's own slots (0 destructor, 2 Create, 3 Destroy), the texture manager's small entry
+// CTexture's own virtuals (destructor, Create, Destroy), the texture manager's small entry
 // points (find or create by name, reload after a lost device, the cache's size limit) and the .mmp
-// header's pixel format presets (A-H25). See texture.h and docs/notes/items_spells.md.
+// header's pixel format presets. See texture.h and docs/notes/items_spells.md.
 #include "texture.h"
 
 #include "ei/hook.h"

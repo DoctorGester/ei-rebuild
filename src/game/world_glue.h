@@ -1,26 +1,23 @@
 #pragma once
 
-// The game glue (00578000-00578E30): methods of two empty objects (007AFEA4 the game's, 007AFEA5
-// the local player's) that the interface, the scripts and the console call instead of the worlds.
-// None reads `this`, so they are plain functions here. world.h declares the ones rewritten
-// earlier (GameTime, LocalPlayerData, ...). Names are provisional.
+// The game glue: methods of two empty objects (the game's, the local player's) that the interface, the
+// scripts and the console call instead of the worlds. None reads `this`, so they are plain functions here.
+// world.h declares the others (GameTime, LocalPlayerData, ...). Names are provisional.
 
 #include "lib/mfc.h"
 
-// 00578DB0 / 00578DC0: the data folder CString 007AF460 / the base folder CString 007AF458.
+// The data folder CString / the base folder CString.
 const mfc::CString* GameDataPathString();
 const mfc::CString* GameBasePathString();
 
-// 0057FB90 (RET 4; the scripts' QuestComplete in a network game). With a live game server: its
-// FinishMap for the map named `name` (the held map message dropped, "name_3" queued), 1 when it
-// did; else 0.
+// The scripts' QuestComplete in a network game. With a live game server: its FinishMap for the map named
+// `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
 int __stdcall FinishQuestMap(const char* name);
 
 class CScript;            // script.h
 struct NamedFloatTable;   // object_tables.h
 
-// A script's last error as callers take it (00456360 copies it out of the script): the text, the
-// code and the line.
+// A script's last error as callers take it (copied out of the script): the text, the code and the line.
 struct ScriptErrorInfo {
     mfc::CString text;
     int code;
@@ -28,21 +25,21 @@ struct ScriptErrorInfo {
 };
 static_assert(sizeof(ScriptErrorInfo) == 0xC);
 
-// 005785D0 (RET 0xC; the console's script command 005DD800). Loads `text` into the command script
-// (007C29CC; CScript::Load with the WorldScript started), runs it when it loaded and `run` is set
-// (ScriptTick), and copies the script's last error into `error` when given. Returns Load's result.
+// The console's script command. Loads `text` into the command script (CScript::Load with the WorldScript
+// started), runs it when it loaded and `run` is set (ScriptTick), and copies the script's last error into
+// `error` when given. Returns Load's result.
 int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error);
 
-// 00578C40 (RET 8; the quest and briefing screens). Player zero's variables whose names start with
-// `prefix` copied into `out` (NamedFloatTable::CopyPrefixed): the local player's as the client sees
-// them in a network game, else the server's player 0; `out` is emptied when there is no such player.
+// For the quest and briefing screens: player zero's variables whose names start with `prefix` copied into
+// `out` (NamedFloatTable::CopyPrefixed): the local player's as the client sees them in a network game, else
+// the server's player 0; `out` is emptied when there is no such player.
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
 
-// 0055EA10 (the application's start-up 00456440). The start folder CString 007AF454 set to the
-// current directory with a backslash appended.
+// Called at the application's start-up. The start folder CString set to the current directory with a
+// backslash appended.
 void __cdecl StoreStartFolder();
 
-// ---- A-W13: the rest of the glue. `this` (007AFEA4..007AFEA6) is never read. ---------------------
+// ---- The rest of the glue. `this` is never read. ---------------------
 #include <cstdint>
 
 class CEngineObject;
@@ -61,16 +58,15 @@ double GameServerTimeOfDay();
 // The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)
 // unless it is negative or a NaN.
 void __stdcall GamePassTime(float offset);
-// 00578730 (RET 8; the client's state block 00567AB0). CWorldServer::EnsureZone.
+// CWorldServer::EnsureZone (the client's state block).
 void __stdcall GameEnsureZone(const char* map, const char* mob);
-// 00578750 (the client's state block 00567AB0 hands it to 00667B40). The memory stream at 007C2D60
-// (the local server's pending messages).
+// The memory stream of the local server's pending messages (the client's state block hands it over).
 class CMemoryStream;   // core_streams.h
 CMemoryStream* GameObject7C2D60();
-// 00578760 (RET 8; the briefing screen). The server unit with id `id` moves to height `z` (its
-// sector map entry follows, part 2 marked changed) unless it is there already (or NaN).
+// The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
+// unless it is there already (or NaN).
 void __stdcall GameSetUnitHeight(int id, float z);
-// 00578D00 / 00578D10 (RET 4). The server world's pause flag / CWorldServer::SetPaused.
+// The server world's pause flag / CWorldServer::SetPaused.
 std::uint8_t GameServerPaused();
 void __stdcall GameSetServerPaused(int paused);
 
@@ -78,9 +74,8 @@ void __stdcall GameSetServerPaused(int paused);
 void GameStopCameraRecording();
 // The client world's flag 0x10 on, then CameraOpenFile(name); its result.
 int __stdcall GameStartCameraRecording(const char* name);
-// 00578820 (RET 8; the script's camera command, the briefing). Loads the path file (0040ECD0 with
-// `flag`); when that works the camera plays it (flag 0x20) from now: the time offset is the client
-// time (tick + fraction) less the first key's, the key index 0. Returns 1 when loaded.
+// Loads the path file (with `flag`); when that works the camera plays it (flag 0x20) from now: the time offset
+// is the client time (tick + fraction) less the first key's, the key index 0. Returns 1 when loaded.
 int __stdcall GamePlayCameraPath(const char* name, int flag);
 // Loads the path file and jumps to its first key (PlaybackStart).
 int __stdcall GameShowCameraPath(const char* name);
@@ -92,26 +87,26 @@ std::uint32_t GameCameraPathPlaying();
 int GameRender();
 // CSoundManager::StopAll(stopStream).
 void __stdcall GameStopSounds(int stopStream);
-// 00578940 / 00578950. The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
+// The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
 void GameStopAmbience();
 void GameStartAmbience();
-// The sound manager is asked for the music stream `name` (null: the default
-// 0079BECC), mode 4; RequestStream's result.
+// The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's
+// result.
 int __stdcall GamePlayMusic(const char* name);
 // CWorld::FindUnit on the client world.
 CUnit* __stdcall GameFindClientUnit(int id);
-// 005789C0 (RET 8) / 005789E0 (RET 4). CWorldClient::CreatePartyUnits / RemoveUnitsOf.
+// CWorldClient::CreatePartyUnits / RemoveUnitsOf.
 void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
 void __stdcall GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records);
-// 00578A00 (RET 8) / 00578A20 (RET 0xC) / 00578A40 (RET 4). CWorldClient::FindExitAt / PartyInExit /
-// ExitTarget.
+// CWorldClient::FindExitAt / PartyInExit / ExitTarget.
 int __stdcall GameFindExitAt(const float* point, int* index);
 int __stdcall GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit);
 const char* __stdcall GameExitTarget(int index);
 // Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void __stdcall GameLeaveThroughExit(int exit);
-// 00578B00 (RET 4) / 00578B20. The interface's close-all flag (007C7D94, CInterface3D +0x44) set, then the local client's SendLeave04(value) / Rejoin.
+// The interface's close-all flag (CInterface3D +0x44) set, then the local client's SendLeave04(value) /
+// Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
 // The local player's variables whose names start with `prefix`, into `out`.

@@ -1,7 +1,7 @@
 #pragma once
 
-// What the database loaders share (units 0053A200, skills 00520220, spells 00684550, items
-// 006A67A0, prints 006D0630, acks 006D7620): the resource archive and the memory stream they build
+// What the database loaders share (units, skills, spells, items,
+// prints, acks): the resource archive and the memory stream they build
 // on their stacks, and a table's pass over the stream. Rebirth patches every one of these loaders
 // (it redirects their file lookup to a mod folder's copy); the rewrites are the vanilla functions
 // and reach the patched resource functions through their addresses (rule 9).
@@ -19,7 +19,7 @@
 namespace dbfile {
 
 // The archive file, built in place: its constructor directly, its open and its
-// destructor body through their addresses (00671730 / 006714A0, which Rebirth patches).
+// destructor body through their addresses (which Rebirth patches).
 struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }
@@ -41,12 +41,12 @@ inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t si
 inline bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
     return resource.Open(folder + "database.res") != 0;
 }
-// Their report of a failed open. The original names "databases.res" here.
+// Their report of a failed open. The game names "databases.res" here.
 inline int ReportNoDatabase(const mfc::CString& folder) {
     return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res").GetString());
 }
 
-// One table's pass over the stream: an archive of its own (the out-of-line constructor 0053A7B0)
+// One table's pass over the stream: an archive of its own (the out-of-line constructor)
 // opened for loading, the table's records read as chunk `id` by the archive's vector serialiser
 // `serialize` (the chunk id, the vector, an unused argument), the archive closed; `index` then
 // files the records, and the archive is destroyed.

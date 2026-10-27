@@ -1,6 +1,6 @@
-// Quaternion helpers at 0049E790-0049EE50: rotation from an angle and an axis (two argument
+// Quaternion helpers: rotation from an angle and an axis (two argument
 // orders), products with a conjugate, and spherical interpolation. Names are provisional.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "maths.h"
 
@@ -23,7 +23,7 @@ double StoreDouble(double v) {
     return r;
 }
 
-// Constants the original reads from memory at run time.
+// Constants the game reads from memory at run time.
 #define EI_HALF_F 0.5f /*0073B86C*/        // 0.5f
 #define EI_ONE_F 1.0f /*0073B84C*/         // 1.0f
 #define EI_ZERO_D 0.0 /*0073C340*/       // 0.0

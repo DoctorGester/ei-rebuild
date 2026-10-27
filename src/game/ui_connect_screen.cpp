@@ -98,7 +98,7 @@ constexpr std::uint32_t kPlainSprite = 0x100;
 // strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-// A message box of `ui` on top (allocation failure: null pushed, as the original).
+// A message box of `ui` on top (allocation failure: null pushed).
 void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
     CMessageBox* box = new CMessageBox(ui, title, text, result, flags, kBoxFormat);
     ui->PushWindow(box, 1, 1);

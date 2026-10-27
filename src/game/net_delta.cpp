@@ -44,7 +44,7 @@ namespace {
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
-// The growing buffer's constructor and destructor (not rewritten).
+// The growing buffer's constructor and destructor.
 
 // The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
 std::uint32_t BufferLength(GameBuffer& b) {
@@ -52,7 +52,7 @@ std::uint32_t BufferLength(GameBuffer& b) {
     return static_cast<std::uint32_t>(b.base - reinterpret_cast<std::intptr_t>(b.begin) + reinterpret_cast<std::intptr_t>(b.high));
 }
 
-// 0047D7F0 / 0047D970: a fixed view over `self`'s bytes run through the coder into a growing
+// A fixed view over `self`'s bytes run through the coder into a growing
 // buffer, whose bytes then replace `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed
 // (its base vtable) before the buffer.
 void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
@@ -431,7 +431,7 @@ EI_REWRITTEN(0x0047EE00, DeltaField::ReadPosition2D);
 // Ranged values.
 namespace {
 constexpr float kRangeSteps = 65535.0f;
-const float kRangeStep = std::bit_cast<float>(0x37800080u);      // 0073CAAC (1 / 65535)
+const float kRangeStep = std::bit_cast<float>(0x37800080u);      // (1 / 65535)
 } // namespace
 
 void DeltaField::WriteRanged(float value, float min, float max) {

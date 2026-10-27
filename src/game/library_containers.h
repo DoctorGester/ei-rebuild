@@ -1,9 +1,9 @@
 #pragma once
 
-// Library code over game types in S12a's ranges (docs/notes/standalone.md): STLport members of
+// Library code over game types (docs/notes/standalone.md): STLport members of
 // lists, vectors and algorithms whose elements are the game's (streams, CStrings, counted pointers,
 // the briefing's records), the CString destructor's out-of-line copies and the compiler's unwind
-// helpers. Registered in library_containers.cpp; checked in game by verify_library_containers.cpp until S21d.
+// helpers. Registered in library_containers.cpp.
 // Thiscalls are __fastcall with an unused EDX.
 
 #include "core_refcount.h"
@@ -32,7 +32,7 @@ struct QueuedStream {
 using StreamQueue = stlp::ListAbi<CMemoryStream, QueuedStream>;
 static_assert(sizeof(StreamQueue::Node) == 0x30);
 
-// An 8-byte key and two CStrings (the item screens' list whose destructor is 005F9570): destroyed
+// An 8-byte key and two CStrings (the item screens' list): destroyed
 // as a pair destroys them, the second first.
 struct KeyedTexts {
     std::uint32_t key[2];
@@ -69,17 +69,17 @@ static_assert(sizeof(ShownItemNodes::Node) == sizeof(BriefingShownItem));
 
 // ---- Algorithms -----------------------------------------------------------------------------------
 
-// _Construct(p, value) of a RefPtr (0060AA80; ECX p, EDX value): a copy with one more reference,
+// _Construct(p, value) of a RefPtr (ECX p, EDX value): a copy with one more reference,
 // nothing for a null p.
 void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
-// (_Construct(p, value) of a held engine object, 004FB680, is HeldEngineObject::Construct.)
+// (_Construct(p, value) of a held engine object is HeldEngineObject::Construct.)
 
 // ---- CString's destructor and the unwind helpers ---------------------------------------------------
 
-// CString's destructor (005F9680, 005FBE20: a jump to 00700970).
+// CString's destructor (two copies, each a jump to the library's).
 void __fastcall DestroyCString(mfc::CString* self);
 
-// A record with a CString at +0x0C (the text tokenizer's word): 00445FC0 destroys it.
+// A record with a CString at +0x0C (the text tokenizer's word): its destructor.
 struct TokenWord {
     std::uint8_t unused_00[0x0C];
     mfc::CString text;   // +0x0C
@@ -91,7 +91,7 @@ struct LoaderLocal {
     std::uint32_t cleared;   // +0x08
 };
 
-// Two vectors of pointers (+0x00, +0x10), a local two unwind funclets end with: 005F60B0 frees the second's
+// Two vectors of pointers (+0x00, +0x10), a local two unwind funclets end with: frees the second's
 // storage, then the first's.
 struct PointerVectorsPair {
     stlp::vector<void*> first;
@@ -100,30 +100,30 @@ struct PointerVectorsPair {
 };
 
 
-// 005E0550 (library.csv: a pointer iterator's operator-(n)): CTime::operator-(CTimeSpan), the time
-// less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime
+// CTime::operator-(CTimeSpan) (library.csv: a pointer iterator's operator-(n)): the time
+// less a span of seconds into `out` (thiscall; called after a CTime
 // constructor); returns out.
 
 // ---- The party file entries' vector ------------------------------------------------------
 
-// vector<MpHeroRecord> (0x74 bytes: a CParty and its file name; the multiplayer heroes 007C82A4 and
+// vector<MpHeroRecord> (0x74 bytes: a CParty and its file name; the multiplayer heroes and
 // the world's saved parties, world_game.cpp): an element is copied as the party's copy constructor
-// (006613C0, by address) and then the name's (CString's copy), destroyed as MpHeroRecord::Destruct
-// (the name, then 006611D0) and assigned as MpHeroRecord::Assign.
+// (by address) and then the name's (CString's copy), destroyed as MpHeroRecord::Destruct
+// (the name, then the party) and assigned as MpHeroRecord::Assign.
 struct HeroRecordElement {
     static void Construct(MpHeroRecord* to, const MpHeroRecord& from);
     static void Assign(MpHeroRecord& to, const MpHeroRecord& from) { to.Assign(&from); }
     static void Destroy(MpHeroRecord* p) { p->Destruct(); }
 };
-// _M_insert_overflow(pos, x, n) (00619920; RET 0xC): a block of size + max(size, n) records (the
+// _M_insert_overflow(pos, x, n): a block of size + max(size, n) records (the
 // node allocator's pool for one record), [start, pos), n copies of x, [pos, finish); the old
 // records destroyed in order, the old block freed.
 // (Registered as HeroRecordAbi::InsertOverflow.)
 using HeroRecordAbi = stlp::VectorAbi<MpHeroRecord, HeroRecordElement>;
 
-// ---- S12g: the last library code our rewrites called ----------------------------------------------
+// ---- The last library code our rewrites called ------------------------------------------------
 
-// The briefing's speakers vector (CBriefingScreen +0x294): an element copied as 0060AB00 does (the
+// The briefing's speakers vector (CBriefingScreen +0x294): an element copied by _Construct (the
 // unit, CString's copy constructor, the flag byte; the padding is not copied) and destroyed with the
 // name's destructor.
 struct SpeakerElement {
@@ -131,13 +131,13 @@ struct SpeakerElement {
     static void Destroy(BriefingSpeaker* p) { p->name.~CString(); }
 };
 using Speakers = stlp::vector<BriefingSpeaker>;
-// _Construct(p, value) (0060AB00; ECX p, EDX value, plain RET): nothing for a null p.
+// _Construct(p, value) (ECX p, EDX value, plain return): nothing for a null p.
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
-// _M_insert_overflow(pos, x, n) (0060A660; RET 0xC).
+// _M_insert_overflow(pos, x, n).
 // (Registered as SpeakerAbi::InsertOverflow.)
 using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
-// find_if(first, last, pred) over the server's banned addresses (00427FF0; out in ECX, RET 0xC): the
+// find_if(first, last, pred) over the server's banned addresses (out in ECX): the
 // first node whose address has value's host (the port is not compared), else last.
 using AddressList = stlp::list<net::NetAddress>;
 

@@ -42,7 +42,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
 
-// rand() scaled into 0..n-1 the original's way.
+// rand() scaled into 0..n-1.
 int RandomBelow(int n) { return gamecrt::rand() * n / 0x7FFF % n; }
 
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
@@ -109,7 +109,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return 0;
     std::uint32_t sound = animation->sounds[RandomBelow(count)];
-    std::string folder = model->soundFolder.GetString();   // the original reads a missing model's +0x124 (sic)
+    std::string folder = model->soundFolder.GetString();   // a missing model's +0x124 is read (sic)
     if (prototype->soundFolder.GetLength() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->key & kKeyKind) {
@@ -286,7 +286,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         float sizeX = foot->bounds_.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
         // The prototype's +0xB0 (valuesE0[0]) is the footprint scale (read unchecked: a unit without a
-        // prototype faults here in the original too).
+        // prototype faults here).
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;

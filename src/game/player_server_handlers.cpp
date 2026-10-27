@@ -59,15 +59,15 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
-// The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
-// 00671200 are the template's members).
+// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt
+// Are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
-// 0052CDB0's new node holds a null reference, then the assignment counts the object).
+// 's new node holds a null reference, then the assignment counts the object).
 void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
     list.AddTail(object);
     ++object->refCount_;
@@ -76,8 +76,8 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 } // namespace
 
 // The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
-// initialiser 0066C4D0 in the list's order and destroyed once (bit 0 of 007C83C8) by the exit function it registers
-// both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// initialiser in the list's order and destroyed once by the exit function it registers
+// (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
 CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
@@ -99,7 +99,7 @@ void __cdecl ConstructReceivedMessages() {
 EI_REPLACE(0x0066C4D0, ConstructReceivedMessages);
 EI_REPLACE(0x0066C520, DestroyReceivedMessages);
 
-// --- 0066F4C0: the leader died ----------------------------------------------------------------------
+// --- The leader died ----------------------------------------------------------------------
 
 void CPlayerServer::OnLeaderDied() {
     CPlayer* player = Owner();
@@ -163,7 +163,7 @@ void CPlayerServer::OnLeaderDied() {
     if (!known.Find(dead)) AddCounted(known, dead);
 }
 
-// --- 00670310: message 0x36, a use order --------------------------------------------------------
+// --- Message 0x36, a use order --------------------------------------------------------
 
 double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
     double dx = a->x - b->x;
@@ -311,14 +311,14 @@ EI_REWRITTEN(0x00670760, AIOrder::MakeUse);
 EI_REWRITTEN(0x006707D0, AIOrder::AimPoint);
 EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
-// --- A-H14: zone changes, joining, party blocks, the walk / attack orders -----------------------------
+// --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
 namespace {
 
 // The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
-// (007B0098; 1 single player, 2 multiplayer).
+// (1 single player, 2 multiplayer).
 int GameMode() { return TheServerWorld()->gameResult_; }
-// The next object id for a new party's record (the party manager 007AA5A0 stores the party).
+// The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
 constexpr std::uint8_t kMessageZone = 0x08;
@@ -436,7 +436,6 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 }
 EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
-// 0066D020 (slot 16; A-H15).
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {
@@ -562,7 +561,7 @@ int CPlayerServer::OnPartyUpdate() {
     return 1;
 }
 
-// --- A-H19: the login ------------------------------------------------------------------------------
+// --- The login -----------------------------------------------------------------------------
 
 namespace {
 constexpr int kClientVersion = 0x64;
@@ -657,7 +656,7 @@ EI_REPLACE_METHOD(0x0066FBD0, CPlayerServer::OnGoTo);
 EI_REPLACE_METHOD(0x00670190, CPlayerServer::OnAttack);
 EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
 
-// --- A-H14: party resends, message 0x19 ------------------------------------------------------------
+// --- Party resends, message 0x19 -----------------------------------------------------------
 
 namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;

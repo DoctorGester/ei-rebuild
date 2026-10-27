@@ -19,8 +19,8 @@ void __fastcall ShowLoadingMovie(int progress);
 // Returns 0 when Esc ended it.
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
-// 005DA3C0 (the game start 00456440 and the zone load 00567AB0, once loading is over; A-W14). The
-// loading screen's movie closed: BinkClose on its handle (open or not), the handle and the
+// Closes the loading screen's movie once loading is over (game start and zone load):
+// BinkClose on its handle (open or not), the handle and the
 // surface holder forgotten, the holder released, the cursor shown again.
 void CloseLoadingMovie();
 
@@ -34,18 +34,18 @@ struct BinkHeader {
 };
 static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 
-// CBinkVideo (opened by 005DBA50, stepped by 005DBD80): the decode surface, its Bink surface type,
+// CBinkVideo (Open, Frame): the decode surface, its Bink surface type,
 // the letterboxed screen rectangle and the Bink handle.
 struct CBinkVideo {
-    // 0x005DBD80 (bink_video.cpp).
+    // One step of the movie (bink_video.cpp).
     unsigned Frame(char toPrimary);
     // Closes the movie open before, opens `name` (with movies on), hides the
     // cursor, makes the decode surface's holder and the screen rectangle (centred at the movie's size
     // in movies mode 1, else stretched to the screen's width). Nonzero (the low byte) when it plays.
     char Open(const char* name, char loadingStep);
-    // 005DB340 (A-W14). The constructor: no holder, no movie. Returns this.
+    // The constructor: no holder, no movie. Returns this.
     CBinkVideo* Construct();
-    // 005DBF70 (the titles' end, 0062BD80 / 0062BFD0). Closes the movie when one is open, lets the
+    // Closes the movie when one is open, lets the
     // holder go, takes the cursor's background from the primary surface again and shows the cursor.
     void Close();
     // The destructor: the same steps (the holder member's own destructor then finds it

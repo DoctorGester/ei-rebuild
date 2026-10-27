@@ -1,8 +1,7 @@
-// The quest database's load from database.res, once at startup (006AE3A0, from WinMain 00456440).
-// A-H26.
+// The quest database's load from database.res, once at startup (called from WinMain).
 // Rebirth patches the load (it redirects the file lookup to a mod folder's copy): this is the
 // vanilla function and installs in the vanilla launch only (rule 9). As unit_db_load.cpp; see
-// docs/notes/items_spells.md ("A-H26").
+// docs/notes/items_spells.md.
 #include "quest_records.h"
 
 #include "database_file.h"
@@ -38,7 +37,7 @@ int QuestDatabase::Load(const char* folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument is a stack slot the original has not written yet.
+    // The serialisers' unused third argument is a stack slot the game has not written yet.
     LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, nullptr, [this] {
         for (QuestRecord* record = quests.begin(); record != quests.end(); ++record)
             questsByName[record->name] = record;

@@ -1,5 +1,5 @@
-// The growing byte buffer (GrowingBuffer, net_coder.h): constructors, destructor, assignment, its slots and the
-// cursor binding (004DA170-004DAAF0). See net_coder.h and docs/notes/network.md, "Compression".
+// The growing byte buffer (GrowingBuffer, net_coder.h): constructors, destructor, assignment, its virtuals and the
+// cursor binding. See net_coder.h and docs/notes/network.md, "Compression".
 #include "net_coder.h"
 
 #include "ei/hook.h"
@@ -130,8 +130,9 @@ std::uint32_t GameBuffer::ReadPastEnd(void* to, std::uint32_t size) {
         cur = high;
         return 0;
     }
-    // The original reads the rest through its inline read, whose own past-`high` branch (a call
-    // back into this function) cannot be taken for exactly the rest.
+    // The rest is read through the inline read, whose own past-`high` branch (a call back into this function)
+    // cannot be
+    // taken for exactly the rest.
     std::uint32_t left = Distance(cur, high);
     if (cur + left > end) return static_cast<std::uint32_t>(ReadMore(to, left));
     std::memcpy(to, cur, left);

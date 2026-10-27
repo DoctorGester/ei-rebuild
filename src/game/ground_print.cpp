@@ -1,4 +1,4 @@
-// Ground prints: footprints, blood and scorch marks (006CECD0-006CFEA0) and the client world's
+// Ground prints: footprints, blood and scorch marks and the client world's
 // functions that add them. See ground_print.h and
 // docs/notes/models.md ("Ground prints").
 // A new print is built on the stack, copied into its list (the list instantiations' own insert:
@@ -41,16 +41,16 @@ constexpr float kEighth = 0.125f;
 constexpr float kSixteenth = 0.0625f;
 constexpr float kOne = 1.0f;
 constexpr float kAlphaRange = 255.0f;
-constexpr float kLift = 0.01f;                   // 0073C548, the drawn quad above the ground
+constexpr float kLift = 0.01f;                   // the drawn quad above the ground
 constexpr float kMilli = 0.001f;
 constexpr float kAngleMilli = 1000.0f;
 constexpr float kSpinDegrees = 30.0f;
 
 // Globals.
-// pi / 2 and 2 pi as floats (set by the static initialisers 006CEC90 / 006CEC80).
+// pi / 2 and 2 pi as floats (set by static initialisers).
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;   // static initialisers: pi * 0.5 and pi + pi
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
-// pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the original).
+// pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
 double Pi() { return 3.141592653589793 /*00744238*/; }
 double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
 // The prints settings: blood, footprints, scorch marks (0 off).
@@ -58,7 +58,7 @@ bool BloodPrintsOn() { return options::TheOptions()->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::TheOptions()->enableFootprints_ != 0; }
 bool ScorchMarksOn() { return options::TheOptions()->enableFireprints_ != 0; }
 
-// 004EBE60, inlined: *slot = value with counted references, the old one released.
+// *slot = value with counted references, the old one released (inlined).
 void AssignCounted(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;
@@ -243,8 +243,8 @@ int GroundPrint::Draw() {
         Vector3 above{position_.x, position_.y, z + kOne};
         world->ProjectDecal(&down, &above, 0.0f, &quad.data, &positions_, &texCoords_, &indices_, static_cast<unsigned char>(1), static_cast<unsigned char>(1));
 
-        // The texture coordinates turned about the tile's centre, then into the tile. The original's
-        // loop is unrolled four times: the fourth vertex stores its u part to a float before scaling
+        // The texture coordinates turned about the tile's centre, then into the tile. The loop is
+        // unrolled four times: the fourth vertex stores its u part to a float before scaling
         // it, the others their v part.
         float uc = static_cast<float>(x87::fcos(uvAngle_));
         float us = static_cast<float>(x87::fsin(uvAngle_));

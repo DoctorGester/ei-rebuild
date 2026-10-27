@@ -1,5 +1,5 @@
 // The CArray<T> instantiations of game records (record_arrays.h), registered at their library
-// addresses (ticket S6b).
+// addresses.
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"
@@ -133,7 +133,7 @@ EI_REWRITTEN(0x004CD740, Decls::DestructElements);
 EI_REWRITTEN(0x004CD450, ScriptCommands::CopyAt);
 EI_REWRITTEN(0x004C7510, ScriptSubCalls::CopyAt);
 
-// ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
+// ---- Destructors only the vtables point at -----------------------------------------------
 
 using mfc::impl::ScalarDeleting;
 
@@ -191,7 +191,7 @@ EI_REWRITTEN(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 // ---- Members of the script command arrays (script.h) ----------------------------------------------
 
-// The original assigns the commands member by member (the float arguments through SetSize 004C4410
+// The game assigns the commands member by member (the float arguments through SetSize
 // and dword copies); SSCCmd's assignment copies them through the FPU, the same values.
 void ScriptCommands::CopyFrom(const ScriptCommands& source) {
     mfc::impl::ArrayAs<recordarrays::Cmds>(*this).SetSize(source.size, -1);

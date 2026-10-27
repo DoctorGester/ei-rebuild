@@ -1,7 +1,7 @@
 #pragma once
 
-// View and light matrices of the 3D transform library side (004F0EF0-004F1698) and two small
-// helpers in 004E5660-004E5729. Matrices are row-major 4x4 float arrays (translation in column 3).
+// View and light matrices of the 3D transform library side and two small
+// helpers. Matrices are row-major 4x4 float arrays (translation in column 3).
 // Names provisional; see docs/notes/script.md ("Leftovers").
 
 #include "maths.h"
@@ -24,9 +24,9 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out);
 void __stdcall LightShearMatrix(float* out, const Vector3* direction);
 
 // A 32-byte aligned block for `count` 32-byte elements (the operator_new block
-// pointer stored just before it), as 00452DA0.
+// pointer stored just before it).
 std::uint8_t* __fastcall AllocateBlocks32(int count);
-// The same for 8-byte elements (as 004545A0).
+// The same for 8-byte elements.
 std::uint8_t* __fastcall AllocateBlocks8(int count);
 
 } // namespace view

@@ -1,7 +1,7 @@
 // The camera (CCamera, camera.h): the per-frame update and view placement, focus and
 // terrain sampling, panning / zoom / saved views, shakes and recorded camera paths
-// (0040D9B0-004114F0). Names are provisional.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Names are provisional.
+// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "camera.h"
 
@@ -46,7 +46,7 @@ float AbsBits(float f) {
 
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
-// The original's branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN
+// Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN
 // limit wins.
 float ClampToMap(float v, float last) {
     float low = v >= 0.0f ? v : 0.0f;
@@ -76,10 +76,10 @@ void Approach(float* rate, const float* target, float response, float dt) {
 // ---- The smooth camera (render::SmoothCamera; docs/notes/renderer.md section 14) ----------------
 
 // The camera's time per call that the per-call gains (kTrackGain, kHeightLag) were tuned for, in
-// camera time (1: a world tick, 55 ms): what one call took in the original at 60 frames a second,
+// camera time (1: a world tick, 55 ms): what one call took in the vanilla camera at 60 frames a second,
 // where a second's 1000 / 55 ticks and its frames each move the camera by the time they take (2000
 // / 55 in all) over 1000 / 55 + 60 calls. At 60 frames a second the option's drift and height lag
-// match the original's; the original's grow faster with the frame rate, the option's do not.
+// match the vanilla camera's; the vanilla camera's grow faster with the frame rate, the option's do not.
 constexpr double kGainReference = (2000.0 / 55.0) / (1000.0 / 55.0 + 60.0);
 // A target that moved farther than this (map units) in one tick jumped: it is followed to its new
 // place at once.
@@ -256,7 +256,7 @@ void CCamera::StopMotion() {
     Vector3 right, up;
     localRotation_.AxisX(&right);
     localRotation_.AxisY(&up);
-    // The original multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
+    // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
     right.x = static_cast<float>(D(zero) * right.x);
     right.y = static_cast<float>(D(right.y) * zero);
@@ -268,7 +268,7 @@ void CCamera::StopMotion() {
     AddVectors(&sum, right, up);
     std::memcpy(&offsetA4_, &sum, sizeof(Vector3));
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
-    // target's (never, for 0; the original's FCOM replaced a NaN rate).
+    // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate_, turnRate_);
     tiltTarget_ = 0.0f;
     if (std::fabs(tiltRate_) < std::fabs(tiltTarget_)) CopyFloat(&tiltRate_, &tiltTarget_);

@@ -1,8 +1,7 @@
-// The fake unit scene's vertex welding (0044C4A0, called by LoadFakeUnitScene after loading; Ghidra
-// names it LinkNodes): for every mesh, positions closer than the weld distance to an
-// earlier one are merged, the face corners and the node's morph key points are renumbered to the
-// merged list, then the texture coordinates the same way. Names provisional; see
-// docs/notes/objects.md ("Rewritten").
+// The fake unit scene's vertex welding (LinkNodes, called by LoadFakeUnitScene after loading): for every
+// mesh, positions closer than the weld distance to an earlier one are merged, the face corners and the
+// node's morph key points are renumbered to the merged list, then the texture coordinates the same way.
+// Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/crt.h"
@@ -19,8 +18,8 @@
 namespace scene {
 namespace {
 
-// The aligned arrays' instantiations used here: points (Add 0044F2E0), texture coordinates (Add
-// 0044FBB0); the element is passed as its bits.
+// The aligned arrays' instantiations used here: points, texture coordinates; the element is passed as its
+// bits.
 
 double WeldDistance() { return 0.00001 /*0073B860*/; }
 

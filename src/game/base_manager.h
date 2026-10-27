@@ -18,11 +18,11 @@ class CManagerContext;    // manager_context.h
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
 // to it as spares of their type for reuse. Name from the game's own error strings
-// ("CBaseManager::RegisterInstant"). 25 slots (0-12 as CEngineObject's); game.exe's vtable 0073B870
-// is retired. base_manager.cpp, base_manager_core.cpp.
+// ("CBaseManager::RegisterInstant"). 25 slots (0-12 as CEngineObject's).
+// base_manager.cpp, base_manager_core.cpp.
 class CBaseManager : public CEngineObject {
 public:
-    // 00512F60 (combat_order_setters.cpp, RET 8). The animation `name` (case-insensitive) in the
+    // (combat_order_setters.cpp). The animation `name` (case-insensitive) in the
     // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
     // database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
@@ -33,7 +33,7 @@ public:
     using SpareMap = stlp::hash_map<int, ObjectList*, stlp::IntHash>;
     using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
 
-    // Slot 0 is the scalar deleting destructor 00402DD0.
+    // Slot 0 is the scalar deleting destructor.
     // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
     // Destroys, releases and deletes every object and clears the tables.
@@ -66,11 +66,11 @@ public:
     // CreateObject (slot 23) of a type whose objects are T's.
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
     // An object without references leaves the manager: unregistered, destroyed
-    // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (the original's EAX
+    // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (its EAX
     // is not meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
 
-    // 00402DF0 (slot 0 00402DD0). Destroy (CBaseManager's, slot 3), the containers, the engine object.
+    // The destructor (slot 0 adds the delete). Destroy (CBaseManager's, slot 3), the containers, the engine object.
     ~CBaseManager() override;
     // Object registered under `id`, or null.
     CEngineObject* FindObject(unsigned id) const;
@@ -89,7 +89,7 @@ public:
     int RemoveObject(CEngineObject* object);
     // Deletes the spare objects and their lists and empties the spare tables.
     void FreeSpares();
-    // 004047E0 / 00404860. The registered objects' own data (slots 9 / 10) by id, up to an end
+    // The registered objects' own data (slots 9 / 10) by id, up to an end
     // mark.
     void LoadObjects(CStream* stream);
     void SaveObjects(CStream* stream);
@@ -133,7 +133,7 @@ static_assert(offsetof(CBaseManager, context_) == 0xAC);
 static_assert(sizeof(CBaseManager) == 0xB0);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ +
-// 1); the owner drops it afterwards with `--manager->refCount_` (the original's inlined
+// 1); the owner drops it afterwards with `--manager->refCount_` (the inlined
 // destructor). base_manager.cpp.
 struct ObjectListIterator {
     CBaseManager* manager;
@@ -153,23 +153,23 @@ struct ObjectListIteratorOf : ObjectListIterator {
 };
 
 // The client-specific manager (class id 0x30; misc_400.cpp; a real virtual class: the compiler makes
-// its vtable, C19, game.exe's 0073BECC with its tail 0073BF08 is retired).
+// its vtable).
 class CClientSpecificManager : public CBaseManager {
 public:
     // CBaseManager's constructor.
     CClientSpecificManager();
     // CBaseManager's destructor.
     ~CClientSpecificManager() override;
-    const char* GetClassName() override;     // 11: 0042D6B0 "CClientSpecificManager"
-    int GetClassId() override;               // 12: 0042D6C0 (0x30)
+    const char* GetClassName() override;     // 11: "CClientSpecificManager"
+    int GetClassId() override;               // 12: 0x30
     // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
     // failed allocation.
     CEngineObject* NewObject(int type) override;
 
-    // 0042D690's registration: the constructor in place; returns this.
+    // The registered constructor: in place; returns this.
 };
 namespace misc400 {
-// 0042D6F0 (misc_400.cpp): the destructor (0042D6D0, slot 0, adds the delete).
+// (misc_400.cpp): the destructor (slot 0 adds the delete).
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
@@ -181,19 +181,18 @@ void* __fastcall ConstructOn(void* memory) {
 }
 
 // The effect manager (the world's timed objects, +0x48; world_effect_lifetime.cpp /
-// world_managers.cpp; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073F2C4
-// is retired).
+// world_managers.cpp; a real virtual class: the compiler makes its vtable).
 class CEffectManager : public CBaseManager {
 public:
-    // CBaseManager's constructor (inlined in CWorld::Create 0055EE40).
+    // CBaseManager's constructor (inlined in CWorld::Create).
     CEffectManager();
     // CBaseManager's destructor.
     ~CEffectManager() override;
     // The deleting destructor (slot 0).
     // CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
     int Create() override;
-    const char* GetClassName() override;     // 11: 0055F360 "CEffectManager"
-    int GetClassId() override;               // 12: 0055F370 (0x32)
+    const char* GetClassName() override;     // 11: "CEffectManager"
+    int GetClassId() override;               // 12: 0x32
     // A new effect of `type`.
     CEngineObject* NewObject(int type) override;
 };

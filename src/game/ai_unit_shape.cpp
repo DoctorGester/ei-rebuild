@@ -1,6 +1,5 @@
-// The unit shapes (CUnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps
-// on the AI map's unit layers. Shared through the shape cache, whose slot 0 creates
-// them. See docs/notes/ai.md.
+// The unit shapes (CUnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps on the AI
+// map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
 #include "ai_unit_layer.h"
 
 #include "ei/hook.h"
@@ -10,7 +9,7 @@
 
 namespace {
 
-// 0073FD2C, 0073FD18 x 0073B86C (the cell size, halved), 0073CA98.
+// Constants of the shape maths (the cell size, halved, among them).
 constexpr double kMargin = 2.0;
 constexpr double kHalfCell = 1.0 * 0.5;
 constexpr double kLevelsPerUnit = 16.0;
@@ -36,7 +35,7 @@ CUnitShape::CUnitShape(float newRadius) {
     }
 }
 EI_REWRITTEN_SPECIAL(0x005B3440, CUnitShape::CUnitShape);
-// The deleting destructor (game.exe's slot 0) and its body.
+// The deleting destructor and its body.
 EI_REWRITTEN_SPECIAL(0x005B3570, CUnitShape::~CUnitShape);
 EI_REWRITTEN_SPECIAL(0x005B3590, CUnitShape::~CUnitShape);
 

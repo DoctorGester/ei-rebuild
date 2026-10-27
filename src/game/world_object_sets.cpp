@@ -1,10 +1,9 @@
-// The object sets a player is sent (the server's SyncPlayer, world_sync.cpp): the set collected
-// this frame is sorted (duplicates dropped) and compared with the set sent
-// before, giving the objects new to the player (referenced once more), the objects gone
-// (released through slot 4) and the objects still there; the sent set then becomes the new one.
-// The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
-// from 0047B940) and their two SetSize variants. See docs/notes/world.md. The game orders the sets
-// by address; ours by object id (address_order.h).
+// The object sets a player is sent (the server's SyncPlayer, world_sync.cpp): the set collected this frame
+// is sorted (duplicates dropped) and compared with the set sent before, giving the objects new to the
+// player (referenced once more), the objects gone (released by a virtual call) and the objects still there;
+// the sent set then becomes the new one. The arrays are the game's aligned pointer arrays ({data, size,
+// capacity, growBy}) and their two SetSize variants. See docs/notes/world.md. The game orders the sets by
+// address; this one by object id (address_order.h).
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
@@ -27,7 +26,7 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
     int ia = a->id_;
     int ib = b->id_;
     if (ia != ib) return ia < ib;
-    return std::less<const CEngineObject*>()(a, b);   // the address (the original's unsigned compare)
+    return std::less<const CEngineObject*>()(a, b);   // the address (an unsigned compare in the game)
 }
 
 EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
@@ -35,13 +34,13 @@ EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
 // allocated), and growing does not keep the elements.
 EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
-// Sorts the set and drops the duplicates. The original sorts by address (four byte passes of
-// a radix sort, 0047B120, through a scratch array freed at exit by 0047B1D0); ours by id
-// (address_order::ObjectBefore), a comparison sort without the scratch array.
+// Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
+// through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
+// without the scratch array.
 void __fastcall ObjectSetSortUnique(ObjectSet* self) {
     if (self->size < 2) return;
     std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
-    // Each element compared with the one before it in place, as the original does.
+    // Each element compared with the one before it in place.
     CEngineObject** end = self->data + self->size;
     CEngineObject** out = self->data + 1;
     for (CEngineObject** p = self->data + 1; p < end; ++p) {
@@ -52,10 +51,9 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
 }
 EI_REPLACE(0x0047ADF0, ObjectSetSortUnique);
 
-// 0047B1F0 (ECX sent, EDX current, RET 0xC). `current` is sorted first; `sent` (sorted by an
-// earlier call) is walked beside it. Objects only in `current` go to `added` (referenced once
-// more, +4), objects only in `sent` to `gone` (slot 4 called on them), objects in both to `same`.
-// When anything differs `sent` becomes a copy of `current`.
+// `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
+// `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a
+// virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
 void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
     ObjectSetSortUnique(current);
     int most = current->size > sent->size ? current->size : sent->size;

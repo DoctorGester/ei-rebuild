@@ -1,12 +1,12 @@
 #pragma once
 
-// The torch's client half, CTorchObjectClientSpecific (the exe's GetClassName, 0078F7BC; class id
-// 0x41; 19 slots; 0x64 bytes; a real virtual class: the compiler makes its vtable, C19, game.exe's
-// 0073E954 and its tail 0073E98C are retired): the client-specific manager makes it for type 'K'
-//. It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
+// The torch's client half, CTorchObjectClientSpecific (the exe's GetClassName; class id
+// 0x41; 19 slots; 0x64 bytes; a real virtual class: the compiler makes its vtable): the
+// client-specific manager makes it for type 'K'.
+// It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
 // particle source, a point light and a looping sound, all placed relative to the torch. The
 // spec's setters (slots 16-18) are overridden to rebuild them; slots 13 / 14 show and hide them.
-// torch_client_spec.cpp (A-U11).
+// torch_client_spec.cpp.
 // The spec's fields, as the client reads them: unknown_20 the particle type, colours_[0] its offset
 // and values_[0] its size scale (slot 16); colours_[1] the light's offset, values_[1] its radius
 // (also the sound's far distance divided by 5 / 3) and values_[2..5] its colour (slot 17); name_ the
@@ -29,13 +29,13 @@ public:
     // The client's Destroy inlined (HideEffects, the light dropped, the particles stopped
     // and dropped, DestroySpec), then the spec's destructor.
     ~CTorchObjectClientSpec() override;
-    // The deleting destructor (slot 0, 0052D1B0) frees into the game's heap.
+    // The deleting destructor (slot 0) frees into the game's heap.
 
     int Create() override { return CreateClient(); }
     void Destroy() override { DestroyClient(); }
-    int RunTick() override;                             // 6: 0052D180 (1)
-    const char* GetClassName() override;                // 11: 0052D190 "CTorchObjectClientSpecific"
-    int GetClassId() override;                          // 12: 0052D1A0 (0x41)
+    int RunTick() override;                             // 6: returns 1
+    const char* GetClassName() override;                // 11: "CTorchObjectClientSpecific"
+    int GetClassId() override;                          // 12: 0x41
     void ShowEffectsSlot() override { ShowEffects(); }             // 13
     void HideEffectsSlot() override { HideEffects(); }             // 14
     void WarmUpParticlesSlot() override { WarmUpParticles(); }     // 15

@@ -1,7 +1,5 @@
-// Two CUnit virtual slots giving points of the unit (vtable 0073EA8C, shared by CFakeUnit
-// 0073BFE8): 52 the position predicted along its path and 53 the point its current
-// animation acts on. See
-// docs/notes/units.md ("Unit points").
+// Two CUnit virtual slots giving points of the unit (shared by CFakeUnit): the position predicted along its
+// path and the point its current animation acts on. See docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "map_object.h"
@@ -18,26 +16,24 @@
 
 namespace {
 
-// The unit's world [00455950]; the motion's sample [005C7430 on +0x27C: world, order, time,
-// turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
-// animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
-// map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
+// The unit's world; the motion's sample (on +0x27C: world, order, time, turning, position (half-cells), direction,
+// speed, cell x, cell y); the animation entry of an animation index; the orientation's axes (X, Y (out)); the AI
+// map's passability for a size class (class, point); the debug message.
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;
 constexpr float kHalf = 0.5f;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-// The unit's virtual slot 55 (IsDead: +0x274).
+// The unit's IsDead virtual (+0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_, sizeof(Vector3)); }
 
 } // namespace
 
-// A dead unit (slot 55) gives its action point (slot 53); otherwise a
-// unit following a path order (kind 2) without flag 0x8000000 gives its motion's position at
-// `time`, and any other its position.
+// A dead unit gives its action point; otherwise a unit following a path order (kind 2) without flag
+// 0x8000000 gives its motion's position at `time`, and any other its position.
 static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
-    // The controller's slot 16: its motion (the order in its first 0x20 bytes).
+    // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
     PathOrder* path = unit->Controller()->Path();
     if (IsDead(unit)) {
         ObjectSlots(unit)->AimPoint(out);
@@ -65,12 +61,11 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     return out;
 }
 
-// 0052FDF0 (slot 53, RET 4; returns `out` in EAX, which the callers use). For a dead unit (slot
-// 55), the point the unit's current animation (+0x254) acts on: an animation entry of kind
-// 0x1C0000 (bits 0x3C0000 of its key) offsets the position along the orientation by its direction
-// bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000 forward (+Y) by above[1], 0xC00000
-// right (+X), 0x1000000 left (-X) by above[0]. The point is kept only where the AI map lets size
-// class 3 stand (on the server); otherwise, and for a living unit, the position.
+// Returns `out` in EAX (the callers use it). For a dead unit, the point the unit's current animation
+// (+0x254) acts on: an animation entry of kind 0x1C0000 (bits 0x3C0000 of its key) offsets the position
+// along the orientation by its direction bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000
+// forward (+Y) by above[1], 0xC00000 right (+X), 0x1000000 left (-X) by above[0]. The point is kept only
+// where the AI map lets size class 3 stand (on the server); otherwise, and for a living unit, the position.
 static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     if (!IsDead(unit)) {
         CopyPosition(out, unit);
@@ -102,7 +97,7 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
             offset = -axis * reach;
         }
     }
-    // The world's slot 26 (IsServer); the server's AI map.
+    // The world's IsServer; the server's AI map.
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->localPosition_.x, offset.y + unit->localPosition_.y, offset.z + unit->localPosition_.z};

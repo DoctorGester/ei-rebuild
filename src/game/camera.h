@@ -1,6 +1,6 @@
 #pragma once
 
-// The camera (CCamera, class id 0x43, a real virtual class since C28f; game.exe's 0073B9E0 is retired), the settings record it
+// The camera (CCamera, class id 0x43, a real virtual class), the settings record it
 // reads, its saved views, shakes and recorded paths, and the engine globals and containers its code uses.
 // camera.cpp: update, view placement, focus, zoom, saved views, shakes, recorded-path playback.
 // camera_motion.cpp: aiming, turning upright, keeping above objects. camera_object.cpp: the
@@ -69,7 +69,7 @@ static_assert(offsetof(CameraSettings, alternate) == 0x124);
 static_assert(offsetof(CameraSettings, views) == 0x178);
 static_assert(offsetof(CameraSettings, pitchMax) == 0x1DC);
 
-// A saved view (camera +0x120, eight of them; keys in 005EADD0).
+// A saved view (camera +0x120, eight of them).
 struct CameraView {
     float distance;         // +0x00
     Quaternion rotation;    // +0x04
@@ -78,7 +78,7 @@ struct CameraView {
 static_assert(sizeof(CameraView) == 0x18);
 
 // A shake of the camera (CCamera::shakes_, an STLport list<CameraShake>: 24-byte nodes from the
-// node allocator; constructor 00411660, end() 00411530, insert 00411630, erase 00411540).
+// node allocator).
 struct CameraShake {
     float elapsed;      // +0x00
     float duration;     // +0x04
@@ -106,7 +106,7 @@ struct CubicCurve3 {
 };
 
 // The deque of saved view stack entries (0x24-byte elements, 14 per node) the camera owns at
-// +0x1E0: constructor 00411AB0, destructor 0040CFB0 (its _Destroy, 00411DF0, does nothing).
+// +0x1E0 (its _Destroy does nothing).
 using ViewStack = stlp::deque<stlp::Opaque<0x24>>;
 static_assert(sizeof(ViewStack) == 0x28);
 static_assert(sizeof(ViewStack) == 0x28);
@@ -122,25 +122,25 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vec
 // inside a circle, 0x200 the alternate limits.
 class CCamera final : public CTransformObject {
 public:
-    // 0040C8B0 (camera_object.cpp). Identity rotations, eight saved views (distance 30, pitch 45
+    // Construct (camera_object.cpp). Identity rotations, eight saved views (distance 30, pitch 45
     // degrees), the shake list and view stack, no camera file, the focus at (10, 10, 2), the
     // response rates, no target.
     CCamera();
-    // 0040CE60 (deleting: 0040CE10). No target, the path keys freed, the view stack and shake list
+    // The deleting destructor. No target, the path keys freed, the view stack and shake list
     // destroyed.
     ~CCamera() override;
 
-    int Create() override;                  // 2: 0040D190 no target, the default distances and angle; 1
-    void Destroy() override;                // 3: 0040D1D0 no target
+    int Create() override;                  // 2: no target, the default distances and angle; 1
+    void Destroy() override;                // 3: no target
     int RunTick() override { return 1; }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;    // 11: 0040CDF0 "CCamera"
-    int GetClassId() override;              // 12: 0040CE00 (0x43)
+    const char* GetClassName() override;    // 11: "CCamera"
+    int GetClassId() override;              // 12: 0x43
 
     void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
-    // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
-    // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
+    // camera_object.cpp. Starts recording into ".\camera\" + `name` (1 when the file
+    // can be made). The other stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);
     int RecordFrame(std::uint32_t time);
 
@@ -167,13 +167,13 @@ public:
     void StopMotion();
     // Zoom by 1.05^steps, clamped to the current limits.
     void ZoomBy(float steps);
-    // 00410860 / 004108D0. Saved views 0-7 (false for other slots). Restore sets distance and
+    // Saved views 0-7 (false for other slots). Restore sets distance and
     // pitch only.
     bool SaveView(unsigned slot);
     bool RestoreView(unsigned slot);
     // Sets distance and pitch from a view; stops all motion.
     void SetDistancePitch(const CameraView* view);
-    // 00410D70 / 00410D10. Views 0-3 to / from the settings record.
+    // Views 0-3 to / from the settings record.
     void ViewsToSettings(CameraSettings* settings);
     void ViewsFromSettings(const CameraSettings* settings);
     // View rotation = `angle` radians about Z, then ApplyView.
@@ -186,7 +186,7 @@ public:
     void SetBounds(const Vector3* center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3* source, float duration, float amplitude, float decay);
-    // 0040F1B0 / 0040EFB0. Recorded camera path: jump to the first key / interpolate at `time`
+    // Recorded camera path: jump to the first key / interpolate at `time`
     // (0 when finished or not playing).
     int PlaybackStart();
     int PlaybackStep(float time);
@@ -209,13 +209,13 @@ public:
     // position itself when the axis is (nearly) horizontal or points away from the plane.
     void GroundPoint(Vector3* out) const;
 
-    // 0040F360 / 0040F3C0. Set a target rate; the current rate jumps up to it when larger in
-    // magnitude. Names provisional (driven by mouse rotation in 005EAD50).
+    // Set a target rate; the current rate jumps up to it when larger in
+    // magnitude. Names provisional (driven by mouse rotation).
     void SetTurnRate(float rate);
     void SetTiltRate(float rate);
     void SetZoomTarget(std::uint32_t value);
 
-    // 0040D3B0 / 0040D420. Follows the object with this id (-1: none); starting to follow resets
+    // Follows the object with this id (-1: none); starting to follow resets
     // the two offset vectors to the zero vector.
     void SetTarget(const CEngineObject* target);
     void SetTargetId(int id);
@@ -251,7 +251,7 @@ public:
     float farDistance_;         // +0x2E4
     float fieldOfView_;         // +0x2E8
     mfc::CString fileName_;     // +0x2EC the camera file being recorded
-    // 0040ECD0 (RET 8; camera_path_load.cpp, A-E1; Rebirth-patched, so the vanilla launch only and
+    // Loaded by camera_path_load.cpp; Rebirth patches it, so the vanilla launch only and
     // callers use CameraLoadPathOriginal). Reads the recorded path <data folder>camera\<name> into
     // the keys (as many as the file holds whole). With `settle` above 1 and below the key count,
     // the keys before the first gap of more than 500 time units among the first `settle` take
@@ -283,12 +283,12 @@ static_assert(offsetof(CCamera, keyIndex_) == 0x304);
 using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
-// 0040FB20 (camera_object.cpp): the point the camera is placed by: its own position when playing a
+// camera_object.cpp: the point the camera is placed by: its own position when playing a
 // file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self);
 
 // Names for the game's globals and constants the camera code uses. The floating-point constants
-// are read from the exe at run time (volatile): the original multiplies them at run time and the
+// are read from the exe at run time (volatile): the game multiplies them at run time and the
 // products round at the FPU's precision, which folding at compile time would not.
 namespace camera {
 

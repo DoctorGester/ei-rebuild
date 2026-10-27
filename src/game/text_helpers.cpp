@@ -1,4 +1,4 @@
-// Small text helpers of the engine base (text_helpers.h; A-E1).
+// Small text helpers of the engine base (text_helpers.h).
 #include "text_helpers.h"
 
 #include "ei/hook.h"

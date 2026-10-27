@@ -1,8 +1,7 @@
-// A scrolling text's tokeniser (CUiScrollText::Tokenize, 0065D4B0): the message log and the
-// objectives window's quest log hand it each text they add; and its drawing of the laid out lines
-// (DrawLines, 0065D150); A-H20: the rest of the class (constructor, destructor body, texts, layout,
-// drawing), the scroll bar's maximum and the tokens' destructor bodies. See ui.h and
-// docs/notes/items_spells.md.
+// A scrolling text's tokeniser (CUiScrollText::Tokenize): the message log and the objectives window's quest
+// log hand it each text they add; and its drawing of the laid out lines (DrawLines); also the rest of the
+// class (constructor, destructor body, texts, layout, drawing), the scroll bar's maximum and the tokens'
+// destructor bodies. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -24,7 +23,7 @@ constexpr COLORREF kConstructedColour = 0x1C8DC;     // the format token constru
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -42,7 +41,6 @@ bool IsFormat(const char* token) {
 }
 } // namespace
 
-// --- 0065D970 (A-H19) ------------------------------------------------------------------------------
 
 int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* out) {
     int length = text->GetLength();
@@ -76,7 +74,6 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
 }
 EI_REWRITTEN(0x0065D970, CUiScrollText::NextToken);
 
-// --- 0065D4B0 ------------------------------------------------------------------------------------
 
 void CUiScrollText::Tokenize(const mfc::CString* text) {
     mfc::CString token;
@@ -129,14 +126,13 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
 }
 EI_REWRITTEN(0x0065D4B0, CUiScrollText::Tokenize);
 
-// --- 0065D150 --------------------------------------------------------------------------------------
 
 namespace {
 constexpr int kAlignLeft = 1;
 const char* FontSampleText() { return "W"; }   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
-// A word of a line (005FDE20, Rebirth-patched: through its address).
+// A word of a line (the surface's text call, Rebirth-patched: through its address).
 void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour) {
     surface->DrawTextIn(text, rect, font, colour, 0, 1);
 }
@@ -230,7 +226,7 @@ void CUiScrollText::DrawLines(int scroll) {
 }
 EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 
-// --- A-H20: construction, texts, layout ----------------------------------------------------------
+// --- Construction, texts, layout ----------------------------------------------------------
 
 namespace {
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held

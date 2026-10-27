@@ -1,7 +1,6 @@
-// A region's tooltip (CUiTooltip, 0065E320-0065EA50; A-H20): its constructor, which splits the text
-// into lines and measures them, the destructor body, SetText and the drawing of the lines; and its
-// showing (0065E580, A-H26: Rebirth-patched; its WideScreen is reproduced behind the flag, W2,
-// and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
+// A region's tooltip (CUiTooltip): its constructor, which splits the text into lines and measures them, the
+// destructor body, SetText and the drawing of the lines; and its showing (Rebirth-patched: its WideScreen is
+// reproduced behind the flag, and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
 // docs/notes/items_spells.md.
 #include "ui.h"
 #include "options.h"
@@ -46,14 +45,13 @@ constexpr int kShown = 4;
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 constexpr int kSurfaceFormat = 5;
-// The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time
-// (0.0 in the exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by
-// the static initialiser 0065E310).
+// The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
+// exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by a static initialiser).
 float ShowDelay() { return options::TheOptions()->toolTipTime_; }
 float AppearTime() { return 0.0f /*00742F2C*/; }
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -61,7 +59,7 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 } // namespace
 
-// game.exe's tables 00742F64 / 00742F30: drawn (20) and redrawn (22) only while shown; the input side's defaults.
+// The virtuals: drawn and redrawn only while shown; the input side's defaults.
 CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) : CUiWindow(ui) {
     lines_.Construct();
     timer_ = 0.0f;
@@ -162,8 +160,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         timer_ = 0.0f;
         RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
         POINT offset = kCursorOffset;
-        // WideScreen (0065E77E: XOR ECX,ECX): without the margin; the layout's right edge 800 + extra
-        // (addon's operands at 0065E7C3 / 0065E7CA).
+        // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         interface_->CallScalePointFromScreenNoMargin(&offset);
         const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;
         gameapi::OffsetRect(&rect, offset.x, offset.y);

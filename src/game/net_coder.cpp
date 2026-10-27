@@ -116,7 +116,7 @@ EI_REWRITTEN(0x0041D930, BufferCursor::End);
 
 // --- Code tables ----------------------------------------------------------------------------------
 
-// The startup initialiser (from the .data list at 007830C0) of the code tables: for match
+// The startup initialiser of the code tables: for match
 // lengths 1..0x22 the code and its bit count (g_lengthCodes / g_lengthBits, at length - 1), for distance
 // buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits). It runs
 // before the hooks are installed; the rewrite is for the standalone build.
@@ -220,7 +220,7 @@ namespace {
 // The match in progress stopped matching at the newest byte: walks the hash chain of the match's
 // start (`a`, a distance back from the match's start `t`) in step with the chain of the newest
 // position (`e`, a distance back from `cur`) and takes the first earlier string that repeats the
-// match plus the newest byte. Inline in 00430450.
+// match plus the newest byte.
 bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
     std::uint32_t t = c.pos - static_cast<std::uint32_t>(c.matchLen);
     std::int32_t a = c.chain[c.matchPos] + static_cast<std::int32_t>((t - static_cast<std::uint32_t>(c.matchPos)) & kWindowMask);
@@ -244,7 +244,7 @@ bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
 }
 
 // Starts a match at the byte before the newest one: the first position along the newest byte's
-// hash chain (distance `d` back from `cur`) whose two bytes equal them. Inline in 00430450.
+// hash chain (distance `d` back from `cur`) whose two bytes equal them.
 bool StartMatch(CoderState& c, std::uint32_t cur, std::int32_t d, const std::uint8_t* at) {
     std::uint16_t pair;
     std::memcpy(&pair, at - 1, 2);
@@ -411,7 +411,7 @@ EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
 
 // --- The fixed view and the buffer base (BufferView, GameBuffer; net_coder.h) ----------------------------
 
-// 004DA580 / 004DA590 (slots 0 / 1 of the view, RET 4): nothing to reserve.
+// Nothing to reserve (the view's first two virtuals).
 void BufferView::ReserveRead(std::int32_t) {}
 EI_REWRITTEN(0x004DA580, BufferView::ReserveRead);
 void BufferView::ReserveWrite(std::int32_t) {}

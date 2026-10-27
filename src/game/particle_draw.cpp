@@ -1,7 +1,7 @@
-// The particle manager's draw pass and its draw order: every source's depth along the
-// camera's view axis goes into the array at 007A9C50, which is sorted far-to-near with STLport's
-// introsort (as instantiated in game.exe: median of three, unguarded partition, heap sort at the
-// depth limit, insertion sort below 16 elements) and drawn in that order. Names are provisional.
+// The particle manager's draw pass and its draw order: every source's depth along the camera's view axis goes
+// into an array, which is sorted far-to-near with STLport's introsort (as instantiated in game.exe: median of
+// three, unguarded partition, heap sort at the depth limit, insertion sort below 16 elements) and drawn in
+// that order. Names are provisional.
 #include "effects.h"
 #include "map_object_figures.h"
 
@@ -21,8 +21,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// The particles' draw order: built empty by its static initialiser 00498910 (the constructor 00498E60), destroyed
-// at exit by 00498930.
+// The particles' draw order: built empty by a static initialiser, destroyed at exit.
 static_assert(sizeof(ParticleDepthArray) == 0x14);
 constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
 ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
@@ -92,7 +91,7 @@ void AdjustHeap(ParticleDepth* first, int hole, int length, ParticleDepth value)
     first[hole] = value;
 }
 
-// 004994E0's insertion steps. __unguarded_linear_insert: no lower bound check.
+// The insertion steps. __unguarded_linear_insert: no lower bound check.
 void LinearInsert(ParticleDepth* last, ParticleDepth value) {
     ParticleDepth* next = last - 1;
     while (Before(value, *next)) {
@@ -116,8 +115,8 @@ void InsertionSort(ParticleDepth* first, ParticleDepth* last) {
     }
 }
 
-// The renderer's blend-factor setter (vtable slot 10, 00501C60): SRCBLEND, DESTBLEND (5 source
-// alpha; 2 one: additive, 6 inverse source alpha: the default).
+// The renderer's blend-factor setter: SRCBLEND, DESTBLEND (5 source alpha; 2 one: additive, 6 inverse source
+// alpha: the default).
 void SetRenderState(void* renderer, int source, int dest) {
     using Fn = void(__fastcall*)(void*, void*, int, int);
     (*static_cast<Fn**>(renderer))[10](renderer, nullptr, source, dest);
@@ -132,7 +131,7 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 
 } // namespace
 
-// 00499CD0 (STLport __make_heap; the tag arguments are unused).
+// STLport __make_heap (the tag arguments are unused).
 void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*, int, void*) {
     if (last - first < 2) return;
     const int length = static_cast<int>(last - first);
@@ -143,8 +142,7 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 }
 EI_REWRITTEN(0x00499CD0, MakeHeapByDepth);
 
-// 00499C20 (STLport __pop_heap): the top goes to `result`, `value` (the old *result) is re-sifted
-// into [first, last).
+// STLport __pop_heap: the top goes to `result`, `value` (the old *result) is re-sifted into [first, last).
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int, void*) {
     *result = *first;
@@ -152,8 +150,8 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
 }
 EI_REWRITTEN(0x00499C20, PopHeapByDepth);
 
-// 00499380 (STLport __introsort_loop): partitions until the range is at most 16 entries; past the
-// depth limit the rest is heap sorted (make_heap, then pop_heap to the end).
+// STLport __introsort_loop: partitions until the range is at most 16 entries; past the depth limit the rest
+// is heap sorted (make_heap, then pop_heap to the end).
 void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void*, int depthLimit, int compare) {
     while (last - first > kThreshold) {
         if (depthLimit == 0) {
@@ -173,7 +171,7 @@ void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void
 }
 EI_REWRITTEN(0x00499380, IntroSortByDepth);
 
-// 004994E0 (STLport __final_insertion_sort).
+// STLport __final_insertion_sort.
 void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int) {
     if (last - first > kThreshold) {
         InsertionSort(first, first + kThreshold);

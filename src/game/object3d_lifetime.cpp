@@ -39,7 +39,7 @@ template struct CountedRef<CLinkMesh>;
 template struct CountedRef<WoundsMaterial>;
 template struct CountedRef<CRenderPreset>;
 EI_REWRITTEN(0x00519580, CountedRef<CLinkMesh>::Assign);
-EI_REWRITTEN(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies (A-U11)
+EI_REWRITTEN(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies
 EI_REWRITTEN(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {

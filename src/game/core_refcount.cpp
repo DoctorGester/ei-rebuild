@@ -7,8 +7,7 @@ void* CRefCounted::operator new(std::size_t size) noexcept { return gamecrt::ope
 void CRefCounted::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 namespace {
-// The original's inlined release (delete calls slot 0 with 1, after the same null test the
-// original makes).
+// The release inlined at the call sites (delete calls slot 0 with 1, after the same null test).
 void ReleaseObject(CRefObject* object) {
     if (--object->refs_ == 0) delete object;
 }

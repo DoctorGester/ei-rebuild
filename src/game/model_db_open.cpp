@@ -1,5 +1,4 @@
-// The loads of prints.db and acks.db from database.res, once at startup (006D0630 / 006D7620, from
-// WinMain 00456440). A-H26.
+// The loads of prints.db and acks.db from database.res, once at startup.
 // Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
 // vanilla functions and install in the vanilla launch only (rule 9). As unit_db_load.cpp; see
 // docs/notes/models.md.
@@ -38,7 +37,7 @@ void FileRecords(const stlp::vector<Record>& records, Index& index, Name name) {
     for (Record* record = records.begin(); record != records.end(); ++record) index[name(*record)] = record;
 }
 
-// The speech lists of a unit's record by ack kind, in the order the original enters them: the
+// The speech lists of a unit's record by ack kind, in the order they are entered: the
 // list's index, the named speeches, or no list at all.
 constexpr int kNamedSpeeches = -1;
 constexpr int kNoList = -2;
@@ -110,7 +109,7 @@ int AckDatabase::Load(const char* folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument: a stack slot the original has not written yet for the
+    // The serialisers' unused third argument: an unwritten stack slot for the
     // first table, the model table's address for the other two.
     const auto name = [](auto& record) -> const stlp::string& { return record.head.name; };
     LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records, nullptr,

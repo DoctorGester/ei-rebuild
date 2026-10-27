@@ -1,7 +1,7 @@
-// The lever table's load from its archive at start-up (00463390; A-E1). Rebirth patches the function
-// (it redirects the file lookup, the call at 00463474, to a mod folder's copy): this is the vanilla
+// The lever table's load from its archive at start-up. Rebirth patches the function
+// (it redirects the file lookup to a mod folder's copy): this is the vanilla
 // function and it installs in the vanilla launch only (rule 9). Its caller is the application's
-// start-up (00456440, in the exe). Main thread. See docs/notes/units.md ("Levers").
+// start-up (in the exe). Main thread. See docs/notes/units.md ("Levers").
 #include "lever.h"
 
 #include "chunk_archive.h"
@@ -21,11 +21,11 @@ int LeverRecordTable::Load(const char* folder) {
     bool opened;
     {
         std::string path = dir + "database.res";
-        // Through the vtable: slot 1 is 00671730.
+        // Through the vtable: slot 1 is the archive file's open.
         opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
     }
     if (!opened) {
-        // The message names "databases.res", not the file it tried: as the original.
+        // The message names "databases.res", not the file it tried: as in the game.
         std::string path = dir + "databases.res";
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     }

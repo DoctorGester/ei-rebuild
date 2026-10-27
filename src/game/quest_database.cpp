@@ -1,10 +1,10 @@
-// The quest database's load of one quest (006AE8E0, thiscall on the database at 007C87A8, called
-// by the quest registration 005810A0 with the image of "<name>.quest.reg"): the "quest" section
+// The quest database's load of one quest (thiscall on the database, called
+// by the quest registration with the image of "<name>.quest.reg"): the "quest" section
 // becomes a quest record (name, exp, money, zone index, order, the "{x;y}" quest places) and the
 // three briefing sections ("briefing receive", "briefing reject", "briefing complete") briefing
 // records (name, exp, money, six string lists); each record is added unless its name is already
 // there. The records and the database's containers are STLport objects handled through the
-// original members. Names provisional; see docs/notes/items_spells.md ("Quest database").
+// game's own members. Names provisional; see docs/notes/items_spells.md ("Quest database").
 #include "console.h"
 #include "quest_records.h"
 #include "game_strings.h"
@@ -24,22 +24,21 @@
 
 namespace {
 
-// The section and key names, by their original addresses.
+// The section and key names (the game's own strings).
 // The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The quest places: vector<float> (constructor 006AFB00, insert-overflow 006ADD50).
+// The quest places: vector<float> (constructor, insert-overflow).
 using PlaceElement = stlp::PlainElement<float>;
-// The briefing lists: vector<CString> (constructors 0053F4F0 for the first, 0055A3E0 for the
-// others; erase a range 006AFB60, clear 0052E010, reserve 006B02B0, push_back from a CString
-// 006AF790).
+// The briefing lists: vector<CString> (constructors, erase a range, clear,
+// reserve, push_back from a CString).
 using ListElement = stlp::ObjectElement<mfc::CString>;
 // The quest and briefing vectors' push_back.
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
 // The quest index: find by the record's name, clear, operator[].
-// The briefing index: find 006B07C0 / 006B0930, clear 006B0590, operator[] 004297A0; the
-// add-unless-present used for the later briefings 006B0600.
+// The briefing index: find, clear, operator[]; the
+// add-unless-present used for the later briefings.
 
 CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
@@ -96,7 +95,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
     for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) map.Subscript(r->name) = r;
 }
 
-// A briefing's name, exp and money (the original assigns the "complete" briefing's name with the
+// A briefing's name, exp and money (the "complete" briefing's name is assigned with the
 // C-string assignment, the others' with the range one: the same result).
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
@@ -135,8 +134,8 @@ void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* 
     AddReceiveBriefing(db, briefing);
 }
 
-// "briefing reject": the item lists read inline (cleared first), the others by 006AE740; added by
-// 006B0600 (also unless the name is there).
+// "briefing reject": the item lists read inline (cleared first), the others by ReadStringList; added by
+// QuestBriefingTable::Add (also unless the name is there).
 void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
@@ -145,7 +144,7 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
     db->briefings.Add(briefing);
 }
 
-// "briefing complete": the name assigned as a C string, all six lists by 006AE740.
+// "briefing complete": the name assigned as a C string, all six lists by ReadStringList.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
     for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
@@ -165,7 +164,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         return false;
     }
 
-    lib::InPlace<QuestRecord> questStorage;   // built and destroyed below, as the original
+    lib::InPlace<QuestRecord> questStorage;   // built and destroyed below
     QuestRecord* quest = questStorage.Get();
     stlp::StringElement::Default(&quest->name);
     quest->places.ConstructEmpty();
@@ -189,7 +188,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 }
 EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
-// 006AE740 (A-H19). The original inlines the vector's erase, reserve and push_back; the same
+// The game inlines the vector's erase, reserve and push_back; the same
 // template members are called here.
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
     console::CStringArray strings;
@@ -202,7 +201,7 @@ void __fastcall ReadStringList(CFileRegistry* registry, const char* section, con
 }
 EI_REWRITTEN(0x006AE740, ReadStringList);
 
-// --- 006B0600 (A-H25): a briefing added unless its name is there ---------------------------------------
+// --- QuestBriefingTable::Add: a briefing added unless its name is there ---------------------------
 
 bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     if (!record) return false;

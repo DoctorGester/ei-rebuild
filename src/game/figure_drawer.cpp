@@ -1,6 +1,5 @@
-// FigureMeshDrawer::Animate (005A7160, A-W12): an animated figure mesh's texture offset per frame.
-// The drawer's lifetime (A-W14): its constructor, destructor bodies and slots 0, 2 and 3.
-// See link_figure.h.
+// FigureMeshDrawer::Animate: an animated figure mesh's texture offset per frame. The drawer's lifetime: its
+// constructor, destructor bodies and the create / destroy virtuals. See link_figure.h.
 #include "link_figure.h"
 
 #include "engine_object.h"
@@ -48,14 +47,14 @@ void FigureMeshDrawer::Animate(float time) {
 }
 EI_REWRITTEN(0x005A7160, FigureMeshDrawer::Animate);
 
-// ---- Lifetime (A-W14) ---------------------------------------------------------------------------
+// ---- Lifetime ---------------------------------------------------------------------------
 
 FigureDrawerBase::FigureDrawerBase() {
     ClearFields();
     mesh_ = nullptr;
 }
 
-// The original's 005A7080 clears the flags, then its inlined base part the mesh.
+// The original's base clears the flags, then its inlined base part the mesh.
 FigureDrawerBase::~FigureDrawerBase() { mesh_ = nullptr; }
 EI_REWRITTEN_SPECIAL(0x005A70C0, FigureDrawerBase::~FigureDrawerBase);
 EI_REWRITTEN_SPECIAL(0x005A70A0, FigureDrawerBase::~FigureDrawerBase);   // deleting

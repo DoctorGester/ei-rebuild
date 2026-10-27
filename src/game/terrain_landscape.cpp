@@ -1,6 +1,5 @@
-// The landscape object's own members (Terrain, terrain.h; 006C5430-006CCF20) and the aligned-array
-// instantiations next to them (006CD5C0-006CE890). Sector loading and building are in
-// terrain_sector.cpp, height queries in terrain.cpp.
+// The landscape object's own members (Terrain, terrain.h) and the aligned-array instantiations next to
+// them. Sector loading and building are in terrain_sector.cpp, height queries in terrain.cpp.
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "console.h"
@@ -27,8 +26,8 @@ using terrain::SectorData;
 
 namespace {
 
-// A sector bound: FISTP of the value stored as a float (the original stores it, then loads it back),
-// divided by 32 towards zero, clamped to 0..count - 1 in this order (a map without sectors gives -1).
+// A sector bound: FISTP of the value stored as a float (stored, then loaded back), divided by 32 towards
+// zero, clamped to 0..count - 1 in this order (a map without sectors gives -1).
 int SectorBound(float value, int count) {
     int sector = x87::fistp(value) / 32;
     if (sector < 0) return 0;
@@ -124,8 +123,8 @@ void AddTile(terrain::VertexTiles& entry, int x, int y) {
 void Terrain::BuildVertexTiles() {
     constexpr int kSide = 33;   // vertices per sector row
     vertexTiles.SetSize(kSide * kSide);
-    // The original fills one stack record per vertex without clearing it: the tiles after `count`
-    // keep earlier vertices' values (ours start from zero).
+    // One stack record per vertex is filled without clearing it: the tiles after `count` keep earlier
+    // vertices' values (here they start from zero).
     terrain::VertexTiles entry{};
     terrain::VertexTiles* out = vertexTiles.data;
     for (int y = 0; y < kSide; ++y) {
@@ -194,9 +193,8 @@ constexpr double kSineStep = 1.0 / 256;
 constexpr float kWaveStepTurn = 0.500250161f;
 constexpr int kRipples = 40;
 
-// Static initialisers (006C52D0, 006C52F0, 006C5360..006C53A0): the zero position and identity
-// rotation Create gives the landscape, and the waves' scales (computed from other constants at
-// startup, read from memory).
+// Static initialisers: the zero position and identity rotation Create gives the landscape, and the waves'
+// scales (computed from other constants at startup, read from memory).
 constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
 constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
 constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
@@ -411,7 +409,7 @@ int Terrain::SetupPages(int count) {
 }
 EI_REWRITTEN(0x006C5AA0, Terrain::SetupPages);
 
-// --- A-H26: the map loader ----------------------------------------------------------------------------
+// --- The map loader ----------------------------------------------------------------------------
 
 namespace {
 
@@ -462,7 +460,7 @@ constexpr std::uint32_t kLowFlags = 0xFFFF;
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
-// The original keeps 1 when its FCOMP finds 1 below the value, or the two unordered.
+// 1 is kept when FCOMP finds 1 below the value, or the two unordered.
 float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
 
 } // namespace
@@ -478,8 +476,8 @@ void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count
     }
 }
 
-// Float notes (rule 7): the original works on the FPU stack at the main thread's 24-bit precision,
-// so every quotient and product below is rounded to float where it is made.
+// Float notes (rule 7): the game works on the FPU stack at the main thread's 24-bit precision, so every
+// quotient and product below is rounded to float where it is made.
 int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     ClearMap();
     std::string name = path;
@@ -489,11 +487,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     int dot = str::ReverseFind(name, '.');
     if (dot > 0) textFC = str::Left(name, dot);
     else textFC = name;
-    // (The original does not test for an archive without a map file either.)
+    // (An archive without a map file is not tested for either.)
     const mfc::CString& first = files.data[0];
     textF8 = first.Left(first.Find('.'));
 
-    // The messages are passed to FatalError as its format string, as the original does.
+    // The messages are passed to FatalError as its format string.
     std::uint32_t size = 0;
     const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + kMapDataExtension, &size));
     if (!file) {

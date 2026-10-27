@@ -1,11 +1,11 @@
 #pragma once
 
-// The CArray<T> instantiations of game records that S6 left (ticket S6b): the figure's parts, the
+// The CArray<T> instantiations of game records: the figure's parts, the
 // scene's meshes, nodes, face groups and materials, the network delta fields, the music themes, the
 // sound cache's wave records, unit behaviours, patrols and zone exits by value, the global map's
 // records and the script's command arrays. lib/mfc_array.h's templates over the game's element
 // types, each element's constructor and destructor ours, called directly. Registered in
-// record_arrays.cpp; checked in game by verify_record_arrays.cpp until S21d.
+// record_arrays.cpp.
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -39,15 +39,15 @@ using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
 using SceneNodes = ArrayAbi<scene::SceneNode, scene::NodeElements>;
 
 // A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by
-// FaceGroup::Destruct (00454C50; 00476F20 and 00474DB0 call it).
+// FaceGroup::Destruct.
 using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
-// CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50), its vtable the compiler's (mfc_slots.h).
+// CArray<FaceGroup> (a mesh's +0x148), its vtable the compiler's (mfc_slots.h).
 struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
 // ---- Records -------------------------------------------------------------------------------------
 
-// Network delta fields (0xA0 bytes; 005101A0): constructed (00677EC0's body) and destroyed.
+// Network delta fields (0xA0 bytes): constructed and destroyed.
 // Out of line (world_effect_lifetime.cpp), so the replays that link this file need no streams.
 void InitDeltaField(DeltaField* p);
 void DestroyDeltaField(DeltaField* p);
@@ -63,12 +63,12 @@ struct ThemeArrayClass final
     : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
 // The sound cache's wave records (0x1C bytes): the name an empty string with room for 8 bytes
-// its buffer freed (006B90C0, the record's destructor; 006BE210 calls it).
+// its buffer freed (the record's destructor).
 void __fastcall DestroyWave(WaveRecord* p);
 using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
 
-// A unit's behaviour records (0x4C bytes): built by the constructor (0045D5B0; ConstructElements
-// 00558E10), destroyed by the destructor body (0046C290; 00557890 inlines it).
+// A unit's behaviour records (0x4C bytes): built by the constructor, destroyed by
+// the destructor body (also inlined elsewhere).
 inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
 inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
 using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
@@ -86,8 +86,8 @@ struct FakeUnitRecord9CArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
                                     &Materials::Serialize> {};
 
-// CStringArray over the part names of a map object (the server companion's, the object's own). 004698C0
-// (and 004698A0 calling it; RET 8): GetAt by value, the element copy-constructed into `result`,
+// CStringArray over the part names of a map object (the server companion's, the object's own).
+// GetAt by value (two copies), the element copy-constructed into `result`,
 // which is returned.
 struct PartNames : mfc::CArray<mfc::CString> {
     mfc::CString* CopyAt(mfc::CString* result, int index) const;
@@ -105,37 +105,37 @@ inline void InitCmd(SSCCmd* p) { p->Construct(); }
 inline void DestroyCmd(SSCCmd* p) { ScriptCmdDestruct(p); }
 using Cmds = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCmd, DestroyCmd>>;
 // Nested calls (12 bytes): type and argument 0, a new constructed command (null when operator new
-// fails; 004CD130); destroyed with their command deleted (004CE230 with 0).
+// fails); destroyed with their command deleted.
 void InitSubCall(ScriptSubCall* p);
 inline void DestroySubCall(ScriptSubCall* p) { p->DestroyElement(0); }
 using SubCalls = ArrayAbi<ScriptSubCall, EachElements<ScriptSubCall, InitSubCall, DestroySubCall>>;
 using Bindings = ArrayAbi<ScriptBinding>;
-// A command's binding arrays (copy constructor 004CCCB0): derived from BindingsBaseClass (mfc_slots.h).
+// A command's binding arrays: derived from BindingsBaseClass (mfc_slots.h).
 struct BindingArrayClass final : mfc::impl::BindingsBaseClass {
     static void* Vtable() { return mfc::impl::CompiledVtable<BindingArrayClass>(); }
 };
-// Definitions (built by 004CEB80, destroyed by 004BE9D0), runs and command blocks
+// Definitions, runs and command blocks
 using Definitions = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
-// CScript's definitions (+0x8C; destructor 004CB310).
+// CScript's definitions (+0x8C).
 struct DefinitionArrayClass final
     : mfc::impl::CompiledCollection<DefinitionArrayClass, &gamearrays::Definitions::Destruct<DefinitionArrayClass>, &Definitions::Serialize> {};
 using Runs = ArrayAbi<ScriptRun, EachElements<ScriptRun, nullptr, gamelists::DestroyRun>>;
 using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::DestroyDecl>>;
 
 
-// ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
+// ---- Destructors only the vtables point at -----------------------------------------------
 
-// CArray<SceneNode> (destructor 004514B0).
+// CArray<SceneNode>.
 struct SceneNodeArrayClass final
     : mfc::impl::CompiledCollection<SceneNodeArrayClass, &SceneNodes::Destruct<SceneNodeArrayClass>, &SceneNodes::Serialize> {};
-// The nested calls' base array (destructors 004C5180 / 004CCF70).
+// The nested calls' base array.
 struct SubCallBaseClass
     : mfc::impl::CompiledCollection<SubCallBaseClass, &SubCalls::Destruct<SubCallBaseClass>, &SubCalls::Serialize> {};
-// A command's nested calls (copy constructor 004CCD90): derived from SubCallBaseClass.
+// A command's nested calls: derived from SubCallBaseClass.
 struct SubCallArrayClass final : SubCallBaseClass {
     static void* Vtable() { return mfc::impl::CompiledVtable<SubCallArrayClass>(); }
 };
-// CArray<DeltaField> (destructor 0050FBC0).
+// CArray<DeltaField>.
 struct DeltaFieldArrayClass final
     : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
 using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
@@ -144,19 +144,19 @@ struct TerrainAlignedArrayClass final
     : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::AlignedArrays::Serialize> {};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
-// A terrain sector's vertex records (destructor 006C4690).
+// A terrain sector's vertex records.
 struct SectorVertexArrayClass final
     : mfc::impl::CompiledCollection<SectorVertexArrayClass, &SectorVertices::Destruct<SectorVertexArrayClass>, &SectorVertices::Serialize> {};
 
-// The client world's water levels, CArray<CArray<float>> (vtable 0073F730, mfc::impl::
-// ClientMapArrayClass; Serialize 00571240): each element an empty CArray<float>,
-// destroyed by the base's destructor (005755C0: CArray<float>'s vtable, the storage freed).
+// The client world's water levels, CArray<CArray<float>> (mfc::impl::
+// ClientMapArrayClass): each element an empty CArray<float>,
+// destroyed by the base's destructor (CArray<float>'s vtable, the storage freed).
 using WaterLevelElement = mfc::impl::WithArray<0x14, 0, mfc::impl::FloatArrayClass>;
 using WaterLevels =
     ArrayAbi<WaterLevelElement, EachElements<WaterLevelElement, mfc::impl::InitWithArray<0x14, 0, mfc::impl::FloatArrayClass>,
                                              mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>>>;
 void __fastcall DestroyWaterLevel(WaterLevelElement* p);
-// The sector map's sectors (sector_map.h; Serialize 005993A0).
+// The sector map's sectors (sector_map.h).
 using Sectors = ArrayAbi<Sector, SectorElements>;
 
 } // namespace recordarrays
@@ -164,10 +164,10 @@ using Sectors = ArrayAbi<Sector, SectorElements>;
 // The tags lib/mfc_array.h only declares (their slots need the game's elements).
 namespace mfc::impl {
 
-// The client world's water levels (destructor 005711E0).
+// The client world's water levels (destructor).
 struct ClientMapArrayClass final
     : CompiledCollection<ClientMapArrayClass, &recordarrays::WaterLevels::Destruct<ClientMapArrayClass>, &recordarrays::WaterLevels::Serialize> {};
-// The AI map's sectors (destructor 00599330, the sector map's DestructSectors).
+// The AI map's sectors (the sector map's DestructSectors).
 struct SectorArrayClass final
     : CompiledCollection<SectorArrayClass, &CSectorMap::DestructSectors, &recordarrays::Sectors::Serialize> {};
 

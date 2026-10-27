@@ -1,6 +1,6 @@
 #pragma once
 
-// Out-of-line vector helpers from the engine core (00401000-00430000). The Vector3 and Quaternion
+// Out-of-line vector helpers from the engine core. The Vector3 and Quaternion
 // members implemented in core_maths.cpp are declared in maths.h.
 
 #include "maths.h"
@@ -21,7 +21,7 @@ struct CubicSegment {
 
     // Coefficients for the segment between control values p1 and p2.
     void SetBSpline(float p0, float p1, float p2, float p3);
-    // Value at t (Horner's scheme). Returned unrounded in ST0, like the original.
+    // Value at t (Horner's scheme). Returned unrounded in ST0.
     float Evaluate(float t) const;
 };
 static_assert(sizeof(CubicSegment) == 16);

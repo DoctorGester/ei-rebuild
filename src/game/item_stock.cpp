@@ -1,6 +1,6 @@
-// The trader stock generation: see item_stock.h and docs/notes/items_spells.md
-// ("Trader stock"). The STLport containers are the original's: their allocating members are called
-// through the game, the pointer copies they inline are written out here.
+// The trader stock generation: see item_stock.h and docs/notes/items_spells.md ("Trader stock"). The STLport
+// containers are the game's: their allocating members are called through the game, the pointer copies they inline
+// are written out here.
 #include "item_stock.h"
 
 #include "core_streams.h"
@@ -39,8 +39,7 @@ namespace {
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
 
-// The output list of counted spells (list<CSpell*>, insert 0069C410): an element is referenced
-// while it is held.
+// The output list of counted spells (list<CSpell*>): an element is referenced while it is held.
 struct HeldSpell {
     static void Copy(CSpell** to, CSpell* const& from) {
         *to = from;
@@ -59,8 +58,7 @@ using stock::TakenMaterials;
 using stock::TakenPrototypes;
 
 
-// The template's party object (ItemStock::context): slot 16 the item constructor, 18 the item
-// manager, 22 the spell manager.
+// The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
@@ -91,21 +89,19 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// vector::operator= as the original inlines it (allocate and copy 0069D9A0 / 0069DB00, the spell
-// and modifier vectors' 0069DC70 / 0069DDD0; deallocate 0069C990 / 0069C9D0 / 004AA810 /
-// 004AA7D0). The callers skip a self-assignment.
+// vector::operator= as inlined (allocate and copy, deallocate). The callers skip a self-assignment.
 template <typename T>
 void AssignPointers(stlp::vector<T*>& to, const stlp::vector<T*>& from) { to.template AssignVector<stlp::PlainElement<T*>>(from); }
 void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) { to.AssignVector<MaterialElement>(from); }
 
-// Appends an item to the output list (list<CItem*>::insert, 0069C3D0; counted by the caller).
+// Appends an item to the output list (list<CItem*>::insert; counted by the caller).
 void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), item); }
 
 // The item's reference count.
 void AddReference(CItem* item) { ++item->refCount_; }
 
 // A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
-// units it takes; record slot 0 the item kind.
+// units it takes; the record's first virtual the item kind.
 const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08; }
 const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass; }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
@@ -138,15 +134,14 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     return nullptr;
 }
 
-// Empties the spell list as the original's clear does: each counted spell released (slot 4; the
-// holder's release 004C17E0 / deleting destructor 0069E540 with 0), each node back to the node pool
-// (0069CA50 with 1).
+// Empties the spell list as clear does: each counted spell released (a virtual release, the holder's release, with
+// 0), each node back to the node pool.
 void ClearSpellList(StockSpellList& list) {
     StockSpellListNode* head = list.head;
     StockSpellListNode* node = head->next;
     while (node != head) {
         StockSpellListNode* next = node->next;
-        if (node->data) node->data->Release();   // slot 4
+        if (node->data) node->data->Release();
         stlp::PushSmallNode(node);
         node = next;
     }
@@ -154,15 +149,15 @@ void ClearSpellList(StockSpellList& list) {
     head->prev = head;
 }
 
-// Frees the spell list as the original's clear and destructor do: the clear, then the sentinel.
+// Frees the spell list as clear and the destructor do: the clear, then the sentinel.
 void DestroySpellList(StockSpellList& list) {
     ClearSpellList(list);
     // (The destructor's own clear finds the list empty.)
     stlp::deallocate(list.head, sizeof(StockSpellListNode));
 }
 
-// The random spell of a weapon or armor: half the time, when the material allows magic, one of the
-// spells 0069A780 generates for the item's level, if within the power limit.
+// The random spell of a weapon or armor: half the time, when the material allows magic, one of the spells
+// generated for the item's level, if within the power limit.
 void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) {
     if (IsaacRandom::Global().Next() % 101 >= 50) return;
     float level = 0.0f;
@@ -185,7 +180,6 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) 
 
 } // namespace
 
-// ---- 0069AE20 -------------------------------------------------------------------------------------
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, int maxCount, StockList* out, int kind) {
@@ -218,7 +212,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
             for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
                 if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
-                candidates.PushBack<CandidateElement>(e);   // _M_insert_overflow 0069D470
+                candidates.PushBack<CandidateElement>(e);
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype);
@@ -255,7 +249,6 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
 }
 EI_REWRITTEN(0x0069AE20, ItemStock::GenerateItems);
 
-// ---- 00699410 / 0069B570 / 0069B550 / 0069B590 ----------------------------------------------------
 
 void ItemStock::SetLevels(const float* base, const float* scroll) {
     for (int i = 0; i < 8; ++i) baseLevels[i] = base[i];
@@ -270,7 +263,6 @@ EI_REWRITTEN(0x0069B550, ItemStock::GenerateArmors);
 void ItemStock::GenerateQuickItems(int minCount, int maxCount, StockList* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
 EI_REWRITTEN(0x0069B590, ItemStock::GenerateQuickItems);
 
-// ---- 0069A110 -------------------------------------------------------------------------------------
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(this);
@@ -301,14 +293,12 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
 }
 EI_REWRITTEN(0x0069A110, ItemStock::GenerateMaterials);
 
-// ---- 00699810 / 006995E0 / 00699A40 ---------------------------------------------------------------
 
 namespace {
 
-// The common body of the three instruction generators: the source records are copied to the
-// scratch 007C8680, then each (except one named `skip`) becomes an item of kind 0x3007 with the
-// class-0x15 prototype named at `prototypeName`, no material, +0x54 the record's index in the table
-// `table` and +0x48 a random count.
+// The common body of the three instruction generators: the source records are copied to a scratch vector,
+// then each (except one named `skip`) becomes an item of kind 0x3007 with the class-0x15 prototype named at
+// `prototypeName`, no material, +0x54 the record's index in the table `table` and +0x48 a random count.
 template <typename Record>
 void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, const char* prototypeName,
                           const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
@@ -356,22 +346,19 @@ void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, StockL
 }
 EI_REWRITTEN(0x00699A40, ItemStock::GenerateQuickItemInstructions);
 
-// ---- 0069A480 / 0069A780 --------------------------------------------------------------------------
 
 namespace {
 
-// The spell recipe map (+0x50): clear 004AAEB0, find-or-insert of a {name, list} pair 0069D130,
-// begin 0069C160 and the next non-empty bucket 0069D0E0. Its lists: constructor 0069C680,
-// destructor 0069C830, end 0069C2E0, insert 0069C2F0; the pair: constructor 0069C1C0 (the record,
-// whose name starts it, and &list), destructor 004AD640 (stlp_pair.cpp). The modifier map
-// (+0x64): clear 004AB2B0, operator[] 0069D1E0 with a {key, null} pair.
-// The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
-// (00689310, RET 8: prototype, modifier list; a new counted spell or null).
+// The spell recipe map (+0x50): clear, find-or-insert of a {name, list} pair, begin and the next non-empty bucket.
+// Its lists: constructor, destructor, end, insert; the pair: constructor (the record, whose name starts it, and
+// &list), destructor (stlp_pair.cpp). The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
+// spell prototypes by name (thiscall on the spell table) and the spell manager's builder (prototype, modifier
+// list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
     return itemdb::TheSpellDatabase().spells.Named(name);
 }
-// The modifier list (list<modifier*>): constructor 0069BF70, end 0068C500, insert 0068C560, node
-// free 0068C640. The output list of counted spells: end 0069BE60, insert 0069C410.
+// The modifier list (list<modifier*>): constructor, end, insert, node free. The output list of counted spells: end,
+// insert.
 
 // The modifier map's entry for `name` (created null when missing, as operator[] does).
 itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const stlp::string& name) {
@@ -392,8 +379,7 @@ void ClearModifierList(SpellModifierList& list) { list.ClearWith([](Modifier**) 
 
 } // namespace
 
-// Original bug kept: the 004ABD00 lookup inserts a null entry into 007C851C for every recipe name
-// it does not know.
+// Kept bug: the lookup inserts a null entry into the spell map for every recipe name it does not know.
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
     spellMap.Clear();
     modifierMap.Clear();
@@ -480,7 +466,7 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
             }
             Modifier* repeated = ModifierSlot(this, recipe->repeated);
             if (repeated && budget >= ModifierLevel(repeated) + level) {
-                int reached = level;   // (the original keeps it in a register; `level` is not updated)
+                int reached = level;   // (kept in a register; `level` is not updated)
                 while (count < 8) {
                     AppendModifier(chosen, repeated);
                     ++count;
@@ -498,7 +484,7 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
             CSpell* spell = spellManager->CreateSpell(prototype, &chosen);
             if (spell) ++spell->refCount_;
             StockSpellList::Insert<HeldSpell>(out->End(), spell);
-            if (spell) spell->Release();   // slot 4
+            if (spell) spell->Release();
         }
     }
     ClearModifierList(chosen);
@@ -506,25 +492,21 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
 }
 EI_REWRITTEN(0x0069A780, ItemStock::GenerateSpells);
 
-// ---- 0069B5B0 -------------------------------------------------------------------------------------
 
 namespace {
 
-// CStream::ReadString: a CString constructed at `out` from the bytes up to a zero; the
-// stream's Read is virtual slot 1.
-// The record lookups by name (thiscall on the tables; null when missing): armors 004AB820 on
-// 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
-// The spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
-// they insert a null for a new name).
-// (NamedRecordTable::Named.)
-// push_back of the pointer vectors: 0069BD30 (the three item lists), 0069BDC0 (spells), 0069BDF0
-// (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20.
+// CStream::ReadString: a CString constructed at `out` from the bytes up to a zero (the stream's Read is a virtual
+// call).
+// The record lookups by name (thiscall on the tables; null when missing): armors, weapons, quick items, materials
+// (NamedRecordTable::Named). The spell and modifier maps' operator[] (they insert a null for a new name).
+// push_back of the pointer vectors (the three item lists, spells, modifiers);
+// vector<StockMaterial>::_M_insert_overflow.
 
-// The counts and the material values are read into locals the original reuses for every section,
-// so a failed read leaves the previous value.
+// The counts and the material values are read into locals reused for every section, so a failed read leaves the
+// previous value.
 void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
 
-// The next string of the stream into `name` (through a temporary, as the original).
+// The next string of the stream into `name` (through a temporary).
 void ReadName(CStream* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(temporary);
@@ -532,7 +514,7 @@ void ReadName(CStream* stream, mfc::CString& name) {
     read->~CString();
 }
 
-// std::find (0069E350..0069E3D0, one instantiation per list), then push_back when missing.
+// std::find (one instantiation per list), then push_back when missing.
 template <typename T>
 void AddUnique(stlp::vector<T*>& list, T* record) {
     T** p = list.begin();
@@ -601,7 +583,6 @@ void ItemStock::LoadLists(CStream* stream) {
 }
 EI_REWRITTEN(0x0069B5B0, ItemStock::LoadLists);
 
-// ---- 0069BAC0 (A-H17) ------------------------------------------------------------------------------
 
 namespace {
 
@@ -634,9 +615,9 @@ void ItemStock::SaveLists(CStream* out) {
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
     for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code);
 
-    // The modifiers' codes go through a CString made from a stack copy of their first four bytes
-    // (the original's fifth byte is an uninitialised stack byte, its sixth a zero; ours stops
-    // after the four).
+    // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
+    // fifth byte
+    // is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
     WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
     for (Modifier** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char code[5] = {};
@@ -647,7 +628,6 @@ void ItemStock::SaveLists(CStream* out) {
 }
 EI_REWRITTEN(0x0069BAC0, ItemStock::SaveLists);
 
-// ---- 006993B0 / 00699440 --------------------------------------------------------------------------
 
 void ItemStock::ResetMaterialUnits() {
     for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
@@ -663,7 +643,6 @@ void ItemStock::CopyMagic(const ItemStock* other) {
 }
 EI_REWRITTEN(0x00699440, ItemStock::CopyMagic);
 
-// ---- 00699C90 / 00699ED0 --------------------------------------------------------------------------
 
 namespace {
 
@@ -680,9 +659,9 @@ int ModifierIndex(const Modifier* record) {
     return modifiers.IndexOf(modifiers.FindByCode(code));
 }
 
-// The common body of 00699C90 / 00699ED0: the source copied to its scratch vector (007C8670 spells,
-// 007C8660 modifiers), then an item of kind 0x3007 with the class-0x15 prototype named at
-// `prototypeName` per record, +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
+// The common body of the spell and modifier instruction generators: the source copied to its scratch
+// vector, then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record,
+// +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& source, stlp::vector<Record*>& taken,
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
@@ -720,7 +699,6 @@ void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, StockLi
 }
 EI_REWRITTEN(0x00699ED0, ItemStock::GenerateModifierInstructions);
 
-// ---- 0069AC20 -------------------------------------------------------------------------------------
 
 namespace {
 constexpr int kScrollTries = 10;
@@ -758,7 +736,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
 }
 EI_REWRITTEN(0x0069AC20, ItemStock::GenerateScrolls);
 
-// --- A-H25: the stock's lists filled by the class template ------------------------------
+// --- The stock's lists filled by the class template ------------------------------
 
 namespace {
 
@@ -799,8 +777,8 @@ EI_REWRITTEN(0x00699260, ItemStock::AddMaterial);
 
 // ---- The scratch vectors (item_stock.h) ---------------------------------------------------------------------------
 
-// Empty at the start, as the static initialisers 00698E50-00698F90 leave them; the exit functions they register free
-// their storage (docs/notes/standalone.md, "The static initialisers' objects").
+// Empty at the start; the exit functions that the static initialisers register free their storage
+// (docs/notes/standalone.md, "The static initialisers' objects").
 namespace stock {
 constinit stlp::vector<itemdb::ItemRecordHead*> g_takenPrototypes = /*007C8680*/ {};
 constinit stlp::vector<StockMaterial*> g_candidates = /*007C8650*/ {};

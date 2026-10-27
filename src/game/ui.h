@@ -1,6 +1,6 @@
 #pragma once
 
-// The 2D interface (address range 005F0000-00612000): the interface manager CInterface3D, its
+// The 2D interface: the interface manager CInterface3D, its
 // windows, their clickable regions, off-screen surfaces and 3D model previews. Names provisional.
 // Interface layouts are designed for 800x600. CInterface3D holds the real screen size and scales
 // coordinates between the two; windows keep their regions in layout coordinates and convert the
@@ -56,16 +56,16 @@ class CItemScreen;   // ui_item_info.h
 // The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
 // interface's draw. Only the fields its draw uses.
 struct CScreenFade {
-    // 005E69C0 (RET 4; ui_interface_draw.cpp). With the letterbox, black bars of the screen height
+    // With the letterbox, black bars of the screen height
     // times 0.125-ish at the top and bottom; while fading, the alpha moves by
     // rate * elapsed ms towards 255 (rate > 0) or 0 (rate < 0), clamped at 255; below 0 the fade
     // ends (nothing drawn), otherwise a black rectangle of that alpha over the screen. Both draws
     // with the depth test off (render state 7) through the renderer's slot 19. Returns 1.
     int Draw(CSceneRenderer* renderer);
-    // 005E6B90 (RET 4; ui_interface_draw.cpp). Starts a fade over `ms` milliseconds: rate_ 255 /
+    // Starts a fade over `ms` milliseconds: rate_ 255 /
     // ms (stored as float), from alpha 0 (ms > 0, fading out) or 255, the clock now, fading.
     void Start(int ms);
-    // 005E6990 (ui_small_members.cpp; CInterface3D::Create builds it). Constructor: alpha 0, not
+    // Constructor (CInterface3D::Create builds it): alpha 0, not
     // fading, no letterbox; the rate and the clock are not written. Returns this.
     CScreenFade* Construct();
 
@@ -82,33 +82,33 @@ static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, 
 // writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
 extern char g_pauseMessageKey[12];
 
-// The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
-// render target). Only the members used by the rewritten code; the object is created by original
-// code, so its size is not asserted.
+// The interface manager (CInterface3D; created at start-up, it reads the screen size from the
+// render target). Only the members used by the rewritten code; the object is created by the
+// game's code, so its size is not asserted.
 class CInterface3D {
 public:
-    // Scales a layout rectangle (800x600) to the screen. Returns what the original
+    // Scales a layout rectangle (800x600) to the screen. Returns what the game
     // leaves in EAX: the low dword of the last division's magic multiplication (callers ignore it).
     int ScaleRectToScreen(RECT* rect) const;
     // Same for a point.
     int ScalePointToScreen(POINT* point) const;
     // Scales a screen rectangle to layout coordinates; returns the new bottom (EAX).
     int ScaleRectFromScreen(RECT* rect) const;
-    // 005F7E00 and 005F7E30 (identical copies). Screen point to layout; returns the new y (EAX).
+    // Identical copies. Screen point to layout; returns the new y (EAX).
     int ScalePointFromScreen(POINT* point) const;
     int ScalePointFromScreenCopy(POINT* point) const;
 
     // The same where Rebirth's WideScreen scales without the margin: addon clears ECX before the call
-    // (XOR ECX,ECX over MOV ECX,[ESI+0x98] / [EDI+4]: the text surfaces' draw 005FDE20, the edit
-    // field 0065C2E0, the connection list 0061D780, the save / load list 006567A0, the chat line
-    // 005E3700, the tooltip 0065E580). With the flag on (widescreen::Active) these call the
-    // original addresses with ECX 0, which addon's code and our hooks take as "no margin"; with it
+    // (XOR ECX,ECX over MOV ECX,[ESI+0x98] / [EDI+4]: the text surfaces' draw, the edit
+    // field, the connection list, the save / load list, the chat line,
+    // the tooltip). With the flag on (widescreen::Active) these call the
+    // original code with ECX 0, which addon's code and our hooks take as "no margin"; with it
     // off, with this interface, as the original.
-    int CallScaleRectToScreenNoMargin(RECT* rect) const;        // -> 005F7CA0
-    int CallScalePointToScreenNoMargin(POINT* point) const;     // -> 005F7D20
-    int CallScalePointFromScreenNoMargin(POINT* point) const;   // -> 005F7E00
+    int CallScaleRectToScreenNoMargin(RECT* rect) const;
+    int CallScalePointToScreenNoMargin(POINT* point) const;
+    int CallScalePointFromScreenNoMargin(POINT* point) const;
 
-    // The hooks of the scaling functions 005F7CA0, 005F7D20, 005F7DA0, 005F7E00 and 005F7E30
+    // The hooks of the scaling functions
     // (ui_interface.cpp): the methods above, except that with Rebirth's WideScreen code addon's own
     // callers reach them with ECX 0 (no interface): then the wide scaling without the margin.
     int ScaleRectToScreenEntry(RECT* rect) const;
@@ -122,7 +122,7 @@ public:
     // top window and the root (ui_interface_frame.cpp).
     void Update();
 
-    // 005F8070 (ui_interface_frame.cpp). A script string event ("say" / "say_block" text [key],
+    // A script string event ("say" / "say_block" text [key],
     // "tutorial" name, "briefing" name, "autosave", "endofgame"); the first word is lowercased.
     // Rebirth's NewStringEvents adds "gameover [title [text]]".
     void OnStringEvent(const char* event);
@@ -140,7 +140,7 @@ public:
     // it to the activation; 0 does nothing, 6 and ids above 9 hand over the id
     // itself as the window pointer (as the original). ui_create_screen.cpp.
     void CreateScreen(int id);
-    // 005F78C0 (RET 0xC; the interface's key-down handler, `flags` the WM_KEYDOWN lParam bits:
+    // The interface's key-down handler, `flags` the WM_KEYDOWN lParam bits:
     // scan code in the low 9 bits, bit 14 repeat). Ctrl, Shift and Alt set +0x7C, +0x7D, +0x7E
     // (not on a repeat); the key under Esc toggles the console; Scroll Lock saves
     // "shot<nnnn>.bmp"; other keys go to the shown console, else (multiplayer client) the window
@@ -148,16 +148,16 @@ public:
     // shows help. ui_interface_keys.cpp.
     void OnKeyDown(int key, int repeat, int flags);
     // Opens `window` on top of the stack. With `a` set (low bytes) and `b`
-    // clear: +0x50 = 3 and 00458010(0, 1) first; for the first window: +0x60 keeps the server
+    // clear: +0x50 = 3 and a frame shown (0, 1) first; for the first window: +0x60 keeps the server
     // flag, which is then set (not as a multiplayer client), and with `a` and `b` set +0x50 = 1
-    // and 00458010(0, 1). The modifier flags are cleared, the old top deactivated (input slot 1,
-    // slot 19 with 0), the window pushed (null is fatal), five render states reset, the window
-    // created (slot 25) and the messages pumped. ui_create_screen.cpp.
+    // and a frame shown (0, 1). The modifier flags are cleared, the old top deactivated (input
+    // virtual 1, virtual 19 with 0), the window pushed (null is fatal), five render states reset, the window
+    // created (virtual 25) and the messages pumped. ui_create_screen.cpp.
     void PushWindow(CUiWindow* window, int a, int b);
     // Replaces every window with `window`: a pending close-all (+0x44) runs
     // first; both backdrops (+0x54, +0x58) are deleted and +0x50 / +0x60 cleared, the
     // server flag cleared; each open window is deactivated (input slot 1), closed (slot 26) and
-    // deleted, top first; then 005F8C50, the message pump, and the window opened as PushWindow
+    // deleted, top first; then the message pump, and the window opened as PushWindow
     // does (null is fatal). ui_create_screen.cpp.
     void Activate(CUiWindow* window);
     // Reads the interface's saved state from `stream` (slot 1 reads bytes;
@@ -165,62 +165,61 @@ public:
     // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
     // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
     void LoadState(CStream* stream);
-    // 005F8C90 (RET 0xC; on 007C7D50; multiplayer messages). The text of message `id` (0-12:
+    // The text of message `id` (0-12:
     // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
     // formatted with `value` when it is not 0, constructed into `out`; returns `out`
     // (ui_interface_save.cpp).
     mfc::CString* MessageText(void* out, int id, const char* value);
     // Without `force`, takes the next queued message (the list at +0x84) into
     // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
-    // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
-    // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
+    // window (0x194 bytes) over the others, unless the option
+    // is off and it was not forced. ui_create_screen.cpp.
     void ShowMessage(int force);
     // The active window's help
     // topic (its slot 41; none: nothing): the map at +0x98 counts topics seen (an unseen one is
-    // entered with 0, giving -1 here); the help window (0x194 bytes, vtables 00740E28 / 00740DF4)
-    // opens when forced (`flag`), or when the option 0079BE78 is on and the topic was not seen.
+    // entered with 0, giving -1 here); the help window (0x194 bytes)
+    // opens when forced (`flag`), or when the option is on and the topic was not seen.
     void OpenHelp(int flag);
-    // 005F7E60 (RET 8; ui_interface_glue.cpp). Plays an interface sound (`name`, e.g.
+    // Plays an interface sound (`name`, e.g.
     // "buttons\battle\click.wav") without position: priority 1000, volume 100, `loop` passed on
     // (sound::CSoundManager::Play2D). The interface object is not used. Returns Play2D's handle.
     int PlaySound(const char* name, int loop);
     // Stops sound `handle` unless it is -1 (the interface is not used).
     void StopSound(int handle);
-    // 005F7C60 / 005F7C80 (ui_small_members.cpp; a multiplayer client's screens call them for
+    // A multiplayer client's screens call them for
     // Enter / Backspace). While the chat line is closed: Enter opens it (SetOpen(1)), Backspace
     // empties the chat lines (ClearLines).
     void ChatKeyEnter();
     void ChatKeyBackspace();
-    // 005F8340 (RET 0xC; Rebirth-patched, WideScreen reproduced behind its flag, W2; ui_text_draw.cpp). The
-    // extent of `text` (a CString taken by value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
-    // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`.
+    // The extent of `text` (a CString taken by value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
+    // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`. Rebirth-patched, WideScreen
+    // reproduced behind its flag; ui_text_draw.cpp.
     SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
-    // 005F46A0 (ui_small_members.cpp). The constructor of the interface object 007C7D50, run by
+    // The constructor of the global interface object, run by
     // its static initialiser before the hook is installed: the window stack empty, the
     // message list's sentinel and the help topic map's header from the node pool, the two texts
     // empty. Nothing else is written. Returns this.
     CInterface3D* Construct();
-    // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
+    // The console window's AddText / SetRect / SetHistory,
     // when there is one.
     void ConsoleAddText(const char* text);
     void SetConsoleRect(const RECT* rect);
     void SetConsoleHistory(int lines);
-    // The debug information panel's rectangle (00444C10; the interface is not
+    // The debug information panel's rectangle (the interface is not
     // used).
     void SetDebugInfoRect(const RECT* rect);
-    // 005F5700 (RET 4; the console's "fps"). With `on` (low byte) a surface for the frame rate at
+    // The console's "fps". With `on` (low byte) a surface for the frame rate at
     // (730, 10)-(800, 28) unless there is one; without, the surface freed.
     void ShowFps(int on);
-    // 005F7FC0 (RET 8; the client and the script tell it of a quest variable change). The top
+    // The client and the script tell it of a quest variable change. The top
     // window's slot 33 hears of it; at 1 (or NaN) a name of three or more '.' parts keeps its
     // third part in savedText_ (the current quest).
     void OnQuestVariable(const char* name, float value);
-    // News for the top window (ui_interface_glue.cpp; nothing without a window): 005F7F30 (RET 0xC)
-    // items picked up (slot 28), 005F7F60 / 005F7F80 (RET 4) a unit joined / left the party (slots
-    // 29 / 30; the client's UnitChanged 00667BA0 picks one by the unit's +0x24C), 005F7FA0 the game
-    // is lost (slot 31 with 0), 005F82A0 (RET 8) a unit speaks (slot 32 with no extra), 005F82D0
-    // (RET 4) the players changed (slot 36), 005F8310 (RET 0xC) an exchange between players ended
-    // (slot 37). 005F86D0: the bottom window saves its state (slot 40; the save game 0057B3B0).
+    // News for the top window (ui_interface_glue.cpp; nothing without a window): items picked up,
+    // a unit joined / left the party (the client's UnitChanged picks one by the unit's +0x24C), the game
+    // is lost, a unit speaks (no extra), the players changed, an exchange between players ended;
+    // and the bottom window saves its state (the save game). Each reaches the top window's
+    // virtual of that name.
     void OnItemsPicked(void* items, int money, int crippled);
     void OnUnitJoined(CUnit* unit);
     void OnUnitLeft(CUnit* unit);
@@ -230,19 +229,18 @@ public:
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
     void SaveWindowState();
     // A chat line (`text` from player `number`) for the root window's chat
-    // (005E2A30 on +0x1C).
+    // (on +0x1C).
     void OnChatLine(const char* text, std::uint32_t number);
-    // 005F75B0 (RET 4; the save / load window while it saves or loads). `text` drawn in green
-    // (005FDE20: rect (0, 0)-(800, 40), format 2) on a cleared surface over (0, 280)-(800, 320)
-    // (+0x64), one frame shown (00458010 with 1, 1), the surface freed.
+    // The save / load window while it saves or loads. `text` drawn in green
+    // (rect (0, 0)-(800, 40), format 2) on a cleared surface over (0, 280)-(800, 320)
+    // (+0x64), one frame shown (1, 1), the surface freed.
     void ShowStatusText(const char* text);
 
-    // Mouse messages from the input dispatcher (00457970; ui_interface_input.cpp; RET 0xC, the
-    // wheel RET 0x10): each goes to the input side that took the mouse (+0x0C), else to the top
-    // window's, else nowhere. 005F76A0 left down (clears +0x7F first), 005F76E0 left up (+0x7F
-    // cleared after), 005F7740 move, 005F7780 / 005F77C0 right down / up (+0x80 set / cleared
-    // first), 005F7800 left double click (+0x7F set first), 005F7840 right double click (+0x80
-    // set first), 005F7880 wheel (returns the handler's result, 0 without a target).
+    // Mouse messages from the input dispatcher (ui_interface_input.cpp): each goes to the input side
+    // that took the mouse (+0x0C), else to the top window's, else nowhere. Left down (clears +0x7F first), left up (+0x7F
+    // cleared after), move, right down / up (+0x80 set / cleared
+    // first), left double click (+0x7F set first), right double click (+0x80
+    // set first), wheel (returns the handler's result, 0 without a target).
     void OnLeftDown(int buttons, int x, int y);
     void OnLeftUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);
@@ -253,29 +251,29 @@ public:
     int OnWheel(int flags, int delta, int x, int y);
     // The input side mouse events go to: the one that took the mouse, else the top window's.
     UiInputSide* MouseTarget() const;
-    // 005F7B40 (RET 0xC; ui_interface_input.cpp). A typed character (WM_CHAR): nothing for the
+    // A typed character (WM_CHAR): nothing for the
     // key under Esc (scan 0x29); the shown console's OnChar, else a multiplayer client's open chat
     // line (+0x1C), else the top window (input slot 10).
     void OnChar(int key, int repeat, int flags);
     // A key released: VK_SHIFT / VK_CONTROL / VK_MENU clear +0x7D / +0x7C /
     // +0x7E; then the shown console's OnKeyUp, else the top window (input slot 11).
     void OnKeyUp(int key, int repeat, int flags);
-    // Closes every window, top first (input slot 1, slot 26, deleting destructor), with
+    // Closes every window, top first (input virtual 1, virtual 26, deleting destructor), with
     // the cursor's shape 3 first; clears the five flags +0x7C..+0x80, pumps the messages and
     // clears the screen flag (InterfaceHasScreen).
     void CloseAll();
-    // 005F5AB0 (the input dispatcher's first step). CloseAll when +0x44 asks for it (cleared).
+    // The input dispatcher's first step. CloseAll when +0x44 asks for it (cleared).
     void CloseAllPending();
-    // 005F5220 (ui_interface_draw.cpp; every frame from the main loop). A pending close-all
-    // (CloseAllPending, inlined by the original); the backdrop (+0x54, its slot 0) in backdrop
-    // modes 2-4; the top window's slot 20 with the renderer; then the fade over it all.
+    // Every frame from the main loop (ui_interface_draw.cpp). A pending close-all
+    // (CloseAllPending); the backdrop (+0x54, its blit) in backdrop
+    // modes 2-4; the top window's draw with the renderer; then the fade over it all.
     // Returns 1.
     int Draw();
-    // 005F5320 (Rebirth-patched; ui_interface_draw.cpp, reproducing WideScreen, so hooked in both
-    // launches; the main loop calls it after the scene's EndScene through its address). What is drawn over the scene with GDI and blits: the debug panel hears the
-    // surfaces' kept and allocated bytes; the top window redraws its surfaces (slot 22) and
-    // tooltips (slot 23); the status surface blits; a backdrop asked for (mode 1 or 3) is made
-    // (800 x 600, or 400 x 300 stretched when the option 00784753 is set; with Rebirth's
+    // Rebirth-patched (ui_interface_draw.cpp, reproducing WideScreen, so hooked in both
+    // launches; the main loop calls it after the scene's EndScene). What is drawn over the scene with GDI and blits: the debug panel hears the
+    // surfaces' kept and allocated bytes; the top window redraws its surfaces and
+    // tooltips; the status surface blits; a backdrop asked for (mode 1 or 3) is made
+    // (800 x 600, or 400 x 300 stretched when the stretch option is set; with Rebirth's
     // WideScreen the mode's width x height in pixels, unscaled) and takes the screen:
     // mode 1 also keeps a 256 x 192 copy (+0x5C) and greys the backdrop (mode 2), mode 3 first
     // puts the old backdrop aside (+0x58, its contents kept in memory) (mode 4); a multiplayer
@@ -283,15 +281,15 @@ public:
     // ("FPS:" and frames * 1000 / ms, every 400 ms) is drawn and blitted while shown; the shown
     // console blits.
     void DrawOverlays();
-    // 005F4990 (RET 4; Rebirth-patched; ui_interface_create.cpp, reproducing WideScreen, so hooked
-    // in both launches; the application's start 004570D4 calls it with the
-    // renderer's device object 007AF080). The screen size is the render target's (not written
+    // Rebirth-patched (ui_interface_create.cpp, reproducing WideScreen, so hooked
+    // in both launches; the application's start calls it with the
+    // renderer's device object). The screen size is the render target's (not written
     // usefully without a primary surface). The three fonts are "Times New Roman": a 75-point one
     // is made first and its height in pixels / 100 is the scale s (with Rebirth's WideScreen its
     // height times width * 0.0075 / height: widescreen::FontScale); the fonts are of
     // _ftol(width * k / s / 800) tenths of a point, k = 104, 112, 144 (a font that cannot be
     // made is fatal: "CInterface3D::Create.\n Cannot create font.\n", and nothing else is
-    // done). The keyboard layout of the language 0079BE98 is activated (each layout is activated
+    // done). The keyboard layout of the game's language is activated (each layout is activated
     // in turn and its name read as hex), else the English one (0x409), else the one it began
     // with. Then the key bindings are read, the console window (0x7C bytes), the debug
     // information panel, the chat overlay (0x158) and the fade (0x14) are made, the state is
@@ -332,7 +330,7 @@ public:
     CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
-    // +0x70..+0x78 the three interface fonts (Create 005F4990: "Times New Roman", sized with the
+    // +0x70..+0x78 the three interface fonts (Create: "Times New Roman", sized with the
     // screen width); text drawing selects font n from here.
     mfc::impl::CFont* fonts_[3];
     // Set by the key-down handler from the scan codes, cleared by the key-up one
@@ -340,11 +338,11 @@ public:
     bool ctrlDown_;                  // +0x7C
     std::uint8_t shiftDown_;         // +0x7D
     bool altDown_;                   // +0x7E
-    // The left press is a double click (005F7800 sets it, the button's down and up clear it); a
+    // The left press is a double click (set by the double-click handler, the button's down and up clear it); a
     // spell or quick item clicked twice is used at once.
     bool doubleClick_;               // +0x7F
     bool rightDown_;                 // +0x80 the right button is held
-    // +0x81 the top window is asked every frame (slot 35) until it agrees ("autosave" sets it).
+    // +0x81 the top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop_;
     std::uint8_t unused_82[0x84 - 0x82];
     stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
@@ -357,7 +355,7 @@ public:
     int hudTopPage_;                 // +0x90 CHudTopPanel::page_
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
     // +0x98 help topics seen: topic name -> times (or the page the help window was closed on; see ui_help_window.cpp) (config\tutorial.ini, "name count" lines; read
-    // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
+    // by Create, written by Shutdown, counted by OpenHelp).
     stlp::map<mfc::CString, int, stlp::CStringLess> helpTopics_;   // lib_trees::HelpTopics
     mfc::CString messageText_;       // +0xA4 the message window's text (ShowMessage)
     int messageFlag_;                // +0xA8 (ShowMessage clears it; the message window's page, set when it closes)
@@ -366,23 +364,23 @@ public:
     // Clears the modifier, double-click and right-button flags (+0x7C..+0x80) and
     // deactivates the top window's input side (input slot 1), if any (ui_interface_shutdown.cpp).
     void ResetInput();
-    // 005F4F90 (the main loop's exit, 00456440). Closes every window (as CloseAll, without its
+    // Called at the main loop's exit. Closes every window (as CloseAll, without its
     // trailing deactivation), ResetInput, pumps the messages, clears the screen flag; writes the
     // help topics to config\tutorial.ini ("%s %d\n" each); then frees the frame rate surface (+0x20), the queued window
     // (+0x40, not cleared), both backdrops, +0x5C, the debug panel's surface and font,
     // the root window, the console window; saves the key bindings; frees the three fonts
     // and the fade (+0x18, not cleared).
     void Shutdown();
-    // 005F4790 (the destructor of the global interface 007C7D50, run at exit): the two CStrings,
+    // The destructor of the global interface, run at exit: the two CStrings,
     // the help topic map, the message list, the window stack's storage.
     void DestroyBody();
 
-    // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
+    // Writes what LoadState reads: +0x89..+0x8B, +0x8C,
     // +0x90, +0x94, an empty obsolete list (count 0), the message text with its zero, +0xA8 and
     // the saved text with its zero.
     void SaveState(CStream* stream);
 
-    // 005F51F0 (ui_main_menu.cpp; the main menu's Create). Clears the saved state: +0x89..+0x8B,
+    // Called by the main menu's Create (ui_main_menu.cpp). Clears the saved state: +0x89..+0x8B,
     // +0x8C, +0x90 and +0x94.
     void ResetSavedState();
 };
@@ -409,14 +407,13 @@ static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D,
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 static_assert(sizeof(CInterface3D) == 0xB0);
 
-// The game's interface manager (the object at 007C7D50; ui_small_members.cpp): built by the static initialiser 005F4680
+// The game's interface manager (the global object; ui_small_members.cpp): built by its static initialiser
 // in the list's order, destroyed by the exit function it registers.
 extern lib::StaticObject<CInterface3D> g_interface;
 
-// The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
-// The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
-// 00600950, 00601D00) and SetAtGrow, registered on AlignedArray's members; Add,
-// RemoveAt and RemoveAll it inlines.
+// The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray),
+// each with its out-of-line SetSize and SetAtGrow, registered on AlignedArray's members; Add,
+// RemoveAt and RemoveAll are inlined.
 template <typename T>
 using UiPtrArray = lib::AlignedArray<T*>;
 
@@ -446,24 +443,24 @@ public:
     void AddPoint(int x, int y);
     // Updates the tooltip state for a mouse position and forwards it to the tooltip.
     void OnMouseMove(int x, int y);
-    // 005FC600 (ui_region_tips.cpp). The destructor body: deletes the tooltip and frees the
+    // The destructor body: deletes the tooltip and frees the
     // vertex storage (the fields are left as they are).
     void ReleaseContents();
-    // 005FC690 (RET 4; ui_region_tips.cpp). Sets the tooltip's text when there is a
+    // Sets the tooltip's text when there is a
     // tooltip.
     void SetTipText(const char* text);
-    // 005FC730 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one with the text
+    // Replaces the tooltip by one with the text
     // "tip <id>" (up to a '#'; the key itself when there is no such text) and (a, b); id 0 gives
     // an empty tooltip with (1, 0).
     void SetTip(int textId, int a, int b);
-    // 005FC6B0 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one showing `text`.
+    // Replaces the tooltip by one showing `text`.
     void SetTipString(const char* text, int a, int b);
-    // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect from a RECT
+    // SetRect from a RECT
     // passed by value; the menus' layouts use it for their menus.reg rectangles.
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;        // +0x00
-    lib::AlignedArray<UiPoint> points_;   // +0x04 polygon vertices (aligned storage; 8-byte allocator 004F65B0)
+    lib::AlignedArray<UiPoint> points_;   // +0x04 polygon vertices (aligned storage)
     RECT bounds_;                    // +0x14
     bool rectOnly_;                  // +0x24
     bool enabled_;                   // +0x25
@@ -476,27 +473,27 @@ static_assert(offsetof(CUiRegion, bounds_) == 0x14);
 static_assert(offsetof(CUiRegion, offsetX_) == 0x28);
 static_assert(sizeof(CUiRegion) == 0x34);
 
-// An off-screen DirectDraw surface a window draws into (0x38 bytes; game.exe's table 00740F28: slot 0 the
-// blit; no destructor slot: the owners destroy it directly).
+// An off-screen DirectDraw surface a window draws into (0x38 bytes; its first virtual is the
+// blit; no destructor: the owners destroy it directly).
 class CUiSurface {
 public:
-    // 005FCC00 (RET 0x1C; ui_surface_create.cpp). A surface of the layout rectangle (left, top, right,
+    // A surface of the layout rectangle (left, top, right,
     // bottom) with format `format`, scaled to the screen when the low byte of `flag` is set.
     CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
-    // 005FCDD0 (RET 0xC; ui_surface_create.cpp). Over the layout rectangle `rect` (always scaled) with
+    // Over the layout rectangle `rect` (always scaled) with
     // format `format`.
     CUiSurface(CInterface3D* ui, const RECT* rect, int format);
-    // 005FCF80 (RET 8; ui_surface_create.cpp). Showing the picture "<name>.mmp" of the texture manager
+    // Showing the picture "<name>.mmp" of the texture manager
     // at its own size (screen rectangle 0, 0, width, height).
     CUiSurface(CInterface3D* ui, mfc::CString name);
-    // 005FD120 (ui_surface_create.cpp): the kept bytes and the DirectDraw surface released, the screen
-    // rectangle emptied. Not virtual: game.exe's table has no destructor (a window's surface list
-    // destroys a scrolling surface as a plain one, as the original does).
+    // The kept bytes and the DirectDraw surface released, the screen
+    // rectangle emptied. Not virtual (a window's surface list
+    // destroys a scrolling surface as a plain one).
     ~CUiSurface();
     // The game's heap (null without memory: then no constructor runs).
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
-    // Slot 0 (005FDA80, ui_surface_blit.cpp): blits the surface onto the render target when it is shown.
+    // Blits the surface onto the render target when it is shown.
     virtual void Blit();
 
     // 0x005FD240 (ui_surface_pixels.cpp).
@@ -506,37 +503,37 @@ public:
     // Moves the screen rectangle so its top-left is the layout point (x, y).
     void MoveTo(int x, int y);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and
-    // '\n') and draws up to `maxLines` lines one rect height apart with 005FDE20 (`font`,
+    // '\n') and draws up to `maxLines` lines one rect height apart with DrawText (`font`,
     // `colour`, `format`, `flag` passed on). The DC must be acquired. Returns the line count
     // (ui_text.cpp).
     int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
-    // 005FDE20 (RET 0x18; Rebirth-patched, WideScreen reproduced behind its flag, W2;
-    // ui_text_draw.cpp; rewritten callers go through SurfaceDrawText). Draws `text` in
+    // Rebirth-patched, WideScreen reproduced behind its flag (ui_text_draw.cpp; callers go through SurfaceDrawText).
+    // Draws `text` in
     // interface font `font` and `colour` into `rect` (layout coordinates scaled to the screen,
-    // 005F7CA0, then two pixels wider and higher; an empty rect is the whole surface) with the
+    // then two pixels wider and higher; an empty rect is the whole surface) with the
     // DrawText `format`, transparent; with `shadow` first in 0x080808 one pixel right and down.
     // The DC must be held. Returns DrawText's height scaled back to the layout, or 0
     // without a surface.
     int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
-    // 005FDC00 / 005FDC60 (UiSurfaceGetDC / UiSurfaceReleaseDC below): the surface's DC held and
-    // released.
+    // The surface's DC held and
+    // released (UiSurfaceGetDC / UiSurfaceReleaseDC below).
     mfc::impl::CDC* GetDC();
     void ReleaseDC();
-    // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
+    // Through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
     int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
-    // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
-    // +0x0C): setting it puts kept contents (+0x1C) back into a surface (005FD7A0 with 1); clearing
-    // it with `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
+    // Sets (`frozen` nonzero) or clears the shown flag (4 of
+    // +0x0C): setting it puts kept contents (+0x1C) back into a surface; clearing
+    // it with `restore` set keeps the contents in memory and releases the surface.
     void Freeze(int frozen, int restore);
     // Copies the screen's rect_ into the surface (nothing when it is the screen).
-    // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
-    // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
+    // A new[] block of width * height 5:6:5 pixels: the surface
+    // stretched to that size through a temporary surface. Greys the surface in place
     // ((2 r + 4 g + b) / 16 per channel). ui_surface_pixels.cpp.
     // `restore` 0: copies the DirectDraw surface's memory (pitch * height bytes)
     // to +0x1C (size +0x20) and releases the surface; 1: makes a new surface (+0x14 x +0x18) when
     // there is none and copies the kept bytes back into it, freeing them. Both keep the memory
-    // totals 007C7E74 (kept bytes) and 007C7E78 (surface bytes).
+    // totals of kept bytes and surface bytes.
     void SwapContents(int restore);
     void CaptureScreen();
     std::uint16_t* Rgb565Copy(int width, int height);
@@ -545,21 +542,21 @@ public:
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze
 
-    // Calls 005FD7A0 through its address (the wrapper runs).
+    // Calls the surface's contents function through its address (the wrapper runs).
     void CallSwapContents(int restore);
-    // 005FDCB0 (RET 8; ui_surface_frame.cpp). With a surface (and its DC held): a one-pixel frame
-    // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen through
-    // 005F7CA0) or, for an empty rect, around the whole surface.
+    // With a surface (and its DC held): a one-pixel frame
+    // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen)
+    // or, for an empty rect, around the whole surface.
     void FrameRect(const RECT* rect, COLORREF colour);
-    // 005FE370 (RET 4) / 005FE2F0 (ui_surface_frame.cpp). With a surface (its DC held): the whole
-    // surface filled with `colour` / with background_ (CDC::FillSolidRect).
+    // The whole
+    // surface filled with `colour` / with background_ (CDC::FillSolidRect) (ui_surface_frame.cpp).
     void Fill(COLORREF colour);
     void Clear();
 
-    static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
+    static constexpr std::uint32_t kFromPicture = 1;   // flags_: made from an .mmp picture
 
     CInterface3D* interface_;        // +0x04
-    HDC dc_;                         // +0x08 while the DC is held (005FDC00 .. 005FDC60)
+    HDC dc_;                         // +0x08 while the DC is held
     std::uint32_t flags_;            // +0x0C (the constructors store the format here, then set kShown)
     CDXSurface* holder_;             // +0x10 the DirectDraw surface's holder (null while swapped out)
     int width_;                      // +0x14
@@ -579,7 +576,7 @@ static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
-// 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
+// The surface's CDC (CUiSurface::GetDC / ReleaseDC; a temporary
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
@@ -600,21 +597,21 @@ class CObject3D;
 // (a CObject3D). ui_model.cpp unless noted.
 class CUiModel {
 public:
-    // 005FC450 (ui_interface.cpp). Places the object in front of the camera at a layout position
+    // Places the object in front of the camera at a layout position
     // and depth.
     void SetScreenPosition(float x, float y, float depth);
-    // Releases the object (slot 4) and clears the pointer.
+    // Releases the object and clears the pointer.
     void ReleaseObject();
-    // Draws the object in `pass` (the scene renderer a window's slot 20 is given) in white at the
+    // Draws the object in `pass` (the scene renderer a window's draw is given) in white at the
     // interface's
     // animation clock (timeGetTime / 67), with object flag 0x800 set while it draws.
     void Draw(CSceneRenderer* pass);
     // A new map object (class 0x33, id 0x88CA6C00) of the client world's map
     // object manager, referenced, flag 0x4000000, at (0, 0, 3), with the figure of model `name`
-    // (all parts, 00516DA0), its textures (0051C970 on +0x94), animations
-    // and texture `from` swapped for `to` (0051C250; e.g. "escMenu00" / "escMenu00labels").
+    // (all parts), its textures (on +0x94), animations
+    // and texture `from` swapped for `to` (e.g. "escMenu00" / "escMenu00labels").
     void Load(const char* name, const char* from, const char* to);
-    // 005FC4F0 (RET 4) shows or hides all its parts (part flag 0x80), 005FC4C0 (RET 8) one part by
+    // Shows or hides all its parts (part flag 0x80), or one part by
     // name.
     void ShowAllParts(int show);
     void ShowPart(const char* name, int show);
@@ -630,12 +627,12 @@ static_assert(sizeof(CUiModel) == 4);
 
 // An input side: a window's own at +0x94 (CUiWindow's second base), or a separate handler a container
 // keeps in its list (+0x158; e.g. the battle camera's keys, CCameraInput). The interface hands each
-// event to the top window's side (00457970 -> 005F76A0..005F7BE0): 1 deactivate (the window loses the
-// top, 005F7350); 2 / 3 left button down / up, 4 mouse move, 5 / 6 right button down / up, 7 / 8 left /
+// event to the top window's side: 1 deactivate (the window loses the
+// top); 2 / 3 left button down / up, 4 mouse move, 5 / 6 right button down / up, 7 / 8 left /
 // right double click (button flags, x, y in screen pixels); 9 key down, 10 character (WM_CHAR), 11 key
 // up (key, repeat, scan code and flags); 12 wheel (key flags, delta, x, y). The handlers return EAX,
-// which only the wheel's callers read. Its own table is game.exe's base input side 007401D0: 1-6 and
-// 9-11 do nothing (short_functions.cpp), 7 / 8 a double click is a press, 12 the wheel is not used.
+// which only the wheel's callers read. Its own table is the base input side: 1-6 and
+// 9-11 do nothing, 7 / 8 a double click is a press, 12 the wheel is not used.
 struct UiInputSide {
     enum Slot : int {
         kEventDeactivate = 1,
@@ -653,7 +650,6 @@ struct UiInputSide {
     };
     // The handled flag is left as it is (a dispatcher clears it before each event).
     explicit UiInputSide(CInterface3D* ui) : interface_(ui) {}
-    // 005EA850 (slot 0 of 007401D0, ui_window_delete.cpp).
     virtual ~UiInputSide();
     virtual void Deactivate() {}                                           // 1
     virtual int LeftDown(int, int, int) { return 0; }                      // 2
@@ -661,14 +657,14 @@ struct UiInputSide {
     virtual int MouseMove(int, int, int) { return 0; }                     // 4
     virtual int RightDown(int, int, int) { return 0; }                     // 5
     virtual int RightUp(int, int, int) { return 0; }                       // 6
-    // 005E2860 / 005E2880 (RET 0xC; ui_input_defaults.cpp): a double click is handled as a single
-    // press, slot 2 / 5 with the same arguments; that handler's EAX is returned.
+    // A double click is handled as a single
+    // press, handler 2 / 5 with the same arguments; that handler's EAX is returned.
     virtual int LeftDouble(int buttons, int x, int y);                     // 7
     virtual int RightDouble(int buttons, int x, int y);                    // 8
     virtual int KeyDown(int, int, int) { return 0; }                       // 9
     virtual int Char(int, int, int) { return 0; }                          // 10
     virtual int KeyUp(int, int, int) { return 0; }                         // 11
-    // 005E28B0 (RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
+    // The wheel is not used, 0.
     virtual int Wheel(int flags, int delta, int x, int y);                 // 12
     // Slots 2-11 by number (the containers' dispatch): (buttons, x, y) or (key, repeat, flags).
     int Event(int slot, int a, int b, int c);
@@ -684,9 +680,8 @@ struct UiInputSide {
     bool handled_;                   // +0x08 set by a handler that used the event
 };
 
-// The extra input side whose slots do nothing (0x0C bytes; game.exe's 00741154, whose slots 9 / 11 are its
-// own empty RET 0xC, 005EB8A0 / 005EB8B0): the battle screen's, the briefing's, the main menu's and the view
-// screens'. Destructor 00602BA0, deleting 00602B80 (ui_window_delete.cpp).
+// The extra input side whose handlers do nothing (0x0C bytes; two of them are empty): the battle screen's, the briefing's, the main menu's and the view
+// screens'.
 struct UiInertInput final : UiInputSide {
     explicit UiInertInput(CInterface3D* ui) : UiInputSide(ui) {}
     ~UiInertInput() override;
@@ -701,18 +696,18 @@ protected:
     std::uint8_t unused_054[0x94 - 0x54];
 };
 
-// Base of the interface windows (constructor 005FE700; game.exe's tables 00740F60 / 00740F2C). Its input side is
-// its second base, at +0x94: the handlers get `this` = window + 0x94 (the compiler's adjustor thunks, as the
-// original's SUB ECX,0x94; JMP).
+// Base of the interface windows. Its input side is
+// its second base, at +0x94: the handlers get `this` = window + 0x94 (the compiler's adjustor thunks,
+// like the game's SUB ECX,0x94; JMP).
 class CUiWindow : public CUiWindowBase, public UiInputSide {
 public:
-    // 005FE700 (RET 4; ui_window.cpp). An empty window of `ui` (arrays, the rectangle and +0xA0..+0xD7
-    // zeroed, the identity rotation), two materials of the manager 007AF740 (+0xF0 white, +0xEC black; one
+    // An empty window of `ui` (arrays, the rectangle and +0xA0..+0xD7
+    // zeroed, the identity rotation), two materials of the global manager (+0xF0 white, +0xEC black; one
     // reference each), enabled (+0xE8 = 1, then Show(1)).
     explicit CUiWindow(CInterface3D* ui);
-    // 005FE930 (ui_window.cpp): releases the three objects at +0xEC..+0xF4, the scene objects, surfaces,
+    // Releases the three objects at +0xEC..+0xF4, the scene objects, surfaces,
     // regions, referenced objects and models (in that order), clears +0x08, then the engine object's. The
-    // deleting destructor 005FE910 and its copies (ui_window_delete.cpp).
+    // deleting destructor and its copies (ui_window_delete.cpp).
     ~CUiWindow() override;
     using CEngineObject::operator new;
     using CEngineObject::operator delete;
@@ -723,13 +718,13 @@ public:
     void Destroy() override {}
     const char* GetClassName() override;
     int GetClassId() override;
-    virtual void Build() {}                                             // 18: 00579550 (empty)
+    virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }                // 19
     virtual BOOL Draw(int pass) { return DrawBase(pass); }             // 20
     virtual void DrawChild(int pass) { UpdateRegionTips(pass); }       // 21
     virtual void Redraw() { RedrawBase(); }                            // 22
     virtual void RedrawTips() { RedrawRegionTips(); }                  // 23
-    virtual void Update() {}                                           // 24: 005EE010 (empty)
+    virtual void Update() {}
 
 
     // Index of the first region containing the screen point (x, y), or -1.
@@ -744,13 +739,13 @@ public:
 
     // Appends an object and takes a reference (null is ignored).
     void AddObject(CEngineObject* object);
-    // 005FF110 / 005FF180. Releases an object and removes it from the list.
+    // Releases an object and removes it from the list.
     void RemoveObject(CEngineObject* object);
     void RemoveObjectAt(int index);
-    // Every referenced object released (slot 4), the list emptied (its storage freed).
+    // Every referenced object released, the list emptied (its storage freed).
     void ClearObjects();
 
-    // 005FF700 / 005FF770 / 005FF7D0. The second object list (+0x108).
+    // The second object list (+0x108).
     BOOL RemoveSceneObject(CEngineObject* object);
     // Replaces scene object `object` (released) at its place in the list with
     // object `name` of the model manager, given the window's texture 0 and taking the
@@ -759,17 +754,17 @@ public:
     void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
-    // 005FFA90 / 005FFBF0 / 005FFC50. Surfaces the window owns.
+    // Surfaces the window owns.
     CUiSurface* AddSurface(CUiSurface* surface);   // returns `surface`
     void RemoveSurfaceAt(int index);
     void ClearSurfaces();
 
-    // 005FF830 / 005FF9C0 / 005FFA20. Regions (AddRegion returns the new, empty region).
+    // Regions (AddRegion returns the new, empty region).
     CUiRegion* AddRegion();
     void RemoveRegionAt(int index);
     void ClearRegions();
 
-    // 005FFD80 / 005FFF40. 3D model previews.
+    // 3D model previews.
     CUiModel* AddModel();
     void ClearModels();
 
@@ -783,10 +778,10 @@ public:
         interface_->mouseCapture_ = nullptr;
         return true;
     }
-    // 005FEB90 (RET 4; ui_window.cpp). Base drawing (slot 20): the scene objects through the sprite draw
+    // Base drawing: the scene objects through the sprite draw
     // then the models; returns 1.
     BOOL DrawBase(int pass);
-    // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
+    // Used by the camp and the multiplayer hero screen. Draws `model` (a hero) as a
     // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
     // by `turn` radians about y and places it by `depth` (`wide`'s low byte: six rectangles of the
     // camp layout, else one), draws it lit through `pass` and puts its transform back
@@ -798,32 +793,32 @@ public:
     // when the lock fails and the error report returns 0). ui_item_view.cpp.
     int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
-    // 005FEF20 (RET 0xC; ui_window.cpp). The texture manager's texture `name` of `kind` (found or
-    // made, 00691D00), loaded (006922A0, or from `directory` with 006926F0) and appended to the
+    // The texture manager's texture `name` of `kind` (found or
+    // made), loaded (or from `directory`) and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but
-    // not loaded is kept by the manager, as in the original).
+    // not loaded is kept by the manager).
     CEngineObject* LoadTexture(const char* name, int kind, const char* directory);
-    // 005FF0B0 (RET 0xC; ui_window.cpp). A new CPU-filled texture appended to the
+    // A new CPU-filled texture appended to the
     // referenced objects with one more reference and flag 0x40000; null when none is made.
     CEngineObject* CreateTexture(int width, int height, int kind);
-    // 006002C0 (RET 4; slot 19 of the plain windows, ui_window.cpp). `show` 0: every surface keeps its
-    // contents in memory and lets its DirectDraw surface go (005FD7A0 with 0); otherwise the shown
-    // surfaces (flag 4) get theirs back (005FD7A0 with `show`).
+    // A virtual of the plain windows (ui_window.cpp). `show` 0: every surface keeps its
+    // contents in memory and lets its DirectDraw surface go; otherwise the shown
+    // surfaces (flag 4) get theirs back.
     void ShowSurfaces(int show);
-    // 005FF3C0 (RET 4; ui_window.cpp). Object `name` of the model manager (007AF5F4; null: a new
+    // Object `name` of the model manager (null: a new
     // interface sprite, CUiMesh) added to the scene objects (once: one reference taken and the
     // object attached to the window), given the black material and the first referenced object
     // (or null) as its texture; returns it, or null when the manager makes none.
     CUiMesh* AddSprite(const char* name);
-    // 005FECC0 (ui_window.cpp). Base slot 22 (redraw): every shown surface blits itself (slot 0).
+    // Base redraw: every shown surface blits itself.
     void RedrawBase();
-    // 005FED00 (ui_window.cpp). Base slot 23: each region's tooltip follows the mouse (as
-    // UpdateRegionTips) and redraws itself (its slot 22), region by region.
+    // Base update: each region's tooltip follows the mouse (as
+    // UpdateRegionTips) and redraws itself, region by region.
     void RedrawRegionTips();
     // Scene object `index` as the interface sprite it is.
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
-    std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; no rewritten code reads it
+    std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; nothing reads it
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
     CEngineObject* blackMaterial_;            // +0xEC given to every sprite (AddSprite)
@@ -849,23 +844,23 @@ static_assert(sizeof(CUiWindowBase) == 0x94);
 static_assert(offsetof(CUiWindow, surfaces_) == 0x118 && offsetof(CUiWindow, regions_) == 0x128);
 static_assert(sizeof(CUiWindow) == 0x148);
 
-// The tooltip attached to a region (0x184 bytes, vtables 00742F64 / 00742F30, constructor
-// Ui_tooltip.cpp, A-H20). Its surface is made while it is shown.
+// The tooltip attached to a region (0x184 bytes, constructor
+// in ui_tooltip.cpp). Its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
-    // 0065E320 (RET 0x14; ui_tooltip.cpp). The window, no lines, idle, of `region`; a non-empty
+    // The window, no lines, idle, of `region`; a non-empty
     // `text` is split at newlines into the lines and measured.
     CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
-    // 0065E4F0 (ui_tooltip.cpp; deleting 0065E4D0, the input side's 0065EAC0): the lines.
+    // The lines (ui_tooltip.cpp).
     ~CUiTooltip() override;
-    // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
+    // A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
     void SetText(const char* text);
-    // 0065E880 (ui_tooltip.cpp). Draws the lines into surface 0 (when there is one): filled with
+    // Draws the lines into surface 0 (when there is one): filled with
     // 0x1C2B, framed in 0x31B3FF, then line by line in font 0 from (6, 4), lineHeight_ apart, the
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (RET 8; ui_tooltip.cpp; Rebirth-patched, WideScreen reproduced behind its flag). One step of the showing, with the mouse at (x, y)
+    // Rebirth-patched, WideScreen reproduced behind its flag (ui_tooltip.cpp). One step of the showing, with the mouse at (x, y)
     // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
     // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
     // the key of command extra_ is looked up and measured, the state becomes 2 and the surface is
@@ -873,9 +868,9 @@ struct CUiTooltip : CUiWindow {
     // 4 (the appearing time is 0). State 3 draws while the timer is positive, then drops the
     // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
-    // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
+    // The window's draw (ui_menus.cpp). Draws only while shown; returns 1 otherwise.
     BOOL Draw(int pass) override;
-    // Redraws (005FECC0, the window's base slot 22) only while shown.
+    // Redraws (the window's base redraw) only while shown.
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
@@ -901,28 +896,28 @@ static_assert(sizeof(CUiTooltip) == 0x184);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
 // hero equipment, quick strip, trade and repair grids, constructor pages and the item strips, built on
-// the blank panel (game.exe's tables 00741B58 / 00741B24, constructor 0060E210). Their input sides
-// share the left-button handler 005EE310; slot 25 (ItemAt) gives the item or help topic under the mouse.
+// the blank panel. Their input sides
+// share the left-button handler; ItemAt gives the item or help topic under the mouse.
 class CUiItemPanel : public CUiWindow {
 public:
-    // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor: the window base,
+    // The blank panel's constructor: the window base,
     // owner_ = `owner` (mode_ left).
     CUiItemPanel(CInterface3D* ui, CItemScreen* owner);
-    // 005EE400 (slot 25, RET 0xC; ui_small_members.cpp). The item under the screen point (x, y), or
+    // The item under the screen point (x, y), or
     // null; a panel may set a help topic instead. The panels without items of their own (the
     // description panel, the statistics column, the trade panel): nothing under the point, `topic` 0.
     virtual CItem* ItemAt(int x, int y, int* topic);
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }   // input 2
 
-    // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
-    // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
-    // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
+    // The left-button handler (ui_item_panel_input.cpp). The item under (x, y) goes to the
+    // owner's MoveItem-like handler with mode_ (the camp's MoveItem); without one, a help topic the panel named
+    // goes to the owner's help handler (the camp: the strip tabs for it). The event is not marked used.
     void OnLeftDown(int buttons, int x, int y);
 
-    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C; ui_item_info.h).
-    // Slot 42 (+0xA8): take `item` with the panel's action mode.
+    // The owner's handlers the panels call (the camp, the hero screen; ui_item_info.h).
+    // Take `item` with the panel's action mode.
     void OwnerTakeItem(CItem* item);
-    // Slot 44 (+0xB0): help topic `topic` clicked.
+    // Help topic `topic` clicked.
     void OwnerTopicClicked(int topic);
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
@@ -936,7 +931,7 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 // Option 17 of the options window: the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-strmap::CDebugPanel* DebugInfoPanel();   // strmap::g_debugPanel 0079B930 (string_map.cpp)
+strmap::CDebugPanel* DebugInfoPanel();
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 
@@ -945,15 +940,15 @@ inline const signed char* KeyActions() { return g_keyActions; }
 inline signed char* KeyActionTable() { return g_keyActions; }
 constexpr int kKeyActionCount = 0x200;
 
-// 005F2EA0 / 005F2EE0: the bounds-checked records of the spell and spell-modifier databases, as the
+// The bounds-checked records of the spell and spell-modifier databases, as the
 // spell book reads them: itemdb::SpellTable::At / SpellModifierTable::At (item_db.h).
 
-// --- Battle screen and its HUD panels (00630000-00660000; ui_hud.cpp) -----------------------
-// The battle screen (set up by 00635250) owns a row of panel windows, each a CUiWindow with its
+// --- Battle screen and its HUD panels -----------------------
+// The battle screen owns a row of panel windows, each a CUiWindow with its
 // own vtables; the screen forwards mouse events to the panel whose rectangle holds the point.
 // Panel handlers receive the panel's input side (window + 0x94) as `this`; the rewrites are
 // members of the panel classes, registered through small shims that convert the pointer.
-// Coordinates below are the 800x600 layout of the original (Rebirth moves some panels).
+// Coordinates below are the 800x600 layout (Rebirth moves some panels).
 
 class CItem;
 class CHudQuickItems;
@@ -965,13 +960,13 @@ class CHudUnitPanel;
 class CBattleScreen;   // below CUiContainer
 class CUiScrollText;  // below CBattleScreen
 
-// An MFC CDWordArray (SetSize 0059C660; `growBy` -1 keeps the step).
+// An MFC CDWordArray (`growBy` -1 keeps the step).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 // The IDirect3DDevice7 as the interface code calls it: each method is the interface's of the same
 // name through device.h's calls (ui_d3d_device.cpp), so that in the switch-over without DirectDraw
-// it has its result without a device (ticket R9b).
+// it has its result without a device.
 struct UiD3DDevice {
     long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
     long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value);
@@ -986,7 +981,7 @@ struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x4C - 0x0C];
-    CPixelConverter* decoder_;       // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    CPixelConverter* decoder_;       // +0x4C the pixel decoder (decodes an .mmp image's pixels)
     std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];
@@ -1003,7 +998,7 @@ constexpr int kRenderStateAlphaTest = 15;    // D3DRENDERSTATE_ALPHATESTENABLE
 constexpr int kRenderStateAlphaRef = 24;     // D3DRENDERSTATE_ALPHAREF
 constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 
-// Weapon bar (constructor 0063BAB0, vtables 0074279C / 00742768): four 40x80 slots at
+// Weapon bar (four 40x80 slots at
 // (80..240, 520..600).
 class CHudWeaponBar : public CUiWindow {
 public:
@@ -1014,7 +1009,7 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 0063C600 (slot 24, every frame). Follows the unit's weapon (+0x270) with the highlight.
+    // Every frame. Follows the unit's weapon (+0x270) with the highlight.
     void Update() override;
     // Draws with alpha test and specular on.
     BOOL Draw(int pass) override;
@@ -1035,14 +1030,14 @@ public:
     // plain rectangle when there is no such model; its texture offsets, plain white; counted and
     // shown not highlighted (Highlight).
     void AddWeapon(const char* model, const char* image);
-    // 0063C180 (RET 4; ui_hud_tips.cpp). Shows `unit`'s weapons: sprites dropped, the four
-    // regions' tips cleared; per weapon a sprite (0063BCC0, Rebirth-patched) and the tip of its
+    // Shows `unit`'s weapons: sprites dropped, the four
+    // regions' tips cleared; per weapon a sprite (Rebirth-patched) and the tip of its
     // region (id 0x26 + slot): the name, damage range and type, the prototype's +0x6C and the
     // weapon's +0x58 and, for a weapon with a spell, the spell's name; then the unit's +0x270
     // highlighted.
     void SetUnit(CUnit* unit);
 
-    // 0063BC70 (ui_hud_destroy.cpp; deleting 0063BC50, the input side's 0064BCF0): the labels, then
+    // The labels, then
     // the window's.
     ~CHudWeaponBar() override;
 
@@ -1056,14 +1051,14 @@ static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
 static_assert(offsetof(CHudWeaponBar, labels_) == 0x158);
 static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 
-// Quick items (constructor 0063C800, vtables 0074283C / 00742808): 2 rows of four 50x50 slots
+// Quick items (2 rows of four 50x50 slots
 // at (520..720, 500..600).
 class CHudQuickItems : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);
     void OnDoubleClick(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);
-    // 0063DB20 (ui_hud.cpp). Button release: a unit's quick item (bottom row) is picked
+    // Button release: a unit's quick item (bottom row) is picked
     // or, with key +0x7F, used at once; a player's item (top row) starts mode 6, or
     // cancels when it is the highlighted one.
     void OnMouseUp(int buttons, int x, int y);
@@ -1073,39 +1068,39 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }  // 7
     BOOL Draw(int pass) override;
-    // 0063D9D0 (slot 24, every frame). Fills the tooltip of each quick item slot that shows one.
+    // Every frame. Fills the tooltip of each quick item slot that shows one.
     void Update() override;
-    // 0063CEE0 (RET 8; ui_hud_tips.cpp). The tooltip text of quick item `index` into `text` (a
+    // The tooltip text of quick item `index` into `text` (a
     // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
     // numbers after labels_.
     void ItemTip(unsigned index, mfc::CString* text);
-    // 0063DD70 (RET 4; ui_hud_pick.cpp). Picks the unit's quick item `slot` (a click on it or its
+    // Picks the unit's quick item `slot` (a click on it or its
     // key): without a unit nothing; without an item there the pending action is dropped (no
     // sound); otherwise the click sound, then a click on the highlighted slot drops the pending
     // action, and a wand (category 5) or scroll (8) becomes the pending action on `slot`: 3 when
     // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
     // categories change nothing.
     void Pick(int slot);
-    // 0063E020 (RET 4; ui_hud_pick.cpp). The unit's quick item `slot` used at once (a release with
+    // The unit's quick item `slot` used at once (a release with
     // key flag +0x7F, or the key handler's Ctrl / Alt): as ClickAlternate with pending action 3
     // and quick 1, for a wand (category 5) or scroll (8) with a spell; nothing without a unit or
     // an item there.
     void UseNow(int slot);
-    // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
+    // Highlights the sprite shown in region `slot` when
     // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
     // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
     void Highlight(int slot, int on);
-    // The same through the original's address (so the verify wrapper sees the call).
+    // The same through the game's code (so the verify wrapper sees the call).
     void HighlightAt(int slot, int on);
-    // Item of the region at `index` (-1: empty). The original indexes this with the result of
-    // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
+    // Item of the region at `index` (-1: empty). The region lookup is not checked,
+    // so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
         const int* items = regionItem_;   // declared below
         return items[index];
     }
 
-    // The bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // panel at the screen's right edge). 0063C800 (RET 8): the constructor: the window, the
+    // The bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // panel at the screen's right edge). The constructor: the window, the
     // entries array, the labels, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
     // bottom row from the right (x 670 .. 520) and four along the top row, with empty tips and no
     // items, nothing selected, no unit, and the labels "infoitem_7" .. "_13", "_21", "_22", "_26"
@@ -1115,9 +1110,8 @@ public:
     // (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4))), the model `model` turned over (pi about x)
     // or a plain rectangle without one; its texture offsets, plain white; counted.
     void AddItem(const char* model, const char* image);
-    // 0063D2B0 (RET 4; ui_battle_update.cpp). Shows `unit`'s quick items: the sprites, tooltips and
-    // entries are dropped; for each of the unit's four quick items a sprite (0063CAE0,
-    // Rebirth-patched) in the bottom row, an entry and its tooltip; then, when the unit
+    // Shows `unit`'s quick items: the sprites, tooltips and
+    // entries are dropped; for each of the unit's four quick items a sprite (Rebirth-patched) in the bottom row, an entry and its tooltip; then, when the unit
     // is the local player's, up to four of the player's 0x3009 items in the top row.
     void SetUnit(CUnit* unit);
 
@@ -1129,15 +1123,15 @@ public:
         CItem* item;                 // +8
     };
 
-    // 0063CA70 (ui_hud_destroy.cpp; deleting 0063CA50, the input side's 0064BD00): the labels, the
-    // entries array (its vtable 007428A0 written, the storage deleted), then the window's.
+    // The labels, the
+    // entries array (its vtable written, the storage deleted), then the window's.
     ~CHudQuickItems() override;
 
     CBattleScreen* owner_;           // +0x148
     int shownCount_;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass; SetSize 0064B060, inlined)
+    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass)
     int regionItem_[8];              // +0x16C
     mfc::CStringArray labels_;       // +0x18C the tooltip's labels
 };
@@ -1147,8 +1141,7 @@ static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator ne
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
-// Spell column on the right (constructor 0063E2A0, vtables 007428E4 / 007428B0;
-// 760..800 x 190..510).
+// Spell column on the right (760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);
@@ -1161,27 +1154,27 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }  // 7
     BOOL Draw(int pass) override;
-    // 0063EC90 (RET 4; ui_hud_pick.cpp). A click on spell `index` (its button or key): a click
+    // A click on spell `index` (its button or key): a click
     // on the highlighted one plays the click sound and drops the pending action; otherwise the
     // previous button loses its highlight, `index` gets it, the click sound, and when the unit's
     // spell there has its data (+0x44) the spell becomes the pending action on `index`: 1 with
     // flag 0x10000000 (on a unit), else 2 (at a point). An index out of range does nothing.
     void Click(int index);
-    // 0063EF60 (RET 4; ui_hud_pick.cpp). Click with key flag +0x7F (or the key handler's Ctrl /
+    // Click with key flag +0x7F (or the key handler's Ctrl /
     // Alt): the spell is cast at once. Without a unit or with `index` out of range nothing;
     // otherwise the pending action becomes 1 on `index`, and when the spell there has its data
     // (+0x44) it is used (UseOnUnit / UseAtPoint, quick 0) on the unit itself, or for an attack
     // spell (CSpell::IsOffensive) on the nearest unit the unit sees (none: the "nomagic" sound,
     // the pending action dropped, done). Then the click sound and the pending action dropped.
     void ClickAlternate(int index);
-    // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
+    // Button `index` highlighted (scale 1.15, colour
     // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
-    void HighlightAt(int index, int on);   // through the original's address
-    // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
+    void HighlightAt(int index, int on);
+    // Every button unhighlighted, then selected_ = -1.
     void ClearHighlights();
-    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // column at the screen's right edge). 0063E2A0 (RET 8): the constructor: the window, the labels,
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // column at the screen's right edge). The constructor: the window, the labels,
     // the rectangle (760, 190, 800, 510), no sprites or regions, nothing selected, no unit, and
     // the labels "infoitem_7", "_18", "_8" .. "_13", "_21", "_22", "_26" .. "_28".
     CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner);
@@ -1190,14 +1183,14 @@ public:
     // `image` copied into the column's texture (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4)));
     // plain white, scale 1, colour 0xFF000000; counted, selected_ = its index.
     void AddSpell(const char* model, const char* image);
-    // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
-    // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
+    // Shows `unit`'s spells: sprites and regions dropped;
+    // for each of the unit's eight spell slots that holds one, a sprite (Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
     // its data (+0x44), seven lines of numbers each after a label of labels_ (some numbers
     // replaced by labels when absent: an area for flag 0x10000000, a time under 2 ticks).
     void SetUnit(CUnit* unit);
 
-    // 0063E460 (ui_hud_destroy.cpp; deleting 0063E440, the input side's 0064BD10): the labels, then
+    // The labels, then
     // the window's.
     ~CHudSpellColumn() override;
 
@@ -1212,7 +1205,7 @@ static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
 static_assert(offsetof(CHudSpellColumn, labels_) == 0x158);
 static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator new
 
-// Action column on the left (constructor 0063F300, vtables 00742980 / 0074294C; six 40x40
+// Action column on the left (six 40x40
 // buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
 public:
@@ -1224,19 +1217,19 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     BOOL Draw(int pass) override;
-    // 0063FB50 (RET 4; ui_hud_pick.cpp). Selects action button `index` (a click on it or its
+    // Selects action button `index` (a click on it or its
     // key): the highlighted one again plays the click sound and drops the pending action;
     // another moves the highlight to it, plays the click sound and makes its action the pending
     // one on `index`: 8 (an order on an object) for action 0 (science), else 7 (follow), the
     // action in +0x184. An index out of range does nothing.
     void Select(int index);
-    // 0063F730 (RET 8; ui_hud_highlight.cpp). As CHudSpellColumn::Highlight.
+    // As CHudSpellColumn::Highlight.
     void Highlight(int index, int on);
-    void HighlightAt(int index, int on);   // through the original's address
-    // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
+    void HighlightAt(int index, int on);
+    // As CHudSpellColumn::ClearHighlights.
     void ClearHighlights();
-    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // column at the screen's left edge). 0063F300 (RET 8): the constructor: the window, the actions
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // column at the screen's left edge). The constructor: the window, the actions
     // array, the labels, the rectangle (0, 250, 40, 510), six 40 x 40 regions from the bottom
     // (y 470) up with empty tips, no sprites or actions, nothing selected, no unit, and the label
     // "infoitem_16".
@@ -1246,21 +1239,21 @@ public:
     // at (64 * (n / 4), 64 * (n % 4))); plain white, scale 1, colour 0xFF000000; `action` appended;
     // counted, selected_ = its index.
     void AddAction(const char* model, const char* image, int action);
-    // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
+    // Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
     // the "perk Science" text, the unit's science level (+0x408) and the "tip 10511" text.
     void SetUnit(CUnit* unit, int extra);
 
-    // 0063F490 (ui_hud_destroy.cpp; deleting 0063F470, the input side's 0064BD20): the labels, the
-    // actions array (its vtable 0073C3D0 written, the storage deleted), then the window's.
+    // The labels, the
+    // actions array (its vtable written, the storage deleted), then the window's.
     ~CHudActionColumn() override;
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C buttons added
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    UiDwordArray actions_;           // +0x158 the buttons' actions (0063F500 adds; 0 science, -1 follow)
+    UiDwordArray actions_;           // +0x158 the buttons' actions (0 science, -1 follow)
     mfc::CStringArray labels_;       // +0x16C the tooltip's labels
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
@@ -1303,14 +1296,14 @@ static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortra
               offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
-// A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
+// A figure prototype (the records of the map); only the model name the faces use.
 struct FigurePrototypeRecord {
     std::uint8_t unused_000[0xE8];
     mfc::CString model;              // +0xE8 e.g. "unhuma", "unhufe"
 };
 static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 
-// Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
+// Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);
@@ -1320,45 +1313,45 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 00641080 (slot 24, every frame): health and mana bars, the hit flash, the face picture and
+    // Every frame: health and mana bars, the hit flash, the face picture and
     // model, the face's wobble and the selection marker (ui_hud_portraits.cpp).
     void Update() override;
-    // 00640670 (RET 8; ui_hud_portrait_setup.cpp). Copies face picture `state` of portrait `index`
+    // Copies face picture `state` of portrait `index`
     // (the slot's face name plus "a" 1, "c" 2, "b" 3; the plain name when there is no such image)
     // into quarter index % 4 of texture objects_[index / 4 + 1].
     void ShowFace(int index, int state);
-    // 006407E0 (RET 4; ui_hud_portrait_setup.cpp). Rebuilds the portraits: sprites, regions and
+    // Rebuilds the portraits: sprites, regions and
     // textures but the first dropped, the selection marker, then one portrait per party unit (face
     // names from its prototype and build, tip the unit's name) and, in a multiplayer client, one per
     // player without a live unit. `wide` goes to AddPortrait.
     void Rebuild(int wide);
-    // 00640060 (RET 0x10; ui_hud_portrait_setup.cpp). Appends portrait count_: a slot, the face
+    // Appends portrait count_: a slot, the face
     // picture `picture` into a quarter of the current face texture (a new 256x256 one every fourth
     // portrait), the face model `model` (a plain picture sprite without one), the two bars, the
     // frame, the flash and the region; 56 wide (multiplayer: 40, or 56 with the low byte of `wide`
     // for the first). The low byte of `hasPlayer` marks a player's portrait (half tint, no bars).
     void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
 
-    // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
-    // 440..600 (game.exe's tables 00742A18 / 007429E4), no portraits, and the selection marker
+    // Constructor: the window over 250..550 x
+    // 440..600, no portraits, and the selection marker
     // sprite (a 20x20 rectangle at depth 10, scale 80, texels 0x22, 0x96 - 0x36, 0xAA).
     CHudPortraits(CInterface3D* ui, CBattleScreen* owner);
-    // 0063FF70 (ui_screen_constructors.cpp; deleting 0063FF50, the input side's 0064BD30): each
-    // slot's three strings (suffix, prefix, face name), the slots' storage back to the node
+    // Each
+    // The destructor: each
     // allocator, then the window's.
     ~CHudPortraits() override;
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unused_150[0x158 - 0x150];
-    // +0x158 one per portrait (0064AB20 appends a default slot, 0064AD40 erases a range: with
+    // +0x158 one per portrait (slots are appended and ranges erased: with
     // recordvec::HudPortraitSlotElement).
     stlp::vector<HudPortraitSlot> slots_;
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
 
-// A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up): a figure
+// A 2D mesh of the interface (the sprite objects and its siblings set up): a figure
 // mesh (CFigureMesh, figure_mesh.h) whose arrays it fills with these views of their elements.
 // Positions are kept per quad as four x then four y floats (VertexPacket); each vertex has a
 // 6-byte record (MeshCorner: the position it uses and a frame of the texture); indices are 16 bits.
@@ -1380,24 +1373,24 @@ struct UiMeshVertex {
 };
 static_assert(sizeof(UiMeshVertex) == 6);
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-// The figure factory's class 0x43 ("CI3DFigure", 0x284 bytes; game.exe's vtable 0073FC48, retired):
+// The figure factory's class 0x43 ("CI3DFigure", 0x284 bytes, retired as a table):
 // a class 0x42 mesh (CPlainFigureMesh) with the sprite's fields. A real virtual class.
 class CUiMesh : public CPlainFigureMesh {
 public:
-    // The factory's class 0x43 (005AA8E0 inlines it): CPlainFigureMesh's constructor; the sprite's
+    // The factory's class 0x43: CPlainFigureMesh's constructor; the sprite's
     // fields are set by Create (CreateSprite).
     CUiMesh();
-    // 005AAD00's work: CPlainFigureMesh's destructor (nothing of the sprite's to free).
+    // CPlainFigureMesh's destructor (nothing of the sprite's to free).
     ~CUiMesh() override;
-    // The vtable: CPlainFigureMesh's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // 2: 005E6C60 CreateSprite
-    void Destroy() override;               // 3: 005E6D70 DestroySprite
-    const char* GetClassName() override;   // 11: 005AACC0 "CI3DFigure"
-    int GetClassId() override;             // 12: 005AACD0 (0x46)
+    // The virtuals: CPlainFigureMesh's but for Create, Destroy, GetClassName and GetClassId.
+    int Create() override;
+    void Destroy() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
 
-    // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
+    // The array sizes: each is the aligned array's SetSize(count); the
     // quads then get z 0 and w 1 in every block, the vertices +2 zero in
-    // every entry; the indices and texture coordinates (005EA380, 8 bytes each) nothing.
+    // every entry; the indices and texture coordinates (8 bytes each) nothing.
     void SetQuadCount(int count);
     void SetVertexCount(int count);
     void SetIndexCount(int count);
@@ -1411,19 +1404,19 @@ public:
     const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
     const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
     const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
-    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers, 005EA150.)
-    // 005E7010 (RET 0xC; ui_mesh_draw.cpp). Where Place put the sprite: the layout point
+    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers.)
+    // Where Place put the sprite: the layout point
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).
     void GetPlacement(float* x, float* y, float* depth) const;
-    // 005E6FA0 through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
+    // Through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
-    // 005E70E0 (Rebirth-patched). Makes the sprite a textured rectangle (layout left, top, right,
+    // Rebirth-patched. Makes the sprite a textured rectangle (layout left, top, right,
     // bottom at `depth`; texels u0, v0 .. u1, v1): SetRectangleVanilla.
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                       int u1, int v1);
-    // 005E70E0 (RET 0x28; Rebirth-patched; ui_mesh_shapes.cpp, hooked in the vanilla launch and,
+    // Rebirth-patched (ui_mesh_shapes.cpp, hooked in the vanilla launch and,
     // reproducing WideScreen, in a Rebirth launch; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
     // texture coordinates (v upwards; both u one less when u0 > u1; half a texel inwards), the
@@ -1448,27 +1441,27 @@ public:
     // other two are points relative to it in units of `scale`; the texels are floats here.
     void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                             float v0, float u1, float v1, float u2, float v2);
-    // 005E6FA0 (RET 0xC; ui_mesh_draw.cpp). Place: position_ =
+    // Place: position_ =
     // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
-    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits. With
+    // constants read from the game's data; `depth` copied as bits. With
     // Rebirth's WideScreen x is moved by the panel offset first (ui_widescreen.h); callers still
     // call it through its address (SpritePlaceOriginal) while addon's other code calls it too.
     void PlaceBody(float x, float y, float depth);
-    // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
+    // The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
-    // 005E6D70 (vtable slot 3; ui_small_members.cpp). The material and the texture forgotten (not
-    // released), then the figure's own slot 3, whose EAX is returned.
+    // The material and the texture forgotten (not
+    // released), then the figure's own Destroy, whose EAX is returned.
     void DestroySprite();
     // The y scale alone (scaleMatrix_[5]) = `bits` (copied as bits); the quick
     // items' bar calls it.
     void SetScaleYBits(std::uint32_t bits);
     // The x scale (scaleMatrix_[0], in ST0).
     float GetScaleX() const;
-    // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
+    // Draws the sprite in `renderer`'s pass when visible;
     // returns 1.
     int Draw(CSceneRenderer* renderer);
-    // 005E6C60 (vtable slot 2, Create; ui_mesh_draw.cpp). The figure's Create, then no
+    // The figure's Create (ui_mesh_draw.cpp), then no
     // material or texture, the scale matrix the identity, tint 1, +0x230 zero, the identity
     // orientation (the identity), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
     int CreateSprite();
@@ -1485,7 +1478,7 @@ public:
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // +0x230 0 from CreateSprite; Draw reads only tint_ (nothing reads it)
     // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
-    // are the scale 005E7060 sets (the same value in all three).
+    // are the scale set by SetScale (the same value in all three).
     Matrix4 scaleMatrix_;            // +0x23C
     float& ScaleX() { return scaleMatrix_.m[0]; }
     float& ScaleY() { return scaleMatrix_.m[5]; }
@@ -1511,21 +1504,21 @@ struct UiPointF {
     float y;
 };
 using UiPointArray = lib::AlignedArray<UiPointF>;
-// 00453100 (the 8-byte aligned arrays' SetSize; aligned_arrays.cpp), through its address
+// The 8-byte aligned arrays' SetSize (aligned_arrays.cpp), through its address
 // (ui_hud_map.cpp). `growBy` -1 keeps the growth step.
 void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
 
-// Map (set up by 00641F20, vtables 00742660 / 0074262C; 615..800 x 0..165). Regions: 0 the
+// Map (615..800 x 0..165). Regions: 0 the
 // sling button, 1 the round map, 2 the map area, 3 and 4 the two view buttons, 5 a button
 // above them, 6 the whole panel.
 class CHudMap : public CUiWindow {
 public:
-    // Built inline by the battle screen's Create (00635250; ui_battle_setup.cpp): the window, the
+    // Built inline by the battle screen's Create: the window, the
     // owner, both point arrays empty.
     CHudMap(CInterface3D* ui, CBattleScreen* owner);
     void OnMouseDown(int buttons, int x, int y);   // the view buttons
-    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the map's centre at
-    // 700 + shift).
+    // Rebirth-patched, WideScreen reproduced behind its flag: the map's centre at
+    // 700 + shift.
     // The button released over the map that took it. A held view button is let go (view_ 0, both
     // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
     // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
@@ -1541,32 +1534,32 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }     // 12
-    // 00643DC0 (every frame, from 00642B40). Rebuilds the marker mesh (scene object 2): the
+    // Every frame, from the slide update. Rebuilds the marker mesh (scene object 2): the
     // party and other units, the marked objects, the zone exits and the other players
     // (ui_hud_map.cpp).
     void BuildMarkers();
-    // 00642E80 (every frame, before BuildMarkers). Follows the camera (centre and facing, the
+    // Every frame, before BuildMarkers. Follows the camera (centre and facing, the
     // compass needle scene object 10), clips the view polygon to the world rectangle and builds
     // the visible-area mesh (scene object 1) and the world-bounds quad (scene object 0).
     void UpdateView();
-    // 00635CA0 (ui_hud_destroy.cpp; deleting 00635C80, the input side's 0064BD50): the visible
+    // The visible
     // area's and the view polygon's aligned storage freed, then the window's.
     ~CHudMap() override;
-    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Rebirth-patched, WideScreen reproduced behind its flag.
     // Places the panel's
     // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
     // current slide offset.
     void Layout();
     void Update() override { UpdateVanilla(); }
-    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Every frame; Rebirth-patched, WideScreen reproduced behind its flag.
     // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
     // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
     // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
     // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
     // north" time (northTime_) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
     void UpdateVanilla();
-    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the panel at the
-    // screen's right edge; the battle screen's build calls it through the address). Sets the new
+    // Rebirth-patched, WideScreen reproduced behind its flag: the panel at the
+    // screen's right edge; the battle screen's build calls it through its address. Sets the new
     // panel up: the world's extent and the map's picture from the local player's zone record (32
     // by 32 and "battle00" without one), the zoom (`zoom` up to zoomMax_), the slide at its far
     // end when `slid`, the seven regions, the twelve sprites, the one-pixel surface at the centre
@@ -1576,7 +1569,7 @@ public:
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
     float centreY_;                  // +0x150
-    float facingX_;                  // +0x154 view direction (normalised by 00642E80)
+    float facingX_;                  // +0x154 view direction (normalised by the camera follow)
     float facingY_;                  // +0x158
     float worldWidth_;               // +0x15C the zone's extent (clipping rectangle 0..width)
     float worldHeight_;              // +0x160
@@ -1606,20 +1599,20 @@ static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
 static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
-// Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
+// Unit panel (0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
-    // Built inline by the battle screen's Create (00635250; ui_battle_setup.cpp): the window, the
+    // Built inline by the battle screen's Create: the window, the
     // owner, the two strings and the two string arrays.
     CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner);
     // 0x00647040 (ui_hud_unit_info.cpp).
     void DrawUnitInfo(CUnit* unitIn);
-    // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
+    // The health bar
     // and number of `unit` (scene objects 10 / 11), and its mana bar and number (12 / 13) when it
     // is one of the party.
     void ShowHealth(CUnit* unit);
-    // 00647B70 (RET 4; ui_hud_panels.cpp). The six body parts of `unit`: the name of each present
+    // The six body parts of `unit`: the name of each present
     // part and, for state 3, its durability bar (scene objects 14 + 2i / 15 + 2i).
     void ShowParts(CUnit* unit);
     void OnMouseDown(int buttons, int x, int y);
@@ -1631,46 +1624,46 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }     // 12
-    // 006481D0 (ui_hud_panels.cpp, A-H25; the battle screen's keys 0063A560 call it after setting
+    // The battle screen's keys call it after setting
     // bodyPart_). The body part buttons (scene objects 3-6): tint 1 for the selected one, 0.5 for
     // the others.
     void ShowBodyPart();
-    // 00646B90 (RET 4; ui_hud_panels.cpp, A-H25; called by the panel's draw 006462A0). The first
+    // The first
     // six effects on `unit`: each one's spell text and time left as two lines of the panel's
     // text, and its spell's picture (scene objects 26 + i, cut from the panel's icon texture,
     // where up to six pictures are kept: effectIcons_). Scene object 9 shows when there are more.
     void ShowEffects(CUnit* unit);
-    // 00635D00 (ui_hud_destroy.cpp; deleting 00635CE0, the input side's 0064BD40): the part labels,
+    // The part labels,
     // texts_, the two strings (+0x168 first), then the window's.
     ~CHudUnitPanel() override;
-    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Rebirth-patched, WideScreen reproduced behind its flag.
     // Places the panel's
     // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
-    // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
+    // tables, the six effect pictures 26-31), its text surface and the
     // regions after the first at the current slide offset.
     void Layout();
     void Update() override { UpdateVanilla(); }
-    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Every frame; Rebirth-patched, WideScreen reproduced behind its flag.
     // A running slide advances (as the map's), the panel is laid out and the sling button (scene
     // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
     // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
     // selected body part.
     void UpdateVanilla();
-    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the panel at the
-    // screen's left edge; the battle screen calls it through its address). `slid` (the
+    // Rebirth-patched: WideScreen reproduced behind its flag, the panel at the
+    // screen's left edge; the battle screen calls it through its address. `slid` (the
     // interface's +0x89) starts the panel at the far end of its slide: offset 180, slide 1,
     // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225) and sliding_ 1 (WideScreen:
     // (-133, 0)-(52, 225) and 0, addon's constants); regions: 0 the sling button, 1-4 the body part buttons
     // (tips 0x2774..0x2778), 5 the whole panel; scene objects 0 / 1 plain backgrounds, 2 the sling
     // button, 3-6 the part buttons (the selected one tinted 1, the others 0.5), 7 the frame, 8 a
     // strip of cells and 9 the "more effects" mark (both hidden), 10-13 the health and mana bars,
-    // 14-25 the body parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures (the
+    // 14-25 the body parts' bars (tables), 26-31 the effects' pictures (the
     // window's second texture); the text surface (20, 0)-(180, 220); Layout; no hover unit; the
     // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
     // appended to the two string arrays; no effect pictures (-1).
     void SetupVanilla(int bodyPart, std::uint8_t slid);
-    // 006462A0 (slot 20, RET 4; ui_hud_unit_draw.cpp, A-E2; Rebirth-patched, WideScreen reproduced behind its flag, W3: the
-    // panel offset until the base draw, the model's x and the depth rectangles moved).
+    // Rebirth-patched, WideScreen reproduced behind its flag: the
+    // panel offset until the base draw, the model's x and the depth rectangles moved.
     // The panel's draw: the background (scene object 0), then for the hover unit, else the selected
     // one, while the panel is not slid away: its model in the panel (not on the info page 2), the
     // device's depth buffer set to 0 around the panel's area for the draw and back to 1 after it,
@@ -1704,13 +1697,13 @@ static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHud
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 static_assert(sizeof(CHudUnitPanel) == 0x1C4);   // CBattleScreen's operator new
 
-// Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
+// Game clock (720..800 x 520..600).
 class CHudClock : public CUiWindow {
 public:
     // Built inline by the battle screen's Create: the window and the owner.
     CHudClock(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
     void OnMouseDown(int buttons, int x, int y);
-    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
+    // Rebirth's MPSpeedControl reproduced behind its flag.
     // The button released over the clock that took it: region 0 toggles the pause (with the
     // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
     // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,
@@ -1721,15 +1714,15 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
+    // Every frame: turns the face with the time of day, the hand and the
     // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
     void Update() override;
-    // 00648F10 (ui_hud.cpp, A-H25; from the clock's click 00648D70). The pause button stops
+    // From the clock's click. The pause button stops
     // pulsing, the click sound, and a new objectives window of the current zone (one button, no
     // exits, no zone list) opened on top.
     void OpenObjectives();
-    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the clock at the
-    // screen's right edge; the battle screen calls it through its address). The clock's rectangle
+    // Rebirth-patched: WideScreen reproduced behind its flag, the clock at the
+    // screen's right edge; the battle screen calls it through its address. The clock's rectangle
     // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
     // corner (800, 600)), 1 the hand (a triangle), 2-5 four "in25arrow" sprites (placed by
     // Update), 6 and 7 two more discs (radius 32 and 80); regions 0-2: the three sectors of pi / 6
@@ -1748,7 +1741,7 @@ static_assert(offsetof(CHudClock, blink_) == 0x14C);
 static_assert(offsetof(CHudClock, highlight_) == 0x158);
 static_assert(sizeof(CHudClock) == 0x15C);   // CBattleScreen's operator new
 
-// Movement panel (set up by 00649190, vtables 00742530 / 007424FC; 0..80 x 520..600). Region 0
+// Movement panel (0..80 x 520..600). Region 0
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
 class CHudMovePanel : public CUiWindow {
 public:
@@ -1761,20 +1754,20 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 00649550 (slot 24, every frame). Shows the selected units' common mode and flag.
+    // Every frame. Shows the selected units' common mode and flag.
     void Update() override;
-    // 00649810 (ui_hud_panels.cpp). Region 0 (and its key): plays the click, sets +0x438 of the
+    // Region 0 (and its key): plays the click, sets +0x438 of the
     // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
     // shows the button's state (scene object 5).
     void ToggleFlag();
-    // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
+    // WideScreen reproduced behind its flag: with the left panels' offset.
     // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
     // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
     // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
     // (0, 600) at depth 8.
     void ShowModeVanilla(int mode);
-    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3,
-    // the panel at the screen's left edge). The rectangle (0, 520)-(80, 600); region 0 the
+    // The panel's Create; Rebirth-patched: WideScreen reproduced behind its flag,
+    // the panel at the screen's left edge. The rectangle (0, 520)-(80, 600); region 0 the
     // quarter disc of radius 34 about the layout's corner (0, 600), regions 1-4 the four sectors
     // of pi / 8 between radius 35 and 80 (tips 0x2904..0x2908); scene objects: 0 the marker (a
     // triangle), 1-4 the four sectors as triangles from the corner (tint 0.7), 5 the middle disc
@@ -1789,7 +1782,7 @@ public:
 static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
 static_assert(sizeof(CHudMovePanel) == 0x154);   // CBattleScreen's operator new
 
-// Top panel (set up by 00649AF0, game.exe's tables 00742498 / 00742464; 180..620 x 0..100). Regions: 0 the sling
+// Top panel (180..620 x 0..100). Regions: 0 the sling
 // button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
 public:
@@ -1804,33 +1797,33 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }     // 12
-    // 0064A320 (ui_hud_panels.cpp). Shows page `page_`: highlights its button (scene objects 3 /
+    // Shows page `page_`: highlights its button (scene objects 3 /
     // 4) and puts its text into the battle screen's message log (page 0 scrolled to the end).
     void ShowPage();
-    // 00649FF0 (slot 24, every frame): slides the panel in or out (ui_hud_frame.cpp).
+    // Every frame: slides the panel in or out (ui_hud_frame.cpp).
     void Update() override;
-    // 00649E20 (ui_hud_panels.cpp). Places the panel's parts, the message log and the regions at
+    // Places the panel's parts, the message log and the regions at
     // the current slide offset.
     void Layout();
-    // 0064A7A0 (ui_hud_panels.cpp). Builds page 1's text: the money ("format_money" with the
+    // Builds page 1's text: the money ("format_money" with the
     // local party's +0x50, when above 0), then the local player's item list (+0xE0) merged by
     // kind (slot 14; counts added) into the world's copies, one item name per line;
     // shown in the message log when page 1 is up.
     void ShowItems();
-    // 00635E00 (ui_hud_destroy.cpp; deleting 00635DE0, the input side's 0064BD80): the two page
+    // The two page
     // texts (page 1 first), then the window's.
     ~CHudTopPanel() override;
-    // 00649AF0 (RET 8; ui_hud_top_panel.cpp). Sets the panel up over 180..620 x 0..100, slid in
+    // Sets the panel up over 180..620 x 0..100, slid in
     // when the low byte of `shown` is set: the two page buttons' and the slide button's regions
     // with their tips (0x27D9 / 0x27DA with 0x32 / 0x33, 0x27D8) and the whole panel's, two plain
     // backgrounds, the "in25arrow" slide arrow, the two page buttons and the frame; then page
     // `page` is shown and the panel laid out (both through their addresses).
     void Build(int page, int shown);
-    // 0064A4E0 (RET 8; ui_hud_top_panel.cpp). Appends "<combat_picked_up or, with the low byte of
+    // Appends "<combat_picked_up or, with the low byte of
     // `crippled`, combat_crippled> <item name>" and a newline to page 0's text, and to the message log when
     // page 0 is up.
     void AddPickedUp(CItem* item, int crippled);
-    // 0064A630 (RET 4; ui_hud_top_panel.cpp). The same with the money ("format_money"), for money > 0.
+    // The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
     mfc::CString& PageText(int page) { return pageTexts_[page]; }
 
@@ -1850,32 +1843,32 @@ static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
-// Base of the screens that hold child windows and extra input handlers (constructor 00600B20; game.exe's
-// tables 00741008 / 00740FD4): the Esc menu, the save/load and options windows, the battle screen. Its input
+// Base of the screens that hold child windows and extra input handlers:
+// the Esc menu, the save/load and options windows, the battle screen. Its input
 // handlers pass an event on to the extra input sides (+0x158) in order, then to the enabled children (for the
 // mouse events only those whose rectangle holds the point, CUiWindow::ContainsPoint), each with its handled flag
 // cleared first, until one sets it; that sets the container's own flag. Most screens keep some of these handlers
 // and call them after their own (ui_container.cpp; docs/notes/ui.md, "Container input dispatch").
 class CUiContainer : public CUiWindow {
 public:
-    // 00600B20 (RET 4; ui_container.cpp): the window base, no children or extra input sides.
+    // The window base, no children or extra input sides.
     explicit CUiContainer(CInterface3D* ui);
-    // 00600BA0 (ui_container.cpp): the extra input sides and the children deleted, both lists freed, then the
-    // window base's. The deleting destructor 00600B80 and its copies (ui_window_delete.cpp).
+    // The extra input sides and the children deleted, both lists freed, then the
+    // window base's. The deleting destructor and its copies (ui_window_delete.cpp).
     ~CUiContainer() override;
 
     void Show(int show) override { ShowChildren(show); }              // 19
-    // 20: 00600EF0 (ui_container_draws.cpp). Nothing when the interface's +0x30 is clear; else the pass state
-    // block, the window's own draw, then every enabled child's slot 20. Returns 1.
+    // (ui_container_draws.cpp). Nothing when the interface's +0x30 is clear; else the pass state
+    // block, the window's own draw, then every enabled child's draw. Returns 1.
     BOOL Draw(int pass) override;
-    // 21: 00600F70 (ui_alpha_draws.cpp). Alpha reference 1 around the region tips and every enabled child's
-    // slot 21, while the interface draws.
+    // (ui_alpha_draws.cpp). Alpha reference 1 around the region tips and every enabled child's
+    // draw, while the interface draws.
     void DrawChild(int pass) override;
     void Redraw() override { RedrawContainer(); }                     // 22
     void RedrawTips() override { RedrawChildTips(); }                 // 23
     void Update() override { UpdateBase(); }                          // 24
-    // The screens' slots the interface calls (CInterface3D): 25 the screen's Create and 26 taken off the screen
-    // (pure in game.exe's table: _purecall), then 27-41 game.exe's shared RET stubs 005795A0-00579680.
+    // The screens' virtuals the interface calls (CInterface3D): the screen's Create and one taken off the screen
+    // (pure here: _purecall), then game.exe's shared empty stubs.
     virtual void CreateScreen();                                       // 25
     virtual void CloseScreen();                                        // 26
     virtual void MessageResult(int) {}                                 // 27: the value a window above left pending when it closed
@@ -1905,24 +1898,24 @@ public:
     int KeyDown(int key, int repeat, int flags) override;
     int Char(int key, int repeat, int flags) override;
     int KeyUp(int key, int repeat, int flags) override;
-    int Wheel(int flags, int delta, int x, int y) override;            // 00601730 (returns 1)
+    int Wheel(int flags, int delta, int x, int y) override;
 
-    // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
-    // seconds: the display object's slot 6 milliseconds * 0.001f, left unrounded in ST0.
+    // (ui_container.cpp; it does not use the window). Time since the last frame in
+    // seconds: the display object's millisecond reading * 0.001f, left unrounded in ST0.
     static double FrameTime();
-    // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
+    // Base update: every child's update.
     void UpdateBase();
-    // 00601040 (ui_container.cpp). Base slot 22, only while the interface draws (+0x30): the
-    // window's own, then every enabled child's slot 22.
+    // Base redraw, only while the interface draws (+0x30): the
+    // window's own, then every enabled child's.
     void RedrawContainer();
-    // 00601090 (ui_container.cpp). Base slot 23 likewise: 005FED00, then the enabled children's.
+    // Base update of the tooltips likewise: the window's, then the enabled children's.
     void RedrawChildTips();
     // Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
-    // 00600CC0 (RET 4; ui_container.cpp). Appends an extra input side (null is ignored).
+    // Appends an extra input side (null is ignored).
     void AddInput(UiInputSide* input);
-    // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
-    // then every enabled child's slot 19 with `show`.
+    // The containers' show / hide (ui_container.cpp). The window's own surfaces
+    // then every enabled child's with `show`.
     void ShowChildren(int show);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
@@ -1941,40 +1934,40 @@ inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContain
 
 // --- Battle screen --------------------------------------------------------------------------
 // The battle screen's "pers" texts (an STLport map<int, CString> at +0x1F0): a person's text by
-// its text key id. find(key) is what the original inlines (ui_battle_mouse.cpp).
+// its text key id. find(key) is what the game inlines (ui_battle_mouse.cpp).
 using PersonTextMap = stlp::map<int, mfc::CString>;
 using PersonTextNode = PersonTextMap::Node;
 static_assert(offsetof(PersonTextNode, second) == 0x14);
 
-// The in-game screen (CreateScreen id 1, vtables 00740764 / 00740730, 0x230 bytes; created by
-// original code). Its Create (slot 25, 00635250) builds the HUD panels as children
+// The in-game screen (CreateScreen id 1, 0x230 bytes; created by
+// the interface). Its Create builds the HUD panels as children
 // (ui_battle_setup.cpp). Children, in order: weapon bar, quick items, spell column, action column,
 // portraits, unit panel, map, clock, movement panel, message log, top panel. See
 // docs/notes/ui.md, section 6.
 class CBattleScreen : public CUiContainer {
 public:
-    // 00638EF0 (ui_hud.cpp). A click on `unit` (or, without one, at screen point x, y) while
+    // A click on `unit` (or, without one, at screen point x, y) while
     // party members are selected: by the pending action (+0x17C: 0 select / attack / move, 1 spell
     // on a unit, 2 and 4 spell on a point, 3 quick item, 5 item and 6 spell on an object, 7 follow,
     // 8 order on an object) or the interface's modifier keys; with nobody selected it selects the
     // clicked member. Rebirth's FixSpellSelfCasting #1 drops the Ctrl flag of a spell on a unit.
     void SelectUnit(CUnit* unit, int x, int y);
-    // 00639EF0 (RET 0xC; ui_battle_hover.cpp). The mouse is over `unit` (or, without one, at
+    // The mouse is over `unit` (or, without one, at
     // screen point x, y): a live unit with flag 0x400000 goes into the unit panel's hover block
     // (+0x150), otherwise the block is emptied; with party members selected the cursor shows what
     // a click would do (exit 15, the flags +0x18D.. 16+i, attack 1, cast 2 / can't 0x17, use 4,
     // no 0xD, order 0x18), by the pending action +0x17C as SelectUnit reads it.
     void HoverUnit(CUnit* unit, int x, int y);
-    // 00636F10 (RET 0x14; ui_hud.cpp). Orders the selected party units to the point (x, y, z):
+    // Orders the selected party units to the point (x, y, z):
     // a point on a zone exit whose "z.<zone>" variable is not 1 is remembered (exitPending_,
     // pendingExit_ the exit); each selected member's portrait nods after a random delay and the
-    // local view gets the order (0066A7D0, or 0066A720 when the low byte of `mode` is set) with the
+    // local view gets the order (a different one when the low byte of `mode` is set) with the
     // low byte of `ctrl`. SelectUnit calls it for a click on the ground (mode 0) or with a modifier
     // (mode 1).
     void OrderAt(float x, float y, float z, int mode, int ctrl);
-    // Inlined by the original wherever a HUD button starts or drops an action (the switch at
-    // 0063EE29 / 0063DF0C, and 0063FB50's tail): the pending action becomes `mode` on `slot` with
-    // `item`, every highlight of the quick item panel (0063CD20 per slot), the spell column and
+    // A HUD button starts or drops an action (several buttons do this inline):
+    // the pending action becomes `mode` on `slot` with
+    // `item`, every highlight of the quick item panel (per slot), the spell column and
     // the action column is dropped (each panel's +0x150 -1), and `slot` is highlighted in the
     // panel of that mode (1, 2 the spell column; 3-6 the quick items; 7, 8 the actions; others
     // none). Mode 0 with slot and item -1 cancels (ui_hud_pick.cpp).
@@ -1983,29 +1976,29 @@ public:
     // Reads the screen's saved state when a game is being loaded, else
     // remembers the local player's first hero; creates the panels and the "pers" texts table.
     void CreateScreen() override;
-    // 00636020 (slot 20; `pass` the scene renderer). Draws the screen: the menu object's frame call,
+    // `pass` the scene renderer. Draws the screen: the menu object's frame call,
     // the viewport (with +0x1C1), a mouse move at the current position, clears the depth (and
     // stencil) buffer, then the panels. Rebirth's AddNewConsoleCommands applies "nogui"
     // first. Returns 1.
     BOOL Draw(int pass) override;
-    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit is
-    // dead (its slot 55, IsDead), empties the weapon, quick item, spell and action panels and shows the
+    // Every frame (ui_battle_update.cpp). When the one selected party unit is
+    // dead (IsDead), empties the weapon, quick item, spell and action panels and shows the
     // unit in the unit panel; a multiplayer client rebuilds the party from the session's players
     // (sorted ids; the camera's player first); the children's update, the next queued message;
     // the "leave_zone" box when a saved zone exit is pending (+0x18C); with a selection box
     // (+0x1C1) the party units inside +0x1CC are marked (flag 0x100) and the others unmarked; the
     // quest sound asked for in +0x1FC.
     void Update() override;
-    // 00638B30 (input side slot 3, RET 0xC; ui_battle_update.cpp; `this` the window). The left
+    // Input side `this` is the window (ui_battle_update.cpp). The left
     // button released: nothing while a portrait click picks a player (+0x22C); without a press on
     // the view (+0x1C0) the container's handler; a press without a drag (+0x1C1), or on
-    // a network client, is a click on the unit under the point (00565E40, units with flag
+    // a network client, is a click on the unit under the point (units with flag
     // 0x400000 only) through SelectUnit; a drag selects the party units inside the box
-    // (+0x1CC): the world's selection cleared (00566100 with 0), the box marks and portraits'
+    // (+0x1CC): the world's selection cleared, the box marks and portraits'
     // markers reset, each unit inside controlled with its portrait marked and its face
-    // turned (about -x by kHudQuarterTurn / 7), then slot 32 with the first one's id; then 00637DC0.
+    // turned (about -x by kHudQuarterTurn / 7), then the speech event with the first one's id; then RefreshSelection.
     void OnLButtonUp(int buttons, int x, int y);
-    // 00639D60 (input side slot 4, RET 0xC; ui_battle_mouse.cpp; `this` the window). The mouse
+    // Input side `this` is the window (ui_battle_mouse.cpp). The mouse
     // moved (also every frame from Draw, at the current position): while a portrait click picks a
     // player (+0x22C) the cursor shape 0xD and the portraits' own mouse move; otherwise shape 0,
     // then with a press on the view (+0x1C0), a positive BoxSelectThreshold and not a network
@@ -2013,28 +2006,28 @@ public:
     // the selection box (+0x1C1), which empties the unit panel's hover unit and spans the press
     // point and (x, y) (+0x1CC); before that the unit under the point is hovered at once.
     // Without a press the container's handler first, and when no panel took the move
-    // the unit under the point (00565E40, any flags) goes to HoverUnit.
+    // the unit under the point (any flags) goes to HoverUnit.
     void OnMouseMove(int buttons, int x, int y);
-    // 00638A40 (input side slot 2, RET 0xC; ui_battle_mouse.cpp; `this` the window). The left
+    // Input side `this` is the window (ui_battle_mouse.cpp). The left
     // button went down: while a portrait click picks a player (+0x22C) the portraits' own handler
     // (slot 2) gets it; otherwise, unless a press on the view is already on (+0x1C0), the
     // container's handler first, and when no panel took it a press on the view starts:
     // +0x1C0 set, the point kept (+0x1C4), no drag (+0x1C1).
     void OnLButtonDown(int buttons, int x, int y);
-    // 00638AD0 (input side slot 7, RET 0xC; ui_battle_input.cpp; `this` the window). A double
+    // Input side `this` is the window (ui_battle_input.cpp). A double
     // click: as the button-down with the container's double-click handler.
     void OnLeftDouble(int buttons, int x, int y);
-    // 00638A10 (input slot 1; ui_battle_input.cpp). The screen loses the top: the order keys and
-    // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's slot 1.
+    // The screen loses the top (ui_battle_input.cpp): the order keys and
+    // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's handler.
     void OnDeactivate();
-    // 0063A560 (input side slot 9, RET 0xC; Rebirth's MPSpeedControl reproduced behind its flag;
-    // ui_battle_keys.cpp). A key pressed. While a portrait click picks a
+    // A key pressed (ui_battle_keys.cpp; Rebirth's MPSpeedControl reproduced behind its flag;
+    // input side `this` is the window). While a portrait click picks a
     // player, Esc ends that and nothing else happens. On a network client Enter / Backspace go to
     // the chat line and the key is used. Otherwise the container's handler
     // first; a key nobody used and not repeating: Esc drops the pending action with
-    // every panel's highlight, or without one opens the escape menu (built inline: 0x168 bytes,
-    // vtables 007412A4 / 00741270); any other key by its action (KeyActions, by `flags & 0x1FF`):
-    // 1 pause (the clock's sound, 00578D30 with the opposite of 00578D50), 2 / 3 normal / fast
+    // every panel's highlight, or without one opens the escape menu (built inline: 0x168 bytes);
+    // any other key by its action (KeyActions, by `flags & 0x1FF`):
+    // 1 pause (the clock's sound), 2 / 3 normal / fast
     // speed (not while paused or on a network client: the clock's +0x154, the world's update
     // period 55 / 27 ms, the interface's +0x94), 4 the objectives window of the player's zone,
     // 0xB the camera follows the first selected member (or nobody), 0xC the camera faces north
@@ -2046,26 +2039,26 @@ public:
     // choice already shown slides it away), 0x34 the map slides, 0x35 / 0x36 quick save / load
     // ("saveq"), 0x37..0x39 party members 0..2 (ToggleMember; with Ctrl or Alt the camera follows
     // the member), 0x3A every member selected (not on a network client), 0x3B the message window
-    // (005F8A80 with 1). Pause, the objectives, the movement keys, the message window and the
+    // opens). Pause, the objectives, the movement keys, the message window and the
     // escape menu mark the key used.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0063B6D0 (input side slot 11, RET 0xC; ui_battle_input.cpp). A key released: unless a
+    // A key released (ui_battle_input.cpp; input side `this` is the window). Unless a
     // portrait click picks a player, the container's key-up handler, then the order
     // key of the key's action (0x11..0x16 of the key table, by `flags & 0x1FF`) is released.
     void OnKeyUp(int key, int repeat, int flags);
-    // 0063B770 (input side slot 12, RET 0x10; ui_battle_input.cpp). The wheel: unless a portrait
+    // The wheel (ui_battle_input.cpp; input side `this` is the window). Unless a portrait
     // click picks a player, offered to the map, the unit panel, the message log and the top panel
     // in that order (each one's handled flag cleared first, the first that sets it ends it); when
-    // none takes it, those four are disabled (006002A0 with 0, 0) while the container's wheel
-    // handler passes it on, then enabled again (1, 0). Returns 1.
+    // none takes it, those four are disabled while the container's wheel
+    // handler passes it on, then enabled again. Returns 1.
     BOOL OnWheel(int flags, int delta, int x, int y);
-    // 0063B920 (RET 8; ui_battle_mouse.cpp). The name of `unit` into `out`: its GetName (slot 7)
+    // The name of `unit` into `out`: its GetName
     // when not empty; for a unit whose id is a text key, its "pers" text (+0x1F0) or empty;
     // otherwise the first line of the text "unit " + the prototype's name with spaces as '_' (or
     // empty without such a text). The unit panel, the hover, the selection and speech lines use it.
     void UnitName(CUnit* unit, mfc::CString* out);
-    // 006369D0 (slot 33, RET 8; ui_battle_update.cpp). A "q." player variable changed while the
-    // screen is on top (the quest log 005F7FC0 passes it on). `name` split at '.': three parts
+    // A "q." player variable changed while the
+    // screen is on top (the quest log passes it on). `name` split at '.': three parts
     // (q.<zone>.<quest>) a quest line, "combat_get_quest" / "_complete_" (value 2) / "_failed_"
     // (3), then the quest's title (text "quest <quest>"); four parts (a sub-objective) the same
     // with "_subobj" and the "#subobj <n>" line, skipped on a single player whose variable
@@ -2073,69 +2066,69 @@ public:
     // unless +0x160, the message log; the clock pulses, +0x1FC becomes at least the value (1 for
     // a failure, 3 for a completed quest).
     void OnQuestVariable(const char* name, float value);
-    // 00637DC0 (ui_battle_update.cpp; called when a unit joins (slot 29) or leaves (slot 30) the
-    // party, after items are picked up (slot 28), by the member toggle 006379E0, a box drag and a
+    // Called when a unit joins or leaves the
+    // party, after items are picked up, by the member toggle, a box drag and a
     // network client's party change). The selection changed: with exactly one living party unit
     // selected the weapon bar, quick items, spell and action columns show it, otherwise they are
     // emptied (the action column keeps its extra button while anyone is selected); the unit panel
-    // (+0x14C, +0x15C / +0x154 from the prototype's +0x20 / +0x24, 0063B920) shows the first
+    // (+0x14C, +0x15C / +0x154 from the prototype's +0x20 / +0x24) shows the first
     // selected unit (null with nobody selected) when it changed; the pending action (+0x17C 0,
     // +0x180 / +0x184 -1) and every panel highlight are cleared.
     void RefreshSelection();
-    // 006379E0 (RET 4; ui_battle_commands.cpp). Party member `index` clicked (its portrait or
-    // body, SelectUnit 00638EF0; the member keys of 0063A560): nothing on a network client or
+    // Party member `index` clicked (its portrait or
+    // body, SelectUnit; the member keys): nothing on a network client or
     // for an index past the party. The selection is the members' flag 0x10 (as 0x10 or 0); with
     // the interface's +0x7D the member flips (to 1 / 0), else it alone is chosen (1). The world's
-    // selection is cleared (00566100 with 0); each portrait's marker (+0x220) gets the chosen
+    // selection is cleared; each portrait's marker (+0x220) gets the chosen
     // value and its face's rest orientation the turn about -x by kHudQuarterTurn / 7 (or the identity);
-    // each chosen member is controlled and the clicked one gets slot 32 (id, 0, 0). In
-    // single player (007B0098 1) the local player's unit records (+0x778) follow flag 0x10; then
+    // each chosen member is controlled and the clicked one gets a speech event (id, 0, 0). In
+    // single player the local player's unit records (+0x778) follow flag 0x10; then
     void ToggleMember(int index);
     // The selected members attack `target`: the order kind is the first of the
     // six modifier flags +0x18D.. that is set (6 for none); each selected member's portrait nods
     // after a random delay and, when the target is more than five levels above it, the member
-    // speaks (slot 32 with event 10); the local view gets the order with the low byte
+    // speaks (speech event 10); the local view gets the order with the low byte
     // of `ctrl` (the interface's +0x7F).
     void AttackUnit(CUnit* target, int ctrl);
-    // The same for a dead `target` (0066AB80; no kind, no levels).
+    // The same for a dead `target` (no kind, no levels).
     void OrderDeadUnit(CUnit* target, int ctrl);
-    // 00637500 (RET 0xC; ui_battle_commands.cpp). The pending spell (+0x17C 1) or quick item (3) in
+    // The pending spell (+0x17C 1) or quick item (3) in
     // slot +0x180 used on `target` by each selected member: `quick` 0 a spell (the local view's
-    // 0066AC70 (slot, member, target, low byte of `ctrl`), then CUnit::CanCastSpell), else a quick
-    // item (0066AD40, the quick item panel shows the member, CUnit::CanUseQuickItem);
+    // order (slot, member, target, low byte of `ctrl`), then CUnit::CanCastSpell), else a quick
+    // item (the quick item panel shows the member, CUnit::CanUseQuickItem);
     // when the check answers 0 the member's portrait nods after a random delay. Then the pending
     // action is dropped (+0x17C 0, +0x180 / +0x184 -1) and the quick item, spell and action
     // panels' highlights cleared.
     void UseOnUnit(CUnit* target, char quick, int ctrl);
-    // 00637750 (RET 0x14; ui_battle_commands.cpp). The same at the point (x, y, z) (0066ACD0 /
-    // 0066ADD0 with the point and 0). For the member that is `unit` itself the point first moves
+    // The same at the point (x, y, z).
+    // For the member that is `unit` itself the point first moves
     // 0.1 behind it (against its rotated Y axis), for it and the members after it.
     void UseAtPoint(float x, float y, float z, CUnit* unit, char quick);
-    // The unit with `id` (the object manager 007AF5F8) speaks: a
-    // phrase picked by 006D8430 (or, for events 0x2A / 0x2B, 006D8A40 with `extra`); when its
+    // The unit with `id` speaks: a
+    // phrase picked by the speech lookup (or, for events 0x2A / 0x2B, another with `extra`); when its
     // "say <name>" text exists, the unit's name line + ":\n" and the text (to a '#',
     // CR / LF trimmed, + "\n") are appended to the top panel's text and, unless its +0x160, the
     // message log. Then event 0x30 shows that member's timed face (+0x48 1, +0x4C 0), events
     // 0xB..0x15 make its portrait shake (kind 2) after a random delay.
     void OnUnitSpeech(int id, unsigned event, char* extra);
 
-    // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
+    // Virtuals of the screen.
     // The screen closes: the camera back to free placement (kFree), the world
-    // update period 55 ms, the cursor no longer held, the client glue's 00578920(1) / 00578940, and
+    // update period 55 ms, the cursor no longer held, the client glue's stop calls, and
     // the party emptied (SetSize(0, -1)).
     void Close();
-    // 006360F0 (slot 35, AL; the interface polls it every frame until it answers true). After a new
+    // Polled every frame by the interface until it answers true. After a new
     // game (hasHero_): the camera follows the first party unit, the autosave "savea" when the
-    // option 0079BE7C is on, hasHero_ cleared, then the help topic (005F86F0 with 0). Returns 1.
+    // autosave option is on, hasHero_ cleared, then the help topic. Returns 1.
     bool PollShown();
     // Items were picked up: each item of `items` gives the top panel's
-    // "picked up" line (0064A4E0 with `crippled`), the money its line, the top panel shows
+    // "picked up" line (CHudTopPanel's picked-up line with `crippled`), the money its line, the top panel shows
     // its page, then RefreshSelection.
     void OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled);
     // `unit` left the party: removed from the party array (the rest
-    // moved down), the portraits rebuilt (006407E0 with 0) and RefreshSelection; nothing when it is
+    // moved down), the portraits rebuilt and RefreshSelection; nothing when it is
     // not in the party. A network client instead empties the top panel's page-0 text and, while the
-    // panel shows page 0, the message log's (0065CFE0 with "").
+    // panel shows page 0, the message log's (set to "").
     void OnUnitLeft(CUnit* unit);
     // Writes the screen's part of a save game into the save stream:
     // the count and ids of the selected party units (flag 0x10), the map's zoom, the interface's
@@ -2147,7 +2140,7 @@ public:
     // (LocalPlayerData +0x30 / +0x34, 0x784 bytes, unit id +0x1C) it goes after the party units
     // that come before that record in record order (the array grown by one, the tail moved up), and
     // the record's selection byte (+0x778) decides; otherwise it is appended, not selected (the
-    // place used below is then the count of records matched). The portraits are rebuilt (006407E0
+    // place used below is then the count of records matched). The portraits are rebuilt; a selected unit is controlled and its portrait marked (MarkPortrait). When
     // with 0); a selected unit is controlled and its portrait marked (MarkPortrait). When
     // its id is among heroes_ (the save's selection) it is taken out of heroes_, controlled and
     // marked. Then RefreshSelection.
@@ -2157,25 +2150,25 @@ public:
     void MarkPortrait(int index);
     // A message box's answer: 0x10001 (the "leave_zone" question) leaves
     // through the saved exit pendingExit_; 0x20001 (game over: load) opens the load
-    // window (built inline: 0x194 bytes, vtables 00741388 / 00741354; flags written even when the
+    // window (built inline: 0x194 bytes; flags written even when the
     // allocation failed); 0x20002, 0x90001 and 0x100001 close every window (+0x44), drop the sessions
     // and leave the game.
     void OnMessageResult(int result);
-    // The game ends: 00578920(1) / 00578940, then lost (`won` 0): the
+    // The game ends: the client glue's stop calls, then lost (`won` 0): the
     // game-over sound and the box "game_over" / "game_over_msg" (result 0x20000, OK and cancel);
-    // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top (005F7350 with 1, 1).
+    // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top.
     void OnGameOver(char won);
-    // 005F5FB0 (slot 38, RET 4; ui_small_members.cpp). portraitMode_ = `mode` (a portrait click
+    // portraitMode_ = `mode` (a portrait click
     // picks a player while it is not 0).
     void SetPortraitMode(int mode);
-    // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 1; ui_create_screen.cpp): the
+    // Built inline by CInterface3D::CreateScreen (screen 1; ui_create_screen.cpp): the
     // container, the party and hero arrays, the "pers" texts, the client party's ids, the item key.
     explicit CBattleScreen(CInterface3D* ui);
-    // 005F6130 (ui_window_delete.cpp; deleting 005F5FC0, the input side's 005FC0E0): the two party
-    // id vectors' storage, the "pers" texts (every node erased, 005FAFA0, then the header), the hero
+    // (ui_window_delete.cpp): the two party
+    // id vectors' storage, the "pers" texts (every node erased, then the header), the hero
     // ids and the party array (their vtables, storage freed), then the container's.
     ~CBattleScreen() override;
-    // The slots of its own in game.exe's tables 00740764 / 00740730.
+    // The virtuals of its own.
     void CloseScreen() override { Close(); }                                                         // 26
     void MessageResult(int result) override { OnMessageResult(result); }                             // 27
     void ItemsPicked(void* items, int money, int crippled) override {                                // 28
@@ -2201,10 +2194,10 @@ public:
     // player's id, the ids of the others. Compared and copied as a whole.
     using IdVector = stlp::vector<int>;
     struct PartyIds {
-        // 005F6080 (ui_small_members.cpp). Constructor: both id vectors empty (begin, end and
+        // Constructor: both id vectors empty (begin, end and
         // capacity null); the camera id is not written. Returns this.
         PartyIds* Construct();
-        // 006381E0 (RET 4; ui_battle_update.cpp). Both id vectors hold the same ids in the same
+        // Both id vectors hold the same ids in the same
         // order (the camera's id is not compared). AL.
         bool Equals(const PartyIds& other) const;
 
@@ -2215,7 +2208,7 @@ public:
 
     int spare_;                      // +0x164 0 from Create; nothing in the screen's slots reads it
     // +0x168 the player's units shown as portraits (CArray<CUnit*>, UnitPtrArrayClass; SetSize
-    // 005EBDB0).
+    // the SetSize of UnitPtrArrayClass)
     mfc::CArray<CUnit*> party_;
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
@@ -2227,8 +2220,8 @@ public:
     // (version 0x62); Create sets -1 / 0 otherwise.
     int pendingExit_;                // +0x188
     std::uint8_t exitPending_;       // +0x18C
-    // +0x18D the order modifier keys held: key actions 0x11..0x16 (key table 0079BF70) set by the
-    // key-down handler 0063A560 and cleared by the key-up one; AttackUnit's order kind
+    // +0x18D the order modifier keys held: key actions 0x11..0x16 (the key table) set by the
+    // key-down handler and cleared by the key-up one; AttackUnit's order kind
     // is the first one set. Create clears them (a dword and a word).
     std::uint8_t orderKeys_[6];
     std::uint8_t unused_193;
@@ -2250,14 +2243,14 @@ public:
     std::uint8_t unused_1C2[0x1C4 - 0x1C2];
     int pressX_;                     // +0x1C4 where the button went down on the view (screen)
     int pressY_;                     // +0x1C8
-    RECT selectionBox_;              // +0x1CC the box (passed to 005656A0)
+    RECT selectionBox_;              // +0x1CC the box
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
     PersonTextMap personTexts_;      // +0x1F0 the "pers" texts by person
     int questSound_;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
     std::uint8_t unused_201[3];
     PartyIds clientParty_;           // +0x204 the client's party ids last built (camera -1 from Create)
-    // +0x220 the key a player's item gives (its slot 21) when it starts mode 6 ({1, 0, 0} from the
+    // +0x220 the key a player's item gives (the item's key virtual) when it starts mode 6 ({1, 0, 0} from the
     // constructor, LockKey::ConstructItemUseKey); SelectUnit and the hover hand it to the target's
     // AcceptsKey (map object slot 42).
     LockKey itemUseKey_;
@@ -2277,64 +2270,63 @@ static_assert(offsetof(CBattleScreen, clientParty_) == 0x204 && sizeof(CBattleSc
 static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220 && offsetof(CBattleScreen, portraitMode_) == 0x22C);
 static_assert(sizeof(CBattleScreen) == 0x230);
 
-// A scroll bar (vtables 00742C18 / 00742BE4, constructor 0065AEA0; the battle screen's message
-// log 0065CC00 derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.
+// A scroll bar (the battle screen's message
+// log derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.
 class CUiScrollbar : public CUiWindow {
 public:
     // The position; returns 1 (and clears the flag) when it moved since the last call.
     BOOL TakePosition(int* position);
-    // 0065AEA0 (RET 0x20; ui_scrollbar.cpp, A-H19). A window of `ui` with the "Scrollbar" texture
+    // A window of `ui` with the "Scrollbar" texture
     // (kind 3), four sprites (track, thumb, up, down) and three regions, laid out over `rect`
     // (SetRect, called directly) at `depth`, `maximum` positions, scrolling `speed` lines per
     // second; then SetPosition(0) from -1.
     CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
-    // 0065AFC0 (and the slider's 0065BCB0; ui_control_delete.cpp; deleting 0065AFA0 / 0065BC90, the
-    // input sides' 0065CB70 / 0065CB80): only the window's.
+    // The window's destructor only (and the slider's; ui_control_delete.cpp): only the window's.
     ~CUiScrollbar() override;
-    // 0065B360 (slot 24, every frame). Scrolls while an arrow is held: whole steps of the
-    // accumulated amount move the position (virtual slot 25, SetPosition).
+    // Every frame. Scrolls while an arrow is held: whole steps of the
+    // accumulated amount move the position (SetPosition).
     void Update() override;
     void OnMouseDown(int buttons, int x, int y);   // thumb drag or an arrow
     void OnMouseUp(int buttons, int x, int y);
-    // 0065B1A0 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). While the thumb is dragged
+    // Input side (ui_scrollbar.cpp). While the thumb is dragged
     // (state 1): the position under the mouse (layout coordinates less the grab offset, over the
-    // track's height times the maximum, truncated by _ftol) through slot 25. The event is used
+    // track's height times the maximum, truncated by _ftol) through SetPosition. The event is used
     // either way.
     void OnMouseMove(int buttons, int x, int y);
-    // 0065B430 (input slot 12, RET 0x10; ui_scrollbar.cpp). Over the track (region 2) the wheel
+    // Input side (ui_scrollbar.cpp). Over the track (region 2) the wheel
     // scrolls: the accumulated amount less delta (its low 16 bits) times speed_ over 120 (Update
     // applies it), the event used. Returns 1.
     int OnWheel(int flags, int delta, int x, int y);
-    // 0065B0C0 (slot 25 of the plain bar, RET 4). `position` clamped to 0..maximum, moved_ set;
+    // SetPosition of the plain bar. `position` clamped to 0..maximum, moved_ set;
     // a new position moves the thumb sprite (1) and thumb_ along the track: the offset is the
     // track's height times the position over the maximum, truncated.
     virtual void SetPosition(int position);
-    // 0065B490 (slot 26 of the plain bar, RET 4; 0065D0A0 for the scrolling text). rect_, the track
+    // SetRect of the plain bar (and the scrolling text's). rect_, the track
     // (the right 10 pixels less 26 at either end), the four sprites and the three regions (up arrow,
-    // down arrow, the rest); then the position set again through slot 25 (one below first, so it
+    // down arrow, the rest); then the position set again through SetPosition (one below first, so it
     // counts as a change).
     virtual void SetRect(const RECT* rect);
-    // The input side (game.exe's 00742BE4): the thumb and arrows by the left button, the drag, the wheel.
+    // The input side: the thumb and arrows by the left button, the drag, the wheel.
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }       // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }           // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }      // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }       // 12
-    // 0065AFE0 (RET 4; ui_scroll_text.cpp, A-H20). The maximum (negative: 0), moved_ set, the four
-    // sprites shown only for a maximum above 0; then the position set again through slot 25 (one
+    // The maximum (negative: 0), moved_ set, the four
+    // sprites shown only for a maximum above 0; then the position set again through SetPosition (one
     // below first, so it counts as a change).
     void SetMaximum(int maximum);
-    // 0065B720 (ui_scroll_text.cpp). The maximum position.
+    // The maximum position.
     int Maximum() const;
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
     int position_;                   // +0x150
-    // +0x154 the thumb's track (layout coordinates; the options slider 0065B8B0: left + 26 ..
-    // right - 26 over the bottom 10 pixels). DR-H16: named from the slider's SetRect only.
+    // +0x154 the thumb's track (layout coordinates; the options slider: left + 26 ..
+    // right - 26 over the bottom 10 pixels). Named from the slider's SetRect only.
     RECT track_;
     RECT thumb_;                     // +0x164 layout coordinates
     int grabX_;                      // +0x174 mouse offset from the thumb centre while dragging
     int grabY_;                      // +0x178
-    // +0x17C the sprites' depth: the constructor's first float (0065AEA0 stores its float
+    // +0x17C the sprites' depth: the constructor's first float (the constructor stores its float
     // arguments at +0x17C and +0x14C, the int at +0x148); the slider's SetRect places its four
     // sprites at it.
     float depth_;
@@ -2349,25 +2341,25 @@ static_assert(offsetof(CUiScrollbar, thumb_) == 0x164);
 static_assert(offsetof(CUiScrollbar, depth_) == 0x17C);
 static_assert(sizeof(CUiScrollbar) == 0x18C);
 
-// The options window's horizontal slider (0x18C bytes, vtables 00742CBC / 00742C88): a scroll bar
-// whose slot 26 lays it out along the bottom of its rectangle. Sprites (scene objects): 0 the
+// The options window's horizontal slider (0x18C bytes): a scroll bar
+// whose SetRect lays it out along the bottom of its rectangle. Sprites (scene objects): 0 the
 // track, 1 the thumb, 2 the right arrow, 3 the left arrow, all turned a quarter turn about z;
 // regions 0 the left arrow, 1 the right arrow, 2 the track. ui_options.cpp.
 class CUiSlider : public CUiScrollbar {
 public:
-    // 0065BC30 (RET 0x20; ui_scrollbar.cpp): the scroll bar's, then the slider's tables.
+    // The scroll bar's, then the slider's tables.
     // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
     CUiSlider(CInterface3D* ui, RECT rect, float depth, int maximum, float speed)
         : CUiScrollbar(ui, rect, depth, maximum, speed) {}
-    // 0065B730 (slot 25, RET 4; ui_scrollbar.cpp, A-H20). The scroll bar's SetPosition along the
+    // The scroll bar's SetPosition along the
     // track's width: the thumb sprite at (track left + offset, track top + 5), the thumb 28 wide
     // and 10 high.
     void SetPosition(int position) override;
-    // 0065B810 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). The scroll bar's drag along x.
+    // Input side (ui_scrollbar.cpp). The scroll bar's drag along x.
     void OnMouseMove(int buttons, int x, int y);
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     // Lays the slider out over `rect` (layout coordinates) and sets
-    // the position again (through slot 25, so it counts as moved).
+    // the position again (through SetPosition, so it counts as moved).
     void SetRect(const RECT* rect) override;
 };
 static_assert(sizeof(CUiSlider) == 0x18C);
@@ -2378,13 +2370,13 @@ static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 namespace mfc { class CString; }
 
 // The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, type 1) or a word (0x10
-// bytes, type 2) over the base token (game.exe's tables: the base 00742F24, the format token 00742F28, the word
-// 00742F20, each one slot: the deleting destructor). Made by CUiScrollText::Tokenize (ui_scroll_text.cpp).
+// bytes, type 2) over the base token (each with one virtual: the deleting destructor).
+// Made by CUiScrollText::Tokenize (ui_scroll_text.cpp).
 struct UiFormatToken;
 struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int type) : type_(type) {}
-    // 0065D960 (ui_scroll_text.cpp; deleting 0065D8A0): nothing of its own.
+    // Nothing of its own (ui_scroll_text.cpp).
     virtual ~UiTextToken();
     // The game's heap (null without memory: then no constructor runs).
     static void* operator new(std::size_t size) noexcept;
@@ -2399,7 +2391,7 @@ struct UiTextToken {
 struct UiFormatToken : UiTextToken {
     // The format token in `font` (inlined by Tokenize): no line break, the constructor's colour.
     explicit UiFormatToken(int font);
-    // 0065D8E0 (deleting 0065D8C0): nothing of its own.
+    // Nothing of its own.
     ~UiFormatToken() override;
 
     bool newline_;                   // +0x08 a line break (a newline token, or a font change after
@@ -2412,7 +2404,7 @@ static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
     // An empty word of width 0 (inlined by Tokenize).
     UiWordToken() : UiTextToken(2), width_(0) {}
-    // 0065D910 (deleting 0065D8F0): the text released (a member), then the base's.
+    // The text released (a member), then the base's.
     ~UiWordToken() override;
 
     mfc::CString text_;              // +0x08
@@ -2422,59 +2414,59 @@ static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x0
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-// MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
+// MFC CArray of token pointers (ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
-// A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only
+// A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; only
 // the two fields DrawLines reads, the record's size is not known).
 struct UiTextLine {
     int height_;                     // +0x00 pixels
     int firstToken_;                 // +0x04 index in the token array
 };
 
-// A scrolling text: a scroll bar subclass (constructor 0065CC00) showing tokenised text; the
+// A scrolling text: a scroll bar subclass showing tokenised text; the
 // battle screen's message log and the objectives window's quest log.
 class CUiScrollText : public CUiScrollbar {
 public:
-    // 0065CC00 (RET 0x1C; ui_scroll_text.cpp, A-H20). A scroll bar over `rect` (by value) at
+    // A scroll bar over `rect` (by value) at
     // `depth` (maximum 0, 20 lines per second), the two arrays, a surface over the rectangle
     // (format 5; null when the allocation fails), laid out as SetRect without the virtual call,
-    // then `text` tokenised and laid out, position 0 (slot 25, then the plain bar's SetPosition),
-    // justified (align_ 2). game.exe's tables 00742E9C / 00742E68.
+    // then `text` tokenised and laid out, position 0 (SetPosition, then the plain bar's SetPosition),
+    // justified (align_ 2).
     CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth);
-    // 0065CE20 (ui_scroll_text.cpp; deleting 0065CE00, the input side's 0065E2B0). The tokens
-    // deleted (slot 0), the lines freed, both arrays' storage freed, then the scroll bar's.
+    // (ui_scroll_text.cpp). The tokens
+    // deleted, the lines freed, both arrays' storage freed, then the scroll bar's.
     ~CUiScrollText() override;
-    // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
+    // Appends `text`: scrolled to the end first, then kept
     // that far from the end (the position plus the growth of the maximum).
     void AddText(const char* text);
-    // 0065CFE0 (RET 4; ui_scroll_text.cpp). Replaces the text (Clear, the new tokens laid out) and
+    // Replaces the text (Clear, the new tokens laid out) and
     // scrolls to the top.
     void SetText(const char* text);
-    // 0065D0A0 (slot 26, RET 4; ui_scroll_text.cpp). The scroll bar's SetRect, then the
+    // The scroll bar's SetRect, then the
     // surface moved to the rectangle's corner and the text laid out over it (PlaceText).
     void SetRect(const RECT* rect) override;
-    // 0065D120 (slot 20, RET 4; ui_scroll_text.cpp). Draws the lines again when the position
+    // Draws the lines again when the position
     // moved, then the window's base drawing; returns its result (1).
     BOOL Draw(int pass) override;
-    // 0065D450 (ui_scroll_text.cpp). Every token deleted and the token array emptied (the lines
+    // Every token deleted and the token array emptied (the lines
     // stay until the next layout).
     void Clear();
-    // 0065DAA0 (ui_scroll_text.cpp). Breaks the tokens into lines (UiTextLine, 8 bytes each) no
+    // Breaks the tokens into lines (UiTextLine, 8 bytes each) no
     // wider than the text: a word adds its width and a third of the line's height (the height of
     // the font in effect at the line's start); a word reaching the width starts the next line
     // (unless it is the line's first), a newline format token ends the line and sets the next
     // lines' font. Then the scroll bar's maximum: the lines' heights less the text's height.
     void Layout();
-    // 0065D4B0 (RET 4; ui_scroll_text.cpp). Appends the tokens of `text`: words (with their
+    // Appends the tokens of `text`: words (with their
     // widths), and before each run of newline, BEL C<rgb> and BEL F<digit> tokens one format
     // token.
     void Tokenize(const mfc::CString* text);
-    // 0065D970 (RET 0xC; ui_scroll_text.cpp, A-H19; ECX not read). The token of `text` at `pos`
+    // (ui_scroll_text.cpp; `this` not read). The token of `text` at `pos`
     // (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or up to the
     // next space, tab, BEL or newline
     // into `out`; returns the position after it, or -1 at the end (`out` untouched).
     int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
-    // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16). Draws the lines
+    // Called by the scrolling text's redraw (ui_scroll_text.cpp). Draws the lines
     // into surface 0 from `scroll` pixels down: the first line reaching `scroll` and the ones
     // after it while they fit, word by word in their tokens' fonts and colours (initially font 1,
     // 0xA7D7E4, or the last format token before the line), words apart by a third of the font's
@@ -2502,26 +2494,26 @@ static_assert(offsetof(CUiScrollText, lines_) == 0x1B0);
 static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
 static_assert(sizeof(CUiScrollText) == 0x1C8);
 
-// A spin control of the options window (vtables 00742D5C / 00742D28, 0x174 bytes): a window
-// stepping through its texts (the on / off settings). DR-H16: was UiSpinValue, with the rows'
+// A spin control of the options window (0x174 bytes): a window
+// stepping through its texts (the on / off settings). Was UiSpinValue, with the rows'
 // OptionSetting read as a separate UiSpin.
 class CUiSpin : public CUiWindow {
 public:
-    // 0065BCD0 (RET 0x18; ui_spin.cpp, A-H19). The window over the layout rectangle `rect` (by
+    // The window over the layout rectangle `rect` (by
     // value; also kept at +0x164), a surface of it (format 5; null when the allocation fails), the
     // first text `text` (null: the exe's empty text), not changed, value 0 (SetValue).
     CUiSpin(CInterface3D* ui, RECT rect, const char* text);
-    // 0065BE10 (ui_control_delete.cpp, A-H20; deleting 0065BDF0, the input side's 0065CB90): the
+    // (ui_control_delete.cpp): the
     // texts.
     ~CUiSpin() override;
-    // 0065BE70 (RET 4; ui_spin.cpp). Appends a text (null: the empty text).
+    // Appends a text (null: the empty text).
     void AddText(const char* text);
-    // 0065BEB0 / 0065BEE0 (RET 4; ui_spin.cpp). The value, and whether it changed since the last
+    // The value, and whether it changed since the last
     // call (the flag is cleared). SetValue: `value` (0 when not below the text count; a negative
     // one is kept), its text drawn on the cleared surface (format 1, colour 0xA7D7E4), changed.
     bool GetValue(int* value);
     void SetValue(int value);
-    // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
+    // Input side (ui_spin.cpp). A click: the message box's OK
     // sound and the next value (SetValue: back to the first past the last text).
     void OnLButtonDown(int flags, int x, int y);
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
@@ -2537,23 +2529,23 @@ static_assert(offsetof(CUiSpin, value_) == 0x15C);
 static_assert(offsetof(CUiSpin, layout_) == 0x164);
 static_assert(sizeof(CUiSpin) == 0x174);
 
-// A saved game in the save/load list (0x44 bytes, STLport vector at +0x164). Copy construction
-// 00656640 (and 00657C60), assignment 006538E0, destructor 00656720 (not rewritten). The fields
+// A saved game in the save/load list (0x44 bytes, STLport vector at +0x164). Copy construction,
+// assignment and destructor are not defined here. The fields
 // after the folder come from the save's info.sav (ui_saveload.cpp).
 struct SaveEntry {
-    // 00653A50 (RET 4, the argument unused; ui_saveload.cpp). The title: the texts "save_quick",
+    // (ui_saveload.cpp). The title: the texts "save_quick",
     // "save_auto_enter" / "save_auto_exit" for the folders "saveq", "savea" / "saveb", otherwise
     // the zone's name.
     void MakeTitle(int unused);
-    // A-H14 (ui_saveload.cpp). 00653BD0 (RET 4): the zone's name, text "zone " + zone_ (its first
-    // line), else the text "save_camp". 00653CD0 (RET 4, from RefreshList 006567A0): the allod's
+    // (ui_saveload.cpp). The zone's name, text "zone " + zone_ (its first
+    // line), else the text "save_camp"; and (from RefreshList) the allod's
     // name, text "allod " + map_, else "Unknown".
     mfc::CString ZoneTitle() const;
     mfc::CString AllodTitle() const;
-    // S13 (ui_saveload.cpp; the compiler's). 006538E0 (RET 4) operator=: the strings +0x00, +0x04,
+    // (ui_saveload.cpp). The compiler's: operator= copies the strings +0x00, +0x04,
     // the dwords +0x08, +0x0C, the strings +0x10, +0x14, the arrays (CStringArray::Copy), the byte
-    // +0x40; returns this. 00656640 (RET 4) the copy constructor: the strings empty, the arrays
-    // constructed, then the same; returns this. 00656720 the destructor: the arrays (last first),
+    // +0x40; returns this. The copy constructor: the strings empty, the arrays
+    // constructed, then the same; returns this. The destructor: the arrays (last first),
     // then the strings from the last.
     SaveEntry* Assign(const SaveEntry* from);
     SaveEntry* CopyConstruct(const SaveEntry* from);
@@ -2574,31 +2566,31 @@ static_assert(sizeof(SaveEntry) == 0x44);
 static_assert(offsetof(SaveEntry, folder_) == 0x04 && offsetof(SaveEntry, map_) == 0x10 && offsetof(SaveEntry, zone_) == 0x14);
 static_assert(offsetof(SaveEntry, broken_) == 0x40);
 
-// ui_saveload.cpp. 006570E0 (__fastcall: the save folder's name, `stepFrame` in DL; plain RET):
+// ui_saveload.cpp. The quick and automatic saves (the save folder's name, `stepFrame` in DL):
 // the quick and automatic saves. Nothing for a multiplayer client or when the disc lacks the
-// space a save needs (0 free space: not checked). With `stepFrame` a frame step (00458010(0, 1));
+// space a save needs (0 free space: not checked). With `stepFrame` a frame step;
 // the screen copied into an 800x600 surface, the busy cursor, the server flag kept in the
 // interface, "notify_saving" shown, the game saved, then info.sav (the "gtime"
 // variable, the zone's map, the zone, the time, an empty title) and shot.sav (the surface as
 // 256x192 5:6:5 pixels); the surface freed and the cursor back.
 void __fastcall QuickSave(const char* slot, char stepFrame);
-// 006575B0 (__fastcall, plain RET). Unless a multiplayer client: when saves\<slot>\ exists,
-// "notify_loading" is shown, 00578920(1) and the game flow is asked to load it (flag 0).
+// Unless a multiplayer client: when saves\<slot>\ exists,
+// "notify_loading" is shown, the client glue's stop call is made and the game flow is asked to load it (flag 0).
 void __fastcall QuickLoad(const char* slot);
 
-// The save/load window (vtables 00741388 / 00741354, 0x194 bytes, opened from the Esc menu).
+// The save/load window (0x194 bytes, opened from the Esc menu).
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
 class CSaveLoadWindow : public CUiContainer {
 public:
     // Built inline by the battle and briefing screens' game-over load and the menus: the container,
-    // no entries (vector<SaveEntry>(), 0062B550), an empty name, a save (`isSave`) or load window,
+    // no entries, an empty name, a save (`isSave`) or load window,
     // sliding in or not.
     CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
-    // 006070C0 (ui_window_delete.cpp; deleting 006070A0, the input side's 0060C7B0): the name,
+    // (ui_window_delete.cpp): the name,
     // each entry's strings and string arrays, the entries' storage, then the container's.
     ~CSaveLoadWindow() override;
-    // The slots of its own in game.exe's tables 00741388 / 00741354.
+    // The virtuals of its own.
     BOOL Draw(int pass) override;                      // slides in
     void Update() override;
     void CloseScreen() override { CloseDialog(); }                                          // 26
@@ -2612,7 +2604,7 @@ public:
     void CloseDialog();
     void OnDialogResult(int result);
 
-    // A-H14 (ui_saveload.cpp).
+    // (ui_saveload.cpp).
     // OK: nothing without a selection; a save window plays "ok" and saves into the new
     // save (row 0) or asks "overwrite" (message box 0x20000); a load window loads (LoadSelected).
     void Confirm();
@@ -2622,7 +2614,7 @@ public:
     // Deletes every file of the selected save's folder and the folder, refills the list,
     // keeps the selection in it, takes its title, redraws the list and the picture.
     void DeleteSave();
-    // A selected save that is not broken: "notify_loading" shown, 00578920(1), "ok"
+    // A selected save that is not broken: "notify_loading" shown, the client glue's stop call, "ok"
     // played, the game flow asked to load its folder (flag 0).
     void LoadSelected();
 
@@ -2637,25 +2629,25 @@ public:
     // The picture sprite shows the selected save's shot.sav (read into objects_[1]), or
     // dialog_ for the new save of a save window; hidden for none or a broken save.
     void ShowPicture();
-    // 00655D40 (00656464 is its tail, not a function). Reads saves\save*\info.sav into the entry
+    // Reads saves\save*\info.sav into the entry
     // list, sorts it, puts the new save's entry first in a save window (with dialog_ made from the
     // escape menu's 256x192 copy of the screen) and sets the scroll bar's range.
     void FillEntries();
 
-    // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
+    // The window's Create: builds the window (ui_layouts.cpp).
     void CreateScreen() override;
 
     int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
-    // 006577B0 (ui_menus.cpp). The selected save's title becomes the name being edited.
+    // The selected save's title becomes the name being edited.
     void TakeSelectedTitle();
 
-    // ui_menu_keys.cpp.
-    // 006548A0 (input side, RET 0xC). Keys: Enter confirms, Esc cancels, Up / Down / PgUp / PgDn
+    // (ui_menu_keys.cpp).
+    // Input side. Keys: Enter confirms, Esc cancels, Up / Down / PgUp / PgDn
     // move the selection; in a save window Backspace, Delete, Home, End, Left and Right edit the
     // save's name (the first edit of a save that is not a quick or automatic one takes over its
     // title, Backspace / Delete starting from an empty name).
     void OnKeyDown(int key, int repeat, int flags);
-    // 00655050 (input side, RET 0xC). A typed character in a save window: the first one for an
+    // Input side. A typed character in a save window: the first one for an
     // ordinary save starts an empty name; without Ctrl, a name under 60 characters takes the
     // character at the caret when the text stays under 178 pixels (font 1); the list is redrawn.
     // Backspace, Tab, Enter and Esc only go to the base handler, which every character reaches.
@@ -2667,8 +2659,8 @@ public:
     // "saveb"; no bound check).
     bool IsReservedSave(int index);
 
-    // +0x164 the saves (its insert that reallocates 006579C0 and erase 006578F0 with
-    // recordvec::SaveEntryElement).
+    // +0x164 the saves (recordvec::SaveEntryElement handles the
+    // reallocating insert and the erase).
     stlp::vector<SaveEntry> entries_;
     int selected_;                   // +0x170
     int firstVisible_;               // +0x174 list scroll position
@@ -2678,7 +2670,7 @@ public:
     float slide_;                    // +0x17C 0..1
     CUiScrollbar* scrollbar_;        // +0x180
     CEngineObject* dialog_;          // +0x184 the save window's picture of the game for the new save
-                                     //        (a texture made by FillEntries; released by slot 26.
+                                     //        (a texture made by FillEntries; released by the screen's close.
                                      //        The name is from an earlier reading.)
     mfc::CString name_;              // +0x188 the save name being edited
     bool nameTyped_;                 // +0x18C
@@ -2690,7 +2682,7 @@ static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
 static_assert(offsetof(CSaveLoadWindow, name_) == 0x188 && offsetof(CSaveLoadWindow, cursor_) == 0x190);
 static_assert(sizeof(CSaveLoadWindow) == 0x194);
 
-// A setting's definition (0x18 bytes; the exe's table of 26 at 00787430).
+// A setting's definition (0x18 bytes; a table of 26).
 struct OptionDefinition {
     int id_;                         // +0x00
     const char* name_;               // +0x04 "option_" + name is its text key (else the name is shown)
@@ -2702,16 +2694,16 @@ struct OptionDefinition {
 static_assert(sizeof(OptionDefinition) == 0x18);
 constexpr int kOptionDefinitionCount = 26;
 
-// A key action's definition (0x10 bytes; the exe's table of 59 at 00787080).
+// A key action's definition (0x10 bytes; a table of 59).
 struct ActionDefinition {
-    int id_;                         // +0x00 the action (the key code in the key table 0079BF70)
+    int id_;                         // +0x00 the action (the key code in the key table)
     const char* name_;               // +0x04 "action_" + name is its text key
     int group_;                      // +0x08
     int row_;                        // +0x0C
 };
 static_assert(sizeof(ActionDefinition) == 0x10);
 constexpr int kActionDefinitionCount = 59;
-// The key actions (the exe's table of 60 at 00787070; the first is a blank id 0): the key bindings file's names and the options
+// The key actions (a table of 60; the first is a blank id 0): the key bindings file's names and the options
 // window's rows (group, row).
 inline constexpr ActionDefinition kActionDefinitions[60] = /*00787070*/ {
     {0, "", 0, 0},
@@ -2776,8 +2768,8 @@ inline constexpr ActionDefinition kActionDefinitions[60] = /*00787070*/ {
     {59, "tutorial_script", 10, 10},
 };
 
-// A setting of the options window (0x14 bytes, 26 of them at +0x378; copy constructor 00653100,
-// destructor 00651CE0: the text). The rows of the shown group point at them.
+// A setting of the options window (0x14 bytes, 26 of them at +0x378; the destructor frees
+// the text). The rows of the shown group point at them.
 struct OptionSetting {
     const OptionDefinition* definition_;   // +0x00
     int value_;                      // +0x04
@@ -2800,27 +2792,27 @@ struct ObjectiveExit {
 };
 static_assert(sizeof(ObjectiveExit) == 0x1C);
 
-// The objectives window (vtables 007411BC / 00741188, 0x1F0 bytes, constructor 0063B5D0; TAB in a
+// The objectives window (0x1F0 bytes; TAB in a
 // zone opens it for the current zone). Left: the quests of the zone (rows), the log; right: the
 // zone picture with its exits; the arrows switch between zones when it lists several.
 class CObjectivesWindow : public CUiContainer {
 public:
-    // 0063B5D0 (ui_screen_constructors.cpp): the container, the empty zone list, strings, exit
-    // array (vtable 00741264), quest arrays and places (the rest is set by Build).
+    // The container, the empty zone list, strings, exit
+    // array, quest arrays and places (the rest is set by Build).
     explicit CObjectivesWindow(CInterface3D* ui);
-    // 00603B90 (ui_window_delete.cpp; deleting 00603B70, the input side's 0060C7C0): the objective
-    // texts, the quest places' storage, the quests, the exits (vtable 00741264, storage freed), the
+    // (ui_window_delete.cpp): the objective
+    // texts, the quest places' storage, the quests, the exits (storage freed), the
     // two zone names, the zone list, then the container's. The exit distances (+0x178) are not
     // freed here.
     ~CObjectivesWindow() override;
-    // The slots of its own in game.exe's tables 007411BC / 00741188.
+    // The virtuals of its own.
     void CloseScreen() override { RestoreAlphaRef(); }                                   // 26
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
-    // 0064D970 (slot 26; ui_container_draws.cpp). The device's alpha reference back to the saved one
+    // The device's alpha reference back to the saved one
     // (savedAlphaRef_); SetRenderState's result (not stored in the device object).
     long RestoreAlphaRef();
-    // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
+    // The window's Create (ui_objectives.cpp).
     void CreateScreen() override;
     // Shows zone `zone`: picture, exits, quests and description.
     void ShowZone(const char* zone);
@@ -2831,8 +2823,7 @@ public:
     // its title ("quest " text, else the quest's name) and its state mark (scene objects 16-20:
     // state 2 one frame, 3 the other, else hidden); the selected row gets the cursor (object 2).
     void DrawQuestList();
-    // ui_objectives_input.cpp (A-H17).
-    // 0064E330 (input slot 2, RET 0xC). The base input's press, then by region: 0 OK ("tutorial
+    // Input side (ui_objectives_input.cpp). The base input's press, then by region: 0 OK ("tutorial
     // ok" sound; with two buttons the time to the nearest exit passes and the zone is
     // requested at that exit (RequestZone); else the pending value 0), 1 cancel (with two
     // buttons: the cancel sound and the pending value 0), 2 / 3 the previous / next listed zone
@@ -2840,19 +2831,19 @@ public:
     // (+0x1C0 the first shown; selected, drawn, shown), from 9 an exit (with two buttons and its
     // flag: the "enter" sound and SelectExit, else the cancel sound).
     void OnLButtonDown(int buttons, int x, int y);
-    // 0064E5A0 (input slot 9, RET 0xC; ui_objectives_input.cpp, A-H21). The base input's key
+    // Input side (ui_objectives_input.cpp). The base input's key
     // handler, then: Enter as the OK region (without two buttons the pending value 0, else the
     // nearest exit's travel and zone request), Esc closes (the cancel sound with two buttons, else
     // the OK sound), PgUp / PgDn / Up / Down move the selected quest by 5 / 1 (RefreshQuests); those
     // mark the key used. A key not used that is bound to the objectives action (key table 4) closes a
     // window with one button.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0064EA80 (RET 4; ShowQuest calls it). The places of quest `name` into
+    // Called by ShowQuest. The places of quest `name` into
     // +0x1CC (emptied first): a multiplayer client takes them from the quest database's record
     // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
     // it, its words as x y pairs).
     void LoadQuestPlaces(const char* name);
-    // ui_objectives_input.cpp (A-H24).
+    // ui_objectives_input.cpp.
     // Exit `index` becomes the nearest (+0x19C): its marker (sprite 21 + index)
     // 1.2 times markerScale_ and the first frame, the blink restarted; the others markerScale_ and
     // the first frame when their flag is set, else u offset -0.125. Sprites 4 and 5 hidden.
@@ -2861,13 +2852,13 @@ public:
     // within five, the bar set there (slot 25, then TakePosition), the list drawn and the quest
     // shown.
     void RefreshQuests();
-    // 0064E760 (slot 24, every frame). The container's update; a moved bar shows its rows; the
+    // Every frame. The container's update; a moved bar shows its rows; the
     // blink time advances by the frame time and gives two alphas, (cos(2.5 t) x 0.3 + 0.5) x 255
     // and (cos(5 t) x 0.4 + 0.6) x 255 (_ftol): the quest place markers (sprites after the exits')
     // are red with the second, the nearest exit's marker white with the second, the other exits'
     // grey (C8C8C8) with the first; all drawn in their plain colour (flag 0x100).
     void Update() override;
-    // A-H25 (ui_objectives.cpp). 0064BE40 (RET 0x10): what the window is opened for, before it
+    // (ui_objectives.cpp). What the window is opened for, before it
     // opens: the zone, the exits' distances (or null), the two buttons and the zone list.
     // The help topic, "quest_global_map" with two buttons, else
     // "quest_mission".
@@ -2881,9 +2872,9 @@ public:
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
     mfc::CString shownZone_;         // +0x184
-    mfc::CArray<ObjectiveExit> exits_;   // +0x188 (vtable 00741264)
+    mfc::CArray<ObjectiveExit> exits_;   // +0x188
     int nearestExit_;                // +0x19C
-    int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
+    int selectedQuest_;              // +0x1A0 row of the quest named by the current-quest global
     int shownQuest_;                 // +0x1A4 the row ShowQuest last showed (-1: none)
     mfc::CStringArray quests_;       // +0x1A8
     CUiScrollbar* bar_;              // +0x1BC
@@ -2908,10 +2899,10 @@ static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
 // A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them;
-// copy constructor 00652FF0, destructor 006537E0 with 0).
+// the destructor is trivial).
 struct OptionBinding {
     // Inlined in the options window's destructor body: the two strings, then the
-    // vector's storage (its elements' destructor 0062B740 is empty).
+    // vector's storage (its elements' destructor is empty).
     void Destroy() {
         keysText_.~CString();
         name_.~CString();
@@ -2932,7 +2923,7 @@ struct OptionRow {
     OptionSetting* setting_;
 };
 
-// The options window (vtables 00741FAC / 00741F78, 0x418 bytes). Regions: 0 OK, 1 cancel, 2-12
+// The options window (0x418 bytes). Regions: 0 OK, 1 cancel, 2-12
 // the option groups (100..250 x 156..420), 13.. the rows of the shown group.
 class COptionsWindow : public CUiContainer {
 public:
@@ -2941,13 +2932,13 @@ public:
     COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {
         groupNames_.Construct();
     }
-    // 0062B180 (ui_menus.cpp; deleting 0062B160, the input side's 0062B770): the group titles, the
+    // (ui_menus.cpp): the group titles, the
     // settings' and the bindings' strings and storage, then the container's.
     ~COptionsWindow() override;
-    // The slots of its own in game.exe's tables 00741FAC / 00741F78.
+    // The virtuals of its own.
     BOOL Draw(int pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
-    void CloseScreen() override {}                     // 26: 006508D0 (empty)
+    void CloseScreen() override {}
     void MessageResult(int result) override { OnDialogResult(result); }                    // 27
     const char* HelpTopic() override;
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }         // 2
@@ -2960,7 +2951,7 @@ public:
     // scroll bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
-    // ui_options.cpp (DR-H16).
+    // ui_options.cpp
     // Draws surface 0: the group titles (the shown one white-tinted, its button sprite
     // at full tint, the others half), the shown group's title, and each row's name and value (a
     // binding waiting for its key in red); the highlight sprite (scene object 2) on the selected
@@ -2980,24 +2971,24 @@ public:
     // "difficulty_hard" / "difficulty_easy") as a child at the definition's row.
     void BuildSettings();
     // The key table and the settings' values from the game's option globals; each
-    // setting's slider (slot 25) or spin control takes its value.
+    // setting's slider (SetPosition) or spin control takes its value.
     void LoadSettings();
     // The 59 binding rows made again from the action definitions: the shown name
-    // ("action_" + name), and the first key name (table 007857B0) of a scan code bound to the
+    // ("action_" + name), and the first key name of a scan code bound to the
     // action, as the keys' text.
     void BuildBindings();
 
-    // 00652000 (ui_options.cpp, A-H21). Binds pressedKey_ to the selected row's action: the row's
+    // Binds pressedKey_ to the selected row's action: the row's
     // keys unbound and replaced by the pressed one (keys text rebuilt), the key taken from the first
     // binding row of the action it was bound to (that row's text rebuilt), then the key table entry
     // set. Nothing without a pressed key or a binding row.
     void CommitBinding();
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
-    // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
+    // The window's Create: builds the window (ui_layouts.cpp).
     void CreateScreen() override;
 
-    // 00650E40 (input side, RET 0xC; ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
+    // Input side (ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
     // binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch groups, Left /
     // Right move a row's bar. While a binding waits for its key the next key (scan code) is
     // bound, Esc's scan code giving up; a key bound to another action asks first.
@@ -3032,11 +3023,10 @@ static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
 static_assert(sizeof(COptionsWindow) == 0x418);
 
-// The message box's edit field (constructor 0065C010: interface, RECT; vtables 00742DF4 / 00742DC0,
-// 0x17C bytes; text set by 0065C290).
+// The message box's edit field (constructor: interface, RECT, 0x17C bytes; the text is set by SetText).
 class CUiEditField : public CUiWindow {
 public:
-    // 0065C610 (input side slot 9, RET 0xC; ui_edit_field.cpp, DR-H16). While focused:
+    // Input side (ui_edit_field.cpp). While focused:
     // Backspace and Delete remove a character at the caret, Home / End / Left / Right move it
     // (no clamping here); the first edit key starts editing (Backspace / Delete from an empty
     // text, the others with the caret at the end). Then the text is drawn again and
@@ -3044,25 +3034,24 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     void DrawContentsVanilla();
     mfc::CString& Text() { return text_; }
-    // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). The window, an empty text (game.exe's tables
-    // 00742DF4 / 00742DC0), every character class, font 1, at most 50 characters, colours 0xFFFFFF /
+    // The window, an empty text, every character class, font 1, at most 50 characters, colours 0xFFFFFF /
     // 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when the
     // allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as they are.
     CUiEditField(CInterface3D* ui, RECT rect);
-    // 0065C140 (ui_control_delete.cpp, A-H20; deleting 0065C120, the input side's 0065CBA0): the
+    // (ui_control_delete.cpp): the
     // text released (the member), then the window's.
     ~CUiEditField() override;
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }   // 9
     int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }         // 10
-    // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
+    // Input side (ui_edit_field.cpp). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
     // empty text; it is inserted at the caret when the text is shorter than maxLength_ and the new
     // text is narrower than area_ in font_, then the text is drawn and the key used.
     void OnChar(int key, int repeat, int flags);
-    // A-H25 (ui_edit_field.cpp). 0065C1A0 (RET 0x18): the character classes, the mode, the font,
-    // the length limit and the two colours, then the text drawn. 0065C290 (RET 4): the text (not
-    // editing, changed, the caret at its end), drawn. 0065C2D0 (RET 4): whether keys are taken.
+    // (ui_edit_field.cpp). The character classes, the mode, the font,
+    // the length limit and the two colours, then the text drawn. SetText: the text (not
+    // editing, changed, the caret at its end), drawn. Whether keys are taken:
     void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour, COLORREF caretColour);
     void SetText(const char* text);
     void SetFocused(bool focused);
@@ -3087,44 +3076,43 @@ static_assert(offsetof(CUiEditField, changed_) == 0x17A);
 static_assert(offsetof(CUiEditField, text_) == 0x170);
 static_assert(sizeof(CUiEditField) == 0x17C);
 
-// The message box (constructor 00634650: interface, title and text keys, result, flags, format;
-// vtables 00742348 / 00742314, 0x180 bytes; the new game's difficulty question 0074225C is built
-// on it with its own Create 006337B0). Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one
+// The message box (constructor: interface, title and text keys, result, flags, format;
+// 0x180 bytes; the new game's difficulty question is built
+// on it with its own Create). Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one
 // cancel button), 4 an edit field instead of the text (its initial text is the text key itself).
 class CMessageBox : public CUiContainer {
 public:
-    // 00634650 (ui_screen_constructors.cpp): the container, the title (the text of `titleKey`) and,
+    // The container, the title (the text of `titleKey`) and,
     // without flag 4, the text of `textKey` (else editText_ = `textKey`, the edit field's first
     // text); `result`, `flags`, `format` kept. A missing text gives its key (GetString).
     CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
                 std::uint32_t format);
-    // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp;
-    // deleting 00633730 and 00634770, the input sides' 006345E0 and 00634FD0): the text and title
+    // (also the difficulty question's, the same code; ui_window_delete.cpp): the text and title
+    // strings, then the container's.
     // strings, then the container's.
     ~CMessageBox() override;
-    // The slots of its own in game.exe's tables 00742348 / 00742314 (the master request box's
-    // 00741DD8 / 00741DA4 too).
+    // The virtuals of its own (also the master request box's).
     void CloseScreen() override { OnClose(); }                                           // 26
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
-    // 00634790 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
+    // Builds the box: the "saveload" textures, a surface over
     // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
     // block, the dark shade and frame behind it and the buttons below (regions with tips
     // 0xC3B4 OK / 0xC3B5 cancel).
     void CreateScreen() override;
-    // 00634D20 (input side slot 2, RET 0xC; ui_message_box.cpp). The container's handler first;
+    // Input side (ui_message_box.cpp). The container's handler first;
     // then region 0 (OK): for the exit question (result_ 0xFFFF0000) the exit movie and the game
     // quits; otherwise the OK sound and, with the edit field, its text copied into editText_;
     // region 1 the cancel sound; any region n >= 0 then leaves result_ | (n + 1) pending.
     void OnLButtonDown(int buttons, int x, int y);
-    // 00634E60 (input side slot 9, RET 0xC). The container's handler first; unless a child used
+    // Input side. The container's handler first; unless a child used
     // the key, Enter answers as region 0 (the edit text copied before the sound) and Esc as
     // region 1, and the key is marked used.
     void OnKeyDown(int key, int repeat, int flags);
     // The OK answer's edit text into editText_ (the caller's buffer).
     void CopyEditText();
-    // 00634D00 (slot 26 of the message box, the master request box 00741DD8 and the difficulty
-    // question 0074225C; ui_small_members.cpp). The box closes: its scene objects and surfaces
+    // Close (also of the master request box and the difficulty
+    // question; ui_small_members.cpp). The box closes: its scene objects and surfaces
     // released.
     void OnClose();
 
@@ -3142,14 +3130,14 @@ static_assert(sizeof(CMessageBox) == 0x180);
 
 // CMasterRequestBox, the message box waiting on a master server request: ui_screens.h.
 
-// The help / message window (0x194 bytes, vtables 00740E28 / 00740DF4; built inline by
-// CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Its pages
+// The help / message window (0x194 bytes; built inline by
+// CInterface3D::ShowMessage and OpenHelp, ui_create_screen.cpp). Its pages
 // come from the texts: "tutorial <text_>" holds the title key and a "#screen" line per page, and
 // "tutor <key>" each key's text. Names provisional.
 class CHelpWindow : public CUiContainer {
 public:
-    // Built inline by CInterface3D::ShowMessage (005F8A80; `message` set, the message's saved
-    // page) and OpenHelp (005F86F0; the topic's): the container, the text, an empty title, the
+    // Built inline by CInterface3D::ShowMessage (`message` set, the message's saved
+    // page) and OpenHelp (the topic's): the container, the text, an empty title, the
     // pages' array, the page, the two lists with their sentinels.
     CHelpWindow(CInterface3D* ui, bool message, const mfc::CString& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {
@@ -3157,15 +3145,15 @@ public:
         pulsing_.Construct();    // the allocator proxy, then a sentinel
         pictures_.Construct();
     }
-    // 005F8970 (ui_window_delete.cpp; deleting 005F8950, the input side's 005FC0D0): the two lists
+    // (ui_window_delete.cpp): the two lists
     // (nodes, then the sentinel), the text array, the two strings, then the container's.
     ~CHelpWindow() override;
-    // The slots of its own in game.exe's tables 00740E28 / 00740DF4.
-    BOOL Draw(int pass) override;   // 20: 0065A6D0 (ui_alpha_draws.cpp): the container's, alpha reference 1
+    // The virtuals of its own.
+    BOOL Draw(int pass) override;
     void CloseScreen() override { Close(); }                                         // 26
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }    // 2
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }      // 9
-    // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
+    // Loads "saveload", makes a 256x256 texture, reads the
     // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
     // nothing else happens. Otherwise the page is clamped to the pages, the pulse restarted, the
@@ -3177,13 +3165,13 @@ public:
     // time and the pulsing sprites' plain colour set from it (alpha 255 * v, red and green / blue
     // from 80 * (1 - v), v = (cos(5 t) + 1) / 2).
     void Update() override;
-    // 00659190 (input slot 2, RET 0xC). The container's button handler, then region 0 the
+    // Input side. The container's button handler, then region 0 the
     // previous page, 1 OK (Finish), 2 the next page.
     void OnLeftDown(int buttons, int x, int y);
-    // 006592C0 (input slot 9, RET 0xC). The container's key handler, then Enter the next page
+    // Input side. The container's key handler, then Enter the next page
     // (Finish on the last), Esc or the help key (action ';') Finish; each sets the handled flag.
     void OnKeyDown(int key, int repeat, int flags);
-    // 00659420's body (plain RET; ui_help_page.cpp, A-H26; reproducing Rebirth's WideScreen, so
+    // Body of the Rebirth-patched page setup (ui_help_page.cpp; reproducing Rebirth's WideScreen, so
     // hooked in both launches). Empties the two lists, the surfaces, regions and scene objects,
     // opens "tutorial <text_>" (without it the pending value is set to 0) and goes to the page's
     // "#screen" line. The page's rectangle is (200, 50)-(600, 560), or "#position left top right
@@ -3221,7 +3209,7 @@ static_assert(sizeof(CHelpWindow) == 0x194);
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
-    // 005E2670 (ui_window_delete.cpp). Destructor: the surface released and freed (cleared),
+    // Destructor: the surface released and freed (cleared),
     // then the two strings.
     void Destroy();
 
@@ -3232,21 +3220,20 @@ struct ChatLine {
 };
 static_assert(sizeof(ChatLine) == 0x10);
 
-// The in-game chat overlay (vtables 007400DC / 007400A8; made by CInterface3D::Create 005F4990,
-// constructor 005E26F0): the interface's root window (CInterface3D +0x1C), updated after the top
+// The in-game chat overlay (made by CInterface3D::Create): the interface's root window (CInterface3D +0x1C), updated after the top
 // window every frame; in a multiplayer client it holds the chat line, which takes the keys while
 // it is open.
 class CChatOverlay : public CUiWindow {
 public:
-    // 005E26F0 (RET 4; ui_chat_overlay.cpp). The window base, an empty line list (its sentinel from
-    // the node pool), an empty typed line (game.exe's tables 007400DC / 007400A8), the typed line's
+    // The window base, an empty line list (its sentinel from
+    // the node pool), an empty typed line, the typed line's
     // surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the typed line drawn
-    // (005E3700, Rebirth-patched).
+    // (Rebirth-patched).
     explicit CChatOverlay(CInterface3D* ui);
-    // 005E28E0 (ui_window_delete.cpp; deleting 005E28C0, the input side's 005E3C80): every chat line
+    // (ui_window_delete.cpp): every chat line
     // (destroyed, node freed), the list's sentinel; the typed line (the member).
     ~CChatOverlay() override;
-    // 005E2A30 (RET 8; ui_chat_overlay.cpp; CInterface3D::OnChatLine). Adds a chat line from
+    // (ui_chat_overlay.cpp; CInterface3D::OnChatLine). Adds a chat line from
     // player `number` (unused): the text is broken into lines narrower than 780 pixels (font 1;
     // at spaces, a word wider than a line on its own), "^<digit>" switching the colour (a missing
     // digit is taken as 7); the oldest lines are erased so that at most 12 remain; each new line
@@ -3258,20 +3245,19 @@ public:
     void SetOpen(bool open);
     // Every line destroyed and its node returned to the pool; the list left empty.
     void ClearLines();
-    // 005E3700 (Rebirth-patched, WideScreen reproduced behind its flag, W2;
-    // rewritten callers go through ChatOverlayDrawTypedOriginal). The typed line's surface hidden
+    // Rebirth-patched, WideScreen reproduced behind its flag;
+    // rewritten callers go through ChatOverlayDrawTypedOriginal. The typed line's surface hidden
     // while the chat is closed; else shown, the caret clamped to the line, the surface cleared,
     // the line drawn (font 1, white, DT_NOPREFIX, shadowed) over (0, 0)-(783, 17) and, while the
     // text before the caret is narrower than 780, the caret as a white line at its width from y
     // 0 to 16 (layout points scaled to the screen).
     void DrawTyped();
-    // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). 005E3230 (slot 9, RET
-    // 0xC): every key is marked used; Backspace / Delete remove the character before / at the
+    // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). Keys: every key is marked used; Backspace / Delete remove the character before / at the
     // caret, Home / End / Left / Right move it (unclamped; the draw clamps it), Enter sends a
-    // non-empty line as a chat message (a network client: SayMessage kept 60 s, 0041D1A0) and,
-    // like Esc, closes the chat; then the line is drawn. 005E3550 (slot 10, RET 0xC): a character
+    // non-empty line as a chat message (a network client: SayMessage kept 60 s) and,
+    // like Esc, closes the chat; then the line is drawn. Characters: a character
     // other than 8, 9, 13 and 27 is inserted at the caret unless Ctrl is down, the line is 200
-    // characters or more, or the new line would be 780 pixels wide or more (font 1, 005F8340);
+    // characters or more, or the new line would be 780 pixels wide or more (font 1);
     // then the line is drawn. The character is not marked used.
     void OnKeyDown(int key, int repeat, int flags);
     void OnChar(int key, int repeat, int flags);
@@ -3293,7 +3279,7 @@ static_assert(offsetof(CChatOverlay, lines_) == 0x148);
 static_assert(offsetof(CChatOverlay, caret_) == 0x154);
 static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
-// The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's
+// The new game's difficulty question (0x184 bytes; the main menu's
 // region 0): a message box ("option_difficulty", OK and cancel) with two check boxes. Its button
 // handler sets easy_ from the boxes (regions 2 / 3) and copies it to GameDifficulty() on OK.
 class CDifficultyBox : public CMessageBox {
@@ -3301,15 +3287,15 @@ public:
     // Built inline by the main menu's click: the message box ("option_difficulty", no
     // text, result 0x20000, OK and cancel, format 1), easy_ left.
     explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1) {}
-    // The slots of its own in game.exe's tables 0074225C / 00742228 (slot 0 the message box's).
+    // The virtuals of its own (the message box's first one).
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
-    // 00633DD0 (input side slot 2, RET 0xC; ui_message_box.cpp; no container handler). Region 0
+    // Input side (ui_message_box.cpp; no container handler). Region 0
     // OK: easy_ to GameDifficulty(), the OK sound, result_ | 1 pending; 1 cancel: the cancel
     // sound, result_ | 2; 2 / 3 check easy / hard (the checked box's sprite shows the texture
     // shifted by kCheckedOffset, the other unshifted).
     void OnLButtonDown(int buttons, int x, int y);
-    // 00633EC0 (input side slot 9, RET 0xC). The container's handler first; unless a child used
+    // Input side. The container's handler first; unless a child used
     // the key, Enter answers as OK and Esc as cancel, and the key is marked used.
     void OnKeyDown(int key, int repeat, int flags);
     // The check boxes: the first two sprites (Build adds them first).
@@ -3318,7 +3304,7 @@ public:
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 
-    // 006337B0 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
+    // Builds the box: the "saveload" textures, a surface over
     // 200..600 x 100..500 with the title, the "tip option_difficulty" text and the
     // "difficulty_easy" / "difficulty_hard" labels; the check boxes beside them (hard checked),
     // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
@@ -3331,7 +3317,7 @@ static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
 static_assert(sizeof(CDifficultyBox) == 0x184);
 
 // The mouse, members of the cursor (ui_cursor_setup.cpp): the position in screen pixels (CCursor::position_) and the
-// motion a right-button drag accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210
+// motion a right-button drag accumulates, read and cleared by the drag's mouse-move handlers
 // (CCursor::motion_).
 long& MouseScreenX();
 long& MouseScreenY();
@@ -3341,7 +3327,7 @@ long& MouseDragY();
 // The game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }
 
-// key_bindings.cpp: 00462C10 reads and 00462DF0 writes config\keyboard.ini (the interface's create and shutdown).
+// key_bindings.cpp: reads and writes config\keyboard.ini (the interface's create and shutdown).
 namespace keybind {
 void __cdecl LoadKeyBindings();
 void __cdecl SaveKeyBindings();

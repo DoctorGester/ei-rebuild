@@ -1,4 +1,4 @@
-// ObjectIdMap::ReleaseAll (0047B670; world.h; A-E1): the world's object map when a map closes
+// ObjectIdMap::ReleaseAll (world.h): the world's object map when a map closes
 // (world_map.cpp) and the player's two maps of objects sent to the client (player.cpp), which have
 // the same shape. Main thread. See docs/notes/core.md.
 #include "world.h"

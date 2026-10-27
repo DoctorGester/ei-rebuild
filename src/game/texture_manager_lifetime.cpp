@@ -1,4 +1,4 @@
-// CTextureManager's lifetime, Destroy and CreateObject (A-H23). See texture.h and
+// CTextureManager's lifetime, Destroy and CreateObject. See texture.h and
 // docs/notes/items_spells.md ("Textures").
 #include "texture.h"
 

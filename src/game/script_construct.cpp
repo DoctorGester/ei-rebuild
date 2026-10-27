@@ -1,8 +1,5 @@
-// The CScript constructor and CScript::GetError. A-E1; see script.h and
-// docs/notes/script.md.
-// The constructor runs for the world's two scripts only (00589ED0, the world's constructor, which
-// the static initialiser 00589BE0 calls before the hooks are installed), so in the hooked game the
-// original's body has always run already; the rewrite is for the standalone build.
+// The CScript constructor and CScript::GetError. See script.h and docs/notes/script.md.
+// The constructor runs for the world's two scripts only, from the world's constructor.
 #include "script.h"
 
 #include "world_glue.h"

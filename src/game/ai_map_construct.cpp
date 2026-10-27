@@ -1,8 +1,7 @@
-// The CAIMap constructor, destructor and reset (005B5E10: destroyed, then
-// constructed again in place). The unit layers and the sector map are C++ members; the inlined
-// constructors of the others (CArrays, CLists, the dirty rectangle) are stores.
-// The original's exception frames only matter when a member constructor throws, which ends the
-// game either way. See ai_map.h and docs/notes/ai.md.
+// The CAIMap constructor, destructor and reset (destroyed, then constructed again in place). The unit layers
+// and the sector map are C++ members; the inlined constructors of the others (CArrays, CLists, the dirty
+// rectangle) are stores. The original's exception frames only matter when a member constructor throws, which
+// ends the game either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "ai_grids.h"
 
@@ -55,8 +54,8 @@ CAIMap::CAIMap() {
 }
 EI_REWRITTEN_SPECIAL(0x005B3C30, CAIMap::CAIMap);
 
-// The original inlines some member destructors the reset calls (same effects). The unit layers and
-// the sector map are destroyed by their own destructors after this body.
+// The original inlines some member destructors the reset calls (same effects). The unit layers and the sector
+// map are destroyed by their own destructors after this body.
 CAIMap::~CAIMap() {
     Events()->Destroy();
     FreeGrid(marks);
@@ -69,8 +68,7 @@ CAIMap::~CAIMap() {
     FreeGrid(forwardSearch.levels);
     FreeGrid(forwardSearch.nodes);
     CRegionMap& regions = regionMap;
-    // The CRT's eh vector destructor iterator: each grid freed (00598480 / 00598460 /
-    // 00598440), last to first.
+    // The CRT's eh vector destructor iterator: each grid freed, last to first.
     for (int i = 8; --i >= 0;) FreeGrid(regions.regions[i]);
     for (int i = 8; --i >= 0;) FreeGrid(regions.cells[i]);
     for (int i = 8; --i >= 0;) FreeGrid(regions.edges[i]);

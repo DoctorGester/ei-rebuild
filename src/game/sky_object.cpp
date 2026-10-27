@@ -1,4 +1,4 @@
-// CSkyObject and CSky's lighting (A-S7, 004D9110-004D9DE0). See sky_object.h.
+// CSkyObject and CSky's lighting. See sky_object.h.
 #include "sky_object.h"
 #include "texture.h"
 #include "world.h"
@@ -120,7 +120,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     if (turns) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
         Quaternion turn;
-        // 00578B40 (thiscall on the client glue, not read): the world time in ticks, whole ticks plus
+        // The world time in ticks (a thiscall on the client glue, `this` not read): whole ticks plus
         // the fraction of the current one.
         object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(static_cast<double>(GameTime()) * kSkyTurnRate));
     }
@@ -164,10 +164,10 @@ EI_REWRITTEN(0x004D9DE0, CSky::Light);
 EI_REWRITTEN(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
-// S13: more copies, of the scene loader's point block, the unit skins' bytes,
-// the figure factory's packets and the terrain's arrays (0056FD30 the texture classes,
-// frames and visible columns; 00570DE0 the wave phases; 00570E10 the page materials; 00570E40 the
-// water materials; 00570E70 the vertex tiles).
+// More copies, of the scene loader's point block, the unit skins' bytes,
+// the figure factory's packets and the terrain's arrays (the texture classes,
+// frames and visible columns; the wave phases; the page materials; the
+// water materials; the vertex tiles).
 EI_REWRITTEN(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x0056FCC0, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x0056FD00, lib::AlignedArray<std::uint32_t>::Construct);

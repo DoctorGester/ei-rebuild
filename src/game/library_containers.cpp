@@ -1,4 +1,4 @@
-// Library code over game types in S12a's ranges (library_containers.h), registered at the exe's
+// Library code over game types (library_containers.h), registered at the exe's
 // addresses so the standalone image has it.
 #include "library_containers.h"
 
@@ -20,7 +20,7 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value) {
 
 } // namespace libcontainers
 
-// (_Construct of a held engine object, 004FB680 / 004298F0, is HeldObject::Construct, engine_object.h.)
+// (_Construct of a held engine object is HeldObject::Construct, engine_object.h.)
 
 namespace libcontainers {
 
@@ -29,7 +29,7 @@ void __fastcall DestroyCString(mfc::CString* self) { self->~CString(); }
 
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
-    new (to->Party()) CParty(*const_cast<MpHeroRecord&>(from).Party());   // 006613C0 (reads the source non-const)
+    new (to->Party()) CParty(*const_cast<MpHeroRecord&>(from).Party());   // reads the source non-const
     new (&to->file) mfc::CString(from.file);
 }
 

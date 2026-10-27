@@ -1,9 +1,8 @@
-// The unit movement tick (00547890; called twice by 005499F0 for the controller, CUnitServer):
-// samples the unit's motion order at the world's time, starts the next animation of a finished
-// motion, plays a pending fall or death animation, then moves the unit to the sampled position on
-// the sector map; a blocked step either waits (the blocker is a party member leading, or the unit
-// already waits for it), yields to a slower unit, or replans the path. See docs/notes/combat.md
-// ("Movement tick") and docs/notes/ai.md ("How a unit moves").
+// The unit movement tick (called twice for the controller, CUnitServer): samples the unit's motion order at
+// the world's time, starts the next animation of a finished motion, plays a pending fall or death
+// animation, then moves the unit to the sampled position on the sector map; a blocked step either waits
+// (the blocker is a party member leading, or the unit already waits for it), yields to a slower unit, or
+// replans the path. See docs/notes/combat.md ("Movement tick") and docs/notes/ai.md ("How a unit moves").
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
@@ -33,8 +32,7 @@ namespace {
 
 // --- Float helpers -------------------------------------------------------------------------------
 
-// The exe's constants: 0073EEE4 the cell size, 0073B86C 0.5, 0073B84C 1.0, 0073F088 the stamina
-// drain step (double).
+// The exe's constants: the cell size, 0.5, 1.0, the stamina drain step (double).
 float CellSize() { return 1.0f /*0073EEE4*/; }
 float Half() { return 0.5f /*0073B86C*/; }
 float One() { return 1.0f /*0073B84C*/; }
@@ -62,7 +60,7 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz) > *limit;
 }
 
-// Whether `object`'s speed (virtual slot 59, unrounded) compares below *than.
+// Whether `object`'s speed (a virtual, unrounded) compares below *than.
 bool SpeedBelow(CMapObject* object, const float* than) {
     EI_NAN_AUDIT(object->MoveSpeed(), *than);
     return object->MoveSpeed() < *than;
@@ -71,7 +69,7 @@ bool SpeedBelow(CMapObject* object, const float* than) {
 // The speed rounded to float.
 void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
 
-// *value -= *rate * (double)[0073F088]; true when the unrounded result compares below 0.
+// *value -= *rate * the drain step (double); true when the unrounded result compares below 0.
 bool Drain(float* value, const float* rate) {
     const double drained = static_cast<double>(*value) - *rate * DrainStep();
     *value = static_cast<float>(drained);
@@ -88,7 +86,7 @@ CUnit* UnitOf(CUnitServer* c) { return c->unit; }
 AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
 int& QueueStart(CUnitServer* c) { return c->queue.extra; }
 AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
-// The path's `failed` byte as the original reads it: compared with 1, so read as a byte, not a bool.
+// The path's `failed` byte as the game reads it: compared with 1, so read as a byte, not a bool.
 std::uint8_t FailedByte(CUnitServer* c) { return c->MotionPath()->failed; }
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
@@ -177,8 +175,8 @@ void HitWhileMoving(CUnitServer* c) {
     for (int i = 0; i < current.size; ++i) {
         AnimationStep step;
         step = current.data[i];   // GetAt by value
-        // The original passes the dwords at step + 1 / step + 0; AddEmote / AddStep keep their low
-        // byte only (the variant / the animation).
+        // The dwords at step + 1 / step + 0 are passed; AddEmote / AddStep keep their low byte only (the
+        // variant / the animation).
         if (step.animation == 0xFF) {
             fall.AddEmote(step.variant);
         } else if (step.variant == 0xFF) {
@@ -187,7 +185,7 @@ void HitWhileMoving(CUnitServer* c) {
             fall.SetAtGrow(fall.size, step);
         }
     }
-    Queue(c)->Assign(fall);   // 005483C0 (twice, as the original)
+    Queue(c)->Assign(fall);   // twice, as the game does
     Queue(c)->Assign(fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
@@ -358,7 +356,7 @@ void Exhaustion(CUnitServer* c) {
 
 } // namespace
 
-// 00547890 (called by name from CUnitServer's update 005499F0, combat_update.cpp).
+// Called by name from CUnitServer's update (combat_update.cpp).
 void UpdateMotion(CUnitServer* c) {
     CWorldServer* world = ServerOf(c);
     Vector3 position;
@@ -388,10 +386,10 @@ void UpdateMotion(CUnitServer* c) {
     // the blocking unit means for it.
     bool canStand;
     bool liftBlocker = false;
-    // The original's "blocked" local is uninitialised: only CanStandAtFromHere (a cell inside the
-    // map) and the blocker cases write it, so a unit that reached no cell, or a cell outside the
-    // map, decides on whatever the stack held there (entry ESP - 0x98, left by earlier calls). Every
-    // value but kBlockedReplan and kBlockedWait acts alike; ours is 0 (docs/notes/combat.md).
+    // The game's "blocked" local is uninitialised: only CanStandAtFromHere (a cell inside the map) and the
+    // blocker cases write it, so a unit that reached no cell, or a cell outside the map, decides on
+    // whatever the stack held there (entry ESP - 0x98, left by earlier calls). Every value but
+    // kBlockedReplan and kBlockedWait acts alike; here it is 0 (docs/notes/combat.md).
     int blocked = 0;
     if (cellX < 0) {
         canStand = true;

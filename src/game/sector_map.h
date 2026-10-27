@@ -17,7 +17,7 @@ class CUnit;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
-// A sector's one slot (game.exe's vtable 0073FADC) is its destructor.
+// A sector's one virtual is its destructor.
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
 struct SectorOccluder {
@@ -30,14 +30,14 @@ struct SectorOccluder {
 static_assert(sizeof(SectorOccluder) == 8);
 
 struct Sector {
-    // 0059DF90's body for each sector (sector_map.cpp): the two lists with blocks of 10, the empty record
+    // Constructs each sector (sector_map.cpp): the two lists with blocks of 10, the empty record
     // array, then Clear.
     Sector();
-    // 005BFCD0 (deleting: 0059E080; world_destructors.cpp): Clear, then the members last to first (the record
+    // The destructor (also the deleting one; world_destructors.cpp): Clear, then the members last to first (the record
     // array's storage, both lists emptied).
     virtual ~Sector();
 
-    // 005BFE00 (the constructor's body). No free record, the records' storage freed, both lists
+    // Clear: no free record, the records' storage freed, both lists
     // emptied (RemoveAll).
     void Clear();
     // A free record's index: the head of the free list, else the array grown by one
@@ -59,7 +59,7 @@ static_assert(sizeof(Sector) == 0x54);
 static_assert(offsetof(Sector, freeOccluder) == 0x3C);
 static_assert(offsetof(Sector, occluders) == 0x40);
 
-// CArray<Sector>'s element functions: 0059DF90 (__stdcall, RET 8; sector_map.cpp) constructs
+// CArray<Sector>'s element functions: the constructor (sector_map.cpp) constructs
 // (zeroed, then each sector's constructor), the destructor destroys.
 void __stdcall ConstructSectors(Sector* sectors, int count);
 struct SectorElements {
@@ -69,7 +69,7 @@ struct SectorElements {
     }
 };
 
-// The radii of the sector spiral (007C2FD8, filled by the static initialiser 005BF8F0): a complete
+// The radii of the sector spiral (filled by its static initialiser): a complete
 // binary search tree in an array, root at index 1.
 struct RadiusTree {
     // The slot of `radius` (in sectors): `depth` steps down the tree, right
@@ -92,7 +92,7 @@ struct SpiralOffset {
     std::int16_t x, y;
 };
 static_assert(sizeof(SpiralOffset) == 4);
-// The sector spiral's tables, built by the static initialiser 005BF8F0: the 441 offsets of a 21 x 21
+// The sector spiral's tables, built by the static initialiser: the 441 offsets of a 21 x 21
 // square of sectors ordered by distance, the number of offsets within each distinct
 // distance and the tree that finds a distance's place among them.
 // Defined, built and destroyed in sector_spiral.cpp.
@@ -102,16 +102,16 @@ extern lib::StaticObject<mfc::CArray<SpiralOffset>> g_spiralOffsets;
 inline mfc::CArray<int>* SpiralLengthArray() { return &*g_spiralLengths; }
 inline RadiusTree* SpiralRadiusTree() { return &*g_spiralRadii; }
 inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets; }
-// What 005BF8F0 does, on any three constructed tables (sector_map.cpp).
+// What the spiral's static initialiser does, on any three constructed tables (sector_map.cpp).
 void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets);
 
-// The AI map's sector map (game.exe's vtable 0073F9DC: one slot, the destructor).
+// The AI map's sector map (one virtual: the destructor).
 class CSectorMap {
 public:
     // The AI map's constructor's stores (inlined there): no sectors, no AI map.
     CSectorMap();
-    // 0058A700 (deleting: 0058A780; reached by the AI map's unwinding and the deleting destructor): every sector
-    // destroyed (its destructor) and the array's storage freed.
+    // Destroys every sector and frees the array's storage (reached by the AI map's unwinding and the deleting destructor):
+    // the sectors' destructors, then the storage.
     virtual ~CSectorMap();
 
     // Registers `object` in the sector under its position and stamps its footprint.
@@ -133,12 +133,12 @@ public:
     // Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CMapObject* object);
 
-    // 005C06F0 (RET 0xC; called by CAIMap::Load). Sizes the map for a cell grid: width and
+    // Called by CAIMap::Load. Sizes the map for a cell grid: width and
     // height in sectors (cells / 32, rounded towards zero), `added` 0, the sector array set to
-    // width * height (SetSize inlined), then the AI map.
+    // width * height, then the AI map.
     void Init(int cellsX, int cellsY, CAIMap* map);
 
-    // 00599330 (thiscall on `sectors`; the destructor's body): the array's vtable back, every sector
+    // The destructor's body (on `sectors`): the array's vtable back, every sector
     // destroyed, the storage freed.
     static void __fastcall DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
 

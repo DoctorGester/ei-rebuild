@@ -1,5 +1,5 @@
-// The game server's handlers of the login message (0073BBF8, registered by the server constructor):
-// a client joined (0041ADB0: a player record and a connection binding for it), its record changed
+// The game server's handlers of the login message (LoginMessage, registered by the server constructor):
+// a client joined (a player record and a connection binding for it), its record changed
 // or it left.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
@@ -105,7 +105,7 @@ PlayerMessage* PlayerOf(LoginMessage* login) {
     return login->binding_.Get()->Player();
 }
 
-// 0041AD80 (channel 1): the client's login changed: its player record takes the state and id,
+// Channel 1: the client's login changed: its player record takes the state and id,
 // and its version goes up.
 void __fastcall ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
     PlayerOf(message)->state_ = message->state_;
@@ -115,7 +115,7 @@ void __fastcall ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
 }
 EI_REPLACE(0x0041AD80, ServerOnPlayerChanged);
 
-// 0041B0C0 (channel 2): the client left. With a live binding: its live player is removed from the
+// Channel 2: the client left. With a live binding: its live player is removed from the
 // players list, and when it was the host the first remaining player becomes the host (its version
 // goes up); then the binding is removed from the bindings list.
 void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {

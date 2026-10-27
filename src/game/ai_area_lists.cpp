@@ -1,7 +1,5 @@
-// 005B4150 (thiscall on CAIMap, from the constructor): fills the six per-level area lists (+0x204
-// .. +0x268, CArray<{int, int}> of 0x14 bytes) from their tables in the game's data, each a run
-// of {a, b} pairs ended by a = 100. The last list appends through its Add, the others through SetSize
-// as the original inlines it.
+// Fills the six per-level area lists of CAIMap (CArray<{int, int}>) from their tables in the game's data, each
+// a run of {a, b} pairs ended by a = 100. The last list appends through its Add, the others through SetSize.
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "ai_grids.h"

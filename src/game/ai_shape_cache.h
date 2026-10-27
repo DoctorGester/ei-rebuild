@@ -1,8 +1,8 @@
 #pragma once
 
-// The cache of unit occupancy shapes (the global at 007C2F70): one shape per standing height, made
-// on demand and shared through reference-counted handles. See ai_shape_cache.cpp, and
-// CAIMap::UnitShape in ai_movement.cpp for its user.
+// The cache of unit occupancy shapes (a global): one shape per standing height, made on demand and shared
+// through reference-counted handles. See ai_shape_cache.cpp, and CAIMap::UnitShape in ai_movement.cpp for its
+// user.
 #include "core_refcount.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -29,7 +29,7 @@ struct ShapeCacheHash {
     std::size_t operator()(const ShapeCacheHandle& handle) const { return handle.key; }
 };
 
-// A real virtual class: the compiler makes its one-slot table (game.exe's 0073FD58 is retired).
+// A real virtual class with one virtual.
 class UnitShapeCache {
 public:
     CRefObject* Get(void* handleIn);
@@ -37,15 +37,14 @@ public:
     // A node is {next, handle, shape}: 0x18 bytes.
     using Map = stlp::hash_map<ShapeCacheHandle, RefPtr, ShapeCacheHash>;
 
-    // 0 (RET 4): makes the shape for a handle (005B33D0, CreateUnitShape in ai_unit_layer.h).
+    // Makes the shape for a handle (CreateUnitShape in ai_unit_layer.h).
     virtual CRefObject* CreateShape(const ShapeCacheHandle* handle);
 
-    // 005B32E0 (the static initialiser 005B31C0 calls it on 007C2F70; returns this). An empty map
-    // with the first prime number of buckets from 100 up (193), then the vtable (constructed in place).
+    // The static initialiser calls it on the global; returns this. An empty map with the first prime number of
+    // buckets from 100 up (193), then the vtable (constructed in place).
     UnitShapeCache* Construct();
-    // 005B31F0 (through the stub 005B31E0 the initialiser registers with atexit). Every node's shape
-    // released as its owner and its handle's reference dropped (the pair's destructor, 005BE280),
-    // the nodes and the buckets freed.
+    // Registered with atexit by the initialiser. Every node's shape released as its owner and its handle's
+    // reference dropped, the nodes and the buckets freed.
     void Destruct();
 
     std::uint32_t unused_04;       // +0x04
@@ -65,7 +64,6 @@ static_assert(sizeof(ShapePair) == 0x14);
 // reference dropped.
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 
-// The cache (ai_movement.cpp): built by its static initialiser 005B31C0, destroyed at exit by 005B31E0 (both
-// ai_shape_cache.cpp).
+// The cache (ai_movement.cpp): built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).
 extern lib::StaticObject<UnitShapeCache> g_unitShapes;
 inline UnitShapeCache* UnitShapes() { return &*g_unitShapes; }

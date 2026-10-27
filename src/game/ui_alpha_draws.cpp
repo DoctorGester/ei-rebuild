@@ -1,9 +1,9 @@
 // Three interface windows' draws (slot 20, thiscall with the pass, RET 4) that only set alpha
 // states around the container draw, rewritten so the new renderer's state mirror
-// (src/render/render_state.h) gets the values: 00600F70 (a window with child windows: alpha
-// reference 1 around its region tips and children, when the interface's +0x30 is set), 0062EFC0
+// (src/render/render_state.h) gets the values: a window with child windows: alpha
+// reference 1 around its region tips and children, when the interface's +0x30 is set),
 // (blending on, source alpha / inverse source alpha, alpha test off, alpha reference 1) and
-// 0065A6D0 (alpha reference 1 around the container draw). See docs/notes/renderer.md ("Pass
+// (alpha reference 1 around the container draw). See docs/notes/renderer.md ("Pass
 // state").
 #include "ui.h"
 #include "ui_camp.h"
@@ -32,7 +32,7 @@ std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
 
 } // namespace
 
-// 00600F70 (a container's). The children, each drawn (slot 21) when enabled.
+// A container's. The children, each drawn (slot 21) when enabled.
 void CUiContainer::DrawChild(int pass) {
     if (!interface_->drawing_) return;
     std::uint32_t savedRef = GetState(this, kAlphaRef);

@@ -8,7 +8,7 @@
 #include <cstring>
 
 // The vector helpers are vecmath.h's; each result is computed whole before `*out` is written (out
-// may alias an input; the original also computes all components before its stores).
+// may alias an input; the game also computes all components before its stores).
 
 Vector3* __fastcall CrossProduct(Vector3* out, const Vector3& a, const Vector3& b) {
     *out = Cross(a, b);   // each component a * b - c * d, rounded once when stored
@@ -29,7 +29,7 @@ void Vector3::DivideInPlace(float d) {
 EI_REWRITTEN(0x004679B0, Vector3::DivideInPlace);
 
 Vector4* Vector4::FromPoint(const Vector3& p) {
-    // Copied one dword at a time in the original (no float loads).
+    // Copied one dword at a time in the game (no float loads).
     std::uint32_t v;
     std::memcpy(&v, &p.x, 4);
     std::memcpy(&x, &v, 4);

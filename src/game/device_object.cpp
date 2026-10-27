@@ -1,11 +1,9 @@
-// The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor,
-// its destructor body and the texture format table. A-S13: IDirect3DDevice7 is
-// called as the original calls it, through device.h (the switch-over device answers). The Direct3D device
-// enumeration callback and the depth buffer had no caller of ours left and
-// went in R11b (config/dead_code.csv). The base class is in directdraw_holder.cpp. See
-// docs/notes/renderer.md (sections 9, 12).
-// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
-// the game in WinMain.
+// The device object itself (CTextureDevice, texture.h): its constructor, its destructor body and the texture format
+// table. IDirect3DDevice7 is called through device.h (the switch-over device answers). The Direct3D device
+// enumeration callback and the depth buffer are gone (config/dead_code.csv). The base class is in
+// directdraw_holder.cpp. See docs/notes/renderer.md (sections 9, 12).
+// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends the game in
+// WinMain.
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -50,8 +48,8 @@ constexpr std::uint32_t kDxtCode = MAKEFOURCC('D', 'X', 'T', 0);   // a DXT form
 constexpr std::uint32_t kFormat565 = 0x5650, kFormat555 = 0x5550, kFormat1555 = 0x5551, kFormat4444 = 0x4444,
                         kFormat8888 = 0x8888;
 
-// IDirect3DDevice7::EnumTextureFormats's and IDirect3D7::EnumZBufferFormats's callback (the
-// original's is 004E5E20, RET 8): the format appended to the list `context`.
+// IDirect3DDevice7::EnumTextureFormats's and IDirect3D7::EnumZBufferFormats's callback: the format appended to the
+// list `context`.
 HRESULT CALLBACK PixelFormatCallback(DDPIXELFORMAT* format, void* context) {
     PixelFormat copy;
     std::memcpy(&copy, format, sizeof(copy));
@@ -195,9 +193,9 @@ CTextureDevice::~CTextureDevice() {
 EI_REWRITTEN_SPECIAL(0x004E68A0, CTextureDevice::~CTextureDevice);
 EI_REWRITTEN_SPECIAL(0x004E6880, CTextureDevice::~CTextureDevice);
 
-// The base's constructor and the format table first. The original then makes the Direct3D object,
-// takes the HAL device (the T&L HAL is skipped by its id), the depth buffer and the render
-// target; none of that exists in the switch-over.
+// The base's constructor and the format table first. The game then makes the Direct3D object, takes the HAL device
+// (the T&L HAL is skipped by its id), the depth buffer and the render target; none of that exists in the
+// switch-over.
 CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                                int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)
     : CDXDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers, 1),
@@ -211,7 +209,7 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 
-    // The switch-over (device.h): no Direct3D object or device (R11a: no DirectDraw fallback).
+    // The switch-over (device.h): no Direct3D object or device, no DirectDraw fallback.
     ConstructWithoutDirect3D(this);
 }
 EI_REWRITTEN_SPECIAL(0x004E5E50, CTextureDevice::CTextureDevice);
