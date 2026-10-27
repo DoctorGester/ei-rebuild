@@ -3232,7 +3232,7 @@ title = "Comments: re-examine after the prose passes and plan removal passes"
 group = "cleanup"
 model = "opus"
 depends = ["C22a2", "C22b2"]
-note = "User 2026-10-27: after the prose changes, re-examine the comments and schedule passes that actually remove unnecessary ones. Sample each area: comments that restate the code, member-offset trailers (// +0xNN) not tied to a save or packet layout, section rulers, long why-blocks that belong in docs/notes. Write the rules into docs/comment-guide.md, add a comments.py count for each kind, and file removal batches (Sonnet, medium) sized like C22a-f."
+note = "User 2026-10-27: after the prose changes, re-examine the comments and schedule passes that actually remove unnecessary ones. Sample each area: comments that restate the code, member-offset trailers (// +0xNN) not tied to a save or packet layout, section rulers, long why-blocks that belong in docs/notes. Write the rules into docs/comment-guide.md, add a comments.py count for each kind, and file removal batches (Sonnet, medium) sized like C22a-f. Also left by C22a2: ~120 'slot N' lines (unit.h, unit_client_models.h, ui_camp.h, mfc_slots.h, stlp_*.h) and ~40 fragment candidates in unit_client_models.h / ui_camp.h; C22c/C22d left bare 'as the original' lines and ~528 // +0xNN trailers."
 
 [[ticket]]
 id = "S"
