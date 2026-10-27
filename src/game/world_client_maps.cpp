@@ -400,7 +400,7 @@ void CWorldClient::LoadUnitFaces() {
     }
 }
 
-const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
+const char* CWorldClient::ExitTarget(int index) { return exits_[index].target.c_str(); }
 
 void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
     for (int i = 0; i < records->size; ++i)

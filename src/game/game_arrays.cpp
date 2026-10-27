@@ -8,6 +8,44 @@
 
 #include "ei/hook.h"
 
+// The map database's element policies (object_tables.h).
+void AllodRecordElements::Construct(AllodRecord* allods, int count) {
+    std::memset(static_cast<void*>(allods), 0, static_cast<std::size_t>(count) * sizeof(AllodRecord));
+    for (; count > 0; --count, ++allods) {
+        std::construct_at(&allods->name);
+        for (auto& name : allods->otherNames) std::construct_at(&name);
+        allods->maps.Construct(mfc::impl::IntArrayClass::Vtable());
+    }
+}
+
+void AllodRecordElements::Destruct(AllodRecord* allods, int count) {
+    for (; count > 0; --count, ++allods) {
+        allods->maps.vtable = mfc::impl::IntArrayClass::Vtable();
+        allods->maps.FreeData();
+        for (int i = 4; i >= 0; --i) std::destroy_at(&allods->otherNames[i]);
+        std::destroy_at(&allods->name);
+    }
+}
+
+void MapRecordElements::Construct(MapRecord* maps, int count) {
+    std::memset(static_cast<void*>(maps), 0, static_cast<std::size_t>(count) * sizeof(MapRecord));
+    for (; count > 0; --count, ++maps) {
+        std::construct_at(&maps->name);
+        std::construct_at(&maps->allod);
+        std::construct_at(&maps->mob);
+        std::construct_at(&maps->map);
+        std::construct_at(&maps->figure);
+        std::construct_at(&maps->picture2);
+        std::construct_at(&maps->picture);
+        std::construct_at(&maps->camera);
+        maps->exits.Construct(mfc::impl::MapRecordItemsClass::Vtable());
+    }
+}
+
+void MapRecordElements::Destruct(MapRecord* maps, int count) {
+    for (; count > 0; --count, ++maps) zone::ZoneRecordDestruct(maps);
+}
+
 namespace gamearrays {
 
 EI_REWRITTEN(0x00573080, Exits::SetSize);
@@ -143,7 +181,13 @@ EI_REWRITTEN(0x004CC9B0, ScriptGroups::ConstructElements);
 EI_REWRITTEN(0x004607E0, MapRecords::ConstructElements);
 EI_REWRITTEN(0x0059E330, SharedObjectArray::ConstructElements);
 EI_REWRITTEN(0x0059CA60, SharedObjectNewList::NewNode);
-EI_REWRITTEN(0x00460490, ExitTargets::Destruct<ExitArrayClass>);
-EI_REWRITTEN(0x00460A80, ExitTargets::Destruct<ExitArrayClass>);
+EI_REWRITTEN(0x00460490, gamearrays::Exits::Destruct<ExitArrayClass>);
+EI_REWRITTEN(0x00460A80, gamearrays::Exits::Destruct<ExitArrayClass>);
+EI_REWRITTEN(0x004606A0, gamearrays::Exits::ConstructElements);
+EI_REWRITTEN(0x00460720, AllodRecords::ConstructElements);
+EI_REWRITTEN(0x004606F0, AllodRecords::DestructElements);
+EI_REWRITTEN(0x0045FBD0, AllodRecords::Destruct<AllodArrayClass>);
+EI_REWRITTEN(0x004600F0, ScalarDeleting<&AllodRecords::Destruct<AllodArrayClass>>::Delete);
+EI_REWRITTEN(0x0045FCB0, AllodRecords::Serialize);   // AllodArrayClass
 
 } // namespace mfc::impl

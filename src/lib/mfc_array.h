@@ -329,10 +329,6 @@ using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
 using NamedDwords = ArrayAbi<WithString<8, 4>, InitElements<WithString<8, 4>, InitWithString<8, 4>>>;
-using Exits3C = ArrayAbi<WithString<0x3C, 0x28>, InitElements<WithString<0x3C, 0x28>, InitWithString<0x3C, 0x28>>>;
-using Allods = ArrayAbi<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
-                        InitElements<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
-                                     InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>>>;
 using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
                                 InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
@@ -378,9 +374,6 @@ using OwnedPatrols = ArrayAbi<PatrolElement, EachElements<PatrolElement, InitWit
 using AiLookElement = WithArray<0x20, 0xC, AiLookRecordArrayClass>;
 using AiLookRecords = ArrayAbi<AiLookElement, EachElements<AiLookElement, InitWithArray<0x20, 0xC, AiLookRecordArrayClass>,
                                                           DestroyArrayAt<AiLookElement, 0xC, AiLookArrayClass>>>;
-using AllodElement = StringsAndArray<0x2C, 6, 0x18, IntArrayClass>;
-using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
-                                                       DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
 
 // Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
 // the base's destructor (ScriptAreaClass's vtable, the storage freed).

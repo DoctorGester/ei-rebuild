@@ -203,14 +203,14 @@ void CGlobalMap::CreateScreen() {
         mfc::CString name(mfc::CString::kUnset);
         current = FindZone(*LocalPlayerName(&name));
     }
-    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod);
+    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod.c_str());
     {
         mfc::CString title(mfc::CString::kUnset);
-        allodTitle_ = *AllodTitle(&title, allod->name);
+        allodTitle_ = *AllodTitle(&title, allod->name.c_str());
     }
     {
         Vector3 position;
-        ZonePosition(&position, current->name);
+        ZonePosition(&position, current->name.c_str());
         std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = allod->name;
@@ -231,10 +231,10 @@ void CGlobalMap::CreateScreen() {
     // The current zone: its arrow above it, its base on it, the island.
     {
         Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f /*0073CDB8*/))};
-        builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
+        builder.Marker(allod->otherNames[kAllodArrow].c_str(), above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
-        builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
-        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland]);
+        builder.Marker(allod->otherNames[kAllodBall].c_str(), at, Bits(0x3F4CCCCD));   // 0.8
+        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland].c_str());
         SetTexture(island, builder.Texture(2));
         island->Place(centreX_, centreY_, depth_);
         builder.Turn(island);
@@ -260,17 +260,17 @@ void CGlobalMap::CreateScreen() {
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < allod->maps.size; ++i) {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
-        if (zone->kind != 0 || !NonEmpty(zone->figure.GetString())) continue;
+        if (zone->kind != 0 || !NonEmpty(zone->figure.c_str())) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
-        variable = str::Format("z.%s", zone->name.GetString());
+        variable = str::Format("z.%s", zone->name.c_str());
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         zones_.data[zoneCount_].name = zone->name;
         {
             mfc::CString title(mfc::CString::kUnset);
-            zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name);
+            zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
         }
-        CUiMesh* sprite = AddFigure(this, zone->figure);
+        CUiMesh* sprite = AddFigure(this, zone->figure.c_str());
         sprite->Place(centreX_, centreY_, depth_);
         builder.Turn(sprite);
         ++zoneCount_;
@@ -302,7 +302,7 @@ void CGlobalMap::CreateScreen() {
                         QuestPosition(&position, parts[2]);
                         std::memcpy(&quests_.data[n].position, &position, 12);
                     }
-                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
+                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker].c_str());
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
@@ -321,15 +321,15 @@ void CGlobalMap::CreateScreen() {
     for (int i = 0; i < zoneCount_; ++i) {
         MapRecord* zone = FindZone(zones_.data[i].name.c_str());
         for (int e = 0; e < zone->exits.size; ++e) {
-            MapRecord* way = FindZone(zone->exits.data[e].target);
+            MapRecord* way = FindZone(zone->exits.data[e].target.c_str());
             if (!way) continue;
-            variable = str::Format("z.%s", way->name.GetString());
+            variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;
             double state = D(LocalPlayerVariable(variable.c_str()));
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
-            if (!NonEmpty(way->figure.GetString())) continue;
+            if (!NonEmpty(way->figure.c_str())) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
             SetPlaceCount(links_, links_.size + 1);
@@ -338,14 +338,14 @@ void CGlobalMap::CreateScreen() {
             links_.data[n].name = way->name;
             {
                 mfc::CString title(mfc::CString::kUnset);
-                links_.data[n].title = *ZoneTitle(&title, way->name);
+                links_.data[n].title = *ZoneTitle(&title, way->name.c_str());
             }
             {
                 Vector3 position;
-                ZonePosition(&position, way->name);
+                ZonePosition(&position, way->name.c_str());
                 std::memcpy(&links_.data[n].position, &position, 12);
             }
-            CUiMesh* sprite = AddFigure(this, way->figure);
+            CUiMesh* sprite = AddFigure(this, way->figure.c_str());
             Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
@@ -445,18 +445,18 @@ void CGlobalMap::CreateScreen() {
     fog_[0] = 0.0f;
     fog_[1] = 1.0f;
     fog_[2] = 0.0f;
-    if (gamecrt::mbscmp(allod->name,
+    if (gamecrt::mbscmp(allod->name.c_str(),
                         "ingos") == 0) {
         fog_[0] = Bits(0x3EBE0000);
         fog_[1] = Bits(0x3F020000);
         fog_[2] = Bits(0x3F200000);
-    } else if (gamecrt::mbscmp(allod->name,
+    } else if (gamecrt::mbscmp(allod->name.c_str(),
                                "suslanger") == 0) {
         fog_[0] = Bits(0x3EC80000);
         fog_[1] = Bits(0x3E480000);
         fog_[2] = Bits(0x3DB00000);
     }
-    if (gamecrt::mbscmp(allod->name,
+    if (gamecrt::mbscmp(allod->name.c_str(),
                         "gipat") == 0)
         gipat_ = true;
 

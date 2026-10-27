@@ -41,16 +41,6 @@ int TextReader::Split(console::CStringArray* words, int flag) {
 mfc::BOOL TextReader::Close() { return TextClose(this); }
 TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
 
-// Element constructors / destructors of the record arrays: the allods', the
-// maps' and the exits' instantiations.
-using ElementFn = void(__stdcall*)(void* elements, int count);
-constexpr ElementFn ConstructAllods = mfc::impl::ConstructElementsAt<mfc::impl::Allods>;
-constexpr ElementFn DestructAllods = mfc::impl::DestructElementsAt<mfc::impl::OwnedAllods>;
-constexpr ElementFn ConstructMaps = mfc::impl::ConstructElementsAt<mfc::impl::MapRecords>;
-constexpr ElementFn DestructMaps = mfc::impl::DestructElementsAt<gamearrays::ZoneRecords>;
-constexpr ElementFn ConstructExits = mfc::impl::ConstructElementsAt<mfc::impl::Exits3C>;
-constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Exits>;
-
 // *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the
 // factor is the product of two doubles, rounded by the FPU).
 void StoreRadians(float* out, const char* text) {
@@ -60,46 +50,6 @@ void StoreRadians(float* out, const char* text) {
 
 bool Is(const char* word, const char* text) {
     return gamecrt::mbscmp(word, text) == 0;
-}
-
-// CArray::SetSize(size, -1), with the instantiation's element constructor and destructor.
-template <typename Array>
-void SetSize(Array& a, int size, ElementFn construct, ElementFn destruct) {
-    using T = std::remove_pointer_t<decltype(a.data)>;
-    if (size == 0) {
-        if (a.data) {
-            destruct(a.data, a.size);
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.maxSize = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = gamecrt::operator_new_array<T>(size);
-        construct(a.data, size);
-        a.maxSize = size;
-        a.size = size;
-    } else if (size <= a.maxSize) {
-        if (size > a.size) construct(a.data + a.size, size - a.size);
-        else if (size < a.size) destruct(a.data + size, a.size - size);
-        a.size = size;
-    } else {
-        int grow = a.growBy;
-        if (grow == 0) {
-            grow = a.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = a.maxSize + grow;
-        if (size >= capacity) capacity = size;
-        T* data = gamecrt::operator_new_array<T>(capacity);
-        std::memcpy(static_cast<void*>(data), a.data, a.size * sizeof(T));
-        construct(data + a.size, size - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = size;
-        a.maxSize = capacity;
-    }
 }
 
 class Loader {
@@ -129,9 +79,9 @@ private:
 };
 
 void Loader::AddAllod() {
-    mfc::CArray<AllodRecord>& allods = db_->allods;
+    auto& allods = db_->allods;
     int index = allods.size;
-    SetSize(allods, index + 1, ConstructAllods, DestructAllods);
+    allods.SetSize(index + 1);
     allods.data[index].name = words_[1];
     for (int i = 0; i < 5; ++i) {
         Split();
@@ -140,7 +90,7 @@ void Loader::AddAllod() {
 }
 
 void Loader::AddMap() {
-    SetSize(db_->maps, db_->maps.size + 1, ConstructMaps, DestructMaps);
+    db_->maps.SetSize(db_->maps.size + 1);
     ++map_;
     exit_ = -1;
     Map().name = words_[1];
@@ -148,7 +98,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
-        if (gamecrt::mbsicmp(allod.name.GetString(), allodName) != 0) continue;
+        if (gamecrt::mbsicmp(allod.name.c_str(), allodName) != 0) continue;
         allod.maps.SetAtGrow(allod.maps.size, map_);
         break;
     }
@@ -163,7 +113,7 @@ void Loader::AddMap() {
 
 void Loader::AddExit() {
     ZoneExits& exits = Map().exits;
-    SetSize(exits, exits.size + 1, ConstructExits, DestructExits);
+    exits.SetSize(exits.size + 1);
     ++exit_;
     Exit().view = 0.0f;
     Exit().hasDeployAngle = 0;

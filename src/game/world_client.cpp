@@ -182,7 +182,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < exits_.size; ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (gamecrt::mbscmp(exits_[i].target, "none") == 0) continue;
+        if (gamecrt::mbscmp(exits_[i].target.c_str(), "none") == 0) continue;
         if (index) *index = i;
         return 1;
     }
@@ -217,7 +217,7 @@ void CWorldClient::CreateExitMarkers() {
     countedA0_.SetSize(0);
     countedA0_.SetSize(exits_.size);
     for (int i = 0; i < exits_.size; ++i) {
-        if (gamecrt::mbsicmp(exits_[i].target,
+        if (gamecrt::mbsicmp(exits_[i].target.c_str(),
                             game::NoneText()) == 0) {
             continue;
         }

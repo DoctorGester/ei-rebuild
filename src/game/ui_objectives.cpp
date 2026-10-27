@@ -187,7 +187,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         return;
     }
 
-    LoadTexture(map->picture2, 3, 0);
+    LoadTexture(map->picture2.c_str(), 3, 0);
     float width = static_cast<float>(static_cast<double>(map->sizeX));
     float height = static_cast<float>(static_cast<double>(map->sizeY));
     float larger = width < height ? height : width;
@@ -211,7 +211,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const ZoneExit& source = map->exits.data[i];
-        if (gamecrt::mbsicmp(source.target,
+        if (gamecrt::mbsicmp(source.target.c_str(),
                             "none") == 0)
             continue;
         int index = exits_.size;
@@ -241,7 +241,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         } else {
             std::string name;
-            name = str::Format("z.%s", source.target.GetString());
+            name = str::Format("z.%s", source.target.c_str());
             float value = LocalPlayerVariable(name.c_str());
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -610,17 +610,17 @@ void CObjectivesWindow::CreateScreen() {
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
-                gamecrt::mbsicmp(zone->allod,
-                                allodZone->allod) != 0)
+                gamecrt::mbsicmp(zone->allod.c_str(),
+                                allodZone->allod.c_str()) != 0)
                 continue;
             bool listed = false;
             for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
-                if (gamecrt::mbscmp(zone->name,
+                if (gamecrt::mbscmp(zone->name.c_str(),
                                     z->GetString()) == 0) {
                     listed = true;
                     break;
                 }
-            if (!listed) PushBack(zones, zone->name.GetString());
+            if (!listed) PushBack(zones, zone->name);
         }
         if (SizeOf(*zones) == 0 && static_cast<int>(current.size()) != 0)
             PushBack(zones, current);

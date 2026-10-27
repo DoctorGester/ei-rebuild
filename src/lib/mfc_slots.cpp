@@ -32,7 +32,6 @@ EI_REWRITTEN(0x0045E020, ArrayHeader<ArrayBaseClass>::Destruct);
 EI_REWRITTEN(0x00468D80, ArrayHeader<SpriteArrayClass>::Destruct);
 EI_REWRITTEN(0x0045D8B0, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x0045E090, OwnedPatrols::Destruct<PatrolArrayClass>);
-EI_REWRITTEN(0x0045FBD0, OwnedAllods::Destruct<AllodArrayClass>);
 EI_REWRITTEN(0x004BE430, ScriptAreas::Destruct<ScriptAreaArrayClass>);
 EI_REWRITTEN(0x00451A00, TextureNames::Destruct<TextureNameArrayClass>);
 EI_REWRITTEN(0x00556B70, MemoryRecords::Destruct<MemoryRecordArrayClass>);
@@ -128,7 +127,6 @@ EI_REWRITTEN(0x005FB890, ScalarDeleting<&GlobalMapPoints::Destruct<GlobalMapPath
 EI_REWRITTEN(0x005FB850, ScalarDeleting<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>::Delete);
 EI_REWRITTEN(0x0045D890, ScalarDeleting<&OwnedPatrols::Destruct<PatrolArrayClass>>::Delete);
 EI_REWRITTEN(0x0045E070, ScalarDeleting<&OwnedPatrols::Destruct<PatrolArrayClass>>::Delete);
-EI_REWRITTEN(0x004600F0, ScalarDeleting<&OwnedAllods::Destruct<AllodArrayClass>>::Delete);
 EI_REWRITTEN(0x004C1A60, ScalarDeleting<&ScriptAreas::Destruct<ScriptAreaArrayClass>>::Delete);
 EI_REWRITTEN(0x004CB630, ScalarDeleting<&ScriptAreas::Destruct<ScriptAreaArrayClass>>::Delete);
 
@@ -331,7 +329,6 @@ EI_REWRITTEN(0x00519B50, Plain56::Serialize);   // FrameArrayClass
 
 // Arrays whose elements SetSize builds and destroys (a shrinking load destroys the ones past the count).
 EI_REWRITTEN(0x0045DC60, OwnedPatrols::Serialize);   // PatrolArrayClass
-EI_REWRITTEN(0x0045FCB0, OwnedAllods::Serialize);   // AllodArrayClass
 EI_REWRITTEN(0x004C88E0, ScriptAreas::Serialize);   // ScriptAreaArrayClass
 EI_REWRITTEN(0x006C4A40, ByteArrays::Serialize);   // TerrainByteArraysClass
 EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);

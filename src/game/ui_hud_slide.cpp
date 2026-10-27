@@ -376,7 +376,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     if (const MapRecord* zone = LocalZone()) {
         worldWidth_ = static_cast<float>(zone->sizeX) * ZoneUnit();
         worldHeight_ = static_cast<float>(zone->sizeY) * ZoneUnit();
-        LoadTexture(zone->picture, kMapTextureKind, nullptr);
+        LoadTexture(zone->picture.c_str(), kMapTextureKind, nullptr);
     } else {
         worldWidth_ = 32.0f;
         worldHeight_ = 32.0f;

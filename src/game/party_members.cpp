@@ -230,9 +230,9 @@ void CParty::OpenEdgeExits() {
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
     for (int i = 0; i < zone->exits.size; ++i) {
-        MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
+        MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target.c_str());
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable = str::Format(ZoneVariableFormat(), target->name.GetString());
+        variable = str::Format(ZoneVariableFormat(), target->name.c_str());
         float value = variables.Get(variable.c_str());
         EI_NAN_AUDIT(value);
         if (value == 0.0f) variables.Set(variable.c_str(), kOpened);

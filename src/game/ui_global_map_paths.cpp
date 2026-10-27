@@ -93,10 +93,10 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < from->exits.size; ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target);
+        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target.c_str());
         if (!zone) continue;
         float passTime = from->exits.data[i].passTime;
-        if (SameName(zone->name, target_.c_str())) {
+        if (SameName(zone->name.c_str(), target_.c_str())) {
             found_ = true;
             int exit = from->exits.data[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
@@ -122,7 +122,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (onWay) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
-            variable = str::Format(kZoneVariable, zone->name.GetString());
+            variable = str::Format(kZoneVariable, zone->name.c_str());
             int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));   // truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }

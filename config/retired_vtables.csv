@@ -80,7 +80,7 @@ vtable,slots,class,file,note
 0073C394,3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
 0073C3A0,3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
 0073C3D0,3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
-0073C3DC,3,AllodArrayClass,src/lib/mfc_slots.h,CArray (the map database's allods)
+0073C3DC,3,AllodArrayClass,src/game/game_arrays.h,CArray (the map database's allods)
 0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)

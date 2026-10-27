@@ -378,7 +378,7 @@ void CCampPages::BuildPages() {
         BriefingPlayerName name;
         zone = TheMapDatabase()->FindMap(name);
     }
-    TheMusicSystem()->PlayConstructor(zone ? zone->allod.GetString() : "gipat");
+    TheMusicSystem()->PlayConstructor(zone ? zone->allod.c_str() : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = TheRenderDevice();

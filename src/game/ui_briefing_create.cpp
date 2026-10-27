@@ -224,7 +224,7 @@ void CBriefingScreen::CreateScreen() {
     MapEdgeFade() = kEdgeFade;
 
     if (MapRecord* record = FindLocalMap()) {
-        TheMusicSystem()->PlayBriefing(record->allod);
+        TheMusicSystem()->PlayBriefing(record->allod.c_str());
         noWalk_ = record->cage;
     } else {
         TheMusicSystem()->PlayBriefing(DefaultAllod());

@@ -353,9 +353,15 @@ to which template:
   `mfc::CString*`: their std::string callers read into a local CString and assign it (ReadPerkLine, ShownName,
   ReadTutorText). The global map's links and quests are `GlobalMapPlaces` (typed element policy; the byte-offset
   GlobalMapPointRecords SetSize went).
+  object_tables.h: AllodRecord's names, ZoneExit::target and MapRecord's eight strings. The map database's arrays are
+  typed first: `CArray<AllodRecord, AllodRecordElements>` / `CArray<MapRecord, MapRecordElements>` (game_arrays.cpp;
+  zero fill, the strings, the inner array's table), grown by CArray::SetSize (map_database.cpp's untyped SetSize over
+  `ElementFn`s went); ExitArrayClass's destructor is gamearrays::Exits' (the `ExitTargets` byte-offset policy went),
+  AllodArrayClass moved to game_arrays.h over the typed records, and the instantiations' registrations (0x004606A0,
+  0x00460720, 0x004606F0, 0x0045FBD0, 0x004600F0, 0x0045FCB0) name the typed functions.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
-  BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, lever_table.cpp's DestroyString
-  at offsets; the map database's allods / maps / exits through map_database.cpp's untyped SetSize), stlp::vector<CString> (CStringVector) members, and members of objects
+  BuiltStringsAt / NamedStrings policies: texture names, memory records, lever_table.cpp's DestroyString at
+  offsets), stlp::vector<CString> (CStringVector) members, and members of objects
   the vector recorders read in game.exe through our headers (record_script*.cpp read CScript; its error goes through
   tests/vectors/script_original.h, game.exe's layout at errorText_'s offset).
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
@@ -391,6 +397,13 @@ to which template:
   `/ 0x..` and `reinterpret_cast<char*>(...end())` near the class's containers.
 - Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
   with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
+- A function returning `const mfc::CString&` of a retyped member compiles silently and returns a reference to a
+  temporary CString built by the bridge constructor: world_game.cpp's `RecordMob` / `RecordMap` (forwarders of
+  MapRecord's members) handed LoadZoneScripts a dead path (CFileException in every zone with scripts). They went;
+  before retyping, grep `mfc::CString& Name(...) { return ...member; }` for the members.
+- c14_strings.py has no rule for an overload set that took the CString through its conversion (`gamecrt::mbscmp`'s
+  C2665): it keeps the member. Retype such a member by hand and add the `.c_str()`s, then run the tool with it (a
+  member already declared std::string gets the rules).
 - c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
   manual.txt says "already converted"; the next line gets a stray `.c_str()`). Read the diff of every run.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors

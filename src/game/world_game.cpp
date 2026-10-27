@@ -95,11 +95,6 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 
-const mfc::CString& RecordName(MapRecord* record) { return record->name; }
-const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
-const mfc::CString& RecordMob(MapRecord* record) { return record->mob; }
-const mfc::CString& RecordMap(MapRecord* record) { return record->map; }
-
 struct LocalRecords {
     PartyStorage storage;
     CParty* Party() { return storage.Get(); }
@@ -116,7 +111,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
                       const std::string& currentMap, NamedFloatTable* variables) {
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
-        const char* name = record->name;
+        const char* name = record->name.c_str();
         bool visited;
         {
             std::string prefix = kVisitedPrefix;
@@ -127,13 +122,13 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(record->name,
+            keep = gamecrt::mbscmp(record->name.c_str(),
                                    kAlwaysCopied) == 0 ||
-                   gamecrt::mbscmp(record->allod,
+                   gamecrt::mbscmp(record->allod.c_str(),
                                    currentMap.c_str()) == 0;
         }
         if (keep) {
-            zone = RecordName(record);
+            zone = record->name;
             bool failed;
             {
                 std::string slotPath = slotFolder + zone;
@@ -186,7 +181,7 @@ int GameFlow::SaveGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = RecordAllod(FindZone(records.Party()->zone_));
+    currentMap = FindZone(records.Party()->zone_)->allod;
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
     ThePartyManager()->BeginRedeploy(records.Party());
@@ -322,7 +317,7 @@ int __stdcall EnterZone(CParty* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(zoneRecord->map,
+    if (gamecrt::mbscmp(zoneRecord->map.c_str(),
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
         if (gamecrt::mbsicmp(zone.GetString(),
@@ -345,20 +340,20 @@ int __stdcall EnterZone(CParty* records) {
             result = RestoreZone(records, zoneRecord, zone.GetString(), folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
-            std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
+            std::string map = zoneRecord->map + kMapExtension;
             if (mapOverride) map = mapOverride;
             bool loaded;
             {
-                std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
-                loaded = TheServerWorld()->NewZone(map.c_str(), mob.c_str(), zoneRecord->name) != 0;
+                std::string mob = zoneRecord->mob + kMobExtension;
+                loaded = TheServerWorld()->NewZone(map.c_str(), mob.c_str(), zoneRecord->name.c_str()) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
             TheServerWorld()->SetTime(std::bit_cast<float>(kStartTime));
         }
         if (zoneRecord->kind == 2) {
-            mfc::CString scripts = RecordMob(zoneRecord) + kMobExtension;
-            TheServerWorld()->LoadZoneScripts(scripts);
+            std::string scripts = zoneRecord->mob + kMobExtension;
+            TheServerWorld()->LoadZoneScripts(scripts.c_str());
         } else {
             ScriptResetZone(TheServerWorld()->MainScript());   // the scripts reset for a zone without its own
         }
@@ -431,8 +426,8 @@ int __stdcall StartNetworkZone(const char* zone) {
     } else {
         bool loaded;
         {
-            std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
-            std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
+            std::string mob = zoneRecord->mob + kMobExtension;
+            std::string map = zoneRecord->map + kMapExtension;
             loaded = TheServerWorld()->NewZone(map.c_str(), mob.c_str(), zone) != 0;
         }
         if (!loaded) return 0;
@@ -1414,7 +1409,7 @@ int GameFlow::LoadGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = RecordAllod(FindZone(records.Party()->zone_));
+    currentMap = FindZone(records.Party()->zone_)->allod;
     NamedFloatTable* variables = &records.Party()->variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
@@ -1428,12 +1423,12 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(record->name,
+            bool keep = gamecrt::mbscmp(record->name.c_str(),
                                         kAlwaysCopied) == 0 ||
-                        gamecrt::mbscmp(record->allod,
+                        gamecrt::mbscmp(record->allod.c_str(),
                                         currentMap.c_str()) == 0;
             if (keep) {
-                zone = RecordName(record);
+                zone = record->name;
                 std::string currentPath = currentFolder + zone;
                 std::string currentFile = currentPath + kSaveExtension;
                 std::string slotPath = slotFolder + zone;
@@ -1814,7 +1809,7 @@ void GameFlow::BuildZoneTable() {
         UnloadQuestTexts();
         std::string map;
         if (MapRecord* record = FindZone(name.c_str())) {
-            map = RecordMap(record);
+            map = record->map;
             const int allod = AllodOfMap(map.c_str());
             AppendEmptyEntry(table);
             ZoneEntry& entry = table.Finish()[-1];
