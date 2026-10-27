@@ -2730,7 +2730,7 @@ id = "C22"
 title = "Comments cleanup: describe what the code does, drop porting history"
 group = "cleanup"
 model = "sonnet"
-note = "Guide: docs/comment-guide.md (user 2026-10-27: prioritise C22, Sonnet medium workers). Rule decided: no game.exe address stays in a comment (registrations carry function addresses; named globals the data ones); the only address tags kept are the rdata literal tags /*0073B86C*/ that tools/rdata_literals.py reads, and generated files are untouched. Ticket ids only as TODO(ID) for open work. Mechanical pass done on main (tools/comments.py apply: addresses in comments 19,415 -> 11,206, ticket ids 1,033 -> 539, code tokens unchanged per comments.py samecode). Ratchet: comments.py check in build.cmd, config/comment_baseline.csv (coordinator runs --update after merges). Hand pass: batches C22a-C22q (config/comment_batches.txt, ~2.6k comment lines each). Earlier measure: src/ 980 files, ~51k comment lines; user 2026-10-21 on addresses: keep only those our work still needs, tagged."
+note = "Guide: docs/comment-guide.md (user 2026-10-27: prioritise C22, Sonnet medium workers). Rule decided: no game.exe address stays in a comment (registrations carry function addresses; named globals the data ones); the only address tags kept are the rdata literal tags /*0073B86C*/ that tools/rdata_literals.py reads, and generated files are untouched. Ticket ids only as TODO(ID) for open work. Mechanical pass done on main (tools/comments.py apply: addresses in comments 19,415 -> 11,206, ticket ids 1,033 -> 539, code tokens unchanged per comments.py samecode). Ratchet: comments.py check in build.cmd, config/comment_baseline.csv (coordinator runs --update after merges). Hand pass: batches C22a-C22f (config/comment_batches.txt, ~8k comment lines each, user 2026-10-27). Earlier measure: src/ 980 files, ~51k comment lines; user 2026-10-21 on addresses: keep only those our work still needs, tagged."
 
 [[ticket]]
 id = "C18k1"
@@ -3158,141 +3158,51 @@ note = "Two steps (2026-10-22): first only the compiler flags for the drawing/UI
 
 [[ticket]]
 id = "C22a"
-title = "Comment cleanup batch: 79 files, lib/compiled_vtable.h .. lib/vecmath.h"
+title = "Comment cleanup batch: 195 files, 8873 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22a]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22a (config/comment_batches.txt; 3303 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22a (config/comment_batches.txt; 8873 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "C22b"
-title = "Comment cleanup batch: 54 files, game/render_helper.cpp .. game/unit_create_stats.cpp"
+title = "Comment cleanup batch: 153 files, 7594 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22b]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22b (config/comment_batches.txt; 2970 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22b (config/comment_batches.txt; 7594 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "C22c"
-title = "Comment cleanup batch: 62 files, game/key_bindings.cpp .. game/ui_global_map_places.cpp"
+title = "Comment cleanup batch: 119 files, 7796 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22c]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22c (config/comment_batches.txt; 2600 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22c (config/comment_batches.txt; 7796 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "C22d"
-title = "Comment cleanup batch: 36 files, game/link_figure.cpp .. game/world_effect_visual.cpp"
+title = "Comment cleanup batch: 167 files, 7798 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22d]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22d (config/comment_batches.txt; 2600 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22d (config/comment_batches.txt; 7798 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "C22e"
-title = "Comment cleanup batch: 55 files, game/console.cpp .. render/sokol_impl.cpp"
+title = "Comment cleanup batch: 190 files, 7796 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22e]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22e (config/comment_batches.txt; 2766 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22e (config/comment_batches.txt; 7796 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "C22f"
-title = "Comment cleanup batch: 62 files, game/raster_target.h .. game/ui_region_tips.cpp"
+title = "Comment cleanup batch: 199 files, 5154 comment lines"
 group = "cleanup"
 model = "sonnet"
 files = ["config/comment_batches.txt [C22f]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22f (config/comment_batches.txt; 2228 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22g"
-title = "Comment cleanup batch: 55 files, game/clip.cpp .. game/net_state.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22g]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22g (config/comment_batches.txt; 2599 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22h"
-title = "Comment cleanup batch: 13 files, game/texture.cpp .. game/ui_alpha_draws.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22h]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22h (config/comment_batches.txt; 2599 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22i"
-title = "Comment cleanup batch: 51 files, game/player.cpp .. game/sector_spiral.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22i]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22i (config/comment_batches.txt; 2598 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22j"
-title = "Comment cleanup batch: 64 files, game/figure.cpp .. hook/standalone.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22j]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22j (config/comment_batches.txt; 2599 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22k"
-title = "Comment cleanup batch: 40 files, game/menu_rects.cpp .. game/ui_window_delete.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22k]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22k (config/comment_batches.txt; 2600 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22l"
-title = "Comment cleanup batch: 63 files, game/ai_alarm.cpp .. game/hash_tables_400.h"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22l]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22l (config/comment_batches.txt; 2599 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22m"
-title = "Comment cleanup batch: 61 files, game/app.cpp .. game/world_zone.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22m]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22m (config/comment_batches.txt; 2600 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22n"
-title = "Comment cleanup batch: 69 files, game/device.h .. game/unit_vitals.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22n]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22n (config/comment_batches.txt; 2599 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22o"
-title = "Comment cleanup batch: 60 files, game/dx_errors.cpp .. game/spell_text.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22o]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22o (config/comment_batches.txt; 2597 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22p"
-title = "Comment cleanup batch: 77 files, game/base_manager.cpp .. standalone/static_init_run.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22p]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22p (config/comment_batches.txt; 2433 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-[[ticket]]
-id = "C22q"
-title = "Comment cleanup batch: 122 files, game/acks_db.cpp .. game/zone_records.cpp"
-group = "cleanup"
-model = "sonnet"
-files = ["config/comment_batches.txt [C22q]"]
-note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22q (config/comment_batches.txt; 2721 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
-
-# ---------------------------------------------------------------- standalone and UTF-8
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22f (config/comment_batches.txt; 5154 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
 id = "S"

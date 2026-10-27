@@ -90,7 +90,7 @@ after:
 
 ## A batch (one Sonnet worker, medium effort)
 
-A batch is a set of files (C22 child tickets name them by glob) of roughly 2,000-3,000 comment lines.
+A batch is a set of files (C22 child tickets name them by glob) of roughly 8,000 comment lines (user 2026-10-27).
 
 1. Merge main. `python tools/work.py start <ID>`.
 2. `python tools/comments.py apply <files>`, then `python tools/comments.py list <files>` and
