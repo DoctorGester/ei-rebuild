@@ -29,7 +29,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     if (ar->loading_) {
         StringsClear(strings);
         count = ar->CountChunks(1);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));
+        strings->ResizeDefault<stlp::ObjectElement<mfc::CString>>(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }

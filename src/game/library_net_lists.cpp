@@ -1,5 +1,4 @@
-// The connection's owning lists and the clients' find (library_net_lists.h), registered at the exe's
-// addresses so the standalone image has them.
+// The clients' find and the counted pointer's init (library_net_lists.h).
 #include "library_net_lists.h"
 
 #include "ei/hook.h"
@@ -43,15 +42,3 @@ using namespace netlists;
 
 EI_REWRITTEN(0x0043D780, ClientsIterator::FindByAddress);
 EI_REWRITTEN(0x0043D7D0, InitClientRef);
-EI_REWRITTEN(0x00437F30, SentPacketAbi::Erase);
-EI_REWRITTEN(0x004390C0, FreedBatchAbi::Erase);
-EI_REWRITTEN(0x0043CA40, SentPacketAbi::Clear);
-EI_REWRITTEN(0x0043BA20, FreedBatchAbi::Clear);
-EI_REWRITTEN(0x004399C0, SentPacketAbi::Destruct);
-EI_REWRITTEN(0x00438F60, SentItemAbi::InsertDefault);
-EI_REWRITTEN(0x00439000, FreedBatchAbi::InsertDefault);
-EI_REWRITTEN(0x004397E0, SentPacketAbi::InsertDefault);
-EI_REWRITTEN(0x00439C80, ChunkAbi::InsertDefault);
-EI_REWRITTEN(0x00437930, FreedBatchAbi::CopyConstruct);
-EI_REWRITTEN(0x00437F60, SentPacketAbi::CopyConstruct);
-EI_REWRITTEN(0x00438690, ChunkAbi::CopyConstruct);

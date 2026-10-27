@@ -80,13 +80,6 @@ struct ChunkElement {
     static void Default(net::ReliableChunk* p) { *p = net::ReliableChunk{}; }
 };
 
-// ---- The members -----------------------------------------------------------------------------------
-
-using SentItemAbi = stlp::ListAbi<SentRecord, SentRecordElement>;
-using SentPacketAbi = stlp::ListAbi<PacketRecord, PacketRecordElement>;
-using FreedBatchAbi = stlp::ListAbi<FreedIds, FreedIdsElement>;
-using ChunkAbi = stlp::ListAbi<net::ReliableChunk, ChunkElement>;
-
 // ---- The session's clients (list<Connection*>, counted) ---------------------------------------------
 
 struct ClientsNode {

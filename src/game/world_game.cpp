@@ -1586,7 +1586,7 @@ void GameFlow::UpdateFromServer() {
     if (CTextManager* texts = TheTextManager()) {
         for (const stlp::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
             texts->RemoveSource(file->data());
-        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);
+        g_questFiles.EraseRange<stlp::StringElement>(g_questFiles.begin(), g_questFiles.end());
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
@@ -1750,8 +1750,7 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    static_cast<libcontainers::HeroRecordAbi*>(&entries_)
-                        ->InsertOverflow(finish, *entry, 1);
+                    entries_.InsertOverflow<libcontainers::HeroRecordElement>(finish, *entry, 1);
                 }
             }
         }
