@@ -1,6 +1,4 @@
-// The trader stock generation: see item_stock.h and docs/notes/items_spells.md ("Trader stock"). The STLport
-// containers are the game's: their allocating members are called through the game, the pointer copies they inline
-// are written out here.
+// The trader stock generation: see docs/notes/items_spells.md ("Trader stock").
 #include "item_stock.h"
 
 #include "core_streams.h"
@@ -29,12 +27,6 @@
 
 namespace {
 
-// ---- Original code --------------------------------------------------------------------------------
-
-// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether the prototype and
-// material allow a spell (not for kinds 0x11 / 0x12 without a material), with the level (prototype +0x44 +
-// material +0x1C, as a float) and the power limit (prototype +0x40 + material +0x18).
-
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
 
@@ -48,8 +40,6 @@ struct HeldSpell {
         if (*p) (*p)->Release();
     }
 };
-
-// ---- Globals (item_stock.h, namespace stock) -------------------------------------------------------
 
 using stock::CandidateVector;
 using stock::Candidates;
@@ -88,26 +78,23 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// vector::operator= as inlined (allocate and copy, deallocate). The callers skip a self-assignment.
+// The callers skip a self-assignment.
 template <typename T>
 void AssignPointers(stlp::vector<T*>& to, const stlp::vector<T*>& from) { to.template AssignVector<stlp::PlainElement<T*>>(from); }
 void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) { to.AssignVector<MaterialElement>(from); }
 
-// Appends an item to the output list (list<CItem*>::insert; counted by the caller).
+// Counted by the caller.
 void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), item); }
 
 void AddReference(CItem* item) { ++item->refCount_; }
 
-// A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
-// units it takes; the record's first virtual the item kind.
 const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08; }
 const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass; }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
-// Picks the material of a prototype from the candidates (pointers into the stock's entries). Each
-// candidate in turn is taken with a chance by its quality q (material +0x10) against the
-// prototype's price p: 10% outside [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100
-// percent (truncated). Null when none was taken.
+// Picks the material of a prototype from the candidates (pointers into the stock's entries). Each candidate in
+// turn is taken with a chance by its unitPrice q against the prototype's price p: 10% outside
+// [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100 percent (truncated). Null when none was taken.
 StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     float seventh = static_cast<float>(prototype->price * stock::SeventhFactor());
     float fifth = static_cast<float>(prototype->price * stock::FifthFactor());
@@ -132,8 +119,6 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     return nullptr;
 }
 
-// Empties the spell list as clear does: each counted spell released (a virtual release, the holder's release, with
-// 0), each node back to the node pool.
 void ClearSpellList(StockSpellList& list) {
     StockSpellListNode* head = list.head;
     StockSpellListNode* node = head->next;
@@ -147,7 +132,6 @@ void ClearSpellList(StockSpellList& list) {
     head->prev = head;
 }
 
-// Frees the spell list as clear and the destructor do: the clear, then the sentinel.
 void DestroySpellList(StockSpellList& list) {
     ClearSpellList(list);
     stlp::deallocate(list.head, sizeof(StockSpellListNode));
@@ -293,9 +277,9 @@ EI_REWRITTEN(0x0069A110, ItemStock::GenerateMaterials);
 
 namespace {
 
-// The common body of the three instruction generators: the source records are copied to a scratch vector,
-// then each (except one named `skip`) becomes an item of kind 0x3007 with the class-0x15 prototype named at
-// `prototypeName`, no material, +0x54 the record's index in the table `table` and +0x48 a random count.
+// The common body of the three instruction generators: the source records are copied to a scratch vector, then
+// each (except one named `skip`) becomes an item of kind 0x3007 with the class-0x15 prototype named at
+// `prototypeName`, no material, index_ the record's index in `table` and count_ a random count.
 template <typename Record>
 void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, const char* prototypeName,
                           const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
@@ -346,24 +330,15 @@ EI_REWRITTEN(0x00699A40, ItemStock::GenerateQuickItemInstructions);
 
 namespace {
 
-// The spell recipe map (+0x50): clear, find-or-insert of a {name, list} pair, begin and the next non-empty bucket.
-// Its lists: constructor, destructor, end, insert; the pair: constructor (the record, whose name starts it, and
-// &list), destructor. The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
-// spell prototypes by name (thiscall on the spell table) and the spell manager's builder (prototype, modifier
-// list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
     return itemdb::TheSpellDatabase().spells.Named(name);
 }
-// The modifier list (list<modifier*>): constructor, end, insert, node free. The output list of counted spells: end,
-// insert.
 
-// The modifier map's entry for `name` (created null when missing, as operator[] does).
+// Created null when missing.
 itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const stlp::string& name) {
     return stlp::NamedSlot<itemdb::SpellModifierRecord>(stock->modifierMap, name);
 }
 
-// A modifier record (itemdb::SpellModifierRecord): its code's first letter the kind, mana the cost
-// added, strength (a cost factor for kind 'm'), skill the level it adds.
 using Modifier = itemdb::SpellModifierRecord;
 char ModifierKind(const Modifier* m) { return m->code[0]; }
 float ModifierCost(const Modifier* m) { return m->mana; }
@@ -409,7 +384,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
             stlp::string key(letters, letters + 1);
             Modifier* held = ModifierSlot(this, key);
-            // Replaced when the held one's factor (+0x14) is less.
+            // Replaced when the held one's strength is less.
             if (held) EI_NAN_AUDIT(ModifierFactor(held), ModifierFactor(m));
             if (!held || ModifierFactor(held) < ModifierFactor(m)) ModifierSlot(this, key) = m;
             break;
@@ -492,13 +467,6 @@ EI_REWRITTEN(0x0069A780, ItemStock::GenerateSpells);
 
 namespace {
 
-// CStream::ReadString: a CString constructed at `out` from the bytes up to a zero (the stream's Read is a virtual
-// call).
-// The record lookups by name (thiscall on the tables; null when missing): armors, weapons, quick items, materials
-// (NamedRecordTable::Named). The spell and modifier maps' operator[] (they insert a null for a new name).
-// push_back of the pointer vectors (the three item lists, spells, modifiers);
-// vector<StockMaterial>::_M_insert_overflow.
-
 // The counts and the material values are read into locals reused for every section, so a failed read leaves the
 // previous value.
 void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
@@ -510,7 +478,6 @@ void ReadName(CStream* stream, mfc::CString& name) {
     std::destroy_at(read);
 }
 
-// std::find (one instantiation per list), then push_back when missing.
 template <typename T>
 void AddUnique(stlp::vector<T*>& list, T* record) {
     T** p = list.begin();
@@ -640,8 +607,6 @@ EI_REWRITTEN(0x00699440, ItemStock::CopyMagic);
 
 namespace {
 
-// The offered spells' and modifiers' records (from the maps by name) have the tables' layouts:
-// the spell's code a CString at +4, the modifier's inline at +4.
 int SpellIndex(const itemdb::SpellRecord* record) {
     const char* code = record->code;
     itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
@@ -653,9 +618,9 @@ int ModifierIndex(const Modifier* record) {
     return modifiers.IndexOf(modifiers.FindByCode(code));
 }
 
-// The common body of the spell and modifier instruction generators: the source copied to its scratch
-// vector, then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record,
-// its index, +0x48 a random count. The scratch is emptied at the end.
+// The common body of the spell and modifier instruction generators: the source copied to its scratch vector,
+// then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record, its index,
+// count_ a random count. The scratch is emptied at the end.
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& source, stlp::vector<Record*>& taken,
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
