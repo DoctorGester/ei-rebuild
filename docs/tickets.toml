@@ -3338,6 +3338,21 @@ depends = ["C22l"]
 note = "C22l cut its batch 18% (7,978 to 6,536). Left: ~130 files only given the mechanical pass (small game/ and lib/ files), render.h (~290 lines) and render_internal.h (~250) per-function prose, 79 register notes, 32 stale claims, 477 long-block lines. Opus (user 2026-10-27). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
 
 [[ticket]]
+id = "C31"
+title = "Container aliases: name the type where it's used, drop single-use and pass-through using aliases"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-27. 1,000 using aliases in src, 477 of them to containers (ArrayAbi 83, mfc::CArray 55, stlp::list 53, stlp::VectorAbi 42, lib::AlignedArray 41, ListAbi 36, stlp::vector 35, stlp::hash_map 33, CTypedPtrList 28...). Inline aliases used once or only re-exporting another alias; keep an alias only where it names a real concept used in several places. Coordinate with C14b/C14c, which replace the container types themselves: do this first so those rewrites see one spelling per type. Build checks only; no game runs unless a type changes."
+
+[[ticket]]
+id = "C14e"
+title = "C14 aligned arrays: lib::AlignedArray (372 uses, 92 files) and needless alignas / pack to standard types"
+group = "cleanup"
+model = "opus"
+depends = ["C14a"]
+note = "User 2026-10-27: seemingly unnecessary aligned data structures. lib::AlignedArray (src/lib/containers.h) is the engine's 32-byte-aligned array with CArray growth and memcpy relocation, new slots uninitialised; replace with std::vector (or a small aligned vector only where the renderer or SIMD really needs the alignment), checking where code depends on garbage-initialised new slots, growth steps or memcpy moves of non-trivial types. Also review the 42 alignas / __declspec(align) and 22 #pragma pack uses: keep only file, save and packet layouts. Checks: verify/release, image suite goldens the same."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
