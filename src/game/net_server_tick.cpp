@@ -1,6 +1,5 @@
-// The game server's tick and a player state query (called by the
-// file chunk sender). Float maths in plain C++ (rewrite-guide rule 7). See
-// net_classes.h and docs/notes/network.md.
+// The game server's tick and a player state query (called by the file chunk sender). Float maths in plain C++
+// (rewrite-guide rule 7). See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_connection.h"
@@ -40,11 +39,10 @@ void CountDown(List& list, float dt) {
 
 } // namespace
 
-// The base layer's tick, then the timed entries of the finished trades and the
-// awards count down by `dt` (as a float), and when the game is public the announcement timer does
-// too: when it runs out it is reset and, with a master server host set, the game is announced.
-// A timer that lands within rounding of zero may expire one tick apart from the original (x87
-// versus plain float maths).
+// The base layer's tick, then the timed entries of the finished trades and the awards count down by `dt` (as
+// a float), and when the game is public the announcement timer does too: when it runs out it is reset and,
+// with a master server host set, the game is announced. A timer that lands within rounding of zero may expire
+// one tick apart from the original (x87 versus plain float maths).
 void ServerSession::Tick(double dt) {
     ServerBase::Tick(dt);
     float step = static_cast<float>(dt);

@@ -16,10 +16,9 @@
 class ChunkArchive;
 
 struct QuestRecord {
-    // Reads (archive loading) or writes the record: string field 0 the name,
-    // 1 exp, 2 +0x10, 3 the zone, string field 4 the text, 5 money, 6 the order, chunk 7 the
-    // places (one field 1 per float; loading empties the vector and fills it with that many
-    // zeros first).
+    // Reads (archive loading) or writes the record: string field 0 the name, 1 exp, 2 +0x10, 3 the zone,
+    // string field 4 the text, 5 money, 6 the order, chunk 7 the places (one field 1 per float; loading
+    // empties the vector and fills it with that many zeros first).
     void Serialize(ChunkArchive* ar);
     // The compiler's destructor. The text, the places' storage, the name.
     void Destruct();
@@ -44,9 +43,8 @@ static_assert(offsetof(QuestRecord, text) == 0x2C);
 static_assert(sizeof(QuestRecord) == 0x38);
 
 struct QuestBriefingRecord {
-    // Reads or writes the record: string field 0 the name, 1 exp, 2 money,
-    // chunk 3 the given items, string field 4 the text, chunks 5-9 the other lists
-    // (InlineStrings), 10 +0x68.
+    // Reads or writes the record: string field 0 the name, 1 exp, 2 money, chunk 3 the given items, string
+    // field 4 the text, chunks 5-9 the other lists (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
     // The compiler's destructor. The text, the lists from the last (each string, then the storage), the name.
     void Destruct();

@@ -1,10 +1,9 @@
-// The game server's talk with the master server and a chat handler: the announcement
-// (from the tick), the master server's answer and a client's chat
-// line (registered for SayMessage by ServerSession's constructor). All run from the
-// session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches the announcement and
-// the master answer (NewMaster; both reproduced: the answer's NOPs and the announcement's
-// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a site in the chat handler
-// (disabled in this install). See docs/notes/network.md and rebirth.md.
+// The game server's talk with the master server and a chat handler: the announcement (from the tick), the
+// master server's answer and a client's chat line (registered for SayMessage by ServerSession's constructor).
+// All run from the session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches the
+// announcement and the master answer (NewMaster; both reproduced: the answer's NOPs and the announcement's
+// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a
+// site in the chat handler (disabled in this install). See docs/notes/network.md and rebirth.md.
 #include "net_classes.h"
 
 #include "core_refcount.h"

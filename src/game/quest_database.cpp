@@ -1,10 +1,8 @@
-// The quest database's load of one quest (thiscall on the database, called
-// by the quest registration with the image of "<name>.quest.reg"): the "quest" section
-// becomes a quest record (name, exp, money, zone index, order, the "{x;y}" quest places) and the
-// three briefing sections ("briefing receive", "briefing reject", "briefing complete") briefing
-// records (name, exp, money, six string lists); each record is added unless its name is already
-// there. The records and the database's containers are STLport objects handled through the
-// game's own members. Names provisional; see docs/notes/items_spells.md ("Quest database").
+// The quest database's load of one quest (called by the quest registration with the image of "<name>.quest.reg"):
+// the "quest" section becomes a quest record (name, exp, money, zone index, order, the "{x;y}" quest places) and
+// the three briefing sections ("briefing receive", "briefing reject", "briefing complete") briefing records (name,
+// exp, money, six string lists); each record is added unless its name is already there. See
+// docs/notes/items_spells.md ("Quest database").
 #include "console.h"
 #include "quest_records.h"
 #include "game_strings.h"
@@ -24,15 +22,11 @@
 
 namespace {
 
-// The section and key names (the game's own strings). The quest registry (registry.cpp).
+// The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The quest places: vector<float> (constructor, insert-overflow).
 using PlaceElement = stlp::PlainElement<float>;
-// The briefing lists: vector<CString> (constructors, erase a range, clear,
-// reserve, push_back from a CString).
 using ListElement = stlp::ObjectElement<mfc::CString>;
-// The quest and briefing vectors' push_back.
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
 

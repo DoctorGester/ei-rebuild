@@ -341,9 +341,8 @@ static_assert(sizeof(ReplicatedVector) == 12);
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
 
-// Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login,
-// 5 info, 6 accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after
-// that byte.
+// Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
+// accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
 class SessionBase : public CRefCounted {
 public:
     void RegisterTradeHandler(int channel, void* handler);

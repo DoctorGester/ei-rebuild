@@ -1,6 +1,5 @@
-// The game server's awards: the zone completion command ("<zone>_3"), the host's item
-// awards and the queued award message, plus the counted pointer copy they
-// use. See net_classes.h and docs/notes/network.md.
+// The game server's awards: the zone completion command ("<zone>_3"), the host's item awards and the queued
+// award message, plus the counted pointer copy they use. See net_classes.h and docs/notes/network.md.
 
 #include "net_messages.h"
 #include "quest_records.h"

@@ -1,7 +1,6 @@
-// The game server's players and their connections: lookups (
-// ), admission and the password, kicking and banning the departure reports and the lines to every guest. See
-// net_classes.h and docs/notes/network.md. Players (players_) are PlayerMessages, bindings (bindings_)
-// BindingMessages (net_server_join.cpp).
+// The game server's players and their connections: lookups ( ), admission and the password, kicking and
+// banning the departure reports and the lines to every guest. See net_classes.h and docs/notes/network.md.
+// Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
 #include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
@@ -49,10 +48,9 @@ int ServerSession::LeaderId() {
 }
 EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
 
-// Whether a client from `from` may join. Refused when the address is banned
-// (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
-// moves past them either way), or when the clients and the pending joins reach the maximum
-// (reason 1).
+// Whether a client from `from` may join. Refused when the address is banned (reason 2), when a password is
+// set and the 20 bytes at `*password` differ (reason 3; the pointer moves past them either way), or when the
+// clients and the pending joins reach the maximum (reason 1).
 bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
     *reason = 2;
     // find_if over the banned addresses: the host compared, not the port.

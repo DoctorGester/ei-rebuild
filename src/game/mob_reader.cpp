@@ -1,10 +1,9 @@
-// The .mob zone file reader: one function reads the top-level chunks, another turns the
-// records into world objects. Names are provisional; the record classes are map_spec.h.
-// The record loader has a branch under a global (a colour quantisation of the objects' tints,
-// through STLport map / list / introsort instantiations). Nothing in the game,
-// addon.dll or EI_Plugin.asi writes that global (it sits in zero-initialised data; a byte search
-// finds its address only in the test), so the branch never runs and is not
-// reproduced: see docs/notes/script.md.
+// The .mob zone file reader: one function reads the top-level chunks, another turns the records into world
+// objects. Names are provisional; the record classes are map_spec.h. The record loader has a branch under a
+// global (a colour quantisation of the objects' tints, through STLport map / list / introsort
+// instantiations). Nothing in the game, addon.dll or EI_Plugin.asi writes that global (it sits in
+// zero-initialised data; a byte search finds its address only in the test), so the branch never runs and is
+// not reproduced: see docs/notes/script.md.
 #include "map_spec.h"
 #include "options.h"
 

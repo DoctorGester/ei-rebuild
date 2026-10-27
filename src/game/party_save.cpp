@@ -1,6 +1,5 @@
-// Saving and loading parties and their unit records, and the party copies made through a memory
-// stream (operator= and the copy constructor). See party.h and docs/notes/items_spells.md
-// ("Party").
+// Saving and loading parties and their unit records, and the party copies made through a memory stream
+// (operator= and the copy constructor). See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
 #include "chunk_archive.h"

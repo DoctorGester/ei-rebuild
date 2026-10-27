@@ -1,5 +1,4 @@
-// The link figure loader's .lnk reading and mesh cache. See
-// link_figure.h and CLinkFigureLoader in model.h.
+// The link figure loader's .lnk reading and mesh cache. See link_figure.h and CLinkFigureLoader in model.h.
 #include "core_refcount.h"
 #include "link_figure.h"
 

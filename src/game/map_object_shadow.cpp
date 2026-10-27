@@ -1,5 +1,4 @@
-// The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md
-// ("Shadows").
+// The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
 #include "figure_mesh.h"
 #include "options.h"
 #include "map_object_shadow.h"

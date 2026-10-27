@@ -1,8 +1,7 @@
-// The client base's lobby: finding servers and joining one, and the server base's half
-// that answers. See net_classes.h (ClientBase, ServerBase) for the fields.
-// The packets (first byte): 3 ping (the session time), 4 join (magic, id, rate, extra data),
-// 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7 refused (id, reason).
-// Plain float maths (rule 7). See docs/notes/network.md.
+// The client base's lobby: finding servers and joining one, and the server base's half that answers. See
+// net_classes.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
+// 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
+// refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
 #include "chunk_archive.h"
 #include "game_strings.h"
 #include "core_refcount.h"

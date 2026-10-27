@@ -1,6 +1,5 @@
-// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and
-// CMapObjectClientSpecific (0x3A). Both classes are declared in unit.h; each holds the map object it belongs
-// to.
+// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and CMapObjectClientSpecific
+// (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
 
 #include "map_object.h"
 #include "object_tables.h"

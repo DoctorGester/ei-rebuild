@@ -198,11 +198,10 @@ EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 
 // ---- State blocks -------------------------------------------------------------------------------------
 
-// The first block sets the texture stages of the first `stages` states
-// (as many as the device has, or one) and switches the next stage off; each state from there on gets
-// a block of its own with its blend factors (an empty block without them). The check of a stage's
-// operations ands the operation's number with the device's capability bits.
-// A stage that fails it ends the first block there. Returns the new preset.
+// The first block sets the texture stages of the first `stages` states (as many as the device has, or one)
+// and switches the next stage off; each state from there on gets a block of its own with its blend factors
+// (an empty block without them). The check of a stage's operations ands the operation's number with the
+// device's capability bits. A stage that fails it ends the first block there. Returns the new preset.
 CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
     int stages;

@@ -1,8 +1,7 @@
-// The scene renderer's lifetime and small slots (the renderer; its base
-// class, owns +0x04.. +0x1C): constructors and destructors, Destroy, the
-// draw colour and sun, the frame clear, texture binding, the figure draws (slots
-// 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a switch back
-// (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
+// The scene renderer's lifetime and small slots (the renderer; its base class, owns +0x04.. +0x1C):
+// constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
+// figure draws (slots 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a
+// switch back (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
 // (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"

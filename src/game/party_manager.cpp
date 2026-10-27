@@ -1,6 +1,5 @@
-// The party manager's save and load and the archive chunks they write: the
-// parties by key, the entries, the class templates and the named
-// records. See party_manager.h and docs/notes/script.md ("Leftovers").
+// The party manager's save and load and the archive chunks they write: the parties by key, the entries, the
+// class templates and the named records. See party_manager.h and docs/notes/script.md ("Leftovers").
 #include "item_stock.h"
 #include "party_manager.h"
 

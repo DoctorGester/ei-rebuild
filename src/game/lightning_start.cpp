@@ -1,6 +1,5 @@
-// CLightning's initialiser (called by the lightning client object's setter).
-// Plain float maths (rule 7); random words converted with x87::FromUnsigned. See
-// docs/notes/objects.md ("Rewritten").
+// CLightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
+// random words converted with x87::FromUnsigned. See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 #include "texture.h"
 

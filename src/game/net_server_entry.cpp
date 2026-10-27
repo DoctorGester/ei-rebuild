@@ -46,8 +46,7 @@ void ServerSession::Describe(RefPtr* out) {
         out->Share(entry);
     }
 }
-// When announced, the master's address is set from the host name and port
-// 28004.
+// When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;
     if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.GetString(), 0x6D64);

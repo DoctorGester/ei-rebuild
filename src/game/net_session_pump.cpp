@@ -1,6 +1,5 @@
-// The connection pump of a network session and its start: a driver link
-// (net_link.h) per remote player. The session keeps two lists of the drivers (owning, and holders_).
-// See docs/notes/network.md.
+// The connection pump of a network session and its start: a driver link (net_link.h) per remote player. The
+// session keeps two lists of the drivers (owning, and holders_). See docs/notes/network.md.
 #include "net_classes.h"
 #include "net_link.h"
 

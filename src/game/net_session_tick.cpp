@@ -302,8 +302,7 @@ EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 namespace net {
 
 namespace {
-// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef):
-// another STLport string destructor.
+// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef): another STLport string destructor.
 } // namespace
 
 // The send interval is the constant over the rate clamped to [500, 50000].

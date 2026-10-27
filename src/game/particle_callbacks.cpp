@@ -838,10 +838,9 @@ int CParticleSource::EmitCastSwirl(Particle* p, int) {
 }
 EI_REWRITTEN(0x00490C10, CParticleSource::EmitCastSwirl);
 
-// A marker (state < 0) sits on its orbiter with a flickering size and, once the source
-// stops emitting (or loses its carrier), fades by the table and dies. A spark fades over its last
-// 7 ticks, cycles frames 12..15, shrinks, and moves by its velocity, whose z changes by a growing
-// step.
+// A marker (state < 0) sits on its orbiter with a flickering size and, once the source stops emitting (or
+// loses its carrier), fades by the table and dies. A spark fades over its last 7 ticks, cycles frames 12..15,
+// shrinks, and moves by its velocity, whose z changes by a growing step.
 int CParticleSource::UpdateCastSwirl(Particle* p) {
     int state = p->state;
     if (state < 0) {
@@ -1187,11 +1186,10 @@ int CParticleSource::EmitBlast(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048C090, CParticleSource::EmitBlast);
 
-// FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and
-// lasts until its frame reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the
-// source's size, then disappears; it keeps the source alive while the fragments are younger than
-// 3 ticks. Flames move by their velocity (slowing with the fragments' drag), swell, step through
-// frames at an accelerating rate and fade by the frame.
+// FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and lasts until its frame
+// reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the source's size, then disappears; it
+// keeps the source alive while the fragments are younger than 3 ticks. Flames move by their velocity (slowing
+// with the fragments' drag), swell, step through frames at an accelerating rate and fade by the frame.
 int CParticleSource::UpdateBlast(Particle* p) {
     ParticleElement* fragments = elements;
     int state = p->state;
@@ -1622,9 +1620,8 @@ double BagSpread(const CParticleSource* s, float& low, float& high) {
 
 } // namespace
 
-// Bag: the first 80 particles are the balls (state = their index; the first one fills the
-// size table: 0.93 to the power of the age); later ones are sparks along a random ball's last step,
-// in the ball's colour.
+// Bag: the first 80 particles are the balls (state = their index; the first one fills the size table: 0.93 to
+// the power of the age); later ones are sparks along a random ball's last step, in the ball's colour.
 int CParticleSource::EmitBag(Particle* p, int index) {
     if (particles.count < 80) {
         if (index == 0) {
@@ -2512,8 +2509,7 @@ namespace {
 // A random value of [low, high) (the original's spread box order).
 double Between(float low, float high) { return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low); }
 
-// The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis
-// (AddUp).
+// The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis (AddUp).
 void SideVelocity(CParticleSource* s, Particle* p, float low, float high) {
     double q = Between(low, high);
     p->velocity.x = static_cast<float>(q * D(s->side.x));
@@ -3520,11 +3516,10 @@ const char* kBody = "bd";
 
 } // namespace
 
-// FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting
-// or loses its carrier; dropped past 0), the source's lifetime as the colour. The puff's offset
-// (aux0..aux2) grows by its speed (drift, slowing by 0.9) and the puff eases (velocity.y of the way,
-// which shrinks by 0.98) towards its foot (element `state`) plus the offset; its size is velocity.x
-// (shrinking by 0.8).
+// FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting or loses its carrier;
+// dropped past 0), the source's lifetime as the colour. The puff's offset (aux0..aux2) grows by its speed
+// (drift, slowing by 0.9) and the puff eases (velocity.y of the way, which shrinks by 0.98) towards its foot
+// (element `state`) plus the offset; its size is velocity.x (shrinking by 0.8).
 int CParticleSource::UpdateFeetCloud(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
@@ -4123,10 +4118,9 @@ double PowInline(double base, int exponent) { return x87::fexp(x87::flog(base) *
 
 } // namespace
 
-// Nuke: a puff at a random point of the disc of a fifth of the source's size, at a
-// random height up to twice the size, drifting outwards and up (less as the blast ages: element
-// 0's tick); later puffs live shorter, start at a later frame and are more opaque (4 ^ tick * 4,
-// capped at 255).
+// Nuke: a puff at a random point of the disc of a fifth of the source's size, at a random height up to twice
+// the size, drifting outwards and up (less as the blast ages: element 0's tick); later puffs live shorter,
+// start at a later frame and are more opaque (4 ^ tick * 4, capped at 255).
 int CParticleSource::EmitNuke(Particle* p, int) {
     int tick = elements[0].ticks;
     int rise = 11 - tick;

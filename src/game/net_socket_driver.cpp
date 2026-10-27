@@ -249,10 +249,9 @@ MasterLink::~MasterLink() {
 }
 EI_REWRITTEN_SPECIAL(0x00440D40, MasterLink::~MasterLink);
 
-// One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
-// buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes
-// (3). An error closes the socket (0). Each step waits at most kSelectTimeout (a poll). Returns the
-// state.
+// One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing buffer at once,
+// blocking (then 2); receiving (2) into the incoming buffer until the peer closes (3). An error closes the
+// socket (0). Each step waits at most kSelectTimeout (a poll). Returns the state.
 int __fastcall MasterLinkTick(MasterLink* self) {
     struct {
         std::uint32_t count;

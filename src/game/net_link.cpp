@@ -395,9 +395,8 @@ int FramedLink::IncomingCount() {
 }
 EI_REWRITTEN(0x0047BA40, FramedLink::IncomingCount);
 
-// The message framed (its length, then its bytes, read from the start) in a stack buffer and
-// handed to slot 13; when that fails the link disconnects. False for a message over
-// 0x7FFC bytes or a failed send.
+// The message framed (its length, then its bytes, read from the start) in a stack buffer and handed to slot
+// 13; when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
 bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
@@ -482,8 +481,7 @@ EI_REWRITTEN(0x00479A30, DriverLink::Clone);
 bool DriverLink::Connected() { return IsLive(player_.Get()); }
 EI_REWRITTEN(0x00479780, DriverLink::Connected);
 
-// The player's incoming reliable bytes appended to the inbox, and that stream emptied
-// (flags 6).
+// The player's incoming reliable bytes appended to the inbox, and that stream emptied (flags 6).
 void DriverLink::Pump() {
     net::Connection* player = player_.Get();
     if (!IsLive(player)) return;

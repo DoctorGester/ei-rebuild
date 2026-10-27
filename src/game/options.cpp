@@ -75,7 +75,7 @@ constexpr Value kVideoValues[] = {
     {kDword, &GameOptions::keyGeneral_, "VideoRefreshRate", 0x040},
     {kInt, &GameOptions::keyGeneral_, "FullScreen", 0x044},
 };
-// Joystick (+0x48, default 0) comes between these two lists.
+// Joystick (joystick_, default 0) comes between these two lists.
 constexpr Value kAudioToGeneralValues[] = {
     {kInt, &GameOptions::keyGeneral_, "Video", 0x04C},
     {kInt, &GameOptions::keyGeneral_, "Audio", 0x050},

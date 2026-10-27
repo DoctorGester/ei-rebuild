@@ -1,6 +1,5 @@
-// The network state writers of map objects and units: the virtual slot
-// that writes an object's dirty fields into its DeltaState for the clients. See
-// docs/notes/units.md ("Network state").
+// The network state writers of map objects and units: the virtual slot that writes an object's dirty fields
+// into its DeltaState for the clients. See docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
 

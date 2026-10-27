@@ -50,11 +50,10 @@ struct TradeElement {
     }
 };
 
-// The link queues' memory streams (QueueNode, 48-byte nodes). The copy constructs a
-// memory stream, sizes it as the source (SetSize) and calls its slot 1 (Read) with the source's
-// buffer: the game reads the new stream's fresh block into the source rather than writing the
-// source's bytes, so both hold the new block's bytes. Destroyed by the destructor; T()
-// is an empty stream.
+// The link queues' memory streams (QueueNode, 48-byte nodes). The copy constructs a memory stream, sizes it
+// as the source (SetSize) and calls its slot 1 (Read) with the source's buffer: the game reads the new
+// stream's fresh block into the source rather than writing the source's bytes, so both hold the new block's
+// bytes. Destroyed by the destructor; T() is an empty stream.
 struct QueueStreamElement {
     static void Copy(CMemoryStream* to, const CMemoryStream& from) {
         new (to) CMemoryStream();

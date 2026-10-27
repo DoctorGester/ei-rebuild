@@ -220,9 +220,8 @@ EI_REWRITTEN(0x00598980, ObjectHolderRelease);
 EI_REWRITTEN(0x00598990, ObjectHolderRelease);
 EI_REWRITTEN(0x00421350, ObjectHolderRelease);
 
-// Assignment, with byte-identical copies (a particle source's among them):
-// the new object gains a reference, then the old one is released (HeldObject::Assign,
-// engine_object.h).
+// Assignment, with byte-identical copies (a particle source's among them): the new object gains a reference,
+// then the old one is released (HeldObject::Assign, engine_object.h).
 EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
 EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
 EI_REWRITTEN(0x00511B90, HeldEngineObject::Assign);

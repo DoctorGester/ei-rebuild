@@ -120,12 +120,11 @@ public:
     // empty or "none", and of the spells; text 6 = text 5. Returns 1. (The lists come from the record: the
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     BOOL FillFromPrototype(PartyUnitRecord* record);
-    // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from
-    // the front), then, from the NPC record of its prototype (text 5; NpcTable's operator[], which adds an
-    // empty entry for an unknown name), copies of the start spells (appended), quick items and weapons
-    // (each at its list's count, SetAtGrow), the start money added to the party's, the start experience to
-    // the record's statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied),
-    // else 1.
+    // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from the
+    // front), then, from the NPC record of its prototype (text 5; NpcTable's operator[], which adds an empty
+    // entry for an unknown name), copies of the start spells (appended), quick items and weapons (each at its
+    // list's count, SetAtGrow), the start money added to the party's, the start experience to the record's
+    // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.
     BOOL EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId) const;

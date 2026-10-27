@@ -1,7 +1,6 @@
-// The game server's trades between players: offers arrive as replicated objects (created, updated,
-// removed), two matching offers make a trade (a TradeMessage,
-// finds it), and a removed file request is dropped a removed file request. The offers are PartyMessages
-// (net_messages.h). See docs/notes/network.md.
+// The game server's trades between players: offers arrive as replicated objects (created, updated, removed),
+// two matching offers make a trade (a TradeMessage, finds it), and a removed file request is dropped a
+// removed file request. The offers are PartyMessages (net_messages.h). See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 
