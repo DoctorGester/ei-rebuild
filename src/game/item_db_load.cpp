@@ -63,9 +63,6 @@ namespace {
 
 using ResizeFn = void (*)(void* records, unsigned count);
 
-// Per record type: the record's destructor (plain RET), the vector's resize (RET 4: new records
-// default-constructed) and the record's Serialize (RET 4).
-
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading destroys the old
 // records (erase(begin, end): the tail copy is empty) and resizes to the number of record chunks first.
 template <typename Record, typename Destroy, typename Serialize>
@@ -134,8 +131,6 @@ EI_REWRITTEN(0x006A73B0, itemdb::LootItemTable::Load);
 // --- The spell database's vectors and records ----------------------------------------------
 
 namespace {
-
-// The vectors' resize: recordvec::ResizeUntyped.
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.

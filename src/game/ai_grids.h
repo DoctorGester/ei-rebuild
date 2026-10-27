@@ -1,8 +1,7 @@
 #pragma once
 
-// The AI map's grids (SearchGrid, ai_map.h): the game's grid template, one copy of each function
-// per element type. Allocate: one block of width x height cells and the row table; the element
-// types with a constructor are filled. Names provisional. See docs/notes/ai.md.
+// The AI map's grids (SearchGrid, ai_map.h): one copy of each function per element type. Allocate: one block of
+// width x height cells and the row table; the element types with a constructor are filled. See docs/notes/ai.md.
 
 #include "ai_map.h"
 #include "lib/crt.h"
@@ -34,8 +33,7 @@ void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid);
 // The region map's representative cells, zeroed.
 void __fastcall AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid);
 void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);
-// The map's cells: not passable, ground level 0, nothing on them, level 0 (the byte at
-// +7 is left as allocated).
+// The map's cells: not passable, ground level 0, nothing on them, level 0 (unused_7 left as allocated).
 void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // The map's occluder words: no occluder (bit 8), material 0, bit 7 clear; the other
 // bits are left as allocated.
@@ -54,7 +52,7 @@ void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
 void __fastcall FillAreaLists(CAIMap* map);
 
-// CAIMap's dirty rectangle (+0x004: dirtyMinX .. dirtyMaxY).
+// CAIMap's dirty rectangle (dirtyMinX .. dirtyMaxY).
 struct AIDirtyRect {
     // Empty: the minimums 10000, the maximums 0.
     void Reset();

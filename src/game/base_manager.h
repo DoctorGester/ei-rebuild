@@ -16,15 +16,13 @@ using BOOL = int;
 struct FigureAnimation;
 class CManagerContext;
 
-// Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by type,
-// registers them by id, saves and loads the registered ones, and keeps the objects released to it as spares
-// of their type for reuse. Name from the game's own error strings ("CBaseManager::RegisterInstant"). 25 slots
-// (0-12 as CEngineObject's). base_manager.cpp, base_manager_core.cpp.
+// Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by type, registers
+// them by id, saves and loads the registered ones, and keeps the objects released to it as spares of their type
+// for reuse.
 class CBaseManager : public CEngineObject {
 public:
-    //. The animation `name` (case-insensitive) in the
-    // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
-    // database is reported to the debug log.
+    // The animation `name` (case-insensitive) in the database "<figure>.adb" of this manager (the world's map
+    // object manager), or null; a missing database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
@@ -39,13 +37,13 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    // Keeps the context and creates (slot 2); a failed create clears the context again. Returns 1 / 0.
+    // Keeps the context and creates; a failed create clears the context again. Returns 1 / 0.
     virtual BOOL Init(CManagerContext* context);
-    // 14: a new object of `type` (null when the type is unknown).
+    // A new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
     // Destroys and releases every object, then empties the registration tables.
     virtual void DestroyAll();
-    // 16-22: the archive interface of the managers that load from resource archives
+    // The archive interface of the managers that load from resource archives
     // (CResourceManager overrides them); here they do nothing and return 0 / null / false.
     virtual BOOL AddArchive(const char* path);
     virtual BOOL RemoveArchive(const char* path);
@@ -54,15 +52,15 @@ public:
     virtual bool CloseFile(void* data);
     virtual BOOL HasFile(const char* name);
     virtual void FreeAllFiles();
-    // A spare object of `type`, or a new one (slot 14), registered under `id` or, for -1, under a free id;
-    // the manager becomes its owner and it is created (slot 2). Null when slot 14 fails.
+    // A spare object of `type`, or a new one (NewObject), registered under `id` or, for -1, under a free id;
+    // the manager becomes its owner and it is created. Null when NewObject fails.
     virtual CEngineObject* CreateObject(int type, int id);
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
-    // An object without references leaves the manager: unregistered, destroyed (slot 3), without owner, then
-    // kept as a spare. Returns RemoveObject's 0 (its EAX is not meaningful when nothing is done).
+    // An object without references leaves the manager: unregistered, destroyed, without owner, then kept as a
+    // spare. Returns RemoveObject's 0 (nothing meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
 
-    // The destructor (slot 0 adds the delete). Destroy (CBaseManager's, slot 3), the containers, the engine object.
+    // Runs CBaseManager's Destroy.
     ~CBaseManager() override;
     CEngineObject* FindObject(unsigned id) const;
     template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
@@ -76,11 +74,10 @@ public:
     // its type with id -1. Returns 0.
     int RemoveObject(CEngineObject* object);
     void FreeSpares();
-    // The registered objects' own data (slots 9 / 10) by id, up to an end mark.
+    // The registered objects' own data (Load / Save) by id, up to an end mark.
     void LoadObjects(CStream* stream);
     void SaveObjects(CStream* stream);
-    // Every object without references gets one and releases it (slot 4), so the ones
-    // nobody took go back to the spares.
+    // Every object without references gets one and releases it, so the ones nobody took go back to the spares.
     void ReleaseUnused();
 
 protected:
@@ -119,7 +116,7 @@ static_assert(offsetof(CBaseManager, context_) == 0xAC);
 static_assert(sizeof(CBaseManager) == 0xB0);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
-// owner drops it afterwards with `--manager->refCount_` (the inlined destructor). base_manager.cpp.
+// owner drops it afterwards with `--manager->refCount_` (the inlined destructor).
 struct ObjectListIterator {
     CBaseManager* manager;
     CBaseManager::ObjectList::Node* position;   // the node Next returns
@@ -137,8 +134,6 @@ struct ObjectListIteratorOf : ObjectListIterator {
     T* Next() { return static_cast<T*>(ObjectListIterator::Next()); }
 };
 
-// The client-specific manager (class id 0x30; misc_400.cpp; a real virtual class: the compiler makes
-// its vtable).
 class CClientSpecificManager : public CBaseManager {
 public:
     CClientSpecificManager();
@@ -153,8 +148,7 @@ namespace misc400 {
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
-// T's constructor on `memory` as the plain `void* (__fastcall*)(void*)` the map object factory takes
-//. Returns the object.
+// T's constructor on `memory`, as the map object factory takes it.
 template <typename T>
 void* __fastcall ConstructOn(void* memory) {
     return new (memory) T();
@@ -164,8 +158,7 @@ class CEffectManager : public CBaseManager {
 public:
     CEffectManager();
     ~CEffectManager() override;
-    // The deleting destructor (slot 0).
-    // CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
+    // CBaseManager's Create, as 0 / 1.
     int Create() override;
     const char* GetClassName() override;
     int GetClassId() override;               // 0x32

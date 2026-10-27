@@ -1,10 +1,6 @@
-// The switch-over device (device.h, docs/notes/renderer.md section 9). With the new renderer presenting, the
-// device object has no DirectDraw object and no Direct3D device: its IDirectDraw7 (+0x0C) and IDirect3DDevice7
-// (+0x54) pointers hold two tokens (below), not interfaces. The calls of device.h know them and answer from the
-// switch-over device's state: what the game reads back stays consistent (the render and texture stage states set,
-// fed to the new renderer's mirror as well, render_state.h; state blocks recorded and applied; the capability,
-// display mode and video memory queries answered with fixed values, the old device's under dgVoodoo where the
-// game's logic depends on them). A method called through a token directly ends the run naming its caller.
+// The switch-over device (device.h, docs/notes/renderer.md section 9): the device object's IDirectDraw7 and
+// IDirect3DDevice7 pointers hold two tokens, and the calls of device.h answer from this file's state (the
+// capability and video memory queries with dgVoodoo's values where the game's logic depends on them).
 #include "device.h"
 
 #include "render/render_state.h"
@@ -137,9 +133,7 @@ DDCAPS DirectDrawCaps() {
 }
 
 // ---- The switch-over device's state -------------------------------------------------------------
-// What a Direct3D 7 device and its DirectDraw object would keep, without either: the render and
-// texture stage states, the state blocks, the bound textures, the scene bracket, the viewport and the
-// display mode. The code reaches it through device::SetRenderState and the other calls below.
+// What a Direct3D 7 device and its DirectDraw object would keep, without either.
 
 constexpr int kRenderStates = 256;
 constexpr int kStages = 8;
@@ -302,9 +296,8 @@ private:
         std::vector<Entry> entries;
     };
 
-    // While a block is recorded the states go into it (not to the device, as Direct3D does).
-    // Otherwise they are kept, and those of the two stages the new renderer draws with go to its
-    // mirror too (render_state.h; the game code feeds it the same values where it is rewritten).
+    // While a block is recorded the states go into it (not to the device, as Direct3D does); otherwise they are
+    // kept, and those of the two stages the new renderer draws with go to its mirror too.
     void SetState(const Entry& e) {
         if (recording_) {
             for (Entry& r : recording_->entries) {
@@ -386,9 +379,8 @@ HRESULT VideoMemory(LPDWORD total, LPDWORD free) {
 }
 
 // ---- The device object's interface pointers -------------------------------------------------------
-// Tokens, not interfaces: the calls of device.h compare the pointer they are given with them. Each
-// slot of a token's method table ends the run naming its caller, so code that calls a method of the
-// old device directly instead of through device.h fails at once.
+// Tokens, not interfaces: each slot of a token's method table ends the run naming its caller, so code that calls
+// the old device directly fails at once.
 
 constexpr int kTrapSlots = 64;   // more than either interface has (IDirect3DDevice7 49, IDirectDraw7 30)
 const char* const kInterfaceNames[] = {"IDirect3DDevice7", "IDirectDraw7"};
@@ -416,7 +408,7 @@ constexpr std::array<TrapFn, sizeof...(Slots)> TrapTable(std::integer_sequence<i
     return {&Trap<InterfaceId, Slots>...};
 }
 
-// What +0x54 / +0x0C point at: an object whose first word is its method table, as a COM object's.
+// What d3dDevice_ / ddraw_ point at: an object whose first word is its method table, as a COM object's.
 struct InterfaceToken {
     const TrapFn* methods;
 };
@@ -433,12 +425,12 @@ IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     g_switchOver.SetMode(width, height, bitsPerPixel);
     ei::Log("device: built without DirectDraw or Direct3D (%dx%d, %d bits); the new renderer presents", width, height,
             bitsPerPixel);
-    return reinterpret_cast<IDirectDraw7*>(&g_directDraw);   // the token stands for the interface
+    return reinterpret_cast<IDirectDraw7*>(&g_directDraw);
 }
 
 IDirect3DDevice7* Direct3DDeviceToken() {
     g_switchOver.Reset();
-    return reinterpret_cast<IDirect3DDevice7*>(&g_device);   // the token stands for the interface
+    return reinterpret_cast<IDirect3DDevice7*>(&g_device);
 }
 
 void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format) {
@@ -457,8 +449,6 @@ std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
 }
 
 // ---- The device calls of the rewritten code ----------------------------------------------
-// Every call answers from the switch-over's state: the device object holds tokens, never interfaces (the interface
-// argument, the object's +0x54 / +0x0C, is not used).
 
 void AddRef(IDirect3DDevice7*) {}
 void Release(IDirect3DDevice7*) {}

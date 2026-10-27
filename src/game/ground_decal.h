@@ -1,10 +1,8 @@
 #pragma once
 
-// Ground decals: the mesh builder the shadow projector lays a shadow texture on the ground with (and its
-// terrain part). Every ground triangle under the projected quad is clipped to the decal: a plane facing along
-// the projection direction, then u >= 0, v >= 0, u <= 1 and v <= 1 (u, v the triangle corners' texture
-// coordinates in the decal); what is left is appended to the caller's vertex, texture coordinate and index
-// arrays. Names provisional; see docs/notes/script.md ("Ground decals").
+// Ground decals: the mesh builder the shadow projector lays a shadow texture on the ground with. Every ground
+// triangle under the projected quad is clipped to the decal (a plane facing along the projection, then u, v in
+// [0, 1]) and appended to the caller's arrays. See docs/notes/script.md ("Ground decals").
 
 #include "figure_mesh.h"
 #include "maths.h"
@@ -12,7 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// A clipper vertex: position, then the decal's texture coordinate. 0x14 bytes.
+// A clipper vertex: position, then the decal's texture coordinate.
 struct DecalVertex {
     Vector3 position;
     float u, v;
@@ -24,37 +22,33 @@ struct DecalTexCoord {
 };
 static_assert(sizeof(DecalTexCoord) == 8);
 
-// 0x7C bytes, on the projector's stack.
 class DecalBuilder {
 public:
     DecalBuilder* Construct();
     // Starts a decal: empties the arrays (keeping their buffers) and sets the projection up from the quad's
-    // corners (`corners` points at a pointer to a row-major 4x4 matrix whose columns 3, 2 and 0 are the
-    // origin, the u and the v corner), the projection direction (normalised in place in the copy) and the
-    // point the cut-off plane is placed from, `depth` * 0.33 back along the direction.
+    // corners (a row-major 4x4 matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the
+    // direction (normalised in the copy) and the cut-off plane's point, `depth` * 0.33 back along it.
     void Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
                lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                const Vector3* point, float depth);
-    // Whether a sphere around `center` can touch the decal: its u and v ranges
-    // widened by radius * the axis lengths overlap [0, 1]. The result is in AL only.
+    // Whether a sphere around `center` can touch the decal: its u and v ranges widened by radius * the axis
+    // lengths overlap [0, 1].
     bool Touches(const Vector3* center, float radius) const;
-    // Makes room for `triangles` more triangles (three vertices and indices each;
-    // the point array is grown by triangles * 3 / 4 + 1 + the vertex count packets).
+    // Makes room for `triangles` more triangles (the point array grows by triangles * 3 / 4 + 1 + the vertex
+    // count packets).
     void Reserve(int triangles);
-    // Two copies of the same code with their own static triangle. Clips the
-    // triangle (a, b, c) and appends what is left.
+    // Two copies of the same code with their own static triangle: clip (a, b, c) and append what is left.
     void AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
     void AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
     // Sets the arrays' sizes (the last packet padded with copies of vertex 0) and drops the array pointers.
     void Finish();
 
-    // The clipping stages; `tri` is clipped in place (and may be one of the stage buffers).
-    // From the plane on. Another stage runs from v >= 0 on, another from u <= 1 on.
+    // The clipping stages; `tri` is clipped in place. ClipFromV runs from v >= 0 on, ClipFromUMax from u <= 1.
     void ClipPlane(DecalVertex* tri);
     void ClipFromV(DecalVertex* tri);
     void ClipFromUMax(DecalVertex* tri);
     void Emit(const DecalVertex* tri);
-    // Appends one vertex; returns its index (AX only).
+    // Appends one vertex; returns its index.
     std::uint16_t AddVertex(const DecalVertex* v);
 
     lib::AlignedArray<VertexPacket>* points_;       // x[4], y[4], z[4] per packet (w untouched)
@@ -87,8 +81,7 @@ static_assert(offsetof(DecalBuilder, vertexCount_) == 0x74 && offsetof(DecalBuil
 
 namespace decal {
 
-// The point where the edge p -> q crosses distance 0, given the
-// distances dp and dq of its ends: (dq * p - dp * q) / (dq - dp), all five components.
+// Where the edge p -> q crosses distance 0, given its ends' distances: (dq * p - dp * q) / (dq - dp).
 void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq);
 // Clips the triangle `tri` (corner distances a, b, c; a corner is inside when its distance's sign bit is
 // clear) and returns how many triangles are left: 0, 1 (in `tri`) or 2 (`tri` and `out`).

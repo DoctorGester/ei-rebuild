@@ -1,7 +1,6 @@
 // Application helpers around WinMain: window procedure, input dispatcher,
 // message pump and the start of the first map. See app.h.
-// Callees patched by Rebirth (the fatal-error path among them) are reached through their fixed addresses.
-#include "device.h"   // the old device's calls
+#include "device.h"
 #include "app.h"
 #include "console.h"
 #include "player_client.h"
@@ -21,7 +20,7 @@
 #include "lib/mfc.h"
 #include "options.h"
 #include "script.h"
-#include "texture.h"            // the renderer's device object
+#include "texture.h"
 #include "ui.h"
 #include "world.h"
 #include "game_data.h"
@@ -38,13 +37,8 @@ namespace {
 
 
 
-// The interface takes the input: pending windows closed before and after each message,
-// then the message with (wParam, x, y).
-
 libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
-// Objects told about activation changes: the cursor, the display device
-// (RenderDeviceObject), the scene renderer, the mouse and the sound manager.
 CDirectInputMouse* TheMouse() { return Mouse(); }
 
 
@@ -119,8 +113,8 @@ LRESULT Handled() {
 }
 
 int Low(LPARAM v) { return static_cast<int>(v & 0xFFFF); }
-int HighSigned(LPARAM v) { return static_cast<int>(v) >> 16; }              // SAR (keyboard)
-int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >> 16); }   // SHR (mouse)
+int HighSigned(LPARAM v) { return static_cast<int>(v) >> 16; }              // keyboard
+int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >> 16); }   // mouse
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
@@ -269,7 +263,7 @@ int __cdecl StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
-    client->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper
+    client->SetPlayer(TheServerWorld()->shared5C_.Get());
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
     if (cmdScript.GetLength() == 0) return 1;

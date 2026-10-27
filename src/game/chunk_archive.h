@@ -1,11 +1,11 @@
 #pragma once
 
-// The tagged-chunk serialisation archive the databases of database.res are stored in. Opened by Open. Reading
-// and writing go through the same Serialize functions; loading_ selects the direction. Names provisional; see
-// docs/notes/core.md. A chunk's content is a run of children, each an id byte, a length byte (len << 1) or,
-// when bit 0 is set, a dword (len << 1 | 1), and len bytes. A stream holding an archive has three top-level
-// chunks of the same form: 0 the index (per object: its class id and the key its record is stored under), 1
-// the data of the archive's root chunk, 2 the object records.
+// The tagged-chunk serialisation archive the databases of database.res are stored in. Reading and writing go
+// through the same Serialize functions; loading_ selects the direction. A chunk's content is a run of
+// children, each an id byte, a length byte (len << 1) or, when bit 0 is set, a dword (len << 1 | 1), and len
+// bytes. A stream holding an archive has three top-level chunks of the same form: 0 the index (per object:
+// its class id and the key its record is stored under), 1 the data of the archive's root chunk, 2 the object
+// records. See docs/notes/core.md.
 
 #include "core_streams.h"
 
@@ -58,9 +58,7 @@ public:
     };
     static_assert(sizeof(Ref) == 0x10);
 
-    // The chunk stack's element policy (STLport list<Ref>, 24-byte nodes from the node pool):
-    // plain records; T() is Reset's {0xFF, 0, 0, occurrence 1} (the three unused bytes are what
-    // the stack held).
+    // The chunk stack's element policy: T() is Reset's (the three unused bytes are what the stack held).
     struct RefElement {
         static void Copy(Ref* to, const Ref& from) { *to = from; }
         static void Destroy(Ref*) {}
@@ -75,9 +73,8 @@ public:
     // save, written as the key instead of the object's address).
     using ObjectMap = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
 
-    // The classes an archive can hold (a global built by its static initialiser,
-    // destroyed at exit): Close writes an object's class id
-    // (found by its vtable) to the index, Open creates the object with the class's factory.
+    // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
+    // Open creates the object with the class's factory.
     using Factory = CRefObject*(__cdecl*)();
     struct ClassRegistry {
         using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
@@ -85,12 +82,12 @@ public:
         ClassIdMap classIds;     // vtable -> class id
         FactoryMap factories;    // class id -> factory
     };
-    static ClassRegistry& Registry();   // g_classRegistry
+    static ClassRegistry& Registry();
 
     Ref* Current() { return &stack_.End()->prev->data; }
     void PushChunk() { Stack::InsertDefault<RefElement>(stack_.End()); }
     std::uint8_t* Data() { return dataStream_.data_; }
-    // Drops the current chunk (the stack's erase(--end()), STLport), as LeaveChunk does after a load.
+    // Drops the current chunk, as LeaveChunk does after a load.
     void PopChunk();
 
     bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);
@@ -121,9 +118,9 @@ public:
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
     // (`occurrence` selects the record); loading replaces the vector's contents. The third argument (the
-    // callers pass the database file's data) is unused but popped: RET 0xC.
-    void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);      // vector<PrintRecord>
-    void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);     // vector<PrintRecord2>
+    // callers pass the database file's data) is unused.
+    void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);
+    void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);
     void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);
     void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);
     void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);
@@ -140,26 +137,22 @@ public:
     void IntField(int id, int* value);
 
     void SerializeSpeech(int id, SpeechRecord* speech);
-    // (the third argument, the archive again, is unused): an
-    // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
+    // As chunk `id`; the third argument (the archive again) is unused.
     void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
     void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
     // The lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
 
-    // The item database's vectors (item_db_load.cpp; the third argument unused): quick items (0x8C bytes),
-    // loot (0x7C), quest items (0x78), one chunk 1 per record.
+    // The item database's vectors, one chunk 1 per record (the third argument unused).
     void SerializeQuickItems(int id, void* records, void* unused);
     void SerializeLoot(int id, void* records, void* unused);
     void SerializeQuestItems(int id, void* records, void* unused);
-    // The same for materials (0x50), weapons (0xB4) and armor (0xC8).
     void SerializeMaterials(int id, void* records, void* unused);
     void SerializeWeapons(int id, void* records, void* unused);
     void SerializeArmors(int id, void* records, void* unused);
 
-    // The spell database's vectors (item_db_load.cpp; the third argument unused), as the item database's: the
-    // spells (0x84), the modifiers (0x24) and the three lists of 0x34-byte records.
+    // The spell database's vectors, as the item database's.
     void SerializeSpells(int id, void* records, void* unused);
     void SerializeSpellModifiers(int id, void* records, void* unused);
     void SerializeSpellLists(int id, void* records, void* unused);
@@ -167,27 +160,21 @@ public:
     // value; loading empties the vector and refills it with as many zeros as there are fields.
     void IntVectorField(int id, stlp::vector<int>* values, void* unused);
 
-    // The quest database's vectors (quest_records.cpp; the third argument unused): one
-    // chunk 1 per record (its Serialize); loading destroys the records and resizes the vector to
-    // the record chunks first. The quests, then the briefings.
+    // The quest database's vectors: one chunk 1 per record (its Serialize); loading destroys the records and
+    // resizes the vector to the record chunks first.
     void SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void* unused);
     void SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void* unused);
 
-    // The skill database's vectors (unit_db.cpp; the third argument unused): one chunk 1 per record (its
-    // Serialize); loading destroys the records and resizes the vector to the record chunks first. The skills,
-    // the skill levels.
+    // The skill database's vectors, the same shape.
     void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
     void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
     void SkillLevelChunk(int id, SkillLevelRecord* record);
-    // The unit database's vectors (unit_db.cpp; the same shape, called by the loader):
-    // the prototypes, the NPCs,
-    // the models, the level
-    // records.
+    // The unit database's vectors, the same shape.
     void SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void* unused);
     void SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void* unused);
     void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
     void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
-    // A vector<CString> as chunk `id` (InlineStrings; unit_db.cpp).
+    // A vector<CString> as chunk `id` (InlineStrings).
     void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
 
     ChunkArchive();
@@ -199,18 +186,16 @@ public:
     CMemoryStream dataStream_;     // the chunk data (chunk 2 while loading the records)
     Stack stack_;                  // the last chunk is the current one
     std::int32_t version_;         // 1 when constructed; field 2 of the root chunk
-    std::uint8_t loading_;         // Open stores the low byte of its argument (+0x59..0x5B unused)
+    std::uint8_t loading_;         // Open stores the low byte of its argument
     ObjectMap objects_;
     SavedList saved_;              // the objects whose records Close writes
 };
 static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
-// Whole chunks of a stream (the archive's top-level chunks).
-// Reads one chunk header and its bytes into `to`
-// (at most 10,000,000). True when all of it was read.
+// Whole chunks of a stream (the archive's top-level chunks). Reads one chunk header and its bytes into `to` (at
+// most 10,000,000). True when all of it was read.
 bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
-// From the start of the stream, the
-// `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is cleared and false.
+// From the start of the stream, the `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is
+// cleared and false.
 bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
-// Writes `from` as a chunk.
 bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from);

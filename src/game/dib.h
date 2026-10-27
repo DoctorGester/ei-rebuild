@@ -1,7 +1,6 @@
-// CDib (MFC class "CDib", CObject's three slots): a device independent bitmap as a .bmp file holds one. The game reads loose
-// CObject's three slots): a device independent bitmap as a .bmp file holds one. The game reads loose
-// textures\<name>.bmp overrides with it and writes the screenshots and movie
-// frames a surface capture (below) fills. See docs/notes/models.md ("CDib").
+// CDib (MFC class "CDib"): a device independent bitmap as a .bmp file holds one. The game reads loose
+// textures\<name>.bmp overrides with it and writes the screenshots and movie frames a surface capture fills. See
+// docs/notes/models.md ("CDib").
 #pragma once
 
 #include "lib/gameapi.h"
@@ -47,17 +46,17 @@ public:
     // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
     int Write(mfc::CFile* file);
 
-    RGBQUAD* colours;                // : after the header
+    RGBQUAD* colours;                // after the header
     HBITMAP bitmap;
     std::uint8_t* bits;
     BITMAPINFOHEADER* header;
-    HGLOBAL headerMemory;            // : the header's block when headerOwner is kGlobal
+    HGLOBAL headerMemory;            // the header's block when headerOwner is kGlobal
     int headerOwner;
     int bitsOwner;
-    std::uint32_t imageSize;         // : bytes of bits
+    std::uint32_t imageSize;         // bytes of bits
     int colourCount;
-    int maskBytes;                   // : bytes of channel masks after the header (0 or 12)
-    HANDLE file;                     // : a mapped file, its mapping and its view
+    int maskBytes;                   // bytes of channel masks after the header (0 or 12)
+    HANDLE file;                     // a mapped file, its mapping and its view
     HANDLE mapping;
     void* view;
     HPALETTE palette;
@@ -73,8 +72,7 @@ std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);
 
 struct CDXSurface;
 
-// (surface_capture.cpp; the holder in ECX, the rectangle in EDX): a new bitmap of the surface's
-// pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel masks), rows
-// bottom-up. The surface is locked for reading meanwhile.
+// A new bitmap of the surface's pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel
+// masks), rows bottom-up. The surface is locked for reading meanwhile.
 CDib* __fastcall CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
 CDib* __fastcall CaptureSurface(CDXSurface* surface);

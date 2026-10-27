@@ -1,9 +1,7 @@
 #pragma once
 
-// The camera (CCamera, class id 0x43, a real virtual class), the settings record it reads, its saved views,
-// shakes and recorded paths, and the engine globals and containers its code uses. Update, view placement,
-// focus, zoom, saved views, shakes, recorded-path playback. Aiming, turning upright, keeping above objects.
-// camera_object.cpp: the object's construction, vtable slots, camera files and saving. Names are provisional.
+// The camera (CCamera, class id 0x43), the settings record it reads, its saved views, shakes and recorded
+// paths, and the engine globals and containers its code uses.
 
 #include "angles.h"
 #include "core_streams.h"
@@ -75,8 +73,7 @@ struct CameraView {
 };
 static_assert(sizeof(CameraView) == 0x18);
 
-// A shake of the camera (CCamera::shakes_, an STLport list<CameraShake>: 24-byte nodes from the
-// node allocator).
+// A shake of the camera (CCamera::shakes_).
 struct CameraShake {
     float elapsed;
     float duration;
@@ -102,8 +99,7 @@ struct CubicCurve3 {
     Vector3* Evaluate(Vector3* out, float t) const;
 };
 
-// The deque of saved view stack entries (0x24-byte elements, 14 per node) the camera owns at
-// (its _Destroy does nothing).
+// The camera's saved view stack (0x24-byte elements, 14 per node; its _Destroy does nothing).
 using ViewStack = stlp::deque<stlp::Opaque<0x24>>;
 static_assert(sizeof(ViewStack) == 0x28);
 static_assert(sizeof(ViewStack) == 0x28);
@@ -114,7 +110,7 @@ static_assert(sizeof(ViewStack) == 0x28);
 void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
-// The camera ("CCamera"). Flags (+0x08): 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
+// The camera ("CCamera"). flags_: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
 // camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.
 class CCamera final : public CTransformObject {
 public:
@@ -173,8 +169,8 @@ public:
     int PlaybackStart();
     int PlaybackStep(float time);
 
-    // Views and start placement from the settings; the near / far distances and the
-    // field of view (floats passed as their dword bit patterns) kept at +0x2E0..+0x2E8.
+    // Views and start placement from the settings; the near / far distances and the field of view (floats
+    // passed as their dword bit patterns) kept in nearDistance_..fieldOfView_.
     int Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
 
     // Lifts the camera over the terrain and the objects within 16 of it.
@@ -188,8 +184,7 @@ public:
     // position itself when the axis is (nearly) horizontal or points away from the plane.
     void GroundPoint(Vector3* out) const;
 
-    // Set a target rate; the current rate jumps up to it when larger in
-    // magnitude. Names provisional (driven by mouse rotation).
+    // Set a target rate; the current rate jumps up to it when larger in magnitude.
     void SetTurnRate(float rate);
     void SetTiltRate(float rate);
     void SetZoomTarget(std::uint32_t value);
@@ -230,14 +225,12 @@ public:
     float farDistance_;
     float fieldOfView_;
     mfc::CString fileName_;     // the camera file being recorded
-    // Loaded by camera_path_load.cpp; Rebirth patches it, so the vanilla launch only and
-    // callers use CameraLoadPathOriginal). Reads the recorded path <data folder>camera\<name> into
-    // the keys (as many as the file holds whole). With `settle` above 1 and below the key count,
-    // the keys before the first gap of more than 500 time units among the first `settle` take
-    // the pose of the key after the gap. Returns 0 when the file does not open, else 1.
+    // Rebirth patches it. Reads the recorded path <data folder>camera\<name> into the keys (as many as the
+    // file holds whole). With `settle` above 1 and below the key count, the keys before the first gap of more
+    // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
+    // file does not open, else 1.
     int LoadPath(const char* name, int settle);
-    // the recorded path's keys, the engine's aligned array (the block start kept in the
-    // dword before the keys; grow step 0: an eighth of the size, 4..1024).
+    // the recorded path's keys (grow step 0: an eighth of the size, 4..1024)
     lib::AlignedArray<CameraKey> keys_;
     float timeOffset_;
     int keyIndex_;
@@ -258,7 +251,7 @@ static_assert(offsetof(CCamera, fileName_) == 0x2EC);
 static_assert(offsetof(CCamera, keys_) == 0x2F0);
 static_assert(offsetof(CCamera, keyIndex_) == 0x304);
 
-// The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange fills.
+// What CWorldClient::ObjectsInRange fills.
 using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
@@ -285,7 +278,7 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 #define CAM_TWO_SEVENTHS 0.2857142857142857 /*0073B9D8*/
 #define CAM_ONE_D 1.0 /*0073BAC8*/
 #define CAM_ZOOM_STEP 1.0499999523162842 /*0073BAD8*/
-#define CAM_LOOK_EPSILON 1e-18 /*0073BAE8*/            // 1e-18 (squared length)
+#define CAM_LOOK_EPSILON 1e-18 /*0073BAE8*/            // squared length
 #define CAM_ALIGN_EPSILON 0.1 /*0073BA90*/
 #define CAM_ONE 1.0f /*0073B84C*/
 #define CAM_MINUS_ONE (-1.0f /*0073B854*/)

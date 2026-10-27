@@ -1,8 +1,6 @@
-// The global lever table that levers look up (by the lever's +0xA4; loaded from WinMain by the
-// Rebirth-patched loader): an STLport vector of 0x2C-byte records (CStrings at +0, +0x20, +0x24, +0x28) and a
-// hash map whose 0x14-byte nodes hold a vector at +4. Its constructor runs from a static initializer, before
-// the hooks are installed; the destructor (registered with atexit through a thunk) is defined here. The STL
-// members it inlines are library code. See docs/notes/app.md.
+// The global lever table that levers look up (loaded from WinMain by the Rebirth-patched loader): an STLport
+// vector of 0x2C-byte records (four CStrings) and a hash map whose 0x14-byte nodes hold a vector. Its destructor
+// is defined here. See docs/notes/app.md.
 #include "lever.h"
 
 #include "ei/hook.h"
@@ -19,18 +17,18 @@ namespace {
 
 struct HashNode {
     HashNode* next;
-    stlp::vector<char> value;   // +4, its storage freed on destruction
+    stlp::vector<char> value;   // its storage freed on destruction
 };
 
 struct Table {
-    std::uint8_t* recordsBegin;   // +0x00 vector<record 0x2C>
-    std::uint8_t* recordsEnd;     // +0x04
-    std::uint8_t* recordsEos;     // +0x08
-    std::uint32_t hashFunctors;   // +0x0C
-    HashNode** buckets;           // +0x10 vector<node*>
-    HashNode** bucketsEnd;        // +0x14
-    HashNode** bucketsEos;        // +0x18
-    std::uint32_t count;          // +0x1C (with the node allocator)
+    std::uint8_t* recordsBegin;   // vector<record 0x2C>
+    std::uint8_t* recordsEnd;
+    std::uint8_t* recordsEos;
+    std::uint32_t hashFunctors;
+    HashNode** buckets;           // vector<node*>
+    HashNode** bucketsEnd;
+    HashNode** bucketsEos;
+    std::uint32_t count;          // with the node allocator
 };
 static_assert(sizeof(Table) == 0x20);
 
@@ -49,7 +47,7 @@ void __fastcall LeverTableDestruct(Table* self) {
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(self->bucketsEnd - self->buckets); ++i) {
         for (HashNode* node = self->buckets[i]; node;) {
             HashNode* next = node->next;
-            node->value.FreeStorage();   // (flags 0)
+            node->value.FreeStorage();
             stlp::deallocate(node, 20);
             node = next;
         }
@@ -76,9 +74,7 @@ EI_REWRITTEN(0x00463120, LeverTableDestruct);
 
 } // namespace levertable
 
-// The table, empty at the start: built by its static initialiser in the list's order and destroyed by the exit
-// function it registers; both defined on the name and registered at their addresses (docs/notes/standalone.md,
-// "The static initialisers' objects").
+// The table, empty at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
 
 namespace {

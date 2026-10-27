@@ -1,7 +1,7 @@
 // The buffered file streams; see buffered_file.h.
 #include "buffered_file.h"
 
-#include "net_classes.h"   // BufferRead
+#include "net_classes.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -20,8 +20,7 @@ constexpr std::uint32_t kWindowBytes = 0x400;
 constexpr int kSeekSet = 0;
 constexpr int kSeekEnd = 2;
 
-// The block replaced by one of `capacity` bytes holding the old capacity's bytes; the pointers move
-// with it (inlined in slots 0 and 1).
+// The block replaced by one of `capacity` bytes holding the old capacity's bytes; the pointers move with it.
 void Reallocate(BufferedStream* self, std::int32_t capacity) {
     auto* block = gamecrt::operator_new_array<std::uint8_t>(static_cast<std::uint32_t>(capacity));
     if (self->begin) {
@@ -93,7 +92,7 @@ std::uint32_t BufferedStream::Commit() {
     return 0;
 }
 
-// --- Slots ---------------------------------------------------------------------------------------
+// --- The window's slow paths ---------------------------------------------------------------------
 
 void BufferedStream::ReserveReadWindow(std::int32_t size) {
     std::int32_t capacity = Capacity();
@@ -223,9 +222,7 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 }
 EI_REWRITTEN(0x004DB700, BufferedFile::Open);
 
-// A hash_set<int> that nothing of ours reads: empty at the start, built by its static initialiser in the
-// list's order and destroyed by the exit function it registers; both defined
-// under the name and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// A hash_set<int> that nothing of ours reads: built by its static initialiser, destroyed by its exit function.
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {

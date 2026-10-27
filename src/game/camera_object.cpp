@@ -1,6 +1,5 @@
-// The camera object itself: construction and destruction, its small virtual slots, Init, and saving / loading its state with the world. The transform base's destructor
-// is tagged here too.
-// See camera.h and docs/notes/core.md.
+// The camera object itself: construction and destruction, its small virtual slots, Init, and saving / loading
+// its state with the world. See camera.h and docs/notes/core.md.
 #include "camera.h"
 
 #include "core_streams.h"
@@ -82,9 +81,7 @@ CCamera::~CCamera() {
 EI_REWRITTEN_SPECIAL(0x0040CE60, CCamera::~CCamera);
 EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
-// The camera, zero at the start: built by its static initialiser in the list's order and destroyed by the
-// exit function it registers; both defined under the name and registered at their addresses
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
 static_assert(sizeof(CCamera) == 0x308);
 CCamera* TheCamera() { return &*g_camera; }
@@ -117,9 +114,9 @@ EI_REWRITTEN(0x0040D190, CCamera::Create);
 void CCamera::Destroy() { targetId_ = -1; }
 EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 
-// Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps
-// the three distances / angle (as the dword bit patterns of floats) at +0x2E0..+0x2E8, switches to free
-// placement, and resets views 6 and 7 to the start distance at 45 degrees (the pitch too). Returns 1.
+// Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
+// three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
+// start distance at 45 degrees (the pitch too). Returns 1.
 int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
     ViewsFromSettings(settings);
     settings_ = settings;
@@ -167,7 +164,7 @@ const char kRecordFolder[] = ".\\camera\\";
 // first renamed to the next numbered file: the number after the highest found, where each found
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
 // rename goes to camera0001.cam; kept as the game has it). Sets bit 0x10 of a global flags word either
-// way. Returns 1 (file name kept at +0x2EC, flag 0x10 set) when the file can be created, else 0.
+// way. Returns 1 (file name kept in fileName_, flag 0x10 set) when the file can be created, else 0.
 int CCamera::OpenFile(const char* name) {
     mfc::CFileFind find;
     mfc::CFile file;
@@ -209,14 +206,14 @@ int CCamera::OpenFile(const char* name) {
 }
 EI_REWRITTEN(0x0040E910, CCamera::OpenFile);
 
-// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to the file named at
-// +0x2EC. Returns 1 when written, 0 when not recording or the file does not open.
+// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName_. Returns 1
+// when written, 0 when not recording or the file does not open.
 int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     mfc::CFile file;
     if (!(flags_ & CCamera::kRecording)) return 0;
     if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
-    file.Virtuals()->Seek(0, 2);   // Seek(0, end), through slot 10
+    file.Virtuals()->Seek(0, 2);   // Seek(0, end)
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
     std::memcpy(&record.position, &localPosition_, sizeof(record.position));

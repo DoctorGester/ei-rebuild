@@ -1,13 +1,11 @@
-// The device's draw of flat-coloured textured geometry (thiscall on the device at the renderer's +0x20): used for
-// object shadows. The positions (blocks of four vertices) are projected by the pipeline (with outcodes); every
-// vertex gets one colour / specular pair and its own texture coordinate; z can be scaled. Crossing the screen
-// edges, the triangles go through the transform object's clipper and the vertices are projected again. Shares
-// the buffers of device_mesh.cpp. See docs/notes/models.md ("Mesh draws").
+// The device's draw of flat-coloured textured geometry, used for object shadows: the positions are projected by
+// the pipeline, every vertex gets one colour / specular pair and its own texture coordinate, z can be scaled;
+// crossing the screen edges, the triangles are clipped. See docs/notes/models.md ("Mesh draws").
 #include "clip.h"
 
 #include "ei/hook.h"
 #include "device_buffers.h"
-#include "model.h"   // CTransformPipeline, ITransformPipeline
+#include "model.h"
 #include "render/render.h"
 #include "texture.h"
 #include "lib/nan_audit.h"
@@ -27,7 +25,6 @@ using devicebuffers::Vertices;
 // The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
 constexpr int kScreenStack = 1;
 
-// *z = *scale * *z (FLD scale, FMUL z, FSTP).
 void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
@@ -43,7 +40,7 @@ void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
 
 void Scale(int count, const float* scale) {
     EI_NAN_AUDIT(*scale);
-    if (*scale == 1.0f) return;   // FCOMP with 1.0; TEST AH,0x40
+    if (*scale == 1.0f) return;
     for (int i = 0; i < count; ++i) ScaleZ(&Vertices().data[i].z, scale);
 }
 

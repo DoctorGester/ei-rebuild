@@ -38,7 +38,7 @@ constexpr float kMeleeReach = 3.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kPi = std::bit_cast<float>(0x40490FDBu);
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
-constexpr float kNearSq = 10.0f;                                    // immediate 0x41200000
+constexpr float kNearSq = 10.0f;
 constexpr double kFrontCosine = 0.5;
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with flag18
 constexpr std::uint32_t kFarBits = 0x7E967699u;                     // 1e38: the plan's initial range
@@ -49,20 +49,20 @@ constexpr int kOrderCast = 4;
 constexpr int kOrderCastAt = 5;
 constexpr int kOrderSkill = 6;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr std::uint32_t kSkillSource = 6;               // plan +0x30 is set for other sources
+constexpr std::uint32_t kSkillSource = 6;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;     // CUnit flags_
 constexpr std::uint32_t kFlagPlanned = 0x8000000;        // set on the target while planning
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;     // spell +0x3C: aimed at no object
-constexpr std::uint32_t kSpellKindStrike = 0x28;         // spell +0x18 >> 16
+constexpr std::uint32_t kSpellNoTarget = 0x20000000;     // CSpell::targetFlags_: aimed at no object
+constexpr std::uint32_t kSpellKindStrike = 0x28;         // the spell's kind
 constexpr std::uint32_t kSpellKindCurse = 0x29;
 constexpr int kCastKindNone = 8;
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-// x87 compares, as the original's TEST AH masks read them.
-bool Greater(double a, double b) { return a > b; }   // TEST AH,0x41 not taken
+// An x87 compare as the original reads it (false for a NaN).
+bool Greater(double a, double b) { return a > b; }
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 
@@ -139,8 +139,7 @@ EI_REWRITTEN(0x0054BCB0, CUnitServer::FindSightTarget);
 
 namespace {
 // AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
-// movement factor times the sight), the original selecting the dwords with a mask built from FCOMP's C0, so a
-// NaN product picks the first.
+// movement factor times the sight); the original's select picks the first for a NaN product.
 bool OutOfSightRange(CUnitServer* self, const float* point) {
     float limit = self->stats.valuesB0[2].current;
     float range = self->moveFactors[3] * self->stats.valuesB0[0].current;
@@ -173,7 +172,7 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
     float vy = static_cast<float>(negX / side);
     float vz = static_cast<float>(kZero / side);
 
-    // The units the brain lists as nearby (AIBrain +0xF4).
+    // The units the brain lists as nearby.
     for (auto* node = self->Brain()->memory.nearby.head; node;) {
         CUnit* other = node->data;
         node = node->next;
@@ -255,8 +254,8 @@ void DestroySteps(AnimationSteps* steps) {
     if (steps->data) gamecrt::operator_delete(steps->data);
 }
 
-// The quick item or spell value the cast animation is built with: the spell's +0x4C scaled by
-// 15 / stats +0x30 (left at stats +0x30 when that is 0), rounded.
+// The quick item or spell value the cast animation is built with: the spell's prototypeField14_ scaled by
+// 15 / stats.rate (unscaled when that is 0), rounded.
 int CastValue(CUnitServer* self, CSpell* spell) {
     double scale = self->stats.rate;
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN

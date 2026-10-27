@@ -1,14 +1,7 @@
-// The off-screen surface holder (CDXSurface, texture.h; 0x20 bytes): its constructor for a system-memory surface of
-// the screen's pixel format (thiscall: device object, width, height), its constructor from an .mmp picture with
-// the picture loader it calls and its destructor body. Used for the interface windows' surfaces, the software
-// cursor's and its images, and the movies'.
-// No holder has a DirectDraw surface (CDXSurface::surface stays null): the pixels live in memory the new renderer
-// owns (render::NewSurfaceMemory, a DIB section), the game code works on it directly (DirectPixels; GDI through a
-// memory DC, ui_surface_dc.cpp) and the new renderer reads it. Picture surfaces get the same memory; every texture
-// the texture manager makes for the CPU gets a holder with only such memory
-// (NewMemoryTextureHolder), an .mmp texture one with none (NewDecodedTextureHolder). When that memory cannot be
-// made the "Can't create DDSurface" error is thrown, as when DirectDraw refused the surface. See
-// docs/notes/renderer.md (sections 6, 7).
+// The off-screen surface holder (CDXSurface): a system-memory surface of the screen's pixel format, one from an
+// .mmp picture, and the destructor. Used for the interface windows, the software cursor and the movies. No
+// holder has a DirectDraw surface: the pixels live in memory the new renderer owns (render::NewSurfaceMemory, a
+// DIB section), which game code works on directly (DirectPixels). See docs/notes/renderer.md, sections 6 and 7.
 #include "app.h"
 #include "dx_surface.h"
 #include "dx_errors.h"
@@ -243,19 +236,15 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
 
 } // namespace
 
-// Makes the holder's surface (when it has none yet) of the size of an 8888 .mmp picture, in system memory, or in
-// video memory when the low byte of `flag` is set, with the screen's pixel format, and loads the picture into it:
-// copied to a 32-bit surface, converted row by row through the device's converter to a 16-bit one. 1 when done;
-// otherwise the result of the fatal error report (nonzero when the player goes on).
-// The surface is the new renderer's memory (also for a video-memory request): no DirectDraw surface, and the
-// picture is written straight into the memory, no Lock / Unlock, its size and pixel format from that memory
-// (DirectPixels). No memory: the report for a surface that could not be made.
-// Kept details: a holder that already has its pixels must have the picture's width in both +0x14 and +0x18; a
-// 24-bit surface is reported, then cleared.
+// Makes the holder's memory (when it has none yet) of the size of an 8888 .mmp picture with the screen's pixel
+// format (also for a video-memory request) and loads the picture into it, converted row by row through the
+// device's converter for a 16-bit one. 1 when done; otherwise the result of the fatal error report (nonzero
+// when the player goes on). Kept: a holder that already has its pixels must have the picture's width as both
+// width and height; a 24-bit surface is reported, then cleared.
 int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     const auto* picture = static_cast<const MmpHeader*>(data);
-    if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");                  // "Can't load picture from NULL pointer."
-    if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");   // "... from non-8888 format."
+    if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");
+    if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
     if (!render::SurfaceMemoryOf(this)) {
         // The screen's pixel format. Without an owner the game reads through a null pointer here; the callers always pass
         // one. (The low byte of the flag asked for video memory.)
@@ -295,7 +284,7 @@ EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
 // renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the surface
 // back. Throws the game's error object when the picture cannot be loaded.
 CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) : device(deviceIn) {
-    if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");   // "Can't load picture to surface"
+    if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
     ++device::HolderCount();
 }

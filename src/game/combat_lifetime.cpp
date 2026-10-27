@@ -1,5 +1,5 @@
 // The server unit controller's constructor, its AI brain's constructor and destructor and the perception
-// memory's destructor, and the plan taking a step list. A-U7; see docs/notes/combat.md.
+// memory's destructor, and the plan taking a step list. See docs/notes/combat.md.
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"

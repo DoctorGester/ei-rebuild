@@ -1,18 +1,15 @@
-// The plain draw of one figure part (on the part's scene node): the simpler sibling of the lit draw
-//, always through the device and without the lighting: a hidden mesh (flag 0x80) is
-// skipped, the drawn flag (0x40) cleared, the mesh clip-tested against the view, animated meshes (type 13..16)
-// advanced to the current time; flat meshes (0x100) get their colours filled with one value and speculars with
-// another (the arrays keep their sizes), a mesh not yet lit (no 0x10) asks the device to light it (draw flag
-// 4); the per-vertex offsets are added into a copy of the positions (its own function-local static, freed at
-// exit). Any draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
+// The plain draw of one figure part: the lit draw's simpler sibling, always through the device and without the
+// lighting. Flat meshes (0x100) get their colours filled with one value and speculars with another, a mesh not
+// yet lit asks the device to light it, and the per-vertex offsets are added into a copy of the positions. See
+// docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
-#include "figure_mesh.h"          // VertexPacket
-#include "link_figure.h"          // FigureMeshDrawer
+#include "figure_mesh.h"
+#include "link_figure.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "model.h"
-#include "render/render.h"   // MeshSource
-#include "texture.h"           // CTextureDevice
+#include "render/render.h"
+#include "texture.h"
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -30,13 +27,9 @@ lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
-// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
-// The node's animation at a time (float bits), and the call after the draw (the renderer).
-// The device's mesh draw.
-
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
+// The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
     const CWorldClient* world = TheClientWorld();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);

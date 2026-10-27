@@ -1,7 +1,6 @@
-// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing
-// level the cell marks over the rectangle grown by 3 cells, packed as nibbles into the cells, the level's
-// special areas, the second pass, the map border, and with the sector map on (+2) the objects around it are
-// taken out and put back around the region map's update. See ai_map.h and docs/notes/ai.md.
+// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing level
+// the cell marks over the rectangle grown by 3 cells, the level's special areas, the second pass and the map
+// border; with the sector map on the objects around it are taken out and put back. See docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "core_maths.h"
@@ -19,8 +18,7 @@ namespace {
 
 constexpr int kLevels = 8;
 
-// The occluders' damping scale, ln 0.6: zero at the start, set by a static initialiser (the x87 FLDLN2 / FYL2X
-// of 0.6 stored as a float).
+// The occluders' damping scale, ln 0.6 as the x87 computes it, stored as a float by a static initialiser.
 float g_dampScale = /*007C2F8C*/ {};
 void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
 
@@ -31,9 +29,6 @@ int AreaList(int level) {
     if (level == 7) return 2;
     return 0;
 }
-
-// The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
-
 
 std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
@@ -149,8 +144,7 @@ struct MarkState {
     std::uint8_t doubled;   // the cost counts twice (occluder type 3)
 };
 
-// passage * e^(table * a * b), stored to a float and rounded (FISTP), with the original's FLDL2E / F2XM1 /
-// FSCALE sequence.
+// passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
 int Damp(int table, float a, float b, int passage) {
     const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
     return x87::fistp(damped);
@@ -159,7 +153,7 @@ int Damp(int table, float a, float b, int passage) {
 int TableInt(const int* table, int i) { return table[i]; }
 
 // One occluder of type `type` spanning heights [lowest, highest] against the cell's column.
-// `dampFirst`: the order of the two factors of the exponent (the two callers differ).
+// `sectorOrder`: the order of the two factors of the exponent (the two callers differ).
 void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) {
     switch (type) {
     case 2:
@@ -315,7 +309,7 @@ void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0
     if (-dy > y0) y0 = -dy;
     if (cells.width - dx - 1 < x1) x1 = cells.width - dx - 1;
     if (cells.height - dy - 1 < y1) y1 = cells.height - dy - 1;
-    // The shift count is the low 5 bits of level * 4, as SHL does it.
+    // The shift count is masked to 5 bits, as the original's shift does.
     std::uint32_t keep = ~(0xFu << ((level * 4) & 31));
     for (int y = y0; y <= y1; ++y)
         for (int x = x0; x <= x1; ++x)

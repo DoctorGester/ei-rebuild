@@ -46,14 +46,11 @@ constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 1.6
 // value).
 float ReadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword converted exactly, as a 64-bit integer.
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
-
-// The camera's shake around a point.
-// Arguments: camera, unused EDX, point, strength, range, duration.
 
 constexpr int kTypeFire = 0x2003;
 constexpr int kTypeSmoke = 0x2004;
@@ -253,9 +250,9 @@ int CParticleSource::UpdateDebris(Particle* p) {
 }
 EI_REWRITTEN(0x00489190, CParticleSource::UpdateDebris);
 
-// Orbiting particles (spheres, Antimagic): rotate the offset about z by the angle in element 1
-// (cos, sin at its +0x18/+0x1C), flatten it onto the plane through element 1's normal at distance
-// element 0 +0x20, and place it around the source; the size follows a curve over the lifetime.
+// Orbiting particles (spheres, Antimagic): rotate the offset about z by element 1's tilt, flatten it onto the
+// plane through element 1's normal at element 0's distance, and place it around the source; the size follows a
+// curve over the lifetime.
 int CParticleSource::UpdateOrbit(Particle* p) {
     if (--p->life == 0) return 0;
     p->frame = (p->frame + 1) % frameCount;

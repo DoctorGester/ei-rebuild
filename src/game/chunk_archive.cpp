@@ -6,7 +6,7 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "hash_tables_400.h"   // ClassRegistryConstruct / Destruct
+#include "hash_tables_400.h"
 #include "lib/static_object.h"
 #include "lib/mfc.h"
 
@@ -236,10 +236,8 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
 }
 EI_REWRITTEN(0x00409640, ChunkArchive::StreamField);
 
-// The number a save gives an object: its place in the saved list (1, 2, ...), kept as the map's
-// value, written as the key (the loader maps any key to the object
-// it creates); numbers by first save keep the saves free of heap layout (the harness numbers
-// the reference game's saves the same way, harness_save_leftovers.cpp).
+// The number a save gives an object: its place in the saved list (1, 2, ...), written as the key (the loader maps
+// any key to the object it creates); numbers by first save keep the saves free of heap layout.
 std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
     const ObjectMap::Node* node = a->objects_.Find(reinterpret_cast<std::uint32_t>(object));
     return node ? reinterpret_cast<std::uint32_t>(node->value) : 0;
@@ -250,7 +248,7 @@ std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
     std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
-    if (!objects_.Find(key)) {   // inlined find
+    if (!objects_.Find(key)) {
         SavedList::Insert(saved_.End(), object);
         ObjectMap::Node* node = objects_.FindOrInsert({key, nullptr});
         node->value = loading_ ? reinterpret_cast<CRefObject*>(this)
@@ -412,7 +410,7 @@ void ChunkArchive::Close(CStream* stream) {
             if (counted.ptr) counted.ptr->Release();
         }
     } else {
-        ResizeToCurrent();   // inlined
+        ResizeToCurrent();
         WriteStreamChunk(stream, 1, data);
         data->Clear();
         Current()->Reset();
@@ -451,7 +449,7 @@ void ChunkArchive::Close(CStream* stream) {
         }
         Field(2, &version_, 4);
         WriteStreamChunk(stream, 0, index);
-        ResizeToCurrent();   // inlined
+        ResizeToCurrent();
         WriteStreamChunk(stream, 2, data);
     }
     index->Clear();

@@ -1,7 +1,7 @@
 #pragma once
 
-// Data of the exe the game flow's rewritten code reads by address: strings, float constants (read
-// from memory, rewrite guide rule 9) and vtables. Names are provisional.
+// Data of the exe the game flow's code reads: strings, float constants (read from memory, rewrite guide rule 9)
+// and vtables.
 
 #include <cstdint>
 

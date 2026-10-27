@@ -1,5 +1,4 @@
-// Lightning bolts. Names are provisional.
-// Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
+// Lightning bolts. Floating point follows the original's x87 code: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "lightning.h"
 
@@ -200,10 +199,10 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     float scale = length;
     EI_NAN_AUDIT(length);
     if (length < 10.0f) {
-        count = 48;             // FISTP(50.0) & ~3
+        count = 48;             // 50.0 rounded, & ~3
     } else if (length > 15.0f) {
         scale = 15.0f;
-        count = 72;             // FISTP(75.0) & ~3
+        count = 72;             // 75.0 rounded, & ~3
     } else {
         count = x87::fistp(static_cast<float>(static_cast<double>(length) * 5.0)) & ~3;
         if (count > 400) count = 400;

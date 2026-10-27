@@ -1,10 +1,9 @@
 #pragma once
 
-// The global map's moving cloud layer: an abstract noise texture (CCloudNoise: two pure slots and its
-// deleting destructor) whose only class is the global map's (CGlobalMapClouds); both real classes. Three
-// greyscale frames of `size` x `size` (the map uses 256) are kept: the one shown fades from the first into
-// the second while the third is built a slice per step from four layers of value noise; every 16 steps they
-// rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
+// The global map's moving cloud layer: an abstract noise texture (CCloudNoise) whose only class is the global
+// map's (CGlobalMapClouds). Three greyscale frames of `size` x `size` are kept: the one shown fades from the first
+// into the second while the third is built a slice per step from four layers of value noise; every 16 steps
+// they rotate. The blend goes through a 256-entry ARGB4444 alpha ramp.
 
 #include "game_data.h"
 
@@ -54,7 +53,7 @@ public:
     // three ISAAC words; the raw values go through `noise_`.
     void MakeLayer(std::uint8_t* out) override;
     // Step `step` of building a frame into `out`: steps 1-4 make the layers
-    // (slot 0), steps 7-14 each fill 32 rows from them; the others do nothing.
+    // (MakeLayer), steps 7-14 each fill 32 rows from them; the others do nothing.
     void Generate(std::uint8_t* out, int step) override;
 };
 

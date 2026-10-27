@@ -19,8 +19,7 @@ class CTexture;
 struct VertexPacket;
 struct DecalTexCoord;
 
-// A texture by name (0x10 bytes; constructed in place with an empty name with room for 8
-// bytes). The device binds it by looking the texture up again by name.
+// A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
     NamedTexture* Copy(const NamedTexture* other);
     stlp::string name;
@@ -28,18 +27,15 @@ struct NamedTexture {
 };
 static_assert(sizeof(NamedTexture) == 0x10);
 
-// A scorch mark and the base of the other two. 0x8C bytes. The vtables are the compiler's;
-// the copy constructor stores this one first, then the lists' copies
-// store their class's.
+// A scorch mark and the base of the other two.
 class GroundPrint {
 public:
     // A scorch mark ("fireprints") at (x, y): a random quarter of the 2 x 2
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
-    // The copy constructor the lists' node copies start with (the three classes' then copy their own
-    // members): every member copied, the texture name into a block of its own and the texture counted
-    // (NamedTexture::Copy), the three geometry arrays' headers as they are (the copy shares their blocks).
+    // The texture name copied into a block of its own and the texture counted; the three geometry arrays'
+    // headers as they are (the copy shares their blocks).
     GroundPrint(const GroundPrint& other);
     GroundPrint& operator=(const GroundPrint&) = delete;
 
@@ -58,11 +54,9 @@ public:
     // texture coordinates; then the flat draw with the colour's alpha from alpha_ and the lit flag as the
     // specular alpha. Returns 1 when not visible, else the draw's result.
     int Draw();
-    // The destructor (only reached from the constructors' unwinding): the arrays freed,
-    // the texture released, the name freed. The client world's lists have three more copies of it.
+    // Only reached from the constructors' unwinding.
     void Destruct();
-    // The footprint and scorch mark lists' scalar deleting
-    // destructors: Destruct, the print freed when bit 0 of `flags` is set; returns this.
+    // The print freed when bit 0 of `flags` is set; returns this.
     GroundPrint* DeletingDestruct(unsigned flags);
 
 protected:
@@ -116,7 +110,7 @@ public:
 };
 static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 
-// A blood print. Spreads for half its life (at most 45 ticks), turning. 0x9C bytes.
+// A blood print. Spreads for half its life (at most 45 ticks), turning.
 class BloodPrint : public GroundPrint {
 public:
     // A blood print ("bloodprints") of `halfSize` growing to `fullSize` in

@@ -1,9 +1,8 @@
 // Combat, eighth part: planning an order's way (PlanOrder), the spot a use order goes to, the time
 // along a path until an action can be carried out, and a party unit's move. See combat.h,
 // combat_plan.h and docs/notes/combat.md ("Order lifecycle").
-// These build paths on the stack: an AIPath (0x88 bytes: the motion order, the step and cell lists
-// at +0x20 / +0x3C, a point array at +0x70) and the motion order a path turns into (0x3C bytes:
-// the order and a step list) for the player's path messages and the simulation of a unit's motion.
+// These build paths on the stack: an AIPath and the motion order a path turns into, for the player's path
+// messages and the simulation of a unit's motion.
 #include "ai_map.h"
 #include "combat.h"
 #include "combat_internal.h"
@@ -49,7 +48,6 @@ constexpr int kNoSpot = 0x7FFFFFFF;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
-// The map objects' virtual slots: 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 
 // --- Helpers --------------------------------------------------------------------------------------
@@ -161,7 +159,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
-            float limitSquared = static_cast<float>(0.2f /*0073EF28*/ * 0.2f /*0073EF28*/);   // rounded to 24 bits, as the FMUL
+            float limitSquared = static_cast<float>(0.2f /*0073EF28*/ * 0.2f /*0073EF28*/);   // rounded to 24 bits
             EI_NAN_AUDIT(ex, ey);
             if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
             if (path.Cost() >= best) continue;

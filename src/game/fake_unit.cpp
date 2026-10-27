@@ -1,13 +1,10 @@
-// CFakeUnit (class id 0x50, 0x580 bytes; derives from CUnit; declared as scene::FakeUnitScene,
-// scene_loader.h): constructor, destructor, Destroy (slot 3), the scene load (slot 62) and the class id. It
-// adds the skin at +0x4E0 and four CArrays: the figures (+0x530, CFigureMesh records), the meshes (+0x544,
-// SceneMesh), the bone links (+0x558, a CArray each) and the helpers (+0x56C, CMaterial). A real virtual
-// class. See docs/notes/objects.md ("Rewritten").
+// CFakeUnit (class id 0x50; derives from CUnit; declared as scene::FakeUnitScene, scene_loader.h): the skin and
+// four CArrays (figures, meshes, bone links, helpers) over a unit. See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "figure_mesh.h"
-#include "link_figure.h"   // FigureMeshDrawer
+#include "link_figure.h"
 #include "record_arrays.h"
 #include "scene_loader.h"
 #include "world.h"
@@ -18,7 +15,7 @@
 #include <cstring>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName
+#undef GetClassName
 
 using scene::FakeUnitScene;
 
@@ -28,13 +25,10 @@ namespace {
 
 constexpr int kFakeUnitClassId = 0x50;
 
-// The figure records and the helpers are engine objects (vtable and count first; the classes
-// declare no virtuals): slot 0, the deleting destructor, with 0.
+// The figure records and the helpers are engine objects: destroyed through their virtual destructor.
 void DestroyRecord(CEngineObject* record) { record->~CEngineObject(); }
 
-// The array's vtable back, each element destroyed (`destroy`; the destructor's loops are the
-// instantiations' inlined DestructElements: each element's destructor through its vtable), the
-// block freed; the fields are left as they are.
+// The array's vtable back, each element destroyed (`destroy`), the block freed; the fields are left as they are.
 template <typename Array, typename Destroy>
 void DestructArray(Array& a, const void* vtable, Destroy destroy) {
     ei::SetVtable(&a, vtable);
@@ -91,7 +85,7 @@ void FakeUnitScene::Destroy() {
 int FakeUnitScene::GetClassId() { return fakeunit::kFakeUnitClassId; }
 
 int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
-    if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;   // the unit is passed in ECX as well, not read
+    if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;
     scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) {
         CBaseManager* manager = WorldContext()->SpecificManager();
@@ -107,10 +101,8 @@ EI_REWRITTEN_SPECIAL(0x004468F0, FakeUnitScene::~FakeUnitScene);   // deleting
 
 namespace fakeunit {
 
-// The compiler's table holds these slots; nothing reaches the old slot
-// addresses (tools/registration_readers.py).
-EI_REWRITTEN(0x00446B20, FakeUnitScene::Destroy);     // slot 3
-EI_REWRITTEN(0x00446BA0, FakeUnitScene::LoadScene);   // slot 62, RET 8
-EI_REWRITTEN(0x004468E0, FakeUnitScene::GetClassId);  // slot 12: the class id
+EI_REWRITTEN(0x00446B20, FakeUnitScene::Destroy);
+EI_REWRITTEN(0x00446BA0, FakeUnitScene::LoadScene);
+EI_REWRITTEN(0x004468E0, FakeUnitScene::GetClassId);
 
 } // namespace fakeunit

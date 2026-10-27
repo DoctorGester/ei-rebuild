@@ -59,7 +59,7 @@ constexpr int kOrderStop = 11;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;    // CUnit flags_
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;    // spell +0x3C
+constexpr std::uint32_t kSpellNoTarget = 0x20000000;    // CSpell::targetFlags_
 constexpr int kStateIdle = 0;
 constexpr int kStateTurning = 2;
 constexpr int kStateCasting = 5;
@@ -532,8 +532,8 @@ EI_REWRITTEN(0x0054DD70, CUnitServer::ContinueAction);
 // --- Carrying out the current order ----------------------------------------------------------------
 
 namespace {
-// The unit's attack interval: the weapon prototype's +0x6C (or stats +0x8C truncated) scaled by
-// 15 / stats +0x30 (unscaled when that is 0), rounded.
+// The unit's attack interval: the weapon's (or the stats' truncated) scaled by 15 / the combat rate (unscaled
+// when that is 0), rounded.
 int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     float factor = self->Combat().rate;
     if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN

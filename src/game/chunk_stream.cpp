@@ -1,9 +1,9 @@
 // Chunked files. See chunk_stream.h.
-// Every file operation asks for the file again through slot 1 (File), as the game does.
+// Every file operation asks for the file again through File(), as the game does.
 #include "chunk_stream.h"
 
 #include "asset_text.h"
-#include "console.h"   // CStringArray
+#include "console.h"
 
 #include "ei/hook.h"
 #include "lib/stlp.h"
@@ -41,8 +41,7 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
     chunk->consumed_ += static_cast<int>(size);
 }
 
-// The decoder: two byte vectors, the decoded text and the coded
-// input; vector<uint8_t> members (library): constructor, erase, fill insert.
+// The decoder: two byte vectors, the decoded text and the coded input.
 using ByteVector = stlp::vector<std::uint8_t>;
 struct TextDecoder {
     ByteVector text;

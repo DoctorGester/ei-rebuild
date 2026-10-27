@@ -20,6 +20,20 @@ every scenario.
   remove, tick, redraw, show, release). `options.cpp`: `GameOptions::SaveToRegistry` 0045C560 (EI_Plugin's `NewMaster` NOPs 42 bytes at
   0045D330 inside it: the Master Server Name is no longer saved).
 
+## WinMain
+
+`app_main.cpp` (`app::GameMain`). Start-up: the system messages (res\sysmsg.txt, three lines, with built-in ones as
+a fallback), the DirectX version, the command line, the window class and a second instance's hand-over, the folders
+and the options from the registry, the two worlds and the camera, the free disk space and the second disc, the mouse
+object, the save folders, the window, the renderer and what the video memory allows, the sound, the intro movies, the
+databases, the cursors, the interface, the maps and the first map (or the main menu).
+
+Main loop: while no message waits, the time since the last pass runs the server world in whole ticks and the client
+world in ticks stretched by the "client speed" (1 in a local game; a network client speeds up or slows down by its
+backlog of server updates), then the camera, the interface and a frame. A waiting message goes to the interface's
+input (after a frame) or to the window procedure (while the renderer is inactive). Rebirth patches the original
+WinMain (NivalRegistry); ours follows the flag.
+
 ## Frame capture (harness)
 
 The harness's frame capture redirects the `CALL 005E65F0` at 004580D7 inside the original 00458010

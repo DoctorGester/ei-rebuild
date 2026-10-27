@@ -1,8 +1,5 @@
 // Combat, sixth part: the controller's update (called once per world update for every creature on the server)
-// and the animation queue and order states it drives. See combat.h, combat_plan.h and docs/notes/combat.md
-// ("Update"). The controller's animation queue is an AnimationSteps with the game time its first step started;
-// a hit reaction saves it (and its time) and sets a flag until it is restored. The plan of the order being
-// carried out is the OrderPlan; the motion is an AIPath.
+// and the animation queue and order states it drives. See docs/notes/combat.md ("Update").
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -39,14 +36,14 @@
 void UpdateMotion(CUnitServer*);
 namespace {
 
-// The controller's state (+0x164). combat_tick.cpp names 6 "chasing" (the state an order leaves
-// the unit in when it ends: ready for the next one).
+// The controller's state. 6 "chasing": the state an order leaves the unit in when it ends, ready for the next
+// one.
 constexpr int kStateIdle = 0;
 constexpr int kStateMoving = 1;
 constexpr int kStateTurning = 2;
 constexpr int kStateRecovering = 3;   // the rest of an action's animation plays out
 constexpr int kStateWaiting = 4;
-constexpr int kStateActing = 5;       // the planned action (+0xC4) runs
+constexpr int kStateActing = 5;       // the planned action runs
 constexpr int kStateChasing = 6;
 constexpr int kOrderMove = 1;
 constexpr int kOrderAttack = 3;
@@ -59,7 +56,7 @@ constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr std::uint32_t kFlagFrozen = 0x1000000;      // CUnit flags_: no updates of orders and animation
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // spell +0x3C
+constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // CSpell::targetFlags_
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38: OrderPlan.rangeSq of no plan
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
@@ -72,7 +69,7 @@ constexpr int kRemarkBored = 0x29;
 float SinkAcceleration() { return 0.01f /*0073C548*/; }
 int TickOf(const CWorld* world) { return world->tick_; }
 int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
-// The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).
+// A CPlayerServer on the server.
 CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
@@ -99,7 +96,7 @@ void SwitchWeaponIfWanted(CUnit* unit) {
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
 }
 
-// The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
+// The unit's standing flag changed, re-registered on the sector map.
 void SetStandingFlag(CUnitServer* self, int standing) {
     CWorldServer* world = self->ServerWorld();
     CUnit* unit = self->unit;
@@ -146,7 +143,7 @@ struct PlanCopy {
 
 // The queue replaced by `steps`, twice like the original, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
-    Queue(self).Assign(*steps);   // twice, like the original
+    Queue(self).Assign(*steps);
     Queue(self).Assign(*steps);
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
@@ -629,7 +626,7 @@ void CUnitServer::TickItemSpells() {
         if (!item) continue;
         auto* spell = item->spell_;
         float cost = spell->manaCost_;
-        if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
+        if (cost >= item->charge_) continue;   // a NaN charge or cost goes on
         if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
@@ -646,13 +643,12 @@ void CUnitServer::TickItemSpells() {
 EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 
 namespace {
-// The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (blocks of 10) and the armour
-// spell list (ArmourSpellList).
+// The lists RefreshItemSpells uses.
 using UnitItems = mfc::CTypedPtrList<CItem>;
 using SpellList = mfc::CTypedPtrList<CSpell>;
 using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
-constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
+constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {

@@ -5,11 +5,11 @@
 
 #include "core_maths.h"
 
-#include "link_figure.h"   // ITransformPipeline
+#include "link_figure.h"
 
 #include "ei/hook.h"
 #include "model.h"
-#include "render/render.h"   // MeshChanged
+#include "render/render.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -373,7 +373,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);   // growBy -1
+    colorsA_.SetSize(normals_.size * 4);
     colorsB_.SetSize(normals_.size * 4);
     buffers_.texCoords = texCoords_.data;
     buffers_.texCoordCount = texCoords_.size;
@@ -494,7 +494,7 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     SkipRecords34(cursor);
     LoadArray(corners_, cursor, ReadCount(cursor));
     LoadArray(words_, cursor, ReadCount(cursor));
-    LoadArray(indices_, cursor, ReadCount(cursor));   // growBy -1
+    LoadArray(indices_, cursor, ReadCount(cursor));
 
     BuffersChanged();
     buffers_.vertices = vertices_.data;
@@ -588,7 +588,7 @@ EI_REWRITTEN(0x0059FDF0, CFigureMesh::ExtendWorldBox);
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
 
 namespace {
-// Negates one component block of every packet (FLD / FCHS / FSTP in the original).
+// Negates one component block of every packet.
 template <typename Packet>
 void NegateBlock(lib::AlignedArray<Packet>& packets, int block) {
     for (int i = 0; i < packets.size; ++i) {

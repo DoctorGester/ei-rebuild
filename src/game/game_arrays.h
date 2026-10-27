@@ -1,7 +1,7 @@
 #pragma once
 
-// The CArray<T> instantiations whose elements the game destroys through its own code: lib/mfc_array.h's templates
-// over the game's element types, with the element destructors ours (each called directly). Registered in
+// The CArray<T> instantiations whose elements the game destroys through its own code (lib/mfc_array.h's
+// templates over the game's element types).
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -50,8 +50,8 @@ inline void InitParticle(EffectParticle* p) {
 }
 inline void DestroyParticle(EffectParticle* p) { p->ReleaseSource(); }
 
-// Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by a release
-// through virtual 4, the slot cleared or left.
+// Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by a Release,
+// the slot cleared or left.
 inline void ReleaseAndClear(ScriptObjectRef* p) {
     if (p->object) p->object->Release();
     p->object = nullptr;
@@ -82,16 +82,13 @@ inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p)
 using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea>>;
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
 
-// CScript's arrays' vtables. +0x00: the compiler's vtable. The areas (+0x194) are
-// mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C) recordarrays::DefinitionArrayClass.
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
 
 struct ObjectPtrArrayBaseClass
     : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
-// The global arrays the static initialisers construct (their constructors and the exit functions' destructors are
-// registered in game_arrays.cpp, so static_init.cpp calls them).
+// The global arrays the static initialisers construct.
 // The particles' draw order (CArray<ParticleDepth>, effects.h).
 struct ParticleDepthArrayClass final
     : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
@@ -106,9 +103,8 @@ struct SmoothNodeArrayClass final
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &Groups::Serialize> {};
 
-// The script variables' string and group arrays (script_arrays.cpp's constructors; the float values are
-// mfc::impl::ScriptFloatValuesClass): their destructors store the plain arrays' tables back (StringArrayClass,
-// GroupArrayClass). The strings' also serve every variable set's names.
+// The script variables' string and group arrays: their destructors store the plain arrays' tables back. The
+// strings' also serve every variable set's names.
 struct ScriptStringValuesClass final
     : mfc::impl::CompiledCollection<ScriptStringValuesClass, &ScriptNamesDestruct, &mfc::impl::Strings::Serialize> {};
 struct ScriptGroupValuesClass final
@@ -127,8 +123,7 @@ struct ExitArrayClass
 struct MapRecordItemsClass final : ExitArrayClass {
     static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
 };
-// CArray<ScriptObjectRef> as a script group's base: the destructor body (the references released, the storage
-// freed).
+// CArray<ScriptObjectRef> as a script group's base: the references released, the storage freed.
 struct ObjectRefArrayClass final
     : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &gamearrays::ObjectRefs::Serialize> {};
 // A script group (ScriptGroup): its destructor stores ObjectRefArrayClass' table.

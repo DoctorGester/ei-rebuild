@@ -99,7 +99,7 @@ int ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_);
     TheInterface()->ConsoleAddText(line_);
-    line_ = game::EmptyText();   // ""
+    line_ = game::EmptyText();
     return 0;
 }
 EI_REWRITTEN(0x005DC1B0, ConsoleStreambuf::Sync);

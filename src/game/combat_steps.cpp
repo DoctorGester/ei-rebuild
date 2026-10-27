@@ -41,7 +41,7 @@ constexpr int kWeaponCrossbow = 6;
 constexpr int kOrderAttack = 3;
 constexpr int kOrderSkill = 6;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
-constexpr int kNoSizeClasses = 2;         // CombatStats +0x60
+constexpr int kNoSizeClasses = 2;         // CombatStats::bodyKind
 
 constexpr std::uint32_t kKeyAction = 0x40000;
 constexpr std::uint32_t kKeyAttack = 0x90000;
@@ -72,7 +72,7 @@ const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! C
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-// Branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
+// Branch-free selects: `ifLess` when a < b or unordered.
 float Select(float a, float b, float ifLess, float otherwise) {
     return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
 }
@@ -111,8 +111,7 @@ namespace {
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
 // Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
-// frame count (FILD of the zero-extended dword, stored as a float) divided by the unit's speed factor for the
-// entry, truncated.
+// zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated.
 int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
@@ -383,7 +382,7 @@ std::uint32_t BandAt(double h, float base, float size, float top) {
     return kKeyMiddle;
 }
 
-// A random height in [from, to) in steps of 0.01 (FISTP of the span in hundredths), else in the
+// A random height in [from, to) in steps of 0.01 (the span in hundredths, rounded), else in the
 // overlap [high, low), else `high`.
 double RandomHeight(double to, float from, float low, float high) {
     float span = static_cast<float>((to - from) * kHundred);
@@ -548,7 +547,7 @@ constexpr std::uint32_t kKeyDying = 0x1C0000;
 constexpr std::uint32_t kKeyNotDying = 0x200000;
 constexpr std::uint32_t kKeySideMask = 0xC03FFFFF;
 constexpr std::uint32_t kKeyNoSide = 0xFE3FFFFF;
-constexpr int kStepLying = 2;   // +8 of every step of a fall
+constexpr int kStepLying = 2;   // the kind of every step of a fall
 
 // A random side for a hero's fall (0x400000 or 0x800000).
 std::uint32_t RandomSide(std::uint32_t key) {

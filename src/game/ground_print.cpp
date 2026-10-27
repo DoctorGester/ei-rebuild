@@ -1,21 +1,17 @@
-// Ground prints: footprints, blood and scorch marks and the client world's
-// functions that add them. See ground_print.h and
-// docs/notes/models.md ("Ground prints").
-// A new print is built on the stack, copied into its list (the list instantiations' own insert:
-// node allocation and the records' compiler-generated copy constructor, which shares the empty
-// geometry arrays) and destroyed. Its table entry in prints.db (by the ground's surface class)
-// gives the alpha and the life; the client world's +0x7A8 picks the entry's second set.
+// Ground prints: footprints, blood and scorch marks and the client world's functions that add them. A new print
+// is built on the stack, copied into its list (sharing the empty geometry arrays) and destroyed; its prints.db
+// entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
 #include "ground_print.h"
 #include "options.h"
 
-#include "camera.h"              // TheTerrain
+#include "camera.h"
 #include "core_streams.h"
-#include "effects.h"             // CRainSnow
-#include "figure_mesh.h"         // VertexPacket
-#include "ground_decal.h"        // DecalTexCoord
-#include "model.h"               // ThePrintsDatabase
+#include "effects.h"
+#include "figure_mesh.h"
+#include "ground_decal.h"
+#include "model.h"
 #include "record_lists.h"
-#include "terrain.h"             // Terrain::SurfaceClass
+#include "terrain.h"
 #include "texture.h"
 #include "world.h"
 
@@ -46,8 +42,7 @@ constexpr float kMilli = 0.001f;
 constexpr float kAngleMilli = 1000.0f;
 constexpr float kSpinDegrees = 30.0f;
 
-// Globals. pi / 2 and 2 pi as floats (set by static initialisers).
-constexpr float kHalfPi = /*007C899C*/ 1.5707964f;   // static initialisers: pi * 0.5 and pi + pi
+constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
 double Pi() { return 3.141592653589793 /*00744238*/; }
@@ -72,7 +67,6 @@ void Write(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
 }
 
-// (rand() * 4 / 0x7FFF) % 4: a quarter turn.
 int RandomQuarter() { return gamecrt::rand() * 4 / 0x7FFF % 4; }
 
 // The prints.db entry for the ground at (x, y), or null.
@@ -82,7 +76,6 @@ const Record* EntryAt(const stlp::vector<Record>& table, CWorldClient* world, fl
     return surface < table.size() ? &table[surface] : nullptr;
 }
 
-// The colour's channel: FISTP of the float channel * 255.
 std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(value * kAlphaRange))); }
 
 } // namespace
@@ -163,7 +156,6 @@ int GroundPrint::Tick() {
     halfWidth_ = halfWidth_ + growth_;
     halfLength_ = halfLength_ + growth_;
     float t = static_cast<float>(static_cast<double>(lifetime_ - life_) / lifetime_);
-    // max(t, 0) by FCOMP.
     EI_NAN_AUDIT(t);
     float spent = t > 0.0f ? t : 0.0f;
     alpha_ = (kOne - spent) * alphaScale_;

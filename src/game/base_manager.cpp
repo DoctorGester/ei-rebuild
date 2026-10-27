@@ -11,7 +11,7 @@
 
 #include <type_traits>
 
-#undef GetClassName   // CEngineObject::GetClassName
+#undef GetClassName
 
 namespace {
 
@@ -25,17 +25,14 @@ using SpareCountMap = CBaseManager::SpareCountMap;
 using IdList = stlp::list<int>;
 using IdNode = IdList::Node;
 
-// The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
 const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't find first free key.\n"; }
 
 // --- Helpers ------------------------------------------------------------------------------------
 
-// The positions and spare counts tables are built by hand (the hashtable constructor inlined):
-// functors, empty bucket vector, count 0, 100 buckets; then the table's highest key is zeroed. The
-// game copies the three empty functor bytes from an uninitialised stack byte; they are never
-// read, so they are zeroed here.
+// The positions and spare counts tables built by hand (the hashtable constructor inlined). The game copies the
+// three empty functor bytes from an uninitialised stack byte; they are never read, so they are zeroed here.
 template <typename Map>
 void BuildTable(Map& table, int& maxKey) {
     table.Construct(100);
@@ -163,7 +160,7 @@ CBaseManager::~CBaseManager() {
 EI_REWRITTEN_SPECIAL(0x00402DF0, CBaseManager::~CBaseManager);
 EI_REWRITTEN_SPECIAL(0x00402DD0, CBaseManager::~CBaseManager);
 
-// --- Slots 2, 3, 13, 15 -------------------------------------------------------------------------
+// --- Create and destroy -------------------------------------------------------------------------
 
 int CBaseManager::Create() {
     idLow_ = 0;
@@ -177,9 +174,8 @@ int CBaseManager::Create() {
     return 1;
 }
 
-// Every object gets a reference, then its own Destroy (slot 3); then every object still registered
-// under the ids collected is released (slot 4); the object list is emptied; every object left is
-// deleted (slot 0); then the tables are cleared.
+// Every object gets a reference, then its own Destroy; then every object still registered under the ids
+// collected is released; the object list is emptied; every object left is deleted; then the tables are cleared.
 void CBaseManager::Destroy() {
     ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
     IdList ids;
@@ -214,8 +210,8 @@ BOOL CBaseManager::Init(CManagerContext* context) {
     return 0;
 }
 
-// Every object gets a reference, then is destroyed (slot 3), then released (slot 4; objects nothing else
-// holds go back to the spares). Then the objects table, the object list and the positions are emptied.
+// Every object gets a reference, then is destroyed, then released (objects nothing else holds go back to the
+// spares). Then the objects table, the object list and the positions are emptied.
 void CBaseManager::DestroyAll() {
     ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
     ForEachObject(objects_, [](CEngineObject* o) { o->Destroy(); });
@@ -227,8 +223,7 @@ void CBaseManager::DestroyAll() {
     positions_.Clear();
 }
 
-// --- Slots 16-22: no archives -------------------------------------------------------------------
-// 18 and 22 are shorter than a hook's jump and stay unregistered.
+// --- No archives --------------------------------------------------------------------------------
 
 BOOL CBaseManager::AddArchive(const char*) { return 0; }
 BOOL CBaseManager::RemoveArchive(const char*) { return 0; }
@@ -238,7 +233,7 @@ bool CBaseManager::CloseFile(void*) { return false; }
 BOOL CBaseManager::HasFile(const char*) { return 0; }
 void CBaseManager::FreeAllFiles() {}
 
-// --- Slots 23, 24: objects in and out -----------------------------------------------------------
+// --- Objects in and out -------------------------------------------------------------------------
 
 CEngineObject* CBaseManager::CreateObject(int type, int id) {
     CEngineObject* object = nullptr;
@@ -381,8 +376,8 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
 }
 EI_REWRITTEN(0x00404040, CBaseManager::RemoveObject);
 
-// Each type's list deletes its objects (slot 0), is emptied (RemoveAll, inlined) and deleted (its
-// slot 1); then the spares and spare counts tables are emptied.
+// Each type's list deletes its objects, is emptied and deleted; then the spares and spare counts tables are
+// emptied.
 void CBaseManager::FreeSpares() {
     SpareMap::Node* node = spares_.First();
     while (node) {
@@ -394,7 +389,7 @@ void CBaseManager::FreeSpares() {
             n = next;
         }
         list->RemoveAll();
-        reinterpret_cast<mfc::CObjectVirtuals*>(list)->DeletingDestructor(1u);   // its CObject slot 1
+        reinterpret_cast<mfc::CObjectVirtuals*>(list)->DeletingDestructor(1u);
         node = spares_.After(node);
     }
     maxSpareType_ = 0;
@@ -406,7 +401,7 @@ EI_REWRITTEN(0x00404410, CBaseManager::FreeSpares);
 
 // --- Saving and loading -------------------------------------------------------------------------
 
-// The spares are freed; then `count` records {id, type, prototypeId_} each create an object (slot 23).
+// The spares are freed; then `count` records {id, type, prototypeId_} each create an object (CreateObject).
 void CBaseManager::Load(CStream* in) {
     FreeSpares();
     int count;
@@ -437,7 +432,7 @@ void CBaseManager::Save(CStream* out) {
     }
 }
 
-// Records {id, object data (slot 9)} until the end mark followed by a 0 byte (with a 1 byte the
+// Records {id, the object's Load data} until the end mark followed by a 0 byte (with a 1 byte the
 // mark is an object id after all); stops at an id not registered (FindObject inlined).
 void CBaseManager::LoadObjects(CStream* in) {
     for (;;) {
@@ -455,7 +450,7 @@ void CBaseManager::LoadObjects(CStream* in) {
 }
 EI_REWRITTEN(0x004047E0, CBaseManager::LoadObjects);
 
-// {id, [1 byte if the id is the end mark], object data (slot 10)} per object in list order, then
+// {id, [1 byte if the id is the end mark], the object's Save data} per object in list order, then
 // the end mark and a 0 byte.
 void CBaseManager::SaveObjects(CStream* out) {
     for (ObjectNode* node = objectList_.head; node;) {

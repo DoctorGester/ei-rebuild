@@ -1,18 +1,4 @@
-// WinMain: the application's start-up, its main loop and its shutdown.
-// Start-up: the system messages (res\sysmsg.txt, three lines, with built-in ones as a fallback),
-// the DirectX version, the command line, the window class and a second instance's hand-over, the
-// folders and the options from the registry, the two worlds and the camera, the free disk space and
-// the second disc, the mouse object, the save folders, the window, the renderer and what the video
-// memory allows, the sound, the intro movies, the databases, the cursors, the interface, the maps
-// and the first map (or the main menu).
-// Main loop: while no message waits, the time since the last pass runs the server world in whole
-// ticks and the client world in ticks stretched by the "client speed" (1 in a local game; a network
-// client speeds up or slows down by its backlog of server updates), then the camera, the interface
-// and a frame. A waiting message goes to the interface's input (after a frame) or to the window
-// procedure (while the renderer is inactive).
-// Every game function is called by name. Rebirth patches the original WinMain (NivalRegistry), so in game.exe this body
-// runs in the vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
-// docs/notes/app.md ("WinMain").
+// WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
 #include "bink_video.h"
 #include "device.h"   // the old device's calls
 #include "engine_object.h"
@@ -71,9 +57,8 @@ std::uint32_t __cdecl GetDxVersion();
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
-// The command line's CStrings, built by static initialisers in the list's order and destroyed
-// by the exit functions they register with the game's atexit; the mouse object's pointer, null at the start,
-// released by its exit function (docs/notes/standalone.md, "The static initialisers' objects").
+// The command line's CStrings, built by static initialisers in the list's order and destroyed by the exit
+// functions they register; the mouse object's pointer, null at the start, released by its exit function.
 constinit lib::StaticObject<mfc::CString> g_movieFolder = /*0079BA0C*/ {};
 constinit lib::StaticObject<mfc::CString> g_commandLineMap = /*0079BA10*/ {};
 constinit lib::StaticObject<mfc::CString> g_commandLineMob = /*0079BA14*/ {};
@@ -208,17 +193,11 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- The callees -----------------------------------------------------------------------------------
 
-// app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The
-// two factories: class 1 and class 2 (the party record).
+// app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The two factories: class 1
+// and class 2 (the party record).
 using ClassFactory = void* (__cdecl*)();
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
-// The callees below, by area:
-// the camera: Init, a frame written to / read from the camera file at a time in ticks, and CCamera::Update;
-// the renderer: its creation and the display's brightness, contrast and gamma;
-// the sound manager: opened, the music folder and its registry file, the wave archives, the three volumes;
-// the interface: created on the device, its update, shut down;
-// the game flow: both sessions closed.
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -363,7 +342,7 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
     DriveRoot(folder, parts);
     using FreeSpaceEx = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
     auto* extended = reinterpret_cast<FreeSpaceEx>(
-        gameapi::GetProcAddress(gameapi::GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA"));   // kernel32.dll
+        gameapi::GetProcAddress(gameapi::GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA"));
     if (extended) {
         ULARGE_INTEGER available, total, totalFree;
         const BOOL ok = extended(parts.drive, &available, &total, &totalFree);

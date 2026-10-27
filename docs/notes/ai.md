@@ -22,6 +22,26 @@ rebuilds the trajectory with `UnitMotion::Build` (005C67D0). 00548520 at the end
 `StandsOnCheapCell` (005BA5A0). Long paths: `PlanLongPath` (005B9C90, region chain, then local
 searches per leg) -> `BuildCellsTo` (005B9A20).
 
+## The map archive (CAIMap::Load)
+
+`ai_map_load.cpp`. A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
+animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again
+for the water when the sector has any, then 16 x 16 tile words, the water's tile words and the water's material
+indices). The AI map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector. The original is
+one function; ours splits it into LoadTerrain (everything read from the files) and AttachTerrain (the rest), and its
+locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of at the very end
+(nothing reads them in between). Rebirth patches the function.
+
+## Regions (CRegionMap::ReachesRegion, LabelRegions)
+
+The region map keeps, per size class, a u16 region per 8x8 block and the block's representative cell (rows of
+bytes: low nibble x, high nibble y in the block). `ReachesRegion` asks whether cell (x, y) can reach a region:
+when none of the 3x3 blocks around the cell's block is in the region, the cell's block is marked unreachable (2)
+in `marks`; otherwise the local search floods the 3x3 blocks from the cell, the region is reached when a
+representative cell of one of them that is in the region was reached, and every reached cell of the window gets
+the answer (1 yes, 2 no). `LabelRegions` numbers the connected areas of blocks per size class: each class's
+region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded from a queue of blocks.
+
 ## Facts
 
 - The map's grids are `SearchGrid` members (search_grid.h; `grid[y][x]` reads a row): `waterDepth` (+0x1F4),

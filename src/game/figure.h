@@ -10,19 +10,15 @@
 
 class CFigureMesh;
 
-// Six corner positions of a bone, from a .bon file. A figure's proportions are set by three morph
-// coefficients; the bone position is interpolated between these corners:
-// lower = lerp(lerp(c[0], c[1], s), c[2], t)
-// upper = lerp(lerp(c[3], c[4], s), c[5], t)
-// bone  = lerp(lower, upper, u)
+// Six corner positions of a bone, from a .bon file, interpolated by the figure's three morph coefficients:
+// bone = lerp(lerp(lerp(c[0], c[1], s), c[2], t), lerp(lerp(c[3], c[4], s), c[5], t), u)
 struct BoneMorphBox {
     Vector3 c[6];
 };
 static_assert(sizeof(BoneMorphBox) == 0x48);
 
-// A rotation key of an animation node (40 bytes): frames [frame, next), the rotation (made from
-// the axis and angle by the skeleton code, scene_bone_frames.cpp) and the scene's axis-angle
-// (BuildBone, scene_bones.cpp, copies them from the node's position keys).
+// A rotation key of an animation node: frames [frame, next); BuildBone copies the axis-angle from the node's
+// position keys.
 struct AnimationRotationKey {
     int frame;
     int next;
@@ -32,8 +28,7 @@ struct AnimationRotationKey {
 };
 static_assert(sizeof(AnimationRotationKey) == 40);
 
-// A translation key of an animation node (32 bytes): frames, the position, the step to the next
-// key's position (the last key keeps the zero vector it started with).
+// A translation key: the step to the next key's position (the last key keeps zero).
 struct AnimationTranslationKey {
     int frame;
     int next;
@@ -42,7 +37,7 @@ struct AnimationTranslationKey {
 };
 static_assert(sizeof(AnimationTranslationKey) == 32);
 
-// A morph frame of an animation node (24 bytes): frames and the morphed points.
+// A morph frame of an animation node: frames and the morphed points.
 struct AnimationMorphFrame {
     int frame;
     int next;
@@ -55,38 +50,27 @@ struct AnimationMorphFrameElements {
     static void Destruct(AnimationMorphFrame* frames, int count);
 };
 
-// An animated node of a figure (one bone; 0x128 bytes). The fake units' skeletons build them from scene nodes
-// (BuildBone, scene_bones.cpp). Names and layout provisional.
+// An animated node of a figure (one bone). The fake units' skeletons build them from scene nodes (BuildBone).
 class CAnimationNode {
 public:
-    // The constructor: empty names and arrays, the four key cursors -1, identity pose
-    // and rest rotations, two quaternion members and position_ from the defaults (the identity and the origin).
-    // The pose / rest positions and the morph stay unwritten. Returns this.
+    // The pose / rest positions and the morph stay unwritten.
     CAnimationNode* Construct();
-    // The destructor body: the mesh loses a reference (not released) and is forgotten,
-    // each child is destroyed (recursively) and deleted, the child array emptied, +0x00 cleared,
-    // the arrays freed, the names destroyed.
+    // The mesh loses a reference without being released.
     void DestructBody();
 
     // Stores the morph coefficients and computes the bone position from `box`.
     void SetMorph(const BoneMorphBox* box, float s, float t, float u);
 
-    // skin_rewind.cpp (A-U9):
-    // The pose at the animation's start: rotation = the parent's pose rotation times the
-    // first rotation key's (the key's alone for the root), position = the parent's pose position plus
-    // position_ turned by the parent's rotation (the root: turned by its own); the current morph
-    // points become the rest ones (pointsB_ = pointsA_) and the four key cursors 0.
+    // The pose at the animation's start from the parent's pose and the first keys; the morph points become the
+    // rest ones and the key cursors 0.
     void ResetPose();
-    // Rewinds this node and its children: the clock (+0x38 / +0x3C) to 0, ResetPose, and
-    // the mesh (when there is one) placed at the pose with the morph points as its offsets.
+    // Rewinds this node and its children (clock_ to 0, ResetPose) and places the mesh at the pose.
     void Rewind();
-    // Binds the figure's parts (CFigureMesh*) to this node and its children: the first part
-    // whose name equals the node's becomes its mesh (one more reference; a mesh held before is overwritten
-    // without a release) and is placed at the pose with the morph points as its offsets. Returns 1.
+    // Binds the first part named like each node as its mesh (one more reference; a mesh held before is
+    // overwritten without a release). Returns 1.
     int AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
 
-    // +0x000, +0x008..+0x018, +0x034: cleared (the names constructed and destroyed) by the
-    // constructor and the destructor; nothing reads them.
+    // Cleared by the constructor and the destructor; nothing reads them.
     std::uint32_t spare000_;
     mfc::CString name_;
     mfc::CString spareName008_;

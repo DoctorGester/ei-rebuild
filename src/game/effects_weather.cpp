@@ -47,10 +47,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// The sound manager: sets a playing sound's volume (0..100), stops it.
-
-// The game's atexit.
-
 // vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
 // update, its guard bit 0), with its constructor and insert-overflow.
 using KeyVector = stlp::vector<std::uint32_t>;
@@ -129,7 +125,6 @@ namespace {
 constexpr int kWeatherTextureKind = 6;
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
-// The strings "RainSnow" and "nature\rain\circle.wav".
 const char* WeatherTextureName() { return "RainSnow"; }
 const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 } // namespace
@@ -152,8 +147,7 @@ void CRainSnow::Clear() {
     density = kFullDensity;
 }
 EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; the standalone image has no code at them): the same
-// replacement, so their calls skip its check.
+// The compiler's jump thunk to it, registered as the same replacement.
 EI_REWRITTEN(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
@@ -302,8 +296,8 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
                 found->value.visible = 1;
                 continue;
             }
-            // The pair template is filled with an overlapping REP MOVSD from the key, so every dword of the
-            // new value starts as the key.
+            // The pair template is filled by an overlapping copy from the key, so every dword of the new value
+            // starts as the key.
             std::uint32_t pair[7];
             for (std::uint32_t& d : pair) d = key;
             FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);
@@ -314,7 +308,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * (kFogCellSize * kHalf));
             r = IsaacRandom::Global().Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
-            // The world's virtual 30: the water surface height, used unrounded from ST0.
+            // The water surface height, used unrounded.
             double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + kHalf);

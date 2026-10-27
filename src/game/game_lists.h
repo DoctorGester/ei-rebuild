@@ -1,7 +1,7 @@
 #pragma once
 
 // The CList<T> instantiations whose elements the game destroys through its own code: lib/mfc_list.h's templates
-// over the game's element types, the element destructors ours (called directly). Registered in game_lists.cpp.
+// over the game's element types.
 
 #include "lib/mfc_list.h"
 #include "lib/stlp.h"
@@ -69,7 +69,7 @@ inline void DestroyLightning(ScriptLightning* p) { p->ScriptLightningDestruct();
 inline void DestroyToken(ScriptToken* p) { std::destroy_at(&p->text); }
 inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
 inline void DestroyRun(ScriptRun* p) { ScriptRunDestruct(p); }
-// A command block (CScript +0x70 / +0x178): the body of ScriptDeclDestruct.
+// A command block: the body of ScriptDeclDestruct.
 inline void DestroyDecl(ScriptDecl* p) { ScriptDeclDestruct(p); }
 // After the zero fill (ConstructElements): a definition's name and parameters empty, its if-then array
 // (ScriptIfThenPairsClass) and variables constructed, index 0; a run's variables.
@@ -93,7 +93,5 @@ struct CountedEngineObjects : EngineObjects::List {
     Node* AddTailCounted(CEngineObject* object);
 };
 using CountedEngineList = CountedEngineObjects;
-
-// The lists' vtables are game_slots.h's (gameslots::*ListClass).
 
 } // namespace gamelists
