@@ -330,9 +330,8 @@ EI_REWRITTEN(0x0052B070, MagicTrap::SaveTrap);
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
     CSpellManager* manager = SpellManagerOf(WorldContext());
-    // The game reads the id and the two counts into its argument's stack slot: a read that
-    // fails leaves the previous value there (at first the stream pointer itself).
-    auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
+    // The id and the two counts are read into one local: a read that fails leaves the previous value.
+    std::int32_t value = 0;
     stream->Read(&value, 4);
     SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<CSpell>(value));
     stream->Read(&value, 4);

@@ -61,9 +61,7 @@ EI_REWRITTEN_SPECIAL(0x00580E40, BufferedStream::~BufferedStream);   // deleting
 
 std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
     flags |= kFlagUnwritten;
-    // An unsigned compare of the addresses.
-    if (reinterpret_cast<std::uintptr_t>(cur) + static_cast<std::uint32_t>(size) > reinterpret_cast<std::uintptr_t>(end))
-        ReserveWrite(size);
+    if (cur + static_cast<std::uint32_t>(size) > end) ReserveWrite(size);
     return cur;
 }
 EI_REWRITTEN(0x00580EE0, GameBuffer::BeginWrite);

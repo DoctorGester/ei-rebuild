@@ -219,6 +219,42 @@ public:
         return FindOrInsert(obj)->value;
     }
 
+    // hashtable(const hashtable&): the functor bytes, an empty bucket vector, no elements, then _M_copy_from.
+    void CopyConstruct(const hash_map& ht) {
+        std::memcpy(functors_, ht.functors_, sizeof(functors_));
+        buckets_.ConstructEmpty();
+        count_ = 0;
+        CopyFrom(ht);
+    }
+    // operator=(ht): nothing for itself; else clear, the functor bytes, _M_copy_from.
+    void Assign(const hash_map& ht) {
+        if (&ht == this) return;
+        Clear();
+        std::memcpy(functors_, ht.functors_, sizeof(functors_));
+        CopyFrom(ht);
+    }
+    // _M_copy_from(ht): the bucket vector emptied and filled with ht's bucket count of nulls; each of ht's chains
+    // copied from its head, node by node, linked in order; then ht's count. The table holds no nodes.
+    void CopyFrom(const hash_map& ht) {
+        std::size_t n = ht.BucketCount();
+        buckets_.Finish() = buckets_.Start();
+        buckets_.template Reserve<BucketElement>(n);
+        Node* none = nullptr;
+        buckets_.template FillInsert<BucketElement>(buckets_.end(), n, none);
+        for (std::size_t i = 0; i < n; ++i) {
+            const Node* cur = ht.buckets_[i];
+            if (!cur) continue;
+            Node* copy = NewNode(Pair{cur->key, cur->value});
+            buckets_[i] = copy;
+            for (cur = cur->next; cur; cur = cur->next) {
+                Node* next = NewNode(Pair{cur->key, cur->value});
+                copy->next = next;
+                copy = next;
+            }
+        }
+        count_ = ht.count_;
+    }
+
     // Visits nodes in iterator order: buckets in order, each chain from its head.
     template <typename F> void ForEach(F f) const {
         for (std::size_t i = 0; i < BucketCount(); ++i)

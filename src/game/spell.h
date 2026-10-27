@@ -67,9 +67,11 @@ public:
 
     CSpell* Clone(class CSpellManager* manager);
 
-    // The fields from prototypeIndex_ on have the layout of an active effect record (map_object.h), which a buff copies.
-    MapEffect& Effect() { return *reinterpret_cast<MapEffect*>(&prototypeIndex_); }
-    const MapEffect& Effect() const { return *reinterpret_cast<const MapEffect*>(&prototypeIndex_); }
+    // The spell's first fields are an active effect record (map_object.h), which a buff copies: its type, power,
+    // ticks (duration_), value (damage_) and strength (radius_). Effect() builds the record, SetEffect() stores one
+    // (its `ending` is not kept).
+    MapEffect Effect() const;
+    void SetEffect(const MapEffect& record);
 
     std::uint8_t prototypeIndex_;
     std::uint8_t effectPower_;      // the effect record's power, set to 0x10

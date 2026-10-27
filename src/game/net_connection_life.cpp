@@ -128,7 +128,8 @@ EI_REWRITTEN_SPECIAL(0x00432DA0, Connection::Connection);
 // and constructs the connection again with id 0 (the count and the flags kept).
 int Connection::OnShutdown() {
     DestroyForReset(this);
-    return static_cast<int>(reinterpret_cast<std::uintptr_t>(new (this) Connection(0)));
+    new (this) Connection(0);
+    return 0;
 }
 EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 

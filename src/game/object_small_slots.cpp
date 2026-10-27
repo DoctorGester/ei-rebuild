@@ -16,7 +16,7 @@ constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 constexpr int kNoSound = -1;
 } // namespace
 
-bool CMapObject::ApplyScience(int, int) {
+bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }

@@ -16,10 +16,6 @@ namespace {
 
 constexpr std::uint32_t kDword = 4;
 
-// Some values are read into the stack slot of the `stream` argument: a read that writes nothing leaves the
-// pointer's own value there.
-std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stream)); }
-
 } // namespace
 
 void CItem::Load(CStream* stream) {
@@ -33,7 +29,7 @@ void CItem::Load(CStream* stream) {
     stream->Read(&price_, kDword);
     stream->Read(&value3C_, kDword);
     CSpellManager* spells = WorldContext()->SpellManager();
-    std::uint32_t id = StreamSlot(stream);
+    std::uint32_t id = 0;
     stream->Read(&id, kDword);
     CEngineObject* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObject(id);
     CSpell* previous = spell_;
@@ -110,7 +106,7 @@ void CItemQuest::Save(CStream* stream) {
 
 void CItemLoot::Load(CStream* stream) {
     CItem::Load(stream);
-    std::uint32_t value = StreamSlot(stream);
+    std::uint32_t value = 0;
     stream->Read(&value, kDword);
     kind_ = value;
     stream->Read(&value, kDword);

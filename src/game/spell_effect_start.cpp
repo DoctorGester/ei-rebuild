@@ -216,9 +216,7 @@ Next StartPoisonCloud(CSpellEffect* e) {
 // with the strength trunc(power x 16); the effect itself ends.
 Next ApplyBuff(CSpellEffect* e) {
     if (!e->target) return Next::Done;
-    MapEffect record;
-    record.Construct();
-    std::memcpy(&record, &e->Spell()->Effect(), sizeof(record));
+    MapEffect record = e->Spell()->Effect();
     record.power = static_cast<std::uint8_t>(
         PowerScaledToInt(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;

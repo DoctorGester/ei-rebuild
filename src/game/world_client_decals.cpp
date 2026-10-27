@@ -89,11 +89,13 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
     DecalBuilder& builder = Builder();
     builder.Reserve(data.indexCount * 6);
     for (unsigned i = 0; i < static_cast<unsigned>(data.indexCount); i += 3) {
-        const Vector4* a = &points[data.corners[data.indices[i]].position];
-        const Vector4* b = &points[data.corners[data.indices[i + 1]].position];
-        const Vector4* c = &points[data.corners[data.indices[i + 2]].position];
-        builder.AddTriangle(reinterpret_cast<const Vector3*>(a), reinterpret_cast<const Vector3*>(b),
-                           reinterpret_cast<const Vector3*>(c));
+        const Vector4& a = points[data.corners[data.indices[i]].position];
+        const Vector4& b = points[data.corners[data.indices[i + 1]].position];
+        const Vector4& c = points[data.corners[data.indices[i + 2]].position];
+        const Vector3 va{a.x, a.y, a.z};
+        const Vector3 vb{b.x, b.y, b.z};
+        const Vector3 vc{c.x, c.y, c.z};
+        builder.AddTriangle(&va, &vb, &vc);
     }
 }
 

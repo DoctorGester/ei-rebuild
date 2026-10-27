@@ -118,9 +118,7 @@ EI_REWRITTEN(0x0052BE40, Lever::SaveLever);
 
 void Lever::Load(CStream* stream) { LoadLever(stream); }
 void Lever::Save(CStream* stream) { SaveLever(stream); }
-bool Lever::ApplyScience(int first, int second) {
-    return ApplyKey(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
-}
+bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key, 0); }
 void Lever::UseSpots(UseSpotArray* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {

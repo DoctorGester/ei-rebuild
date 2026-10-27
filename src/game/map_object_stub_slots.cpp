@@ -130,8 +130,7 @@ std::uintptr_t CMapObject::EffectsChanged() { return 0; }
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
 std::uint32_t CMapObject::ApplyBaseScale() { return ResetScale(); }
 void CMapObject::ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject*) {
-    CompanionQuery(static_cast<int>(reinterpret_cast<std::intptr_t>(hit)),
-                   static_cast<int>(reinterpret_cast<std::intptr_t>(attacker)), 0);
+    CompanionQuery(0, 0, 0);
 }
 int CMapObject::StatsChanged() { return PackVitals(); }
 std::uintptr_t CMapObject::ScaleEffectChanged(int scaleEffect) {

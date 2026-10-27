@@ -163,8 +163,7 @@ void WaterTweens::ReadEntries(CStream* stream, int unread) {
 }
 
 void WaterTweens::Load(CStream* stream, Terrain* terrain) {
-    // The count is read into the `stream` argument slot.
-    ReadEntries(stream, reinterpret_cast<int>(stream));
+    ReadEntries(stream, 0);
     for (int i = 0; i < size; ++i) terrain->SetWaterLevel(data[i].key, data[i].value);
 }
 EI_REWRITTEN(0x006D45D0, WaterTweens::Load);

@@ -17,7 +17,7 @@ namespace {
 constexpr int kNoObject = -1;
 
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
-// manager; `id` keeps what the previous read left (one stack slot in the game).
+// manager; `id` keeps what the previous read left.
 template <class T>
 void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
     CBaseManager* manager = world->TimedObjectManager();
@@ -36,8 +36,6 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 
 } // namespace
 
-// The packed id is read through the stream argument's stack slot and the object ids through a slot
-// holding `this` (a read that writes nothing leaves those; kept).
 void CSpellEffect::Load(CStream* stream) {
     world = g_loadingProjectileWorld;
     stream->Read(&position, 12);
@@ -46,11 +44,11 @@ void CSpellEffect::Load(CStream* stream) {
     stream->Read(&targetPoint, 12);
     stream->Read(&state, 4);
     Spell()->Load(stream);
-    auto packed = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stream));
+    std::uint32_t packed = 0;
     stream->Read(&packed, 4);
     Spell()->prototypeId_ = packed;
     CWorld* server = world;
-    auto id = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this));
+    std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
     LoadEffectObject(stream, server, id, sound);
     LoadEffectObject(stream, server, id, light);

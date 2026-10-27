@@ -84,7 +84,7 @@ void SearchWays(CGlobalMap* map, const std::string& target) {
 }
 
 bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_.c_str())));
+    return map->MayTravel(0);
 }
 
 } // namespace

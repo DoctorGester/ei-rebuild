@@ -39,11 +39,9 @@ void AssignPeer(LoopbackLink** slot, LoopbackLink* object) {
 // The largest message Send takes (its stack buffer holds the length and the bytes).
 constexpr unsigned kMaxMessage = 0x7FFC;
 
-std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
-
 unsigned BufferFill(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
-    return static_cast<unsigned>(b->base - Addr(b->begin) + Addr(b->high));
+    return static_cast<unsigned>(b->PositionOf(b->high));
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits

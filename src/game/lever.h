@@ -78,8 +78,8 @@ public:
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return NeedsKey(); }
     int IsDirectUseBlocked() override { return Flag260Slot(); }
-    // ApplyKey; `first` is the key record's address.
-    bool ApplyScience(int first, int second) override;
+    // ApplyKey.
+    bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
     bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }
     void UseSpots(UseSpotArray* out, float userRadius) override;

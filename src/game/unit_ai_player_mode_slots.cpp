@@ -50,13 +50,13 @@ void PlayerMode::Reset() {
 
 int PlayerMode::OnShutdown() {
     Reset();
-    return static_cast<int>(reinterpret_cast<std::uintptr_t>(this));
+    return 0;
 }
 EI_REWRITTEN(0x00552000, PlayerMode::OnShutdown);
 
 int TamedMode::OnShutdown() {
     Reset();
-    return static_cast<int>(reinterpret_cast<std::uintptr_t>(this));
+    return 0;
 }
 EI_REWRITTEN(0x00551EC0, TamedMode::OnShutdown);
 

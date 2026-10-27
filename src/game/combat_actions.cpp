@@ -443,8 +443,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
         record.level += x87::fistp(mine);
-        // The use record and the unit are passed to the virtual (declared with two ints).
-        if (target->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
+        if (target->ApplyScience(&record, unit)) return;
         if (!unit->player) return;
         message = kMessageScienceFailed;
         break;
