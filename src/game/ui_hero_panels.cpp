@@ -56,7 +56,6 @@ void CHeroStatsPanel::ShowStats(int page) {
     while (regions_.size > 2) RemoveRegionAt(2);
     ShowFrom(this, 4, 0);
     if (page_ == 0) {
-        // Equipment: four rows, a gap, three rows, the weapon's two lines.
         Down(&rect);
         for (int i = 0; i < 4; ++i) {
             AddRect(this, rect);
@@ -76,7 +75,6 @@ void CHeroStatsPanel::ShowStats(int page) {
         Down(&rect);
         AddRect(this, rect);
     } else if (page_ == 10) {
-        // A new hero: the three statistics with their - and + buttons, then the points.
         ShowFrom(this, 4, 1);
         const RECT columns[3] = {{0x14, 0xA5, 0x8C, 0xB4}, {0x8C, 0xA5, 0xA0, 0xB4}, {0xA0, 0xA5, 0xB4, 0xB4}};
         for (const RECT& column : columns) {
@@ -169,7 +167,6 @@ void CHeroStatsPanel::DrawStats() {
         Down(&rect);
         draw->DrawLine("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
     } else if (page_ == 0) {
-        // Equipment: armour by body part, the weapon, the encumbrance.
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
         texts->GetString("infoitem_25", &text);
         draw->DrawLine(text, &rect, 0, kBright, 0, 1);
@@ -188,7 +185,6 @@ void CHeroStatsPanel::DrawStats() {
         } else {
             draw->DrawLine(texts_[3], &rect, 0, kBright, 0, 1);
             Down(&rect);
-            // The weapon's figures (the controller's attack-parameters virtual fills them).
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
             line = str::Format("     %s", texts_[0].GetString());
@@ -314,7 +310,6 @@ void CHeroEquipPanel::Build(bool body) {
     rect_ = RECT{0, 0, 800, body ? 500 : 100};
     mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
-    // Two hidden highlight frames.
     for (int i = 0; i < 2; ++i) {
         CUiMesh* frame = AddSprite(0);
         Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
@@ -334,7 +329,6 @@ void CHeroEquipPanel::Build(bool body) {
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
-        // The body's slots: 100x100 around their centres.
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
@@ -363,7 +357,6 @@ void CHeroStatsPanel::Build() {
     {
         AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, 5, 1));
     }
-    // The arrows and the hero's frame.
     AddSprite(0)->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddSprite(0)->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
@@ -372,7 +365,6 @@ void CHeroStatsPanel::Build() {
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
-    // The texts the panel draws.
     CTextManager* texts = TheTextManager();
     mfc::CString text;
     mfc::CStringArray* array = &texts_;
@@ -516,7 +508,6 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddMakerPictures(this);
     AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
     pulse_ = 0.0f;
-    // The cost line's texts: "infoitem_35", "infoitem_36".
     CTextManager* texts = TheTextManager();
     mfc::CStringArray* array = &texts_;
     mfc::CString text;

@@ -50,7 +50,6 @@ constexpr float kSquareHalf = 0.03f;      // marked objects and exits
 
 constexpr int kSpecialUnitId = 0xA2C2A;   // drawn as an enemy only in zone "gz20g"
 
-// Texture frames of the marker sprite.
 constexpr std::int16_t kFrameParty = 0;     // party members; other players in multiplayer
 constexpr std::int16_t kFrameNeutral = 1;   // other units; zone exits
 constexpr std::int16_t kFrameHostile = 2;
@@ -59,10 +58,8 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 // The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
 // and, in multiplayer, of the other players' units (otherUnitIds_).
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
-// The local player's side: its world player's number.
 int LocalSide() { return LocalView()->Owner()->playerId_; }
 
-// The light factory's list of lit ids (CLightFactory::litIds_) is what the minimap marks.
 using IdNode = stlp::list<int>::Node;
 
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
@@ -71,7 +68,6 @@ class MarkerWriter {
 public:
     MarkerWriter(CUiMesh* mesh, const CHudMap* map) : mesh_(mesh), map_(map) {}
 
-    // A unit's arrow: triangle (1, 2, 3) of the entry's vertices.
     void BeginUnit() {
         std::uint16_t* index = mesh_->indices_.data + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_ + 1);
@@ -79,7 +75,6 @@ public:
         index[2] = static_cast<std::uint16_t>(vertex_ + 3);
         indexPos_ += 3;
     }
-    // A square or diamond: triangles (0, 2, 1) and (1, 2, 3).
     void BeginQuad() {
         std::uint16_t* index = mesh_->indices_.data + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_);
@@ -93,7 +88,6 @@ public:
 
     UiQuadBlock& Block() { return mesh_->Quads()[entry_]; }
 
-    // The entry's four vertices use their own positions and `frame`.
     void Show(std::int16_t frame) {
         for (int k = 0; k < 4; ++k) {
             UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
@@ -102,7 +96,6 @@ public:
         }
         Next();
     }
-    // Not shown: the vertex records are cleared, the positions are left as they were.
     void Hide() {
         for (int k = 0; k < 4; ++k) {
             UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
@@ -141,7 +134,6 @@ public:
         return true;
     }
 
-    // A square of half size 0.03 around (x, y): corners (-,-), (+,-), (-,+), (+,+).
     void PutSquare(float x, float y) {
         UiQuadBlock& b = Block();
         float left = static_cast<float>(D(x) - kSquareHalf);
@@ -158,7 +150,6 @@ public:
         b.y[3] = bottom;
     }
 
-    // A diamond of radius 0.04 around (x, y): corners up, right, left, down.
     void PutDiamond(float x, float y) {
         UiQuadBlock& b = Block();
         b.x[0] = x;
@@ -269,7 +260,6 @@ void CHudMap::BuildMarkers() {
 
     MarkerWriter out(mesh, this);
 
-    // The units the local view lists: an arrow, unless dead or outside the circle.
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
         CUnit* unit = UnitWithId(objects, view->partyUnitIds_[i]);
@@ -298,7 +288,6 @@ void CHudMap::BuildMarkers() {
         out.Show(frame);
     }
 
-    // The marked objects: squares.
     IdNode* node = marked.First();
     for (int i = 0; i < markedCount; ++i, node = node->next) {
         if (node == marked.End()) break;
@@ -331,7 +320,6 @@ void CHudMap::BuildMarkers() {
         out.Hide();
     }
 
-    // Multiplayer: the other players' units, diamonds.
     if (IsMultiplayerClient()) {
         for (int i = 0; i < playerCount; ++i) {
             out.BeginQuad();
@@ -354,7 +342,6 @@ EI_REWRITTEN(0x00643DC0, CHudMap::BuildMarkers);
 
 namespace {
 
-// The client world's view camera and the ground point the camera looks at, as float bits.
 const CTransformObject* Camera() { return TheClientWorld()->camera_; }
 std::uint32_t Bits(const float& f) {
     std::uint32_t bits;
@@ -408,7 +395,6 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
 } // namespace
 
 void CHudMap::UpdateView() {
-    // Follow the camera: the map is centred on its target and turns with its facing.
     if (const CTransformObject* camera = Camera()) {
         SetBits(&centreX_, CameraTargetXBits());
         SetBits(&centreY_, CameraTargetYBits());
@@ -427,14 +413,12 @@ void CHudMap::UpdateView() {
         facingX_ = 0.0f;
         facingY_ = 1.0f;
     }
-    // The compass needle (scene object 10) turns about z.
     float angle = static_cast<float>(x87::fpatan(-D(facingX_), -D(facingY_)));
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
     std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
 
-    // The view polygon in world units.
     auto* area = SceneMesh(1);
     UiPointArray& points = visibleArea_;
     int count = viewPolygon_.size;
@@ -535,7 +519,6 @@ void CHudMap::UpdateView() {
     }
     area->RefreshBuffers();
 
-    // The world's bounds (scene object 0), clamped to the map square [-1, 1].
     auto* bounds = SceneMesh(0);
     float left = static_cast<float>(-D(centreX_) * D(scale_));
     float top = static_cast<float>(-(-D(centreY_) * D(scale_)));

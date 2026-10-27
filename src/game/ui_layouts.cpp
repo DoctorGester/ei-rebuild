@@ -1,7 +1,6 @@
-// Layout builders of the windows opened from the Esc menu (their Create virtual): the regions,
-// sprites, surfaces, scroll bar and 3D model each window is made of. See docs/notes/ui.md.
-// The builders call the sprite placement functions and CUiRegion::SetRect through their registered
-// addresses: Rebirth patches them for its widescreen layout.
+// Layout builders of the windows opened from the Esc menu (their Create virtual): the regions, sprites, surfaces,
+// scroll bar and 3D model each window is made of. Rebirth patches the sprite placement and CUiRegion::SetRect for its
+// widescreen layout. See docs/notes/ui.md.
 #include "app_helpers.h"
 #include "asset_text.h"
 #include "options.h"
@@ -46,20 +45,16 @@ void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, flo
 
 namespace {
 
-// Fields of an interface sprite set directly by the builders.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
 void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
-// Flag 0x100 of the object flags: drawn with the plain colour, untextured.
 void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
-// A region with the rectangle (left, top, right, bottom).
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
     return region;
 }
 
-// A surface of the window over the layout rectangle (left, top, right, bottom).
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
@@ -68,12 +63,10 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int b
     return new CUiScrollbar(ui, RECT{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
 
-// The frame colours of the windows (texels of the shared frame texture).
 void Frame(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
     window->AddSprite(0)->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 }
 
-// A plain dark rectangle (colour 0xA0000000).
 void Shade(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
     CUiMesh* sprite = window->AddSprite(0);
     sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
@@ -108,11 +101,9 @@ void CSaveLoadWindow::CreateScreen() {
     // The selected save's picture (5:6:5, in the new renderer's memory: ui_saveload.cpp).
     CreateTexture(0x100, 0x100, 0x1E);
 
-    // The three buttons' faces: OK (left), cancel (right), delete (middle).
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
-    // Regions 0-2: OK (its tooltip says save or load), cancel, delete.
     AddRect(this, 163, 526, 237, 574)->SetTip(isSave_ ? 0xEAC4 : 0xEAC5, 1, 0);
     AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7, 1, 0);
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6, 1, 0);
@@ -133,7 +124,6 @@ void CSaveLoadWindow::CreateScreen() {
     Shade(this, 5.0f, 410.0f, 100.0f, 700.0f, 320.0f);
     Shade(this, 5.0f, 410.0f, 340.0f, 700.0f, 500.0f);
 
-    // Regions 3-18: the list rows, 24 pixels each.
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
@@ -174,7 +164,6 @@ EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::CreateScreen);
 // --- Options window ------------------------------------------------------------------
 
 namespace {
-// The option groups' names.
 constexpr int kOptionGroups = 11;
 const char* OptionGroupName(int index) {
     static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
@@ -189,7 +178,6 @@ void COptionsWindow::CreateScreen() {
     LoadTexture("saveload", 3, 0);
     CreateTexture(0x100, 0x100, 0x1E);
 
-    // OK and cancel (regions 0 and 1).
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4, 1, 0);
@@ -219,7 +207,6 @@ void COptionsWindow::CreateScreen() {
 
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
-    // Regions 13-26: the rows of the shown group.
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
 
@@ -326,13 +313,11 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 1: {
-        // Load.
         ui->PlaySound(okSound, 0);
         ui->PushWindow(new CSaveLoadWindow(ui, false, false), 1, 1);
         break;
     }
     case 2: {
-        // Exit: the exit movie, then quit.
         {
             std::string path = (*GameBasePathString() + "Movies\\Exit.bik").GetString();
             PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
@@ -341,7 +326,6 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 3: {
-        // Options.
         ui->PlaySound(okSound, 0);
         ui->PushWindow(new COptionsWindow(ui, false), 1, 1);
         break;
@@ -378,15 +362,10 @@ EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 // --- Message box -----------------------------------------------------------------------
 
 namespace {
-// Not rewritten: the surface's DC, its text (Rebirth-patched;
-// returns the text's height), the interface's text extent (Rebirth-patched; takes a
-// CString by value, see ui_text.cpp) and the edit field: its constructor (the
-// interface and a RECT by value), its fonts and colours, its text.
 int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -415,7 +394,6 @@ void CMessageBox::CreateScreen() {
     BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
         edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
-        // (Like the original, the edit field is set up without checking the allocation.)
         edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
         edit_->SetText(editText_);
         AddChild(edit_);
@@ -521,7 +499,6 @@ namespace {
 CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
-    // The current word, or null past the end (the original's `position != -1 ? word : 0`).
     const char* WordOrNull() const { return position != -1 ? word.GetString() : nullptr; }
 };
 
@@ -543,7 +520,6 @@ void CCreditsScreen::CreateScreen() {
                                    0);   // SPI_GETFONTSMOOTHING
     gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
-    // The script: one record per line, words separated by spaces.
     CMappedResource* archive = archive_.Get();
     archive->OpenResource(mfc::operator+(options::TheOptions()->resourcesPath_, "outro.res"),
                           0);   // "outro.res"

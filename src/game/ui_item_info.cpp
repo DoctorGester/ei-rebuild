@@ -85,7 +85,6 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 
-// The text manager.
 struct Texts : CTextManager {
     BOOL Open(const char* key);
     BOOL NextLine();
@@ -155,7 +154,6 @@ void DamageLists(const float* values, CStringArray* out, char integer) { ItemDam
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
 
-// What every description shares: the surface, the line rectangle and the formatted line.
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
@@ -168,7 +166,6 @@ public:
 
     void Down() { gameapi::OffsetRect(&rect_, 0, 15); }
     void Text(const char* text) { draw_->DrawLine(text, &rect_, 0, kText, 0, 1); }
-    // A value right-aligned 10 pixels in from the line's right edge (format 2).
     void Value(const char* text) {
         RECT shifted = rect_;
         gameapi::OffsetRect(&shifted, -10, 0);
@@ -177,7 +174,6 @@ public:
     void Title(const char* text) { draw_->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
     void Wrapped(const char* text, int maxLines) { draw_->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1); }
 
-    // The common head of an item description: the title, a gap, the item's kind.
     void Head(const char* name, const char* kind) {
         Title(name);
         Down();
@@ -186,13 +182,11 @@ public:
         Text(line);
         Down();
     }
-    // "%s %d" with item text `label`, then the next line.
     void Number(int label, int value) {
         line.Format("%s %d", T(label).GetString(), value);
         Text(line);
         Down();
     }
-    // "<label> <text>" (operator+ with " ").
     void Joined(int label, const char* text) {
         line = T(label);
         line += " ";
@@ -208,7 +202,6 @@ public:
         Joined(label, lists[0]);
         if (lists[2].GetLength() != 0) Joined(24, lists[2]);
     }
-    // The "school_<n>" text after infoitem_18.
     void School(int school) {
         std::string key;
         key = str::Format("school_%d", school);
@@ -225,7 +218,6 @@ private:
     RECT rect_;
 };
 
-// The kinds of items (CEngineObject::type_).
 constexpr int kWeapon = 0x3004;
 constexpr int kArmor = 0x3005;
 constexpr int kQuick = 0x3006;
@@ -235,7 +227,6 @@ constexpr int kLoot = 0x3009;
 
 int KindOf(CItem* item) { return item->type_; }
 std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
-// The loot and quest items' kind, record type and record index.
 const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
@@ -250,7 +241,6 @@ unsigned FirstDamageKind(const float* weights) {
     return i;
 }
 
-// "%s %s" / "%s %d" lines that pick their format by a value.
 void SpellLevelLine(Writer& w, bool known, int level) {
     if (!known)
         w.line.Format("%s %s", w.T(8).GetString(), w.T(28).GetString());
@@ -348,7 +338,6 @@ void CItemInfoPanel::DescribeItem() {
     if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));
 
     if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
-        // The charge and the carried spell's level.
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
@@ -396,7 +385,6 @@ void CItemInfoPanel::DescribeItem() {
         }
     }
     if (kind == kArmor) {
-        // Armour: the seven values against their threshold.
         float values[7];
         std::memcpy(values, static_cast<const CItemArmor*>(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
@@ -418,7 +406,6 @@ tail:
         CSpell* spell;
         if ((kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) &&
             (spell = SpellOf(item)) != nullptr) {
-            // The carried spell's name ("spell <name>").
             text = "Unknown";
             std::string key("spell ");
             key += SpellPrototypeOf(spell)->code;
@@ -445,7 +432,6 @@ void CItemInfoPanel::DescribeMaterial() {
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
-    // The material's type: "mattype_<NAME>".
     mfc::CString text = material->soundName;
     text.MakeLower();
     {
@@ -520,7 +506,6 @@ void CItemInfoPanel::DescribeBlueprint() {
     }
     if (sort <= 1) w.Number(3, FtolOf(head->condition));
     if (sort == 0) {
-        // A weapon: damage (times 10), the first damage kind with a weight, and its figures.
         unsigned first = FirstDamageKind(weapon->damageTypes);
         if (first < 7) {
             w.line.Format("damage_%d", first);
@@ -540,7 +525,6 @@ void CItemInfoPanel::DescribeBlueprint() {
         else
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
-        // Armour: the seven values scaled by a float field and 10, stored as floats.
         float values[7];
         for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 10.0f /*0073BAAC*/);
         w.DamageLines(values, 4);
@@ -566,7 +550,6 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(14, record->skill);
     w.School(record->castType);
     bool known = record->bytes78[3] != 0;
-    // The level (damage), power (speed), range, radius (area), duration and target count.
     SpellLevelLine(w, known, known ? FtolOf(record->damage) : 0);
     float power = record->speed;
     EI_NAN_AUDIT(power);
@@ -728,7 +711,6 @@ EI_REWRITTEN(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 
 namespace {
 
-// Kind 0, an attribute: two of its derived values (UnitStats methods), percentages where scaled.
 void AttributeLines(Writer& w, UnitStats* stats, int index) {
     auto line = [&](const char* format, int label, int value) {
         w.line.Format(format, w.Skill(label).GetString(), value);
@@ -757,7 +739,6 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
     }
 }
 
-// Kind 3, a perk: the three levels of the perk's group with their effect and cost.
 void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     Texts* texts = TextManager();
     std::string name = info->text.GetString();
@@ -773,7 +754,6 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         w.Text(title);
         if (info->index > i) w.Draw()->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
-        // The level's effect by the perk group.
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
         const char* plain = "     %s %d";
@@ -892,7 +872,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 13);
         break;
     case 1: {
-        // A skill: its level and, for the first three, a derived value.
         int index = info->index;
         w.line.Format("%s %d", w.Skill(5).GetString(), Ftol(stats->SkillBase(index)));
         w.Text(w.line);
@@ -917,7 +896,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         break;
     }
     case 2:
-        // A skill school: its level and, for school 0, a second value.
         w.line.Format("%s %d", w.Skill(5).GetString(),
                       Ftol(stats->AttributeBase(info->index)));
         w.Text(w.line);
@@ -936,7 +914,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 6);
         break;
     case 4: {
-        // A body part's armour: per damage kind the three layers' sum.
         w.Text(w.T(25));
         w.Down();
         float sums[7];
@@ -962,7 +939,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 9);
         break;
     case 6: {
-        // The magic skills: schools 0-3 and 5 with infoitem_40..44.
         int label = 40;
         for (int school = 0; school < 8; ++school) {
             if (school == 4 || school == 6 || school == 7) continue;
@@ -1011,7 +987,6 @@ EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 // --- Describe an item ---------------------------------------------------------------------
 
 void CItemInfoPanel::Describe(CItem* item) {
-    // Nothing to do when the described item is the same (IsSameAs).
     if (itemCount_ && items_[0] && item) {
         if (items_[0]->IsSameAs(item)) return;
     }
@@ -1024,7 +999,6 @@ EI_REWRITTEN(0x005EE6C0, CItemInfoPanel::Describe);
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
 void CItemInfoPanel::OnKeyDown(int key, int, int flags) {
-    // Not a repeat: bit 14 of the flags is the key's previous state.
     if (key == VK_CONTROL && !(flags & 0x4000) && Item()) DescribeItem();
 }
 
@@ -1035,7 +1009,6 @@ void CItemInfoPanel::OnKeyUp(int key, int, int) {
 namespace {
 CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(static_cast<std::uint8_t*>(input) - 0x94); }
 
-// Redraws the description.
 void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
 } // namespace
 EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);

@@ -31,7 +31,6 @@
 
 namespace {
 
-// The layouts' x coordinates and the slide's time are read from the game's data.
 float MapCentreX() { return 700.0f /*00742AAC*/; }
 float MapButtonsX() { return 790.0f /*00742AA8*/; }
 float MapFrameX() { return 710.0f /*00742AA4*/; }
@@ -75,7 +74,6 @@ void SetTint(CEngineObject* object, float value) {
     tint[0] = tint[1] = tint[2] = value;
 }
 
-// The regions after the first follow the panel.
 void MoveRegions(CUiWindow* window, int offsetX) {
     for (int i = 1; i < window->regions_.size; ++i) {
         window->regions_.data[i]->offsetX_ = offsetX;
@@ -106,7 +104,6 @@ void AdvanceSlide(Panel* panel) {
     if (panel->slide_ == 1.0f || panel->slide_ == 0.0f) panel->sliding_ = 0;
 }
 
-// A sling button turned by `angle` about z and put at `x`.
 void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
@@ -158,7 +155,6 @@ void CHudMap::UpdateVanilla() {
     if (sliding_) {
         AdvanceSlide(this);
         Layout();
-        // The sling button (scene object 5).
         // WideScreen.
         if (slideDirection_ == 1.0f)
             PlaceSling(sceneObjects_.data[5], kHudQuarterTurn, RightEdge(713.0f));
@@ -167,7 +163,6 @@ void CHudMap::UpdateVanilla() {
     }
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
-    // The "camera north" button (scene object 11) is lit while its time runs.
     if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - CUiContainer::FrameTime());
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
@@ -192,14 +187,12 @@ void CHudUnitPanel::Layout() {
     Place(this, 11, middle, 192.5f, 5.0f);
     Place(this, 12, middle, 207.5f, 4.0f);
     Place(this, 13, middle, 207.5f, 5.0f);
-    // The body parts: a pair of sprites each (scene objects 14 + 2i and 15 + 2i).
     for (int i = 0; i < kParts; ++i) {
         const float y = static_cast<float>(kPartY[i]) + UnitPartDown();
         const float x = static_cast<float>(kPartX[i] + 50) - offset;
         Place(this, 14 + 2 * i, x, y, 4.0f);
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
-    // The effects' pictures (scene objects 26-31), 30 apart downwards.
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, UnitEffectX() - offset, static_cast<float>(50 + 30 * i), 5.0f);
     surfaces_.data[0]->MoveTo(20 - widescreen::EdgeShift() - offset_, 0);   // WideScreen
     MoveRegions(this, -offset_);
@@ -211,7 +204,6 @@ void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
         AdvanceSlide(this);
         Layout();
-        // The sling button (scene object 2).
         // WideScreen.
         if (slideDirection_ == -1.0f)
             PlaceSling(sceneObjects_.data[2], kHudQuarterTurn, LeftEdge(-50.0f));
@@ -230,7 +222,6 @@ namespace {
 constexpr const char* kArrowSprite = "in25arrow";
 constexpr const char* kInfoTextFormat = "infounit_%d";
 constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
-// The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
 float StripScale() { return static_cast<float>(100.0f /*0073BAB0*/ / 0.48157462f /*007423FC*/); }
 constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
@@ -255,7 +246,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     }
     travel_ = kUnitTravel;
 
-    // Regions: the sling button, the four body part buttons, the whole panel.
     CUiRegion* sling = AddRegion();
     sling->SetRect(0, 0, 20, 30);
     sling->SetTip(0x2774, 1, 0);
@@ -266,7 +256,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     }
     AddRegion()->SetRect(0, 0, 185, 225);
 
-    // Scene objects 0 and 1: the panel's and its edge's plain backgrounds.
     CUiMesh* back = AddSprite(nullptr);
     back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture_ = nullptr;
@@ -278,7 +267,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     edge->texture_ = nullptr;
     edge->flags_ |= kPlainColour;
     edge->flatColour_ = 0xB4000000;
-    // The sling button.
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
@@ -318,7 +306,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
         icon->texture_ = objects_.data[1];
     }
 
-    // The text surface.
     AddSurface(new CUiSurface(interface_, 20, 0, 180, 220, 5, 1));
 
     bodyPart_ = bodyPart;
@@ -327,7 +314,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
 
-    // The panel's texts "infounit_0".."infounit_17" and the four body part labels.
     CTextManager* texts = TheTextManager();
     mfc::CString text;
     std::string key;
@@ -369,7 +355,6 @@ constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;
 
-// The local player's zone in the map database (the name is copy-constructed into raw storage).
 const MapRecord* LocalZone() {
     mfc::CString name(mfc::CString::kUnset);
     return TheMapDatabase()->FindMap(*LocalPlayerName(&name));
@@ -377,7 +362,6 @@ const MapRecord* LocalZone() {
 
 CUiMeshBuilder* Builder(CUiMesh* sprite) { return static_cast<CUiMeshBuilder*>(sprite); }
 
-// A plain rectangle: no texture, drawn in `colour`.
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainColour;
@@ -470,7 +454,6 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* edge = AddSprite(nullptr);
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
-    // The sling button.
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
@@ -489,14 +472,12 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     needle->SetScale(0.8f);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
-    // The surface: one white pixel at the map's centre.
     CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
     AddSurface(dot);
     mfc::impl::CDC* dc = UiSurfaceGetDC(dot);
     gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);
     UiSurfaceReleaseDC(dot);
 
-    // The view polygon: the disc's sixteen corners.
     const CUiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)

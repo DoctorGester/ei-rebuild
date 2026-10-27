@@ -85,7 +85,6 @@ void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
     mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
 }
 
-// Drawing text on a surface (is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
@@ -125,7 +124,6 @@ class MapBuilder {
 public:
     explicit MapBuilder(CGlobalMap* map) : map_(map) {}
 
-    // The layout point (centreX, centreY) at `depth` in camera space, stored as floats.
     Vector3 Centre() const {
         float depth = map_->depth_;
         float x = static_cast<float>((D(map_->centreX_) * D(0.0025f /*0074015C*/) - D(1.0f /*0073B84C*/)) *
@@ -134,7 +132,6 @@ public:
                         D(0.48157462f /*0074209C*/) * D(depth));
         return Vector3{x, y, depth};
     }
-    // A point of the map model (`local`) in camera space: the centre plus the turned point.
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
@@ -146,7 +143,6 @@ public:
     void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
     CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
 
-    // A marker of the map model: the figure at `local`, scaled, turned, white; returns the sprite.
     CUiMesh* Marker(const char* figure, const Vector3& local, float scale) const {
         CUiMesh* sprite = AddFigure(map_, figure);
         SetPosition(sprite, ModelPoint(local));
@@ -155,7 +151,6 @@ public:
         Turn(sprite);
         return sprite;
     }
-    // A full-screen plain layer of the model at `height` over it.
     CUiMesh* Layer(std::uint32_t v0, std::uint32_t u1, std::uint32_t v1, float height) const {
         CUiMesh* sprite = map_->AddSprite(0);
         sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
@@ -183,7 +178,6 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
     region->SetTip(tip, 1, 0);
 }
 
-// A region over a marker sprite (its layout position): 20 to each side, 25 above, 10 below.
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
@@ -335,7 +329,6 @@ void CGlobalMap::CreateScreen() {
             if (!way) continue;
             variable = str::Format("z.%s", way->name.GetString());
             if (way->kind != 2) continue;
-            // Only at state 2.
             double state = D(LocalPlayerVariable(variable.c_str()));
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
@@ -452,7 +445,6 @@ void CGlobalMap::CreateScreen() {
         SetTexture(right, builder.Texture(3));
     }
 
-    // The fog colour of the allod.
     gipat_ = false;
     fog_[0] = 0.0f;
     fog_[1] = 1.0f;
@@ -501,7 +493,6 @@ EI_REWRITTEN(0x0062D350, CGlobalMap::CreateScreen);
 
 namespace {
 
-// The container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 // fmod(a, *divisor) through the game's _CIfmod, stored as float.
@@ -540,7 +531,6 @@ void CGlobalMap::Update() {
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
-        // Turn the model about z.
         float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f /*00742098*/) *
                                  D(0.25f /*0073C3B0*/) +
                              D(angle_));
@@ -590,13 +580,11 @@ void CGlobalMap::Update() {
         }
     }
 
-    // The current zone's arrow bobs over it.
     double time = FrameTime() + D(bobTime_);
     bobTime_ = static_cast<float>(time);
     double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(SceneMesh(0), builder.ModelPoint(above));
-    // The layers' texture frames run at their own rates.
     SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
     SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);
     SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, 0.033333335f /*007420E0*/);
@@ -626,8 +614,6 @@ EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
 namespace {
 
-// A CArray's constructor body: the instantiation's vtable, then the
-// storage, grow step, capacity and size cleared in that order.
 template <typename Array>
 void EmptyArray(Array* array, void* vtable) {
     array->vtable = vtable;
@@ -658,8 +644,6 @@ EI_REWRITTEN_SPECIAL(0x005F67A0, CGlobalMap::CGlobalMap);
 // --- the destructor body -------------------------------------------------------------------------
 
 namespace {
-// A CArray's destructor: its vtable back, each entry's strings destroyed (title, then name:
-// the places', the zones'), the storage freed.
 template <typename Array>
 void DestroyArray(Array* array, void* vtable) {
     array->vtable = vtable;

@@ -1,7 +1,6 @@
 #pragma once
 
-// The software mouse cursor (the object, see docs/notes/ui.md,
-// "Cursor"). Only the members the draws use; the object is created by original code.
+// The software mouse cursor (docs/notes/ui.md, "Cursor"). Only the members the draws use.
 
 #include <cstddef>
 
@@ -24,19 +23,14 @@ namespace mfc::impl { struct WinThread; }
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
 
-// The drawing thread's procedure (the cursor),
-// started by AfxBeginThread.
 unsigned __cdecl CursorThreadEntry(void* cursor);
 
-// The DirectInput mouse (*; made by the application's start,
-// which also sets it up). 0x20 bytes. input_mouse.cpp
+// The DirectInput mouse (made by the application's start, which also sets it up).
 class CDirectInputMouse final {
 public:
-    // WinMain's: no references, no DirectInput or device.
     CDirectInputMouse() {}
     virtual ~CDirectInputMouse();
 
-    // On the game's heap (app_lifetime.cpp).
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
@@ -48,7 +42,6 @@ public:
     // and passed over). Each other failure is reported (FatalErrorCode) and gives its result as
     // 0 / 1; success sets only AL.
     int Setup(HWND window, HINSTANCE instance);
-    // The device unacquired and released, DirectInput released.
     void Shutdown();
     // Acquires or unacquires the device with
     // the window's activation; 0 without a device, the report's result as 0 / 1 when Acquire fails.
@@ -77,7 +70,6 @@ struct CursorImage {
     // texture manager; loaded into a holder with `flag`), the hot spot given in the
     // 32-pixel layout. Returns this.
     CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
-    // Destructor body: the mask freed, the holder released.
     void Destroy();
 
     CDXSurface* holder;              // surface holder
@@ -99,25 +91,16 @@ static_assert(sizeof(CursorImage) == 0x20);
 class CCursor {
 public:
     void SaveBackground(char fromPrimary);
-    // Selects cursor shape `shape`; returns the
-    // previous one (-1 when the cursor is not set up).
     int SetShape(int shape) { return ChangeShape(shape); }
 
-    // Constructor body: no device, surfaces or shapes, the lock initialised, not
-    // enabled. Returns this.
     CCursor* Construct();
-    // Destructor body: the lock deleted, the shape list's storage freed, the two
-    // surfaces and the device released (the fields left as they are).
     void DestroyBody();
     // Unless no shape is selected yet or the cursor is not enabled (-1): under
     // the lock, shape `shape` and its image become current with the image's current frame as
     // `from_`; returns the previous shape.
     int ChangeShape(int shape);
-    // Under the lock, whether an image is shown (when enabled).
     void ShowImage(int shown);
-    // Under the lock, the held byte (when enabled).
     void SetHeld(char held);
-    // The lock taken / released, only when enabled in mode 2.
     void TakeLock();
     void ReleaseLock();
     // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread
@@ -140,9 +123,6 @@ public:
     // bounds (the render target's size when there is a primary surface) and the background and
     // composition surfaces (cursor size and twice that).
     void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
-    // Adds the shape made from the picture "<name>.mmp"
-    // with the hot spot (hotX, hotY) and `flag` (CursorImage::Construct; null when the allocation
-    // fails) to the shape list.
     void AddShape(const char* name, int hotX, int hotY, int flag);
 
     int mode_;                       // 2: the background is saved from the primary without an image
@@ -186,11 +166,7 @@ static_assert(offsetof(CCursor, lock_) == 0xA0);
 
 static_assert(sizeof(CCursor) == 0xB8);
 
-// The game's cursor (the object; ui_cursor_setup.cpp): built by the static initialiser in the
-// list's order, destroyed by the exit function it registers.
 extern lib::StaticObject<CCursor> g_cursor;
 
-// The cursor initialised and given its shapes.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags);
-// The cursor shut down and set up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags);
