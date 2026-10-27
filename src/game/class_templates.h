@@ -45,7 +45,7 @@ public:
     ItemStock magic;                // the same layout: spells and modifiers only
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
-ClassTemplate* __cdecl CreateClassTemplate();
+CRefCounted* __cdecl CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
 static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);

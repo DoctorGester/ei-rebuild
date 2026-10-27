@@ -148,15 +148,14 @@ CInterface3D* TheInterface() { return &*g_interface; }
 
 namespace {
 void __cdecl DestroyInterface() { g_interface->DestroyBody(); }
-} // namespace
-
 void __cdecl ConstructInterface() {
     g_interface->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
+    libcrt::AtExit(DestroyInterface);
 }
+} // namespace
 
-EI_REWRITTEN(0x005F4680, ConstructInterface);
-EI_REPLACE(0x005F4780, DestroyInterface);
+EI_REPLACE(0x005F4680, ConstructInterface);
+EI_REWRITTEN(0x005F4780, DestroyInterface);
 
 void CUiMesh::DestroySprite() {
     material_ = nullptr;

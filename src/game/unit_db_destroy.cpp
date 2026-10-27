@@ -229,28 +229,26 @@ EI_REWRITTEN(0x005214B0, unitdb::DestroyStringRange);
 namespace unitdb {
 
 namespace {
-using AtExitFunction = void(__cdecl*)();
 
 void __cdecl DestroyUnitDatabaseGlobal() {
     DestroyUnitDatabase(&g_unitDatabase.Get());
 }
+void __cdecl ConstructUnitDatabaseGlobal() {
+    ConstructUnitDatabase(&g_unitDatabase.Get());
+    libcrt::AtExit(DestroyUnitDatabaseGlobal);
+}
 void __cdecl DestroySkillDatabaseGlobal() {
     DestroySkillDatabase(&g_skillDatabase.Get());
 }
-} // namespace
-
-void __cdecl ConstructUnitDatabaseGlobal() {
-    ConstructUnitDatabase(&g_unitDatabase.Get());
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x0053A040));
-}
 void __cdecl ConstructSkillDatabaseGlobal() {
     g_skillDatabase->Construct();
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x0051FB40));
+    libcrt::AtExit(DestroySkillDatabaseGlobal);
 }
+} // namespace
 
 } // namespace unitdb
 
-EI_REWRITTEN(0x005399F0, unitdb::ConstructUnitDatabaseGlobal);
-EI_REPLACE(0x0053A040, unitdb::DestroyUnitDatabaseGlobal);
-EI_REWRITTEN(0x0051FAF0, unitdb::ConstructSkillDatabaseGlobal);
-EI_REPLACE(0x0051FB40, unitdb::DestroySkillDatabaseGlobal);
+EI_REPLACE(0x005399F0, unitdb::ConstructUnitDatabaseGlobal);
+EI_REWRITTEN(0x0053A040, unitdb::DestroyUnitDatabaseGlobal);
+EI_REPLACE(0x0051FAF0, unitdb::ConstructSkillDatabaseGlobal);
+EI_REWRITTEN(0x0051FB40, unitdb::DestroySkillDatabaseGlobal);

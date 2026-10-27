@@ -68,10 +68,6 @@ const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
 QuestBriefingTable::Index& BriefingRecords() { return worlddata::QuestBriefings(); }
 
-// What a speaker's controller calls when its dialogue animation has finished.
-using ActionDone = void(__fastcall*)(CUnit*);
-ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
-
 constexpr int kStateRewards = 4;
 constexpr int kQuestNameParts = 3;
 constexpr int kClassQuestItem = 0x14;
@@ -318,7 +314,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
-                    controller->actionDone = SpeakerActionDone();
+                    controller->actionDone = SpeakerAnimationDone;
                     if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(animation))
                         controller->PlayAnimation(played->name);
                 }

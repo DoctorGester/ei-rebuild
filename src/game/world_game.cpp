@@ -155,14 +155,13 @@ CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
 namespace {
 void __cdecl DestroySaveStream() { g_saveStream->~CMemoryStream(); }
-} // namespace
-
 void __cdecl ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
     libcrt::AtExit(DestroySaveStream);
 }
+} // namespace
 
-EI_REWRITTEN(0x00578530, ConstructSaveStream);
+EI_REPLACE(0x00578530, ConstructSaveStream);
 EI_REWRITTEN(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
@@ -982,6 +981,8 @@ namespace {
 using ZoneEntry = recordvec::ZoneTableEntry;
 using ZoneTable = stlp::vector<ZoneEntry>;
 constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
+void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
+
 bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
@@ -1003,8 +1004,6 @@ struct EntryPicks {
 };
 
 } // namespace
-
-void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
 
 void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
@@ -1484,15 +1483,14 @@ GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
 namespace {
 void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }
-} // namespace
-
 void __cdecl ConstructGameFlow() {
     g_gameFlow->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+    libcrt::AtExit(DestroyGameFlow);
 }
+} // namespace
 
-EI_REWRITTEN(0x00578440, ConstructGameFlow);
-EI_REPLACE(0x005784C0, DestroyGameFlow);
+EI_REPLACE(0x00578440, ConstructGameFlow);
+EI_REWRITTEN(0x005784C0, DestroyGameFlow);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
@@ -1821,7 +1819,7 @@ void GameFlow::BuildZoneTable() {
     find.Close();
 }
 EI_REWRITTEN(0x0057F560, GameFlow::BuildZoneTable);
-EI_REWRITTEN(0x0057F4A0, DestroyZoneTable);
+EI_REPLACE(0x0057F4A0, DestroyZoneTable);
 
 EI_REWRITTEN(0x0057B3B0, GameFlow::SaveGame);
 EI_REWRITTEN(0x0057F0F0, GameFlow::ReturnLocalParty);

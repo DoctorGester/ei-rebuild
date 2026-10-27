@@ -30,7 +30,7 @@ public:
 };
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.
-PartyRecord* __cdecl CreatePartyRecord();
+CRefCounted* __cdecl CreatePartyRecord();
 
 // The named records: an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {

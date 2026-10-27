@@ -383,7 +383,7 @@ int CPlayerServer::ReceiveMessages() {
             if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
             auto handler = handlers_[type];
             if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
-            if (!handler(this, nullptr)) return PlayerMessageError(TextHandlerFailed(), previous, type);
+            if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);
             if (state_ == kStateLeaving) return 0;
         }
     }

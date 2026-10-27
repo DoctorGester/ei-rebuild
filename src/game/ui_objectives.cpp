@@ -82,6 +82,10 @@ void __cdecl DestroyLastQuest() {
     g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
     g_lastQuest.Destroy();
 }
+void __cdecl ConstructLastQuest() {
+    g_lastQuest.Construct();
+    libcrt::AtExit(DestroyLastQuest);
+}
 
 class VariableTable {
 public:
@@ -169,11 +173,6 @@ constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: 
 constexpr float kExitTurnDown = 3.1415927f;
 
 } // namespace
-
-void __cdecl ConstructLastQuest() {
-    g_lastQuest.Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
-}
 
 // --- The zone page ----------------------------------------------------------------------
 
@@ -689,8 +688,8 @@ void CObjectivesWindow::DrawQuestList() {
     UiSurfaceReleaseDC(surface);
 }
 
-EI_REWRITTEN(0x0064BE00, ConstructLastQuest);
-EI_REPLACE(0x0064BE20, DestroyLastQuest);
+EI_REPLACE(0x0064BE00, ConstructLastQuest);
+EI_REWRITTEN(0x0064BE20, DestroyLastQuest);
 EI_REWRITTEN(0x0064BE80, CObjectivesWindow::CreateScreen);
 EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);

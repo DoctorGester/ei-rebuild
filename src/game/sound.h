@@ -421,6 +421,8 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 // AIL_decompress_ASI's callback: at state 1 it asks for 16 bits, 44100 Hz, 2 channels. Returns 1.
 using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
+// Miles calls it when a voice's sample ends: the voice is marked finished.
+void __stdcall SoundEndOfSample(miles::Sample* sample);
 
 namespace sound {
 }

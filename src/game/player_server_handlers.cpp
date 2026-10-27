@@ -307,7 +307,7 @@ EI_REWRITTEN(0x006706A0, AIPath::Construct);
 EI_REWRITTEN(0x00670730, AIPath::TargetPoint);
 EI_REWRITTEN(0x00670760, AIOrder::MakeUse);
 EI_REWRITTEN(0x006707D0, AIOrder::AimPoint);
-EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
+EI_REWRITTEN(0x00670310, CPlayerServer::OnUseOrder);
 
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
@@ -640,19 +640,19 @@ int CPlayerServer::OnLogin() {
     state_ = 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x0066F890, CPlayerServer::OnLogin);
+EI_REWRITTEN(0x0066F890, CPlayerServer::OnLogin);
 
-EI_REPLACE_METHOD(0x0066FAA0, CPlayerServer::OnRefreshParty);
-EI_REPLACE_METHOD(0x00670C20, CPlayerServer::OnTakeExit);
-EI_REPLACE_METHOD(0x00670DA0, CPlayerServer::OnJoined);
-EI_REPLACE_METHOD(0x00670E00, CPlayerServer::OnLeaveToZone);
-EI_REPLACE_METHOD(0x00670EB0, CPlayerServer::OnBriefingDone);
-EI_REPLACE_METHOD(0x00670F50, CPlayerServer::OnNewParty);
-EI_REPLACE_METHOD(0x00671060, CPlayerServer::OnResume);
-EI_REPLACE_METHOD(0x0066FFF0, CPlayerServer::OnWalk);
-EI_REPLACE_METHOD(0x0066FBD0, CPlayerServer::OnGoTo);
-EI_REPLACE_METHOD(0x00670190, CPlayerServer::OnAttack);
-EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
+EI_REWRITTEN(0x0066FAA0, CPlayerServer::OnRefreshParty);
+EI_REWRITTEN(0x00670C20, CPlayerServer::OnTakeExit);
+EI_REWRITTEN(0x00670DA0, CPlayerServer::OnJoined);
+EI_REWRITTEN(0x00670E00, CPlayerServer::OnLeaveToZone);
+EI_REWRITTEN(0x00670EB0, CPlayerServer::OnBriefingDone);
+EI_REWRITTEN(0x00670F50, CPlayerServer::OnNewParty);
+EI_REWRITTEN(0x00671060, CPlayerServer::OnResume);
+EI_REWRITTEN(0x0066FFF0, CPlayerServer::OnWalk);
+EI_REWRITTEN(0x0066FBD0, CPlayerServer::OnGoTo);
+EI_REWRITTEN(0x00670190, CPlayerServer::OnAttack);
+EI_REWRITTEN(0x00670B60, CPlayerServer::OnPartyUpdate);
 
 // --- Party resends, message 0x19 -----------------------------------------------------------
 

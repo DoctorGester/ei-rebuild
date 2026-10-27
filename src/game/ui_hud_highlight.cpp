@@ -56,7 +56,7 @@ void CUiMesh::SetScale(float scale) {
     std::memcpy(&ScaleY(), &bits, sizeof(bits));
     std::memcpy(&ScaleZ(), &bits, sizeof(bits));
 }
-EI_REPLACE_METHOD(0x005E7060, CUiMesh::SetScale);
+EI_REWRITTEN(0x005E7060, CUiMesh::SetScale);
 
 // --- A quick item slot ---------------------------------------------------------------
 

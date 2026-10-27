@@ -39,8 +39,6 @@ const char* ItemImageFormat() { return "quitem%04d"; }
 // The seven speakers' places (800 x 600 layout).
 constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};
 constexpr int kSlotYs[7] = /*00741138*/ {300, 300, 300, 300, 300, 500, 500};
-using ActionDoneFn = void(__fastcall*)(CUnit*);
-ActionDoneFn SpeakerActionDone() { return ei::Code<ActionDoneFn>(0x006023F0); }
 
 
 constexpr int kEventJoins = 1;
@@ -145,7 +143,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
-            serverUnit->ServerController()->actionDone = SpeakerActionDone();
+            serverUnit->ServerController()->actionDone = SpeakerAnimationDone;
         }
         return;
     }

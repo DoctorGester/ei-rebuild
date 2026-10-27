@@ -2798,7 +2798,7 @@ id = "C20f"
 title = "Code literals: call registered functions by name instead of through their game address"
 group = "cleanup"
 model = "sonnet"
-note = "C20 batch 1 (2026-10-27): 129 registrations are read by a code literal and nothing else in the image (tools/registration_readers.py --list 'code literal'): player_client_handlers 22, player_client 19, player_server_handlers 13, player_server_orders 11, renderer_sprites 6, app_main 6 (libcrt::AtExit(ei::Code<...>(0x...)), factories, WndProc), game_folders 5, database_globals 5, the rest 1-3 each. Where the function is ours, take its address directly; the registration then goes with the next --drop. Leave static_init.cpp / static_exit.cpp (generated: C20 batch 2) and the harness (tests/verify)."
+note = "C20f (2026-10-28): code literals 129 -> 3 (GameMain: the hook's HasCode / kGameWinMain; DestroyScriptQuestName in script_exec_helpers.cpp, C14a holds it; GameInfoRecord::Write is a false positive, its address is kGameTextBegin). Registrations 559 -> 434 (125 more EI_REWRITTEN via registration_readers.py --drop; still registered: static init 178, harness 5). Exit functions: libcrt::AtExit(DestroyX) (Destroy moved before Construct); player handler tables are member pointers (HandlerEntry<CPlayerClient/Server>, new CPlayerServer::OnMessage37 for the refusing slot); callbacks take &Fn; the chunk archive's factory type is CRefCounted* (was CRefObject*, a misnomer). Checks: verify, release 0; check_signatures, check_x87 0; image suite 145 pass, goldens 121 the same 0 differ."
 
 [[ticket]]
 id = "C20g"
@@ -3380,6 +3380,14 @@ group = "cleanup"
 model = "opus"
 depends = ["C14a"]
 note = "User 2026-10-27: treat saves as resources: keep them in the asset code page (1251) on disk and convert on load / save, so the game is UTF-8 everywhere with no EI_UTF8 branches (107 uses in 35 files) and saves stay byte-identical to vanilla. Boundaries to convert: save write/read (characters typed outside 1251 need a rule, e.g. '?'), multiplayer messages (vanilla peers), the harness's string digests (compare in one encoding), whatever else the EI_UTF8 runs show differing. Win32 / registry / file names already go through the UTF-8 routes (docs/notes/standalone.md section 4). Helpers that are about the old byte semantics (CharacterCount for timing, the mbs compares) become plain UTF-8 functions. Remove build.cmd's utf8 option and build/<cfg>-utf8. Goldens: 121 / 114 the same is the check."
+
+[[ticket]]
+id = "C20h"
+title = "Registrations: the harness's 5 GameCode calls (FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, cursor lock) through hook points"
+group = "cleanup"
+model = "opus"
+depends = ["C19"]
+note = "C20 batch 1's plan, batch 4: the harness's image side calls these five by game.exe address (GameCode); give them hook points or by-name calls so their registrations can drop. Needs the original suite once."
 
 [[ticket]]
 id = "S"

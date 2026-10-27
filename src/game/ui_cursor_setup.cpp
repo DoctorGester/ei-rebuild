@@ -136,15 +136,14 @@ long& MouseDragY() { return g_cursor->motion_.y; }
 
 namespace {
 void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }
-} // namespace
-
 void __cdecl ConstructGameCursor() {
     g_cursor->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
+    libcrt::AtExit(DestroyGameCursor);
 }
+} // namespace
 
-EI_REWRITTEN(0x005E4DD0, ConstructGameCursor);
-EI_REPLACE(0x005E4DF0, DestroyGameCursor);
+EI_REPLACE(0x005E4DD0, ConstructGameCursor);
+EI_REWRITTEN(0x005E4DF0, DestroyGameCursor);
 
 namespace {
 // The current image's current frame as the part shown.

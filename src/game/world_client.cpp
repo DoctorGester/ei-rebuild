@@ -502,7 +502,7 @@ int CWorldClient::Segment() {
 EI_REPLACE_METHOD(0x005641F0, CWorldClient::Segment);
 
 EI_REWRITTEN(0x00563F70, CWorldClient::ClampedGroundHeight);
-EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
+EI_REWRITTEN(0x00560F00, PlatformSet::SurfaceHeight);
 EI_REWRITTEN(0x00561050, PlatformSet::Contains);
 EI_REWRITTEN(0x00561150, PlatformSet::SurfacePlane);
 EI_REWRITTEN(0x00560E10, MatrixRows::Transform);
