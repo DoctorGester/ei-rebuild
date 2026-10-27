@@ -1,9 +1,7 @@
-// The debug information panel at 0079B930 (game.exe's table 0073BFA4, on the abstract 0073BFAC): an STLport map<string, string> at +4 with a setter (slot 0) and a remover
-// (slot 1), drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the
-// interface at most twice a second.
-// 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
-// constructor runs from a static initialiser before the hooks are installed; a start-up
-// check compared what it built (verify_static_initialisers.cpp until S21d). See docs/notes/app.md.
+// The debug information panel (on an abstract base): an STLport map<string, string> at +4 with a setter and a
+// remover, drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the interface at most
+// twice a second. The map's algorithms and the MFC CFont members are library code. The constructor runs from a
+// static initialiser. See docs/notes/app.md.
 #include "debug_panel.h"
 
 #include "ei/hook.h"
@@ -51,7 +49,7 @@ void CDebugPanel::Set(const char* key, const char* value) {
         it = map.InsertUnique<Pair>(it, *pair.Get());
         Pair::Destroy(pair.Get());
     }
-    it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
+    it->second.Assign(value);   // overwrite, then cut or append
 }
 EI_REWRITTEN(0x004447E0, CDebugPanel::Set);
 
@@ -67,22 +65,21 @@ void CDebugPanel::Remove(const char* key) {
 }
 EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
-// The destructor (at exit): every node destroyed and freed (the original inlines _M_erase's loop: the
-// right subtree, the pair's deleting destructor with 0, the node back to the pool 004452D0), then the header pushed
-// on the 0x28-byte nodes' free list as the pool's deallocate does.
+// The destructor (at exit): every node destroyed and freed (_M_erase's loop: the right subtree, the pair's
+// deleting destructor with 0, the node back to the pool), then the header pushed on the 0x28-byte nodes'
+// free list as the pool's deallocate does.
 CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
 EI_REWRITTEN_SPECIAL(0x00444690, CDebugPanel::~CDebugPanel);
 
-// 00444740 (A-E2): the constructor. The static initialiser 00444660 runs it on the global before WinMain and
-// registers the destructor above with atexit. The empty map (its header node from the node pool); the interface,
-// surface and font are Init's. The map's compare byte is an uninitialised stack byte in the original and is left as
-// it is here.
+// The constructor. A static initialiser runs it on the global before WinMain and registers the destructor
+// above with atexit. The empty map (its header node from the node pool); the interface, surface and font
+// are Init's. The map's compare byte is an uninitialised stack byte and is left as it is.
 CDebugPanel::CDebugPanel() { entries_.Construct(); }
 EI_REWRITTEN_SPECIAL(0x00444740, CDebugPanel::CDebugPanel);
 
-// The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
-// function it registers; both ported on the name and registered at their addresses
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// The panel, zero at the start: built by a static initialiser in the list's order and destroyed by the exit
+// function
+// it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
 static_assert(sizeof(CDebugPanel) == 0x44);
 
@@ -101,8 +98,7 @@ EI_REPLACE(0x00444680, DestroyDebugPanel);
 
 namespace {
 
-// The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
-// surface's constructor and destructor body.
+// The interface's panel rectangle (Rebirth-patched), the panel surface's constructor and destructor body.
 
 // The panel's font face.
 const char* FontFace() { return "Courier New"; }
@@ -167,7 +163,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
 }
 EI_REWRITTEN(0x00444C10, CDebugPanel::SetRect);
 
-// Redraws at most every 500 ms, then the panel surface's slot 0 (Blit).
+// Redraws at most every 500 ms, then the panel surface's Blit.
 void CDebugPanel::Tick() {
     DWORD now = gameapi::timeGetTime();
     if (now - lastDraw_ > 500) {

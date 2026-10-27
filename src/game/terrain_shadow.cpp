@@ -1,6 +1,6 @@
-// The landscape's light tests (terrain.h): the sun's shadow test of the vertex lighting (006C92C0,
-// from SectorData::ShadeSun) and the fade of the light at the map's edges (006CB020, from the vertex
-// lighting, the figures' draws and the ground prints).
+// The landscape's light tests (terrain.h): the sun's shadow test of the vertex lighting (from
+// SectorData::ShadeSun) and the fade of the light at the map's edges (from the vertex lighting, the
+// figures' draws and the ground prints).
 #include "terrain.h"
 #include "options.h"
 #include "terrain_sector.h"
@@ -20,7 +20,7 @@ constexpr int kRow = 33;            // vertices per sector row
 constexpr int kLastCell = 31;       // the column / row a ray enters a sector at from above
 constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
-// The width of the fade at the map's edges (0079BD34; the interface's screens set it).
+// The width of the fade at the map's edges (the interface's screens set it).
 float MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 
 std::uint32_t Bits(float value) {
@@ -30,7 +30,7 @@ std::uint32_t Bits(float value) {
 }
 bool SignSet(float value) { return (Bits(value) & 0x80000000u) != 0; }
 
-// The original's select (FLD 0; FCOMP v; C0 picks 0): 0 for a positive or unordered value.
+// Select idiom (FLD 0; FCOMP v; C0 picks 0): 0 for a positive or unordered value.
 float AtMostZero(float value) { return 0.0f >= value ? value : 0.0f; }
 
 } // namespace
@@ -67,7 +67,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     float rayHeight = position->z;
     int error = 0;
     for (int steps = 0; steps < length; ++steps) {
-        // The original compares the two floats' bits as unsigned integers.
+        // The two floats' bits are compared as unsigned integers.
         if (Bits(vertex->z) > Bits(rayHeight)) return 0;
         bool crossed = false;
         if (error <= 2 * stepX - stepY) {

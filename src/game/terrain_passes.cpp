@@ -1,9 +1,8 @@
-// The landscape's draw passes (006C6230-006C66E0; terrain.h), called by the client's draw 00569E40
-// after Terrain::SetVisibleSectors: the ground pages, then (after the objects) the water pages. A
-// pass pushes the landscape's matrix on the renderer's pipeline, prepares every visible sector
-// (level of detail, clip test, seams, projection) and draws the sectors page by page through
-// DrawSectorPage (terrain_draw.cpp). Nothing here talks to the device: the texture goes through
-// the renderer's SetTexture and the vertices through DrawSectorPage.
+// The landscape's draw passes (terrain.h), called by the client's draw after Terrain::SetVisibleSectors:
+// the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
+// renderer's pipeline, prepares every visible sector (level of detail, clip test, seams, projection) and
+// draws the sectors page by page through DrawSectorPage (terrain_draw.cpp). Nothing here talks to the
+// device: the texture goes through the renderer's SetTexture and the vertices through DrawSectorPage.
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "camera.h"
@@ -74,7 +73,7 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 void SectorData::SetDetail(int level) { detail = level; }
 EI_REWRITTEN(0x006C1390, SectorData::SetDetail);
 
-// --- The sector's part of the passes (006BFB00-006BFC7B) -------------------------------------
+// --- The sector's part of the passes -------------------------------------
 
 int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing ? 1 : 0; }
 EI_REWRITTEN(0x006BFB00, SectorData::IsDrawn);
@@ -115,8 +114,8 @@ void Terrain::ChooseDetail(SectorData* sector) {
     const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
                             (static_cast<float>(sector->sy) + 0.5f) * kSectorCells,
                             (sector->maxZ + sector->minZ) * 0.5f};
-    // (z^2 + y^2) + x^2. The original keeps the sum unrounded; the passes run on the main thread
-    // (24-bit precision), where the helper's stores change nothing.
+    // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
+    // where the helper's stores change nothing.
     const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, TheCamera()->localPosition_);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);

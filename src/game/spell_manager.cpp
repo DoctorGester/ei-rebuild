@@ -1,6 +1,6 @@
-// The spell manager's own code and the spell container's lifetime (A-H23): CreateSpellObject, the
-// factory (slot 14), Create / Destroy (slots 2 / 3), the destructor, and the "sequences" it keeps
-// (spell.h, SpellSequence). See docs/notes/items_spells.md.
+// The spell manager's own code and the spell container's lifetime: CreateSpellObject, the factory, Create /
+// Destroy, the destructor, and the "sequences" it keeps (spell.h, SpellSequence). See
+// docs/notes/items_spells.md.
 #include "spell.h"
 
 #include "item_db.h"
@@ -21,8 +21,8 @@ constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create 
 constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
 
-// Every container of a sequence loses a reference (slot 4), in iterator order; the walk stops at
-// the first entry without a container.
+// Every container of a sequence loses a reference, in iterator order; the walk stops at the first entry
+// without a container.
 void ReleaseContainers(SpellSequence* sequence) {
     for (auto* node = sequence->containers.First(); node && node->value; node = sequence->containers.After(node))
         node->value->Release();
@@ -69,7 +69,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
         return spell;
     }
     if (low > sequence->maxLow) sequence->maxLow = low;
-    // A new entry has no container: the original then faults in CopyTo (this = 0x30), as this does.
+    // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
     CSpellContainer* container = sequence->containers[low];
     container->Spell()->CopyTo(spell);
     return spell;
@@ -117,8 +117,8 @@ const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
 int CSpellManager::GetClassId() { return 0x33; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
-// 00689570 / 00689610 (A-H25). The array takes the table's count, then element i the name of record
-// i while i is below the count (read again each time).
+// The array takes the table's count, then element i the name of record i while i is below the count (read
+// again each time).
 namespace {
 template <typename Record>
 void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, mfc::CStringArray* names) {
@@ -135,8 +135,8 @@ EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 
 // --- CSpellContainer -----------------------------------------------------------------------------
 
-// The spell and the name are members, constructed before the body (the original builds them after the code string)
-// and destroyed after it (the original: the name and the spell before the string); neither allocates.
+// The spell and the name are members, constructed before the body (the game builds them after the code
+// string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
 CSpellContainer::CSpellContainer() {
     ClearFields();
     modifiers_.Construct();
@@ -144,12 +144,12 @@ CSpellContainer::CSpellContainer() {
     codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
-    CSpellContainer::Create();   // inlined in the original
+    CSpellContainer::Create();   // inlined
 }
 EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);
 
 CSpellContainer::~CSpellContainer() {
-    // (Slot 5, 0068BE20, called directly here, is empty.)
+    // (ClearState is empty and called directly here.)
     prototype_ = nullptr;
     FreeModifierNodes(modifiers_.head);
     Spell()->Destroy();

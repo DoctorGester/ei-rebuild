@@ -55,7 +55,7 @@ float Terrain::HeightAt(float x, float y, int layer) {
         if (!v00 || !v11) return 0.0f;
         if (!v10) {
             if (v01) return PlaneHeight(v00, v11, x, y, v01);
-            continue;   // the original loops here without counting toward the limit
+            continue;   // loops here without counting toward the limit
         }
         if (!v01) return PlaneHeight(v00, v10, x, y, v11);
 

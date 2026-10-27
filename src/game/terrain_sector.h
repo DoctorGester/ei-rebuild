@@ -1,11 +1,11 @@
 #pragma once
 
-// Terrain sectors (game.exe 006BF5F0-006C5410): the 32x32-cell blocks of the landscape, loaded on
-// demand from the map's resource archive (<zone>XXXYYY.sec) and turned into per-vertex records and
-// per-texture tile lists. Names are provisional. The landscape object itself is `Terrain` (terrain.h).
-// A sector has 33x33 vertices per layer (ground, and water when the sector has water) and 16x16
-// tiles of 2x2 cells. The tiles are grouped into four 8x8-tile quarters; each quarter keeps, per
-// texture page, a byte array of tile edge flags and a list of tile entries (3x3 vertices each).
+// Terrain sectors: the 32x32-cell blocks of the landscape, loaded on demand from the map's resource archive
+// (<zone>XXXYYY.sec) and turned into per-vertex records and per-texture tile lists. Names are provisional.
+// The landscape object itself is `Terrain` (terrain.h). A sector has 33x33 vertices per layer (ground, and
+// water when the sector has water) and 16x16 tiles of 2x2 cells. The tiles are grouped into four 8x8-tile
+// quarters; each quarter keeps, per texture page, a byte array of tile edge flags and a list of tile
+// entries (3x3 vertices each).
 
 #include <cstddef>
 #include <cstdint>
@@ -27,7 +27,7 @@ namespace terrain {
 
 struct LightRefBlock;
 
-// One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes, 006CAC10).
+// One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes).
 struct LightRef {
     LightRef* next;
     LightRef* prev;
@@ -35,9 +35,9 @@ struct LightRef {
     CLight* light;
 };
 
-// The LightRef pool (terrain_lights.cpp): blocks of 1000 nodes from operator new. Blocks with free
-// nodes are listed from 007C8840, full ones from 007C8844 (doubly linked, newest first); a block
-// whose nodes are all free again is deleted.
+// The LightRef pool (terrain_lights.cpp): blocks of 1000 nodes from operator new. Blocks with free nodes
+// are listed in one doubly linked list, full ones in another (newest first); a block whose nodes are all
+// free again is deleted.
 struct LightRefBlock {
     static constexpr int kRefs = 1000;
     int freeCount;          // +0x00
@@ -48,15 +48,15 @@ struct LightRefBlock {
 };
 static_assert(sizeof(LightRefBlock) == 0x3E90);
 
-// A node from the pool (inlined in 006CAC10); its next / prev / light are the caller's to set.
+// A node from the pool; its next / prev / light are the caller's to set.
 LightRef* AllocLightRef();
 // Returns `ref` to its block.
 void __stdcall FreeLightRef(LightRef* ref);
 
 #pragma pack(push, 1)
-// Per-vertex record, 0x54 bytes (odd offsets: the original packs it).
+// Per-vertex record, 0x54 bytes (odd offsets: packed).
 struct SectorVertex {
-    Vector4 projected;                  // +0x00 screen position (Project 006BFC80)
+    Vector4 projected;                  // +0x00 screen position (Project)
     std::uint8_t outcode;               // +0x10 clip flags when the quarter crosses the view, else 0
     std::uint32_t colour;               // +0x11 A (materialByte) R G B, the lighting stage
     std::uint32_t specular;             // +0x15 edge fade << 24, then the specular lights' R G B
@@ -69,7 +69,7 @@ struct SectorVertex {
     std::uint8_t materialByte;          // +0x4F water material +0x18, 0xFF none
     LightRef* lights;                   // +0x50
 
-    // 006C5150 (terrain_lights.cpp). Returns every node of `lights` to the pool.
+    // Returns every node of `lights` to the pool.
     void ReleaseLights();
 };
 #pragma pack(pop)
@@ -90,7 +90,7 @@ struct AnimatedTile {
     int frameBase;          // index of the texture within its page
     int frame;              // random start frame
     int frames;
-    int speed;              // from the table at 00796960 by texture class
+    int speed;              // from the speed table by texture class
 };
 static_assert(sizeof(AnimatedTile) == 0x18);
 
@@ -111,16 +111,15 @@ constexpr int kCulled = 2;
 struct SectorPosition : Vector3 {};
 static_assert(sizeof(SectorPosition) == 12);
 
-// The construct / destroy helpers of the sector's CArray instantiations (mfc::CArray's Elements
-// policy): the records (006C4F10 zeroes, 006C4EE0 releases their lights), the per-page tile flag
-// CByteArrays and the per-page tile lists.
-// 006C4EE0 (RET 8; terrain_lights.cpp). ReleaseLights for `count` records.
+// The construct / destroy helpers of the sector's CArray instantiations (mfc::CArray's Elements policy):
+// the records (zeroed; their lights released), the per-page tile flag CByteArrays and the per-page tile
+// lists.
+// ReleaseLights for `count` records.
 void __stdcall DestroyRecords(SectorVertex* records, int count);
 
-// 006CAC10 (RET 0x14; terrain_lights.cpp). For the vertices of `sector` inside `area` (the whole
-// sector where it lies inside the area's sector range): `light` is removed from a vertex's list
-// when `remove` is set or the vertex is not nearer than its range to `position`; otherwise it is
-// added at the list's head when missing.
+// For the vertices of `sector` inside `area` (the whole sector where it lies inside the area's sector
+// range): `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its
+// range to `position`; otherwise it is added at the list's head when missing.
 void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove);
 
@@ -139,8 +138,8 @@ struct TileListElements {
     static void Destruct(TileList* lists, int count);
 };
 
-// A 32x32-cell block of terrain (0x394 bytes, constructed by 006BF5F0). Each sector holds two
-// layers of 33x33 vertices (x, y, z): the ground, and the water surface when the sector has water.
+// A 32x32-cell block of terrain (0x394 bytes). Each sector holds two layers of 33x33 vertices (x, y, z):
+// the ground, and the water surface when the sector has water.
 struct SectorData {
     int DrawPage(void* context, void* /*unused*/, int page, int /*unused*/);
     std::uint8_t hasSpecular;           // +0x000 a specular light reached a vertex (Light clears it)
@@ -195,22 +194,21 @@ struct SectorData {
     // perPage -1, +0x60 2; the shared projection buffers (positions, projected, outcodes) sized for
     // 0x330 vertices. Returns this.
     SectorData* Construct();
-    // 006BF8A0 (terrain_sector.cpp, A-H21). The destructor body: Clear, then the members in reverse
-    // order (each array's elements destroyed, its storage freed, its vtable written first).
+    // The destructor body: Clear, then the members in reverse order (each array's elements destroyed, its
+    // storage freed, its vtable written first).
     void DestructBody();
 
-    // 006BFC80 (RET 4; the draw pass 006C6460). Projects the vertices of every quarter that is not
-    // culled (quarterMode != 2), at the level of detail `detail` (from 1 every second column,
-    // from 2 every second row too), ground then water, with `pipeline` against the
-    // quarter's box: the quarter's
-    // mode becomes the result (2 for -1 or 2), and for 0 / 1 each of those records gets its
-    // projected position (with 1 its outcode, else 0). Returns clipMode.
+    // Projects the vertices of every quarter that is not culled (quarterMode != 2), at the level of detail
+    // `detail` (from 1 every second column, from 2 every second row too), ground then water, with
+    // `pipeline` against the quarter's box: the quarter's mode becomes the result (2 for -1 or 2), and for
+    // 0 / 1 each of those records gets its projected position (with 1 its outcode, else 0). Returns
+    // clipMode.
     int Project(CTransformPipeline* pipeline);
 
-    // 006C3A00 (RET 0x1C; terrain_lighting.cpp). Lights the vertices x0..x1, y0..y1 (inclusive,
-    // 0..32) of the water layer (where it has a material), then of the ground, with the FPU in chop
-    // rounding: the sun and ambient light first (ShadeSun) unless `skipSun`, then the point lights
-    // (LightVertex). Sets built bit 4; without skipSun relightCountdown becomes -1.
+    // Lights the vertices x0..x1, y0..y1 (inclusive, 0..32) of the water layer (where it has a material),
+    // then of the ground, with the FPU in chop rounding: the sun and ambient light first (ShadeSun) unless
+    // `skipSun`, then the point lights (LightVertex). Sets built bit 4; without skipSun relightCountdown
+    // becomes -1.
     void Light(CLight* sun, Terrain* owner, int skipSun, int x0, int y0, int x1, int y1);
     // The record's lit colour: ambient (owner +0x224) and `sun`, both dimmed
     // under water on the ground layer; where the sun's ray is blocked (shadows on, ground layer)
@@ -219,8 +217,8 @@ struct SectorData {
     // The record's colour and specular words from its lit colour and the point
     // lights in its list (maxima per channel; flag 0x40 lights count as specular).
     void LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
-    // R16i (not the original's): LightVertex's specular word alone (terrain_lighting.cpp), for the water
-    // layer when the GPU lights the colours.
+    // LightVertex's specular word alone (terrain_lighting.cpp), for the water layer when the GPU lights the
+    // colours.
     void LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
 
     // terrain_animation.cpp:
@@ -229,33 +227,28 @@ struct SectorData {
     void Clear();
     // Sector (-1, -1), nothing built, no data, pages / perPage -1, clipMode 2, the rest 0.
     void ResetFields();
-    // 006C3E30 (RET 4, from the light countdown 006C8ED0). Starts or shortens the relight
-    // countdown to `frames`.
+    // Starts or shortens the relight countdown to `frames`.
     void ScheduleRelight(int frames);
-    // 006C3E50 (each frame for a lit sector). Counts the relight countdown down; at 0 the lighting
-    // is dropped (built bit 4 cleared, countdown -1), so the next draw relights the sector.
+    // Each frame for a lit sector: counts the relight countdown down; at 0 the lighting is dropped (built
+    // bit 4 cleared, countdown -1), so the next draw relights the sector.
     void RelightTick();
-    // 006C3E80 (RET 8; each frame for a drawn sector). Every third frame, with owner flag 2, the
-    // animated tiles step to their next frame (one whose frame is 0 and whose speed is below 1000
-    // only when an ISAAC draw % 1000 + 1 is within the speed) and get its texture coordinates; with
-    // owner flag 1 and water, the water vertices move with the waves and the crests get a specular
-    // colour.
+    // Each frame for a drawn sector: every third frame, with owner flag 2, the animated tiles step to their
+    // next frame (one whose frame is 0 and whose speed is below 1000 only when an ISAAC draw % 1000 + 1 is
+    // within the speed) and get its texture coordinates; with owner flag 1 and water, the water vertices
+    // move with the waves and the crests get a specular colour.
     void Animate(Terrain* owner, int frame);
 
-    // 006C1390 (RET 4; terrain_passes.cpp). The level of detail (`detail`) the sector is drawn
-    // at: 0 every vertex, 1 every second column, 2 every second row too.
+    // The level of detail (`detail`) the sector is drawn at: 0 every vertex, 1 every second column, 2 every
+    // second row too.
     void SetDetail(int level);
 
-    // 006BFB00 (terrain_passes.cpp). 1 when clipMode is 0 or 1 (the last clip test did not cull the
-    // sector), else 0.
+    // 1 when clipMode is 0 or 1 (the last clip test did not cull the sector), else 0.
     int IsDrawn() const;
-    // 006BFB20 (RET 4; terrain_passes.cpp). The clip test of the sector's box (clipMode: 0 inside,
-    // 1 crossing, 2 culled; -1 counts as culled) and, unless culled, of its quarters (quarterMode)
-    // with the renderer's pipeline.
+    // The clip test of the sector's box (clipMode: 0 inside, 1 crossing, 2 culled; -1 counts as culled)
+    // and, unless culled, of its quarters (quarterMode) with the renderer's pipeline.
     void ClipTest(CSceneRenderer* renderer);
-    // 006BFB80 (terrain_passes.cpp). The seams (seamBefore / seamAfter): at detail 0 whether
-    // the lit sectors before / after in y are drawn at detail 1, at detail 1 whether those before /
-    // after in x are drawn at detail 2.
+    // The seams (seamBefore / seamAfter): at detail 0 whether the lit sectors before / after in y are drawn
+    // at detail 1, at detail 1 whether those before / after in x are drawn at detail 2.
     void FindSeams();
 };
 static_assert(sizeof(SectorData) == 0x394);

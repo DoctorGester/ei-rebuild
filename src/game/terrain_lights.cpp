@@ -1,10 +1,9 @@
-// Point lights on the landscape (006BF4A0 / 006BF580, 006C4EE0-006C5230, 006CA5D0-006CAF68).
-// The landscape keeps a table of the point lights it was given (by id; the light held, and the
-// area it reaches: a range of sectors and the first / last vertex inside the edge sectors). Each
-// vertex record of a built sector has a list of the lights whose range reaches it (pooled 16-byte
-// LightRef nodes); the lighting (SectorData::Light, terrain_lighting.cpp) adds those lights to the
-// vertex colours. Adding, removing or moving a light updates the lists of the area's built sectors
-// and relights its lit ones; a sector built later picks up the lights covering it (LightSector).
+// Point lights on the landscape. The landscape keeps a table of the point lights it was given (by id; the
+// light held, and the area it reaches: a range of sectors and the first / last vertex inside the edge
+// sectors). Each vertex record of a built sector has a list of the lights whose range reaches it (pooled
+// 16-byte LightRef nodes); the lighting (SectorData::Light, terrain_lighting.cpp) adds those lights to the
+// vertex colours. Adding, removing or moving a light updates the lists of the area's built sectors and
+// relights its lit ones; a sector built later picks up the lights covering it (LightSector).
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "spell.h"
@@ -44,7 +43,7 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
     head = block;
 }
 
-// The cell size (00744160; 1) the light bounds are divided by.
+// The cell size (1) the light bounds are divided by.
 float CellSize() { return 1.0f /*00744160*/; }
 
 bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
@@ -251,8 +250,8 @@ EI_REWRITTEN(0x006CA5D0, Terrain::AddLight);
 
 void Terrain::RemoveLight(CLight* light) {
     if (!mapLoaded) return;
-    // The original leaves the area uninitialised when the light was not registered (it loops over
-    // whatever its stack held); ours then takes it off nothing and relights nothing.
+    // The game leaves the area uninitialised when the light was not registered (it loops over whatever its
+    // stack held); this then takes it off nothing and relights nothing.
     LightArea area = {0, 0, -1, -1, 0, 0, 0, 0};
     if (LightTable::Node* node = lights.Find(light->id_)) {
         area = node->value.area;
@@ -267,8 +266,8 @@ EI_REWRITTEN(0x006CA720, Terrain::RemoveLight);
 
 void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     if (!mapLoaded) return;
-    // The original takes the entry's area without checking that the light is registered (an
-    // unregistered light writes its area to address 4); ours does the same through a null entry.
+    // The game takes the entry's area without checking that the light is registered (an unregistered light
+    // writes its area to address 4); this does the same through a null entry.
     LightTable::Node* node = lights.Find(light->id_);
     LightArea* area = node ? &node->value.area : nullptr;
     LightAreaOf(light, delta, area);

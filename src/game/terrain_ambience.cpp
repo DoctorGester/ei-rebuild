@@ -1,7 +1,7 @@
-// The landscape's ambient sounds (006CB360-006CBD0A): every frame with flag 8 (Terrain::RunTick)
-// the 3x3 sectors around the sound listener choose up to three sound classes, which keep looping
-// "circle" sounds and now and then play a positioned one-shot. The time of day for the one-shots'
-// folder comes from the client world (CWorldClient::AmbienceTimeOfDay).
+// The landscape's ambient sounds: every frame with flag 8 (Terrain::RunTick) the 3x3 sectors around the
+// sound listener choose up to three sound classes, which keep looping "circle" sounds and now and then play
+// a positioned one-shot. The time of day for the one-shots' folder comes from the client world
+// (CWorldClient::AmbienceTimeOfDay).
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "random.h"
@@ -23,7 +23,7 @@
 
 namespace {
 
-// A sound class (16 entries at 007969D0, writable data; indexed by the sectors' texture classes).
+// A sound class (16 entries, writable data; indexed by the sectors' texture classes).
 struct AmbientSoundClass {
     const char* name;       // +0x00 the folder ("Grass", "water", ...)
     int variants;           // +0x04 one-shots to pick from (0: none)
@@ -61,7 +61,7 @@ struct Cell {
     Vector3 offset;         // from the listener
 };
 
-// A sound class's votes, sorted by weight (qsort on 0x24-byte records, as the original).
+// A sound class's votes, sorted by weight (qsort on 0x24-byte records).
 struct ClassVotes {
     int soundClass;
     Vector3 offset;         // the last voting cell's offset, then the weighted offsets added
@@ -82,7 +82,7 @@ constexpr float kPi = 3.14159274f;
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
 float CellSize() { return 1.0f /*007441D0*/; }
-// pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
+// pi / 2 (a static initialiser: the constant * 0.5).
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
@@ -225,7 +225,7 @@ void Terrain::PlayAmbience() {
         std::uint32_t variant = random.Next();
         char name[256];
         {
-            mfc::CString time;   // the empty string, replaced (the original passes raw stack storage)
+            mfc::CString time;   // the empty string, replaced (raw stack storage in the game)
             TheClientWorld()->AmbienceTimeOfDay(&time);
             gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0.GetString(), kind.name, time.GetString(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
@@ -272,8 +272,8 @@ void Terrain::StopAmbience() {
     }
 }
 
-// The map loader's part (006C68B0, A-H26). The table is the game's own writable data; a class
-// that votes for another keeps its count.
+// The map loader's part. The table is the game's own writable data; a class that votes for another keeps
+// its count.
 void terrain::CountAmbientVariants(const char* set) {
     AmbientSoundClass* classes = g_soundClasses;
     for (int i = 0; i < kClasses; ++i) {
