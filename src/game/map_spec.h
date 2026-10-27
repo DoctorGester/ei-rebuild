@@ -138,7 +138,6 @@ void __fastcall BehaviourDestruct(Behaviour* self);
 // block of file bytes). They live on the game's heap.
 class Spec : public Chunk {
 public:
-    // No parent chunk, id -1, at the origin unrotated, named and commented "none", kind 0.
     Spec();
 
     void OnChunk() override {}
@@ -179,7 +178,6 @@ public:
 // An object record (0x8C bytes; chunk B001).
 class ObjectSpec : public Spec {
 public:
-    // Kind 1, no model, textures "none", player -1, scale 0.5, visible, no parts.
     ObjectSpec();
     ~ObjectSpec() override;
 
@@ -235,7 +233,6 @@ public:
 // A magic trap (0xD0 bytes; chunk BBAB0000).
 class TrapSpec : public ObjectSpec {
 public:
-    // Kind 7, every side, no area or points, period 15.
     TrapSpec();
     ~TrapSpec() override;
 
@@ -290,7 +287,6 @@ public:
     std::uint8_t unused_51[3];
 
 protected:
-    // The records' constructors begin with this (inlined in each): no world object or effect, visible.
     EffectSpec() : effect(nullptr), visible(1) {}
 };
 
@@ -356,7 +352,6 @@ public:
 // fills one on the stack for each unit it creates.
 class UnitSpec : public ObjectSpec {
 public:
-    // Kind 5, five behaviour records (the first enabled), the prototype "none", no statistics.
     UnitSpec();
     ~UnitSpec() override;           // (and the deleting destructor)
 

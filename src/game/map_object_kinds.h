@@ -15,7 +15,6 @@
 template <int ClassId>
 class PlainMapObject : public CMapObject {
 public:
-    // The map object's constructor, then its Create called directly.
     PlainMapObject();
     ~PlainMapObject() override;
     // The deleting destructor frees into the game's heap.

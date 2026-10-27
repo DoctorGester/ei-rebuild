@@ -546,9 +546,6 @@ public:
     int partBoxGrowBy;              // /
 
 protected:
-    // The engine object's fields, identity orientations, an empty name (a member), the part list
-    // (Object3DListClass), arrays and string array, the bounds cleared and the default figure scale
-    // (kDefaultFigureScale): SetUpObject3D.
     CObject3D();
 };
 static_assert(offsetof(CObject3D, worldMatrix) == 0x54);

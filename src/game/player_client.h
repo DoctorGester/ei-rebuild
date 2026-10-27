@@ -13,8 +13,6 @@
 
 class CPlayerClient final : public CPlayerConnection {
 public:
-    // The constructor (player_client.cpp): the members constructed (the streams with the queue's vtable),
-    // then Clear inlined.
     CPlayerClient();
     ~CPlayerClient() override;
 

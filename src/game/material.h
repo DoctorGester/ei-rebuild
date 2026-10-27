@@ -47,8 +47,6 @@ public:
     // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
     std::uint32_t GpuLitColour() const;
 
-    // An engine object with empty names, alpha 1 and an empty deque (one node). The
-    // colours stay as they were.
     CMaterial();
     ~CMaterial() override;
     // The deleting destructor frees into the game's heap.
@@ -81,8 +79,6 @@ class CMaterialManager : public CResourceManager {
 public:
     using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
 
-    // CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
-    // buckets).
     CMaterialManager();
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: "CMaterialManager"

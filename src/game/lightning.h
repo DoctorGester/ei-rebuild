@@ -68,7 +68,6 @@ struct LightningSegment {
     // Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
-    // The points empty.
     LightningSegment();
     ~LightningSegment();
     LightningSegment(const LightningSegment&) = delete;
@@ -77,8 +76,6 @@ struct LightningSegment {
 
 class CLightning final : public CEngineObject {
 public:
-    // The construction (lightning_start.cpp): the engine object's fields cleared, no textures, the
-    // bounds cleared, the segments empty, then reset like Destroy.
     CLightning();
     ~CLightning() override;
 
@@ -133,7 +130,6 @@ int __cdecl LoadLightningNoise();
 // the constructor inlined there), which also holds its lifetime and slots.
 class CLightningManager : public CBaseManager {
 public:
-    // CBaseManager's constructor, then the list of new bolts (block size 10).
     CLightningManager();
     ~CLightningManager() override;
     const char* GetClassName() override;

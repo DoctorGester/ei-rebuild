@@ -30,7 +30,6 @@ struct AnimationTrack : CEngineObject {
     // (kTrackDefaultPosition / kTrackDefaultRotation). Remembers `time`.
     void Evaluate(float time);
 
-    // Engine object fields, empty arrays, then DestroyTrack's reset.
     AnimationTrack();
     ~AnimationTrack() override;
     // The deleting destructor frees into the game's heap.

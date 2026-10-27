@@ -125,7 +125,6 @@ protected:
 // The loopback link.
 class LoopbackLink final : public NetLink {
 public:
-    // The base, an empty queue, no peer.
     LoopbackLink();
     // Clone's copy: the recording flags, a closed file of its own, a copy of every queued stream and the same
     // peer (counted).
@@ -198,7 +197,6 @@ public:
     CMemoryStream inbox_;        // received bytes: {uint32 length, bytes} per message
 
 protected:
-    // The base and an empty inbox.
     FramedLink();
     // A copy's: the base's copy, an inbox of the source's size.
     FramedLink(const FramedLink& other);
@@ -208,7 +206,6 @@ protected:
 // connection's reliable streams.
 class DriverLink final : public FramedLink {
 public:
-    // The base, an empty inbox, no player.
     DriverLink();
     // Clone's copy: the framed link's, then the same player (counted).
     DriverLink(const DriverLink& other);
@@ -240,7 +237,6 @@ struct DriverNode {
 // of drivers. Its lifetime is in world_sessions.cpp.
 class DriverSession final : public CPlayerSource {
 public:
-    // Both lists empty.
     DriverSession();
     ~DriverSession() override;
 

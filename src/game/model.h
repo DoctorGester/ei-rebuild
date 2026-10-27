@@ -266,8 +266,6 @@ class CRenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
-    // Takes the device and its capabilities, then records the nine built-in presets (`flag`'s low
-    // byte: one texture stage each).
     CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
     virtual ~CRenderHelper();
     // Records the state blocks of `states` and keeps the new preset (as

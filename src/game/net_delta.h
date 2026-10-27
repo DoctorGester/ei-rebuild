@@ -58,7 +58,6 @@ struct DeltaField {
     BitStream snapshot[2];   // +0x28: per channel, the bytes last sent
     BitStream out[2];        // +0x78: per channel, what is sent now
 
-    // Identical copies: four empty memory streams.
     DeltaField() = default;
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;

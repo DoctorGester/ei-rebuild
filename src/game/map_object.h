@@ -327,8 +327,6 @@ public:
     std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams and +0x210
 
 protected:
-    // The 3D object, the effect array, the second name, the network record array and its
-    // two memory streams, no companion, packed vitals cleared, no sector cell, animationSpeed 1 (SetUpMapObject).
     CMapObject();
 };
 static_assert(sizeof(CObject3D) == 0x170);
@@ -352,7 +350,6 @@ using CMapObjectVirtuals = CMapObject;
 // takes an object handed over as a companion.
 class CMapObjectCompanion : public CEngineObject {
 public:
-    // The base constructor both companions inline: the engine object's fields, no map object.
     CMapObjectCompanion() {
         ClearFields();
         owner = nullptr;

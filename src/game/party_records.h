@@ -17,8 +17,6 @@ class ChunkArchive;
 
 class PartyRecord : public CRefCounted {
 public:
-    // The record's constructor (inlined in its creators; the count is theirs): the party constructed and
-    // created, an empty name.
     PartyRecord();
     ~PartyRecord() override;
     // Serialize: the name as string field 1, the party (SaveParty / LoadParty with variables) as stream

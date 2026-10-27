@@ -157,8 +157,6 @@ public:
     std::uint32_t version_ = 1;   // 1 when constructed; raised by every change
 
 protected:
-    // The count and the flags are the creator's (a message rebuilt in place keeps
-    // them).
     Message();
     // A clone's: the source's version.
     Message(const Message& other) : CRefObject(), version_(other.version_) {}
@@ -193,8 +191,6 @@ public:
     std::uint32_t state_;    // State
 
 protected:
-    // No address, timeout 0, the unknown ping, local (the count and the flags are the
-    // creator's).
     ServerEntryBase();
     // A clone's: the address, the timeout and ping (as dwords), the flag and the state.
     ServerEntryBase(const ServerEntryBase& other);
@@ -206,8 +202,6 @@ static_assert(sizeof(ServerEntryBase) == 0x28);
 // A server entry: what a server says about itself, and what the client lists hold.
 class ServerEntry final : public ServerEntryBase {
 public:
-    // The name and the description "?", kind 4, no players, no
-    // password.
     ServerEntry();
     ServerEntry(const ServerEntry& other);
     ~ServerEntry() override {}
@@ -595,7 +589,6 @@ public:
 
     enum JoinState : std::uint32_t { kNotJoined = 0, kAsking = 1, kJoined = 2 };
 
-    // No host, an empty join buffer, the lists, an unbound socket.
     ClientBase();
     ~ClientBase() override;
     void RemoveClient(ClientNode* node) override;

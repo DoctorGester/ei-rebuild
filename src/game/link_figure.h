@@ -28,7 +28,6 @@ struct FigureDrawerBase : CEngineObject {
     CFigureMesh* mesh_;         // the mesh it draws
 
 protected:
-    // The engine object's fields (no references, id -1, no owner), no mesh.
     FigureDrawerBase();
     ~FigureDrawerBase() override;
 };
@@ -44,7 +43,6 @@ struct FigureMeshDrawer : FigureDrawerBase {
                 CTexture* textureA, CTexture* textureB);
     void DrawBounds(CSceneRenderer* renderer);
 
-    // FigureDrawerBase's constructor (the class adds nothing).
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;
 
@@ -171,7 +169,6 @@ public:
     LinkHeaderMap headers_;
 
 protected:
-    // The part's reference count: none, the name copied, no headers.
     explicit CLinkMeshBase(const stlp::string* name);
 };
 
@@ -179,8 +176,6 @@ protected:
 // The draws go through the device (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
-    // The base's part, the coefficients stored, the arrays and the ranges map empty, the pipeline taken
-    // from the loader's renderer.
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
     ~CLinkMesh() override;
 

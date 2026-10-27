@@ -39,8 +39,6 @@ static_assert(sizeof(IdPool) == 0x10);
 // The tracking record of one replicated object.
 class ReplicaEntry final : public CRefObject {
 public:
-    // As Track inlines it: no object, no version and no id yet (the type and the flags are the
-    // caller's).
     ReplicaEntry();
     // Clone's copy: the same object, one more reference.
     ReplicaEntry(const ReplicaEntry& other);
@@ -165,7 +163,6 @@ public:
     using EntryMap = trees::Entries;
     using RecordMap = trees::Records;
 
-    // Every container empty, the clocks started.
     explicit Connection(std::uint32_t id);
     // Clone's copy: every container copied.
     Connection(const Connection& other);

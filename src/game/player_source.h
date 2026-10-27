@@ -21,7 +21,6 @@ using JoinedLinks = mfc::CTypedPtrList<netlink::NetLink>;
 
 class CPlayerSource : public CRefObject {
 public:
-    // A new source: no references, no flags.
     CPlayerSource() {
         refs_ = 0;
         flags6_ = 0;

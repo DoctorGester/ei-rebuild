@@ -60,8 +60,6 @@ struct WoundsMaterial;   // below
 // CObject3DSpecific with the shadow, the part sets and the skins.
 class CObject3DClientSpecific : public CObject3DSpecific {
 public:
-    // The empty arrays and names, the shadow sphere zeroed, cursor -1, the shadow
-    // texture and the wounds texture / material dropped, bounds and pulse clock 0.
     CObject3DClientSpecific();
     ~CObject3DClientSpecific() override;
     // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
@@ -244,7 +242,6 @@ bool ShadowCastStrength(CObject3D* object, float* strength);
 // counted root; made when the wounds are first shown): blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6
 // (D3DBLEND_INVSRCALPHA), the renderer helper's preset 4, two stages.
 struct WoundsMaterial final : CDeviceMaterial {
-    // The constructor ShowWounds inlines (unit_client_wounds.cpp).
     WoundsMaterial();
     ~WoundsMaterial() override;
 };
