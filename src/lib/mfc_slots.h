@@ -358,7 +358,6 @@ using FakeUnitRecords9C = DeletedThroughFirst<0x9C>;
 using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
 using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
 using TextureNames = StringsAt<8, 4>;          // {id, CString}
-using ExitTargets = StringsAt<0x3C, 0x28>;     // zone exits: the target
 using MemoryRecords = StringsAt<0x18, 0x14>;
 using NamedRecords = StringsAt<0xC, 4>;
 using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
@@ -589,9 +588,6 @@ struct PatrolArrayClass
 struct BehaviourPatrolsArrayClass final : PatrolArrayClass {
     static void* Vtable() { return CompiledVtable<BehaviourPatrolsArrayClass>(); }
 };
-// The map database's allods (0x2C bytes: six CStrings, an id array).
-struct AllodArrayClass final
-    : CompiledCollection<AllodArrayClass, &OwnedAllods::Destruct<AllodArrayClass>, &OwnedAllods::Serialize> {};
 // The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
 struct ScriptAreaArrayClass final
     : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};

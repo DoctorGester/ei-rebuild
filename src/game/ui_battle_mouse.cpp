@@ -76,25 +76,29 @@ EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
 // --- a unit's name line --------------------------------------------------------------------------
 
-void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
+void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
     CTextManager* texts = TheTextManager();
     mfc::CString name;
     name = unit->GetName();
     if (name.GetLength() != 0) {
-        *out = name;
+        *out = name.GetString();
         return;
     }
     if (IsTextKey(unit->id_)) {
         const PersonTextNode* node = personTexts_.find(unit->id_);
         if (node == personTexts_.end())
-            out->Empty();
+            out->clear();
         else
-            *out = node->second;
+            *out = node->second.GetString();
         return;
     }
-    out->Empty();
+    out->clear();
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
-    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
+    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) {
+        mfc::CString line;
+        texts->ReadLine(&line, 1);
+        *out = line.GetString();
+    }
 }
 EI_REWRITTEN(0x0063B920, CBattleScreen::UnitName);

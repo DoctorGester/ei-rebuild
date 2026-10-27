@@ -53,14 +53,14 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
             finished_ = true;
         } else {
             const TitleLine& line = currentLine_->data;
-            textSurface_->Load(archive_.Get(), line.style);
+            textSurface_->Load(archive_.Get(), line.style.c_str());
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 UiSurfaceGetDC(headerSurface_);
                 headerSurface_->Clear();
                 RECT rect = {0, 0, 0, 0};
-                headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
+                headerSurface_->DrawTextIn(line.text.c_str(), &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {
@@ -72,7 +72,7 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
     }
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
-        app::PlayMovies(mfc::operator+(name_, kOutroSuffix), false, false, 0, 0);
+        app::PlayMovies((name_ + kOutroSuffix).c_str(), false, false, 0, 0);
         app::g_interfaceHasScreen = 0;
         Close();
         return 1;

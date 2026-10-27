@@ -60,7 +60,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped_ = false;
     name_ = entries_.begin()[selected].title_;
-    cursor_ = name_.GetLength();
+    cursor_ = name_.size();
 }
 EI_REWRITTEN(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
 

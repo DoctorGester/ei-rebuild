@@ -131,7 +131,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     std::string folder;
-    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.GetString());
+    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
     mfc::CFileFind find;
     BOOL found;
     {
@@ -178,17 +178,17 @@ void SaveEntry::MakeTitle(int) {
     TheTextManager()->GetString(kQuickTitle, &quick);
     TheTextManager()->GetString(kAutoEnterTitle, &autoEnter);
     TheTextManager()->GetString(kAutoExitTitle, &autoExit);
-    mfc::CString& title = title_;
-    if (SameFolder(folder_, kQuickFolder)) {
-        title.Format(kPlainFormat, quick.GetString());
-    } else if (SameFolder(folder_, kAutoFolderA)) {
-        title.Format(kPlainFormat, autoEnter.GetString());
-    } else if (SameFolder(folder_, kAutoFolderB)) {
-        title.Format(kPlainFormat, autoExit.GetString());
+    auto& title = title_;
+    if (SameFolder(folder_.c_str(), kQuickFolder)) {
+        title = str::Format(kPlainFormat, quick.GetString());
+    } else if (SameFolder(folder_.c_str(), kAutoFolderA)) {
+        title = str::Format(kPlainFormat, autoEnter.GetString());
+    } else if (SameFolder(folder_.c_str(), kAutoFolderB)) {
+        title = str::Format(kPlainFormat, autoExit.GetString());
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
         const std::string name = ZoneTitle().GetString();
-        title.Format(kPlainFormat, name.c_str());
+        title = str::Format(kPlainFormat, name.c_str());
     }
 }
 EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
@@ -210,11 +210,11 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     std::string folder;
-    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.GetString());
+    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
     mfc::CString notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     TheInterface()->ShowStatusText(notice);
-    TheGameFlow()->SaveGameThunk(entry->folder_);
+    TheGameFlow()->SaveGameThunk(entry->folder_.c_str());
     TheCursor()->ChangeShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -226,7 +226,7 @@ void CSaveLoadWindow::SaveGame() {
     if (nameTyped_)
         entries_.begin()->title_ = name_;
     else if (selected_ == 0)
-        entries_.begin()->title_.Empty();
+        entries_.begin()->title_.clear();
     else
         entries_.begin()->title_ = entry->title_;
     mfc::impl::CTime now;
@@ -235,11 +235,11 @@ void CSaveLoadWindow::SaveGame() {
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
-    info.WriteText(first->map_);
-    info.WriteText(first->zone_);
+    info.WriteText(first->map_.c_str());
+    info.WriteText(first->zone_.c_str());
     std::int32_t savedAt = first->savedAt_;
     info.Write(&savedAt, 4);
-    info.WriteText(first->title_);
+    info.WriteText(first->title_.c_str());
     info.Close();
 
     // shot.sav: the game's picture.
@@ -319,11 +319,11 @@ void CSaveLoadWindow::FillEntries() {
                 if (static_cast<int>(info.s.version_) > 2) info.Stream()->ReadInto(&entry->title_);
             }
             info.Close();
-            if (entry->title_.GetLength() == 0) entry->MakeTitle(1);
+            if (entry->title_.size() == 0) entry->MakeTitle(1);
             entry->broken_ = false;
         }
         infoFind.Close();
-        if (entry->folder_.GetLength() > 4) {
+        if (static_cast<int>(entry->folder_.size()) > 4) {
             int number = std::atoi(console::Ops(entry->folder_).Mid(4));
             if (!(highest > number)) highest = number;
         }
@@ -355,13 +355,13 @@ void CSaveLoadWindow::FillEntries() {
             at->Assign(&copy.e);
         }
         SaveEntry* entry = entries_.begin();
-        entry->folder_.Format(game::savewords::NewFolder(), highest + 1);
+        entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         {
             mfc::CString zone(mfc::CString::kUnset);
             entry->zone_ = *LocalPlayerName(&zone);
         }
-        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_))
+        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_.c_str()))
             entry->map_ = record->allod;
         entry->MakeTitle(1);
         entry->broken_ = false;
@@ -510,14 +510,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone ", zone_.GetString());   // the key has a space
+    mfc::CString title = FirstLineOf("zone ", zone_.c_str());   // the key has a space
     if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_.GetString()).GetString();  // the key has a space
+    std::string title = FirstLineOf("allod ", map_.c_str()).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }
@@ -589,7 +589,7 @@ void CSaveLoadWindow::LoadSelected() {
     TheInterface()->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
-    Flow()->RequestLoad(entries_.begin()[selected_].folder_, 0);
+    Flow()->RequestLoad(entries_.begin()[selected_].folder_.c_str(), 0);
 }
 EI_REWRITTEN(0x00655A10, CSaveLoadWindow::LoadSelected);
 
@@ -597,7 +597,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder;
-    folder = str::Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.GetString());
+    folder = str::Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.c_str());
     mfc::CFileFind find;
     BOOL more = find.FindFile((folder + kEveryFile).c_str(), 0);
     while (more) {

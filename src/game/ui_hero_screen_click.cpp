@@ -99,7 +99,7 @@ void CMpHeroScreen::BackToNewHero() {
 }
 
 void CMpHeroScreen::FinishRename() {
-    std::string typed = renameEdit_->text_.GetString();
+    std::string typed = renameEdit_->text_;
     str::TrimLeft(typed);
     str::TrimRight(typed);
     if (typed.size() != 0) typed = mfc::CString(RenameSeparator()) + typed;
@@ -470,7 +470,7 @@ void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
-    std::string name = nameEdit_->text_.GetString();
+    std::string name = nameEdit_->text_;
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;

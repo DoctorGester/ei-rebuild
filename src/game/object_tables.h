@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
@@ -24,11 +25,17 @@ BOOL __fastcall IsTextKey(int id);
 
 // One "#allod" entry of map.txt.
 struct AllodRecord {
-    mfc::CString name;           // the "#allod" line's second word
-    mfc::CString otherNames[5];  // one word on each of the next five lines
+    std::string name;           // the "#allod" line's second word
+    std::string otherNames[5];  // one word on each of the next five lines
     mfc::CArray<int> maps;    // CDWordArray: the indices of its maps
 };
-static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
+// The allods' elements (map_database.cpp): zero-filled, the strings empty and the map indices an empty
+// CDWordArray; destroyed the indices first, then the strings from the last.
+struct AllodRecordElements {
+    static void Construct(AllodRecord* allods, int count);
+    static void Destruct(AllodRecord* allods, int count);
+    static void Relocate(AllodRecord* to, AllodRecord* from, int count) { mfc::MoveElements(to, from, count); }
+};
 
 // One "#exit" of a map entry (map_database.cpp loads it): the map database's
 // record, which the world server copies (SetZoneExits) and sends to the client world.
@@ -37,7 +44,7 @@ struct ZoneExit {
     float deploy[4];                // "#deploy": the rectangle the arriving party stands in
     float x1, y1, x2, y2;           // "#remove" (and "#deploy"): the area that leads out
     float angle;                    // the area's rotation about its centre (radians)
-    mfc::CString target;            // the zone it leads to ("" = none)
+    std::string target;            // the zone it leads to ("" = none)
     int entrance;                   // the target zone's exit the party arrives at
     float view;                     // "#view" (radians)
     std::uint8_t hasDeployAngle;    // "#deployangle" given; saved from version 0x68
@@ -53,11 +60,10 @@ struct ZoneExit {
     void Read(CStream* stream);
     void Write(CStream* stream) const;
     // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.) The compiler's operator=:
-    // +0x00..+0x24 as dwords, the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
+    // +0x00..+0x24 as dwords, the target, +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);
 };
 static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
-static_assert(offsetof(ZoneExit, deployAngle) == 0x38 && sizeof(ZoneExit) == 0x3C);
 
 namespace zone {
 void __fastcall ExitDestruct(ZoneExit* self);   // zone_records.cpp
@@ -73,6 +79,7 @@ struct ZoneExitElements {
     static void Destruct(ZoneExit* p, int n) {
         for (; n--; ++p) zone::ExitDestruct(p);
     }
+    static void Relocate(ZoneExit* to, ZoneExit* from, int n) { mfc::MoveElements(to, from, n); }
 };
 
 // MFC CArray<ZoneExit> (a map record's +0x48, CWorldServer + 0xEC, CWorldClient + 0x8C). Its SetSize
@@ -86,14 +93,14 @@ static_assert(sizeof(ZoneExits) == 0x14);
 
 // One map/zone entry: +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
-    mfc::CString name;
-    mfc::CString allod;     // (SaveGame keeps the visited zones of the current one's)
-    mfc::CString mob;       // the .mob file without extension
-    mfc::CString map;       // the .mpr map without extension ("" = none)
-    mfc::CString figure;    // the "#figure" line
-    mfc::CString picture2;  // the "#maps" second line's second word
-    mfc::CString picture;   // its first word, the HUD map's texture
-    mfc::CString camera;    // the "#camera" line
+    std::string name;
+    std::string allod;     // (SaveGame keeps the visited zones of the current one's)
+    std::string mob;       // the .mob file without extension
+    std::string map;       // the .mpr map without extension ("" = none)
+    std::string figure;    // the "#figure" line
+    std::string picture2;  // the "#maps" second line's second word
+    std::string picture;   // its first word, the HUD map's texture
+    std::string camera;    // the "#camera" line
     int sizeX;              // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY;
     int kind;               // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
@@ -108,13 +115,13 @@ struct MapRecord {
     std::uint8_t unused_45[3];
     ZoneExits exits;
 };
-static_assert(offsetof(MapRecord, kind) == 0x28);
-static_assert(offsetof(MapRecord, map) == 0x0C && offsetof(MapRecord, camera) == 0x1C);
-static_assert(offsetof(MapRecord, setting30) == 0x30);
-static_assert(offsetof(MapRecord, exits) == 0x48);
-static_assert(offsetof(MapRecord, restricted) == 0x34);
-static_assert(offsetof(MapRecord, cage) == 0x44);
-static_assert(sizeof(MapRecord) == 0x5C);
+// The maps' elements (map_database.cpp): zero-filled, the strings empty and the exits an empty array with the
+// map record items' table; destroyed by the record's destructor (zone::ZoneRecordDestruct).
+struct MapRecordElements {
+    static void Construct(MapRecord* maps, int count);
+    static void Destruct(MapRecord* maps, int count);
+    static void Relocate(MapRecord* to, MapRecord* from, int count) { mfc::MoveElements(to, from, count); }
+};
 
 // The map database loaded from map.txt / map_LMP.txt (a global).
 struct CMapDatabase {
@@ -132,8 +139,8 @@ struct CMapDatabase {
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
     void Destruct();
 
-    mfc::CArray<AllodRecord> allods;
-    mfc::CArray<MapRecord> maps;
+    mfc::CArray<AllodRecord, AllodRecordElements> allods;
+    mfc::CArray<MapRecord, MapRecordElements> maps;
 };
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);

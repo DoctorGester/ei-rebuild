@@ -224,9 +224,9 @@ void CInterface3D::ShowMessage(int force) {
         messageText_ = text;
         messageFlag_ = 0;
     }
-    if (messageText_.GetLength() == 0) return;
+    if (messageText_.size() == 0) return;
     if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText_.GetString(), messageFlag_), 1, 0);
+    PushWindow(new CHelpWindow(this, true, messageText_.c_str(), messageFlag_), 1, 0);
 }
 
 EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);

@@ -97,7 +97,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     line += name;
     line += "\n";   // "\n"
     name = line;
-    PageText(0) += name;
+    pageTexts_[0] += name;
     if (page_ == 0) owner_->MessageLog()->AddText(name);
 }
 EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
@@ -115,7 +115,7 @@ void CHudTopPanel::AddMoney(int money) {
     line += text;
     line += "\n";   // "\n"
     text = line;
-    PageText(0) += text;
+    pageTexts_[0] += text;
     if (page_ == 0) owner_->MessageLog()->AddText(text.c_str());
 }
 EI_REWRITTEN(0x0064A630, CHudTopPanel::AddMoney);

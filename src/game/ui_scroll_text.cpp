@@ -212,7 +212,7 @@ void CUiScrollText::DrawLines(int scroll) {
                 font = format->font_;
             } else if (token->type_ == kWordType) {
                 auto* w = token->AsWord();
-                DrawWord(surface, w->text_, &word, font, colour);
+                DrawWord(surface, w->text_.c_str(), &word, font, colour);
                 word.left += w->width_ + gap;
             }
         }

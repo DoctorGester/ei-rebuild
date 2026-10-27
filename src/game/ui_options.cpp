@@ -17,6 +17,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
@@ -134,8 +135,12 @@ void ReadTip(mfc::CString* text) {
     if (TheTextManager()->CTextManager::Open(*text) != 0) TheTextManager()->ReadToHash(text, 1);
 }
 
-void ShownName(mfc::CString* out, const char* prefix, const char* name) {
-    if (!TheTextManager()->GetString(mfc::CString(prefix) + name, out)) *out = name;
+void ShownName(std::string* out, const char* prefix, const char* name) {
+    mfc::CString text;
+    if (TheTextManager()->GetString(mfc::CString(prefix) + name, &text))
+        *out = text.GetString();
+    else
+        *out = name;
 }
 
 // A blank binding row appended like the original's push_back of a temporary: in place while there is
@@ -183,10 +188,10 @@ void COptionsWindow::RefreshRows() {
         }
         if (OptionBinding* binding = rows_[row].binding_) {
             COLORREF colour = row == selectedRow_ && waitingForKey_ ? kColourWaiting : kColourText;
-            DrawRowText(surface, binding->name_, &name, 1, colour, 0);
-            DrawRowText(surface, binding->keysText_, &keys, 1, colour, 0);
+            DrawRowText(surface, binding->name_.c_str(), &name, 1, colour, 0);
+            DrawRowText(surface, binding->keysText_.c_str(), &keys, 1, colour, 0);
         } else if (OptionSetting* setting = rows_[row].setting_) {
-            DrawRowText(surface, setting->text_, &name, 1, kColourText, 0);
+            DrawRowText(surface, setting->text_.c_str(), &name, 1, kColourText, 0);
         }
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);
@@ -306,24 +311,24 @@ void COptionsWindow::BuildBindings() {
                 if (name->scan_ == scan && binding.keys_.size() < 1) binding.keys_.push_back(name);
             }
         }
-        binding.keysText_.Empty();
+        binding.keysText_.clear();
         for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
             binding.keysText_ += binding.keys_[k]->name_;
             binding.keysText_ += TextKeySeparator();
         }
-        binding.keysText_.TrimRight(TextKeyTrim());
+        str::TrimRight(binding.keysText_, TextKeyTrim());
     }
 }
 EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 
 namespace {
 void RebuildKeysText(OptionBinding& binding) {
-    binding.keysText_.Empty();
+    binding.keysText_.clear();
     for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
         binding.keysText_ += binding.keys_[k]->name_;
         binding.keysText_ += TextKeySeparator();
     }
-    binding.keysText_.TrimRight(TextKeyTrim());
+    str::TrimRight(binding.keysText_, TextKeyTrim());
 }
 } // namespace
 

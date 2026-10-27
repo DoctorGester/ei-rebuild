@@ -132,7 +132,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         zone = TheMapDatabase()->FindMap(name);
     }
     std::string prefix;
-    prefix = str::Format(ZoneTopicFormat(), zone->name.GetString());
+    prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {

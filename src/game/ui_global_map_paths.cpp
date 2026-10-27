@@ -84,7 +84,7 @@ void SearchWays(CGlobalMap* map, const std::string& target) {
 }
 
 bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_.GetString())));
+    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_.c_str())));
 }
 
 } // namespace
@@ -93,10 +93,10 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < from->exits.size; ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target);
+        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target.c_str());
         if (!zone) continue;
         float passTime = from->exits.data[i].passTime;
-        if (SameName(zone->name, target_)) {
+        if (SameName(zone->name.c_str(), target_.c_str())) {
             found_ = true;
             int exit = from->exits.data[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
@@ -122,7 +122,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (onWay) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
-            variable = str::Format(kZoneVariable, zone->name.GetString());
+            variable = str::Format(kZoneVariable, zone->name.c_str());
             int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));   // truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }
@@ -169,19 +169,19 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
-            SearchWays(this, zone.name.GetString());
+            SearchWays(this, zone.name.c_str());
             if (!MayTravelTo(this)) return;
             auto* window = new CObjectivesWindow(interface_);
-            window->Setup(target_, &arrivals_, 1, 0);
+            window->Setup(target_.c_str(), &arrivals_, 1, 0);
             interface_->PushWindow(window, 1, 1);
             return;
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, links_.data[link].name.GetString());
+    SearchWays(this, links_.data[link].name.c_str());
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(Arrival(arrivals_, 0));
-    ::RequestZone(links_.data[link].name, 0);
+    ::RequestZone(links_.data[link].name.c_str(), 0);
 }
 
 EI_REWRITTEN(0x0062F950, CGlobalMap::OnLeftDown);

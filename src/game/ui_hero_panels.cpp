@@ -106,7 +106,7 @@ void CHeroStatsPanel::DrawStats() {
     draw->GetDC();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
-    draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
+    draw->DrawLine(title_.c_str(), &title, 1, 0xFFFFFF, 1, 1);
 
     auto hero = [this]() { return owner_->HeroRecord(); };
     UnitStats* stats = &hero()->stats;

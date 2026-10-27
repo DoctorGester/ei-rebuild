@@ -164,7 +164,7 @@ void CMpHeroScreen::Update() {
     }
     if (mode_ != kModeNewHero) return;
 
-    std::string name = nameEdit_->text_.GetString();
+    std::string name = nameEdit_->text_;
     const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float target = NewHeroPoints();
@@ -308,14 +308,13 @@ void CMpHeroScreen::DrawVoices() {
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
         MpVoiceVector& voices = Voices();
-        int bytes = static_cast<int>(reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin()));
-        if (index >= static_cast<std::uint32_t>(bytes >> 3)) break;
+        if (index >= static_cast<std::uint32_t>(voices.end() - voices.begin())) break;
         if (static_cast<int>(index) == voiceIndex_) {
             SelectionFrame(*this)->visible_ = 1;
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
             SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
+        surface->DrawTextIn(voices.begin()[index].name.c_str(), &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
     UiSurfaceReleaseDC(surface);

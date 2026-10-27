@@ -51,11 +51,7 @@ using GroupList = ListAbi<ScriptGroup, EachElements<ScriptGroup, nullptr, gamear
 inline void InitCommand(SSCCmd* p) { p->Construct(); }
 using BuiltCommands = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCommand, DestroyCommand>>;
 // The map database's zone records.
-using ZoneRecordElement = mfc::impl::StringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>;
-inline void DestroyZoneRecordElement(ZoneRecordElement* p) { zone::ZoneRecordDestruct(reinterpret_cast<MapRecord*>(p)); }
-using BuiltZoneRecords =
-    ArrayAbi<ZoneRecordElement, EachElements<ZoneRecordElement, mfc::impl::InitStringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>,
-                                             DestroyZoneRecordElement>>;
+using BuiltZoneRecords = mfc::impl::ArrayAbi<MapRecord, MapRecordElements>;
 // CArray<MapRecord>, the map database's maps.
 struct MapRecordArrayClass final
     : mfc::impl::CompiledCollection<MapRecordArrayClass, &BuiltZoneRecords::Destruct<MapRecordArrayClass>,

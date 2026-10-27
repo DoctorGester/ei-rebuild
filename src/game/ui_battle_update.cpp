@@ -547,7 +547,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 
     CHudTopPanel* top = topPanel_;
     const char* line = text;
-    top->PageText(0) += line;
+    top->pageTexts_[0] += line;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;
         screen->MessageLog()->AddText(line);

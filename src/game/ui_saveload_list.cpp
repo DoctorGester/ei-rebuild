@@ -59,8 +59,8 @@ bool SameFolder(const char* folder, const char* name) {
 } // namespace
 
 void CSaveLoadWindow::RefreshListVanilla() {
-    mfc::CString& name = name_;
-    if (cursor_ > name.GetLength()) cursor_ = name.GetLength();
+    auto& name = name_;
+    if (cursor_ > static_cast<int>(name.size())) cursor_ = name.size();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_.data[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
@@ -76,12 +76,12 @@ void CSaveLoadWindow::RefreshListVanilla() {
     for (unsigned index = static_cast<unsigned>(firstVisible_); index < static_cast<unsigned>(EntryCount()); ++index) {
         const SaveEntry& entry = entries_.begin()[index];
         if (static_cast<int>(index) == selected_) {
-            const char* title = isSave_ && nameTyped_ ? name_ : entry.title_;
+            const char* title = (isSave_ && nameTyped_ ? name_ : entry.title_).c_str();
             surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
             // The caret, unless the save keeps its name (the quick and the automatic saves).
-            if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
-                !SameFolder(entry.folder_, kAutoFolderB)) {
-                const int width = TextWidth(interface_, name.Left(cursor_).GetString(), kFont);
+            if (isSave_ && !SameFolder(entry.folder_.c_str(), kQuickFolder) && !SameFolder(entry.folder_.c_str(), kAutoFolderA) &&
+                !SameFolder(entry.folder_.c_str(), kAutoFolderB)) {
+                const int width = TextWidth(interface_, str::Left(name, cursor_).c_str(), kFont);
                 if (width < titleRect.right - titleRect.left) {
                     mfc::impl::CPen pen(PS_SOLID, 1, kCaretColour);
                     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
@@ -99,7 +99,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             marker->visible_ = 1;
             marker->PlaceBody(239.0f, static_cast<float>(y), 3.0f);
         } else {
-            surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(entry.title_.c_str(), &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
             // CTime::Format.
@@ -139,7 +139,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};
-    surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
+    surface->DrawTextIn(entry.folder_.c_str(), &folderRect, kFont, kTextColour, DT_RIGHT, 1);
     UiSurfaceReleaseDC(surface);
 }
 EI_REWRITTEN(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

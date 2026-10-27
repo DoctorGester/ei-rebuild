@@ -118,7 +118,7 @@ namespace mfc::impl {
 // A zone's exits, the table a map record's items and the worlds' exit arrays restore; the destructor frees each
 // exit's target string.
 struct ExitArrayClass
-    : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
+    : CompiledCollection<ExitArrayClass, &gamearrays::Exits::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
 // The array inside a map record: derived from ExitArrayClass.
 struct MapRecordItemsClass final : ExitArrayClass {
     static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
@@ -135,10 +135,12 @@ struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
 };
 
 // The element policies over them (the lib headers cannot name the complete tags).
-// A zone record (92 bytes: eight strings, the exits array at +0x48).
-using MapRecords = ArrayAbi<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
-                            InitElements<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
-                                         InitStringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>>>;
+// The map database's zone records (eight strings and the exits) and allods (six strings and the map indices).
+using MapRecords = ArrayAbi<MapRecord, MapRecordElements>;
+using AllodRecords = ArrayAbi<AllodRecord, AllodRecordElements>;
+// The map database's allods.
+struct AllodArrayClass final
+    : CompiledCollection<AllodArrayClass, &AllodRecords::Destruct<AllodArrayClass>, &AllodRecords::Serialize> {};
 // The script's groups (the element is 20 bytes: the group's array at +0).
 using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
                               InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;

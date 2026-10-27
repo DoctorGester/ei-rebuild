@@ -56,7 +56,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
         MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
-        if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
+        if (!IsMultiplayerClient() && CompareNames(questZone->allod.c_str(), zone->allod.c_str()) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
         {
             BriefingPlayerName player;

@@ -314,7 +314,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = SceneMesh(kSpritePassword);
-        sprite->textureOffsetU_ = hostPassword_.GetLength() == 0 ? FrameOff() : FrameOn();
+        sprite->textureOffsetU_ = hostPassword_.size() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         TheGameFlow()->JoinServer(&entries_[selected_].address, boxText_);
         net::GameClient()->gameType_ = entries_[selected_].gameType;
@@ -349,11 +349,11 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case kRegionPassword:
-        if (hostPassword_.GetLength() == 0) {
-            CopyText(boxText_, hostPassword_);
+        if (hostPassword_.size() == 0) {
+            CopyText(boxText_, hostPassword_.c_str());
             OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
         } else {
-            hostPassword_.Empty();
+            hostPassword_.clear();
             SceneMesh(kSpritePassword)->textureOffsetU_ = 0.0f;
         }
         break;
@@ -453,10 +453,10 @@ void CMpConnectScreen::Connect() {
         int players;
         playersSlider_->TakePosition(&players);
         ++players;
-        std::string name = nameEdit_->text_.GetString();
+        std::string name = nameEdit_->text_;
         if (name.size() == 0) name = DefaultGameName();
         SaveAddressBook();
-        TheGameFlow()->StartServer(name.c_str(), players, gameType_, hostPassword_, static_cast<char>(unlisted_),
+        TheGameFlow()->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
                                    static_cast<int>(net::GameClient()->queries_.extra));
         return;
     }
@@ -660,7 +660,7 @@ void CMpConnectScreen::CreateScreen() {
     SceneMesh(kSpriteTabFirst)->textureOffsetU_ = kTabSelected;
     gameType_ = 0;
     unlisted_ = true;
-    hostPassword_.Empty();
+    hostPassword_.clear();
     for (int top = 444; top < 492; top += 24)
         sprite(3.0f, 490.0f, static_cast<float>(top), 620.0f, static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
     AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);

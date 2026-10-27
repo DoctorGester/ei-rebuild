@@ -29,29 +29,13 @@ void DestroyTable(typename Abi::Vector& records, Index& index) {
     Abi::Destruct(&records);
 }
 
-// An allod: its map indices' array (the CDWordArray's vtable back, the storage freed), then its
-// strings from the last.
-struct AllodElements {
-    static void Construct(AllodRecord*, int) {}
-    static void Destruct(AllodRecord* allod, int count) {
-        for (; count > 0; --count, ++allod) {
-            allod->maps.vtable = mfc::impl::IntArrayClass::Vtable();
-            allod->maps.FreeData();
-            for (int i = 4; i >= 0; --i) std::destroy_at(&allod->otherNames[i]);
-            std::destroy_at(&allod->name);
-        }
-    }
-};
-
 } // namespace
 
 void CMapDatabase::Destruct() {
-    auto& mapRecords = reinterpret_cast<gamearrays::ZoneRecords::Array&>(maps);
-    mapRecords.vtable = gameslots::MapRecordArrayClass::Vtable();
-    mapRecords.FreeData();
-    auto& allodRecords = reinterpret_cast<mfc::CArray<AllodRecord, AllodElements>&>(allods);
-    allodRecords.vtable = mfc::impl::AllodArrayClass::Vtable();
-    allodRecords.FreeData();
+    maps.vtable = gameslots::MapRecordArrayClass::Vtable();
+    maps.FreeData();
+    allods.vtable = mfc::impl::AllodArrayClass::Vtable();
+    allods.FreeData();
 }
 EI_REWRITTEN(0x0045E6F0, CMapDatabase::Destruct);
 

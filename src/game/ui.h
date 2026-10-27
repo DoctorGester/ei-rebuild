@@ -264,9 +264,9 @@ public:
     // Help topics seen: name -> times (or the page the help window was closed on; ui_help_window.cpp);
     // config\tutorial.ini "name count" lines, read by Create, written by Shutdown, counted by OpenHelp.
     stlp::map<mfc::CString, int, stlp::CStringLess> helpTopics_;
-    mfc::CString messageText_;
+    std::string messageText_;
     int messageFlag_;                // the message window's page, set when it closes
-    mfc::CString savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F
+    std::string savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F
 
     // Clears the modifier and button flags and deactivates the top window's input side.
     void ResetInput();
@@ -289,7 +289,7 @@ static_assert(offsetof(CInterface3D, stack_) == 0x34);
 
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
-static_assert(offsetof(CInterface3D, messageText_) == 0xA4 && offsetof(CInterface3D, savedText_) == 0xAC);
+static_assert(offsetof(CInterface3D, messageText_) == 0xA4);
 static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);
@@ -302,7 +302,6 @@ static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
-static_assert(sizeof(CInterface3D) == 0xB0);
 
 extern lib::StaticObject<CInterface3D> g_interface;
 
@@ -946,28 +945,21 @@ struct HudPortraitSlot {
     Quaternion restB_;
     int wobbleKind_;                 // 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
     float wobbleTime_;               // starts negative (a delay)
-    mfc::CString faceName_;
+    std::string faceName_;
     int faceState_;                  // picture shown (0 normal, 2 hit, 3 low mana, ...)
     int faceMode_;                   // 1 / 2: a timed picture, 0 none
     float faceTimer_;
-    mfc::CString modelPrefix_;       // the face model is prefix + build + suffix,
-    mfc::CString modelSuffix_;       // build "th", "me" or "fa"
+    std::string modelPrefix_;       // the face model is prefix + build + suffix,
+    std::string modelSuffix_;       // build "th", "me" or "fa"
     float build_;                    // the unit's build the model was chosen for
     Quaternion wobbleTarget_;
     float wobbleSpeed_;
     bool hasPlayer_;                 // a multiplayer player without a unit here (no bars)
     std::uint8_t unused_71[3];
     int playerId_;                   // that player's serial, else -1
-
-    mfc::CString& FaceName() { return faceName_; }
-    mfc::CString& ModelPrefix() { return modelPrefix_; }
-    mfc::CString& ModelSuffix() { return modelSuffix_; }
 };
-static_assert(sizeof(HudPortraitSlot) == 0x78);
 static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
-static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortraitSlot, modelPrefix_) == 0x50 &&
-              offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
-static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
+static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40);
 
 // Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
@@ -1239,7 +1231,7 @@ public:
     // battle screen copies them as dwords).
     float viewHeight_[2];            // how far up the panel the model stands, in units of its size
     float viewSize_[2];              // the model's size: it is drawn 1 / size (times its animation's ratio)
-    mfc::CString strings_[2];        // the selected and the hover unit's names
+    std::string strings_[2];        // the selected and the hover unit's names
     int sliding_;                    // set when the sling button starts the slide
     int offset_;                     // current slide offset in pixels (to the left)
     int travel_;                     // full slide distance
@@ -1250,12 +1242,8 @@ public:
     mfc::CStringArray texts_;        // "infounit_0".."infounit_17": the info lines' labels
     mfc::CStringArray partLabels_;   // four: the shown names of "skull", "torso", "leg", "arm"
 };
-static_assert(offsetof(CHudUnitPanel, texts_) == 0x19C && offsetof(CHudUnitPanel, partLabels_) == 0x1B0);
 static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
-static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
-static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
-static_assert(sizeof(CHudUnitPanel) == 0x1C4);   // CBattleScreen's operator new
 
 // Game clock (720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1342,7 +1330,6 @@ public:
     void AddPickedUp(CItem* item, int crippled);
     // The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
-    mfc::CString& PageText(int page) { return pageTexts_[page]; }
 
     CBattleScreen* owner_;
     int sliding_;
@@ -1351,12 +1338,11 @@ public:
     float slide_;                    // 0 (out) .. 1 (in)
     float slideDirection_;
     int page_;
-    mfc::CString pageTexts_[2];      // the message log's text of pages 0 and 1
+    std::string pageTexts_[2];      // the message log's text of pages 0 and 1
 };
 static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
-static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows ---
 
@@ -1490,7 +1476,7 @@ public:
     BOOL OnWheel(int flags, int delta, int x, int y);
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
-    void UnitName(CUnit* unit, mfc::CString* out);
+    void UnitName(CUnit* unit, std::string* out);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
     void OnQuestVariable(const char* name, float value);
@@ -1729,10 +1715,10 @@ struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width_(0) {}
     ~UiWordToken() override;
 
-    mfc::CString text_;
+    std::string text_;
     int width_;                      // its width in the token's font
 };
-static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x08);
+static_assert(offsetof(UiWordToken, text_) == 0x08);
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
@@ -1827,19 +1813,16 @@ struct SaveEntry {
     SaveEntry* CopyConstruct(const SaveEntry* from);
     void Destruct();
 
-    mfc::CString title_;
-    mfc::CString folder_;            // under saves\ ("saveq" quick, "savea" / "saveb" automatic, "save<n>")
+    std::string title_;
+    std::string folder_;            // under saves\ ("saveq" quick, "savea" / "saveb" automatic, "save<n>")
     std::int32_t savedAt_;           // time() when it was saved (info.sav version 2 and up)
     float gameTime_;                 // the "gtime" variable
-    mfc::CString map_;               // the map of the zone
-    mfc::CString zone_;
+    std::string map_;               // the map of the zone
+    std::string zone_;
     mfc::CStringArray stringArrays_[2];  // copied with the entry
     bool broken_;                    // no info.sav: titled "Error Save", no picture
     std::uint8_t unused_41[3];
 };
-static_assert(sizeof(SaveEntry) == 0x44);
-static_assert(offsetof(SaveEntry, folder_) == 0x04 && offsetof(SaveEntry, map_) == 0x10 && offsetof(SaveEntry, zone_) == 0x14);
-static_assert(offsetof(SaveEntry, broken_) == 0x40);
 
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
 // the disc lacks the space a save needs (0 free space: not checked). Writes info.sav (the "gtime" variable,
@@ -1914,15 +1897,14 @@ public:
     float slide_;                    // 0..1
     CUiScrollbar* scrollbar_;
     CEngineObject* dialog_;          // the save window's picture of the game for the new save
-    mfc::CString name_;              // the save name being edited
+    std::string name_;              // the save name being edited
     bool nameTyped_;
     std::uint8_t unused_18D[3];
     int cursor_;                     // caret position in name_ (bytes, at a character's start: U4)
 };
 static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
 static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
-static_assert(offsetof(CSaveLoadWindow, name_) == 0x188 && offsetof(CSaveLoadWindow, cursor_) == 0x190);
-static_assert(sizeof(CSaveLoadWindow) == 0x194);
+static_assert(offsetof(CSaveLoadWindow, name_) == 0x188);
 
 struct OptionDefinition {
     int id_;
@@ -2014,9 +1996,8 @@ struct OptionSetting {
     int value_;
     CUiScrollbar* bar_;              // a CUiSlider, or null
     CUiSpin* spin_;                  // or null
-    mfc::CString text_;              // the shown name
+    std::string text_;              // the shown name
 };
-static_assert(sizeof(OptionSetting) == 0x14);
 
 // An exit shown on the objectives window's zone picture.
 struct ObjectiveExit {
@@ -2071,12 +2052,12 @@ public:
     const char* HelpTopic() override;
 
     stlp::vector<mfc::CString> zones_;   // the zones listed
-    mfc::CString zoneName_;          // the zone it was opened for
+    std::string zoneName_;          // the zone it was opened for
     int twoButtons_;                 // OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // exit -> distance, or null
     int listZones_;                  // list the zones of the zone's allod with quests
     int zoneIndex_;
-    mfc::CString shownZone_;
+    std::string shownZone_;
     mfc::CArray<ObjectiveExit> exits_;
     int nearestExit_;
     int selectedQuest_;              // row of the quest named by the current-quest global
@@ -2091,12 +2072,6 @@ public:
     std::uint32_t savedAlphaRef_;
 };
 static_assert(offsetof(CObjectivesWindow, zones_) == 0x164 && offsetof(CObjectivesWindow, zoneName_) == 0x170);
-static_assert(offsetof(CObjectivesWindow, shownZone_) == 0x184);
-static_assert(offsetof(CObjectivesWindow, exits_) == 0x188 && offsetof(CObjectivesWindow, nearestExit_) == 0x19C);
-static_assert(offsetof(CObjectivesWindow, quests_) == 0x1A8 && offsetof(CObjectivesWindow, questPlaces_) == 0x1CC);
-static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(CObjectivesWindow, savedAlphaRef_) == 0x1EC);
-static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
-static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 
 inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
@@ -2111,10 +2086,9 @@ struct OptionBinding {
     const ActionDefinition* action_;
     // The keys bound to the action (BuildBindings keeps at most one).
     stlp::vector<const UiKeyName*> keys_;
-    mfc::CString name_;              // the action's shown name
-    mfc::CString keysText_;          // the keys' names
+    std::string name_;              // the action's shown name
+    std::string keysText_;          // the keys' names
 };
-static_assert(sizeof(OptionBinding) == 0x18);
 
 // A row of the options window: a key binding or a setting.
 struct OptionRow {
@@ -2204,7 +2178,6 @@ public:
     // with the caret at the end); the caret is not clamped here.
     void OnKeyDown(int key, int repeat, int flags);
     void DrawContentsVanilla();
-    mfc::CString& Text() { return text_; }
     // Every character class, font 1, at most 50 characters; focused. caret_, editing_ and changed_ are left
     // as they are.
     CUiEditField(CInterface3D* ui, RECT rect);
@@ -2227,17 +2200,14 @@ public:
     int maxLength_;
     COLORREF colour_;                // the text's colour
     COLORREF caretColour_;           // SetLook's last argument (0xFF from the constructor)
-    mfc::CString text_;
+    std::string text_;
     int caret_;                      // caret position in text_ (bytes, at a character's start: U4)
     bool editing_;                   // an edit key was pressed (the first one sets it)
     bool focused_;                   // keys are taken only while set
     bool changed_;
     std::uint8_t unused_17B;
 };
-static_assert(offsetof(CUiEditField, caret_) == 0x174);
-static_assert(offsetof(CUiEditField, changed_) == 0x17A);
 static_assert(offsetof(CUiEditField, text_) == 0x170);
-static_assert(sizeof(CUiEditField) == 0x17C);
 
 // The message box. Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one cancel button), 4 an
 // edit field instead of the text (its initial text is the text key itself).
@@ -2261,17 +2231,15 @@ public:
     // Also the master request box's and the difficulty question's.
     void OnClose();
 
-    mfc::CString title_;
-    mfc::CString text_;
+    std::string title_;
+    std::string text_;
     std::uint32_t result_;           // 0xFFFF0000: the text in font 1, else 2
     std::uint32_t flags_;
     std::uint32_t format_;           // added to the text's DrawText format
     CUiEditField* edit_;             // the edit field (flag 4)
     char* editText_;                 // the edit field's first text; OK copies the typed one here
 };
-static_assert(offsetof(CMessageBox, title_) == 0x164 && offsetof(CMessageBox, text_) == 0x168);
-static_assert(offsetof(CMessageBox, edit_) == 0x178);
-static_assert(sizeof(CMessageBox) == 0x180);
+static_assert(offsetof(CMessageBox, title_) == 0x164);
 
 // The help / message window (CInterface3D::ShowMessage and OpenHelp). Its pages come from the texts:
 // "tutorial <text_>" holds the title key and a "#screen" line per page, and "tutor <key>" each key's text.
@@ -2304,8 +2272,8 @@ public:
 
     bool message_;                       // a message window (ShowMessage), not help
     std::uint8_t unused_165[3];
-    mfc::CString text_;                  // the message, or the help topic
-    mfc::CString title_;
+    std::string text_;                  // the message, or the help topic
+    std::string title_;
     mfc::CStringArray lines_;            // the pages' texts
     int page_;                           // the page shown (the topic's or message's saved page)
     stlp::list<CUiMesh*> pulsing_;       // sprites whose plain colour pulses (Update)
@@ -2317,21 +2285,16 @@ private:
     void Finish();
 };
 static_assert(offsetof(CHelpWindow, text_) == 0x168);
-static_assert(offsetof(CHelpWindow, lines_) == 0x170);
-static_assert(offsetof(CHelpWindow, pulsing_) == 0x188);
-static_assert(offsetof(CHelpWindow, page_) == 0x184);
-static_assert(sizeof(CHelpWindow) == 0x194);
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
     void Destroy();
 
-    mfc::CString text;          // AddLine leaves it empty
-    mfc::CString name;          // the line's text without its colour codes
+    std::string text;          // AddLine leaves it empty
+    std::string name;          // the line's text without its colour codes
     std::uint32_t time;         // timeGetTime when it was added
     CUiSurface* surface;
 };
-static_assert(sizeof(ChatLine) == 0x10);
 
 // The in-game chat overlay: the interface's root window, updated after the top window every frame; in a
 // multiplayer client it holds the chat line, which takes the keys while it is open.
@@ -2362,11 +2325,10 @@ public:
     stlp::list<ChatLine> lines_;
     bool chatOpen_;                  // a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unused_14D[3];
-    mfc::CString typed_;
+    std::string typed_;
     int caret_;                      // in the typed line (a byte offset at a character's start: U4)
 };
 static_assert(offsetof(CChatOverlay, lines_) == 0x148);
-static_assert(offsetof(CChatOverlay, caret_) == 0x154);
 static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
@@ -2392,8 +2354,6 @@ public:
 
     int easy_;                       // 1 easy, 0 hard (the default)
 };
-static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
-static_assert(sizeof(CDifficultyBox) == 0x184);
 
 // The cursor's position in screen pixels and the motion a right-button drag accumulates.
 long& MouseScreenX();

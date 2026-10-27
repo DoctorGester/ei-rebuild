@@ -30,14 +30,14 @@ EI_REWRITTEN(0x004613A0, IsTextKey);
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
-        if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
+        if (gamecrt::mbsicmp(maps.data[i].name.c_str(), name) == 0) return &maps.data[i];
     return nullptr;
 }
 EI_REWRITTEN(0x0045E850, CMapDatabase::FindMap);
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
-        if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
+        if (gamecrt::mbsicmp(allods.data[i].name.c_str(), name) == 0) return &allods.data[i];
     return nullptr;
 }
 EI_REWRITTEN(0x0045E910, CMapDatabase::FindAllod);

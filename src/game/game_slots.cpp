@@ -112,7 +112,7 @@ namespace mfc::impl {
 
 EI_REWRITTEN(0x004CEB20, CommandBlockArray::ConstructElements);
 EI_REWRITTEN(0x004CD6D0, CommandBlockList::NewNode);
-EI_REWRITTEN(0x00460470, ScalarDeleting<&ExitTargets::Destruct<ExitArrayClass>>::Delete);
-EI_REWRITTEN(0x00460A60, ScalarDeleting<&ExitTargets::Destruct<ExitArrayClass>>::Delete);
+EI_REWRITTEN(0x00460470, ScalarDeleting<&gamearrays::Exits::Destruct<ExitArrayClass>>::Delete);
+EI_REWRITTEN(0x00460A60, ScalarDeleting<&gamearrays::Exits::Destruct<ExitArrayClass>>::Delete);
 
 } // namespace mfc::impl

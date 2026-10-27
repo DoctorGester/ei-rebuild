@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -21,9 +22,9 @@ int Version(const CStream* stream) { return static_cast<int>(stream->version_); 
 
 // A string read into a temporary (ReadString constructs it), assigned to `field`
 // (CString::operator=), then destroyed.
-void ReadInto(CStream* stream, mfc::CString* field) {
+void ReadInto(CStream* stream, std::string* field) {
     mfc::CString text(mfc::CString::kUnset);
-    *field = *stream->ReadString(&text);
+    *field = stream->ReadString(&text)->GetString();
 }
 
 } // namespace
@@ -39,7 +40,7 @@ void CInterface3D::LoadState(CStream* stream) {
     if (Version(stream) < 0x56) return;
     // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
     // the original's local CString).
-    mfc::CString last;
+    std::string last;
     int count;
     Read(stream, &count, 4);
     for (int i = 0; i < count; ++i) {
@@ -105,9 +106,9 @@ void CInterface3D::SaveState(CStream* stream) {
     stream->Write(&value, 4);
     value = 0;   // the obsolete list LoadState skips: no entries
     stream->Write(&value, 4);
-    stream->Write(messageText_, static_cast<std::uint32_t>(std::strlen(messageText_) + 1));
+    stream->Write(messageText_.c_str(), static_cast<std::uint32_t>(std::strlen(messageText_.c_str()) + 1));
     value = messageFlag_;
     stream->Write(&value, 4);
-    stream->Write(savedText_, static_cast<std::uint32_t>(std::strlen(savedText_) + 1));
+    stream->Write(savedText_.c_str(), static_cast<std::uint32_t>(std::strlen(savedText_.c_str()) + 1));
 }
 EI_REWRITTEN(0x005F85C0, CInterface3D::SaveState);

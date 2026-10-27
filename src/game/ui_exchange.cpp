@@ -57,7 +57,7 @@ void CExchangeScreen::Update() {
     bool changed = moneyField_->changed_;
     moneyField_->changed_ = false;
     if (!changed) return;
-    ownOffer_->Money() = std::atoi(moneyField_->text_);
+    ownOffer_->Money() = std::atoi(moneyField_->text_.c_str());
     net::ClientPublishParty(net::GameClient());
 }
 EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);

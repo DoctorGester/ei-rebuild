@@ -165,7 +165,7 @@ void CBattleScreen::CreateScreen() {
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
         auto* top = topPanel_;
-        mfc::CString& panelText = top->pageTexts_[0];
+        auto& panelText = top->pageTexts_[0];
         const char* text = savedText.c_str();
         panelText += text;
         if (top->page_ == 0) {

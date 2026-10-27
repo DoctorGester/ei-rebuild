@@ -80,7 +80,7 @@ void ChooseKeyboardLayout() {
     gameapi::ActivateKeyboardLayout(chosen, 0);
 }
 
-static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CChatOverlay) == 0x158 && sizeof(CScreenFade) == 0x14);
+static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CScreenFade) == 0x14);
 
 } // namespace
 

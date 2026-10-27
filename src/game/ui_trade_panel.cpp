@@ -24,6 +24,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
+#include "lib/str.h"
 
 int __fastcall SchoolPrice(int /*from*/, int /*to*/);
 namespace {
@@ -64,6 +65,12 @@ int HasPerkText(CTextManager* table, const char* name) {
     std::string prefix("perk ");
     mfc::CString key = prefix + name;
     return table->CTextManager::Open(key);
+}
+// The open perk text's line (the row's shown name); the cursor moves to the next line.
+std::string ReadPerkLine(CTextManager* texts) {
+    mfc::CString line;
+    texts->ReadLine(&line, 1);
+    return line.GetString();
 }
 
 // A perk record's text key: its name without trailing level digits, plus "0".
@@ -125,7 +132,7 @@ void CTradePanel::BuildLists() {
     for (int i = 0; i < 6; ++i) {
         TradeRow* row = PushBack(&schools_, blank);
         if (HasPerkText(table, names[i]))
-            texts->ReadLine(&row->name, 1);
+            row->name = ReadPerkLine(texts);
         else
             row->name = names[i];
         row->level = stats->skills[i];
@@ -134,7 +141,7 @@ void CTradePanel::BuildLists() {
     {
         TradeRow* row = PushBack(&science_, blank);
         if (HasPerkText(table, names[6]))
-            texts->ReadLine(&row->name, 1);
+            row->name = ReadPerkLine(texts);
         else
             row->name = names[6];
         row->level = stats->attributes[0];
@@ -159,7 +166,7 @@ void CTradePanel::BuildLists() {
         else
             text = record->field0;
         if (level > 1)
-            row->name.Format("%s (%s%d)", text.GetString(),
+            row->name = str::Format("%s (%s%d)", text.GetString(),
                                    perkLevel.GetString(), level);
         else
             row->name = text;
@@ -186,7 +193,7 @@ void CTradePanel::BuildLists() {
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
-            texts->ReadLine(&row->name, 1);
+            row->name = ReadPerkLine(texts);
         else
             row->name = record->field0;
         row->price = stats->SkillPrice(record);
@@ -219,7 +226,7 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 }
 
 void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
-    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
+    draw->DrawLine(school->name.c_str(), row, 0, kBright, 0, 1);
     value->Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
@@ -266,8 +273,8 @@ void CTradePanel::DrawLists() {
     for (int shown = 0; shown < 10; ++shown, ++index) {
         if (index >= static_cast<unsigned>(static_cast<int>(perks_.size()))) break;
         TradeRow* perk = &perks_[index];
-        draw->DrawLine(perk->name, &row, 0, kBright, 0, 1);
-        if (perk->nextKey.GetLength() != 0) {
+        draw->DrawLine(perk->name.c_str(), &row, 0, kBright, 0, 1);
+        if (perk->nextKey.size() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
             FormatPrice(perk->price, &value);
             draw->DrawLine(value, &row, 0, colour, 2, 1);
@@ -287,7 +294,7 @@ void CTradePanel::DrawLists() {
             textColour = kBright;
             priceColour = PriceColour(perk->price, experience_);
         }
-        draw->DrawLine(perk->name, &row, 0, textColour, 0, 1);
+        draw->DrawLine(perk->name.c_str(), &row, 0, textColour, 0, 1);
         FormatPrice(perk->price, &value);
         draw->DrawLine(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
