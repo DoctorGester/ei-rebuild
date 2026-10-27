@@ -40,7 +40,6 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-// The text key (object id) of a name (object_tables.cpp).
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
@@ -49,7 +48,6 @@ struct Briefing {
     mfc::CString n1, n3, n9, n8, n2, n10, hired, n11;
 };
 
-// The player's party (its records, items and variables).
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
 PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_.data[index]; }
 
@@ -153,8 +151,6 @@ namespace {
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
-// The item manager creates an item by name. Patched by Rebirth. A pointer list built and destroyed around
-// each item creation, unused.
 
 // The item named `name`, with the game's unused temporary lists around the creation (built in the order
 // `firstAt`, then the other).
@@ -274,7 +270,6 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
 
 namespace {
 
-// CWorld: the unit object with a text key. Patched by Rebirth. CWorldServer: removes the object with an id.
 
 // One slot's names, declared so that they are destroyed in the game's order: amerc, n10, n2, n8, n9, n3,
 // n1, merc.
@@ -336,7 +331,6 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-// The unit controller, a party record's statistics and the player state (which tells its client) gain experience.
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
 double Weight(CUnitServer* controller) {
@@ -450,8 +444,6 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-// The unit record's lists (weapons ("quick"), quick items ("belt"), armour ("worn"), spells): remove an entry;
-// add an entry (they return the record entry).
 
 // The party's copy of an item (CParty's copy virtual; the record entry's source).
 CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
