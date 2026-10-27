@@ -29,9 +29,6 @@ constexpr int kFogTiles = 16;
 constexpr float kFogTileSize = 0.25f;
 
 
-// The manager's current-object slot holds the fog texture.
-HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<HeldTexture*>(&self->current); }
-
 } // namespace
 
 // A new CVisibilityFog, whatever the type asked: the engine object's fields, everything up to the cell map
@@ -41,7 +38,7 @@ EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
 // The texture, the tile table, then the manager's own Create (its result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
-    TextureHolder(self)->Load(kFogTextureKind, FogTextureName());
+    self->texture.Load(kFogTextureKind, FogTextureName());
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];
@@ -56,8 +53,8 @@ EI_REWRITTEN(0x004E2990, VisFogManagerCreate);
 
 // The texture dropped (null, then released), every fog released, the list emptied.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
-    CEngineObject* texture = self->current;
-    self->current = nullptr;
+    CTexture* texture = self->texture;
+    self->texture = nullptr;
     if (texture) texture->Release();
     for (FogNode* node = self->list.head; node;) {
         CEngineObject* fog = node->data;
@@ -99,8 +96,8 @@ EI_REWRITTEN(0x004E28D0, VisFogManagerAdd);
 // stage 0 (a failed bind: 0), then every fog draws; 1.
 int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     if (list.count == 0) return 1;
-    TextureHolderEnsureLoaded(TextureHolder(this));
-    if (!renderer->SetTexture(0, current)) return 0;
+    TextureHolderEnsureLoaded(&texture);
+    if (!renderer->SetTexture(0, texture.texture)) return 0;
     for (FogNode* node = list.head; node;) {
         CEngineObject* fog = node->data;
         node = node->next;

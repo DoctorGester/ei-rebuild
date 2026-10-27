@@ -65,17 +65,15 @@ void CopyList(PartyItemArray& list, const PartyItemArray& source, CParty* party)
     }
 }
 
-const PartyItemArray& ConstList(CItem** const& data) { return *reinterpret_cast<const PartyItemArray*>(&data); }
-
 } // namespace
 
 
 void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party) {
     ClearItems();
-    CopyList(ItemList(weapons), ConstList(source->weapons), party);
-    CopyList(ItemList(quickItems), ConstList(source->quickItems), party);
-    CopyList(ItemList(armor), ConstList(source->armor), party);
-    CopyList(ItemList(spells), ConstList(source->spells), party);
+    CopyList(weapons, source->weapons, party);
+    CopyList(quickItems, source->quickItems, party);
+    CopyList(armor, source->armor, party);
+    CopyList(spells, source->spells, party);
 }
 EI_REWRITTEN(0x00660500, PartyUnitRecord::CopyItemsFrom);
 
@@ -134,14 +132,14 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         CItem* item = MakeItem(this, armour.begin()[i]);
         CItem* copy = CountedClone(item);
-        ItemList(record->armor).SetAtGrow(static_cast<int>(record->armorCount), copy);
+        record->armor.SetAtGrow(record->armor.size, copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon).c_str())) continue;
         CItem* item = MakeItem(this, (*weapon).c_str());
         CItem* copy = CountedClone(item);
-        ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);
+        record->weapons.SetAtGrow(record->weapons.size, copy);
         Drop(item);
     }
     const CStringVector& spellNames = prototype->spellNames;
@@ -149,7 +147,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
         CItem* copy = CountedClone(spell);
-        PartyItemArray& list = ItemList(record->spells);
+        PartyItemArray& list = record->spells;
         int index = list.size;
         list.SetSize(index + 1, -1);
         list.data[index] = copy;
@@ -162,7 +160,7 @@ EI_REWRITTEN(0x006621F0, CParty::FillFromPrototype);
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
-    for (PartyItemArray* list : {&ItemList(record->spells), &ItemList(record->weapons)}) {
+    for (PartyItemArray* list : {&record->spells, &record->weapons}) {
         while (list->size != 0) {
             list->data[0]->Release();
             list->RemoveRange(0, 1);
@@ -175,21 +173,21 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
-        ItemList(record->spells).Add(CountedClone(spell));
+        record->spells.Add(CountedClone(spell));
         Drop(spell);
     }
     const CStringVector& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
         CItem* item = MakeItem(this, quickNames.begin()[i]);
         CItem* copy = CountedClone(item);
-        ItemList(record->quickItems).SetAtGrow(static_cast<int>(record->quickItemCount), copy);
+        record->quickItems.SetAtGrow(record->quickItems.size, copy);
         Drop(item);
     }
     const CStringVector& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
         CItem* item = MakeItem(this, weaponNames.begin()[i]);
         CItem* copy = CountedClone(item);
-        ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);
+        record->weapons.SetAtGrow(record->weapons.size, copy);
         Drop(item);
     }
     Money() += npc->startMoney;

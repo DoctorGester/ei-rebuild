@@ -22,7 +22,7 @@ void SetMinusOne(T& field) {
     std::memcpy(&field, &kMinusOne, 4);
 }
 
-CRefCounted* Link(void* value) { return static_cast<CRefCounted*>(value); }
+CRefCounted* Link(CRefObject* value) { return value; }
 
 void DropSpell(CSpell*& spell) {
     CSpell* old = spell;

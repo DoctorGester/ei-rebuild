@@ -212,7 +212,7 @@ public:
 
     int width_;                      // screen width
     int height_;                     // screen height
-    struct UiRenderer* renderer_;
+    CTextureDevice* renderer_;       // the device
     void* mouseCapture_;             // input side that took the button press
     std::uint8_t unused_10[0x14 - 0x10];
     console::ConsoleWindow* console_;
@@ -739,32 +739,17 @@ class CUiScrollText;
 
 using UiDwordArray = mfc::CArray<std::uint32_t>;
 
-// The interface's renderer, only as the HUD uses it; UiD3DDevice is its IDirect3DDevice7.
-struct UiD3DDevice {
-    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
-    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value);
-    long SetTextureStageState(DWORD stage, DWORD type, DWORD value);
-    long SetRenderState(std::uint32_t state, std::uint32_t value);
-    long GetRenderState(std::uint32_t state, std::uint32_t* value);
-    long ApplyStateBlock(std::uint32_t handle);
-
-    void** vtable_;   // IDirect3DDevice7
-};
-struct UiRenderer {
-    std::uint8_t unused_00[0x08];
-    long result_;                    // the last device call's result
-    std::uint8_t unused_0C[0x4C - 0x0C];
-    CPixelConverter* decoder_;       // decodes an .mmp image's pixels
-    std::uint8_t unused_50[0x54 - 0x50];
-    UiD3DDevice* device_;
-    std::uint8_t unused_58[0x90 - 0x58];
-    std::uint32_t caps_;             // (0x4000 with stencil_: the depth buffer has a stencil)
-    std::uint8_t unused_94[0x9C - 0x94];
-    int stencil_;
-};
-static_assert(offsetof(UiRenderer, caps_) == 0x90);
-static_assert(offsetof(UiRenderer, stencil_) == 0x9C);
-static_assert(offsetof(UiRenderer, device_) == 0x54);
+// The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
+namespace uidevice {
+long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
+long GetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, std::uint32_t* value);
+long SetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, DWORD value);
+long SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value);
+long GetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t* value);
+long ApplyStateBlock(CTextureDevice* device, std::uint32_t handle);
+// Whether the device's depth buffer has a stencil.
+bool HasStencil(const CTextureDevice* device);
+} // namespace uidevice
 
 // Direct3D 7 render states the HUD sets around its drawing.
 constexpr int kRenderStateAlphaTest = 15;    // D3DRENDERSTATE_ALPHATESTENABLE

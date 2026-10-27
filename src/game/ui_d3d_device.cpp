@@ -1,34 +1,42 @@
-// The interface code's view of the IDirect3DDevice7 (UiD3DDevice, ui.h): each method goes through
+// The interface code's calls on the device's IDirect3DDevice7 (uidevice, ui.h): each goes through
 // device.h's call of the same name, which uses the interface, or without DirectDraw the switch-over
 // device's state (docs/notes/renderer.md section 9).
 #include "ui.h"
 
 #include "device.h"
+#include "texture.h"
 
-namespace {
-IDirect3DDevice7* Interface(UiD3DDevice* device) { return reinterpret_cast<IDirect3DDevice7*>(device); }
-} // namespace
+namespace uidevice {
 
-long UiD3DDevice::Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil) {
-    return device::Clear(Interface(this), count, static_cast<D3DRECT*>(rects), flags, colour, z, stencil);
+long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil) {
+    return device::Clear(device->d3dDevice_, count, static_cast<D3DRECT*>(rects), flags, colour, z, stencil);
 }
 
-long UiD3DDevice::GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value) {
-    return device::GetTextureStageState(Interface(this), stage, static_cast<D3DTEXTURESTAGESTATETYPE>(type),
+long GetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, std::uint32_t* value) {
+    return device::GetTextureStageState(device->d3dDevice_, stage, static_cast<D3DTEXTURESTAGESTATETYPE>(type),
                                         reinterpret_cast<DWORD*>(value));
 }
 
-long UiD3DDevice::SetTextureStageState(DWORD stage, DWORD type, DWORD value) {
-    return device::SetTextureStageState(Interface(this), stage, static_cast<D3DTEXTURESTAGESTATETYPE>(type), value);
+long SetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, DWORD value) {
+    return device::SetTextureStageState(device->d3dDevice_, stage, static_cast<D3DTEXTURESTAGESTATETYPE>(type), value);
 }
 
-long UiD3DDevice::SetRenderState(std::uint32_t state, std::uint32_t value) {
-    return device::SetRenderState(Interface(this), static_cast<D3DRENDERSTATETYPE>(state), value);
+long SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value) {
+    return device::SetRenderState(device->d3dDevice_, static_cast<D3DRENDERSTATETYPE>(state), value);
 }
 
-long UiD3DDevice::GetRenderState(std::uint32_t state, std::uint32_t* value) {
-    return device::GetRenderState(Interface(this), static_cast<D3DRENDERSTATETYPE>(state),
+long GetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t* value) {
+    return device::GetRenderState(device->d3dDevice_, static_cast<D3DRENDERSTATETYPE>(state),
                                   reinterpret_cast<DWORD*>(value));
 }
 
-long UiD3DDevice::ApplyStateBlock(std::uint32_t handle) { return device::ApplyStateBlock(Interface(this), handle); }
+long ApplyStateBlock(CTextureDevice* device, std::uint32_t handle) {
+    return device::ApplyStateBlock(device->d3dDevice_, handle);
+}
+
+bool HasStencil(const CTextureDevice* device) {
+    constexpr std::uint32_t kStencilFormat = 0x4000;   // DDPF_STENCILBUFFER
+    return (device->depthFormat_.words[1] & kStencilFormat) != 0 && device->depthFormat_.words[4] != 0;
+}
+
+} // namespace uidevice

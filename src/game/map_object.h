@@ -7,6 +7,7 @@
 #include "engine_object.h"
 #include "map_object_figures.h"   // CObject3D, the base
 #include "maths.h"
+#include "net_delta.h"          // DeltaState
 
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -173,7 +174,6 @@ public:
     int HasEffect(std::uint32_t type);
 
     void SetUpMapObject();
-    void TearDownMapObject();
 
 
     // The per-tick update: lets the companion update. Returns 1. CUnit's update calls it after its controller's.
@@ -245,7 +245,9 @@ public:
     CObject3D* Object3D() { return this; }
 
     UnitVitalsPacked* PackedVitals() { return &packedVitals; }
-    DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
+    DeltaState* NetState() { return &netState_; }
+    // The parts changed since the last send (bit per part: MarkChanged): the network state's mask.
+    std::uint16_t& ChangedParts() { return netState_.mask_; }
 
 
     // The world the object lives in (via its owner), or null.
@@ -271,10 +273,7 @@ public:
     int sectorCellX;
     int sectorCellY;
     int changeStamp;                // the world's change counter when last changed
-    // The network state (a DeltaState: NetState()); its mask is changedParts.
-    std::uint8_t netState[0x1DC - 0x1C4];
-    std::uint16_t changedParts;     // bit per part changed (MarkChanged)
-    std::uint8_t unused_1DE[0x238 - 0x1DE];    // the network state's memory streams
+    DeltaState netState_;           // the network state; its mask is the changed parts (ChangedParts())
 
 protected:
     CMapObject();

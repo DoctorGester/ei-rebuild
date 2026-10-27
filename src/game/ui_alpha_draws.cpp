@@ -18,15 +18,15 @@ namespace {
 constexpr std::uint32_t kAlphaBlend = 0x1B, kAlphaTest = 0x0F, kSourceBlend = 0x13, kDestBlend = 0x14, kAlphaRef = 0x18;
 
 // The interface's Direct3D device.
-UiD3DDevice* Device(CUiWindow* w) { return w->interface_->renderer_->device_; }
+CTextureDevice* Device(CUiWindow* w) { return w->interface_->renderer_; }
 
 void SetState(CUiWindow* w, std::uint32_t state, std::uint32_t value) {
-    Device(w)->SetRenderState(state, value);
+    uidevice::SetRenderState(Device(w), state, value);
     render::state::Render(state, value);
 }
 std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
     std::uint32_t value = 0;
-    Device(w)->GetRenderState(state, &value);
+    uidevice::GetRenderState(Device(w), state, &value);
     return value;
 }
 

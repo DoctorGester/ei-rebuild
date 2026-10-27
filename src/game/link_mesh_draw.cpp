@@ -260,7 +260,7 @@ int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, 
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
     lib::AlignedArray<PixelPair>& texturePixels = TexturePixels();
-    CPixelConverter* converter = static_cast<CPixelConverter*>(loader_->renderer_->converter_);
+    CPixelConverter* converter = loader_->renderer_->converter_;
 
     texturePixels.SetSizeDiscard(r.texCoords.count);
     for (unsigned i = 0; i < static_cast<unsigned>(r.texCoords.count); ++i) {

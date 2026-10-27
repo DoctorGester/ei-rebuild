@@ -4,6 +4,7 @@
 // called through its original address.
 #include "core_streams.h"
 #include "ui.h"
+#include "texture.h"
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -213,12 +214,11 @@ BOOL CBattleScreen::Draw(int pass) {
     }
     Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
-    UiRenderer* renderer = interface_->renderer_;
-    DWORD flags = kClearTarget;
-    if ((renderer->caps_ & 0x4000) && renderer->stencil_) flags = kClearStencil;
+    CTextureDevice* renderer = interface_->renderer_;
+    DWORD flags = uidevice::HasStencil(renderer) ? kClearStencil : kClearTarget;
     auto* lock = TheDeviceLock();
     gameapi::EnterCriticalSection(lock);
-    renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
+    renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);
     render::ClearDepth(1.0f, nullptr, 0);
     // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the

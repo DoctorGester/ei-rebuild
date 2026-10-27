@@ -36,8 +36,8 @@ constexpr float kOpaque = 255.0f;
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
 
 // IDirect3DDevice7::SetRenderState, recorded for the frame capture.
-void SetRenderState(void* device, std::uint32_t state, std::uint32_t value) {
-    static_cast<UiD3DDevice*>(device)->SetRenderState(state, value);
+void SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value) {
+    uidevice::SetRenderState(device, state, value);
     render::state::Render(state, value);
 }
 
@@ -81,10 +81,10 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
         const int bar = static_cast<int>(static_cast<double>(height) * LetterboxShare());
-        SetRenderState(renderer->device_->d3dDevice_, kZEnable, 0);
+        SetRenderState(renderer->device_, kZEnable, 0);
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);
-        SetRenderState(renderer->device_->d3dDevice_, kZEnable, 1);
+        SetRenderState(renderer->device_, kZEnable, 1);
     }
     if (!active_) return 1;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
@@ -101,10 +101,10 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
         active_ = 0;
         return 1;
     }
-    SetRenderState(renderer->device_->d3dDevice_, kZEnable, 0);
+    SetRenderState(renderer->device_, kZEnable, 0);
     screen = ScreenOf(renderer);
     renderer->DrawRectangle(0, 0, screen.right - screen.left, screen.bottom - screen.top, static_cast<int>(alpha_), 0);
-    SetRenderState(renderer->device_->d3dDevice_, kZEnable, 1);
+    SetRenderState(renderer->device_, kZEnable, 1);
     return 1;
 }
 EI_REWRITTEN(0x005E69C0, CScreenFade::Draw);

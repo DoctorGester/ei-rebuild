@@ -42,7 +42,7 @@ CWorld* CMapObject::World() { return ObjectWorld(this); }
 // --- Change tracking -------------------------------------------------------------------------
 
 std::uintptr_t CMapObject::MarkChanged(int part) {
-    if (part >= 0) changedParts = static_cast<std::uint16_t>(changedParts | (1u << (part & 31)));
+    if (part >= 0) ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | (1u << (part & 31)));
     flags_ |= kFlagDirty;
     if (refCount_ == 0) return 0;
     CWorld* world = World();
@@ -109,7 +109,7 @@ std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     int count = effectCount;
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
-    changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
+    ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | 8);   // part 3
     flags_ |= kFlagDirty;
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
@@ -138,7 +138,7 @@ std::uintptr_t CMapObject::ClearEffects() {
     }
     effectCapacity = 0;
     effectCount = 0;
-    changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
+    ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | 8);   // part 3
     flags_ |= kFlagDirty;
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
@@ -185,7 +185,7 @@ std::uintptr_t CMapObject::RecomputeScale() {
         StoreBits(scale.y, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.y)));
         StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
     }
-    changedParts = static_cast<std::uint16_t>(changedParts | 2);   // part 1
+    ChangedParts() = static_cast<std::uint16_t>(ChangedParts() | 2);   // part 1
     flags_ |= kFlagDirty;
     if (refCount_ == 0) return 0;
     CWorld* world = World();

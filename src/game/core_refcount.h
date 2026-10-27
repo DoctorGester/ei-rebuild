@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 class ChunkArchive;
 
@@ -79,6 +80,16 @@ struct RefPtr {
     RefPtr* ShareAssign(CRefObject* object);
 };
 static_assert(sizeof(RefPtr) == 4);
+
+// A typed pointer slot holding a counted object (CRefCounted): `object` gains a reference, the old one loses
+// one and is deleted with the last (RefPtr::Assign on the slot).
+template <typename T>
+void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
+    T* old = slot;
+    slot = object;
+    if (object) ++object->refs_;
+    if (old && --old->refs_ == 0) delete old;
+}
 
 // A RefPtr field whose object is always a T (a network message of one class): RefPtr's layout
 // and operations, the object read typed.

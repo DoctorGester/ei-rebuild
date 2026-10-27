@@ -141,7 +141,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
         break;
     case 6:
     case 7:
-        if (hero->weaponIndex < hero->weaponCount) {
+        if (hero->weaponIndex < static_cast<std::uint32_t>(hero->weapons.size)) {
             info->kind = kWeapon;
             info->weapon = AsWeapon(hero->weapons[hero->weaponIndex]);
             info->text = row == 6 ? kAttack : kDefence;

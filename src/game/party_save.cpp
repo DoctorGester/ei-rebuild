@@ -94,10 +94,10 @@ void PartyUnitRecord::Load(CStream* stream) {
     stream->Read(&unitId, sizeof(unitId));
     stats.LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
-    ReadItemIds(stream, ItemList(weapons), g_loadingParty->ItemManager());
-    ReadItemIds(stream, ItemList(quickItems), g_loadingParty->ItemManager());
-    ReadItemIds(stream, ItemList(armor), g_loadingParty->ItemManager());
-    ReadItemIds(stream, ItemList(spells), g_loadingParty->ItemManager());
+    ReadItemIds(stream, weapons, g_loadingParty->ItemManager());
+    ReadItemIds(stream, quickItems, g_loadingParty->ItemManager());
+    ReadItemIds(stream, armor, g_loadingParty->ItemManager());
+    ReadItemIds(stream, spells, g_loadingParty->ItemManager());
     ReadText(stream, texts[1]);
     if (Version(stream) < kVersionRecordFlags) return;
     stream->Read(&moveMode2, 4);
@@ -121,10 +121,10 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteValue(stream, unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
-    WriteItemIds(stream, ItemList(weapons));
-    WriteItemIds(stream, ItemList(quickItems));
-    WriteItemIds(stream, ItemList(armor));
-    WriteItemIds(stream, ItemList(spells));
+    WriteItemIds(stream, weapons);
+    WriteItemIds(stream, quickItems);
+    WriteItemIds(stream, armor);
+    WriteItemIds(stream, spells);
     WriteText(stream, texts[1].c_str());
     stream->Write(&moveMode2, 4);
     WriteValue(stream, weaponIndex);

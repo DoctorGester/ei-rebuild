@@ -259,8 +259,8 @@ void CCampPages::DoAction() {
     case kEquipment:
         if (itemConstructor_ && !noConstructor_) {
             PartyUnitRecord* hero = HeroRecord();
-            for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) hero->weapons[i]->Repair();
-            for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) hero->armor[i]->Repair();
+            for (int i = 0; i < hero->weapons.size; ++i) hero->weapons[i]->Repair();
+            for (int i = 0; i < hero->armor.size; ++i) hero->armor[i]->Repair();
         }
         break;
     case kTrade:

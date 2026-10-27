@@ -209,7 +209,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->flag = false;
         std::uint32_t word = IsaacRandom::Global().Next();
         turn->glow = RandomPhase(word);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(turn);   // the item's RefPtr slot
+        AssignCounted(item->link_, turn);
     }
 
     if (cell->mode == 9) {
@@ -508,7 +508,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
-        interface_->renderer_->decoder_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
+        interface_->renderer_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;

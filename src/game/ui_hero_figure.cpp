@@ -39,7 +39,7 @@ int IndexOf(const mfc::CString* begin, const mfc::CString* end, const char* name
 }
 
 // The first entry of a record's item array, or null when it is empty.
-CItem* FirstOf(CItem* const* data, int count) { return count > 0 ? data[0] : nullptr; }
+CItem* FirstOf(const lib::AlignedArray<CItem*>& list) { return list.size > 0 ? list.data[0] : nullptr; }
 
 } // namespace
 
@@ -88,11 +88,11 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     bool firstVoices = index < 0;
     if (index >= 0) figureStrips_[1]->selected_ = index;
 
-    weapon_ = FirstOf(hero->weapons, static_cast<int>(hero->weaponCount));
+    weapon_ = FirstOf(hero->weapons);
     weaponPanel_->ShowWeapon(weapon_);
-    armor_ = FirstOf(hero->quickItems, static_cast<int>(hero->quickItemCount));
+    armor_ = FirstOf(hero->quickItems);
     weaponPanel_->ShowArmour(armor_);
-    spellContainer_ = FirstOf(hero->spells, static_cast<int>(hero->spellCount));
+    spellContainer_ = FirstOf(hero->spells);
     spellPanel_->ShowEntry(spellContainer_);
     MakePreview(0);
     statsPanel_->SetHero(0, nullptr);

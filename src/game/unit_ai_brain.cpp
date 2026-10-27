@@ -516,7 +516,7 @@ AIMode* NewModeOfType(int type) {
     }
 }
 
-void AssignCurrent(AIMode*& current, AIMode* mode) { reinterpret_cast<RefPtr*>(&current)->Assign(mode); }
+void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode); }
 } // namespace
 
 void AIBrain::Load(CStream* stream) {

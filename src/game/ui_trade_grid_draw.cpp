@@ -7,6 +7,7 @@
 #include "item.h"
 #include "game_strings.h"
 #include "ui.h"
+#include "texture.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
@@ -28,10 +29,10 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // IDirect3DDevice7::Clear of the depth buffer (and the stencil when the device has one) over
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
-void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
-    unsigned long flags = (renderer->caps_ & 0x4000) && renderer->stencil_ ? 6ul : 2ul;
+void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
+    unsigned long flags = uidevice::HasStencil(renderer) ? 6ul : 2ul;
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->result_ = renderer->device_->Clear(1ul, rect, flags, 0ul, z, 0ul);
+    renderer->lastLoadResult_ = uidevice::Clear(renderer, 1ul, rect, flags, 0ul, z, 0ul);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &nr, 1);
