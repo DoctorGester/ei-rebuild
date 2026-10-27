@@ -173,7 +173,7 @@ void CInterface3D::DrawOverlays() {
             RECT rect{0, 0, 60, 18};
             fpsSurface_->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
             rect = RECT{0, 0, 60, 18};
-            fpsSurface_->DrawTextIn(rate.c_str(), &rect, kFpsFont, kWhite, 2, 1);
+            fpsSurface_->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
             UiSurfaceReleaseDC(fpsSurface_);
         }
         fpsTime_ = now;

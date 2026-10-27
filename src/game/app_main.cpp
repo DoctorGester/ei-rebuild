@@ -365,12 +365,12 @@ bool CheckDrives(const console::CStringArray& messages) {
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (gamecrt::mbscmp(dataFolder.c_str(), discFolder.c_str()) != 0) {
+    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1].c_str(), volume) != 0) {
+        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }

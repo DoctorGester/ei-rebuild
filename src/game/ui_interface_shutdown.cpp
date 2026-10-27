@@ -53,7 +53,7 @@ void CInterface3D::Shutdown() {
     bool opened;
     {
         std::string path = (TheDataFolder() + game::TutorialIniText()).GetString();
-        opened = file.Open(path.c_str(), console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
+        opened = file.Open(path, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
     }
     if (opened) {
         std::string line;

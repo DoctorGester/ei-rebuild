@@ -66,7 +66,7 @@ namespace itemdb {
 int SpellDatabase::Load(const char* folder, const char* archive) {
     std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path.c_str()))
+    if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("spells.sdb", &size);
@@ -99,7 +99,7 @@ EI_REWRITTEN(0x00684550, SpellDatabase::Load);
 int ItemDatabase::Load(const char* folder, const char* archive) {
     std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path.c_str()))
+    if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("items.idb", &size);

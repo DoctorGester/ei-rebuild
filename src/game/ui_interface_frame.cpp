@@ -120,7 +120,7 @@ void CInterface3D::Update() {
 namespace {
 
 int Compare(const std::string& word, const char* text) {
-    return gamecrt::mbscmp(word.c_str(),
+    return gamecrt::mbscmp(word,
                            text);
 }
 

@@ -27,9 +27,9 @@ int CCamera::LoadPath(const char* name, int settle) {
         std::string path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
             // CameraPatch: the mod's Camera\ copy when there is one.
-            opened = file.Open(modfolders::CameraFile(path.c_str()).c_str(), mfc::CFile::modeRead, nullptr);
+            opened = file.Open(modfolders::CameraFile(path.c_str()), mfc::CFile::modeRead, nullptr);
         } else {
-            opened = file.Open(path.c_str(), mfc::CFile::modeRead, nullptr);
+            opened = file.Open(path, mfc::CFile::modeRead, nullptr);
         }
     }
     if (!opened) return 0;

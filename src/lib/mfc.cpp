@@ -109,8 +109,8 @@ const impl::CStringArray* Impl(const CStringArray* array) { return reinterpret_c
 
 CFile::CFile() { Impl(this)->Construct(); }
 CFile::~CFile() { Impl(this)->Destruct(); }
-BOOL CFile::Open(const char* path, unsigned flags, void* error) {
-    return Impl(this)->Open(path, flags, static_cast<impl::CFileException*>(error));
+BOOL CFile::Open(std::string_view path, unsigned flags, void* error) {
+    return Impl(this)->Open(std::string(path).c_str(), flags, static_cast<impl::CFileException*>(error));
 }
 unsigned CFile::GetLength() { return Impl(this)->GetLength(); }
 unsigned CFile::Read(void* buffer, unsigned count) { return Impl(this)->Read(buffer, count); }
@@ -131,7 +131,9 @@ CString CTime::Format(const char* format) const {
 
 CFileFind::CFileFind() { Impl(this)->Construct(); }
 CFileFind::~CFileFind() { Impl(this)->Destruct(); }
-BOOL CFileFind::FindFile(const char* pattern, unsigned long flags) { return Impl(this)->FindFile(pattern, flags); }
+BOOL CFileFind::FindFile(std::string_view pattern, unsigned long flags) {
+    return Impl(this)->FindFile(std::string(pattern).c_str(), flags);
+}
 CString CFileFind::GetFilePath() const {
     CString result(CString::kUnset);
     Place(result, Impl(this)->GetFilePath());

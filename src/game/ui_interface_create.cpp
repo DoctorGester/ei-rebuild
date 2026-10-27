@@ -146,7 +146,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     bool opened;
     {
         std::string path = (TheDataFolder() + game::TutorialIniText()).GetString();
-        opened = file.Open(path.c_str(), console::CStdioFile::typeText, nullptr) != 0;
+        opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
     }
     if (opened) {
         mfc::CString line;

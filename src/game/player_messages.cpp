@@ -34,8 +34,9 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { Write(out, &value, 4); }
-void WriteText(BitStream* out, const char* text) {
-    Write(out, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+void WriteText(BitStream* out, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    Write(out, terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
 }
 
 std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }

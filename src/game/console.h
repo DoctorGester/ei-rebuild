@@ -58,7 +58,7 @@ public:
     CStdioFile();
     CStdioFile(const char* name, unsigned flags);
     ~CStdioFile();
-    mfc::BOOL Open(const char* name, unsigned flags, void* error);
+    mfc::BOOL Open(std::string_view name, unsigned flags, void* error);
     mfc::BOOL ReadString(mfc::CString& line);
     // A line with its line end into `buffer` (at most size - 1 characters); null at the end
     // of the file. A read error throws a CFileException*.

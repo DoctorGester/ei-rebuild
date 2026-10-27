@@ -143,7 +143,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             int exit;
             if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
             std::string name = GameExitTarget(exit);
-            if (gamecrt::mbsicmp(name.c_str(),
+            if (gamecrt::mbsicmp(name,
                                 game::NoneText()) != 0) {
                 name = mfc::CString("z.") + name;
                 double value = LocalPlayerVariable(name.c_str());

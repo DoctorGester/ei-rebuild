@@ -92,7 +92,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         std::string part = plain;
-        if (gamecrt::mbscmp(part.c_str(),
+        if (gamecrt::mbscmp(part,
                             kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
@@ -107,7 +107,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
-            } else if (gamecrt::mbscmp(part.c_str(),
+            } else if (gamecrt::mbscmp(part,
                                        current->GetName()) != 0) {
                 unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
                 unit->RemovePart(current);

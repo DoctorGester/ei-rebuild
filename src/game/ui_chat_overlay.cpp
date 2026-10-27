@@ -239,7 +239,7 @@ void CChatOverlay::DrawTyped() {
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface->DrawTextIn(typed_.c_str(), &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, str::Left(typed_, caret_).c_str(), kTypedFont);
     if (width < kMaxTypedWidth) {
         mfc::impl::CPen pen(PS_SOLID, 1, kTypedColour);

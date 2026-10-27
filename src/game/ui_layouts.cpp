@@ -543,7 +543,7 @@ void CCreditsScreen::CreateScreen() {
             TitleLine record{};
             {
                 std::string first = words.WordOrEmpty();
-                record.scroll = gamecrt::mbsicmp(first.c_str(),
+                record.scroll = gamecrt::mbsicmp(first,
                                                 "#scroll") ==
                                 0;
             }

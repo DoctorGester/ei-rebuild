@@ -23,11 +23,11 @@ constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
 
 // --- DrawLine -----------------------------------------------------------------------------------------
 
-int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
+int CUiSurface::DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
     return DrawTextIn(text, rect, font, colour, format, shadow);
 }
 
-int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
+int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
     if (!holder_) return 0;
     auto* dc = mfc::impl::CDC::FromHandle(dc_);
     RECT frame;
@@ -51,12 +51,12 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
         ++inked.right;   // with the shadow's rectangle, one pixel lower and to the right
         ++inked.bottom;
         RECT drawn = shifted;
-        dc->DrawText(text, -1, &drawn, format);
+        dc->DrawText(text.data(), static_cast<int>(text.size()), &drawn, format);
     }
     dc->SetTextColor(colour);
     // The original scales a point whose x is an unwritten local; only y is used.
     POINT extent{0, 0};
-    extent.y = dc->DrawText(text, -1, &frame, format);
+    extent.y = dc->DrawText(text.data(), static_cast<int>(text.size()), &frame, format);
     dc->SelectFont(oldFont);
     // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
     if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));

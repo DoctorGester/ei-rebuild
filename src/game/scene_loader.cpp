@@ -788,7 +788,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         for (int n = 0; n < s.nodes.size; ++n) {
             const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
-            if (gamecrt::mbscmp(nd.name.c_str(),
+            if (gamecrt::mbscmp(nd.name,
                                 name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];

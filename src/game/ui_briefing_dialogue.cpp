@@ -100,7 +100,7 @@ EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
-    bool human = gamecrt::mbscmp(unit->name.c_str(), HumanPrototype()) == 0;
+    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)
@@ -288,7 +288,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(node->name.c_str(),
+            if (gamecrt::mbsicmp(node->name,
                                 name) != 0)
                 continue;
             if (node->item) {

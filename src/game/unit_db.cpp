@@ -258,7 +258,7 @@ constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
 bool SameName(const std::string& name, const char* other) {
-    return gamecrt::mbsicmp(name.c_str(), other) == 0;
+    return gamecrt::mbsicmp(name, other) == 0;
 }
 } // namespace
 

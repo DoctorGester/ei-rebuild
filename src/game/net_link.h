@@ -44,9 +44,9 @@ public:
     long Restart();
 
     // The direction byte, then the CFile's Open; ok_ tells whether it opened.
-    bool Open(const char* path, unsigned flags, std::uint8_t reading) {
+    bool Open(std::string_view path, unsigned flags, std::uint8_t reading) {
         reading_ = reading;
-        ok_ = File()->Open(path, flags, nullptr) != 0;
+        ok_ = File()->Open(std::string(path).c_str(), flags, nullptr) != 0;
         return ok_ != 0;
     }
     void Close() { File()->Close(); }

@@ -211,7 +211,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const ZoneExit& source = map->exits.data[i];
-        if (gamecrt::mbsicmp(source.target.c_str(),
+        if (gamecrt::mbsicmp(source.target,
                             "none") == 0)
             continue;
         int index = exits_.size;
@@ -610,12 +610,12 @@ void CObjectivesWindow::CreateScreen() {
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
-                gamecrt::mbsicmp(zone->allod.c_str(),
-                                allodZone->allod.c_str()) != 0)
+                gamecrt::mbsicmp(zone->allod,
+                                allodZone->allod) != 0)
                 continue;
             bool listed = false;
             for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
-                if (gamecrt::mbscmp(zone->name.c_str(),
+                if (gamecrt::mbscmp(zone->name,
                                     z->GetString()) == 0) {
                     listed = true;
                     break;
@@ -631,7 +631,7 @@ void CObjectivesWindow::CreateScreen() {
         }
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
-            if (gamecrt::mbsicmp(current.c_str(),
+            if (gamecrt::mbsicmp(current,
                                 zones->begin()[i].GetString()) ==
                 0) {
                 zoneIndex_ = i;

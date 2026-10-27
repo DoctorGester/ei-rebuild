@@ -122,10 +122,10 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(record->name.c_str(),
+            keep = gamecrt::mbscmp(record->name,
                                    kAlwaysCopied) == 0 ||
-                   gamecrt::mbscmp(record->allod.c_str(),
-                                   currentMap.c_str()) == 0;
+                   gamecrt::mbscmp(record->allod,
+                                   currentMap) == 0;
         }
         if (keep) {
             zone = record->name;
@@ -189,7 +189,7 @@ int GameFlow::SaveGame(const char* slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path.c_str(), kOpenWrite, 0);
+        opened = file.Open(path, kOpenWrite, 0);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -215,7 +215,7 @@ int GameFlow::SaveGame(const char* slot) {
     if (kind == 0 || kind == 2) {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path.c_str(), kOpenWrite, 0);
+            opened = file.Open(path, kOpenWrite, 0);
         }
         if (!opened) return 0;
         CMemoryStream mission;
@@ -249,7 +249,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
     bool opened;
     {
         std::string path = (folder + fileName).GetString();
-        opened = file.Open(path.c_str(), kOpenRead, 1);
+        opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
         failed = true;
@@ -317,7 +317,7 @@ int __stdcall EnterZone(CParty* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(zoneRecord->map.c_str(),
+    if (gamecrt::mbscmp(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
         if (gamecrt::mbsicmp(zone.GetString(),
@@ -414,7 +414,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     {
         std::string path = (folder + zone).GetString();
         std::string fileName = path + kSaveExtension;
-        opened = file.Open(fileName.c_str(), kOpenRead, 1);
+        opened = file.Open(fileName, kOpenRead, 1);
     }
     if (opened) {
         CMemoryStream data;
@@ -496,7 +496,7 @@ int __stdcall LeaveZone(CParty* records) {
         std::string fileName = (zone + kSaveExtension).GetString();
         path += fileName;
     }
-    if (!file.Open(path.c_str(), kOpenWrite, 0)) {
+    if (!file.Open(path, kOpenWrite, 0)) {
         game::FatalError(kCantWrite, path.c_str());
         return 0;
     }
@@ -744,7 +744,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
         bool opened;
         {
             std::string path = (base + kGraphExtension).GetString();
-            opened = graph.Open(path.c_str(), kOpenRead, 1);
+            opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
             out->CopyFrom(&graph);
@@ -1077,7 +1077,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     {
         mfc::CString folder(path);
         std::string pattern = (folder + kAllFiles).GetString();
-        found = finder.FindFile(pattern.c_str(), 0);
+        found = finder.FindFile(pattern, 0);
     }
     while (found) {
         found = finder.FindNext();
@@ -1252,7 +1252,7 @@ void GameFlow::UseResources(bool network) {
         libcrt::AtExit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (gamecrt::mbscmp(wanted.c_str(),
+    if (gamecrt::mbscmp(wanted,
                         LastResources().GetString()) == 0)
         return;
     LastResources() = wanted;
@@ -1374,7 +1374,7 @@ int GameFlow::LoadGame(const char* slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path.c_str(), kOpenRead, 1);
+        opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -1420,10 +1420,10 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(record->name.c_str(),
+            bool keep = gamecrt::mbscmp(record->name,
                                         kAlwaysCopied) == 0 ||
-                        gamecrt::mbscmp(record->allod.c_str(),
-                                        currentMap.c_str()) == 0;
+                        gamecrt::mbscmp(record->allod,
+                                        currentMap) == 0;
             if (keep) {
                 zone = record->name;
                 std::string currentPath = currentFolder + zone;
@@ -1448,7 +1448,7 @@ int GameFlow::LoadGame(const char* slot) {
     } else {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path.c_str(), kOpenRead, 1);
+            opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
         LoadMission(&file);
@@ -1505,7 +1505,7 @@ int CurrentSaveSize() {
     std::string pattern;
     pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern.c_str(), 0)) {
+    if (find.FindFile(pattern, 0)) {
         int more;
         do {
             more = find.FindNext();
@@ -1629,7 +1629,7 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             std::string prefix = str::Left(name, 2);
-            quest = gamecrt::mbscmp(prefix.c_str(),
+            quest = gamecrt::mbscmp(prefix,
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
@@ -1796,7 +1796,7 @@ void GameFlow::BuildZoneTable() {
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolder(&folder);
         std::string pattern = (folder + kQuestFilePattern).GetString();
-        more = find.FindFile(pattern.c_str(), 0);
+        more = find.FindFile(pattern, 0);
     }
     while (more) {
         more = find.FindNext();

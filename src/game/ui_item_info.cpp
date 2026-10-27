@@ -51,10 +51,10 @@ template <std::floating_point T> float FloatOf(T) = delete;
 
 int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
-int MbsICmp(const char* a, const char* b) {
+int MbsICmp(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
-int MbsCmp(const char* a, const char* b) {
+int MbsCmp(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
 
@@ -299,7 +299,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
-        materialLine = !prototype || MbsICmp(prototype->materialClass.c_str(), "none") != 0;
+        materialLine = !prototype || MbsICmp(prototype->materialClass, "none") != 0;
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -767,7 +767,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItemWeapon* weapon = info->weapon;
     UnitStats* stats = info->stats;
     int type = weapon->GetType();
-    if (MbsCmp(info->text.c_str(), "defense") == 0 && (type == 5 || type == 6)) {
+    if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();
         return;
@@ -793,7 +793,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     w.line = str::Format("     %s", w.T(32).GetString());
     w.Text(w.line.c_str());
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
-    if (MbsCmp(info->text.c_str(), "defense") == 0)
+    if (MbsCmp(info->text, "defense") == 0)
         own += Ftol(WeaponStat88(PackedIdOf(weapon)));
     else
         own += Ftol(WeaponStat84(PackedIdOf(weapon)));

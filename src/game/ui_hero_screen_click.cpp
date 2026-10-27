@@ -362,7 +362,7 @@ void CMpHeroScreen::Rename() {
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
-    surface->DrawTextIn((name + RenameSeparator()).c_str(), &rect, 1, kBright, 2, 1);
+    surface->DrawTextIn((name + RenameSeparator()), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
 namespace {

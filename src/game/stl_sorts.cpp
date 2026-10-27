@@ -46,8 +46,8 @@ struct IntLess {
 using IdSort = stlp::Sort<int, IntLess>;
 
 int CompareNames(const std::string& a, const std::string& b) {
-    return gamecrt::mbscmp(a.c_str(),
-                           b.c_str());
+    return gamecrt::mbscmp(a,
+                           b);
 }
 
 struct ByColumn {

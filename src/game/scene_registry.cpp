@@ -210,7 +210,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
     int j = 0;
     for (; j < names->size; ++j) {
         const TextureNameRecord& n = (*names)[j];
-        if (gamecrt::mbscmp(n.name.c_str(), texture.c_str()) == 0 &&
+        if (gamecrt::mbscmp(n.name, texture) == 0 &&
             n.id == textureId) {
             break;
         }
@@ -253,7 +253,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = unit->helpers.data[h];
-                if (gamecrt::mbscmp(helperRecord.name.c_str(),
+                if (gamecrt::mbscmp(helperRecord.name,
                                     groupName.GetString()) != 0) {
                     continue;
                 }

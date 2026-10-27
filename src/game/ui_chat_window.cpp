@@ -253,11 +253,11 @@ void CChatWindow::Update() {
         }
         if (status.size() != 0) {
             RECT line{left, 0, left + kFaceWidth, 0xF};
-            surface->DrawTextIn(status.c_str(), &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
         }
         if (offer.size() != 0) {
             RECT line{left, 0xF, left + kFaceWidth, 0x1E};
-            surface->DrawTextIn(offer.c_str(), &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
         }
     }
     UiSurfaceReleaseDC(surface);

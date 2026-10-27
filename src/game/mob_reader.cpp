@@ -172,7 +172,7 @@ bool MobFile::Load(void*, int keepIds) {
         }
         TheServerWorld()->CreateObject(spec);
         auto* object = static_cast<ObjectSpec*>(spec);
-        bool skip = spec->id == 2 && gamecrt::mbscmp(object->texture.c_str(), "unmoco2") == 0;
+        bool skip = spec->id == 2 && gamecrt::mbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = object->Unit()->ServerController();
             controller->brain.SetAlarmRecords(static_cast<UnitSpec*>(spec)->behaviour, kBehaviourCount);

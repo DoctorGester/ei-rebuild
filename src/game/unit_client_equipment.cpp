@@ -35,7 +35,7 @@ void Reload(CTexture* texture, const std::string& name) {
 bool NeedsReload(void* composed, CTexture* texture, const std::string& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
-    return gamecrt::mbscmp(name.c_str(),
+    return gamecrt::mbscmp(name,
                            texture->GetName()) != 0;
 }
 } // namespace

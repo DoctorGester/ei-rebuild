@@ -99,12 +99,12 @@ void CSaveLoadWindow::RefreshListVanilla() {
             marker->visible_ = 1;
             marker->PlaceBody(239.0f, static_cast<float>(y), 3.0f);
         } else {
-            surface->DrawTextIn(entry.title_.c_str(), &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
             // CTime::Format.
             const std::string date = (reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat)).GetString();
-            surface->DrawTextIn(date.c_str(), &dateRect, kFont, kTextColour, DT_RIGHT, 1);
+            surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);
         gameapi::OffsetRect(&dateRect, 0, kRowHeight);
@@ -122,10 +122,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     RECT detailRect{340, 260, 590, 284};
     std::string line;
     line = str::Format(kPlainFormat, entry.AllodTitle().GetString());
-    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
     line = str::Format(kPlainFormat, entry.ZoneTitle().GetString());
-    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
     const int minutes = static_cast<int>(gamecrt::Ftol(static_cast<float>(entry.gameTime_ * MinutesPerHour())));
@@ -136,10 +136,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     std::string dayText;
     GameClientTexts()->GetString(kDayText, &dayText);
     line = str::Format(kGameTimeFormat, dayText.c_str(), day + 1, hour, minute);
-    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};
-    surface->DrawTextIn(entry.folder_.c_str(), &folderRect, kFont, kTextColour, DT_RIGHT, 1);
+    surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
     UiSurfaceReleaseDC(surface);
 }
 EI_REWRITTEN(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include <string_view>
 
 namespace gamecrt {
 
@@ -47,6 +49,40 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);
 // The same on char strings (the single-byte code page makes them the same bytes).
 inline int __cdecl mbscmp(const char* a, const char* b) {
     return mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+
+// A view as the C string the CRT's comparisons read: its bytes up to the first NUL (where the C string of
+// the same text would end), in a small local buffer or, for a long text, a std::string.
+class TerminatedText {
+public:
+    explicit TerminatedText(std::string_view text) {
+        text = text.substr(0, text.find('\0'));
+        length_ = text.size();
+        if (text.size() < sizeof(small_)) {
+            std::memcpy(small_, text.data(), text.size());
+            small_[text.size()] = '\0';
+            chars_ = small_;
+        } else {
+            big_.assign(text);
+            chars_ = big_.c_str();
+        }
+    }
+    TerminatedText(const TerminatedText&) = delete;
+    TerminatedText& operator=(const TerminatedText&) = delete;
+    const char* c_str() const { return chars_; }
+    std::size_t size() const { return length_; }   // (strlen of c_str())
+
+private:
+    char small_[96];
+    std::string big_;
+    const char* chars_;
+    std::size_t length_;
+};
+// The same on two std::string_view texts: the same bytes and rules (the CRT's _mbscmp under the game's code
+// page; a text ends at its first NUL), so callers need no .c_str().
+inline int __cdecl mbscmp(std::string_view a, std::string_view b) {
+    const TerminatedText first(a), second(b);
+    return mbscmp(first.c_str(), second.c_str());
 }
 
 // A table of the game CRT's own tolower for every byte, for the CRT's current LC_CTYPE locale (rebuilt when
@@ -275,6 +311,11 @@ namespace gamecrt {
 // _mbsicmp and _mbsinc on char strings (the single-byte code page makes them the same bytes).
 inline int __cdecl mbsicmp(const char* a, const char* b) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+// The same on two std::string_view texts (the CRT's rules; a text ends at its first NUL).
+inline int __cdecl mbsicmp(std::string_view a, std::string_view b) {
+    const TerminatedText first(a), second(b);
+    return mbsicmp(first.c_str(), second.c_str());
 }
 inline const char* __cdecl mbsinc(const char* p) {
     return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));

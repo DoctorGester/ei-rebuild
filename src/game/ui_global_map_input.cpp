@@ -151,7 +151,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
-    surfaces_.data[0]->DrawTextIn(text.c_str(), &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surfaces_.data[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
     if (!isLink) {
@@ -160,7 +160,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             GlobalMapPlace& quest = quests_.data[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
-            surfaces_.data[0]->DrawTextIn(quest.title.c_str(), &rect, kTipFont, kTipColour, kTipFormat, 1);
+            surfaces_.data[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;
         }
