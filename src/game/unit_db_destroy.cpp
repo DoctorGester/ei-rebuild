@@ -35,8 +35,7 @@ void DestroyString(Text* s) {
 }
 
 // The inline ~vector<CString> of the records: _Destroy, then the storage (the node pool's deallocate of the
-// capacity
-// in whole elements).
+// capacity in whole elements).
 void DestroyStringVector(CStringVector* v) {
     DestroyStringRange(v->begin(), v->end());
     v->FreeStorage();
@@ -58,7 +57,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     UnitLevelTable& levels = self->levels;
     levels.byName.Destroy();
     for (UnitLevelRecord *p = levels.begin, *end = levels.end; p != end; ++p) p->DeleteScalar(0);
-    FreeRecords(levels.begin, levels.endOfStorage);   // deallocate(p, n)
+    FreeRecords(levels.begin, levels.endOfStorage);
 
     UnitModelTable& models = self->models;
     models.byName.Destroy();
@@ -78,8 +77,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
 
 // The NPC table: the name map's clear inlined (each chain's values destroyed and nodes freed, each bucket
 // emptied, the bucket count read again every pass; then the count 0), the buckets freed, then each record
-// (0x60 bytes, UnitNpcRecord) destroyed in reverse member order and the storage freed. Junk is left in EAX;
-// nothing reads it.
+// destroyed in reverse member order and the storage freed.
 void __fastcall DestroyNpcTable(NpcPrototypeTable* self) {
     self->byName.Destroy();
     for (UnitNpcRecord *record = self->begin, *end = self->end; record != end; ++record) {
@@ -92,9 +90,8 @@ void __fastcall DestroyNpcTable(NpcPrototypeTable* self) {
     FreeRecords(self->begin, self->endOfStorage);
 }
 
-// The skill level records (0x44 bytes at +0x0C; their CStrings in reverse order), their storage, then the
-// skills (0x18 bytes at +0x00: the string vector, then the two CStrings) and their storage (the node pool's
-// deallocate inlined).
+// The skill level records (their CStrings in reverse order), their storage, then the skills (the string
+// vector, then the two CStrings) and their storage (the node pool's deallocate inlined).
 void __fastcall DestroySkillDatabase(SkillDatabase* self) {
     for (SkillLevelRecord *record = self->levels.begin(), *end = self->levels.end(); record != end; ++record) {
         DestroyString(&record->requiredSkillName);
@@ -111,8 +108,8 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
     self->skills.FreeStorage();
 }
 
-// A model slot's destructor: a jump to CString::~CString on its level name (the one
-// member to destroy); the CRT's vector destructor iterator runs it on the record's six slots.
+// A model slot's destructor: its level name (the one member to destroy); the CRT's vector destructor iterator
+// runs it on the record's six slots.
 void __fastcall DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->levelName); }
 
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record) { DestroyString(&record->name); }
@@ -137,10 +134,8 @@ void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last) {
     for (; first != last; ++first) DestroyString(first);
 }
 
-// A unit model record's destructor, members in reverse order: the vector of sound
-// counts (+0x144, storage only), the sound names, the CStrings +0x124 / +0x118, the string
-// vectors +0xF8 / +0xEC, the CString +0xE8, the six slots (their level names, through the CRT's
-// vector destructor iterator) and the name.
+// A unit model record's destructor, members in reverse order: the sound counts (storage only), the sound
+// names, the two strings, the two unread string vectors, the figure name, the six slots and the name.
 void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     record->soundCounts.FreeStorage();
     DestroyStringVector(&record->soundNames);
@@ -149,12 +144,12 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     DestroyStringVector(&record->field20);
     DestroyStringVector(&record->field1F);
     DestroyString(&record->figureName);
-    for (int i = 6; --i >= 0;) DestroyModelSlot(&record->slots[i]);   // the CRT's vector destructor iterator
+    for (int i = 6; --i >= 0;) DestroyModelSlot(&record->slots[i]);
     DestroyString(&record->name);
 }
 
-// A unit prototype record's destructor, members in reverse order: the two weapon names,
-// the armour, spell and +0xE8 string vectors, the sound folder, the model name and the name.
+// A unit prototype record's destructor, members in reverse order: the two weapon names, the armour, spell and
+// loot item string vectors, the sound folder, the model name and the name.
 void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record) {
     DestroyString(&record->secondWeaponName);
     DestroyString(&record->weaponName);
@@ -176,8 +171,7 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
 }
 
 // The prototype / model table as the reload destroys it (the same steps as DestroyNpcTable): the name map
-// cleared and its buckets freed, every record destroyed (the record destructors inlined; the same calls),
-// the storage freed. Junk is left in EAX; nothing reads it.
+// cleared and its buckets freed, every record destroyed (the record destructors inlined), the storage freed.
 void __fastcall DestroyPrototypeTable(UnitPrototypeTable* self) {
     self->byName.Destroy();
     for (UnitPrototypeRecord *p = self->begin, *end = self->end; p != end; ++p) DestroyPrototypeRecord(p);
@@ -228,7 +222,7 @@ EI_REWRITTEN(0x00540840, UnitLevelRecord::DeleteScalar);
 EI_REWRITTEN(0x005407E0, UnitPrototypeRecord::DeleteScalar);
 EI_REWRITTEN(0x005214B0, unitdb::DestroyStringRange);
 
-// ---- The unit and skill databases (unit_db.h, unit_db_globals.cpp) --------------------------------------------------
+// ---- The unit and skill databases --------------------------------------------------------------------------------
 
 // Built empty by static initialisers in the list's order and destroyed by the exit functions those register
 // (docs/notes/standalone.md, "The static initialisers' objects").

@@ -1,9 +1,8 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 // Floating point follows the original's x87 code: values the original game keeps on the FPU stack stay
-// there (inline assembly where a value is stored and still used unrounded, or truncated with the
-// game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
-// operand order (precise floating point), constants are read from the exe's memory.
+// unrounded (or truncated with the game's _ftol), values it stores as float are rounded with
+// static_cast<float>, products keep their operand order (precise floating point).
 #include "app.h"
 #include "core_refcount.h"
 #include "texture.h"
@@ -53,9 +52,9 @@ std::uint32_t PackColour(const float* rgb) {
 
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
-// The cached object for `name` (its use time refreshed), or a new one put in the cache (find
-// the cache's find / operator[]), which then drops its least recently used
-// entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.
+// The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
+// least recently used entries beyond its limit. Null when it cannot be made. `textures` picks the texture
+// maker.
 CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     ItemObjectCache::Node* node;
     {
@@ -83,15 +82,15 @@ CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textu
     return object;
 }
 
-// A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 (FILD of the
-// unsigned word; FMUL float; FMUL double; FSTP float).
+// A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
+// float.
 float RandomPhase(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * kFullTurn * 2.3283064370807974e-10 /*0073C468*/);
 }
 
-// The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
-// school's colour (kSchoolGlow) into 0xFFrrggbb. The phase is stored as float
-// but the sine and the colour use the unrounded value, as the original game.
+// The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the school's
+// colour (kSchoolGlow) into 0xFFrrggbb. The phase is stored as float but the sine and the colour use the
+// unrounded value.
 // The spell schools' glow colours (red, green, blue and an unused 1 each).
 constexpr float kSchoolGlow[8][4] = /*00740358*/ {
     {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f},
@@ -125,8 +124,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
         turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(4.0f /*0073BAA0*/));
     }
     if (turn->speed > 5.0f /*007402EC*/) turn->speed = 5.0f /*007402EC*/;
-    // The angle is stored (FST) and compared unrounded with 2 pi (FCOMP; TEST AH,0x41: wraps while
-    // above, not when equal or unordered).
+    // The angle is stored and compared unrounded with 2 pi: wraps while above, not when equal or unordered.
     double angle = static_cast<double>(dt) * turn->speed + turn->angle;
     turn->angle = static_cast<float>(angle);
     while (angle > kFullTurn) {
@@ -185,18 +183,16 @@ void SetSpecular(int on) {
 
 } // namespace
 
-// --- DrawItem -----------------------------------------------------------------------------------------
-
 void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        std::string name = item->PictureName().GetString();   // picture name
+        std::string name = item->PictureName().GetString();
         model = AsUiMesh(CachedObject(&models_, name.c_str(), false));
     }
     CEngineObject* texture;
     {
-        std::string name = item->FigureName().GetString();   // figure name
+        std::string name = item->FigureName().GetString();
         texture = CachedObject(&textures_, name.c_str(), true);
     }
     if (!model || !texture) return;
@@ -220,8 +216,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         // Greyed: half bright, lying still, scaled to fit the cell by the model's larger extent.
         SetShade(model, 0.5f);
         SetOrientation(model, LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f));
-        // The larger of the box's x and y extents: FCOMP of x with y; C0 (below) picks y (a
-        // branch-free select of the dwords).
+        // The larger of the box's x and y extents: y when x is below it (or NaN), selected as dwords.
         const Vector3& extents = model->bounds_.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
@@ -337,18 +332,16 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 }
 EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
-// --- The description panel's draw -------------------------------------------------------------
-
 BOOL CItemInfoPanel::Draw(int pass) {
     if (itemCount_ && items_[0]) {
         ItemCell cell;
         cell.item = items_[0];
-        cell.x = static_cast<float>(static_cast<double>(x_) + D(100.0f /*0073BAB0*/));   // + 100
+        cell.x = static_cast<float>(static_cast<double>(x_) + D(100.0f /*0073BAB0*/));
         cell.depth = 3.0f;
         cell.size = 120.0f;
         cell.mode = 9;
-        cell.y = static_cast<float>(static_cast<double>(y_) + D(200.0f /*0073CF58*/));   // + 200
-        owner_->DrawItem(pass, &cell);   // through its address, so the wrapper sees the call
+        cell.y = static_cast<float>(static_cast<double>(y_) + D(200.0f /*0073CF58*/));
+        owner_->DrawItem(pass, &cell);
     }
     return 1;
 }
@@ -422,7 +415,6 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     model->Draw(PassRenderer(pass));
 }
 EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
-// EI_Plugin.asi patches the sex test of the face's picture in a Rebirth launch.
 
 // --- An item's figure texture -------------------------------------------------------------
 
@@ -469,7 +461,7 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         texture->Release();
@@ -521,7 +513,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;

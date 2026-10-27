@@ -23,8 +23,7 @@ struct UnitVitals;
 struct UnitPrototypeRecord;
 struct UnitNpcRecord;
 
-// The unit prototype table (global): an STLport vector of 0x120-byte records followed by
-// a hash_map<string, record*> from prototype names to records at +0x0C.
+// The unit prototype table: the records and an index by prototype name.
 struct UnitPrototypeTable {
     UnitPrototypeRecord* At(std::uint32_t index);
     using NameIndex = stlp::hash_map<stlp::string, UnitPrototypeRecord*, stlp::StringHash>;
@@ -53,24 +52,22 @@ struct NpcPrototypeTable {
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
 
-// The statistics of an NPC of prototype `name` (a
-// fatal error without one; a debug message without its NPC record), then recomputed
-// around a refill of the slots. Returns 1.
+// The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
+// record), then recomputed around a refill of the slots. Returns 1.
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 
-// The object class (+0x04 of its model record) of prototype `name`; 0x33 without a
-// prototype or model.
+// The object class of prototype `name`'s model record; 0x33 without a prototype or model.
 int __stdcall PrototypeObjectClass(const char* name);
 
 // The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
-    int Create() override;                                  // CreateManager
+    int Create() override;
     const char* GetClassName() override;
-    int GetClassId() override;                              // (0x2D)
-    CEngineObject* NewObject(int classId) override;         // NewObjectImpl
-    CEngineObject* CreateObject(int classId, int id) override;   // CreateMapObject
+    int GetClassId() override;
+    CEngineObject* NewObject(int classId) override;
+    CEngineObject* CreateObject(int classId, int id) override;
     const char* GetFolderName() override;                   // "map objects"
 
     // A new object of class id `classId` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
@@ -78,27 +75,25 @@ struct CMapObjectManager : CResourceManager {
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
     int CreateManager();
-    // The base manager's CreateObject; a new object gets an
-    // animation state (the figure manager's class 0x300D) and its side halves from the world's
-    // specific manager: classes 0x46 and 0x47 (through the object's slot 19), then 0x48 for the
+    // The base manager's CreateObject; a new object gets an animation state (the figure manager's class
+    // 0x300D) and its side halves from the world's specific manager: classes 0x46 and 0x47, then 0x48 for the
     // three unit classes (0x32-0x34) and 0x4B for classes 0x36-0x39. Returns the object or null.
     CEngineObject* CreateMapObject(int classId, int id);
-    // The entry of the animation database "<figure>.adb" matching
-    // `key`: the same bits above 0x7FFF and, of the low bits, none of the key's missing (a key
-    // without low bits takes only an entry without). Null (with a debug message when there is no
-    // database).
+    // The entry of the animation database "<figure>.adb" matching `key`: the same bits above 0x7FFF and, of
+    // the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
+    // (with a debug message when there is no database).
     FigureAnimation* FindAnimation(const mfc::CString* figure, std::uint32_t key);
-    // The defaults of an object without a prototype (SetDefaults): a unit
-    // (class 0x50) gets the statistics (its slot 35), any other object the vitals; then
-    // slot 33 with 0 and no prototype index. Returns 1.
+    // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
+    // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(0) and no prototype
+    // index. Returns 1.
     int GiveDefaults(CMapObject* object);
-    // The starting equipment's names of prototype `name`: the armour pieces,
-    // the two weapons and the spells. 1, or FatalError's result without the prototype.
+    // The starting equipment's names of prototype `name`: the armour pieces, the two weapons and the spells.
+    // 1, or FatalError's result without the prototype.
     int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                            mfc::CString* secondWeapon, mfc::CStringArray* spells);
 
-    // The builders of a creature's starting statistics from its prototype (unit_create_stats.cpp); the map objects
-    // call them on their owner.
+    // The builders of a creature's starting statistics from its prototype; the map objects call them on their
+    // owner.
     // Defaults for an object without a prototype: with `stats`, the statistics (stats
     // 50, rates, values and body slots at 100, no layers); without, the vitals (1000 hit points
     // and mana, regeneration 10, protection 100). Returns 1.
@@ -108,10 +103,10 @@ struct CMapObjectManager : CResourceManager {
     // Without a prototype: SetDefaults. Returns 0 when `vitals` or `stats` is null (after the
     // lookups), else 1.
     int BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name);
-    // Gives map object `object` the prototype `name`: units get their vitals and
-    // statistics (BuildFromPrototype, slots 36 and 35), their height offset, scale (the
-    // base scale and slot 30) and second prototype; every object its prototype index.
-    // Without a prototype: defaults, slot 33 (0), index 0 and a debug message. Returns 1.
+    // Gives map object `object` the prototype `name`: units get their vitals and statistics
+    // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
+    // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
+    // ScaleEffectChanged(0), index 0 and a debug message. Returns 1.
     int ApplyPrototype(CMapObject* object, const char* name);
 };
 static_assert(sizeof(CMapObjectManager) == 0xBC);
@@ -121,6 +116,6 @@ inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
 }
 
 namespace unitdb {
-UnitPrototypeTable& PrototypeTable();   // the unit database's first table (unit_db_destroy.cpp)
+UnitPrototypeTable& PrototypeTable();   // the unit database's first table
 NpcPrototypeTable& NpcTable();          // its second
 } // namespace unitdb
