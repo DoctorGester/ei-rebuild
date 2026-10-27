@@ -252,8 +252,7 @@ PassState ReadPassState(char* device) {
         st.addressU = static_cast<std::uint8_t>(t[9]);
         st.addressV = static_cast<std::uint8_t>(t[10]);
         if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
-        // The surface holder the old path bound to the stage (device +0x12C + stage * 4, set by
-        // ).
+        // The surface holder the old path bound to the stage (device +0x12C + stage * 4).
         if (!device) continue;
         const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
         st.hasTexture = holder != nullptr;

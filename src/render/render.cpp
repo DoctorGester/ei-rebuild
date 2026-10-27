@@ -56,8 +56,8 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
-// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera,
-// ); "uiboth" / "uinative" the interface canvases (render_ui.h).
+// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera),
+// "uiboth" / "uinative" the interface canvases (render_ui.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;

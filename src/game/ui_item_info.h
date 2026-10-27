@@ -88,8 +88,7 @@ struct ItemObjectCache {
     std::uint32_t limit;   // +0x0C
 };
 static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) == 0x24);
-// ui_hero_screen.cpp. Every cached object released
-//, in key order (the hero screen's model and texture caches).
+// ui_hero_screen.cpp. Every cached object released, in key order (the hero screen's model and texture caches).
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 
 // Release the least recently used entries of the

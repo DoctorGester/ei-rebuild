@@ -241,7 +241,7 @@ struct PlainOps {
 };
 
 // The sector grid's cell list (held objects): remove(counted value), push_back
-//, clear; the second grid's clear.
+// clear; the second grid's clear.
 struct CellOps {
     static constexpr auto Remove = stlp::ListRemoveHeld;
     static void PushBack(SectorList* list, CEngineObject** value) {

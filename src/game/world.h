@@ -599,7 +599,6 @@ public:
     // loaded between the AI map's BeginRefresh and EndRefresh (LoadMap; a failure is a fatal
     // error too). The zone name is kept when given, +0x160 cleared. Returns 1.
     int NewZone(const char* map, const char* mob, const char* zone);
-    // (The client's state block, through the glue).
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
     void EnsureZone(const char* map, const char* mob);
     // `unit` used one of `item` (a scroll):
@@ -876,7 +875,7 @@ public:
     float SurfaceHeight(const Vector3* point, float height);
     // Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
-    // (RET 0x10; the particles' ground plane, CParticleSource::TickGroundPlane, through
+    // Used by CParticleSource::TickGroundPlane (the particles' ground plane).
     // The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its
     // z and *normal its normal; 0 and (0, 0, 1) when there is none.
     void SurfacePlane(float x, float y, Vector3* normal, float* height);
@@ -1206,7 +1205,7 @@ public:
     int DrawPass();
     // Vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
-    // (ground_print.cpp). A blood print at (x, y) when the setting is on
+    // A blood print at (x, y) when the setting is on
     // and prints.db's blood entry for the ground there has an alpha and a life (`tile`: the texture
     // quarter and, in the high half, the kind; `fresh` 1 for a hit, 0 for a death), coloured by
     // this frame's sunlight.
@@ -1220,7 +1219,7 @@ public:
     // A scorch mark of `alpha` (made when it is positive and the scorch entry
     // has a life).
     void AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha);
-    // (world_client_decals.cpp). Lays a decal on the ground into the three
+    // Lays a decal on the ground into the three
     // arrays (shadows, ground prints). The static builder starts on the
     // quad `corners` projected along `direction` from `point`; the terrain under it adds its
     // triangles unless `skipOnPlatform` is set and the point lies on a platform; with `objects`,
@@ -1362,8 +1361,8 @@ public:
     // SetSize releases them), the second grid's cells cleared (counted elements released), every
     // timed object (slot 14's manager) released, the bird (+0x1B0) reset (slot 18).
     void ResetZoneObjects();
-    // (RET 4; world_client_maps.cpp, A-W15; patched by Rebirth, so hooked in the vanilla
-    // launch only: the player's client reaches it through its address). The zone's state block:
+    // Patched by Rebirth, so hooked in the vanilla
+    // launch only: the player's client reaches it through its address. The zone's state block:
     // the flow acknowledges the server, sounds stop, then from `block` the tick, the map and .mob
     // names, the exits, the cave flag and the unit looks; the local server makes sure it has the
     // zone; the ground prints, ResetZoneObjects, ClearMaps, the items and spells and
@@ -1387,7 +1386,6 @@ public:
     // HasIncoming (slot 6, AL) / IncomingCount (slot 7); false / 0 without one.
     bool PumpHasIncoming();
     int PumpIncomingCount();
-    // (world_client_session.cpp; the console's disconnect through GameFlow).
     // The local view's owner (session +0x20, the connection's player +0x1C) disconnects
     // (CPlayer::Disconnect). The original reads through null without a session, as this does.
     void DisconnectLocalPlayer();
@@ -1475,7 +1473,6 @@ public:
     // sources): a marker whose target zone's party variable "z.<zone>" is 1 (or
     // NaN) gets extent (1, 0, 0) (its particles turn red), the others (0, 0, 0).
     void UpdateExitMarkers();
-    // (world_client_setup.cpp; once at startup, with the renderer).
     // The texture manager gets `device`; the platforms and sky; the digit
     // sprites (+0x1B4) with the "numbers" texture (kind 6; flag 0x40000); a new figure loader for
     // the figures resource (the CString) in +0x34 (counted, the old one released); then
@@ -1685,7 +1682,6 @@ struct GameFlow {
     // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
     // when saved.
     int SaveGame(const char* slot);
-    // (StartServer, before the sessions; patched by Rebirth, so vanilla only; A-W14).
     // Fills the zone table once, while it is empty: for every "*.mq" file of the maps
     // folder, its title in lower case is registered as a quest folder (RegisterQuests) and the
     // quest texts loaded so far are unloaded again; a zone the map database knows gets an entry
@@ -1855,8 +1851,7 @@ struct MpHeroRecord {
     // Scalar deleting destructor (the vector's element
     // destructor with flag 0). Returns this.
     MpHeroRecord* DeletingDestruct(unsigned flags);
-    // Copy():
-    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
+    // Copy: [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
     static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
     // Writes the party to `folder` + file: a file name with no
     // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
@@ -1893,7 +1888,7 @@ struct SavedParties {
     // this.
     SavedParties* Construct();
     // `hero` becomes the party outside a game
-    // (MpHeroRecord's assignment, inlined in the original).
+    // (MpHeroRecord's assignment).
     void Select(const MpHeroRecord* hero);
 
     mfc::CString folder_;                   // +0x00
@@ -2074,7 +2069,7 @@ int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
 // per listed object a 1, its id, type and +0x18, then its own Save (slot 10); a 0 at the end.
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream);
 
-// (world_game.cpp, A-W13; the save screens). 1000000 plus the sizes (low dwords) of the
+// The save screens: 1000000 plus the sizes (low dwords) of the
 // files in saves\current.
 int CurrentSaveSize();
 

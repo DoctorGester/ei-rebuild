@@ -1,7 +1,6 @@
 // The item strips' setups: the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
-// the forwarding strip's constructor, and the figure strips' draw, count and click
-// ).
+// the forwarding strip's constructor, and the figure strips' draw, count and click.
 // See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui.h"
@@ -29,8 +28,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
-// Layout constants of the strips (the exe's floats,
-// ).
+// Layout constants of the strips (the exe's floats).
 constexpr float kZero = 0.0f;
 constexpr float kCell = 100.0f;
 constexpr float kHalfCell = 50.0f;
