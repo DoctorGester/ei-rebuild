@@ -1,9 +1,8 @@
 #pragma once
 
-// The records of the units database (units.udb, loaded at startup into the prototype, NPC, model and skill
-// level tables) and how each one is read from / written to the tagged-chunk archive (model.h,
-// ChunkArchive). Names provisional; the field ids are the archive's. See docs/notes/units.md ("Database
-// records").
+// The records of the units database (units.udb: the prototype, NPC, model and skill level tables) and how each one is
+// read from / written to the tagged-chunk archive (model.h, ChunkArchive); the field ids are the archive's. See
+// docs/notes/units.md ("Database records").
 
 #include "ei/x87.h"
 #include "game_data.h"
@@ -46,9 +45,7 @@ struct UnitGoldRoll {
 static_assert(sizeof(UnitGoldRoll) == 0x10);
 
 struct UnitPrototypeRecord {
-    // Body of a virtual (registered by member pointer).
     UnitPrototypeRecord* DeleteScalar(unsigned flags);
-    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // field 0
@@ -107,7 +104,6 @@ static_assert(sizeof(UnitPrototypeRecord) == 0x120);
 // A named creature's statistics (0x60 bytes, found by the prototype name). unit_create_stats.cpp reads the
 // experience, stats, attribute and skill bytes and the skill names.
 struct UnitNpcRecord {
-    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // field 0 (the prototype's name)
@@ -148,7 +144,6 @@ static_assert(sizeof(UnitModelSlot) == 0x10);
 
 // A unit model.
 struct UnitModelRecord {
-    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // field 0
@@ -207,7 +202,6 @@ static_assert(offsetof(UnitModelRecord, soundCounts) == 0x144);
 
 // A unit database level record (the fourth table).
 struct UnitLevelRecord {
-    // Body of a virtual (registered by member pointer).
     UnitLevelRecord* DeleteScalar(unsigned flags);
     // The name as field 0, the seven dwords at +0x08 / +0x24 as fields 1 / 2, +0x40 as 3 and +0x04 as 4.
     void Serialize(ChunkArchive* ar);
@@ -220,16 +214,12 @@ struct UnitLevelRecord {
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
-// The prototype, NPC and model records' destructors.
 namespace unitdb {
 void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
 void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
-// A model slot's destructor (its level name).
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
-// A level record's destructor (its name; a jump to ~CString).
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
-// Stlp::_Destroy over CStrings, first to last.
 void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 } // namespace unitdb
 
@@ -241,7 +231,6 @@ struct UnitModelTable {
     // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
     UnitModelRecord* FindByName(const char* name);
-    // Record `index`, or null past the end.
     UnitModelRecord* At(std::uint32_t index);
 
     UnitModelRecord* begin;
@@ -265,24 +254,19 @@ struct UnitLevelTable {
 };
 static_assert(offsetof(UnitLevelTable, byName) == 0x0C && sizeof(UnitLevelTable) == 0x20);
 
-// The unit database: four 0x20-byte tables.
+// The unit database: four tables.
 struct UnitDatabase {
-    // Lists the "*.wav" files of the sound system `sounds`, lower-cases them, then gives each model's sound
-    // names (lower-cased in place) the number of files whose name starts with it (soundCounts, resized to
-    // the names).
+    // Gives each model's sound names (lower-cased in place) the number of "*.wav" files of the sound system `sounds`
+    // whose name starts with it (soundCounts).
     void CountSoundFiles(void* sounds);
-    // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` +
-    // `archive`: the level records (chunk 1), the models (2), the prototypes (3) and the NPCs (4), each
-    // from its own pass over the file with every record entered into its table's name index; then every
-    // prototype's modelIndex becomes the index of the model named by modelName, and every model slot's
-    // levelIndex the index of the level record named by levelName (-1 when there is none; the lookups leave
-    // a null entry for an unknown name). Returns 1, or what the fatal error report returns when the archive
-    // or the file cannot be opened.
+    // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` + `archive`: the level
+    // records (chunk 1), models (2), prototypes (3) and NPCs (4), each from its own pass with every record entered
+    // into its table's name index; then every prototype's modelIndex and every model slot's levelIndex are resolved
+    // by name (-1 when there is none). Returns 1, or what the fatal error report returns when the archive or the file
+    // cannot be opened.
     int Load(const char* folder, const char* archive);
-    // Destruction and construction in place (database_reset.cpp), which the resource switch runs. The
-    // tables from the last to the first, each the name index (its nodes, then its buckets), then the
-    // records (in order) and their storage; then the four from the first: no records, an index of 100
-    // buckets (193).
+    // Destruction and construction in place (database_reset.cpp), which the resource switch runs: every table emptied
+    // (index and records freed), then the four constructed empty with an index of 100 buckets (193).
     void Reset();
 
     UnitPrototypeTable prototypes;
@@ -297,10 +281,8 @@ static_assert(sizeof(UnitDatabase) == 0x80);
 
 extern lib::StaticObject<UnitDatabase> g_unitDatabase;   // unit_db_destroy.cpp
 namespace unitdb {
-// The unit database (the prototype table is its first member).
 inline UnitDatabase& Database() { return *g_unitDatabase; }
-// operator[] on the prototype and model name indexes (an unknown name gets a null entry): the record, or
-// null.
+// The record named `name` (an unknown name gets a null entry), or null.
 inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) { return PrototypeTable().byName.Subscript(name); }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
@@ -315,8 +297,8 @@ inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database()
 struct DamageWords {
     std::uint16_t words[8];
 
-    // The sum over words 1..7 of what exceeds the matching protection word (a difference with its top bit
-    // set counts 0), as 16 bits; leftovers stay in the upper half of EAX (callers read AX).
+    // The sum over words 1..7 of what exceeds the matching protection word (a difference with its top bit set counts
+    // 0), as 16 bits (callers read AX).
     std::uint32_t ExcessOver(const DamageWords* protection) const;
 };
 static_assert(sizeof(DamageWords) == 0x10);
@@ -328,7 +310,6 @@ static_assert(sizeof(DamageWords) == 0x10);
 struct SkillRecord {
     // Fields 0..2 and chunk 10 (the stat names, InlineStrings).
     void Serialize(ChunkArchive* ar);
-    // The stat names and their storage, field1, name.
     void Destruct();
 
     mfc::CString name;              // field 0
@@ -344,7 +325,6 @@ static_assert(offsetof(SkillRecord, statNames) == 0x0C && sizeof(SkillRecord) ==
 struct SkillLevelRecord {
     // Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
-    // The strings +0x14, +0x0C, +0x04, +0x00.
     void Destruct();
 
     mfc::CString field0;                // field 0 (the trade panel's display name of the perk)
@@ -373,45 +353,35 @@ struct SkillLevelRecord {
 static_assert(offsetof(SkillLevelRecord, values) == 0x18 && sizeof(SkillLevelRecord) == 0x44);
 
 struct SkillDatabase {
-    // The level record named `levelName` (_mbsicmp), or null.
     SkillLevelRecord* FindLevel(const char* levelName);
-    // The index of the level record named `levelName` (_mbsicmp), or -1.
     int IndexOf(const char* levelName) const;
-    // The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
-    // Skill / level record `index`, or null past the end.
     SkillRecord* SkillAt(std::uint32_t index);
     SkillLevelRecord* LevelAt(std::uint32_t index);
     // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
     // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
     // the fatal error report returns when the archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
-    // Destruction and construction in place, which the resource switch runs: the level records destroyed
-    // and their storage freed, then the skills (through their deleting destructor with 0); both vectors
-    // empty.
+    // Destruction and construction in place, which the resource switch runs: both vectors emptied.
     void Reset();
-    // Both vectors empty. Returns this.
     SkillDatabase* Construct();
 
     stlp::vector<SkillRecord> skills;
     stlp::vector<SkillLevelRecord> levels;
 };
 static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
-// The skill database ( unit_db_destroy.cpp).
+// The skill database.
 extern lib::StaticObject<SkillDatabase> g_skillDatabase;
 inline SkillDatabase* SkillDb() { return &*g_skillDatabase; }
 namespace unitdb {
-// Skill level record `index`, or null past the end (what SkillDatabase::LevelAt answers, inline).
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
     stlp::vector<SkillLevelRecord>& levels = SkillDb()->levels;
     return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
 }
-// Skill record `index`, or null past the end (SkillDatabase::SkillAt, inline).
 inline SkillRecord* SkillAt(std::uint32_t index) {
     stlp::vector<SkillRecord>& skills = SkillDb()->skills;
     return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
 }
-// The models' level record `index`, or null past the end.
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
     UnitLevelTable& levels = Database().levels;
     return index < static_cast<std::uint32_t>(levels.end - levels.begin) ? levels.begin + index : nullptr;

@@ -85,27 +85,19 @@ static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) =
 // Every cached object released, in key order (the hero screen's model and texture caches).
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 
-// Release the least recently used entries of the
-// model / texture cache beyond its limit (ui_item_screen.cpp).
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
 // An item's turning state, a counted object in the item's link_ (CItem::link_): made by
 // the item draw and the moves.
 class ItemTurn : public CRefObject {
 public:
-    // The count and the flags cleared (as one dword); the rest is the maker's.
     ItemTurn() {
         refs_ = 0;
         flags6_ = 0;
         flags7_ = 0;
     }
-    // The counted root's body (core_streams.cpp).
     ~ItemTurn() override;
-    // Nothing for a C++ object (the original writes the object's tables again, a
-    // construction in place). 0.
     int OnShutdown() override;
-    // A new state with the same angle, speed, flag and glow and no
-    // references (null when the allocation fails).
     ItemTurn* Clone() override;
 
     float angle;             // radians, wrapped at 2 pi
@@ -115,14 +107,12 @@ public:
     float glow;              // phase of the spell glow
 };
 static_assert(sizeof(ItemTurn) == 0x18);
-// The item's turning state (CItem::link_).
 inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->link_); }
 
 class CParty;
 class CItemScreen;
 struct PartyUnitRecord;
-// The item screens' icon window. Its
-// destructors are the window's.
+// The item screens' icon window.
 class CItemIconWindow final : public CUiWindow {
 public:
     explicit CItemIconWindow(CInterface3D* ui) : CUiWindow(ui) {}
@@ -141,27 +131,20 @@ class CItemScreen : public CUiContainer {
 public:
     ~CItemScreen() override;
 
-    // The item screens' slots over the container's (the plain item screen,
-    // whose 25 / 26 are pure; the camp, the exchange and the hero screen override them): what the
-    // item strips and panels call on their owner. The plain item screen's answers (ui_small_members.cpp)
-    // and empty stubs.
+    // The item screens' slots over the container's: the plain item screen's answers (ui_small_members.cpp) and empty
+    // stubs; the camp, the exchange and the hero screen override them.
     virtual void TakeItem(CItem*, int) {}
-    // No item may be moved (AL 0).
     virtual bool CanEquip(CItem* item, int mode);
     virtual void TopicClicked(int, int) {}
-    // No skill and no mana.
     virtual void BestPartySkill(int school, int* skill, int* mana);
     virtual void RefreshWeapons() {}
     virtual void RefreshStats() {}
     virtual void NextHero() {}
     virtual void PreviousHero() {}
-    // No hero unit.
     virtual CUnit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
     virtual void ChooseFigure(const char*) {}
-    // No weight (0.0, in ST0).
     virtual double Weight();
-    // No price.
     virtual int Price(CItem* item, int kind);
     // Draws `cell`'s item: its model (cached, created) with its
     // texture (cached,) turning while the mouse is on it, a glow in the colour of the
@@ -173,11 +156,10 @@ public:
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
     void DrawHeroFace(int pass, HeroFaceCell* cell);
-    // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do).
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
-    // The screens' common Create: the icon window (iconWindow_, CItemIconWindow, a child with the
-    // screen's texture 0, built), textures "modifiers2" and "campslots", the display's settings, and the
-    // caches' limits (30, or 20 with an option byte set) applied (ui_item_screen.cpp).
+    // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
+    // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
+    // set).
     void CreateBase();
     // Moves `item` into `to` (CParty::AddItem with the stack kept when `merge` and
     // Shift are down, merging with `merge`) and out of `from` (RemoveItem, all of the stack likewise);
@@ -239,8 +221,7 @@ public:
     void DescribeModifierRecord();
     void DescribeQuickItem();
     void DescribeCarriedSpell();
-    // Empties the list, clears the surface (DescribeItem) and, for a kind 0-7, writes the
-    // statistic's title, values and description.
+    // Empties the list, clears the surface and, for a kind 0-7, writes the statistic's title, values and description.
     void DescribeStats(ItemHoverInfo* info);
     // Empties the list, clears the surface and writes help topic "camphelp <topic>".
     void ShowHelp(int topic);
@@ -251,20 +232,17 @@ public:
     // carried spell is shown while it is held.
     void OnKeyDown(int key, int repeat, int flags);
     void OnKeyUp(int key, int repeat, int flags);
-    // Draws the described item's model at (x + 100, y + 200), size 120,
-    // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
+    // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem;
+    // returns 1.
     BOOL Draw(int pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
     // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
     // item list.
     void Build(int x, int y);
 
-    // The described item: the
-    // list's first entry, or null.
     CItem* FirstItem() const;
     // The described item: the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
-    // The item list as the party it is (itemList_ through itemCount_).
     CParty* ItemParty() { return reinterpret_cast<CParty*>(itemList_); }
 
     std::uint8_t itemList_[0x40];    // an item list; its

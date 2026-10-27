@@ -1,9 +1,8 @@
 #pragma once
 
-// How the client dresses a unit: the figure parts of the armour it wears and the composed skin
-// texture of party units. CUnitClientSpecific is the client-side controller of a party unit
-// (GetClassName "CUnitClientSpecific", class id 0x3D); names provisional. See
-// docs/notes/units.md ("Creation, databases, save").
+// How the client dresses a unit: the figure parts of the armour it wears and the composed skin texture of party
+// units. CUnitClientSpecific is the client-side controller of a party unit (GetClassName "CUnitClientSpecific", class
+// id 0x3D). See docs/notes/units.md ("Creation, databases, save").
 
 #include "ai_map.h"   // PathOrder
 #include "console.h"
@@ -30,10 +29,8 @@ struct Vector3;
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
-// An entry of a client controller's speech queue (the value of a node of the STLport
-// list at +0x9C; plays one).
-// What a unit says (the record slot 51 is given; 0x28 bytes, an acks.db entry, acks_db.h): its
-// sound file name at +0x04.
+// An entry of a client controller's speech queue (plays one). What a unit says: an acks.db entry (acks_db.h) with its
+// sound file name.
 struct SpeechRecord {
     int chance;                     // eligible when at least the roll (0..99, acks_db.cpp)
     stlp::string sound;             // the sound file
@@ -55,10 +52,8 @@ static_assert(sizeof(ClientSpeech) == 0x14);
 
 // What the speech queue's filters compare (slot 51 builds one for each walk; unit_client_speech.cpp).
 struct SpeechFilter {
-    // Does a speech of the filter's kind replace `queued`? (EAX 1 / 0.)
     int Replaced(const ClientSpeech* queued) const;
-    // Has `queued`'s sound ended (it had one)? A talking speech then clears the server
-    // unit's flag 0x800000 (the filter's unit id). AL.
+    // Has `queued`'s sound ended (it had one)? A talking speech then clears the server unit's flag 0x800000.
     bool Finished(const ClientSpeech* queued) const;
     int unitId;                     // SpeechFinished: the unit whose talking flag ends
     int kind;                       // SpeechReplaced: the new speech's kind
@@ -102,7 +97,6 @@ struct SkinRequest {
 static_assert(offsetof(SkinRequest, textures) == 0x10);
 static_assert(offsetof(SkinRequest, flags) == 0x24 && sizeof(SkinRequest) == 0x28);
 
-// The texture manager composes a request into a cached texture (CTextureManager::Compose).
 
 struct AttackParams;
 
@@ -111,71 +105,54 @@ public:
     CUnitClientSpecific();
     ~CUnitClientSpecific() override;
 
-    // No sources, times, animation or motion order (PathOrder::Reset
-    // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
-    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
-    // released. Returns 1.
+    // No sources, times, animation or motion order, weapon / arrow shown, heading snapped, fully faded in, no sounds,
+    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released. Returns 1.
     int Create() override;
-    // The three particle sources stop (CParticleSource::Stop)
-    // and are released, the face texture released; no blink.
     void Destroy() override;
-    // (slots 11 / 12): "CUnitClientSpecific", 0x3D.
     const char* GetClassName() override;
     int GetClassId() override;
-    // The order part of the unit's path (ClientControllerPath, registered at its address).
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
 
-    // Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
-    // The attack figures the interface shows for a party unit. A text-key unit with a weapon
-    // in hand (weaponIds[activeWeapon]) takes damage, type, damage type and speed from the weapon and attack
-    // / defence from the weapon's +0x84 / +0x88 plus UnitParams::WeaponSkillBonus (truncated); otherwise they
-    // come from the packed parameters (CUnit + 0x330), with the weapon's type and damage type, or type 8 and
-    // the model's first weighted damage type. Bows and crossbows have no defence; the damage is scaled by the
-    // unit's effects (max first), the attack spread is the parameters' byte; scales attack and defence by the
-    // difficulty for units without a text key.
+    // The attack figures the interface shows for a party unit: a text-key unit with a weapon in hand takes damage,
+    // type, damage type and speed from the weapon and attack / defence from the weapon plus
+    // UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters, with the weapon's
+    // type and damage type, or type 8 and the model's first weighted damage type. Bows and crossbows have no defence;
+    // the damage is scaled by the unit's effects (max first), the attack spread is the parameters' byte; attack and
+    // defence are scaled by the difficulty for units without a text key.
     void GetAttackParams(AttackParams* out) override;
 
-    // The unit puts on armour piece `itemId` (packed: prototype index
-    // in the high half, number in the low half). For a body armour, trousers or helmet not
-    // already worn, each part of its group is replaced by "<part>.armor<number>" when the unit's
-    // figure has it, or kept / restored to the plain part (the hair keeps "hr.<hair>"). False
-    // (AL) for an invalid id, an armour slot beyond 6 or an unknown figure; true otherwise.
+    // The unit puts on armour piece `itemId` (packed: prototype index in the high half, number in the low half). For
+    // a body armour, trousers or helmet not already worn, each part of its group is replaced by
+    // "<part>.armor<number>" when the unit's figure has it, or kept / restored to the plain part (the hair keeps
+    // "hr.<hair>"). False for an invalid id, an armour slot beyond 6 or an unknown figure.
     bool ArmourPutOn(std::uint32_t itemId) override;
 
-    // The unit takes off the armour in armour slot `slot`. The slot is
-    // emptied; for a body armour, trousers or helmet each part of its group is put back plain
-    // (the hair as "hr.<hair>", skipped without hair): the figure's parts of that name are
-    // removed and the plain part added, unless it is the only one and already plain. False (AL)
-    // for a slot beyond 6, an empty or invalid id, or an unknown figure (the slot is emptied
-    // then too); true otherwise.
+    // The unit takes off the armour in armour slot `slot`: the slot is emptied; for a body armour, trousers or helmet
+    // each part of its group is put back plain (the hair as "hr.<hair>", skipped without hair), unless it is the only
+    // one and already plain. False for a slot beyond 6, an empty or invalid id, or an unknown figure (the slot is
+    // emptied then too).
     bool ArmourTakenOff(std::uint32_t slot) override;
 
-    // The unit takes the weapon of weapon slot `slot` in hand. The
-    // figure parts of the weapon in hand (weaponIds[unit->activeWeapon]) are removed by
-    // name, the unit's active weapon becomes `slot` and the byte +0x74 is cleared; the
-    // new weapon's parts (none for an empty slot or a slot beyond 3) are added from the unit's
-    // model (each animated with the figure), and for a bow (type 5) the
-    // part "rh3.arrow00" gets flag 0x80, which +0x75 records (+0x75 is left alone without a new
-    // weapon). Then slot 30. Returns 1.
+    // The unit takes the weapon of weapon slot `slot` in hand: the parts of the weapon in hand are removed by name,
+    // the active weapon becomes `slot`, the new weapon's parts (none for an empty slot or a slot beyond 3) are added
+    // from the unit's model, and for a bow (type 5) the part "rh3.arrow00" gets flag 0x80. Then RefreshModel. Returns
+    // 1.
     int ShowWeapon(std::uint32_t slot) override;
 
     // The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour
     // slots; else two layers, armour slot 0 and the weapon in hand.
     void BuildSkinLayers(int detailed, SkinLayerArray* out);
 
-    // Composes the unit's skin texture through the texture manager
-    // from the skin layers and the textures "<prototype>skin_<nn>.mmp" and
-    // "<prototype><armour or weapon texture>.mmp", named "mo<id>p" / "prot<prototype>p" (or
-    // the shorter names when not `detailed`). Returns the texture.
+    // Composes the unit's skin texture through the texture manager from the skin layers and the textures
+    // "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp", named "mo<id>p" /
+    // "prot<prototype>p" (shorter when not `detailed`). Returns the texture.
     void* ComposeSkin(int detailed, void* target);
 
-    // The point the weapon
-    // in hand acts from: the node named by the weapon's model (weaponIds[unit->activeWeapon],
-    // "baserh3" without one) in the unit's figure animation (on the unit's +0x98), its +0x74
-    // copied to `out` (relative to the unit, not turned by its orientation). False (AL) when the
-    // animation has no such node (`out` untouched).
+    // The point the weapon in hand acts from: the node named by the weapon's model ("baserh3" without one) in the
+    // unit's figure animation, copied to `out` (relative to the unit, not turned by its orientation). False when the
+    // animation has no such node.
     bool WeaponPoint(Vector3* out);
 
     // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update". Returns 1.
@@ -192,11 +169,7 @@ public:
     // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
     // loaded face.
     bool LoadFaceTexture();
-    // The drawn parts take the fade-in as alpha.
-    // Returns 1.
     int FiguresLoaded() override;
-    // The fade-in starts again from 0 (the drawn parts take it). Returns
-    // 0 (a leftover register value).
     int RestartFadeIn() override;
     // The level from the packed experience (UnitParams +0x04, CUnit +0x334):
     // ln(experience /) / ln stored as a float and rounded to nearest.
@@ -246,7 +219,6 @@ public:
     // With a player the companion shows the
     // party light (colour, alpha 1, radius).
     void PlayerChanged(void* player) override;
-    // The unit placed on its new path at the time it was last advanced to, without turning.
     void MotionChanged() override;
 
     // The unit says `speech` (nothing for null), a speech of `kind`.
@@ -275,18 +247,11 @@ public:
     // missing). A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's
     // LoadTexture) when ComposeSkin returned non-zero or the name differs. Returns 1.
     int RefreshEquipment() override;
-    // The simple skin only. Returns 1.
     int RefreshModel() override;
-    // Every armour slot taken off, the ids cleared, then the
-    // first min(count, 7) of `ids` put on.
+    // Every armour slot taken off, the ids cleared, then the first min(count, 7) of `ids` put on.
     void SetArmourModels(const std::uint32_t* ids, int count) override;
-    // The weapon ids cleared, then the first min(count, 4) of `ids`
-    // added.
     void SetWeaponModels(const std::uint32_t* ids, int count) override;
-    // `id` (packed; neither half 0xFFFF) goes to the first free weapon
-    // slot. False (AL) for an invalid id or no free slot.
     bool WeaponAdded(std::uint32_t id) override;
-    // The weapon slot holding `id` is emptied. False (AL) when none does.
     bool RemoveWeaponModel(std::uint32_t id) override;
 
     // The sounds of the animation playing between the last update's frame and now (attacks, deaths, skills, idles, hits,
@@ -323,8 +288,6 @@ public:
     // stopped, released and forgotten, then `path` and `marker` kept in their place
     // (each referenced; null: none).
     void SetMarkers(CParticleSource* path, CParticleSource* marker);
-    // The face texture forgotten, then released; no
-    // blinks.
     void DropFaceTexture();
 
     PathOrder* MotionPath() { return &motion; }
