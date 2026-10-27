@@ -48,7 +48,7 @@ int ShadowSwitchOf(CObject3D* object) {
 
 std::uint32_t CObject3DClientSpecific::ShadowsShown() {
     int setting = worlddata::ShadowSetting();
-    if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;   // XOR AL, AL
+    if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;
     return ShadowSwitchOf(object) != 0 ? 1u : 0u;
 }
 EI_REWRITTEN(0x0051E200, CObject3DClientSpecific::ShadowsShown);

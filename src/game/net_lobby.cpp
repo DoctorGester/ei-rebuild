@@ -405,7 +405,6 @@ EI_REWRITTEN(0x00442300, ClientBase::SetQueries);
 void ClientBase::Ask(const NetAddress* address) {
     QueryList& v = queries_.list;
     if (FindQuery(queries_, address) == v.end()) {
-        // push_back of a default query, inlined.
         if (v.end() != v.EndOfStorage()) {
             stlp::ConstructDefaultAt<Query, recordvec::QueryElement>(v.end());
             ++v.Finish();

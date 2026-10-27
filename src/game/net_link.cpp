@@ -50,7 +50,6 @@ constexpr unsigned kMaxMessage = 0x7FFC;
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
-// The number of bytes a reliable stream holds (its high-water mark raised first), as inlined.
 unsigned BufferFill(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
     return static_cast<unsigned>(b->base - Addr(b->begin) + Addr(b->high));

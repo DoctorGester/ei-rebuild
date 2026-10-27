@@ -52,7 +52,6 @@ lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
 void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
-// The two static arrays' SetSize(8), as inlined.
 void SizeSprites() { Sprites().SetSize(8); }
 void SizePoints() { GlowPoints().SetSize(8); }
 

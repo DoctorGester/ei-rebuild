@@ -204,7 +204,7 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         auto* part = pendingParts.data[i];
-        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined
+        if (startsWith(part)) out->SetAtGrow(out->size, part);
     }
 }
 EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);

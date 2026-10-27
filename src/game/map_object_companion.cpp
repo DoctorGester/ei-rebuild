@@ -103,7 +103,7 @@ int CMapObjectClientSpecific::RunTick() {
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
+            if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;
             int handle = endSound;
             CSoundManager* soundSystem = TheSoundManager();
             if (handle != -1 &&
