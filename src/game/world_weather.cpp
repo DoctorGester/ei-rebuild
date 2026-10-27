@@ -48,7 +48,6 @@ constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
 constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
-// Shows a lightning bolt from `from` to `to` (the client glue).
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
 

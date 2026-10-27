@@ -99,7 +99,6 @@ void __stdcall GameLeaveThroughExit(int exit);
 // The interface's close-all flag set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
-// The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
 CPlayerClient* GameLocalView();
 int __stdcall GameSendFlag10(int value);

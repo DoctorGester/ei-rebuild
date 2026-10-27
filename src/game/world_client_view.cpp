@@ -41,7 +41,6 @@ float* StackTop(CTransformPipeline* device, int index) {
     return stack.matrices[stack.count - 1].m;
 }
 
-// Terrain::HeightAt declared double: the unrounded ST0 is added.
 
 void PushBack(FrameQueue& v, CEngineObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
@@ -52,7 +51,6 @@ void PushBack(FrameQueue& v, CEngineObject* const& value) {
     }
 }
 
-// STLport list<counted pointer>.
 using ObjectList = stlp::list<CEngineObject*>;
 using ObjectListNode = ObjectList::Node;
 
@@ -194,7 +192,7 @@ namespace {
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
 __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
-// The two draws share everything but the height function (which returns ST0 unrounded).
+// The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>
 Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
     CTransformPipeline* device = Device();
@@ -202,7 +200,6 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
         std::memcpy(out, &worlddata::kOrigin, 12);
         return out;
     }
-    // Push the current view matrix on the picking stack (multiplied onto its top).
     PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
     const float* m = StackTop(Device(), CTransformPipeline::kPickStack);
 

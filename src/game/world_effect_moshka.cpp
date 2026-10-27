@@ -61,7 +61,7 @@ constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
 constexpr double kRandomAngle = 1.4621764913365538e-09;   // 2 pi / 2^32
 
-// FCOMP; TEST AH,40h: equal.
+// a == b, or unordered (FCOMP's C3 is set then too).
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
@@ -254,7 +254,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);
-    attached->SetLit(1);   // SetLit
+    attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);
