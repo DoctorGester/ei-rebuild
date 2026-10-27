@@ -3896,7 +3896,7 @@ title = "Tooling: vtable slots must be function starts; library.csv 'not a funct
 group = "standalone"
 depends = ["S16d"]
 files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
-note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
+note = "find_vtables.py half done in C19 batch 24 (slots must be function starts in functions.csv, minus the 'not a function' rows). Left: dashboard_data.py counts library.csv's five 'not a function' rows in library_functions (a denominator nothing can reach); leave them out there and out of the game count."
 
 [[ticket]]
 id = "S17a"
