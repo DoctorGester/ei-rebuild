@@ -1,10 +1,9 @@
-// The corner tables of a fake unit scene's meshes (0044CFF0, called by LoadFakeUnitScene 00446C10
-// once the scene is loaded): every distinct face corner (merged vertex, position, texture vertex)
-// becomes a sorted entry of the mesh's corner table (+0x108, three words each), each face corner
-// its index in that table (+0x128, words); and the distinct (merged vertex, position) pairs, sorted
-// and padded to a multiple of four, go to +0x118 (two words each). The sets are MFC CMaps with the
-// game's hash functions; the sorts are the game's qsort with the original comparators. Names
-// provisional; see docs/notes/objects.md ("Rewritten").
+// The corner tables of a fake unit scene's meshes (called by LoadFakeUnitScene once the scene is loaded):
+// every distinct face corner (merged vertex, position, texture vertex) becomes a sorted entry of the mesh's
+// corner table (+0x108, three words each), each face corner its index in that table (+0x128, words); and
+// the distinct (merged vertex, position) pairs, sorted and padded to a multiple of four, go to +0x118 (two
+// words each). The sets are MFC CMaps with the game's hash functions; the sorts are the game's qsort with
+// its own comparators. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/containers.h"
@@ -26,17 +25,16 @@ namespace {
 // The mesh fields written here: corners, pairs and cornerIndices (SceneMesh, scene_loader.h).
 using Corner = MeshCornerKey;
 
-// The mesh's arrays are engine aligned arrays (lib::AlignedArray): the corner table (6-byte
-// Corners; its inlined SetSize allocates through 00452E90), the corner indices (words) and the
-// pairs (dwords).
+// The mesh's arrays are engine aligned arrays (lib::AlignedArray): the corner table (6-byte Corners), the
+// corner indices (words) and the pairs (dwords).
 using CornerTable = lib::AlignedArray<Corner>;
 using WordArray = lib::AlignedArray<std::uint16_t>;
 using DwordArray = lib::AlignedArray<std::uint32_t>;
 
 // The three CMaps (mfc::CMap) and their associations:
-//   corners (vtable 0073C190): 64-bit key -> 64-bit value (0x18 bytes)
-//   indices (vtable 0073C184): 64-bit key -> dword (0x14 bytes)
-//   pairs   (vtable 0073C178): dword key -> dword (0x10 bytes)
+//   corners: 64-bit key -> 64-bit value (0x18 bytes)
+//   indices: 64-bit key -> dword (0x14 bytes)
+//   pairs:   dword key -> dword (0x10 bytes)
 using CornerMap = mfc::CMap<std::uint64_t, std::uint64_t>;
 using IndexMap = mfc::CMap<std::uint64_t, std::uint32_t>;
 using PairMap = mfc::CMap<std::uint32_t, std::uint32_t>;
@@ -45,8 +43,7 @@ using AssocIndex = IndexMap::Assoc;
 using Assoc32 = PairMap::Assoc;
 static_assert(sizeof(Assoc64) == 0x18 && sizeof(AssocIndex) == 0x14 && sizeof(Assoc32) == 0x10);
 
-// The sorted corner list (a CArray of 16-byte records, vtable 0073C19C): SetSize and
-// SetAtGrow.
+// The sorted corner list (a CArray of 16-byte records): SetSize and SetAtGrow.
 struct CornerRecord {
     std::int32_t vertex, position, texture;
     std::int32_t index;
@@ -69,9 +66,8 @@ void DestroyMap(MapT& map, void* vtable) {
     map.RemoveAll();
 }
 
-// map[key] (operator[], inlined by the original; the maps' GetAssocAt, InitHashTable and NewAssoc:
-// corners 004540A0 / 00453FD0 / 00454040, indices 004541C0 / 004540F0 / 00454160, pairs 004542E0 /
-// 00454210 / 00454280): the value, created when missing.
+// map[key] (operator[], inlined in the game; the maps' GetAssocAt, InitHashTable and NewAssoc): the value, created
+// when missing.
 template <typename K, typename V>
 V& Lookup(mfc::CMap<K, V>& map, K key) {
     return map.ElementAt(key);
@@ -79,8 +75,8 @@ V& Lookup(mfc::CMap<K, V>& map, K key) {
 
 const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces.data[f]; }
 
-// The corner key: ((vertex << 16) | position) << 16 | texture vertex, in 64 bits (the original's
-// __allshl), the indices zero-extended.
+// The corner key: ((vertex << 16) | position) << 16 | texture vertex, in 64 bits (via __allshl), the
+// indices zero-extended.
 std::uint64_t CornerKey(const MeshFace& face, int k) {
     std::uint64_t key = (static_cast<std::uint64_t>(face.vertex[k]) << 16) | face.position[k];
     return (key << 16) | face.vertex2[k];
@@ -188,8 +184,7 @@ void BuildPairs(SceneMesh* mesh) {
 
 } // namespace
 
-// 0044CFF0 (__fastcall: the unit's mesh array). The record list (vtable 0073C19C) is shared by all
-// meshes and freed at the end.
+// The record list is shared by all meshes and freed at the end.
 void __fastcall IndexMeshCorners(MeshArray* meshes) {
     RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
@@ -207,9 +202,8 @@ void __fastcall IndexMeshCorners(MeshArray* meshes) {
 }
 EI_REWRITTEN(0x0044CFF0, IndexMeshCorners);
 
-// 0044CF00 / 0044CF60 (no Ghidra functions): the two qsort comparators above (kCompareRecords,
-// kComparePairs; called through their addresses so the checks run). 1, -1 or 0 by the first field
-// that differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
+// The two qsort comparators above (kCompareRecords, kComparePairs). 1, -1 or 0 by the first field that
+// differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
 namespace {
 template <typename T>
 int CompareFields(const T* a, const T* b, int count) {

@@ -1,7 +1,6 @@
-// The material type of a face group name (0044A2A0, Ghidra: ParseMaterial; called by
-// LoadFigureRegistry): the name split at its dots must have three parts; the second (lower-cased)
-// names the texture type, the third the material. Unknown names are fatal errors. Names
-// provisional; see docs/notes/objects.md ("Rewritten").
+// The material type of a face group name (called by LoadFigureRegistry): the name split at its dots must
+// have three parts; the second (lower-cased) names the texture type, the third the material. Unknown names
+// are fatal errors. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "../lib/crt.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
@@ -36,8 +35,8 @@ constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
 
 } // namespace
 
-// ECX: the name, EDX: the texture type out, `material` out. Returns 1. A name without exactly three
-// parts gives (1, 0x15); an unknown texture type 1, an unknown material 0x15 (after the error).
+// Writes the texture type and `material`. Returns 1. A name without exactly three parts gives (1, 0x15); an
+// unknown texture type 1, an unknown material 0x15 (after the error).
 int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     std::string rest = name;
     mfc::CStringArray parts;

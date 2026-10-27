@@ -1,11 +1,10 @@
-// The bones of a fake unit's skeleton (004492F0, called for the scene's root by 00449240 and
-// recursively for every child): a bone (CAnimationNode, figure.h; 0x128 bytes, constructed by the
-// caller with 00506710) takes a scene node's name, rotation keys from the node's position keys
-// (axis and angle), translation keys from its rotation keys with the step to the next key, a
-// normals-sized array, the node's rest rotation and pivot, and, for nodes with morph keys, one
-// morph frame per frame of the animation whose points are the morph keys interpolated linearly in
-// between; then a child bone per child node. A node with a pivot other than (0, 0, 0) is a fatal
-// error. Names provisional; see docs/notes/objects.md ("Rewritten").
+// The bones of a fake unit's skeleton (called for the scene's root and recursively for every child): a bone
+// (CAnimationNode, figure.h; 0x128 bytes, constructed by the caller) takes a scene node's name, rotation
+// keys from the node's position keys (axis and angle), translation keys from its rotation keys with the
+// step to the next key, a normals-sized array, the node's rest rotation and pivot, and, for nodes with
+// morph keys, one morph frame per frame of the animation whose points are the morph keys interpolated
+// linearly in between; then a child bone per child node. A node with a pivot other than (0, 0, 0) is a
+// fatal error. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "core_maths.h"
 #include "figure.h"
 #include "object_maths.h"
@@ -28,11 +27,10 @@ using PointArray = lib::AlignedArray<Vector3>;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// Element helpers [pointer, count]: the morph frame constructor 00452E20 (mfc::impl::Plain24's) and
-// destructor 00452DF0.
+// Element helpers [pointer, count]: the morph frame constructor (mfc::impl::Plain24's) and destructor.
 constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
-// Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0; the aligned arrays' (a frame's
-// points 0044F1D0, the children 0044F540; a frame's points copied 0044F410) are their members.
+// Out-of-line SetSize [size, growth or -1]: the morph frames'; the aligned arrays' (a frame's points, the children;
+// a frame's points copied) are their members.
 using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
 
 // --- x87 -----------------------------------------------------------------------------------------
@@ -137,8 +135,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 
 } // namespace
 
-// 004492F0 (__fastcall: the skin in ECX, the new bone in EDX; RET 8). `node` is the scene node
-// (0x120 bytes), the low word of `frames` the animation's frame count.
+// `node` is the scene node (0x120 bytes), the low word of `frames` the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
     skin->bones.SetAtGrowRef(skin->bones.size, &added);

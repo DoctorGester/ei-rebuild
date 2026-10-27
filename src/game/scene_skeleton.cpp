@@ -1,10 +1,9 @@
-// The fake unit's skeleton from the scene nodes (00448A40, Ghidra: BuildSkeleton; called by
-// LoadFakeUnitScene): each node's pivot (its first rotation key's vector, +0x70) and rest rotation
-// (its first position key: axis +0x60 and angle +0x6C as a quaternion at +0x7C, unless the axis is
-// the zero vector 0079B9B0), the mesh named like a node moved into the node's frame, the bones built
-// from the root node, then each node's frame array (+0xF8, 40-byte records) sized to the
-// frame count with the pivot and rotation in its first record. Plain float maths (rule 7). Names
-// provisional; see docs/notes/objects.md ("Rewritten").
+// The fake unit's skeleton from the scene nodes (BuildSkeleton, called by LoadFakeUnitScene): each node's
+// pivot (its first rotation key's vector, +0x70) and rest rotation (its first position key: axis +0x60 and
+// angle +0x6C as a quaternion at +0x7C, unless the axis is the zero vector), the mesh named like a node
+// moved into the node's frame, the bones built from the root node, then each node's frame array (+0xF8,
+// 40-byte records) sized to the frame count with the pivot and rotation in its first record. Plain float
+// maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "figure.h"
@@ -26,7 +25,7 @@ void __stdcall ConstructNodeFrames(void* records, int count) {
 
 namespace {
 
-// The node's children (+0x10C; CArray<node*>, SetSize 00453790).
+// The node's children (+0x10C; CArray<node*>).
 using ChildArray = mfc::CArray<SceneNode*>;
 
 // The node's pivot and rotation copied to their rest copies.
@@ -73,9 +72,9 @@ void __fastcall CopyRestPose(SceneNode* node) {
 }
 EI_REWRITTEN(0x004491C0, CopyRestPose);
 
-// Links each node to its children (nodes whose parent name equals its name, _mbscmp),
-// finds the root (the last node with an empty parent name, -1 when none) and copies the rest pose
-// from it down. Without a root the original reads and writes the element before the array; kept.
+// Links each node to its children (nodes whose parent name equals its name, _mbscmp), finds the root (the
+// last node with an empty parent name, -1 when none) and copies the rest pose from it down. Without a root
+// the element before the array is read and written; kept.
 int __fastcall FindRootNode(NodeArray* nodeArray) {
     NodeArray& nodes = *nodeArray;
     int root = -1;
@@ -103,9 +102,9 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
 }
 EI_REWRITTEN(0x00449030, FindRootNode);
 
-// ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
-// `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
-// at frame 0 is a fatal error (game::FatalError's result is returned if it comes back).
+// Takes the unit's meshes (CArray, 0x18C each; a mesh's virtual 7 is its name) and the nodes; `frames` (its
+// low word counts), `skin`. 1, or 0 without a root node; a first rotation key not at frame 0 is a fatal
+// error (game::FatalError's result is returned if it comes back).
 int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin) {
     MeshArray& meshes = *meshArray;
     NodeArray& nodes = *nodeArray;
@@ -168,7 +167,7 @@ int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int fra
 
     BuildRootBone(skin, &nodes.data[root], frames);
 
-    // Repeated once per mesh, as the original does.
+    // Repeated once per mesh.
     for (int m = 0; m < meshes.size; ++m) {
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* node = &nodes.data[j];

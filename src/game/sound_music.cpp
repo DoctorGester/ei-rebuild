@@ -1,8 +1,8 @@
-// The music system (CMusicSystem, world/app object + 0x1A8; 006B4E30-006B56BA): chooses what the
-// sound manager's MP3 stream plays for the game state. In a zone (state 1) it plays a combat
-// track of the allod's theme while the party fights (007AFC9C == 2) and otherwise, after a random
-// pause of 120..180 s, a calm track; the briefing, constructor, main menu and credits states each
-// play one file. The themes come from music.reg (LoadThemes, 006B4710).
+// The music system (CMusicSystem, world/app object + 0x1A8): chooses what the sound manager's MP3 stream
+// plays for the game state. In a zone (state 1) it plays a combat track of the allod's theme while the
+// party fights (combat state == 2) and otherwise, after a random pause of 120..180 s, a calm track; the
+// briefing, constructor, main menu and credits states each play one file. The themes come from music.reg
+// (LoadThemes).
 #include "sound.h"
 #include "game_strings.h"
 
@@ -64,9 +64,9 @@ void WaitAndEndAfter(CSoundManager* snd) {
 // The themes' registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The theme array (CArray<MusicTheme> at +0x1C): SetSize [006B59A0: size, grow by (-1 keeps it)]
-// and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
-// second SetSize and the first assignment, identically).
+// The theme array (CArray<MusicTheme> at +0x1C): SetSize [size, grow by (-1 keeps it)] and the element
+// assignment (MFC template instantiations; the second SetSize and the first assignment are inlined
+// identically).
 void ThemesSetSize(void* themes, int size) {
     static_cast<recordarrays::Themes::Array*>(themes)->SetSize(size, -1);
 }
@@ -234,7 +234,7 @@ void CMusicSystem::PlayJingle(const char* name) {
 }
 EI_REWRITTEN(0x006B5270, CMusicSystem::PlayJingle);
 
-// 006B5350 (vtable slot 6, every world frame). Always 1.
+// Every world frame. Always 1.
 int CMusicSystem::UpdateMusic() {
     CSoundManager* snd = TheSoundManager();
     if (state != 1 || holding == 1) return 1;
@@ -284,7 +284,7 @@ int CMusicSystem::UpdateMusic() {
 }
 EI_REWRITTEN(0x006B5350, CMusicSystem::UpdateMusic);
 
-// ---- Lifetime and the engine object's slots (A-H13) ----
+// ---- Lifetime and the engine object's virtuals ----
 
 namespace {
 // The theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
@@ -298,7 +298,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 CMusicSystem::CMusicSystem() {
     ClearFields();
-    themesVtable = recordarrays::ThemeArrayClass::Vtable();   // game.exe: 007440CC (the same slots)
+    themesVtable = recordarrays::ThemeArrayClass::Vtable();
     themes = nullptr;
     themeGrow = 0;
     themeMax = 0;
@@ -321,8 +321,8 @@ void CMusicSystem::ResetThemes() {
 }
 EI_REWRITTEN(0x006B4690, CMusicSystem::ResetThemes);
 
-// The strings go after the body (jingle, combatTrack, mainMenu, credits: the original's order
-// before its theme array's destructor).
+// The strings go after the body (jingle, combatTrack, mainMenu, credits: the game's order, before its theme
+// array's destructor).
 CMusicSystem::~CMusicSystem() {
     ResetThemes();
     ThemesDestruct(&themesVtable);
@@ -345,6 +345,6 @@ void MusicTheme::Assign(const MusicTheme* from) {
 }
 EI_REWRITTEN(0x006B4D40, MusicTheme::Assign);
 
-// 006B4470 / 006B4480: slots 11 and 12.
+// GetClassName and GetClassId.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }
 int CMusicSystem::GetClassId() { return kMusicClassId; }

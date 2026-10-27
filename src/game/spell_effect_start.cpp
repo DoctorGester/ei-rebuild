@@ -1,8 +1,8 @@
-// A spell effect's casting state (CSpellEffect::Update state 0, 0067F870) and the helpers that
-// create its effect objects (0067EF40-0067F870). Every spell type starts differently: missiles
-// get a CEffectArrow or a particle source and go to state 1, the lasting spells get particles,
-// lights and sound sequences and go to state 2, the instant ones (lightning, the light strike,
-// buffs, charm) deal or apply their effect here. See docs/notes/items_spells.md.
+// A spell effect's casting state (CSpellEffect::Update state 0) and the helpers that create its effect
+// objects. Every spell type starts differently: missiles get a CEffectArrow or a particle source and go to
+// state 1, the lasting spells get particles, lights and sound sequences and go to state 2, the instant ones
+// (lightning, the light strike, buffs, charm) deal or apply their effect here. See
+// docs/notes/items_spells.md.
 #include "ai_map.h"
 #include "map_object.h"
 #include "spell.h"
@@ -275,7 +275,7 @@ Next StartVisionFog(CSpellEffect* e) {
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
-    // Controller slot 21, Heal (the original pushes the amount's bits, MOV/PUSH).
+    // Controller Heal (the amount's bits are pushed, MOV/PUSH).
     CUnit* unit = TargetUnit(e);
     unit->Controller()->Heal(e->Spell()->damage_);
     float size = Power(e);
