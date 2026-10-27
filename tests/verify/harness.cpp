@@ -491,20 +491,22 @@ __declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) 
 // LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(Ftol(f[0])) and its +0x20)
 // use 0.
 constexpr int kLocalPlayer = 0;
-constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
 void* LocalWorldPlayer() {
     return ei::Standalone() ? image::LocalWorldPlayer(kLocalPlayer)
                             : OriginalCode<void*(__thiscall*)(void*, int)>(0x00594180)(exe::ServerWorld(), kLocalPlayer);
 }
-// Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
-// script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
+// Its server connection (the world player's connection_, a CPlayerServer in single player; StateOf in
+// script_exec.cpp) or null, and the connection's state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
     void* player = LocalWorldPlayer();
-    return player ? *reinterpret_cast<void**>(static_cast<char*>(player) + 0x20) : nullptr;
+    if (!player) return nullptr;
+    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection_;
 }
-int ConnectionState(void* connection) { return *reinterpret_cast<int*>(static_cast<char*>(connection) + 0x20); }
+int ConnectionState(void* connection) {
+    return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::CPlayerConnection*>(connection)->state_;
+}
 // What the zone steps read, for the log and failure messages.
 std::string DescribeLocalPlayer() {
     void* player = LocalWorldPlayer();
@@ -1445,7 +1447,7 @@ void FillFixedSeed(std::uint32_t* results) {
 using SrandFn = void(__cdecl*)(unsigned);
 void __fastcall FixedIsaacSeed(void* isaac) {
     reinterpret_cast<SrandFn>(0x006E77EA)(12345);
-    FillFixedSeed(reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8));
+    FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results_);
 }
 
 // game.exe's function at `from` replaced by `to`: a JMP written there (game.exe's runs only).
@@ -1846,16 +1848,15 @@ void PostRegionMouse(const std::string& verb, int index) {
 
 // --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
 // A click on a unit's body, placed where the game's own picking finds it. The client world
-// (007AF5B8) keeps a list (+0xF0, header pointer; nodes: next +0, value +8: 0x18 bytes, the
-// object id at +0xC and its screen rectangle at +0x10) of the objects drawn this frame with the
-// rectangles of their projected vertices (written by the object draw, 004E8900 / 005A7A70).
+// (007AF5B8) keeps a list (screenEntries_: the object's class id, its id and its screen rectangle) of
+// the objects drawn this frame with the rectangles of their projected vertices (written by the object
+// draw, 004E8900 / 005A7A70).
 // 00565E40 (the world's thiscall, RET 4) is the unit at a point that the battle screen's left
 // button release (00638B30) asks with the message's own coordinates: those rectangles that hold
 // the point, the client object's finer test (+0x94 slot 24), the nearest unit (type 0x50). The
 // step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
 // unit, so a click there selects or orders that unit and no other in front of it.
 // 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
-constexpr int kClientPickList = 0xF0;
 constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
 
 // Where a click finds the unit with script name `name` in this frame (client coordinates) and the
@@ -1871,22 +1872,40 @@ void* HarnessPickAt2(void* world, const POINT* p) {
 void* HarnessUnitAt(void* world, const POINT* p) {
     return ei::Standalone() ? image::UnitAt(world, p->x, p->y) : OriginalUnitAt(world, nullptr, p);
 }
+// The client world's rectangle of object `id` in this frame's screen list (the last entry for it): 1, 0 when it is
+// not drawn, -1 without a list.
+int ScreenRect(void* world, int id, RECT* rect) {
+    if (ei::Standalone()) return image::ScreenRect(world, id, rect);
+    const auto& entries = static_cast<exe::CWorldClient*>(world)->screenEntries_;
+    if (!entries.head) return -1;
+    int found = 0;
+    for (const auto* node = entries.First(); node && node != entries.End(); node = node->next) {
+        if (static_cast<int>(node->data.objectId) != id) continue;
+        *rect = {node->data.rect.left, node->data.rect.top, node->data.rect.right, node->data.rect.bottom};
+        found = 1;
+    }
+    return found;
+}
+// A picked object's id and flags (the CEngineObject's id_ and flags_).
+int PickedId(const void* object) {
+    return ei::Standalone() ? image::ObjectId(object) : static_cast<const exe::CEngineObject*>(object)->id_;
+}
+std::uint32_t PickedFlags(const void* object) {
+    return ei::Standalone() ? image::ObjectFlags(object) : static_cast<const exe::CEngineObject*>(object)->flags_;
+}
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
     int id = byId                ? std::atoi(name + 1)
              : ei::Standalone() ? image::TextKey(name)
                                 : OriginalCode<int(__fastcall*)(const char*)>(0x00461360)(name);   // game.exe's own
-    auto* world = reinterpret_cast<std::uint8_t*>(HarnessClientWorld());
-    auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
-    if (!header) return label + ": no pick list (not in a game)";
+    void* world = HarnessClientWorld();
     // The unit's rectangle in this frame's list (the last entry for the id).
-    const RECT* rect = nullptr;
-    for (auto* node = *reinterpret_cast<std::uint8_t**>(header); node && node != header;
-         node = *reinterpret_cast<std::uint8_t**>(node)) {
-        if (*reinterpret_cast<int*>(node + 0xC) == id) rect = reinterpret_cast<const RECT*>(node + 0x10);
-    }
-    if (!rect) return label + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
+    RECT bounds{};
+    const RECT* rect = &bounds;
+    int listed = ScreenRect(world, id, &bounds);
+    if (listed < 0) return label + ": no pick list (not in a game)";
+    if (listed == 0) return label + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
     if (what)
         Log("harness: %s: id %d, rectangle (%ld,%ld)-(%ld,%ld)", label.c_str(), id, rect->left, rect->top, rect->right,
             rect->bottom);
@@ -1907,7 +1926,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         void* hit = byId ? HarnessPickAt2(world, &p) : HarnessUnitAt(world, &p);
-        if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
+        if (hit && PickedId(hit) == id) {
             *point = p;
             *unit = hit;
             return "";
@@ -1924,7 +1943,7 @@ std::string PostUnitMouse(const std::string& argument) {
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
     if (!error.empty()) return error;
-    std::uint32_t flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(hit) + 8);
+    std::uint32_t flags = PickedFlags(hit);
     RECT client{};
     GetClientRect(GameWindow(), &client);
     Log("harness: clickunit %s: at (%ld,%ld) (client %ldx%ld), flags %08X%s", name, at.x, at.y,
@@ -2127,34 +2146,44 @@ std::string HudState(const std::string& argument) {
 
 // --- campputon <type> <count> (ticket I9) -----------------------------------------------------
 // With the camp on top (screen 5, page 0): the first <count> items of class type <type> (hex,
-// item +0x10: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
-// item strip's source list (camp +0x1E0, strip +0x1AC: the player's items) are put on the hero as
-// a click on them in the strip does: the camp's virtual slot 42 (MoveItem 00610AD0) with mode 1
+// item type_: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
+// item strip's source list (the camp's itemStrip_, its source_: the player's items) are put on the hero as
+// a click on them in the strip does: the camp's virtual slot 42 (TakeItem: MoveItem 00610AD0) with mode 1
 // (PutOnFromStrip -> PutOn 0060FCA0). The strip's tabs do not matter. Logs every source item's
 // type; fails when fewer than <count> items of the type are found or the camp is not on top.
 std::string CampPutOn(const std::string& argument) {
     unsigned type = 0;
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
-    auto* camp = static_cast<std::uint8_t*>(TopWindow());
+    void* camp = TopWindow();
     if (!camp || WindowKind(camp) !=
                      reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0074091C)))
         return "campputon: the camp is not on top";
-    int page = *reinterpret_cast<int*>(camp + 0x190);
-    auto* strip = *reinterpret_cast<std::uint8_t**>(camp + 0x1E0);
-    auto* source = strip ? *reinterpret_cast<exe::AlignedArray<std::uint8_t*>**>(strip + 0x1AC) : nullptr;
-    if (!source) return "campputon: the camp has no item strip source";
-    std::vector<std::uint8_t*> chosen;
-    for (int i = 0; i < source->size; ++i) {
-        std::uint8_t* item = source->data[i];
-        unsigned itemType = item ? *reinterpret_cast<unsigned*>(item + 0x10) : 0;
-        Log("harness: campputon: page %d, source item %d %p type %04X", page, i, item, itemType);
-        if (item && itemType == type && static_cast<int>(chosen.size()) < count) chosen.push_back(item);
+    // The strip's source items and their types, from either side's camp.
+    int page = 0;
+    std::vector<void*> items;
+    std::vector<unsigned> types;
+    if (ei::Standalone()) {
+        if (!image::CampItems(camp, &page, &items, &types)) return "campputon: the camp has no item strip source";
+    } else {
+        auto* pages = static_cast<exe::CCampPages*>(camp);
+        page = pages->page_;
+        const exe::AlignedArray<exe::CItem*>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+        if (!source) return "campputon: the camp has no item strip source";
+        for (int i = 0; i < source->size; ++i) {
+            exe::CItem* item = source->data[i];
+            items.push_back(item);
+            types.push_back(item ? static_cast<unsigned>(item->type_) : 0);
+        }
     }
-    using MoveFn = void(__thiscall*)(std::uint8_t*, std::uint8_t*, int);
-    auto move = reinterpret_cast<MoveFn>((*reinterpret_cast<void***>(camp))[42]);
-    for (std::uint8_t* item : chosen) {
-        move(camp, item, 1);
+    std::vector<void*> chosen;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        Log("harness: campputon: page %d, source item %d %p type %04X", page, static_cast<int>(i), items[i], types[i]);
+        if (items[i] && types[i] == type && static_cast<int>(chosen.size()) < count) chosen.push_back(items[i]);
+    }
+    for (void* item : chosen) {
+        if (ei::Standalone()) image::CampTakeItem(camp, item, 1);
+        else static_cast<exe::CCampPages*>(camp)->TakeItem(static_cast<exe::CItem*>(item), 1);
         Log("harness: campputon: %p put on (MoveItem mode 1)", item);
     }
     if (static_cast<int>(chosen.size()) < count)
@@ -3215,7 +3244,7 @@ void RunSteps() {
             } else if (!connection || ConnectionState(connection) != 1) {
                 g_failures.push_back(std::string("zone ") + name + ": the local player is not in the world (" + DescribeLocalPlayer() + ")");
             } else {
-                int kind = *reinterpret_cast<const int*>(record + kZoneRecordKind);
+                int kind = ei::Standalone() ? image::MapKind(record) : reinterpret_cast<const exe::MapRecord*>(record)->kind;
                 Log("harness: zone %s (map.txt type %s), exit %d", name, kind == 0 ? "game" : kind == 2 ? "brief" : "edge", exitIndex);
                 // In game.exe's --no-hooks runs its own LeaveToZone: ours would use our named globals (C18, the
                 // random generator among them), which game.exe never reads.

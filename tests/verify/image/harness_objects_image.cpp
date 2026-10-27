@@ -21,7 +21,9 @@
 #include "game/spell.h"
 #include "game/texture.h"
 #include "game/ui.h"
+#include "game/ui_camp.h"
 #include "game/ui_cursor.h"
+#include "game/ui_screens.h"
 #include "game/unit.h"
 #include "game/unit_client_models.h"
 #include "game/world.h"
@@ -119,7 +121,40 @@ void* PickAt2(void* world, int x, int y) {
 }
 void* UnitAt(void* world, int x, int y) {
     const POINT p{x, y};
-    return static_cast<CWorldClient*>(world)->UnitAt(&p);
+    return static_cast<CEngineObject*>(static_cast<CWorldClient*>(world)->UnitAt(&p));
+}
+int ScreenRect(void* world, int id, RECT* rect) {
+    const stlp::list<ScreenEntry>& entries = static_cast<CWorldClient*>(world)->screenEntries_;
+    if (!entries.head) return -1;
+    int found = 0;
+    for (const ScreenEntryNode* node = entries.First(); node && node != entries.End(); node = node->next) {
+        if (static_cast<int>(node->data.objectId) != id) continue;
+        rect->left = node->data.rect[0];
+        rect->top = node->data.rect[1];
+        rect->right = node->data.rect[2];
+        rect->bottom = node->data.rect[3];
+        found = 1;
+    }
+    return found;
+}
+int ObjectId(const void* object) { return static_cast<const CEngineObject*>(object)->id_; }
+std::uint32_t ObjectFlags(const void* object) { return static_cast<const CEngineObject*>(object)->flags_; }
+void* PlayerConnection(void* player) { return static_cast<CPlayer*>(player)->connection_; }
+int ConnectionState(void* connection) { return static_cast<CPlayerConnection*>(connection)->state_; }
+bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
+    auto* pages = static_cast<CCampPages*>(static_cast<CUiWindow*>(camp));
+    *page = pages->page_;
+    const UiPtrArray<CItem>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+    if (!source) return false;
+    for (int i = 0; i < source->size; ++i) {
+        CItem* item = source->data[i];
+        items->push_back(item);
+        types->push_back(item ? static_cast<unsigned>(item->type_) : 0);
+    }
+    return true;
+}
+void CampTakeItem(void* camp, void* item, int mode) {
+    static_cast<CCampPages*>(static_cast<CUiWindow*>(camp))->TakeItem(static_cast<CItem*>(item), mode);
 }
 void PickSurface(void* world, float* out, int x, int y) {
     static_cast<CWorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
@@ -170,6 +205,7 @@ void ChatKeyEnter() { TheInterface()->ChatKeyEnter(); }
 void CloseChat() { TheInterface()->root_->SetOpen(false); }
 bool HasClassTemplate(int id) { return ThePartyManager()->templates.Find(id) != nullptr; }
 const void* FindMap(const char* name) { return TheMapDatabase()->FindMap(name); }
+int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
 void LeaveToZone(void* connection, const char* name, int exit) {
     static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exit);
 }

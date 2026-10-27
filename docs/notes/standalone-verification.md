@@ -397,7 +397,9 @@ happen (the harness logs "share id" if one does).
   call) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member
   names at game.exe's offsets, frozen when H30b split them off; `OriginalGameData` for globals). Our classes it reaches
   only in the image, through tests/verify/image (image_side.h declares functions that name no class of ours; the .cpp
-  files there include our headers), chosen by `ei::Standalone()`. Reading code both sides share is a template or an
+  files there include our headers), chosen by `ei::Standalone()`. A shared step reads no byte offset or virtual slot
+  of an object in either run (clickunit's screen list and pick, campputon's camp, the zone steps' connection,
+  hudstate): each read is a view member on game.exe's side and an image_side.h function on the image's. Reading code both sides share is a template or an
   .inc compiled once per side (harness_digest_read.inc, harness_hud_read.inc, harness_netstate_read.h). So a cleanup
   may reorder, retype or rename our members without playing the original's runs again; tools/check_harness_key.py
   (build.cmd) fails when a header of src/game, src/render or src/lib other than game_data.h, gameapi.h,
