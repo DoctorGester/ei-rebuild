@@ -106,8 +106,8 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
 
 // The smaller of the unit's two horizontal extents (the select keeps above.y for NaN).
 float SmallerExtent(const CUnit* unit) {
-    float y = unit->above.y;
-    float x = unit->above.x;
+    float y = unit->bounds.boxMax.y;
+    float x = unit->bounds.boxMax.x;
     return y >= x ? x : y;
 }
 
@@ -166,7 +166,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (blood >= 1 && blood <= 8) {
         auto* source = TheParticleManager()->CreateSource(kBloodParticles[blood - 1]);
         source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
-        source->ScaleSize(part->bounds_.radius * kBloodScale);
+        source->ScaleSize(part->box_.bounds.radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
         if (alpha < kBloodMinAlpha) alpha = kBloodMinAlpha;
@@ -178,7 +178,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = 1.0f >= smaller ? 1.0f : smaller;
-    float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
+    float sizeStored = (part->box_.bounds.boxMax.y + part->box_.bounds.boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     Vector3 at;
     unit->PartWorldPosition(&at.x, part);
@@ -196,7 +196,7 @@ EI_REWRITTEN(0x00537500, CUnitClientSpecific::StatChanged);
 void CUnitClientSpecific::Wound(float) {
     auto* source = TheParticleManager()->CreateSource(kSparks);
     source->localPosition_ = {0.0f, 0.0f, 0.0f};
-    source->ScaleSize(unit->radius);
+    source->ScaleSize(unit->bounds.radius);
     source->alpha = kSparkAlpha;
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
@@ -213,7 +213,7 @@ void CUnitClientSpecific::Died() {
     Vector3 at;
     float size;
     if (auto* body = unit->FindPartByPrefix("bd")) {
-        float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
+        float stored = (body->box_.bounds.boxMax.y + body->box_.bounds.boxMax.x) * kHalf;
         size = stored;
         unit->PartWorldPosition(&at.x, body);
     } else {

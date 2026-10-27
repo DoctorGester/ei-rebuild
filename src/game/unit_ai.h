@@ -551,7 +551,7 @@ struct AIAttackOption {
     int maxCount;                   // cap on the group-size bonus
     float radius;                   // area of kinds 2 and 3
     int effect;                     // effect type (kinds 4..6), strength (kind 3)
-    std::uint16_t damage[8];        // measured against the target's protection
+    DamageWords damage;             // measured against the target's protection
 };
 static_assert(sizeof(AIAttackOption) == 0x28);
 
@@ -603,8 +603,8 @@ struct AIAttention {
     // gets only the weapon. Then `healWeight` is the largest Weight of the `weapons` options.
     void Build(CUnit* unit);
     void InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius, int effect);
-    std::uint16_t* AddWeaponOption(int kind, int part, float range, int maxCount, float radius, int effect);
-    std::uint16_t* AddSpellOption(int kind, int part, float range, int maxCount, float radius, int effect);
+    DamageWords* AddWeaponOption(int kind, int part, float range, int maxCount, float radius, int effect);
+    DamageWords* AddSpellOption(int kind, int part, float range, int maxCount, float radius, int effect);
     // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
     int SpellKind(const CSpell* spell);
 

@@ -41,7 +41,7 @@ constexpr int kWeaponCrossbow = 6;
 constexpr int kOrderAttack = 3;
 constexpr int kOrderSkill = 6;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
-constexpr int kNoSizeClasses = 2;         // CombatStats::bodyKind
+constexpr int kNoSizeClasses = 2;         // UnitStats::movementKind
 
 constexpr std::uint32_t kKeyAction = 0x40000;
 constexpr std::uint32_t kKeyAttack = 0x90000;
@@ -83,7 +83,7 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeap
 std::uint32_t WeaponBit(CUnitServer* self) {
     CItemWeapon* weapon = ActiveWeapon(self->unit);
     if (weapon) return 1u << (weapon->GetType() & 31);
-    int natural = self->Combat().naturalWeapon;
+    int natural = self->stats.naturalWeapon;
     return natural < kNoNaturalWeapon ? 1u << (natural & 31) : 0u;
 }
 
@@ -230,7 +230,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
             key = HasRangedWeapon(self->unit) ? 0x5800000 : 0xD400000;
             *frame = leavesWalk;
         }
-        if (!ActiveWeapon(self->unit) && self->Combat().naturalWeapon >= kNoNaturalWeapon)
+        if (!ActiveWeapon(self->unit) && self->stats.naturalWeapon >= kNoNaturalWeapon)
             return key | kKeyNoWeapon | kKeyAction;
         return key | WeaponBit(self) | kKeyAction;
     }
@@ -316,7 +316,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     }
 
     AnimationStep blank = BlankStep();
-    if (Combat().bodyKind == kNoSizeClasses) {
+    if (stats.movementKind == kNoSizeClasses) {
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, &FigureAnimation::moment);
         int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);

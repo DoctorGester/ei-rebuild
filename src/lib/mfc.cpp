@@ -28,6 +28,8 @@ void Place(CString& result, impl::CString&& s) {
 }
 } // namespace
 
+impl::CString& ImplOf(CString& s) { return *Impl(&s); }
+
 // ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp): the
 // functions in the #ifndef blocks below. The other members must not be called there unless their
 // implementation links into it (mfc_string.cpp, mfc_archive.cpp).

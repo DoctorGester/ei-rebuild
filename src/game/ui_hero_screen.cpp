@@ -211,12 +211,15 @@ EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
 // --- The caches' objects released ----------------------------------------------------------
 
-void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
-    for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
+template <typename Object>
+void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
+    for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node))
         node->second.object->Release();
 }
-EI_REWRITTEN(0x00634500, ReleaseCachedObjects);
-EI_REWRITTEN(0x00634560, ReleaseCachedObjects);
+template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
+template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
+EI_REWRITTEN(0x00634500, ReleaseCachedObjects<CUiMesh>);
+EI_REWRITTEN(0x00634560, ReleaseCachedObjects<CTexture>);
 
 // --- The destructor body -------------------------------------------------------------
 

@@ -51,10 +51,10 @@ std::uint32_t PackColour(const float* rgb) {
 }
 
 // The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
-// least recently used entries beyond its limit. Null when it cannot be made. `textures` picks the texture
-// maker.
-CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
-    ItemObjectCache::Node* node;
+// least recently used entries beyond its limit. Null when it cannot be made. `make` is the object's maker.
+template <typename Object>
+Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (__fastcall* make)(const char*)) {
+    typename ItemObjectCache<Object>::Node* node;
     {
         stlp::string key(name);
         node = cache->map.find(key);
@@ -63,26 +63,20 @@ CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textu
         node->second.lastUse = gameapi::timeGetTime();
         return node->second.object;
     }
-    CEngineObject* object;
-    if (textures)
-        object = ItemFigureTexture(name);
-    else
-        object = ItemModel(name);
+    Object* object = make(name);
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {
         stlp::string key(name);
-        ItemCacheEntry& value = cache->map.Subscript(key);
+        ItemCacheEntry<Object>& value = cache->map.Subscript(key);
         value.object = object;
         value.lastUse = time;
     }
     TrimItemCache(cache);
     return object;
 }
-// A cached item texture: `cache` is the screen's texture cache, which holds only ItemFigureTexture's textures.
-CTexture* CachedTexture(ItemObjectCache* cache, const char* name) {
-    return static_cast<CTexture*>(CachedObject(cache, name, true));
-}
+CUiMesh* CachedModel(ItemModelCache* cache, const char* name) { return CachedObject(cache, name, ItemModel); }
+CTexture* CachedTexture(ItemTextureCache* cache, const char* name) { return CachedObject(cache, name, ItemFigureTexture); }
 
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
 // float.
@@ -190,7 +184,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     CUiMesh* model;
     {
         std::string name = item->PictureName().GetString();
-        model = AsUiMesh(CachedObject(&models_, name.c_str(), false));
+        model = CachedModel(&models_, name.c_str());
     }
     CTexture* texture;
     {
@@ -219,12 +213,12 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         SetShade(model, 0.5f);
         SetOrientation(model, LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f));
         // The larger of the box's x and y extents: y when x is below it (or NaN), selected as dwords.
-        const Vector3& extents = model->bounds_.boxMax;
+        const Vector3& extents = model->box_.bounds.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
         double half = D(0.5f /*0073B86C*/);
-        float y = static_cast<float>(D(model->bounds_.center.y) * D(cell->size) * half + D(cell->y));
-        float x = static_cast<float>(D(cell->x) - D(model->bounds_.center.x) * D(cell->size) * half);
+        float y = static_cast<float>(D(model->box_.bounds.center.y) * D(cell->size) * half + D(cell->y));
+        float x = static_cast<float>(D(cell->x) - D(model->box_.bounds.center.x) * D(cell->size) * half);
         model->Place(x, y, cell->depth);
         model->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) *
                                         D(0.00125f /*00740164*/) / D(extent)));
@@ -390,7 +384,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     mfc::CString modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    CUiMesh* model = AsUiMesh(CachedObject(&models_, modelName, false));
+    CUiMesh* model = CachedModel(&models_, modelName);
     CTexture* texture = CachedTexture(&textures_, textureName);
     if (!model || !texture) return;
 

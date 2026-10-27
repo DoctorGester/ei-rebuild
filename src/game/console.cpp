@@ -21,6 +21,7 @@
 #include "lib/mfc_string.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace console {
@@ -32,17 +33,22 @@ void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
 void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
 void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
 
-mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
-CStdioFile::CStdioFile() { Impl()->Construct(); }
-CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }
-CStdioFile::~CStdioFile() { Impl()->Destruct(); }
-mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, void* error) {
-    return Impl()->Open(name, flags, static_cast<mfc::impl::CFileException*>(error));
+CStdioFile::CStdioFile() {
+    std::construct_at(&file_);
+    file_.Construct();
 }
-mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return Impl()->ReadLine(reinterpret_cast<mfc::impl::CString&>(line)); }
-char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadString(buffer, size); }
-void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }
-void CStdioFile::Close() { Impl()->Close(); }
+CStdioFile::CStdioFile(const char* name, unsigned flags) {
+    std::construct_at(&file_);
+    file_.ConstructOpen(name, flags);
+}
+CStdioFile::~CStdioFile() { file_.Destruct(); }
+mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, mfc::impl::CFileException* error) {
+    return file_.Open(name, flags, error);
+}
+mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return file_.ReadLine(mfc::ImplOf(line)); }
+char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
+void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
+void CStdioFile::Close() { file_.Close(); }
 
 GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
 GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }

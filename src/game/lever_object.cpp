@@ -235,7 +235,7 @@ EI_REWRITTEN(0x0052BB50, Lever::ApplyKey);
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 EI_REWRITTEN(0x0052BBA0, Lever::KeyOpens);
 
-double Lever::RadiusSlot() { return radius; }
+double Lever::RadiusSlot() { return bounds.radius; }
 EI_REWRITTEN(0x0052B3E0, Lever::RadiusSlot);
 
 const char* Lever::GetClassName() { return kLeverClassName; }

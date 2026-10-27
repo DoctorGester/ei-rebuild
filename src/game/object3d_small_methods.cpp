@@ -29,9 +29,9 @@ EI_REWRITTEN(0x005161A0, CObject3D::SetSpecific);
 
 void FootprintPart::SetIgnored(bool ignored) {
     if (ignored)
-        flags |= kBoxIgnored;
+        bounds.flags |= kBoxIgnored;
     else
-        flags &= ~kBoxIgnored;
+        bounds.flags &= ~kBoxIgnored;
 }
 EI_REWRITTEN(0x005174E0, FootprintPart::SetIgnored);
 

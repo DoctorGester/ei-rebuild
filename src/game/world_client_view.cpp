@@ -130,7 +130,7 @@ int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* v
                 std::memcpy(&matrix[12], &zero, 4);
                 std::memcpy(&matrix[15], &one, 4);
                 PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
-                int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->boundsFlags));
+                int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
                 device->PopMatrix(CTransformPipeline::kClipStack);
 
                 CMapObject* const& entry = object;

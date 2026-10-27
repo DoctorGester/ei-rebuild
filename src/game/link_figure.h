@@ -77,12 +77,11 @@ struct LinkPartHeader {
     // materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
-    ClipBounds bounds;          // fitted to the part's morphed vertices
-    Vector3 pivot;              // the part's position when loaded (CFigureMesh::boxPivot_)
+    FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
     RECT screen;                // where the part was last drawn (empty: not drawn)
 };
 static_assert(offsetof(LinkPartHeader, screen) == 0x40);
-static_assert(offsetof(LinkPartHeader, bounds) == 0x08);
+static_assert(offsetof(LinkPartHeader, box) == 0x08);
 static_assert(sizeof(LinkPartHeader) == 0x50);
 
 // Where a part's elements lie in the mesh's arrays (the ranges map: map<string, LinkPartRanges>).

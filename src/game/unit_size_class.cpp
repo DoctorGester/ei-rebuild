@@ -32,14 +32,14 @@ void CUnit::UpdateSizeClass() {
         return;
     }
     // The server controller's size classes, read unsigned.
-    CombatStats& combat = ServerController()->Combat();
+    const UnitStats& combat = ServerController()->stats;
     if (moveMode == 0) sizeClass = static_cast<std::uint16_t>(combat.sizeClass20);
     else if (moveMode == 1) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
     else sizeClass = static_cast<std::uint16_t>(combat.sizeClass);
 
     // The larger half extent, selected bitwise: above.y when above.x is below it or NaN.
-    float extentX = above.x;
-    float extentY = above.y;
+    float extentX = bounds.boxMax.x;
+    float extentY = bounds.boxMax.y;
     float extent = extentX >= extentY ? extentX : extentY;
     float height = extent * kHeightScale;
     standingHeight = height;

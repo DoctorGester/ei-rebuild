@@ -11,11 +11,14 @@
 
 namespace lib_trees {
 
-HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self) {
-    ItemCache::Construct(&self->map);
+template <typename Object>
+ItemObjectCache<Object>* __fastcall ConstructHeroItemCache(ItemObjectCache<Object>* self) {
+    ItemCacheOf<Object>::Construct(&self->map);
     self->limit = 50;
     return self;
 }
+template ItemModelCache* __fastcall ConstructHeroItemCache<CUiMesh>(ItemModelCache*);
+template ItemTextureCache* __fastcall ConstructHeroItemCache<CTexture>(ItemTextureCache*);
 
 } // namespace lib_trees
 
@@ -55,8 +58,8 @@ EI_REWRITTEN(0x005F3390, ItemCache::EraseAt);
 EI_REWRITTEN(0x005F3140, ItemCache::EraseAt);
 EI_REWRITTEN(0x005F32D0, ItemCache::ValueAbi::DestroyValue);
 EI_REWRITTEN(0x005FBCF0, ItemCache::ValueAbi::DeletingDestroyValue);
-EI_REWRITTEN(0x00633F50, ConstructHeroItemCache);
-EI_REWRITTEN(0x00633FF0, ConstructHeroItemCache);
+EI_REWRITTEN(0x00633F50, ConstructHeroItemCache<CUiMesh>);
+EI_REWRITTEN(0x00633FF0, ConstructHeroItemCache<CTexture>);
 EI_REWRITTEN(0x00619770, ItemCache::AllocateNodes);
 EI_REWRITTEN(0x005F98F0, ItemCache::Construct);
 EI_REWRITTEN(0x005F9F80, ItemCache::ConstructWith);

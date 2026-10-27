@@ -77,19 +77,19 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
         Vector3 axis;
         if (side == 0x800000) {
             unit->localRotation_.AxisY(&axis);
-            float reach = unit->above.y;
+            float reach = unit->bounds.boxMax.y;
             offset = axis * reach;
         } else if (side == 0x400000) {
             unit->localRotation_.AxisY(&axis);
-            float reach = unit->above.y;
+            float reach = unit->bounds.boxMax.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
             unit->localRotation_.AxisX(&axis);
-            float reach = unit->above.x;
+            float reach = unit->bounds.boxMax.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
             unit->localRotation_.AxisX(&axis);
-            float reach = unit->above.x;
+            float reach = unit->bounds.boxMax.x;
             offset = -axis * reach;
         }
     }

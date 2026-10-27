@@ -76,22 +76,22 @@ double DistanceSquared(const CFigureMesh* part) { return LengthSquaredUnrounded<
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->bounds_.boxMin.x, p->localPosition_.x, p->bounds_.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->bounds_.boxMax.x, p->localPosition_.x, p->bounds_.center.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->bounds_.boxMin.y, p->localPosition_.y, p->bounds_.center.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->bounds_.boxMax.y, p->localPosition_.y, p->bounds_.center.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->bounds_.boxMin.z, p->localPosition_.z, p->bounds_.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->bounds_.boxMax.z, p->localPosition_.z, p->bounds_.center.z));
+    box.low[0] = KeepLower(box.low[0], Sum3(p->box_.bounds.boxMin.x, p->localPosition_.x, p->box_.bounds.center.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->box_.bounds.boxMax.x, p->localPosition_.x, p->box_.bounds.center.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->box_.bounds.boxMin.y, p->localPosition_.y, p->box_.bounds.center.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->box_.bounds.boxMax.y, p->localPosition_.y, p->box_.bounds.center.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->box_.bounds.boxMin.z, p->localPosition_.z, p->box_.bounds.center.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
 }
 
 // A pending part (position just reset to 0; the sums keep the original's operand order).
 void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->bounds_.boxMin.x) + p->bounds_.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->bounds_.boxMax.x, p->bounds_.center.x, p->localPosition_.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->bounds_.boxMin.y, p->bounds_.center.y, p->localPosition_.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->bounds_.boxMax.y, p->bounds_.center.y, p->localPosition_.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->bounds_.boxMin.z, p->localPosition_.z, p->bounds_.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->bounds_.boxMax.z, p->localPosition_.z, p->bounds_.center.z));
+    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->box_.bounds.boxMin.x) + p->box_.bounds.center.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->box_.bounds.boxMax.x, p->box_.bounds.center.x, p->localPosition_.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->box_.bounds.boxMin.y, p->box_.bounds.center.y, p->localPosition_.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->box_.bounds.boxMax.y, p->box_.bounds.center.y, p->localPosition_.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->box_.bounds.boxMin.z, p->localPosition_.z, p->box_.bounds.center.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
 }
 } // namespace
 
@@ -124,19 +124,19 @@ void CObject3D::ComputeBounds() {
     float belowXf = static_cast<float>(belowX);
     float belowY = static_cast<float>(static_cast<double>(lowY) - centerY);
     float belowZ = static_cast<float>(static_cast<double>(lowZ) - centerZ);
-    below.x = belowXf;
-    below.y = belowY;
-    below.z = belowZ;
+    bounds.boxMin.x = belowXf;
+    bounds.boxMin.y = belowY;
+    bounds.boxMin.z = belowZ;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(belowX, belowY, belowZ));
-    above.x = aboveX;
-    above.y = aboveY;
-    above.z = aboveZ;
-    boundsFlags |= 2;
-    boundsFlags |= 1;
-    radius = static_cast<float>(length);
-    center.x = centerX;
-    center.y = centerY;
-    center.z = centerZ;
+    bounds.boxMax.x = aboveX;
+    bounds.boxMax.y = aboveY;
+    bounds.boxMax.z = aboveZ;
+    bounds.flags |= 2;
+    bounds.flags |= 1;
+    bounds.radius = static_cast<float>(length);
+    bounds.center.x = centerX;
+    bounds.center.y = centerY;
+    bounds.center.z = centerZ;
 }
 EI_REWRITTEN(0x00518310, CObject3D::ComputeBounds);
 
@@ -159,11 +159,11 @@ void CObject3D::SetFigureScale(const float* newScale) {
                 piece = lib_trees::FindLinkHeader(&figure->headers_, &key);
             }
             part = parts.data[i];
-            const ClipBounds& bounds = piece->second.bounds;
-            std::memcpy(&part->bounds_.center, &bounds.center, sizeof(part->bounds_.center));
-            std::memcpy(&part->bounds_.boxMin, &bounds.boxMin, sizeof(part->bounds_.boxMin));
-            std::memcpy(&part->bounds_.boxMax, &bounds.boxMax, sizeof(part->bounds_.boxMax));
-            std::memcpy(&part->bounds_.radius, &bounds.radius, sizeof(float));
+            const ClipBounds& fitted = piece->second.box.bounds;
+            std::memcpy(&part->box_.bounds.center, &fitted.center, sizeof(part->box_.bounds.center));
+            std::memcpy(&part->box_.bounds.boxMin, &fitted.boxMin, sizeof(part->box_.bounds.boxMin));
+            std::memcpy(&part->box_.bounds.boxMax, &fitted.boxMax, sizeof(part->box_.bounds.boxMax));
+            std::memcpy(&part->box_.bounds.radius, &fitted.radius, sizeof(float));
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);

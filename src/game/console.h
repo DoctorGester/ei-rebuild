@@ -6,6 +6,7 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
+#include "../lib/mfc_file.h"
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
 #include "../lib/stlp_tree_cstring.h"
@@ -16,7 +17,6 @@
 #include <string>
 
 namespace libcrt { class Streambuf; }
-namespace mfc::impl { struct CStdioFile; }
 namespace mfc::impl { class CFont; }
 class CInterface3D;
 class CUiContainer;
@@ -44,37 +44,29 @@ public:
 };
 static_assert(sizeof(CStringArray) == 0x14);
 
-// The virtuals of a CStdioFile for code that writes through the file's vtable (generateacks' line
-// writers). Declared only.
-class __declspec(novtable) CStdioFileVirtuals : public mfc::CFileVirtuals {
-public:
-    virtual void WriteString(const char* text);
-};
-
-// MFC CStdioFile. Locals only.
+// MFC CStdioFile as a local: opened and closed like the C++ class.
 class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
     CStdioFile();
     CStdioFile(const char* name, unsigned flags);
     ~CStdioFile();
-    mfc::BOOL Open(const char* name, unsigned flags, void* error);
+    CStdioFile(const CStdioFile&) = delete;
+    CStdioFile& operator=(const CStdioFile&) = delete;
+    mfc::BOOL Open(const char* name, unsigned flags, mfc::impl::CFileException* error);
+    // The next line into `line`; false at the end of the file.
     mfc::BOOL ReadString(mfc::CString& line);
     // A line with its line end into `buffer` (at most size - 1 characters); null at the end
     // of the file. A read error throws a CFileException*.
     char* ReadString(char* buffer, unsigned size);
     void WriteString(const char* text);
     void Close();
-    CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
 private:
-    mfc::impl::CStdioFile* Impl();
-
-    void* vtable_;
-    void* handle_;
-    mfc::BOOL closeOnDelete_;
-    char* fileName_;
-    void* stream_;
+    // Constructed and destroyed by the members above (Destruct releases the name).
+    union {
+        mfc::impl::CStdioFile file_;
+    };
 };
 static_assert(sizeof(CStdioFile) == 0x14);
 
@@ -277,8 +269,8 @@ void __fastcall Fps(CStringArray* args);
 void __fastcall Rate(CStringArray* args);
 void __fastcall LocalRate(CStringArray* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
-void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::Speeches* list);
-void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list);
+void __fastcall WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
+void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

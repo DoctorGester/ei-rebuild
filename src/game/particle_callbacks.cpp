@@ -3322,7 +3322,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
         double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
         float axisY = static_cast<float>(Dot2DUnrounded(x, z, y, w) * 2.0);   // (xy + zw) * 2
         float axisZ = static_cast<float>((x * z - y * w) * 2.0);
-        float scale = static_cast<float>(D(carrier->radius) * D(p->velocity.x) * D(0.65f /*0073CE08*/));
+        float scale = static_cast<float>(D(carrier->bounds.radius) * D(p->velocity.x) * D(0.65f /*0073CE08*/));
         float offsetY = static_cast<float>(D(axisY) * D(scale));
         float offsetZ = static_cast<float>(D(axisZ) * D(scale));
         target.x = static_cast<float>(axisX * D(scale) + D(target.x));
@@ -3574,7 +3574,7 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
             e->pos = at;
         } else {
             const float* place = &unit->localPosition_.x;
-            float raise = unit->above.z;
+            float raise = unit->bounds.boxMax.z;
             std::memcpy(&e->pos, place, 2 * sizeof(float));
             e->pos.z = static_cast<float>(D(place[2]) + D(raise));
         }
@@ -3676,7 +3676,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double radius;
     float* kept = &p->aux2;
     if (attachedTo) {
-        radius = D(attachedTo->radius) *
+        radius = D(attachedTo->bounds.radius) *
                  D(0.5f /*0073B86C*/);
         *kept = static_cast<float>(radius);
     } else {

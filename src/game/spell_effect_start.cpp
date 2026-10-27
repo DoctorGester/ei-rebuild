@@ -495,7 +495,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
                                    int flag) {
     if (!boltTarget) return;
     Vector3 to = boltTarget->localPosition_;
-    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &boltTarget->above.z,
+    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &boltTarget->bounds.boxMax.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
     auto* bolt = CreateObject<CEffectLightning>(this, kClassLightning);
     bolt->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));
