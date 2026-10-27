@@ -3382,6 +3382,14 @@ depends = ["C14a"]
 note = "User 2026-10-27: treat saves as resources: keep them in the asset code page (1251) on disk and convert on load / save, so the game is UTF-8 everywhere with no EI_UTF8 branches (107 uses in 35 files) and saves stay byte-identical to vanilla. Boundaries to convert: save write/read (characters typed outside 1251 need a rule, e.g. '?'), multiplayer messages (vanilla peers), the harness's string digests (compare in one encoding), whatever else the EI_UTF8 runs show differing. Win32 / registry / file names already go through the UTF-8 routes (docs/notes/standalone.md section 4). Helpers that are about the old byte semantics (CharacterCount for timing, the mbs compares) become plain UTF-8 functions. Remove build.cmd's utf8 option and build/<cfg>-utf8. Goldens: 121 / 114 the same is the check."
 
 [[ticket]]
+id = "C20h"
+title = "Registrations: the harness's 5 GameCode calls (FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, cursor lock) through hook points"
+group = "cleanup"
+model = "opus"
+depends = ["C19"]
+note = "C20 batch 1's plan, batch 4: the harness's image side calls these five by game.exe address (GameCode); give them hook points or by-name calls so their registrations can drop. Needs the original suite once."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
