@@ -32,11 +32,6 @@ int CompareText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// The manager's MP3 stream part (from streamState on): what the stream functions get as `this`.
-void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
-CSoundManager* ManagerOf(void* stream) {
-    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
-}
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
@@ -129,14 +124,14 @@ mfc::CString CSoundManager::CurrentStreamName() {
 }
 EI_REWRITTEN(0x006BAEA0, CSoundManager::CurrentStreamName);
 
-int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset) {
+int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset) {
     if (offset >= 0) {
         manager->streamReader.Seek(offset, 0);
         manager->streamReadPosition = offset;
     }
     int left = static_cast<int>(manager->streamFileSize) - manager->streamReadPosition;
     if (size > left) size = left;
-    if (manager->streamReader.Read(static_cast<char*>(buffer), size) < 0) return 0;
+    if (manager->streamReader.Read(buffer, size) < 0) return 0;
     manager->streamReadPosition += size;
     return size;
 }
@@ -274,14 +269,10 @@ void CSoundManager::ResetStream() {
     ConstructFader(musicFader);
 }
 
-// ResetStream runs on the MP3 stream part.
-void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
-
-EI_REWRITTEN(0x006BA9C0, SoundResetStream);
+EI_REWRITTEN(0x006BA9C0, CSoundManager::ResetStream);
 
 // --- Open, Close, Reset ------------------------------------------------------------------
 
-int __fastcall SoundCloseStream(void* /*stream*/);
 namespace {
 
 constexpr int kVoiceCount = 15;
@@ -348,7 +339,7 @@ int CSoundManager::OpenStream(miles::DigitalDriver* driver) {
     void* codec = gameapi::RIB_find_file_provider("ASI codec", "Input file types", ".mp3");
     streamSample = gameapi::AIL_allocate_sample_handle(driver);
     streamDecoder = gameapi::AIL_allocate_sample_handle(driver);
-    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return SoundCloseStream(StreamOf(this));
+    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return CloseStream();
 
     streamBufferSize = gameapi::AIL_minimum_sample_buffer_size(driver, kStreamRate, kStereo16) * 2;
     for (void*& buffer : streamBuffers) buffer = gameapi::AIL_mem_alloc_lock(streamBufferSize);
@@ -393,7 +384,7 @@ void CSoundManager::StreamThread() {
             playing = buffer;
             streamPosition += streamBufferFrames;
             gameapi::AIL_load_sample_buffer(streamSample, half, streamBuffers[buffer], streamBufferSize);
-            ReadStreamVanilla(StreamOf(this));
+            ReadStreamVanilla(nullptr);
         }
         gameapi::LeaveCriticalSection(&streamLock);
     }
@@ -579,10 +570,8 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
 }
 EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
-// Open's `this` is the MP3 stream part (StreamOf); CSoundManager::OpenStream takes the manager.
-int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
 EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
-EI_REWRITTEN(0x006BAC90, SoundCloseStream);
+EI_REWRITTEN(0x006BAC90, CSoundManager::CloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
     Destroy();   // Close

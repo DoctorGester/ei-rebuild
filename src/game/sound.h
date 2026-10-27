@@ -420,7 +420,7 @@ struct CMusicSystem : CEngineObject {
 static_assert(offsetof(CMusicSystem, credits) == 0x30);
 // The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
 // byte count (0 when the read fails).
-int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);
+int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset);
 // AIL_decompress_ASI's callback: at state 1 it asks for 16 bits, 44100 Hz, 2 channels. Returns 1.
 using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);

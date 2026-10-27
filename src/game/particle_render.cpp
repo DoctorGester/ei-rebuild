@@ -99,10 +99,9 @@ EI_REPLACE(0x00497D30, DestroySprites);
 // Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
 // and drawn; 0 when the texture cannot be bound.
-int CParticleSource::Draw(void* renderer) {
+int CParticleSource::Draw(CSceneRenderer* renderer) {
     if (particles.count == 0) return 1;
-    CTransformPipeline* pipeline = static_cast<CTransformPipeline**>(renderer)[2];
-    if (pipeline->ClipTest(&clip) == 2) {
+    if (renderer->pipeline_->ClipTest(&clip) == 2) {
         ++hiddenTicks;
         return 1;
     }
@@ -113,7 +112,7 @@ int CParticleSource::Draw(void* renderer) {
     Vertices().SetSize(kReserve);
     Sprites().SetSize(particles.count, -1);
     Vertices().SetSize(particles.count);
-    if (!static_cast<CSceneRenderer*>(renderer)->BindHeldTexture(0, &texture)) return 0;
+    if (!renderer->BindHeldTexture(0, &texture)) return 0;
 
     ParticleSprite* sprite = Sprites().data;
     mfc::CTypedPtrList<Particle>::Node* cursor = particles.head;
@@ -142,7 +141,7 @@ int CParticleSource::Draw(void* renderer) {
     }
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
-    return static_cast<CSceneRenderer*>(renderer)->DrawSprites(blend != 0, &Vertices(), &Sprites());
+    return renderer->DrawSprites(blend != 0, &Vertices(), &Sprites());
 }
 EI_REWRITTEN(0x004976B0, CParticleSource::Draw);
 EI_REPLACE(0x00497D10, FreeVertices);
