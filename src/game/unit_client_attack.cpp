@@ -1,5 +1,5 @@
-// The client's attack figures of a party unit (CUnitClientSpecific slot 50) and the copy
-// of the damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
+// The client's attack figures of a party unit (CUnitClientSpecific::GetAttackParams) and the copy of the
+// damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
 #include "unit_client_models.h"
 
 #include "combat.h"   // AttackParams
@@ -43,7 +43,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->damageType = WeaponDamageType(weapon);
         out->speed = WeaponAttack(weapon);
         const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
-        // The bonus is stored to a float (FSTP) before the weapon's figure is added; _ftol truncates.
+        // The bonus is stored to a float before the weapon's figure is added; _ftol truncates.
         float bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));
         out->attack = static_cast<int>(static_cast<double>(WeaponStat84(weapon)) + bonus);
         bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));

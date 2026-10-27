@@ -1,6 +1,6 @@
 #pragma once
 
-// The world's water level changes (CWorld +0x70; model_db.cpp).
+// The world's water level changes (CWorld::countdowns_; model_db.cpp).
 
 #include "lib/mfc.h"
 

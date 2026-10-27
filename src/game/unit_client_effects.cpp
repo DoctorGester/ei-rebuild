@@ -1,5 +1,5 @@
-// What the client shows when a unit is hit, struck by sparks or dies (CUnitClientSpecific slots
-// 46-48) and the party light of slot 18. See unit_client_models.h and docs/notes/units.md.
+// What the client shows when a unit is hit, struck by sparks or dies (CUnitClientSpecific's StatChanged,
+// Wound and Died) and the party light of PlayerChanged. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
 #include "effects.h"
@@ -30,7 +30,7 @@ constexpr float kMinAmount = 0.0001f;
 constexpr int kNoArmourSlot = 7;
 constexpr std::uint32_t kNoMaterial = 0xFFFF;
 constexpr std::uint8_t kNoSoundKind = 7;
-constexpr std::uint16_t kFirstPrototypeWeapon = 0x10; // UnitParams +0x20: kinds below, prototypes from here
+constexpr std::uint16_t kFirstPrototypeWeapon = 0x10; // UnitParams: kinds below, prototypes from here
 constexpr int kSoundPriority = 1000;
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
@@ -39,7 +39,7 @@ constexpr float kBloodScale = 2.5f;
 constexpr float kBloodHeight = 0.1f;
 constexpr float kBloodMinAlpha = 0.1f;
 constexpr float kBloodMaxAlpha = 1.0f;
-constexpr float kBloodRate = 1.0f / 30.0f;            // 0x3D088889
+constexpr float kBloodRate = 1.0f / 30.0f;
 constexpr std::uint32_t kLastDecalBlood = 4;
 constexpr float kHalf = 0.5f;
 constexpr float kDecalScale = 0.3f;
@@ -104,7 +104,7 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
     return unit->GetPrototypeModel();
 }
 
-// The smaller of the unit's two horizontal extents (the select keeps +0x148 for NaN).
+// The smaller of the unit's two horizontal extents (the select keeps above.y for NaN).
 float SmallerExtent(const CUnit* unit) {
     float y = unit->above.y;
     float x = unit->above.x;

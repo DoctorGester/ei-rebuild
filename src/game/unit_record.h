@@ -1,8 +1,8 @@
 #pragma once
 
-// The unit record the world server applies to a unit it creates (called from CWorldServer's object
-// creation): base stats, skills, the inventory, spells and equipment. It is the tail of a .mob unit record
-// (mapspec::UnitSpec + 0x210). Names are provisional; see docs/notes/objects.md ("Rewritten").
+// The unit record the world server applies to a unit it creates (called from CWorldServer's object creation):
+// base stats, skills, the inventory, spells and equipment. It is the tail of a .mob unit record
+// (mapspec::UnitSpec + 0x210). See docs/notes/objects.md ("Rewritten").
 
 #include "lib/mfc.h"
 
@@ -13,8 +13,8 @@ class CUnit;
 
 namespace unitrecord {
 
-// The statistics block (chunk BBBB0004, 0xAC bytes). The values go to the server companion's
-// vitals (CMapObjectServer + 0x20) and the controller's statistics (CUnitServer + 0x1E0).
+// The statistics block (chunk BBBB0004, 0xAC bytes). The values go to the server companion's vitals and the
+// controller's statistics.
 struct UnitRecordStats {
     std::int32_t hitPoints;         // +0x00 -> vitals hitPoints (as a float)
     std::int32_t maxHitPoints;      // +0x04 -> vitals maxHitPoints; 0 with speed / rate 0: only the items

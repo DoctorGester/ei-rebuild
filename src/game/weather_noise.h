@@ -19,11 +19,10 @@ struct WeatherNoiseSegment {
 struct WeatherNoiseCurve {
     static constexpr int kSamples = 128;
 
-    // Fills the curve (thiscall). 128 values of rand() - 0x3FFF, smoothed forwards
-    // and then backwards with the weight 0.3 for the new value (the backward pass starts by reading
-    // the float after the samples: the first segment's value, zero at start-up), the samples moved
-    // down by 20, the whole scaled so that its root mean square is `amplitude`, then the 127
-    // segments.
+    // Fills the curve. 128 values of rand() - 0x3FFF, smoothed forwards and then backwards with the weight
+    // 0.3 for the new value (the backward pass starts by reading the float after the samples: the first
+    // segment's value, zero at start-up), the samples moved down by 20, the whole scaled so that its root
+    // mean square is `amplitude`, then the 127 segments.
     void Build(float amplitude);
 
     float samples[kSamples];

@@ -1,5 +1,5 @@
-// The client controller moving a unit's animation through time (CUnitClientSpecific slots 14 and
-// 40, the idle animation) and the client half's pulses of invisible and stunned units. See
+// The client controller moving a unit's animation through time (CUnitClientSpecific's RestartAnimation and
+// AdvanceTime, the idle animation) and the client half's pulses of invisible and stunned units. See
 // unit_client_models.h, map_object_shadow.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
@@ -18,11 +18,11 @@
 
 namespace {
 constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags_
-constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
-constexpr std::int8_t kNoEntry = -1;                  // / +0x255
+constexpr std::int8_t kModeSpecialIdle = -2;          // CUnit::secondEntry
+constexpr std::int8_t kNoEntry = -1;                  // CUnit::secondEntry
 constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
-constexpr int kMotionPaused = 1;                      // the unit's +0x25C
+constexpr int kMotionPaused = 1;                      // CUnit::motionMode
 constexpr int kMotionScaled = 2;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoPrototype = 0xFFFF;
@@ -39,7 +39,7 @@ constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
 // The pulse's value after the clock moved on by `frames`.
 float Pulse(float& clock, float frames) {
-    float now = frames + clock;   // FST to a float local, FSTP to the clock
+    float now = frames + clock;   // stored as a float, and to the clock
     clock = now;
     double phase = std::fmod(static_cast<double>(now), kPulsePeriod);
     if (phase > kPulseFold) phase = kPulseFull - phase;
@@ -67,7 +67,7 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
 EI_REWRITTEN(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
 
 void CUnitClientSpecific::AdvanceTime(float time) {
-    float stored = time - lastTime;   // FST to a float local
+    float stored = time - lastTime;   // stored as a float
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
@@ -112,7 +112,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
         }
     }
     double start = unit->animationStart;
-    float stored = static_cast<float>((time + 1.0f) - start);   // FST to the argument's slot
+    float stored = static_cast<float>((time + 1.0f) - start);   // stored as a float
     float step = stored;
     state = unit->Object3D()->animation;
     if (step > 0.0f && state) {

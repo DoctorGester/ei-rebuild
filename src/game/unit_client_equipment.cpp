@@ -20,12 +20,12 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kArmourSlots = 7;
 constexpr int kWeaponSlots = 4;
 
-// The skin texture of a part set (CObject3DClientSpecific +0x20 / +0x24), or null.
+// The skin texture of a part set, or null.
 CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
 
 // `texture` takes `name` and is loaded again (the common tail).
 void Reload(CTexture* texture, const std::string& name) {
-    texture->name_ = name.c_str();   // operator=(LPCTSTR)
+    texture->name_ = name.c_str();
     texture->flags_ &= ~kTextureLoaded;
     texture->Manager()->LoadTexture(texture);
 }

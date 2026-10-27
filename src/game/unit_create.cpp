@@ -30,10 +30,9 @@ constexpr std::uint32_t kExtraRemark = 0x30;
 // The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
 constexpr int kPtrListBlockSize = 10;
 
-// The player's message writer (CPlayerServer, player + 0x20).
 CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
-// The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
+// The item's condition rounds to nothing.
 bool IsBroken(const CItem* item) {
     return x87::fistp(item->condition_) <= 0;
 }

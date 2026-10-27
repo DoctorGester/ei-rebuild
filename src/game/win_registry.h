@@ -32,8 +32,7 @@ public:
     // another type (the last also logged).
     std::uint32_t GetDWord(const char* subkey, const char* name, std::uint32_t defaultValue);
     int GetInt(const char* subkey, const char* name, int defaultValue);
-    // A 4-byte REG_BINARY returned in ST0 (FLD of the float); the default passed as
-    // bits, as the game pushes it.
+    // A 4-byte REG_BINARY returned as a float; the default passed as bits, as the game pushes it.
     double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);
     mfc::CString GetString(const char* subkey, const char* name, mfc::CString defaultValue);
     mfc::CString GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue); // REG_SZ
