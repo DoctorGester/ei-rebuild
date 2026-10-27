@@ -397,12 +397,12 @@ UiFormatToken::UiFormatToken(int font) : UiTextToken(kFormatType), newline_(fals
 
 UiTextToken::~UiTextToken() {}
 EI_REWRITTEN_SPECIAL(0x0065D960, UiTextToken::~UiTextToken);
-EI_REWRITTEN_SPECIAL(0x0065D8A0, UiTextToken::~UiTextToken);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065D8A0, UiTextToken::~UiTextToken);
 
 UiFormatToken::~UiFormatToken() {}
 EI_REWRITTEN_SPECIAL(0x0065D8E0, UiFormatToken::~UiFormatToken);
-EI_REWRITTEN_SPECIAL(0x0065D8C0, UiFormatToken::~UiFormatToken);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065D8C0, UiFormatToken::~UiFormatToken);
 
 UiWordToken::~UiWordToken() {}
 EI_REWRITTEN_SPECIAL(0x0065D910, UiWordToken::~UiWordToken);
-EI_REWRITTEN_SPECIAL(0x0065D8F0, UiWordToken::~UiWordToken);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065D8F0, UiWordToken::~UiWordToken);

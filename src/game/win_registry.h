@@ -38,6 +38,6 @@ public:
     mfc::CString GetString(const char* subkey, const char* name, mfc::CString defaultValue);
     mfc::CString GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue); // REG_SZ
 
-    void* key_;    // +0x00 the settings file's key, null when closed
+    void* key_;    // the settings file's key, null when closed
 };
 static_assert(sizeof(CWinRegistry) == 4);

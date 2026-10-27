@@ -84,7 +84,7 @@ EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
-// The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
+// The owner slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.

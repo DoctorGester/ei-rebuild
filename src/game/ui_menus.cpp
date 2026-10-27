@@ -343,8 +343,8 @@ COptionsWindow::~COptionsWindow() {
     bindings_.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x0062B180, COptionsWindow::~COptionsWindow);
-EI_REWRITTEN_SPECIAL(0x0062B160, COptionsWindow::~COptionsWindow);   // deleting
-EI_REWRITTEN_SPECIAL(0x0062B770, COptionsWindow::~COptionsWindow);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0062B160, COptionsWindow::~COptionsWindow);
+EI_REWRITTEN_SPECIAL(0x0062B770, COptionsWindow::~COptionsWindow);
 
 // --- Scroll bar --------------------------------------------------------------------------------
 

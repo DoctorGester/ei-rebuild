@@ -38,16 +38,16 @@
 namespace {
 
 // The layouts' x coordinates and the slide's time are read from the game's data.
-float MapCentreX() { return 700.0f /*00742AAC*/; }      // 700
-float MapButtonsX() { return 790.0f /*00742AA8*/; }     // 790
-float MapFrameX() { return 710.0f /*00742AA4*/; }       // 710
-float MapNeedleX() { return 694.0f /*00742AA0*/; }      // 694
-float UnitBackX() { return 100.0f /*0073BAB0*/; }       // 100
-float UnitEdgeX() { return 10.0f /*0073BAAC*/; }       // 10
-float UnitMiddleX() { return 90.0f /*00742AE0*/; }     // 90
-float UnitMoreX() { return 172.0f /*00742ADC*/; }       // 172
-float UnitPartDown() { return 17.5f /*00742AD8*/; }    // 17.5
-float UnitEffectX() { return 40.0f /*0073D72C*/; }     // 40
+float MapCentreX() { return 700.0f /*00742AAC*/; }
+float MapButtonsX() { return 790.0f /*00742AA8*/; }
+float MapFrameX() { return 710.0f /*00742AA4*/; }
+float MapNeedleX() { return 694.0f /*00742AA0*/; }
+float UnitBackX() { return 100.0f /*0073BAB0*/; }
+float UnitEdgeX() { return 10.0f /*0073BAAC*/; }
+float UnitMiddleX() { return 90.0f /*00742AE0*/; }
+float UnitMoreX() { return 172.0f /*00742ADC*/; }
+float UnitPartDown() { return 17.5f /*00742AD8*/; }
+float UnitEffectX() { return 40.0f /*0073D72C*/; }
 float SlideTime() { return 0.3f /*00742428*/; }       // 0.3 seconds for the whole way
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
 constexpr int kPartX[6] = /*00742434*/ {50, 50, 95, 5, 95, 5};
@@ -364,12 +364,12 @@ float MapSide() { return 2.0f /*0073CDB8*/; }             // 2: the map's side i
 float ZoomRange() { return 0.05f /*0074134C*/; }           // 0.05: the largest zoom per world unit
 float Pi() { return 3.1415927f /*007423F8*/; }
 float OutlineStep() { return 0.125f /*0073C520*/; }         // 0.125: sixteen points round the map
-double OutlineRadius() { return 65.0 /*00742A98*/; }     // 65
-double OutlineCentreX() { return 700.0 /*00742A88*/; }    // 700
-double OutlineCentreY() { return 80.0 /*00742A90*/; }    // 80
+double OutlineRadius() { return 65.0 /*00742A98*/; }
+double OutlineCentreX() { return 700.0 /*00742A88*/; }
+double OutlineCentreY() { return 80.0 /*00742A90*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }           // 0.48157: the layout's half height at depth 1
-float BoundsScale() { return 0.045f /*00742A80*/; }         // 0.045
-float MarkersScale() { return 0.03f /*00742A7C*/; }        // 0.03
+float BoundsScale() { return 0.045f /*00742A80*/; }
+float MarkersScale() { return 0.03f /*00742A7C*/; }
 float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // -0.5: the sling starts a quarter turn back
 constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;

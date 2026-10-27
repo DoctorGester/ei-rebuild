@@ -35,7 +35,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 // New units' orientation (a static initialiser: the identity; world_party.cpp, world_zone.cpp).
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
@@ -43,46 +43,46 @@ inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0
 using BOOL = int;
 
 struct ScriptGroup;
-class CItem;       // item.h
-struct CItemManager;   // item.h
-class CParty;      // party.h
-class CParticleSource;   // effects.h
-class CAIMap;       // ai_map.h
-class CPlayerServer;   // player_messages.h
-class CPlayerConnection;   // player_messages.h
-class CPlayerClient;   // player_client.h
-class CScript;   // script.h
+class CItem;
+struct CItemManager;
+class CParty;
+class CParticleSource;
+class CAIMap;
+class CPlayerServer;
+class CPlayerConnection;
+class CPlayerClient;
+class CScript;
 namespace netlink {
-class NetLink;   // net_link.h
-class DriverSession;   // net_link.h
+class NetLink;
+class DriverSession;
 }
 namespace net {
-struct NetAddress;   // net_classes.h
+struct NetAddress;
 }
 class CWorldHandle;    // below
 class CClientHandle;   // below
 class CBaseManager;
-struct CSoundManager;   // sound.h
-class CSectorMap;   // sector_map.h
-class CSpellManager;   // spell.h
-class CLinkFigureLoader;   // model.h
-class CTexture;   // texture.h
-class CTextureManager;   // texture.h
-class CMaterialManager;   // material.h
+struct CSoundManager;
+class CSectorMap;
+class CSpellManager;
+class CLinkFigureLoader;
+class CTexture;
+class CTextureManager;
+class CMaterialManager;
 class Terrain;
-class CCamera;   // camera.h
-class CMaterial;   // material.h
-class CStream;   // core_streams.h
-class CUnit;     // unit.h
-class CMapObject;   // map_object.h
-class CObject3D;    // map_object_figures.h
-class CSpell;   // spell.h
-class CSpellEffect;   // spell.h
-class CParticleManager;   // effects.h
+class CCamera;
+class CMaterial;
+class CStream;
+class CUnit;
+class CMapObject;
+class CObject3D;
+class CSpell;
+class CSpellEffect;
+class CParticleManager;
 struct FootprintPart;   // ai_map.h: a figure part's box
-class CFileRegistry;   // registry.h
-class CHoover;   // object.h
-class CEffectMoshka;   // world_effect.h
+class CFileRegistry;
+class CHoover;
+class CEffectMoshka;
 namespace mapspec { class Spec; }   // map_spec.h
 
 class CWorldServer;
@@ -155,7 +155,7 @@ struct ObjectMapIterator {
 static_assert(sizeof(ObjectMapIterator) == 12);
 
 // The client's flying numbers: the "numbers" texture (counted) and the list of the numbers shown.
-class CFlyingHitPoints;     // ui_flying_hit_points.h
+class CFlyingHitPoints;
 
 // A light colour of the client's tables: r, g, b and 1.
 struct LightColour {
@@ -180,7 +180,7 @@ public:
     // Every object of the spell manager gets ClearState, then the managers are deleted whatever their
     // counts (the first manager only at its last reference) and the shared pointers dropped.
     void Destroy() override;
-    int RunTick() override;   // 1
+    int RunTick() override;
 
     // The manager context's getters (their short functions keep the registrations).
     CWorld* ThisWorld() override { return this; }
@@ -265,7 +265,7 @@ public:
     CSpellConstructor* manager50_;       // SpellConstructor
     CItemManager* itemManager_;          // items (ItemFactory)
     CItemConstructor* manager58_;        // ItemConstructor
-    // A counted helper (0xC bytes) CWorld::Create shares in.
+    // A counted helper CWorld::Create shares in.
     RefPtrTo<CWorldHandle> shared5C_;
     RefPtrTo<netlink::DriverSession> netSession_;   // the network session (OpenSession)
     int tick_;                            // game time in ticks
@@ -318,7 +318,7 @@ struct CountedPtrs : mfc::CArray<T*> {
 };
 using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
-// An element of the world server's shared-object list (0x20 bytes; world_save.cpp): object id, player,
+// An element of the world server's shared-object list (world_save.cpp): object id, player,
 // a third dword and an MFC CArray of counted object pointers (the destructor releases the objects and
 // frees the data). The objects are items (the loot a unit left: AddSharedObject, Load through the item
 // manager).
@@ -342,9 +342,9 @@ static_assert(sizeof(SharedObject) == 0x20);
 // MFC CList<SharedObject> (its NewNode constructs the element).
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The unit / party records (0x784 bytes) handed around as MFC CArray<record*>: CWorldClient::
+// The unit / party records handed around as MFC CArray<record*>: CWorldClient::
 // CreatePartyUnits, CWorldServer's unit creation, the hero screens.
-struct PartyUnitRecord;   // unit.h
+struct PartyUnitRecord;
 using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
@@ -797,7 +797,7 @@ using PlatformList = mfc::CList<Platform>;
 using PlatformNode = PlatformList::Node;
 static_assert(sizeof(PlatformNode) == 0x54);   // carves nodes of 0x54 bytes
 
-// The client world's platform set (0x38 bytes): the engine's CBridgeManager (class 0x34; the client's
+// The client world's platform set: the engine's CBridgeManager (class 0x34; the client's
 // Create calls its Create, Destroy its Destroy) with the CList of the platform faces (AddFace adds at
 // the head; the list's own NewNode, RemoveAt, RemoveAll).
 class PlatformSet final : public CEngineObject {
@@ -1030,12 +1030,12 @@ struct HitCollector {
     ScreenHits* hits;
 };
 
-// The client's rain / snow layer (0xC8 bytes; drawn by the client's draw): an engine object (Teardown
+// The client's rain / snow layer (drawn by the client's draw): an engine object (Teardown
 // calls its Destroy) that keeps the world.
-class CRainSnow;            // effects.h
+class CRainSnow;
 
-class CLightningManager;   // lightning.h
-class CSceneRenderer;   // model.h
+class CLightningManager;
+class CSceneRenderer;
 // The visibility fog's manager ("CVisFogManager", class id 0x60, 0xD0 bytes; vis_fog_manager.cpp; a
 // real virtual class): a counted object and a CList.
 struct ClientArrayManager : CBaseManager {
@@ -1590,7 +1590,7 @@ struct GameFlow {
     // player is in (flag80_) or unless the client's +0x25F4 is active. Nothing without an active client
     // session.
     void UpdateMultiplayerVariable();
-    // The multiplayer start zone for the client session's game type (+0x261C): "bz2mpg".."bz4mpg" for
+    // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
     // 1..3, else "bz1mpg"; constructed into `out`, returned.
     mfc::CString* MultiplayerZoneInto(mfc::CString* out);
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
@@ -1681,7 +1681,7 @@ struct GameFlow {
     // starts. Returns 1 when loaded. Rebirth's AutoExec runs addon's AutoExec lines first.
     int LoadGame(const char* slot);
     // After the sessions start: the party step (1), the variables of the party outside a game emptied,
-    // its members reset, and the client's host record (session +0x2600) takes the hero's and party's
+    // its members reset, and the client's host record takes the hero's and party's
     // names (defaults "Human Hero", "Bug"). Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void AfterServerStart();
     // A multiplayer client's update from the server: the quest texts unloaded, the local player's
@@ -1721,7 +1721,7 @@ extern lib::StaticObject<GameFlow> g_gameFlow;
 
 constexpr int kMpHeroSize = 0x74;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
-// (CParty, 0x70 bytes) and file name.
+// (CParty) and file name.
 struct MpHeroRecord {
     // Assignment: the party, the file name. Returns this.
     MpHeroRecord* Assign(const MpHeroRecord* other);
@@ -1895,8 +1895,8 @@ inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_;
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.
 void __stdcall ShowBolt(Vector3 from, Vector3 to);
 
-// world_guard.cpp. With `plain` 0 the players' gold, party records (0x704 bytes) and, on the server,
-// their units' controller statistics (0x704 bytes) are XORed with a new random key, with 1 they are
+// world_guard.cpp. With `plain` 0 the players' gold, party records and, on the server,
+// their units' controller statistics are XORed with a new random key, with 1 they are
 // XORed back; also the party records outside a game. Nothing when the state is already `plain`. One
 // helper does one player list.
 void __stdcall GuardPlayerData(char plain);

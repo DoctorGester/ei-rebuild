@@ -44,7 +44,7 @@ float ItemWeight(const CItem* item) { return item->Weight(); }
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 
-// The party of the unit's player (CPlayer +0x70).
+// The party of the unit's player.
 CParty* RecordsOf(CPlayer* player) { return player->Party(); }
 
 bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassPartyController; }

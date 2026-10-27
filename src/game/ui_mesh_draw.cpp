@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <cstring>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 namespace {
 
@@ -143,7 +143,7 @@ EI_REWRITTEN(0x005E6C60, CUiMesh::CreateSprite);
 CUiMesh::CUiMesh() {}
 CUiMesh::~CUiMesh() {}
 EI_REWRITTEN_SPECIAL(0x005AAD00, CUiMesh::~CUiMesh);
-EI_REWRITTEN_SPECIAL(0x005AACE0, CUiMesh::~CUiMesh);   // deleting
+EI_REWRITTEN_SPECIAL(0x005AACE0, CUiMesh::~CUiMesh);
 
 int CUiMesh::Create() { return CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }

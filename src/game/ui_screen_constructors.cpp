@@ -72,5 +72,5 @@ CHudPortraits::~CHudPortraits() {
     slots_.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x0063FF70, CHudPortraits::~CHudPortraits);
-EI_REWRITTEN_SPECIAL(0x0063FF50, CHudPortraits::~CHudPortraits);   // deleting
-EI_REWRITTEN_SPECIAL(0x0064BD30, CHudPortraits::~CHudPortraits);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0063FF50, CHudPortraits::~CHudPortraits);
+EI_REWRITTEN_SPECIAL(0x0064BD30, CHudPortraits::~CHudPortraits);

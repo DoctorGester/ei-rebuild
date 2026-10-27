@@ -14,7 +14,7 @@
 
 #include <cstring>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";

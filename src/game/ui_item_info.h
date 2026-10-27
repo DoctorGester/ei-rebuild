@@ -21,7 +21,7 @@
 
 class CItem;
 class CItemInfoPanel;
-class CTexture;   // texture.h
+class CTexture;
 struct UnitStats;
 namespace console {
 class CStringArray;
@@ -42,7 +42,7 @@ CTexture* __fastcall ItemFigureTexture(const char* name);
 // interface sprite standing in for it; counted (one reference for the caller).
 CUiMesh* __fastcall ItemModel(const char* name);
 
-// An item drawn as a turning model in a cell (DrawItem's argument, 0x18 bytes).
+// An item drawn as a turning model in a cell (DrawItem's argument).
 struct ItemCell {
     CItem* item;
     float x;         // the cell's centre (layout)
@@ -53,7 +53,7 @@ struct ItemCell {
 };
 static_assert(sizeof(ItemCell) == 0x18);
 
-// A hero's face drawn in a cell (the hero-face draw's argument, 0x14 bytes).
+// A hero's face drawn in a cell (the hero-face draw's argument).
 struct HeroFaceCell {
     const char* prototype;   // the unit prototype's name
     float x;                 // the cell's centre (layout)
@@ -69,7 +69,7 @@ struct ItemCacheEntry {
     std::uint32_t lastUse;
 };
 
-// A cache of the item screens (0x10 bytes; models_ and textures_): an STLport map from a name to
+// A cache of the item screens (models_ and textures_): an STLport map from a name to
 // {object, time of last use} (0x24-byte nodes; lib_trees::ItemCache registers its members), and how
 // many entries it keeps (30; 20 when an option byte is set). The two trim functions release the least
 // recently used objects beyond that.
@@ -92,7 +92,7 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 // model / texture cache beyond its limit (ui_item_screen.cpp).
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
-// An item's turning state (0x18 bytes), a counted object in the item's link_ (CItem::link_): made by
+// An item's turning state, a counted object in the item's link_ (CItem::link_): made by
 // the item draw and the moves.
 class ItemTurn : public CRefObject {
 public:
@@ -124,7 +124,7 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 class CParty;
 class CItemScreen;
 struct PartyUnitRecord;
-// The item screens' icon window (0x148 bytes). Its
+// The item screens' icon window. Its
 // destructors are the window's.
 class CItemIconWindow final : public CUiWindow {
 public:
@@ -213,7 +213,7 @@ inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(to
 static_assert(offsetof(CItemScreen, models_) == 0x170);
 static_assert(offsetof(CItemScreen, textures_) == 0x180);
 
-// What the statistics under the mouse are (0x18 bytes; filled by the stats panel and the
+// What the statistics under the mouse are (filled by the stats panel and the
 // trade panel, read by DescribeStats).
 struct ItemHoverInfo {
     int kind;                // -1 none; 0 an attribute, 1 a skill, 2 a skill school, 3 a perk,
@@ -236,9 +236,9 @@ public:
     // ui_window_delete.cpp: the skill and item text arrays, the item
     // list, then the window's.
     ~CItemInfoPanel() override;
-    void Deactivate() override { DescribeItem(); }                                    // input 1
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // input 9
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // input 11
+    void Deactivate() override { DescribeItem(); }
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
     // Clears the surface and describes the item in the list (nothing without one): its own description
     // for blueprints, materials, spells, modifiers, quick items of category 8 and spells carried by an
     // item while the modifier key is held or spell containers; else the common description (name, kind,
@@ -278,7 +278,7 @@ public:
     // The item list as the party it is (itemList_ through itemCount_).
     CParty* ItemParty() { return reinterpret_cast<CParty*>(itemList_); }
 
-    std::uint8_t itemList_[0x40];    // an item list (0x70 bytes); its
+    std::uint8_t itemList_[0x40];    // an item list; its
     CItem** items_;                  //   entries
     int itemCount_;
     std::uint8_t unused_198[0x1C0 - 0x198];

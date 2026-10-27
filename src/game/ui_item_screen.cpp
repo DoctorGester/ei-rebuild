@@ -155,8 +155,8 @@ CItemScreen::~CItemScreen() {
     DestroyCache(models_);
 }
 EI_REWRITTEN_SPECIAL(0x005F6470, CItemScreen::~CItemScreen);
-EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);
+EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);
 
 // The page titles, the heroes CArray, then the item screen's.
 CCampPages::~CCampPages() {
@@ -165,8 +165,8 @@ CCampPages::~CCampPages() {
     if (heroes_.data) gamecrt::operator_delete(heroes_.data);
 }
 EI_REWRITTEN_SPECIAL(0x005F6620, CCampPages::~CCampPages);
-EI_REWRITTEN_SPECIAL(0x005F6600, CCampPages::~CCampPages);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6600, CCampPages::~CCampPages);
+EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);
 
 // --- Screen 9's destructor ------------------------------------------
 
@@ -177,8 +177,8 @@ CExchangeScreen::~CExchangeScreen() {
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
 }
 EI_REWRITTEN_SPECIAL(0x005F7010, CExchangeScreen::~CExchangeScreen);
-EI_REWRITTEN_SPECIAL(0x005F6FF0, CExchangeScreen::~CExchangeScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6FF0, CExchangeScreen::~CExchangeScreen);
+EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);
 
 // --- Moving items between lists ----------------------------------------------
 
@@ -204,7 +204,7 @@ ItemTurn* ItemTurn::Clone() {
 EI_REWRITTEN(0x005ED710, ItemTurn::Clone);
 
 ItemTurn::~ItemTurn() {}
-EI_REWRITTEN_SPECIAL(0x005ED780, ItemTurn::~ItemTurn);   // deleting
+EI_REWRITTEN_SPECIAL(0x005ED780, ItemTurn::~ItemTurn);
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;

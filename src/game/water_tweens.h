@@ -4,8 +4,8 @@
 
 #include "lib/mfc.h"
 
-class CStream;   // core_streams.h
-class Terrain;   // terrain.h
+class CStream;
+class Terrain;
 
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves
 // by `step` per world update for `steps` updates.

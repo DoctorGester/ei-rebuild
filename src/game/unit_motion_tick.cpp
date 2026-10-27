@@ -113,7 +113,7 @@ void ClearWaitingFor(CUnitServer* controller) {
     if (old) old->Release();
 }
 
-// The unit is on the map as an obstacle (+0x278) or not: re-registered when that changes.
+// The unit is on the map as an obstacle or not: re-registered when that changes.
 void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
@@ -314,8 +314,8 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     c->stoodBlocked = wasFlag;
 }
 
-// Running units of a player tire: the server object's mana (vitals +0x14) is their breath and drains
-// by the maximum (+0x18) times a factor per tick; out of breath they stop running (message 0x1D).
+// Running units of a player tire: the server object's mana is their breath and drains
+// by the maximum times a factor per tick; out of breath they stop running (message 0x1D).
 // Then the tick's end.
 void Exhaustion(CUnitServer* c) {
     CUnit* unit = UnitOf(c);
@@ -409,7 +409,7 @@ void UpdateMotion(CUnitServer* c) {
         sectors->Add(UnitOf(c));
     }
 
-    // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
+    // An idle unit standing in a kind-3 occluder (while its motion order started before
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
@@ -424,7 +424,7 @@ void UpdateMotion(CUnitServer* c) {
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
-        if (c->stats.movementKind == 2) c->animationHeld = 1;   // +0x240: the stats' +0x60
+        if (c->stats.movementKind == 2) c->animationHeld = 1;   // : the stats' +0x60
         else c->frozen = 1;
         if (UnitOf(c)->obstacle != 0) SetObstacle(c, 0);
     }

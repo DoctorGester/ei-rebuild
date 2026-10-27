@@ -486,7 +486,7 @@ void CGlobalMap::CreateScreen() {
         weatherIndex_ = i;
         SetWeather();
     }
-    Update();   // slot 24 (+0x60)
+    Update();   // slot 24
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
         if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
@@ -536,7 +536,7 @@ void CGlobalMap::Update() {
     if (dragging_ && turning_ == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);
-        Input()->MouseMove(0, cursor.x, cursor.y);   // input slot 4 (+0x10)
+        Input()->MouseMove(0, cursor.x, cursor.y);   // input slot 4
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
@@ -682,8 +682,8 @@ CGlobalMap::~CGlobalMap() {
     DestroyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
 }
 EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
-EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);
+EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);
 
 // --- the zone array's SetAtGrow ------------------------------------------------------------------
 

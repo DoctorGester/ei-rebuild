@@ -76,8 +76,8 @@ CItemInfoPanel::~CItemInfoPanel() {
     ItemParty()->CParty::~CParty();
 }
 EI_REWRITTEN_SPECIAL(0x005EE380, CItemInfoPanel::~CItemInfoPanel);
-EI_REWRITTEN_SPECIAL(0x005EE420, CItemInfoPanel::~CItemInfoPanel);   // deleting
-EI_REWRITTEN_SPECIAL(0x005F4600, CItemInfoPanel::~CItemInfoPanel);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005EE420, CItemInfoPanel::~CItemInfoPanel);
+EI_REWRITTEN_SPECIAL(0x005F4600, CItemInfoPanel::~CItemInfoPanel);
 
 CChatWindow::~CChatWindow() {
     texts_.Destruct();
@@ -86,41 +86,41 @@ CChatWindow::~CChatWindow() {
     players_.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x00608ED0, CChatWindow::~CChatWindow);
-EI_REWRITTEN_SPECIAL(0x00608EB0, CChatWindow::~CChatWindow);   // deleting
-EI_REWRITTEN_SPECIAL(0x0060C7D0, CChatWindow::~CChatWindow);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00608EB0, CChatWindow::~CChatWindow);
+EI_REWRITTEN_SPECIAL(0x0060C7D0, CChatWindow::~CChatWindow);
 
 CForwardingStrip::~CForwardingStrip() {
     list_.vtable = ItemArrayVtable();
     list_.FreeData();
 }
 EI_REWRITTEN_SPECIAL(0x0060E2B0, CForwardingStrip::~CForwardingStrip);
-EI_REWRITTEN_SPECIAL(0x0060E290, CForwardingStrip::~CForwardingStrip);   // deleting
-EI_REWRITTEN_SPECIAL(0x00613DC0, CForwardingStrip::~CForwardingStrip);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0060E290, CForwardingStrip::~CForwardingStrip);
+EI_REWRITTEN_SPECIAL(0x00613DC0, CForwardingStrip::~CForwardingStrip);
 
 CSpellMakerPage::~CSpellMakerPage() { texts_.Destruct(); }
 EI_REWRITTEN_SPECIAL(0x0060E600, CSpellMakerPage::~CSpellMakerPage);
-EI_REWRITTEN_SPECIAL(0x0060E5E0, CSpellMakerPage::~CSpellMakerPage);   // deleting
-EI_REWRITTEN_SPECIAL(0x00613DF0, CSpellMakerPage::~CSpellMakerPage);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0060E5E0, CSpellMakerPage::~CSpellMakerPage);
+EI_REWRITTEN_SPECIAL(0x00613DF0, CSpellMakerPage::~CSpellMakerPage);
 
 // The texts, then the title (a member).
 CHeroStatsPanel::~CHeroStatsPanel() { texts_.Destruct(); }
 EI_REWRITTEN_SPECIAL(0x0060E360, CHeroStatsPanel::~CHeroStatsPanel);
-EI_REWRITTEN_SPECIAL(0x0060E340, CHeroStatsPanel::~CHeroStatsPanel);   // deleting
-EI_REWRITTEN_SPECIAL(0x00613DD0, CHeroStatsPanel::~CHeroStatsPanel);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0060E340, CHeroStatsPanel::~CHeroStatsPanel);
+EI_REWRITTEN_SPECIAL(0x00613DD0, CHeroStatsPanel::~CHeroStatsPanel);
 
 CMessageBox::~CMessageBox() = default;
 EI_REWRITTEN_SPECIAL(0x0061E3E0, CMessageBox::~CMessageBox);
 EI_REWRITTEN_SPECIAL(0x00633750, CMessageBox::~CMessageBox);   // the difficulty question's copy
-EI_REWRITTEN_SPECIAL(0x00633730, CMessageBox::~CMessageBox);   // deleting
-EI_REWRITTEN_SPECIAL(0x00634770, CMessageBox::~CMessageBox);   // deleting
-EI_REWRITTEN_SPECIAL(0x006345E0, CMessageBox::~CMessageBox);   // the input side's
-EI_REWRITTEN_SPECIAL(0x00634FD0, CMessageBox::~CMessageBox);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00633730, CMessageBox::~CMessageBox);
+EI_REWRITTEN_SPECIAL(0x00634770, CMessageBox::~CMessageBox);
+EI_REWRITTEN_SPECIAL(0x006345E0, CMessageBox::~CMessageBox);
+EI_REWRITTEN_SPECIAL(0x00634FD0, CMessageBox::~CMessageBox);
 
 // The link, then the box's.
 CMasterRequestBox::~CMasterRequestBox() = default;
 EI_REWRITTEN_SPECIAL(0x0061E460, CMasterRequestBox::~CMasterRequestBox);
-EI_REWRITTEN_SPECIAL(0x0061E440, CMasterRequestBox::~CMasterRequestBox);   // deleting
-EI_REWRITTEN_SPECIAL(0x00620300, CMasterRequestBox::~CMasterRequestBox);   // the input side's
+EI_REWRITTEN_SPECIAL(0x0061E440, CMasterRequestBox::~CMasterRequestBox);
+EI_REWRITTEN_SPECIAL(0x00620300, CMasterRequestBox::~CMasterRequestBox);
 
 void ChatLine::Destroy() {
     if (CUiSurface* shown = surface) {
@@ -134,8 +134,8 @@ EI_REWRITTEN(0x005E2670, ChatLine::Destroy);
 
 CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
 EI_REWRITTEN_SPECIAL(0x005E28E0, CChatOverlay::~CChatOverlay);
-EI_REWRITTEN_SPECIAL(0x005E28C0, CChatOverlay::~CChatOverlay);   // deleting
-EI_REWRITTEN_SPECIAL(0x005E3C80, CChatOverlay::~CChatOverlay);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005E28C0, CChatOverlay::~CChatOverlay);
+EI_REWRITTEN_SPECIAL(0x005E3C80, CChatOverlay::~CChatOverlay);
 
 CBattleScreen::~CBattleScreen() {
     FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
@@ -147,8 +147,8 @@ CBattleScreen::~CBattleScreen() {
     party_.FreeData();
 }
 EI_REWRITTEN_SPECIAL(0x005F6130, CBattleScreen::~CBattleScreen);
-EI_REWRITTEN_SPECIAL(0x005F5FC0, CBattleScreen::~CBattleScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC0E0, CBattleScreen::~CBattleScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F5FC0, CBattleScreen::~CBattleScreen);
+EI_REWRITTEN_SPECIAL(0x005FC0E0, CBattleScreen::~CBattleScreen);
 
 static_assert(sizeof(BriefingMover) == 0x30);
 
@@ -179,8 +179,8 @@ CBriefingScreen::~CBriefingScreen() {
     party_.FreeData();
 }
 EI_REWRITTEN_SPECIAL(0x005F6BA0, CBriefingScreen::~CBriefingScreen);
-EI_REWRITTEN_SPECIAL(0x005F6B80, CBriefingScreen::~CBriefingScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC0B0, CBriefingScreen::~CBriefingScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6B80, CBriefingScreen::~CBriefingScreen);
+EI_REWRITTEN_SPECIAL(0x005FC0B0, CBriefingScreen::~CBriefingScreen);
 
 CMpConnectScreen::~CMpConnectScreen() {
     texts_.Destruct();
@@ -192,8 +192,8 @@ CMpConnectScreen::~CMpConnectScreen() {
     entries_.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x00618570, CMpConnectScreen::~CMpConnectScreen);
-EI_REWRITTEN_SPECIAL(0x00618550, CMpConnectScreen::~CMpConnectScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x0061B220, CMpConnectScreen::~CMpConnectScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00618550, CMpConnectScreen::~CMpConnectScreen);
+EI_REWRITTEN_SPECIAL(0x0061B220, CMpConnectScreen::~CMpConnectScreen);
 
 CHelpWindow::~CHelpWindow() {
     DestroyList(pictures_, [](CUiMesh**) {});
@@ -201,8 +201,8 @@ CHelpWindow::~CHelpWindow() {
     lines_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x005F8970, CHelpWindow::~CHelpWindow);
-EI_REWRITTEN_SPECIAL(0x005F8950, CHelpWindow::~CHelpWindow);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC0D0, CHelpWindow::~CHelpWindow);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F8950, CHelpWindow::~CHelpWindow);
+EI_REWRITTEN_SPECIAL(0x005FC0D0, CHelpWindow::~CHelpWindow);
 
 CObjectivesWindow::~CObjectivesWindow() {
     objectiveTexts_.Destruct();
@@ -214,8 +214,8 @@ CObjectivesWindow::~CObjectivesWindow() {
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
 }
 EI_REWRITTEN_SPECIAL(0x00603B90, CObjectivesWindow::~CObjectivesWindow);
-EI_REWRITTEN_SPECIAL(0x00603B70, CObjectivesWindow::~CObjectivesWindow);   // deleting
-EI_REWRITTEN_SPECIAL(0x0060C7C0, CObjectivesWindow::~CObjectivesWindow);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00603B70, CObjectivesWindow::~CObjectivesWindow);
+EI_REWRITTEN_SPECIAL(0x0060C7C0, CObjectivesWindow::~CObjectivesWindow);
 
 CSaveLoadWindow::~CSaveLoadWindow() {
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
@@ -229,8 +229,8 @@ CSaveLoadWindow::~CSaveLoadWindow() {
     FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
 }
 EI_REWRITTEN_SPECIAL(0x006070C0, CSaveLoadWindow::~CSaveLoadWindow);
-EI_REWRITTEN_SPECIAL(0x006070A0, CSaveLoadWindow::~CSaveLoadWindow);   // deleting
-EI_REWRITTEN_SPECIAL(0x0060C7B0, CSaveLoadWindow::~CSaveLoadWindow);   // the input side's
+EI_REWRITTEN_SPECIAL(0x006070A0, CSaveLoadWindow::~CSaveLoadWindow);
+EI_REWRITTEN_SPECIAL(0x0060C7B0, CSaveLoadWindow::~CSaveLoadWindow);
 
 EI_REWRITTEN_SPECIAL(0x005F5F50, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005F5F80, CUiContainer::~CUiContainer);

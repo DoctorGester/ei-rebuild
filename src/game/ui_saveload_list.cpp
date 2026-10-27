@@ -32,7 +32,7 @@ constexpr const char* kDateFormat = "%d/%m, %H:%M";
 constexpr const char* kPlainFormat = "%s";
 constexpr const char* kDayText = "save_day";
 constexpr const char* kGameTimeFormat = "%s  %d,  %d:%02d";
-float MinutesPerHour() { return 60.0f /*0073F090*/; }   // 60
+float MinutesPerHour() { return 60.0f /*0073F090*/; }
 
 constexpr int kFont = 1;
 constexpr COLORREF kTextColour = 0xA7D7E4;

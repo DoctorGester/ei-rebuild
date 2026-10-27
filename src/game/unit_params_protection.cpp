@@ -1,5 +1,5 @@
 // UnitParams::ProtectionBlock: the protection figures the unit panel and the script
-// addon show, from the packed parameters (CUnit + 0x330) and packed vitals (+0x17C). See unit.h.
+// addon show, from the packed parameters (CUnit + 0x330) and packed vitals. See unit.h.
 #include "unit.h"
 
 #include "logic_settings.h"

@@ -318,5 +318,5 @@ CCreditsScreen::~CCreditsScreen() {
     archive_.Get()->CMappedResource::Destroy();
 }
 EI_REWRITTEN_SPECIAL(0x005F6E40, CCreditsScreen::~CCreditsScreen);
-EI_REWRITTEN_SPECIAL(0x005F6E20, CCreditsScreen::~CCreditsScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FC0F0, CCreditsScreen::~CCreditsScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x005F6E20, CCreditsScreen::~CCreditsScreen);
+EI_REWRITTEN_SPECIAL(0x005FC0F0, CCreditsScreen::~CCreditsScreen);

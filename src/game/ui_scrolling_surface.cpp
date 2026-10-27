@@ -76,7 +76,7 @@ CUiScrollingSurface::~CUiScrollingSurface() {
     }
 }
 EI_REWRITTEN_SPECIAL(0x0065EDE0, CUiScrollingSurface::~CUiScrollingSurface);
-EI_REWRITTEN_SPECIAL(0x0065EDC0, CUiScrollingSurface::~CUiScrollingSurface);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065EDC0, CUiScrollingSurface::~CUiScrollingSurface);
 
 bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     std::uint32_t size = 0;

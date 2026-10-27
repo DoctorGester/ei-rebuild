@@ -1,8 +1,8 @@
 // The zone's unit skins and figures (thiscall on the zone's client object, called by the zone load): for
 // every dressed unit (first list, 0x24-byte records) two composite textures are built through the texture
-// cache (+0x18C): the body skin ("<model>skin_NN.mmp" and the armour pieces' "<model><item>.mmp"),
+// cache: the body skin ("<model>skin_NN.mmp" and the armour pieces' "<model><item>.mmp"),
 // registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" / "prot<n>s"); for every
-// other unit (second list, 0x3C-byte records) the list of its textures goes to the figure maker (+0x34).
+// other unit (second list, 0x3C-byte records) the list of its textures goes to the figure maker.
 // Names provisional; see docs/notes/world.md.
 #include "console.h"
 #include "game_strings.h"
@@ -64,7 +64,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // record); the weapon and material records are the tables' At: WeaponAt / MaterialAt. The 12-byte record list of a
 // unit's textures (filled by UnitTextureRecords): its constructor (allocator) and destructor. The texture
 // set's byte
-// array: destructor, allocation. The texture cache (this +0x18C): build a composite texture
+// array: destructor, allocation. The texture cache: build a composite texture
 // (CTextureManager::Compose: out name, set, name, name, 3, 0, 0x5551) and register it (kind, name). The second
 // list:
 // the unit's texture names from its prototype (unit in ECX, record +4 in EDX; record +0x10, names, more names);
@@ -83,7 +83,7 @@ using SkinComposition = SkinRequest;
 struct TextureRecord {
     std::uint32_t kind;
     std::uint32_t id;
-    std::uint32_t itemType;   // the item record's type (+0x0C)
+    std::uint32_t itemType;   // the item record's type
 };
 static_assert(sizeof(TextureRecord) == 12);
 using RecordList = stlp::vector<TextureRecord>;
@@ -123,7 +123,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
     set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }
 
-// The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
+// The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
 void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::uint32_t* items) {
     if (items[1] != kNone && items[2] != kNone) {
         const itemdb::ArmorRecord* second = Armour(items[2] >> 16);
@@ -141,7 +141,7 @@ void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::u
     if (id != kNone) AddItem(set, model, id);
 }
 
-// The extra weapon picked by the record's index byte (+0x1C) in its list (+0x10): weapon and
+// The extra weapon picked by the record's index byte in its list: weapon and
 // material records named together.
 void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedUnitRecord* record) {
     const std::uint32_t* list = record->extraWeapons.Start();
@@ -161,7 +161,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }
 
-// The texture cache is the client world's texture manager (+0x18C).
+// The texture cache is the client world's texture manager.
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.flags = size;
     self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);

@@ -13,16 +13,16 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 class CEngineObject;
-struct FigureAnimation;   // map_object_figures.h
+struct FigureAnimation;
 class CUnit;
-class CMapObject;   // map_object.h
+class CMapObject;
 struct UnitStats;
 struct UnitVitals;
-struct UnitPrototypeRecord;   // unit_db.h
-struct UnitNpcRecord;         // unit_db.h
+struct UnitPrototypeRecord;
+struct UnitNpcRecord;
 
 // The unit prototype table (global): an STLport vector of 0x120-byte records followed by
 // a hash_map<string, record*> from prototype names to records at +0x0C.
@@ -35,10 +35,10 @@ struct UnitPrototypeTable {
     // so an unknown name is inserted with a null record (and null is returned).
     UnitPrototypeRecord* FindByName(const char* name);
 
-    UnitPrototypeRecord* begin;         // +0x00
-    UnitPrototypeRecord* end;           // +0x04
-    UnitPrototypeRecord* endOfStorage;  // +0x08
-    NameIndex byName;           // +0x0C
+    UnitPrototypeRecord* begin;
+    UnitPrototypeRecord* end;
+    UnitPrototypeRecord* endOfStorage;
+    NameIndex byName;
 };
 static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 
@@ -53,7 +53,7 @@ struct NpcPrototypeTable {
     UnitNpcRecord* begin;
     UnitNpcRecord* end;
     UnitNpcRecord* endOfStorage;
-    NameIndex byName;           // +0x0C
+    NameIndex byName;
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
@@ -75,12 +75,12 @@ struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     // CResourceManager's destructor.
     ~CMapObjectManager() override;
-    int Create() override;                                  // 2: CreateManager
-    const char* GetClassName() override;                    // 11: "CMapObjectManager"
-    int GetClassId() override;                              // 12: (0x2D)
-    CEngineObject* NewObject(int classId) override;         // 14: NewObjectImpl
-    CEngineObject* CreateObject(int classId, int id) override;   // 23: CreateMapObject
-    const char* GetFolderName() override;                   // 25: "map objects"
+    int Create() override;                                  // CreateManager
+    const char* GetClassName() override;
+    int GetClassId() override;                              // (0x2D)
+    CEngineObject* NewObject(int classId) override;         // NewObjectImpl
+    CEngineObject* CreateObject(int classId, int id) override;   // CreateMapObject
+    const char* GetFolderName() override;                   // "map objects"
 
     // Slot 14's body: a new object of class id `classId`
     // (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
@@ -109,7 +109,7 @@ struct CMapObjectManager : CResourceManager {
     FigureAnimation* FindAnimation(const mfc::CString* figure, std::uint32_t key);
     // The defaults of an object without a prototype (SetDefaults): a unit
     // (class 0x50) gets the statistics (its slot 35), any other object the vitals; then
-    // slot 33 with 0 and no prototype index (+0x18). Returns 1.
+    // slot 33 with 0 and no prototype index. Returns 1.
     int GiveDefaults(CMapObject* object);
     // The starting equipment's names of prototype `name`: the armour pieces,
     // the two weapons and the spells. 1, or FatalError's result without the prototype.
@@ -129,7 +129,7 @@ struct CMapObjectManager : CResourceManager {
     int BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name);
     // Gives map object `object` the prototype `name`: units get their vitals and
     // statistics (BuildFromPrototype, slots 36 and 35), their height offset, scale (the
-    // base scale and slot 30) and second prototype; every object its prototype index (+0x18).
+    // base scale and slot 30) and second prototype; every object its prototype index.
     // Without a prototype: defaults, slot 33 (0), index 0 and a debug message. Returns 1.
     int ApplyPrototype(CMapObject* object, const char* name);
 };

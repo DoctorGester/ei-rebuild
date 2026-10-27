@@ -39,11 +39,11 @@ float One() { return 1.0f /*0073B84C*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
 float ModelDepth() { return 9.0f /*0074242C*/; }       // 9: how far in front of the camera the model stands
 float ModelDrop() { return 0.25f /*0073C3B0*/; }        // 0.25 of the view's half height below the centre
-float TurnAboutZ() { return 0.05f /*0073C52C*/; }       // 0.05
-float TurnAboutX() { return 1.15f /*00742AE8*/; }       // 1.15
-float SecondTurnAboutZ() { return 0.4f /*0073B868*/; } // 0.4
-float BarHeight() { return 15.0f /*00742430*/; }        // 15
-float PanelHeight() { return 220.0f /*00742AE4*/; }      // 220
+float TurnAboutZ() { return 0.05f /*0073C52C*/; }
+float TurnAboutX() { return 1.15f /*00742AE8*/; }
+float SecondTurnAboutZ() { return 0.4f /*0073B868*/; }
+float BarHeight() { return 15.0f /*00742430*/; }
+float PanelHeight() { return 220.0f /*00742AE4*/; }
 constexpr int kBackground = 0;        // scene objects
 constexpr int kHeightBar = 8;
 constexpr int kMoreMark = 9;

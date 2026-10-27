@@ -1,4 +1,4 @@
-// The window surface's constructors and destructor (CUiSurface, 0x38 bytes): one for a window showing an .mmp
+// The window surface's constructors and destructor (CUiSurface): one for a window showing an .mmp
 // picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
 // taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
 // (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the

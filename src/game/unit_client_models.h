@@ -18,37 +18,37 @@
 #include <cstddef>
 #include <cstdint>
 
-class CParticleSource;   // effects.h
-class CTexture;          // texture.h
+class CParticleSource;
+class CTexture;
 struct tagRECT;          // windows.h RECT
 class CUnit;
-struct UnitPrototypeRecord;   // unit_db.h
-struct FigureAnimation;   // map_object_figures.h
-struct Vector3;   // maths.h
+struct UnitPrototypeRecord;
+struct FigureAnimation;
+struct Vector3;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
-// An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
+// An entry of a client controller's speech queue (the value of a node of the STLport
 // list at +0x9C; plays one).
 // What a unit says (the record slot 51 is given; 0x28 bytes, an acks.db entry, acks_db.h): its
 // sound file name at +0x04.
 struct SpeechRecord {
-    int chance;                     // +0x00 eligible when at least the roll (0..99, acks_db.cpp)
-    stlp::string sound;             // +0x04 the sound file
-    stlp::string text;              // +0x10
-    stlp::string name;              // +0x1C named speeches
+    int chance;                     // eligible when at least the roll (0..99, acks_db.cpp)
+    stlp::string sound;             // the sound file
+    stlp::string text;
+    stlp::string name;              // named speeches
 };
 static_assert(offsetof(SpeechRecord, name) == 0x1C);
 static_assert(sizeof(SpeechRecord) == 0x28);
 
 struct ClientSpeech {
-    const SpeechRecord* id;         // +0x00 (compares it with the last speech, +0x94)
-    int kind;                       // +0x04 2 / 0x1C: not over a speech that still plays (+0x90)
-    int delay;                      // +0x08 ticks until it plays; negative: playing
-    int sound;                      // +0x0C its sound handle (-1 none)
-    std::uint8_t talking;           // +0x10 the server unit has flag 0x800000 while it plays
+    const SpeechRecord* id;         // (compares it with the last speech, +0x94)
+    int kind;                       // 2 / 0x1C: not over a speech that still plays
+    int delay;                      // ticks until it plays; negative: playing
+    int sound;                      // its sound handle (-1 none)
+    std::uint8_t talking;           // the server unit has flag 0x800000 while it plays
     std::uint8_t unused_11[3];
 };
 static_assert(sizeof(ClientSpeech) == 0x14);
@@ -60,14 +60,14 @@ struct SpeechFilter {
     // Has `queued`'s sound ended (it had one)? A talking speech then clears the server
     // unit's flag 0x800000 (the filter's unit id). AL.
     bool Finished(const ClientSpeech* queued) const;
-    int unitId;                     // +0x00 SpeechFinished: the unit whose talking flag ends
-    int kind;                       // +0x04 SpeechReplaced: the new speech's kind
+    int unitId;                     // SpeechFinished: the unit whose talking flag ends
+    int kind;                       // SpeechReplaced: the new speech's kind
 };
 
 struct ClientSpeechNode {
     ClientSpeechNode* next;
     ClientSpeechNode* prev;
-    ClientSpeech value;             // +0x08
+    ClientSpeech value;
 };
 static_assert(sizeof(ClientSpeechNode) == 0x1C);
 
@@ -80,7 +80,7 @@ inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
     {"hr", "hd", "", "", "", "", ""},
 };
 
-// One layer of a composed skin (0xC bytes): what it is (0x32 the unit's own skin, 0x3005 armour,
+// One layer of a composed skin: what it is (0x32 the unit's own skin, 0x3005 armour,
 // 0x3004 a weapon; 0 none), the packed item id or prototype index, and the armour slot / weapon
 // type. MFC CArray of them; its SetSize is.
 struct SkinLayer {
@@ -95,16 +95,16 @@ using SkinLayerArray = mfc::CArray<SkinLayer>;
 // What the texture manager composes a skin from: the layers as bytes in 32-byte
 // aligned storage, the layer texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
-    lib::AlignedArray<std::uint8_t> layers;   // +0x00 the bytes (size, capacity, growBy after the data)
-    console::CStringArray textures; // +0x10
-    int flags;                      // +0x24
+    lib::AlignedArray<std::uint8_t> layers;   // the bytes (size, capacity, growBy after the data)
+    console::CStringArray textures;
+    int flags;
 };
 static_assert(offsetof(SkinRequest, textures) == 0x10);
 static_assert(offsetof(SkinRequest, flags) == 0x24 && sizeof(SkinRequest) == 0x28);
 
 // The texture manager composes a request into a cached texture (CTextureManager::Compose).
 
-struct AttackParams;   // combat.h
+struct AttackParams;
 
 class CUnitClientSpecific : public CUnitController {
 public:
@@ -129,7 +129,7 @@ public:
     int GetClassId() override;
     // 16: the order part of the unit's path (ClientControllerPath, registered at its address).
     PathOrder* Path() override { return &motion; }
-    void Unused17() override {}   // 17: (empty)
+    void Unused17() override {}
 
     // Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
@@ -188,18 +188,18 @@ public:
     // hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags_ 8 (not
     // drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
     // one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
-    // (+0x78) goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown (+0x7C);
+    // goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown;
     // the blink (+0xD0: every 2..9 ticks); the bow's arrow;
-    // the step sounds; the speech queue (+0x9C); for +0x255 == -2 with animation
+    // the step sounds; the speech queue; for +0x255 == -2 with animation
     // state +0x50 below 3, (0). Returns 1.
     int RunTick() override;
-    // The blink. With a face texture (+0xCC) and a skin texture (the client half's material), unless the eyes
+    // The blink. With a face texture and a skin texture (the client half's material), unless the eyes
     // already are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
     // rectangle (the model's +0x158..+0x164 in 256ths of the skin, down the mip chain); eyesClosed becomes 1
     // / 0.
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
-    // The face texture the blink uses (+0xCC), loaded
+    // The face texture the blink uses, loaded
     // once: the texture manager's texture of kind 0x3D named "<model>mouth_<skin, 2 digits>"
     // (heroes, the prototype's +0x0C) or "<model>mouth", loaded; one that did not load
     // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
@@ -309,7 +309,7 @@ public:
     // Virtual slot 35: the weapon slot holding `id` is emptied. False (AL) when none does.
     bool RemoveWeaponModel(std::uint32_t id) override;
 
-    // The sounds of the animation playing (state +0x40) between the last update's frame
+    // The sounds of the animation playing between the last update's frame
     // (+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
     // moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
     // 1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
@@ -317,18 +317,18 @@ public:
     // of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
     // +0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
     // the model's +0x11C) through the client world. An attack's sound waits for the
-    // speech sound (+0x90) and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
+    // speech sound and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
     // animation and frame.
     void PlayStepSounds();
     // The footstep sound on ground kind `terrain` into `out` (CString::Format), for units
     // whose prototype's model has sounds for it (+0x144 counts): on a platform 0.01 or more away
     // from the ground the kind is 2; crawling (movement mode 0) except on kinds 6 / 14 gives
-    // "steps\human\crawl\<1..6>.wav", else "<the kind's name (+0x138)>\<1..count>.wav" (one rand()
+    // "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav" (one rand()
     // each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
     int FootstepSound(int terrain, mfc::CString* out);
     // The sound of `animation`'s action into `out` (emptied first) when its sound frame
     // (+0x44, not 0) lies in [from, to): "weapons\miss.wav" for `miss`, else one of its sound
-    // numbers (+0x48, rand()) in the folder of the second prototype (+0x34) or its model (+0x124):
+    // numbers (+0x48, rand()) in the folder of the second prototype or its model:
     // idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000: tame, steal, science,
     // loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else by the
     // attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a
@@ -357,32 +357,32 @@ public:
 
     PathOrder* MotionPath() { return &motion; }
 
-    CParticleSource* sources[3];    // +0x20 particle sources the controller keeps (counted)
-    float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
-    const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
-    float lastTime;                 // +0x34 the world time the unit was last advanced to
-    PathOrder motion;               // +0x38 the order part of a path
-    std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
-    std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
-    std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once
+    CParticleSource* sources[3];    // particle sources the controller keeps (counted)
+    float lastAnimationTime;        // the animation state's time at the last update
+    const FigureAnimation* lastAnimation;   // the animation at the last update
+    float lastTime;                 // the world time the unit was last advanced to
+    PathOrder motion;               // the order part of a path
+    std::uint8_t weaponHidden;      // ShowWeaponParts' state (cleared by a weapon change)
+    std::uint8_t arrowHidden;       // the bow's arrow part is flagged hidden
+    std::uint8_t snapHeading;       // the next path placement turns the unit to the path at once
     std::uint8_t unused_077;
-    float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
-    int flashCountdown;             // +0x7C the drawn parts get their colours back at 0
-    int footprint;                  // +0x80 the last footprint, -1 none
-    int footprintRepeats;           // +0x84 further steps that may reuse it
-    int idleSound;                  // +0x88 the idle animation's sound handle
-    int otherSound;                     // +0x8C a sound handle, -1 after Create; nothing reads it
-    int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
-    const SpeechRecord* lastSpeech; // +0x94 the speech played last
-    std::uint32_t lastSpeechTime;   // +0x98 when (timeGetTime)
-    ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
-    std::uint32_t armourIds[7];     // +0xA0 packed ids of the armour worn, -1 none
-    std::uint32_t weaponIds[4];     // +0xBC
-    CTexture* faceTexture;          // +0xCC the face texture the blink changes (counted)
-    std::uint8_t blinks;            // +0xD0
+    float fadeIn;                   // 1 when fully shown; the drawn parts take it as alpha
+    int flashCountdown;             // the drawn parts get their colours back at 0
+    int footprint;                  // the last footprint, -1 none
+    int footprintRepeats;           // further steps that may reuse it
+    int idleSound;                  // the idle animation's sound handle
+    int otherSound;                     // a sound handle, -1 after Create; nothing reads it
+    int speechSound;                // the sound of the last speech that waits (-1 none)
+    const SpeechRecord* lastSpeech; // the speech played last
+    std::uint32_t lastSpeechTime;   // when (timeGetTime)
+    ClientSpeechNode* speech;       // the speech queue (STLport list header node)
+    std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
+    std::uint32_t weaponIds[4];
+    CTexture* faceTexture;          // the face texture the blink changes (counted)
+    std::uint8_t blinks;
     std::uint8_t unused_0D1[3];
-    int blinkTimer;                 // +0xD4 ticks to the next blink change
-    int eyesClosed;                 // +0xD8 sets it, clears it
+    int blinkTimer;                 // ticks to the next blink change
+    int eyesClosed;                 // sets it, clears it
 };
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);

@@ -53,13 +53,13 @@ CItem* ItemAt(CParty* party, int index) { return party->items_.data[index]; }
 int ItemCount(const CParty* party) { return party->items_.size; }
 // The prototype index an item's packed id carries (its high word).
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->prototypeId_ >> 16; }
-// An item record (+0x1C) marked as made by a constructor (+0x10).
+// An item record marked as made by a constructor.
 bool MadeByConstructor(const CItem* item) {
     auto* record = reinterpret_cast<const std::uint8_t*>(item->link_);
     return record && record[0x10];
 }
 
-// The stock lists of a class template: everything (+0x11C) and spells and modifiers (+0x1D4).
+// The stock lists of a class template: everything and spells and modifiers.
 ItemStock* AllowedList(ClassTemplate* t) { return &t->allowed; }
 ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 

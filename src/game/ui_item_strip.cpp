@@ -63,9 +63,9 @@ void CUiItemStrip::Build(char top) {
     AddRect(this, 50, top_, 750, top_ + 100);
 
     const float y = static_cast<float>(top_);
-    const float hundred = 100.0f /*0073BAB0*/;   // 100.0
+    const float hundred = 100.0f /*0073BAB0*/;
     // The ends' faces.
-    float depth = scale_ * 0.8f /*0073CCA8*/;  // 0.8
+    float depth = scale_ * 0.8f /*0073CCA8*/;
     AddSprite(0)->SetRectangleVanilla(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale_ * 0.8f /*0073CCA8*/;
     AddSprite(0)->SetRectangleVanilla(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
@@ -82,7 +82,7 @@ void CUiItemStrip::Build(char top) {
         const float bottoms[3] = {y35, y65, y95};
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
-            depth = scale_ * 0.6f /*0073CDE0*/;   // 0.6
+            depth = scale_ * 0.6f /*0073CDE0*/;
             AddSprite(0)->SetRectangleVanilla(depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
@@ -140,7 +140,7 @@ BOOL CForwardingStrip::Draw(int pass) {
         cell.mode = mode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
-        cell.depth = scale_ * 1.5f /*0073C51C*/;   // 1.5
+        cell.depth = scale_ * 1.5f /*0073C51C*/;
         owner_->DrawItem(pass, &cell);   // the owner screen's item cell draw
     }
 
@@ -197,13 +197,13 @@ void CUiItemStrip::Update() {
     const float zero = 0.0f /*0073B858*/;
     const float repeat = 0.1f /*00741EC0*/;      // 0.1 s per slot while an arrow is held
     const float nearDistance = 0.5f /*00741EB4*/;  // 0.5 slot: closer than this the scroll eases out
-    const float easeDivisor = 0.25f /*00741EB8*/; // 0.25
+    const float easeDivisor = 0.25f /*00741EB8*/;
     const float accel = 15.0f /*00741EBC*/;       // 15 slots/s^2
     const float maxSpeed = 7.0f /*00741EB0*/;    // 7 slots/s
     const float half = 0.5f /*0073B86C*/;
-    const float snapLow = 0.01f /*0073C548*/;     // 0.01
-    const float snapPending = 0.02f /*0073CCD8*/; // 0.02
-    const float snapHigh = 0.99f /*00741F0C*/;    // 0.99
+    const float snapLow = 0.01f /*0073C548*/;
+    const float snapPending = 0.02f /*0073CCD8*/;
+    const float snapHigh = 0.99f /*00741F0C*/;
     const float one = 1.0f /*0073B84C*/;
     const float dt = static_cast<float>(StripFrameTime(this));
 

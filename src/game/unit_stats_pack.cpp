@@ -176,7 +176,7 @@ int UnitStats::Reset() {
     }
     std::memset(attributes, 0, sizeof(attributes));
     std::memset(skills, 0, sizeof(skills));
-    std::memset(skillLevels, 0, 0x24);   // the last level byte (+0x6F7) is left alone
+    std::memset(skillLevels, 0, 0x24);   // the last level byte is left alone
     flags = 0;
     return 0;
 }

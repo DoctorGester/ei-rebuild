@@ -1,11 +1,9 @@
 #pragma once
 
-// Unit AI: the per-unit "brain" that picks a behaviour mode every AI tick and runs it, the modes themselves
-// (Guard, Patrol, Sentry, Suspection, Aggression, CorpseWatcher, Player, Fear, Tamed, Follow; the script's
-// UM* commands create them) and the actions the brain issues (move, attack, ...). Names are provisional.
-// Ownership: a unit's controller (CUnit + 0x240) embeds the brain at +0x980. The controller's tick calls
-// AIBrain::Think once per AI update. Modes are reference-counted objects (16-bit count at +4, released) kept
-// in the brain's mode list; the brain holds a counted pointer to the mode in charge.
+// Unit AI: the per-unit brain that picks a behaviour mode every AI tick and runs it, the modes (Guard, Patrol, Sentry,
+// Suspection, Aggression, CorpseWatcher, Player, Fear, Tamed, Follow; the script's UM* commands create them) and
+// the actions the brain issues. The controller embeds the brain and calls AIBrain::Think once per AI update. Modes
+// are reference-counted and kept in the brain's list; the brain holds a counted pointer to the mode in charge.
 
 #include "ai_alarm.h"
 #include "ai_map.h"
@@ -27,24 +25,19 @@ template <typename T>
 struct AIRefTo;
 struct AIBrain;
 struct AIOrder;
-class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
-struct AIEventPresence;   // combat.h
+class CUnitServer;
+struct AIEventPresence;
 
 struct CountedUnits : mfc::CTypedPtrList<CUnit> {
-    // Appends `object`
-    // holding a reference; returns the node.
+    // Appends `object`, holding a reference; returns the node.
     Node* AddCountedTail(CUnit* object);
-    // (unit_ai.cpp; the brain's corpse list at +0x148, CorpseWatcherMode::Evaluate through
-    // AIBrain::PopCorpse): RemoveHead, the head's object handed to `out` with a reference (the list's own
-    // reference released). Returns `out`.
+    // The brain's corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 using AIObjectList = CountedUnits;
 
-// (The counted reference AIRefTo<T> / AIRef is in engine_object.h.)
 
-
-// An order as the controller's order checks take it (0x1C bytes, built on the stack).
+// An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
     // Kind 9 (none): the object released and cleared, the flag cleared.
     void Clear();
@@ -52,73 +45,64 @@ struct AIOrder {
     void MakeAttack(CMapObject* object);
     // Clear, then a cast (5) of `spell` at `object` (referenced).
     void MakeCast(int spell, CMapObject* object);
-    // Clear, then a use (6) of `object` (referenced)
-    // with `what`.
+    // Clear, then a use (6) of `object` with `what`.
     void MakeUse(CMapObject* object, int what);
-    // Where the order aims: the object's AimPoint, or `point` without
-    // an object. Returns `out`.
+    // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    int kind;                       // +0x00 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
-    std::uint32_t source;           // +0x04 6 for an attack, the spell for a cast; in a UnitAction
+    int kind;                       // 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
+    std::uint32_t source;           // 6 for an attack, the spell for a cast; in a UnitAction
                                     //       (combat.h) the spell slot, or quick item slot | 0x80000000;
                                     //       0x18A95 for a skill used on a target (kind 6)
-    AIRefTo<CMapObject> target;     // +0x08 counted
-    Vector3 point;                  // +0x0C target point; left uninitialised by the AI's orders
-    std::uint8_t flag18;            // +0x18
+    AIRefTo<CMapObject> target;     // counted
+    Vector3 point;                  // target point; left uninitialised by the AI's orders
+    std::uint8_t flag18;
     std::uint8_t unused_19[3];
 };
 static_assert(sizeof(AIOrder) == 0x1C);
 
-// One remembered look direction of the current move (0x10 bytes).
+// One remembered look direction of the current move.
 struct AILook {
-    float angle;                    // +0x00
-    float time;                     // +0x04 turning time
-    float wait;                     // +0x08 wait afterwards (game ticks)
-    std::uint8_t stopFirst;         // +0x0C
+    float angle;
+    float time;                     // turning time
+    float wait;                     // wait afterwards (game ticks)
+    std::uint8_t stopFirst;
     std::uint8_t unused_0D[3];
 
-    // Angle, wait, turning time, stop
-    // first (low byte). The arguments come in a different order from the fields: the second goes to
-    // +0x08, the third to +0x04. Returns this.
+    // The arguments come in a different order from the fields: wait before turning time. Returns this.
     AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
 };
 static_assert(sizeof(AILook) == 0x10);
 
-// CArray<AILook> (0x14 bytes; base). SetSize (new elements
-// zeroed) and Copy are registered on the template (unit_ai_looks.cpp).
+// CArray<AILook>; new elements are zeroed.
 struct AILooks : mfc::CArray<AILook> {
-    // (script_parse_arrays.cpp; the brain's look queue and the patrol looks of
-    // UMPatrol). Grown to index + 1 when needed (new looks zeroed), the look copied.
+    // The brain's look queue and the patrol looks of UMPatrol. Grown to index + 1 when needed (new looks zeroed).
     void SetAtGrow(int index, const AILook& look);
-    // CArray::GetAt returning by value: element `index` copied into
-    // `out`, which is returned.
+    // CArray::GetAt returning by value: copies element `index` into `out`, which is returned.
     AILook* CopyAt(AILook* out, int index) const;
 };
 using AILookArray = AILooks;
-void __fastcall LooksDestroyAt(AILookArray* looks);                                  // (base vtable, frees the data)
-// Base vtable, no data, growth step 0. Returns `looks`.
+void __fastcall LooksDestroyAt(AILookArray* looks);
+// No data, growth step 0. Returns `looks`.
 AILookArray* __fastcall LooksInit(AILookArray* looks);
 // The looks from / to a save: the
 // count, then angle, time and wait of each and (files from version 0x44) the stop flag.
 void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
 
-// A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
+// A move the modes prepare on the stack: where to go and what to look at there.
 struct AIMoveOrder {
-    // The point zeroed,
-    // the looks' data freed, size and capacity 0 (step and vtable kept).
+    // Zeroes the point and frees the looks.
     void Clear();
-    // Operator=. The point, then the looks (the array's Copy inlined); returns this. Only the fear mode's old
-    // code called it (ours assigns the parts through the look array's address).
+    // Operator=: the point, then the looks; returns this.
     AIMoveOrder* Assign(const AIMoveOrder* other);
 
-    Vector3 point;                  // +0x00
-    AILookArray looks;              // +0x0C
+    Vector3 point;
+    AILookArray looks;
 };
 static_assert(sizeof(AIMoveOrder) == 0x20);
 
-// Mode types (vtable slot 8), as the brain names them in its "new motivation" message.
+// Mode types, as the brain names them in its "new motivation" message.
 enum AIModeType {
     kModeGuard = 0,
     kModePatrol = 1,
@@ -132,25 +116,21 @@ enum AIModeType {
     kModeFollow = 10,
 };
 
-// Base of all modes (abstract): a reference-counted object (core_refcount.h: slots 0-3 are CRefObject's;
-// OnShutdown and Clone are each mode's), then 4-12 below. AIActionMode is the base of the modes that act.
+// Base of all modes (abstract). AIActionMode is the base of the modes that act.
 class AIMode : public CRefObject {
 public:
-    // A new mode, no references and no flags (the creators cleared the count).
     AIMode();
-    ~AIMode() override;   // (deleting: script_unit_modes.cpp)
+    ~AIMode() override;
 
-    // 4: the priority the mode claims this tick. (unit_ai_modes.cpp): always 50 (Guard, Sentry, Follow).
+    // The priority the mode claims this tick; 50 here (Guard, Sentry, Follow).
     virtual int Evaluate(AIBrain* brain);
-    // 5: runs while the mode is in charge. (unit_ai_mode_lifetime.cpp): the idle remark (1 in 1001),
-    // then LookAround(0).
+    // Runs while the mode is in charge. Here: the idle remark (1 in 1001), then LookAround(0).
     virtual void Execute(AIBrain* brain);
-    // 6. (unit_ai_modes.cpp; Guard, Patrol, Sentry, Follow): drop the action and target, pick a new
-    // alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
+    // Entering (Guard, Patrol, Sentry, Follow): drop the action and target, pick a new alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
     virtual void Enter(AIBrain* brain);
     virtual void Leave(AIBrain*) {}
-    virtual int GetType() = 0;                          // 8: AIModeType
-    // 9: 1 for most modes; AddMode replaces a mode of another type when both answer 1..
+    virtual int GetType() = 0;
+    // True for most modes; AddMode replaces a mode of another type when both answer true.
     virtual bool Exclusive() { return true; }
     virtual void OnObjectDeleted(CEngineObject*) {}
     virtual void Load(CStream*) {}
@@ -158,12 +138,11 @@ public:
 };
 static_assert(sizeof(AIMode) == 8);
 
-// The abstract base of the modes that act: Suspection, Aggression, CorpseWatcher,
-// Fear and Player.
+// Base of the modes that act: Suspection, Aggression, CorpseWatcher, Fear and Player.
 class AIActionMode : public AIMode {
 public:
-    AIActionMode();               // (unit_ai_mode_lifetime.cpp)
-    ~AIActionMode() override;     // (deleting: script_unit_modes.cpp)
+    AIActionMode();
+    ~AIActionMode() override;
     int Evaluate(AIBrain* brain) override = 0;
     void Execute(AIBrain* brain) override = 0;
     // Drop the action and target.
@@ -171,15 +150,13 @@ public:
     bool Exclusive() override { return false; }
 };
 
-// Guard (0x20 bytes): stay near a point. The script's modes' lifetimes and small
-// slots are in script_unit_modes.cpp.
+// Guard: stay near a point.
 class GuardMode : public AIMode {
 public:
     // A mode AIBrain::Load fills: no failures yet.
     GuardMode() { failures = 0; }
-    // Set.
     GuardMode(const Vector3* point, float radius, float wander);
-    ~GuardMode() override;   // (deleting)
+    ~GuardMode() override;
     // No failures.
     int OnShutdown() override;
     // A new mode with the fields copied (floats as dwords); null when the allocation fails.
@@ -190,41 +167,35 @@ public:
     // the unit) and look around there.
     void Execute(AIBrain* brain) override;
     int GetType() override { return kModeGuard; }
-    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    Vector3 point;                  // +0x08
-    float radius;                   // +0x14
-    float wander;                   // +0x18
-    int failures;                   // +0x1C
+    Vector3 point;
+    float radius;
+    float wander;
+    int failures;
 };
 static_assert(sizeof(GuardMode) == 0x20);
 
-// One patrol point (0x20 bytes): position and a CArray of 0x10-byte look/wait entries.
+// One patrol point: position and a CArray of look / wait entries.
 struct PatrolPoint {
-    // The element assignment of the point array's Add / SetAtGrow (unit_ai_looks.cpp): the
-    // position, then the looks' SetSize to the source's count and each look copied.
+    // The element assignment of the point array's Add / SetAtGrow: the position, then the looks' SetSize to the source's count and each look copied.
     PatrolPoint& operator=(const PatrolPoint& other);
 
-    Vector3 position;               // +0x00
-    AILookArray looks;              // +0x0C
+    Vector3 position;
+    AILookArray looks;
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
 
-// The point array's ConstructElements (zeroed, each look array given) and
-// DestructElements (on each: the look array's base vtable, its data freed) (unit_ai_looks.cpp).
+// The point array's ConstructElements (zeroed, each look array given) and DestructElements (each look array freed).
 struct PatrolPointElements {
     static void Construct(PatrolPoint* points, int count);
     static void Destruct(PatrolPoint* points, int count);
 };
 
-// CArray<PatrolPoint> (PatrolMode + 8, vtables; unit_ai_mode_lifetime.cpp).
-// Add SetAtGrow are registered on the template (unit_ai_looks.cpp); SetSize
-// is (mfc::impl::AiLookRecords).
+// CArray<PatrolPoint>.
 struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
-    // The base vtable, every point's looks freed, then the buffer (pointer and
-    // count kept).
+    // Every point's looks freed, then the buffer (pointer and count kept).
     void Destruct();
     // Destruct, then operator delete when `flags` bit 0 is set; returns this.
     PatrolPoints* DeletingDestruct(int flags);
@@ -233,29 +204,24 @@ struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
 };
 using PatrolPointArray = PatrolPoints;
 
-// Patrol (0x20 bytes): walk a list of points.
+// Patrol: walk a list of points.
 class PatrolMode : public AIMode {
 public:
-    // No points (the array's vtables), index 0.
     PatrolMode();
-    // Frees every point's looks and the points.
     ~PatrolMode() override;
     // The points freed and the mode as new (the count kept).
     int OnShutdown() override;
-    // A new mode (0x20 bytes) with copies of the points and `current`; null when the
-    // allocation fails.
+    // A new mode with copies of the points and `current`; null when the allocation fails.
     PatrolMode* Clone() override;
     // 50; without points: FatalError "Unit %i has no patrol points, switching to
     // guard", a point at the unit's position, and -1000.
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.
     void Execute(AIBrain* brain) override;
-    int GetType() override;   // 8: 1
+    int GetType() override;
     // The last point, or null.
     PatrolPoint* LastPoint();
-    // Load and Save: the point count (the points' SetSize), per point
-    // its position, look count (the looks' SetSize) and per look angle, time, wait and
-    // (from version 0x44 when loading) the stop flag byte; then `current`.
+    // The point count, per point its position, look count and per look angle, time, wait and (from version 0x44 when loading) the stop flag byte; then `current`.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     void AddPoint(const Vector3* position);
@@ -263,64 +229,60 @@ public:
     // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
 
-    PatrolPointArray points;        // +0x08
-    int current;                    // +0x1C
+    PatrolPointArray points;
+    int current;
 };
 static_assert(sizeof(PatrolMode) == 0x20);
 
-// Sentry (0x14 bytes): stand at a point.
+// Sentry: stand at a point.
 class SentryMode : public AIMode {
 public:
     SentryMode() {}   // a mode AIBrain::Load fills
-    // Set.
     explicit SentryMode(const Vector3* point);
-    ~SentryMode() override;   // (deleting)
-    int OnShutdown() override;        // 2: nothing
-    SentryMode* Clone() override;     // 3: as GuardMode's
-    // Sets the point.
+    ~SentryMode() override;
+    int OnShutdown() override;
+    SentryMode* Clone() override;
     void Set(const Vector3* point);
     // When idle: back to the point and look around.
     void Execute(AIBrain* brain) override;
-    int GetType() override;   // 8: 2
-    // Load and Save.
+    int GetType() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    Vector3 point;                  // +0x08
+    Vector3 point;
 };
 static_assert(sizeof(SentryMode) == 0x14);
 
-// Follow (0x0C bytes): stay with a leader.
+// Follow: stay with a leader.
 class FollowMode : public AIMode {
 public:
     // The leader referenced (none: a mode AIBrain::Load fills).
     explicit FollowMode(CMapObject* leader = nullptr);
-    ~FollowMode() override;   // The leader released and dropped
-    int OnShutdown() override;        // 2: the leader released and dropped
-    FollowMode* Clone() override;     // 3: the leader referenced
+    ~FollowMode() override;
+    int OnShutdown() override;
+    FollowMode* Clone() override;
     // When idle: action 6 (follow) with the leader as target.
     void Execute(AIBrain* brain) override;
-    int GetType() override;   // 8: 10
+    int GetType() override;
     // Drops the leader when it is the deleted object.
     void OnObjectDeleted(CEngineObject* object) override;
-    // (slots 11 / 12). Loads / saves the leader's reference.
+    // Loads / saves the leader's reference.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> leader;     // +0x08
+    AIRefTo<CMapObject> leader;
 };
 static_assert(sizeof(FollowMode) == 0x0C);
 
-// Suspection (0x18 bytes): go and look where something was noticed.
+// Suspection: go and look where something was noticed.
 class SuspectionMode : public AIActionMode {
 public:
-    // The point and level are zeroed too (ClearFields).
     SuspectionMode() { ClearFields(); }
     // The constructor in place.
     SuspectionMode* Construct();
-    ~SuspectionMode() override;   // (deleting)
-    int OnShutdown() override;            // 2: nothing
-    SuspectionMode* Clone() override;     // 3: as GuardMode's
+    ~SuspectionMode() override;
+    int OnShutdown() override;
+    SuspectionMode* Clone() override;
     // Remembers a non-allied seen object, then takes over the brain's noticed
     // point and level (the level only grows down to the noticed one while the point is the same).
     int Evaluate(AIBrain* brain) override;
@@ -330,39 +292,37 @@ public:
     void Enter(AIBrain* brain) override;
     // Clears busy; remark 3.
     void Leave(AIBrain* brain) override;
-    int GetType() override;   // 8: 3
-    // Load and Save.
+    int GetType() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // Point and level zeroed. game.exe's constructor leaves them, but Evaluate keeps a point that compares
-    // the same (a NaN always does) and the lower level, so every new mode starts from them zeroed: a
-    // determinism fix, the harness zeroes game.exe's alike (tests/verify/harness_leftovers.h).
+    // game.exe's constructor leaves these unset, but Evaluate keeps a point that compares the same (a NaN always does)
+    // and the lower level, so every new mode starts zeroed: a determinism fix, the harness zeroes game.exe's alike
+    // (tests/verify/harness_leftovers.h).
     void ClearFields() {
         point = {};
         level = 0;
     }
 
-    Vector3 point;                  // +0x08
-    int level;                      // +0x14
+    Vector3 point;
+    int level;
 };
 static_assert(sizeof(SuspectionMode) == 0x18);
 
 // A target the attention chose or the brain is attacking: the part (-1 the whole unit with a weapon,
 // else the spell's part) and the object.
 struct AITargetChoice {
-    int part;                       // +0x00
-    CUnit* object;                  // +0x04
+    int part;
+    CUnit* object;
 };
 static_assert(sizeof(AITargetChoice) == 8 && offsetof(AITargetChoice, object) == 4);
 
-// Aggression (0x18 bytes): fight an enemy.
+// Aggression: fight an enemy.
 class AggressionMode : public AIActionMode {
 public:
-    // No enemy, the whole unit as the part to hit, enemy not fixed. (UMRevenge): the
-    // same with `fixed` given.
+    // No enemy, the whole unit as the part to hit; `fixed` (UMRevenge) says the script set the enemy.
     AggressionMode();
     explicit AggressionMode(std::uint8_t fixed);
-    ~AggressionMode() override;   // The enemy released
+    ~AggressionMode() override;
     // The enemy released, then the mode as new.
     int OnShutdown() override;
     // References the enemy and copies `chosen` without a reference.
@@ -377,17 +337,17 @@ public:
     // Forgets the noticed level when the enemy is gone or dead, drops the enemy,
     // clears busy; remark 4.
     void Leave(AIBrain* brain) override;
-    int GetType() override;   // 8: 4
+    int GetType() override;
     // The enemy released and dropped when it is `object`.
     void OnObjectDeleted(CEngineObject* object) override;
-    // (slots 11 / 12). The enemy's reference and `fixed`.
+    // The enemy's reference and `fixed`.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> enemy;      // +0x08
-    std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
+    AIRefTo<CMapObject> enemy;
+    std::uint8_t fixed;             // enemy set by the script (no searching)
     std::uint8_t unused_0D[3];
-    AITargetChoice chosen;          // +0x10 the enemy chosen this tick; part -1: the whole unit
+    AITargetChoice chosen;          // the enemy chosen this tick; part -1: the whole unit
 };
 static_assert(sizeof(AggressionMode) == 0x18);
 
@@ -395,34 +355,31 @@ static_assert(sizeof(AggressionMode) == 0x18);
 class CorpseWatcherMode : public AIActionMode {
 public:
     CorpseWatcherMode();
-    ~CorpseWatcherMode() override;       // (deleting)
-    int OnShutdown() override;           // 2: nothing
+    ~CorpseWatcherMode() override;
+    int OnShutdown() override;
     CorpseWatcherMode* Clone() override;
     // Takes one seen corpse off the brain's list and notes it as noticed
     // (level 800, kind -3). Never takes charge (-1000).
     int Evaluate(AIBrain* brain) override;
     void Execute(AIBrain*) override {}
-    int GetType() override;              // 8: 5
+    int GetType() override;
 };
 
-// Fear (0x2C bytes): run from an enemy.
+// Fear: run from an enemy.
 class FearMode : public AIActionMode {
 public:
-    // Distance, 3, an unset point (x = -1313), +0x24 = 0 and
-    // `flag`. game.exe leaves shelter y / z and fleePoint x / y, which the saves write: ours zeroes every
-    // field first (ClearFields; a determinism fix, the harness zeroes game.exe's alike).
+    // Every field is zeroed first (ClearFields; a determinism fix: game.exe leaves shelter y / z and fleePoint x / y, which
+    // the saves write, and the harness zeroes game.exe's alike), then distance, spread 3 and an unset shelter (x = -1313).
     explicit FearMode(std::uint8_t flag);
     // The constructor in place.
     FearMode* Construct(std::uint8_t flag);
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
-    ~FearMode() override;   // (deleting: unit_ai_mode_lifetime.cpp)
-    // The constructor's stores without the flag (the count and
-    // +0x14 .. +0x20 stay).
+    ~FearMode() override;
+    // The constructor's stores without the flag.
     int OnShutdown() override;
-    // A new mode with this one's fields; null when the
-    // allocation fails.
+    // A new mode with this one's fields; null when the allocation fails.
     FearMode* Clone() override;
-    int GetType() override;   // 8: 7
+    int GetType() override;
     // Remembers a seen object (notice 1000 / -2; `distance`
     // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
     // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
@@ -445,15 +402,14 @@ public:
     void Enter(AIBrain* brain) override;
     // Clears busy.
     void Leave(AIBrain* brain) override;
-    // Load and Save.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    float distance;                 // +0x08 how near danger counts (10, FearDefaultDistance)
-    float spread;                   // +0x0C random spread of a flight point (3)
-    Vector3 shelter;                // +0x10 the last place with a kind 3 occluder (x = -1313: unset)
-    Vector3 fleePoint;              // +0x1C a checked flight point (z 1.0 while pending, else 0)
-    std::uint8_t flag;              // +0x28
+    float distance;                 // how near danger counts (10, FearDefaultDistance)
+    float spread;                   // random spread of a flight point (3)
+    Vector3 shelter;                // the last place with a kind 3 occluder (x = -1313: unset)
+    Vector3 fleePoint;              // a checked flight point (z 1.0 while pending, else 0)
+    std::uint8_t flag;
     std::uint8_t unused_29[3];
 
 private:
@@ -466,22 +422,19 @@ static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // A new Fear mode's distance, which `distance` returns to.
 inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
 
-// Player (0x24 bytes): the party's units. Its lifetime and small virtuals are in unit_ai_player_mode_slots.cpp.
+// Player: the party's units.
 class PlayerMode : public AIActionMode {
 public:
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
 
-    // No target or leader, point 0, state 0, not running.
     PlayerMode();
-    // Releases the leader, then the target.
     ~PlayerMode() override;
     // The references released, then the mode as new.
     int OnShutdown() override;
-    // A new mode holding the same target and leader (one more reference each) with the
-    // same point, state and run; null when the allocation fails.
+    // A new mode holding the same target and leader (one more reference each) with the same point, state and run; null when the allocation fails.
     PlayerMode* Clone() override;
-    int Evaluate(AIBrain* brain) override;   // 4: 10
-    int GetType() override;                  // 8: 6
+    int Evaluate(AIBrain* brain) override;
+    int GetType() override;
 
     // State 0: follow the leader (unless the leader is moving itself) and fight
     // state 1: wait for the commanded action to end; state 2: walk to `point` (staying
@@ -502,13 +455,9 @@ public:
     // The same in state 2 (keep fighting on the way); when the unit would leave the party
     // it only turns towards the point.
     void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
-    // Attack `object`.
     void CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown);
-    // Use something on `object` (AIBrain::UseOn).
     void CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b);
-    // Cast spell `spell` at `object`.
     void CommandCast(AIBrain* brain, int spell, CMapObject* object, int unused);
-    // Cast spell `spell` at `point`.
     void CommandCastAt(AIBrain* brain, int spell, const Vector3* point, int unused);
 
     // Follow `leader` (counted): none when it is the unit itself. When the chain
@@ -538,11 +487,11 @@ public:
     // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
-    AIRefTo<CMapObject> target;     // +0x08
-    AIRefTo<CUnit> leader;          // +0x0C
-    Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
-    int state;                      // +0x1C
-    std::uint8_t run;               // +0x20
+    AIRefTo<CMapObject> target;
+    AIRefTo<CUnit> leader;
+    Vector3 point;                  // (z: 1.0 while walking there in state 2)
+    int state;
+    std::uint8_t run;
     std::uint8_t unused_21[3];
 
 protected:
@@ -551,16 +500,15 @@ protected:
 };
 static_assert(sizeof(PlayerMode) == 0x24);
 
-// Tamed (type 8): the Player mode a taming installs (combat_taming.cpp), with its
-// own slots 0, 2, 3, 4 and 8 (unit_ai_player_mode_slots.cpp).
+// Tamed (type 8): the Player mode a taming installs (combat_taming.cpp).
 class TamedMode : public PlayerMode {
 public:
     TamedMode() {}
-    ~TamedMode() override;   // The player's body
-    int OnShutdown() override;               // 2: as the player's
-    TamedMode* Clone() override;             // 3: as the player's
-    int Evaluate(AIBrain* brain) override;   // 4: 100000000
-    int GetType() override;                  // 8: 8
+    ~TamedMode() override;
+    int OnShutdown() override;
+    TamedMode* Clone() override;
+    int Evaluate(AIBrain* brain) override;   // always 100000000
+    int GetType() override;
 };
 
 
@@ -572,31 +520,28 @@ class CSpell;
 namespace console {
 class GameOStream;
 }
-// The stream the AI's perception messages go to (the AI stream; unit_ai.cpp).
+// The stream the AI's perception messages go to.
 console::GameOStream* AiLog();
 
 // Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.
 float* __fastcall CopyPoint2(float* out, const float* point);
 
-// A call the perception memory heard (0x18 bytes; CallAllies sends kind 0x1A).
+// A call the perception memory heard (CallAllies sends kind 0x1A).
 struct AICallRecord {
     AICallRecord* DeleteScalar(unsigned flags);
-    Vector3 point;                  // +0x00
-    int kind;                       // +0x0C
-    int hostileMask;                    // +0x10 sides the hearer turns hostile to (0 for a plain call)
-    mfc::CString text;              // +0x14
+    Vector3 point;
+    int kind;
+    int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
+    mfc::CString text;
 
-    // The element destructor: frees the text (CString::~CString).
     void Destruct();
-    // The element assignment of the array's Add (unit_ai_brain.cpp): the point, kind and +0x10,
-    // then the text (CString::operator=).
+    // The element assignment of the array's Add: the point, kind and hostileMask, then the text.
     AICallRecord& operator=(const AICallRecord& other);
 };
 static_assert(sizeof(AICallRecord) == 0x18 && offsetof(AICallRecord, text) == 0x14);
 
-// The calls' ConstructElements (zeroed, each text the empty CString) and
-// DestructElements (each); unit_ai_brain.cpp.
+// The calls' ConstructElements (zeroed, each text empty) and DestructElements (each).
 struct AICallElements {
     static void Construct(AICallRecord* calls, int count);
     static void Destruct(AICallRecord* calls, int count);
@@ -604,18 +549,15 @@ struct AICallElements {
 
 struct AIMemory;
 
-// CArray<AICallRecord> (the perception memory's +0xA8, brain + 0x178).
-// SetSize Add are registered on the template (unit_ai_brain.cpp).
+// CArray<AICallRecord> (the perception memory's calls).
 struct AIHeardCalls : mfc::CArray<AICallRecord, AICallElements> {
     // Counts every call
-    // down; one that runs out is dropped after it is heard: with a hostility mask (+0x10) the
+    // down; one that runs out is dropped after it is heard: with a hostility mask the
     // unit's controller takes the mask (logged "hear delayed sound"), else, when the memory's
     // noticed level is below 900, the call's point becomes the noticed point (900, kind -3; logged
     // when the level rose by more than 100 or the point lies more than sqrt(10) away).
     void Update(CUnit* unit, AIMemory* memory);
-    // (unit_ai_hearing.cpp; the memory's HearCall AIViewer::Noise
-    // inline it). The calls without a mask whose kind is `kind` or above are dropped, then {point,
-    // kind, 0, text} is appended.
+    // The calls without a mask whose kind is `kind` or above are dropped, then {point, kind, 0, text} is appended.
     void Hear(const Vector3* point, int kind, const char* text);
     // Appends {point not set, kind, mask, text}: when it
     // runs out (Update) the unit's controller takes the hostility mask.
@@ -624,31 +566,27 @@ struct AIHeardCalls : mfc::CArray<AICallRecord, AICallElements> {
     void RemoveClaims();
 };
 
-// A unit's alarm / assembly record: the map spec's behaviour record (0x4C bytes, map_spec.h; read
-// and written). CArray at brain + 0x90: elements built (zeroed,
-// then each) and destroyed; its SetSize is registered on the template.
+// A unit's alarm / assembly record: the map spec's behaviour record (read and written).
 using AIAlarmRecord = mapspec::Behaviour;
 struct AIAlarmRecordElements {
     static void Construct(AIAlarmRecord* records, int count);
     static void Destruct(AIAlarmRecord* records, int count);
 };
 using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
-// An object the memory reported (8 bytes; the object is a counted reference).
+// An object the memory reported (the object is a counted reference).
 struct AIReport {
     AIRefTo<CMapObject> object;
     int what;
 };
 static_assert(sizeof(AIReport) == 8);
 
-// The reports' ConstructElements (zeroed, each object null) and DestructElements
-// (each: the object released, null); unit_ai_brain.cpp.
+// The reports' ConstructElements (zeroed, each object null) and DestructElements (each object released).
 struct AIReportElements {
     static void __stdcall Construct(AIReport* reports, int count);
     static void Destruct(AIReport* reports, int count);
 };
 
-// CArray<AIReport> (the perception memory's +0x94, brain + 0x164).
-// SetSize and RemoveAt are registered on the template.
+// CArray<AIReport> (the perception memory's reports).
 struct AIReports : mfc::CArray<AIReport, AIReportElements> {
     // Keeps the larger `what` of a listed object, else appends it (with a reference).
     void Report(CMapObject* object, int what);
@@ -656,7 +594,7 @@ struct AIReports : mfc::CArray<AIReport, AIReportElements> {
     bool Contains(CEngineObject* object) const;
 };
 
-// One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
+// One way the unit can attack or help: a weapon (part -1) or a spell.
 struct AIAttackOption {
     // How much the option counts: kind 0 its largest damage,
     // 1..3 that * 1.3, 4..6 1, 7 10, other kinds 0.
@@ -666,26 +604,24 @@ struct AIAttackOption {
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 
-    int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
-    int part;                       // +0x04 -1 a weapon, else the spell
-    float range;                    // +0x08
-    int maxCount;                   // +0x0C cap on the group-size bonus
-    float radius;                   // +0x10 area of kinds 2 and 3
-    int effect;                     // +0x14 effect type (kinds 4..6), strength (kind 3)
-    std::uint16_t damage[8];        // +0x18 measured against the target's protection
+    int kind;                       // 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
+    int part;                       // -1 a weapon, else the spell
+    float range;
+    int maxCount;                   // cap on the group-size bonus
+    float radius;                   // area of kinds 2 and 3
+    int effect;                     // effect type (kinds 4..6), strength (kind 3)
+    std::uint16_t damage[8];        // measured against the target's protection
 };
 static_assert(sizeof(AIAttackOption) == 0x28);
 
-// CArray<AIAttackOption> (0x14 bytes; zero-filled elements). Its SetSize is registered on
-// the template (unit_ai_options.cpp).
+// CArray<AIAttackOption>; elements are zero-filled.
 using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
 // The count, the array sized to it, then each option.
 void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
 
-// The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
-// (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).
+// The brain's attention: the unit's attack options and choosing a target (unit_ai_targets.cpp).
 struct AIAttention {
     // The best {part, object} to attack or help into `choice`: the
     // current attack scored first, then (without `alliesOnly`) every weapon against every
@@ -741,15 +677,13 @@ struct AIAttention {
     // 1..7, 8 for none; 0 (EAX = the null pointer) without a spell.
     int SpellKind(const CSpell* spell);
 
-    AIAttackOptions weapons;        // +0x00
-    AIAttackOptions spells;         // +0x14
-    float healWeight;               // +0x28 the largest Weight of the weapons (Build); kind 7 scores with it
+    AIAttackOptions weapons;
+    AIAttackOptions spells;
+    float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
 };
 static_assert(sizeof(AIAttention) == 0x2C);
 
-// The AI's eye (the world server's +0x2838, only the leading part): the unit being
-// updated's position, eye and facing (unit_ai_sight.cpp; __thiscall on the viewer, the brain's
-// perception memory passed).
+// The AI's eye (the world server's, only the leading part): the unit being updated's position, eye and facing.
 struct AIViewer {
     // The viewer moves to the owner's unit, the
     // nearby units are listed again when due (Refresh), units in the visible list it no longer
@@ -778,13 +712,13 @@ struct AIViewer {
     // (no presence record; the controller keeps the result at +0x918).
     AIEventPresence* StepNoise(const Vector3* position, CUnitServer* source);
 
-    CAIMap* map;                    // +0x00
-    int tick;                       // +0x04 the world's event table: its tick (AIEventTable::Advance)
-    Vector3 eye;                    // +0x08
-    Vector3 facing;                 // +0x14
-    int cellX;                      // +0x20 AI map cell of the eye
-    int cellY;                      // +0x24
-    std::uint8_t ready;             // +0x28 Prepare has run
+    CAIMap* map;
+    int tick;                       // the world's event table: its tick (AIEventTable::Advance)
+    Vector3 eye;
+    Vector3 facing;
+    int cellX;                      // AI map cell of the eye
+    int cellY;
+    std::uint8_t ready;             // Prepare has run
     std::uint8_t unused_29[3];
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
@@ -795,19 +729,19 @@ static_assert(offsetof(AIViewer, facing) == 0x14);
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
 
-// An AI event (0x30 bytes): filed in its map cell's list for its side and in the time wheel's slot
+// An AI event: filed in its map cell's list for its side and in the time wheel's slot
 // of the tick it expires. Records come from the pool CList (AIEventPool) and go back to
 // the free list (chained through `next`).
 struct AIEvent {
-    float x, y;                     // +0x00 where; its cell is (x / 8, y / 8) rounded
-    std::uint32_t origin[2];            // +0x08 x and y again (sets them; saved)
-    int expiry;                     // +0x10 the tick it goes; wheel slot (expiry - 1) & 0x3FF
-    std::uint32_t payload[2];           // +0x14 saved and loaded; left to the creator's caller
-    int sourceId;                   // +0x1C the unit that made it
-    int side;                       // +0x20 its low 4 bits: the side list it is filed in
-    AIEvent* next;                  // +0x24 the cell's list for the side; the free list's link
-    AIEvent* prev;                  // +0x28 null for the cell's first
-    AIEvent* nextInSlot;            // +0x2C the wheel slot's list
+    float x, y;                     // where; its cell is (x / 8, y / 8) rounded
+    std::uint32_t origin[2];            // x and y again (sets them; saved)
+    int expiry;                     // the tick it goes; wheel slot (expiry - 1) & 0x3FF
+    std::uint32_t payload[2];           // saved and loaded; left to the creator's caller
+    int sourceId;                   // the unit that made it
+    int side;                       // its low 4 bits: the side list it is filed in
+    AIEvent* next;                  // the cell's list for the side; the free list's link
+    AIEvent* prev;                  // null for the cell's first
+    AIEvent* nextInSlot;            // the wheel slot's list
 };
 static_assert(sizeof(AIEvent) == 0x30);
 // CList<AIEvent>'s destructor (only the exit function calls it, on the pool): its vtable back, RemoveAll.
@@ -818,20 +752,18 @@ struct AIEventCell {
     AIEvent* bySide[16];
 };
 
-class CStream;       // core_streams.h
+class CStream;
 
-// The world's AI events (CWorldServer + 0x2838; its viewer part makes the noises): a time wheel of
-// 1024 ticks x 16 sides and a grid of 8 x 8 cells (rows of width cells). Its tick is the viewer's
-// `tick` (Advance sets it).
-// The free event records, chained through AIEvent::next (ai_grids.cpp; the pool is ai_events.cpp's).
+// The free event records, chained through AIEvent::next.
 extern AIEvent* g_freeEvents;
 
+// The world's AI events (its viewer part makes the noises): a time wheel of 1024 ticks x 16 sides and a grid of 8 x 8
+// cells (rows of width cells). Its tick is the viewer's `tick` (Advance sets it).
 struct AIEventTable : AIViewer {
     // The wheel moves to `tick`: every event of that tick's 16 slots leaves its cell list and goes to the
     // free list; the slots empty. A first event whose cell is outside the grid faults (a null cell is read).
     void Advance(int tick);
-    // Every event made by `controller`'s unit
-    // in the wheel column of its side (unit side & 15) is dropped as Advance drops them.
+    // Drops every event made by `controller`'s unit in the wheel column of its side (unit side & 15), as Advance drops them.
     void ForgetUnit(CUnitServer* controller);
     // (the save). Load: while a byte 1 precedes, an event (its fields
     // as Save writes them) filed in its cell and wheel slot, or freed when outside the grid. Save:
@@ -856,11 +788,11 @@ struct AIEventTable : AIViewer {
     // Takes `event` out of column `side` of its cell list and puts it on the free list.
     void Free(AIEvent* event, int side);
 
-    AIEvent* slots[0x400][16];      // +0x02C by tick & 0x3FF, then side
-    AIEventCell* cells;             // +0x1002C the grid's block
-    AIEventCell** rows;             // +0x10030 the grid rows (each `width` cells)
-    int width;                      // +0x10034
-    int height;                     // +0x10038
+    AIEvent* slots[0x400][16];      // by tick & 0x3FF, then side
+    AIEventCell* cells;             // the grid's block
+    AIEventCell** rows;             // the grid rows (each `width` cells)
+    int width;
+    int height;
 };
 static_assert(offsetof(AIEventTable, slots) == 0x2C);
 static_assert(offsetof(AIEventTable, rows) == 0x10030);
@@ -869,8 +801,7 @@ static_assert(sizeof(AIEventTable) == 0x1003C);
 // The squared 2D distance, unrounded.
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 
-// The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard
-// (unit_ai_memory.cpp, unit_ai_brain.cpp, unit_ai_hearing.cpp, unit_ai_save.cpp).
+// The brain's perception memory: what the unit sees, has seen and heard.
 struct AIMemory {
     // Empties the four object lists, the noticed point, the report
     // and call arrays.
@@ -893,7 +824,6 @@ struct AIMemory {
     // Drops `object` from the four lists and the reports
     // (holding a reference meanwhile).
     void Forget(CEngineObject* object);
-    // The calls hear / add a claim.
     void HearCall(const Vector3* point, int kind, const char* text);
     void AddClaim(std::uint32_t mask, int kind, const char* text);
     // `out` emptied, then the visible units hostile to the
@@ -923,20 +853,20 @@ struct AIMemory {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    SpiralCache spareCells;         // +0x00 set empty by the brain's constructor; not read
-    SpiralCache sightCells;         // +0x08 the cells around the unit it looks for units in
-    float noticedX;                 // +0x10
-    float noticedY;                 // +0x14
-    int noticedLevel;               // +0x18
-    int noticedKind;                // +0x1C
-    int nearbyCountdown;            // +0x20 updates until the nearby units are listed again
-    AIObjectList nearby;            // +0x24 the units in the sight cells around (counted references)
-    AIObjectList visible;           // +0x40 units in sight
-    AIObjectList seenCorpses;       // +0x5C corpses seen (counted references)
-    AIObjectList corpses;           // +0x78 allied corpses seen (counted references)
-    AIReports reports;          // +0x94 objects reported to the alarm code
-    AIHeardCalls calls;              // +0xA8 calls heard
-    std::uint8_t seesEnemy;         // +0xBC
+    SpiralCache spareCells;         // set empty by the brain's constructor; not read
+    SpiralCache sightCells;         // the cells around the unit it looks for units in
+    float noticedX;
+    float noticedY;
+    int noticedLevel;
+    int noticedKind;
+    int nearbyCountdown;            // updates until the nearby units are listed again
+    AIObjectList nearby;            // the units in the sight cells around (counted references)
+    AIObjectList visible;           // units in sight
+    AIObjectList seenCorpses;       // corpses seen (counted references)
+    AIObjectList corpses;           // allied corpses seen (counted references)
+    AIReports reports;          // objects reported to the alarm code
+    AIHeardCalls calls;              // calls heard
+    std::uint8_t seesEnemy;
     std::uint8_t unused_BD[3];
 };
 static_assert(offsetof(AIMemory, noticedX) == 0x10);
@@ -946,7 +876,7 @@ static_assert(offsetof(AIMemory, calls) == 0xA8);
 static_assert(offsetof(AIMemory, seesEnemy) == 0xBC);
 static_assert(sizeof(AIMemory) == 0xC0);
 
-// The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
+// The brain, embedded in the unit controller.
 struct AIBrain {
     // Actions (`action`).
     enum {
@@ -971,23 +901,20 @@ struct AIBrain {
     // The Patrol / Player mode, or null.
     PatrolMode* FindPatrolMode();
     PlayerMode* FindPlayerMode();   // (the Tamed mode is a Player mode too)
-    // The Player mode's target (+0x0C of the mode), or null.
+    // The Player mode's leader, or null.
     CUnit* PlayerModeLeader();
     // The same, or the action target while following (action 6).
     CMapObject* LeaderOrFollowed();
     // The Aggression mode's enemy while that mode is in charge, else null.
     CMapObject* AggressionEnemy();
-    // Is `point` within `radius` of the segment from the previous to the current position
-    // (both 2D)? One path sets only AL; callers test AL.
+    // Is `point` within `radius` of the segment from the previous to the current position (both 2D)?
     bool IsNearPath(const Vector3* point, float radius);
     // Sets the owner; on a change both remembered positions become "unset" (-1313, 0, 0).
-    // Returns a leftover register value.
     std::uint32_t SetOwner(CUnitServer* newOwner);
     // An object is being deleted: tell every mode, drop it as target or seen object and
     // from the perception memory.
     void OnObjectDeleted(CEngineObject* object);
 
-    // Mode list and state (unit_ai_brain.cpp).
     // Adds `mode` (a counted reference, RefPtr::Share) at the end of the list after
     // removing the first mode of the same type, or the first exclusive one when `mode` is exclusive
     // (the mode in charge loses its reference when it is the one removed).
@@ -1006,9 +933,7 @@ struct AIBrain {
     // The constructor (CUnitServer's, on +0x980): empty containers with their vtables, the move order
     // cleared, both sight caches {0, -1}, then Init. Returns this.
     AIBrain* Construct();
-    // Reached only from the unwind of the controller's constructor and
-    // destructor. Init, the memory destroyed, then the attention arrays, alarm
-    // records, the mode in charge, the mode list, target / seen and the looks.
+    // Init, the memory destroyed, then the attention arrays, alarm records, the mode in charge, the mode list, target / seen and the looks.
     void Destruct();
     // The brain from / to a save: the action, its point, looks and time, target and seen object, the scalars,
     // the modes (count, the index of the one in charge, then each mode's type and its own data), the
@@ -1017,9 +942,7 @@ struct AIBrain {
     // radius equal to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
     void Load(CStream* stream);
     void Save(CStream* stream);
-    // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard
-    // (radius, wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and
-    // Fear(0); the target is released and the action dropped..
+    // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard (radius, wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and Fear(0); the target is released and the action dropped.
     void StandardGuard(const Vector3* point, float radius);
     void StandardSentry(const Vector3* point);
     // New modes handed to AddMode (operator new; a failed allocation adds null).
@@ -1038,8 +961,7 @@ struct AIBrain {
     // countdown at least 1, not alerted), no action or target, the attack options rebuilt, and with flag bit
     // 3 the unit joins the world's update map.
     void ApplyBehaviour(const AIAlarmRecord* record, int slot);
-    // The records copied into `alarmRecords`, then the
-    // first applied.
+    // The records copied into `alarmRecords`, then the first applied.
     void SetAlarmRecords(const AIAlarmRecord* records, int count);
     // The world alarm `slot` was raised: the
     // behaviour record of that slot is applied (the first always, the others only with their
@@ -1093,34 +1015,34 @@ struct AIBrain {
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
     // filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b); // on +0xA4
-    AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);                                     // on the memory's corpses
+    void ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b);
+    AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);
 
-    CUnitServer* owner;             // +0x000
-    int action;                     // +0x004
-    AIMoveOrder move;               // +0x008 the action point, and what to look at after arriving (+0x014)
-    int actionTime;                 // +0x028 game time the current look ends (or kNoTime / kLookStarted)
-    AIRefTo<CMapObject> target;     // +0x02C
-    AIRefTo<CMapObject> seen;       // +0x030
-    std::uint8_t alerted;           // +0x034
-    std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
-    std::int8_t alarmSlot;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
-    std::uint8_t alwaysUpdated;         // +0x037 the world keeps the unit in its update map (the record's flag bit 3)
-    float callRadius;               // +0x038 allies within it hear a call for help (10.0 at Init)
-    int alertMode;                  // +0x03C
-    int alarmCountdown;             // +0x040
-    float nearX;               // +0x044 near point (Guard); 100000 when cleared
-    float nearY;                        // +0x048 near point y (SetPositions); 100000 when cleared
-    float decay;                    // +0x04C alertness decay factor
-    Vector3 previousPosition;       // +0x050
-    Vector3 position;               // +0x05C
-    int standCooldown;              // +0x068 FindStandPoint fails while above 0 (one off per call)
-    int followTimer;                // +0x06C UpdateFollow acts once it has counted past 8
-    mfc::CTypedPtrList<AIMode> modes;   // +0x070 (elements are counted references)
-    AIMode* current;                // +0x08C
-    AIAlarmRecordArray alarmRecords;    // +0x090
-    AIAttention attention;          // +0x0A4
-    AIMemory memory;                // +0x0D0 perception memory
+    CUnitServer* owner;
+    int action;
+    AIMoveOrder move;               // the action point, and what to look at after arriving
+    int actionTime;                 // game time the current look ends (or kNoTime / kLookStarted)
+    AIRefTo<CMapObject> target;
+    AIRefTo<CMapObject> seen;
+    std::uint8_t alerted;
+    std::int8_t alarm;              // alarm kind raised when the countdown ends
+    std::int8_t alarmSlot;         // the world alarm slot of the applied record (ApplyBehaviour)
+    std::uint8_t alwaysUpdated;         // the world keeps the unit in its update map (the record's flag bit 3)
+    float callRadius;               // allies within it hear a call for help (10.0 at Init)
+    int alertMode;
+    int alarmCountdown;
+    float nearX;               // near point (Guard); 100000 when cleared
+    float nearY;                        // near point y (SetPositions); 100000 when cleared
+    float decay;                    // alertness decay factor
+    Vector3 previousPosition;
+    Vector3 position;
+    int standCooldown;              // FindStandPoint fails while above 0 (one off per call)
+    int followTimer;                // UpdateFollow acts once it has counted past 8
+    mfc::CTypedPtrList<AIMode> modes;   // (elements are counted references)
+    AIMode* current;
+    AIAlarmRecordArray alarmRecords;
+    AIAttention attention;
+    AIMemory memory;                // perception memory
 };
 static_assert(offsetof(AIBrain, move) == 0x08);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
@@ -1135,5 +1057,3 @@ static_assert(offsetof(AIBrain, memory) == 0xD0);
 static_assert(sizeof(AIBrain) == 0x190);
 static_assert(offsetof(AIBrain, attention) == 0xA4);
 
-// The script-made modes' constructors and slots are members of the mode classes
-// above (script_unit_modes.cpp).

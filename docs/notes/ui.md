@@ -658,3 +658,121 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   `CUiWindow::VirtualBuild`. The save window's entries (+0x164), the HUD portraits' slots (+0x158) and the quick items'
   entries (+0x158) are typed containers (`stlp::vector<SaveEntry>`, `stlp::vector<HudPortraitSlot>`,
   `mfc::CArray<Entry>`), called with their element policies.
+
+## CMpHeroScreen::OnLButtonDown
+
+ui_hero_screen_click.cpp (input click). Nothing while a hero is being renamed; after the base handler, by
+mode: the hero list (9: back to the main menu, continue, the rotate arrows, new hero, rename, delete (a
+question), the hero's inventory (the camp screen with fromHeroScreen_), list rows), the new hero (10: back,
+create, the arrows, defaults, voice rows) and its statistics page (11: back, next, take the equipment back).
+
+## CMpHeroScreen::OnKeyDown
+
+ui_hero_screen_click.cpp (input key). After the container's handler, unless a child used the key: Enter
+ends a renaming (FinishRename), else continues (mode 9), creates the hero (10) or goes on to the next page
+(11); Esc ends a renaming without keeping it (the list redrawn), else goes back to the main menu (9, as
+region 0), to the hero list (10) or to the new hero (11, as region 0); PgUp / PgDn / Up / Down move the hero
+selection by 10 / 1 (mode 9) or the voice by 11 / 1 (mode 10, the voice played). A key used is marked (other
+modes leave the paging keys unused).
+
+## CMpHeroScreen::MakePreview
+
+ui_hero_screen.cpp. The preview cleared; the local player (given a "Hero" of "Human Hero" when it has no
+record) hands its first record to the client world; the preview becomes the client unit with that record's
+id, its prototype index stored; when there is one: skill animation 0x21 (if any) set to start at a random
+frame (timeGetTime at 15 frames a second minus random % 51), the figure shows no weapon, refreshed, its
+animation restarted at the current frame - 1, the record's statistics set and the controller's hit virtual
+called.
+
+## CMpHeroScreen::ChooseFigure
+
+ui_hero_figure.cpp. The new hero takes figure (unit prototype) `prototype`: the local player's first record
+handed to the client world and its strength, dexterity and intelligence and height kept (25, 25, 25, 0.7
+without one); the party cleared and given a "Hero" of that prototype with its starting equipment; the
+attributes (base and current) reset to 25 and the height to 0.7 on the hero list (mode 9), else the kept
+ones; each figure strip selects the prototype when it lists it (-1 otherwise); the equipment panels show the
+first weapon, quick item and spell; the preview, the statistics panel's and the trade panel's hero rebuilt;
+text_ = prototype; the voice list of the strip that lists it (voiceLists_[1] for names_, else [0]) from row
+0, its first file the hero's voice (text 6); the voice scroll bar's range and position 0; on the new hero
+page the voices drawn.
+
+## CMpHeroScreen::AddNewHero
+
+ui_hero_screen_click.cpp. Region 1 / Enter of the statistics page: the new hero keeps only the chosen
+weapon, quick item and spell container (the others removed from its lists; the shown weapon 0, or -1
+without one), and a spell container whose spell the hero cannot use (HeroCanUseSpell) goes back to the
+local player's items; a new hero record is appended (the vector's own growth when full) and selected, its
+file named "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and saved;
+the list's scroll range, the list drawn, mode 9.
+
+## CMpHeroScreen::SetModeVanilla
+
+ui_hero_screen_mode.cpp (Rebirth-patched, reproducing WideScreen, so hooked in both launches). The screen
+laid out for `mode`. First everything off: the menu model's parts, the nine child windows, every sprite and
+surface, the regions after the ninth removed and the others' tips emptied. 9, the hero list: the model's
+"but03" and "button03_multiplayer", the list's scroll bar, all sprites but 7-9, the four frame quarters
+(sprites 3-6), the buttons' regions and tips, surfaces 0 and 1, the name edit off, the selection frame
+(sprite 2), ten list rows as regions and the selected hero shown. 10, the new hero: the voices' scroll bar,
+sprites 3-9, the quarters, the bars at 300, the statistics panel and both figure strips, the regions and
+tips, the name edit on and editing, surface 2, the selection frame, eleven voice rows and the voices drawn.
+11, its statistics: sprites 7-9, the bars at 400, the equipment, spell, trade and statistics panels, two
+regions and three tips, surface 2, the name edit off, the trade panel's hero 0. Last, for every mode: the
+description panel emptied, the statistics panel's page `mode`, mode_. With Rebirth's WideScreen the curtains
+(sprites 19 and 20, when there are 21) are then shown in modes 10 and 11 and hidden in 9.
+
+## CMpHeroScreen::CreateScreen
+
+ui_hero_screen_create.cpp (Create; Rebirth-patched, reproducing WideScreen; hooked in the vanilla launch
+only, as EI_Plugin.asi patches it too in a Rebirth launch). The game's resources taken for a network game;
+the menu model with its multiplayer button; nine regions; the item screen's base; the sprites (0, 1 the
+buttons, 2 the selection frame, 3-6 the quarters "campm1".."campm4" around the figure, 7-9 the new hero's
+buttons, 10-12 frames, 13, 14 backgrounds, 15-18 the commands' buttons); the description, statistics,
+equipment, quick item and trade panels; the list's scroll bar; the figures a new hero can take: every
+creature record whose unit prototype's figure model is "unhuma" (defaults_, voiceLists_[0]) or "unhufe"
+(names_, voiceLists_[1]), a voice "<lmp_male_voice / lmp_female_voice> <n>" only when the record's flag is
+set; both name lists sorted, the women's then reversed; the two figure strips; the rename and name edit
+windows; the voices' scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts,
+the voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"; the list's scroll
+range, the list drawn, the first hero selected (-1 without one) and mode 9; with Rebirth's WideScreen then
+the two curtains over the screen's margins, hidden (widescreen::AddCurtains; sprites 19 and 20).
+
+## CMpConnectScreen::CreateScreen
+
+Create (Rebirth-patched; this is the vanilla body, hooked in the vanilla launch only). The screen over
+800 x 600: the "saveload" and "scrollbar" textures, the stone menu model ("unmoco2" with
+"MainMenu00labels", parts "but03" and "button03_multiplayer") at (400, 350, 8) turned about x by pi / 2 *
+1.2; the regions (above) with tips 0x9E98, 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the
+two buttons, 2 the selection bar (plain 0xC8A06800), 3 the sort arrow (the scroll bar's texture, hidden), 4
+/ 5 the unlisted and password switches, 6-9 the game type tabs (their names "lmp_allod_name_%d" into
+allodNames_, the first selected), 10 / 11 two bars, three frames and three dark backgrounds; fifteen row
+regions; surface 0 (100, 100)-(700, 500); the scroll bar, the player slider (position 5, maxPlayers_ 6) and
+the name edit (the first hero's name to its '|', at most 10 characters, trimmed; not focused) as children;
+the 22 "lmp_connection_%d" texts; the client started; the queries read from config\addrbook.ini (a chunk
+archive, chunk 1; an extra word of 0 becomes a random one xor the tick count) and given to the client when
+the file opens; nothing selected, the list rebuilt and drawn, the help topic, and surface 1 with text 8
+("connecting").
+
+## CMpConnectScreen::DrawListVanilla
+
+ui_connect_list.cpp (Rebirth-patched: WideScreen and ExtendedServerName reproduced behind their flags; the
+screen's other members call it through its address). The list drawn on surface 0. With row 0 (the new game)
+selected its controls show: the player slider and the name edit enabled (and editing), sprites 4 and 5 and
+their regions' tips (0x9EA4 / 0x9EA5, set once: newGameTips_); otherwise they are off and the tips empty.
+Texts 10 and 11 by the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an
+odd key, at its column while a key is set) and a line under the titles (a pen of the text colour); 15 rows
+from scrollTop_ in the colour of the entry's state (g_connectTextColour: 1 0x31B3FF, 2 0x31E3EE, else
+0xA7D7E4): the new game row "<text 7> <the name typed>", the others name, players "n/m", the game type's
+allod name ("?" for 4) and the ping; the selection frame (sprite 2) on the selected row. Then the selected
+entry's details at the right in 0xA7D7E4: for the new game the game type tabs (sprites 6-9) with their
+names, texts 0, 2 (with maxPlayers_), 3, 16 and 17; for a server its name, players, game type, the map's
+title wrapped over up to three lines, address, ping and, with a password, text 21.
+
+## CExchangeScreen::CreateScreen
+
+ui_exchange.cpp (Create). Builds the window: texture "campinfo", regions 0 accept, 1 take back, 2 leave
+(tips 0xA028, 0xA029, 0xA02B), their four button sprites (the third hidden, the leave button shaded 0.5),
+the item screens' base with the icon window's bars at y 300, a scratch party (made), our offer (the
+client's, cleared) and the partner's, then the children: the description panel at (600, 100), the local
+party's item strip (forwarding, action 1, items), the players' figure strip (top, no arrow tips), the trade
+grid over both offers (mode 5) and the money field (0..200 x 0x15E..0x16E, empty), and four 200-wide
+surfaces.

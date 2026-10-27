@@ -28,12 +28,12 @@
 
 namespace {
 
-float Half() { return 0.5f /*0073B86C*/; }            // 0.5
+float Half() { return 0.5f /*0073B86C*/; }
 float Texel() { return 0.00390625f /*0073EEB8*/; }           // 1 / 256
 float Seventh() { return 0.14285715f /*0073CDCC*/; }         // 1 / 7
 float Pi() { return 3.1415927f /*007423F8*/; }
-float Thin() { return 0.2f /*0073BAD4*/; }            // 0.2
-float Fat() { return 0.8f /*0073CCA8*/; }             // 0.8
+float Thin() { return 0.2f /*0073BAD4*/; }
+float Fat() { return 0.8f /*0073CCA8*/; }
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {

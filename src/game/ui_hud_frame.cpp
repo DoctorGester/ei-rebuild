@@ -40,17 +40,17 @@ float Pi() { return 3.1415927f /*007423F8*/; }
 float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
 float FastHand() { return 0.5833333f /*00742B14*/; }   // at fast speed
 float NormalHand() { return 0.75f /*0073C524*/; }   // at normal speed
-float Half() { return 0.5f /*0073B86C*/; }   // 0.5
+float Half() { return 0.5f /*0073B86C*/; }
 float DialStep() { return 0.16666667f /*0073CE40*/; }   // dial notches, in pi
 float FaceStep() { return 0.083333336f /*00741438*/; }   // one hour of the face, in pi
 float FaceOffset() { return 15.0f /*0073C518*/; }   // 15 hours
-float HandRadius() { return 73.0f /*00742B10*/; }   // 73
-float DialRadius() { return 30.0f /*0073BAF0*/; }   // 30
+float HandRadius() { return 73.0f /*00742B10*/; }
+float DialRadius() { return 30.0f /*0073BAF0*/; }
 float CentreX() { return widescreen::g_layoutWidth; }   // the clock centre (800; Rebirth's widescreen width)
-float CentreY() { return 600.0f /*00742B0C*/; }   // 600
-float BlinkBase() { return 1.4f /*0073CDF8*/; }   // 1.4
-float PulseAmplitude() { return 0.3f /*0073C54C*/; }   // 0.3
-float PulseMiddle() { return 0.7f /*0073C538*/; }   // 0.7
+float CentreY() { return 600.0f /*00742B0C*/; }
+float BlinkBase() { return 1.4f /*0073CDF8*/; }
+float PulseAmplitude() { return 0.3f /*0073C54C*/; }
+float PulseMiddle() { return 0.7f /*0073C538*/; }
 float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
 bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 

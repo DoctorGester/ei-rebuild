@@ -76,9 +76,9 @@ constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the game reads them.
 float Pi() { return 3.1415927f /*007423F8*/; }
-float Sixteenth() { return 0.0625f /*0073D040*/; }      // 0.0625
-float MarkerRadius() { return 73.0f /*00742B10*/; }   // 73
-float MarkerCentreY() { return 600.0f /*00742B0C*/; }  // 600
+float Sixteenth() { return 0.0625f /*0073D040*/; }
+float MarkerRadius() { return 73.0f /*00742B10*/; }
+float MarkerCentreY() { return 600.0f /*00742B0C*/; }
 constexpr float kMarkerDepth = 8.0f;
 
 // The map's centre in the layout, and the camera flag a click on the map clears.

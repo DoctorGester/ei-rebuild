@@ -1,7 +1,7 @@
 // The save / load window's saving, its entry list and the selected save's picture. See ui.h
 // (CSaveLoadWindow) and docs/notes/renderer.md (section 11). The window shows two 256x256 5:6:5 textures (a
 // CTexture with its holder): objects_[1], into which ShowPicture reads the selected save's shot.sav (256x192
-// pixels, 0x18000 bytes), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
+// pixels), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
 // screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
 // the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
 // Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
@@ -118,7 +118,7 @@ private:
     SurfacePixels pixels_;
 };
 
-// The escape menu's 256x192 5:6:5 copy of the screen (interface +0x5C), or null.
+// The escape menu's 256x192 5:6:5 copy of the screen, or null.
 const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 } // namespace

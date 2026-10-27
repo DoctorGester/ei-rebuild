@@ -324,7 +324,7 @@ void CHeroEquipPanel::Build(bool body) {
         frame->visible_ = 0;
     }
     // The slots' frames: four on the left half, four on the right, each half with its strip.
-    float cell = 100.0f /*0073BAB0*/;   // 100
+    float cell = 100.0f /*0073BAB0*/;
     for (int i = 0; i < 4; ++i)
         Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);

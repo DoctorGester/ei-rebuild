@@ -77,8 +77,8 @@ float FrameOff() { return 0.0f /*0073B858*/; }
 float FrameOn() { return (-0.08984375f /*00741DA0*/); }
 float RefreshPeriod() { return 0.5f /*0073B86C*/; }   // 0.5 s
 float MillisecondsPerSecond() { return 1000.0f /*0073C34C*/; }
-float BarWidth() { return 355.0f /*00741E84*/; }        // 355
-float BarLeft() { return 225.0f /*00741E80*/; }         // 225
+float BarWidth() { return 355.0f /*00741E84*/; }
+float BarLeft() { return 225.0f /*00741E80*/; }
 constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 
 constexpr int kRegionConnect = 0, kRegionBack = 1, kRegionMaster = 2, kRegionAddress = 3, kRegionUnlisted = 4,

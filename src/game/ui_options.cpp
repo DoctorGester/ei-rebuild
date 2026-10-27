@@ -54,7 +54,7 @@ constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
 // Float constants read from the exe's memory (rule 9), all single precision.
-float ConstOne() { return 1.0f /*0073B84C*/; }        // 1.0
+float ConstOne() { return 1.0f /*0073B84C*/; }
 float ConstFromStep() { return 50.0f /*0074023C*/; }   // 50.0: value = setting * 50
 float ConstToStep() { return 0.02f /*00742B80*/; }     // 0.02: setting = value * 0.02
 float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // 4.0: setting 20's value

@@ -11,17 +11,17 @@
 #include <cstddef>
 #include <cstdint>
 
-// The picked units' input side (0x20 bytes; one of screen 7's extra inputs). The other virtuals are the base
+// The picked units' input side (one of screen 7's extra inputs). The other virtuals are the base
 // input side's.
 struct UnitPickInput final : UiInputSide {
     // The interface, an empty id list.
     explicit UnitPickInput(CInterface3D* ui);
     // The deleting destructor. The list freed.
     ~UnitPickInput() override;
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }     // 2
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }   // 5
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // 9
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // 11
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
 
     // Without Ctrl: a unit under the point is added to the
     // list (its id) and controlled; else each listed unit still in the client world
@@ -53,8 +53,8 @@ public:
     // The camera free again.
     void OnClose();
     // The virtuals of its own (its input side is the container's).
-    BOOL Draw(int pass) override { return DrawView(pass); }   // 20
-    void CloseScreen() override { OnClose(); }                // 26
+    BOOL Draw(int pass) override { return DrawView(pass); }
+    void CloseScreen() override { OnClose(); }
 
     std::uint8_t unused_164[4];
 };

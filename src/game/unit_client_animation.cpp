@@ -19,7 +19,7 @@
 namespace {
 constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags_
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
-constexpr std::int8_t kNoEntry = -1;                  // +0x254 / +0x255
+constexpr std::int8_t kNoEntry = -1;                  // / +0x255
 constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
 constexpr int kMotionPaused = 1;                      // the unit's +0x25C

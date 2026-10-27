@@ -12,13 +12,13 @@ class CEngineObject;
 class CSceneRenderer;
 
 struct FlyingHitPoint {
-    int target;                 // +0x00 nonzero: the unit's id
-    int amount;                 // +0x04 0 or more
+    int target;                 // nonzero: the unit's id
+    int amount;                 // 0 or more
     // +0x08 bits 0, 1, 3: a label row under the number (the texture's rows at v 0.39..0.54,
     // 0.24..0.39, 0.09..0.24), bit 3 also a cyan number started 0.5 s later; bit 31: drawn as a
     // marker over the unit (no number), erased after one drawing.
     std::uint32_t flags;
-    std::uint32_t time;         // +0x0C timeGetTime when it starts
+    std::uint32_t time;         // timeGetTime when it starts
 };
 static_assert(sizeof(FlyingHitPoint) == 0x10);
 
@@ -40,7 +40,7 @@ public:
     // slot 12, kept inside the render target. Then entries with flag 31 are erased. Returns 1.
     int Draw(CSceneRenderer* renderer);
 
-    CEngineObject* object_;                 // +0x00
-    stlp::list<FlyingHitPoint> points_;     // +0x04
+    CEngineObject* object_;
+    stlp::list<FlyingHitPoint> points_;
 };
 static_assert(offsetof(CFlyingHitPoints, points_) == 4);

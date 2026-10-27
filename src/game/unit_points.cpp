@@ -24,7 +24,7 @@ constexpr float kCellScale = 1.0f;
 constexpr float kHalf = 0.5f;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-// The unit's IsDead virtual (+0x274).
+// The unit's IsDead virtual.
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_, sizeof(Vector3)); }
 
@@ -62,7 +62,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
 }
 
 // Returns `out` in EAX (the callers use it). For a dead unit, the point the unit's current animation
-// (+0x254) acts on: an animation entry of kind 0x1C0000 (bits 0x3C0000 of its key) offsets the position
+// acts on: an animation entry of kind 0x1C0000 (bits 0x3C0000 of its key) offsets the position
 // along the orientation by its direction bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000
 // forward (+Y) by above[1], 0xC00000 right (+X), 0x1000000 left (-X) by above[0]. The point is kept only
 // where the AI map lets size class 3 stand (on the server); otherwise, and for a living unit, the position.

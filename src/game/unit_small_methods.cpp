@@ -7,7 +7,7 @@
 
 #include "ei/hook.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 // GetClassName / GetClassId (unit_update.cpp).
 const char* __fastcall UnitClassName(CUnit* self) { return self->CUnit::GetClassName(); }

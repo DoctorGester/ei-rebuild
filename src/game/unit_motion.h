@@ -10,12 +10,12 @@
 #include <cstddef>
 #include <cstdint>
 
-class CStream;      // core_streams.h
-class CWorld;       // world.h
-struct MotionOrder; // ai_map.h
-struct PathOrder;   // ai_map.h
+class CStream;
+class CWorld;
+struct MotionOrder;
+struct PathOrder;
 
-// A point of the trajectory (0x1C bytes).
+// A point of the trajectory.
 struct MotionPoint {
     float x, y;         // half-cell units
     float dirX, dirY;   // unit direction of travel
@@ -24,7 +24,7 @@ struct MotionPoint {
 };
 static_assert(sizeof(MotionPoint) == 0x1C);
 
-// A corner of the path the trajectory is built from (0x0C bytes): `cells` path cells lead to it.
+// A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
     // The constructor: the corner (x, y) (the floats moved as dwords), no cells. Returns the waypoint.
     // UnitMotion::Build builds its corners in place.
@@ -75,25 +75,25 @@ struct UnitMotion {
     void LoadState(CStream* stream);
     void SaveState(CStream* stream);
 
-    mfc::CArray<MotionPoint> points;          // +0x00
-    mfc::CArray<MotionWaypoint> waypoints;    // +0x14
-    mfc::CArray<float> stepSpeeds;            // +0x28 per step: AIPath step speed (1/512 units)
-    float speedScale;                       // +0x3C
-    float baseTurnRate;                     // +0x40 radians per tick
-    float turnRate;                         // +0x44
-    float startAngle;                       // +0x48
-    float turn;                             // +0x4C turn to make before moving, in [-pi, pi]
-    float fromX, fromY;                     // +0x50 current segment
-    float fromDirX, fromDirY;               // +0x58
-    float toX, toY;                         // +0x60
-    float toDirX, toDirY;                   // +0x68
-    float length;                           // +0x70
-    float speed;                            // +0x74
-    MotionCubic curveX;                     // +0x78
-    MotionCubic curveY;                     // +0x88
-    float segmentStart;                     // +0x98 time the current segment starts / ends
-    float segmentEnd;                       // +0x9C
-    int segment;                            // +0xA0 index of its first point, -1 none
+    mfc::CArray<MotionPoint> points;
+    mfc::CArray<MotionWaypoint> waypoints;
+    mfc::CArray<float> stepSpeeds;            // per step: AIPath step speed (1/512 units)
+    float speedScale;
+    float baseTurnRate;                     // radians per tick
+    float turnRate;
+    float startAngle;
+    float turn;                             // turn to make before moving, in [-pi, pi]
+    float fromX, fromY;                     // current segment
+    float fromDirX, fromDirY;
+    float toX, toY;
+    float toDirX, toDirY;
+    float length;
+    float speed;
+    MotionCubic curveX;
+    MotionCubic curveY;
+    float segmentStart;                     // time the current segment starts / ends
+    float segmentEnd;
+    int segment;                            // index of its first point, -1 none
 };
 static_assert(offsetof(UnitMotion, speedScale) == 0x3C);
 static_assert(offsetof(UnitMotion, fromX) == 0x50);

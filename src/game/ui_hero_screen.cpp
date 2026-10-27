@@ -247,8 +247,8 @@ CMpHeroScreen::~CMpHeroScreen() {
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
 }
 EI_REWRITTEN_SPECIAL(0x00633260, CMpHeroScreen::~CMpHeroScreen);
-EI_REWRITTEN_SPECIAL(0x00633240, CMpHeroScreen::~CMpHeroScreen);   // deleting
-EI_REWRITTEN_SPECIAL(0x006345F0, CMpHeroScreen::~CMpHeroScreen);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00633240, CMpHeroScreen::~CMpHeroScreen);
+EI_REWRITTEN_SPECIAL(0x006345F0, CMpHeroScreen::~CMpHeroScreen);
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
@@ -264,7 +264,7 @@ constexpr float kFrameDepth = 3.0f;
 CUiMesh* SelectionFrame(CUiWindow& w) {
     return w.SceneMesh(kSelectionFrame);
 }
-// A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
+// A multiplayer hero record (a party) and its name: its first member's text 0.
 CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
 std::uint32_t MpHeroCount() {
     return static_cast<std::uint32_t>(SavedHeroCount());

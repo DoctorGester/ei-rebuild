@@ -24,7 +24,7 @@ const char* ExitMovie() { return "Movies\\Exit.bik"; }
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
 constexpr std::uint32_t kEditField = 4;
 // The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
-// password boxes, CMpConnectScreen::boxText_, 0x80 bytes).
+// password boxes, CMpConnectScreen::boxText_).
 constexpr std::size_t kEditTextSize = 0x80;
 constexpr std::uint32_t kAnswerOk = 1;
 constexpr std::uint32_t kAnswerCancel = 2;

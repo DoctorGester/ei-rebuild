@@ -10,10 +10,10 @@
 // One segment between two samples: value + slope * t + quadratic * t^2 + cubic * t^3 for t in 0..1
 // (a Hermite segment through both samples with the slopes below).
 struct WeatherNoiseSegment {
-    float value;       // +0x0 the sample the segment starts at
-    float slope;       // +0x4 half the difference of the samples around it (the plain difference at the curve's first sample)
-    float quadratic;   // +0x8
-    float cubic;       // +0xC
+    float value;       // the sample the segment starts at
+    float slope;       // half the difference of the samples around it (the plain difference at the curve's first sample)
+    float quadratic;
+    float cubic;
 };
 
 struct WeatherNoiseCurve {
@@ -26,8 +26,8 @@ struct WeatherNoiseCurve {
     // segments.
     void Build(float amplitude);
 
-    float samples[kSamples];                  // +0x000
-    WeatherNoiseSegment segments[kSamples];   // +0x200 127 used; the last stays zero
+    float samples[kSamples];
+    WeatherNoiseSegment segments[kSamples];   // 127 used; the last stays zero
 };
 static_assert(offsetof(WeatherNoiseCurve, segments) == 0x200 && sizeof(WeatherNoiseCurve) == 0xA00);
 

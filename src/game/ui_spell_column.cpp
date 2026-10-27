@@ -60,7 +60,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 
-        // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
+        // The spell's numbers below its name: one line per label of the panel's table.
         CSpell* data = spell->spell_;   // the spell item's spell
         if (data) {
             const mfc::CStringArray& labels = labels_;

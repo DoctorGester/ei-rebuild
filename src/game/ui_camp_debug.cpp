@@ -55,7 +55,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
     AddCounted(list, item);
 }
 
-// One item of class `kind` for `record` in every material whose +0x04 names the record's material (+0x10),
+// One item of class `kind` for `record` in every material whose +0x04 names the record's material,
 // made by the list's item constructor with `manager`. A material index out of the table reads through null.
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {
@@ -74,7 +74,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
     }
 }
 
-// The record's name (+0x04) contains `word`.
+// The record's name contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
     return record->text04.Find(word) >= 0;
 }

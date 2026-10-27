@@ -26,7 +26,7 @@ const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kTransitSound = "buttons\\globalmap\\transit.wav";
 constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
 
-// The client's own offer (+0x260C) while it is live (not detached), else null.
+// The client's own offer while it is live (not detached), else null.
 net::PartyMessage* LiveOffer() {
     net::PartyMessage* offer = net::GameClient()->party_.Get();
     return IsLive(offer) ? offer : nullptr;

@@ -65,10 +65,10 @@ public:
     // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
 
-    std::uint32_t references_ = 0;           // +0x04 the count of holders (WinMain keeps one)
-    IDirectInput7A* input_ = nullptr;        // +0x08 counted
-    IDirectInputDevice7A* device_ = nullptr; // +0x0C counted
-    LONG state_[4];                          // +0x10 DIMOUSESTATE
+    std::uint32_t references_ = 0;           // the count of holders (WinMain keeps one)
+    IDirectInput7A* input_ = nullptr;        // counted
+    IDirectInputDevice7A* device_ = nullptr; // counted
+    LONG state_[4];                          // DIMOUSESTATE
 };
 
 // The cursor's image (what +0x10 points at; made for every cursor shape):
@@ -82,14 +82,14 @@ struct CursorImage {
     // Destructor body: the mask freed, the holder released.
     void Destroy();
 
-    CDXSurface* holder;              // +0x00 surface holder
-    LONG width;                      // +0x04 a frame's width
-    LONG height;                     // +0x08
-    int frames;                      // +0x0C frames side by side (the picture's width / height)
-    int frame;                       // +0x10 the frame shown (steps it every 125 ms)
-    int hotX;                        // +0x14 the hot spot, scaled to the cursor's size
-    int hotY;                        // +0x18
-    std::uint8_t* saved;             // +0x1C the mask over the whole picture (its pixel size): all
+    CDXSurface* holder;              // surface holder
+    LONG width;                      // a frame's width
+    LONG height;
+    int frames;                      // frames side by side (the picture's width / height)
+    int frame;                       // the frame shown (steps it every 125 ms)
+    int hotX;                        // the hot spot, scaled to the cursor's size
+    int hotY;
+    std::uint8_t* saved;             // the mask over the whole picture (its pixel size): all
                                      //       ones where the picture is black, else 0
 };
 static_assert(offsetof(CursorImage, width) == 0x04);
@@ -147,31 +147,31 @@ public:
     // fails) to the shape list.
     void AddShape(const char* name, int hotX, int hotY, int flag);
 
-    int mode_;                       // +0x00 2: the background is saved from the primary without an image
-    CTextureDevice* device_;         // +0x04 the device object (its +0x0C IDirectDraw7), referenced
-    CDirectInputMouse* mouse_;       // +0x08 polled for the motion
-    int imageShown_;                 // +0x0C an image is shown
-    CursorImage* image_;             // +0x10
-    std::uint32_t imageSpare_;       // +0x14 0 from Init and Shutdown (with image_); nothing reads it
-    int shape_;                      // +0x18 the shape SetShape selected
-    HANDLE stopped_;                 // +0x1C set when the cursor thread ends
-    RECT drawn_;                     // +0x20 the rectangle drawn last
-    RECT rect_;                      // +0x30 the cursor's screen rectangle
-    RECT from_;                      // +0x40 the part of the image shown
-    RECT bounds_;                    // +0x50
-    CDXSurface* under_;              // +0x60 surface holder: the background under the cursor
-    CDXSurface* target_;             // +0x64 surface holder: where the cursor is drawn
-    lib::AlignedArray<CursorImage*> images_;   // +0x68 the shapes (AddShape)
-    POINT position_;                 // +0x78 the position drawn last
-    POINT heldPosition_;             // +0x80 the position kept while held
-    POINT motion_;                   // +0x88 the mouse motion summed
-    std::uint8_t held_;              // +0x90 the cursor stays at +0x80 (sets it)
-    std::uint8_t enabled_;           // +0x91 the cursor exists (created)
+    int mode_;                       // 2: the background is saved from the primary without an image
+    CTextureDevice* device_;         // the device object (its +0x0C IDirectDraw7), referenced
+    CDirectInputMouse* mouse_;       // polled for the motion
+    int imageShown_;                 // an image is shown
+    CursorImage* image_;
+    std::uint32_t imageSpare_;       // 0 from Init and Shutdown (with image_); nothing reads it
+    int shape_;                      // the shape SetShape selected
+    HANDLE stopped_;                 // set when the cursor thread ends
+    RECT drawn_;                     // the rectangle drawn last
+    RECT rect_;                      // the cursor's screen rectangle
+    RECT from_;                      // the part of the image shown
+    RECT bounds_;
+    CDXSurface* under_;              // surface holder: the background under the cursor
+    CDXSurface* target_;             // surface holder: where the cursor is drawn
+    lib::AlignedArray<CursorImage*> images_;   // the shapes (AddShape)
+    POINT position_;                 // the position drawn last
+    POINT heldPosition_;             // the position kept while held
+    POINT motion_;                   // the mouse motion summed
+    std::uint8_t held_;              // the cursor stays at +0x80 (sets it)
+    std::uint8_t enabled_;           // the cursor exists (created)
     std::uint8_t unused_92[2];
-    DWORD frameTime_;                // +0x94 when the image's frame last stepped
-    mfc::impl::WinThread* thread_;   // +0x98 the drawing thread, or null
-    int stop_;                       // +0x9C asks the cursor thread to end
-    CRITICAL_SECTION lock_;          // +0xA0
+    DWORD frameTime_;                // when the image's frame last stepped
+    mfc::impl::WinThread* thread_;   // the drawing thread, or null
+    int stop_;                       // asks the cursor thread to end
+    CRITICAL_SECTION lock_;
 };
 // The software cursor drawn into the render target before the present.
 void __fastcall CursorDrawFrame(CCursor* self);

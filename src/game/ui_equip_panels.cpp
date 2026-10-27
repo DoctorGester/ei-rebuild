@@ -29,7 +29,7 @@ int IndexIn(CItem* const* list, int count, const CItem* item) {
     return -1;
 }
 
-// The owner's slot 46 (+0xB8): the shown weapons refreshed.
+// The owner's slot 46: the shown weapons refreshed.
 void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->RefreshWeapons(); }
 
 } // namespace

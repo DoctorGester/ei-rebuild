@@ -1,4 +1,4 @@
-// The unit AI brain's attention (+0xA4): what it attacks now and looking for a better target
+// The unit AI brain's attention: what it attacks now and looking for a better target
 #include "unit_ai.h"
 #include "combat.h"
 
