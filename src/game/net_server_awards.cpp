@@ -108,7 +108,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
 // its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
-// empties the queued messages, +0x25B0 and +0x2598, and queues the following zones
+// empties queuedMaps_, variables_ and files_, and queues the following zones
 void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
@@ -159,7 +159,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 
 // The zone leaving command ("<zone>_2"). When a map message is held: announces the map's title (text 6) and,
 // when the map registry knows "<map>_1", queues the host's items with the final award. Then drops the map
-// message, empties the queued messages, +0x25B0 and +0x2598, queues the following zones and clears the
+// message, empties queuedMaps_, variables_ and files_, queues the following zones and clears the
 // world's map (with null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;

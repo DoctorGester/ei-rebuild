@@ -141,7 +141,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 }
 
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
-// Its trade, when live, is dropped, a done one first kept on +0x25C0 for 60 seconds.
+// Its trade, when live, is dropped, a done one first kept on finishedTrades_ for 60 seconds.
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);

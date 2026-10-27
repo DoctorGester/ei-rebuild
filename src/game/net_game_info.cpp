@@ -56,8 +56,6 @@ unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
 namespace net {
 EI_REWRITTEN(0x00401340, GameBuffer::ReadBytes);
 
-// Writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
-// +0x1A, then +0x24.
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &masterKey, 4);
     Put(buffer, &masterToken, 4);
