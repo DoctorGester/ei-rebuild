@@ -1,6 +1,6 @@
 #pragma once
 
-// The standalone's settings file (docs/notes/standalone.md, "Settings file"). game.exe keeps its settings
+// The standalone's settings file (docs/notes/standalone.md, "Settings file"). The game keeps its settings
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
 // Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei_standalone.exe keeps the same
 // keys and values in ei_settings.ini next to the exe instead: CWinRegistry (win_registry.cpp) and the direct
@@ -77,7 +77,7 @@ private:
     const Document& document_;
 };
 
-// The trees game.exe and Rebirth keep their settings in: what the import copies.
+// The trees the game and Rebirth keep their settings in: what the import copies.
 inline constexpr const char* kImportedTrees[] = {"Software\\Nival Interactive\\EvilIslands", "Software\\Gipat.Ru\\EI_Starter"};
 
 // Copies kImportedTrees (every key below them, in the source's order) from `source` into `document`; the number

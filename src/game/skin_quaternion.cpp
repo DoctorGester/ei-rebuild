@@ -1,6 +1,6 @@
-// 00506C70 (__fastcall: out in ECX, a in EDX, b on the stack; RET 4): the quaternion product
-// out = a * b (Hamilton) the skin's animation nodes compose their key rotations with (00506A50,
-// 00507160, 00507990, 00509921) and the hero preview. All four components are computed
+// The quaternion product (__fastcall: out in ECX, a in EDX, b on the stack):
+// out = a * b (Hamilton) the skin's animation nodes compose their key rotations with
+// and the hero preview. All four components are computed
 // before any is stored, so `out` may be either input. Returns out. See docs/notes/map_objects.md.
 #include "maths.h"
 
@@ -10,7 +10,7 @@
 Quaternion* __fastcall MultiplyQuaternions(Quaternion* out, const Quaternion* a, const Quaternion* b) {
     Vector3 av = {a->x, a->y, a->z};
     Vector3 bv = {b->x, b->y, b->z};
-    Vector3 cross = Cross(av, bv);   // each component one product minus another, as the original
+    Vector3 cross = Cross(av, bv);   // as the game does
     float x = (cross.x + a->w * b->x) + b->w * a->x;
     float y = (cross.y + b->y * a->w) + a->y * b->w;
     float z = (cross.z + a->w * b->z) + a->z * b->w;

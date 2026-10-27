@@ -1,10 +1,10 @@
 #pragma once
 
-// The sky dome (A-S7): CSkyObject (004D9110-004D9360, 0x230 bytes, figure class 0x44's constructor
-// in the figure factory 005AA8E0) is a class 0x42 figure mesh (CPlainFigureMesh, figure_mesh.h) with one more
-// aligned array, and CSky (004D9680-004D9DE0), the world view's holder that lights and draws it.
-// sky_object.cpp. A real virtual class: the compiler makes its vtable (game.exe's 0073D5B8 is
-// retired). Names from GetClassName ("CSkyObject"); the rest provisional.
+// The sky dome: CSkyObject (0x230 bytes, figure class 0x44's constructor
+// in the figure factory) is a class 0x42 figure mesh (CPlainFigureMesh, figure_mesh.h) with one more
+// aligned array, and CSky, the world view's holder that lights and draws it.
+// sky_object.cpp. A real virtual class: the compiler makes its vtable.
+// Names from GetClassName ("CSkyObject"); the rest provisional.
 
 #include "core_transform.h"
 #include "figure_mesh.h"   // CPlainFigureMesh
@@ -29,18 +29,18 @@ static_assert(sizeof(SkyColour) == 16);
 
 class CSkyObject : public CPlainFigureMesh {
 public:
-    // The figure's constructor (CPlainFigureMesh's: in the original 005AABC0's work with
-    // its vtable 0073C224 and its Create 0059F210, then the mesh's arrays empty), the haze empty,
-    // then the sky's Create (slot 2, 005A6C70: the same CreateMesh).
+    // The figure's constructor (CPlainFigureMesh's: the base work with
+    // its vtable and Create, then the mesh's arrays empty), the haze empty,
+    // then the sky's Create (slot 2: the same CreateMesh).
     CSkyObject();
     // The haze freed, then the mesh's arrays (CPlainFigureMesh's destructor) and the
-    // figure's (CFigureMesh's: 0059F030's work).
+    // figure's (CFigureMesh's).
     ~CSkyObject() override;
 
-    // The vtable (game.exe's 0073D5B8, retired): the class 0x42 mesh's (CPlainFigureMesh) but for
+    // The vtable: the class 0x42 mesh's (CPlainFigureMesh) but for
     // 0, 11 and 12.
-    const char* GetClassName() override;   // 11: 004D9270 "CSkyObject"
-    int GetClassId() override;             // 12: 004D9280 (0x20)
+    const char* GetClassName() override;   // 11: "CSkyObject"
+    int GetClassId() override;             // 12: 0x20
 
     // Lights the vertices. Each vertex's haze (distances_) is recomputed
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
@@ -63,21 +63,21 @@ static_assert(sizeof(CSkyObject) == 0x230);
 
 class CSceneRenderer;
 
-// The world view's sky (A-S8: constructor 004D9680, draw 004D96E0).
+// The world view's sky.
 struct CSky {
-    // 004D9680 (returns this). No object yet; the texture holder loads "sky00" (kind 0x3D); turning.
+    // The constructor (returns this). No object yet; the texture holder loads "sky00" (kind 0x3D); turning.
     CSky* Construct();
     // Unless there is no object: it is placed at the eye lowered by 16, turned
     // about +z by the world time / 3000 when `turns` is set, its world matrix built from both and
     // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
     // drawn (renderer slot 14 with alpha 0xFF), and both stacks popped (when not empty).
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
-    // 005636A0 (the compiler's destructor, from CWorldClient::Destroy): the texture, the
+    // The compiler's destructor (from CWorldClient::Destroy): the texture, the
     // material and the object released (slot 4), in that order, each when set.
     void Destruct();
 
     CSkyObject* object;   // +0x00 null until the zone's sky is loaded
-    CEngineObject* material;   // +0x04 counted (0068E970, type 0x12, by CWorldClient::LoadSky); 0 when constructed
+    CEngineObject* material;   // +0x04 counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed
     HeldTexture texture;  // +0x08 texture holder
     int turns;            // +0x0C 1 when constructed
 

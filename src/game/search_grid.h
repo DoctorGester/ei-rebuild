@@ -16,14 +16,14 @@ struct SearchGrid {
     // Row y (grid[y][x] is the cell at (x, y)).
     T* operator[](int y) const { return rows[y]; }
 
-    // ai_grids.cpp. 005CD3A0 (RET 8; the fog grid's marks, FogGrid::cells). Reallocated to
+    // ai_grids.cpp. The fog grid's marks, FogGrid::cells. Reallocated to
     // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
     void Resize(int newWidth, int newHeight);
-    // 005CD410 (RET 4) / 005C4BA0 (RET 4; A-W14: the local search's nodes, whose Recenter 005C25D0
+    // Copy (also for the local search's nodes, whose Recenter
     // keeps the old window in such a copy). Makes the grid a copy of `source`: its size, a block and
     // row table of its own, the cells copied.
     void CopyFrom(const SearchGrid* source);
-    // 005BCBD0 / 005BCC50 / 005BCEE0 / 005BCF00 (RET 8). The constructor for a size; returns this.
+    // The constructor for a size (several copies); returns this.
     SearchGrid* Construct(int newWidth, int newHeight);
 };
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);

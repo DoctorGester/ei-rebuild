@@ -77,7 +77,7 @@ void CFileRegistry::Destroy() {
     if (!attached_) file_.Close();
     attached_ = 0;
     data_ = nullptr;
-    file_.Close();                   // 006756D0, the mapped file's destructor
+    file_.Close();                   // the mapped file's destructor
 }
 EI_REWRITTEN(0x00694540, CFileRegistry::Destroy);
 

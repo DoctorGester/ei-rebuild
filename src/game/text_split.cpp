@@ -1,4 +1,4 @@
-// Splitting texts into CStringArrays and replacing characters (004DBE40-004DC4F0). See text_split.h.
+// Splitting texts into CStringArrays and replacing characters. See text_split.h.
 #include "text_split.h"
 
 #include "game_strings.h"

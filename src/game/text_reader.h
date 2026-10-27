@@ -1,8 +1,8 @@
 #pragma once
 
-// The text manager's line reader (004DEB60-004DFFFF): the functions that find a text in the
-// resource archives and walk its lines. The manager (CTextManager, item_db_text.h; global pointer
-// 007AF788) keeps a cursor (+0x20) into the current text (+0x24, +0x28 bytes). Texts are MBCS:
+// The text manager's line reader: the functions that find a text in the
+// resource archives and walk its lines. The manager (CTextManager, item_db_text.h; a global pointer)
+// keeps a cursor (+0x20) into the current text (+0x24, +0x28 bytes). Texts are MBCS:
 // a character is one byte, or a lead byte (_ismbblead) and a trail byte; its code is
 // (signed lead << 8) + signed trail. Lines end with LF (CR also ends the line's content); a line
 // whose first word starts with "##" is a comment. All functions are __thiscall on the manager.

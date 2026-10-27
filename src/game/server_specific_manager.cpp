@@ -1,4 +1,4 @@
-// CServerSpecificManager and CTorchObjectSpec (A-S7, 004D6900-004D6BA0). See server_specific_manager.h.
+// CServerSpecificManager and CTorchObjectSpec. See server_specific_manager.h.
 #include "combat.h"
 #include "server_specific_manager.h"
 

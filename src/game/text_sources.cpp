@@ -1,4 +1,4 @@
-// The text manager's archive list (004DE930-004DEDDF): adding, removing and clearing the
+// The text manager's archive list: adding, removing and clearing the
 // archives the texts are looked up in. The list and its node helpers are in item_db_text.h.
 #include "item_db_text.h"
 #include "resource.h"
@@ -64,7 +64,7 @@ void ForgetConvertedTexts(const CMappedResource* source) {
     }
 }
 
-// 004DEBC0's lookup: the data of file `key` in the first archive of `list` that has it, its archive
+// The lookup: the data of file `key` in the first archive of `list` that has it, its archive
 // into `*source` (when not null).
 void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedResource** source) {
     // EI_UTF8: a key that is text (the people's names, "pers <name>") back in the archive's code page.

@@ -1,7 +1,7 @@
 #pragma once
 
 // The game's binary registry files (*.reg: quests, item databases, settings), read through
-// CFileRegistry (game.exe 00694520-006959C0). Names come from the game's own messages
+// CFileRegistry. Names come from the game's own messages
 // ("CFileRegistry::FindData().\nWrong type of entry.").
 // File layout (all offsets from the start of the file):
 //   +0x00 u32 magic 0x45AB3EFB
@@ -27,7 +27,7 @@ class CStringArray;
 }
 
 // The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
-// the inlined SetSize allocates through 00453A10 / 004D9ED0).
+// the inlined SetSize allocates through the engine's aligned allocators).
 using DwordArray = lib::AlignedArray<std::uint32_t>;
 using IntArray = lib::AlignedArray<std::int32_t>;
 
@@ -62,7 +62,7 @@ public:
     // The names of all sections into `out` (in table order). Returns 1.
     BOOL GetSectionNames(console::CStringArray* out);
 
-    // 00694B90 / 00694BE0 (identical copies). An int value, a float one truncated (_ftol), or
+    // Identical copies. An int value, a float one truncated (_ftol), or
     // `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);
     int GetInt2(const char* section, const char* key, int defaultValue);
@@ -75,7 +75,7 @@ public:
     // (strncpy, so not terminated when too long); *length becomes the copied length.
     void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);
 
-    // 00695410 / 00695600. An int / float array (or a single value) into `out`. Without the key
+    // Int / float array (or a single value) into `out`. Without the key
     // `out` is emptied and the result is 0.
     BOOL GetIntArray(const char* section, const char* key, IntArray* out);
     BOOL GetFloatArray(const char* section, const char* key, DwordArray* out);

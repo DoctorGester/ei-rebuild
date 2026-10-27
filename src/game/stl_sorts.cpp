@@ -81,7 +81,7 @@ struct SaveEntryOps {
     static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
     static void Destroy(SaveEntry* p) { p->Destruct(); }
 };
-// Every helper tests 00658020 (a.savedAt < b.savedAt) and takes the other branch: the order is
+// Every helper tests a.savedAt < b.savedAt and takes the other branch: the order is
 // "not older than".
 struct NotOlder {
     bool operator()(const SaveEntry& a, const SaveEntry& b) const { return !(a.savedAt_ < b.savedAt_); }
