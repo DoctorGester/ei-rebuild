@@ -7,6 +7,7 @@
 #include "net_link.h"
 #include "party.h"
 #include "unit.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
 
@@ -135,8 +136,10 @@ void CPlayer::Clear() {
         item->Release();
     }
     items_.RemoveAll();
-    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
-    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
+    ReleaseEach(knownTimed_);
+    maxTimedId_ = 0;
+    ReleaseEach(knownObjects_);
+    maxObjectId_ = 0;
     // Each unit leaves (its SetPlayer erases it here) until the map is empty or its first entry
     // holds no unit.
     for (UnitMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
@@ -198,8 +201,10 @@ void CPlayer::Disconnect() {
 EI_REWRITTEN(0x00665A10, CPlayer::Disconnect);
 
 void CPlayer::ForgetKnownObjects() {
-    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
-    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
+    ReleaseEach(knownTimed_);
+    maxTimedId_ = 0;
+    ReleaseEach(knownObjects_);
+    maxObjectId_ = 0;
     if (connection_ != nullptr) connection_->ForgetSentObjects();
     dirty_ = 0xFFFFFFFFu;
 }

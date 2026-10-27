@@ -283,7 +283,7 @@ SessionBase::~SessionBase() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();
+        DestroyOwned(node->connection);
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
