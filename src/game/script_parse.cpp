@@ -502,7 +502,7 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     *pos = node->next;
     ScriptToken token;
     token.CopyConstruct(node->data);
-    std::string text = token.text.GetString();
+    std::string text = token.text;
     int found;
     ClassifyToken(text.c_str(), &found, nullptr);
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
@@ -527,7 +527,7 @@ int CScript::FindScript(const char* name) {
     for (;;) {
         const mfc::CArray<ScriptDefinition>& scripts = Scripts();
         for (int i = 0; i < scripts.size; ++i)
-            if (Mbscmp(scripts.data[i].name, name) == 0) return i;
+            if (Mbscmp(scripts.data[i].name.c_str(), name) == 0) return i;
         // Not found: retry without the leading "!<file>!" qualification.
         if (*name != '!') return -1;
         do {
@@ -545,10 +545,10 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
     using Node = ScriptDefineList::Node;
     if (defines->head) {
         // Before the first define with a shorter name; when there is none, before the last one.
-        const int length = define->name.GetLength();
+        const int length = static_cast<int>(define->name.size());
         Node* before = defines->head;
         for (;;) {
-            if (before->data.name.GetLength() < length || !before->next) break;
+            if (static_cast<int>(before->data.name.size()) < length || !before->next) break;
             before = before->next;
         }
         Node* prev = before->prev;
@@ -577,9 +577,9 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
         // never ends; kept).
         for (;;) {
             const StringOps& text = Ops(*line);
-            int at = text.Find(node->data.name);
+            int at = text.Find(node->data.name.c_str());
             if (at < 0) break;
-            std::string right = (static_cast<const mfc::CString&>(text).Right(line->GetLength() - node->data.name.GetLength() - at)).GetString();
+            std::string right = (static_cast<const mfc::CString&>(text).Right(line->GetLength() - static_cast<int>(node->data.name.size()) - at)).GetString();
             std::string left = text.Left(at).GetString();
             *line = (left + node->data.value) + right;
         }

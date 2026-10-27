@@ -244,10 +244,9 @@ struct ScriptToken {
     ScriptToken* Assign(const ScriptToken& other);
     ScriptToken* CopyConstruct(const ScriptToken& other);
 
-    mfc::CString text;
+    std::string text;
     int line;
 };
-static_assert(sizeof(ScriptToken) == 8);
 
 using ScriptTokenList = mfc::CList<ScriptToken>;
 
@@ -331,7 +330,7 @@ struct ScriptFxSource {
 
     CEffectSound* object;   // the current sound
     int id;
-    mfc::CString name;
+    std::string name;
     Vector3 position;
     float volume;
     float radius;
@@ -341,7 +340,6 @@ struct ScriptFxSource {
     int maxDelay;
     int countdown;
 };
-static_assert(sizeof(ScriptFxSource) == 0x34);
 
 // CreateLightning.
 struct ScriptLightning {
@@ -603,8 +601,8 @@ constexpr int kCmdForIf = 0x6C;
 void __stdcall ConstructTokens(ScriptToken* tokens, int count);
 
 struct ScriptDefine {
-    mfc::CString name;
-    mfc::CString value;
+    std::string name;
+    std::string value;
 };
 struct ScriptDefineElements {
     static void Construct(ScriptDefine* defines, int count) {
@@ -622,7 +620,6 @@ struct ScriptDefineElements {
     }
 };
 using ScriptDefineList = mfc::CList<ScriptDefine, ScriptDefineElements>;
-static_assert(sizeof(ScriptDefineList::Node) == 0x10);
 // Every define's value and name destroyed, the list's blocks freed.
 void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines);
 // Before the first define with a shorter name (else before the last one; at the end only when the list is
@@ -684,12 +681,11 @@ struct ScriptDefinition {
     ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);
 
     int index;                          // 0 after loading
-    mfc::CString name;                  // qualified
-    mfc::CString params;                // parameter types, e.g. "fso"
+    std::string name;                   // qualified
+    std::string params;                 // parameter types, e.g. "fso"
     ScriptIfThens ifThen;
     ScriptVars vars;                    // parameters and locals
 };
-static_assert(sizeof(ScriptDefinition) == 0xC0);
 
 // ---- Command execution ----
 
@@ -843,10 +839,9 @@ void __fastcall ScriptResetZone(CScript* script);
 // An objective of the quest QStart starts; QFinish turns them into a script.
 struct ScriptQuestObjective {
     int type;               // the QObj* command's id (0xD7-0xDD)
-    mfc::CString text;      // its string argument (empty for QObjArea / QObjGetItem)
+    std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
     float value;            // its float argument
 };
-static_assert(sizeof(ScriptQuestObjective) == 12);
 extern lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives;
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_scriptQuestObjectives; }
 extern lib::StaticObject<mfc::CString> g_scriptQuestName;

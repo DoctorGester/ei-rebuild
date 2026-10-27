@@ -215,7 +215,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     std::memcpy(&sound->volume_, &source->volume, 4);
     std::memcpy(&sound->radius_, &source->radius, 4);
-    const char* name = source->name;
+    const char* name = source->name.c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
     TheServerWorld()->AddTimedObject(sound);
     source->idle = 0;
@@ -347,7 +347,7 @@ void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const 
 void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
-    const char* text = name;
+    const char* text = name.c_str();
     stream->Write(text, static_cast<std::uint32_t>(Length(text) + 1));
     stream->Write(&position, 12);
     stream->Write(&volume, 4);
@@ -377,10 +377,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);
-    {
-        mfc::CString read(mfc::CString::kUnset);
-        name = *stream->ReadString(&read);
-    }
+    stream->ReadInto(&name);
     stream->Read(&position, 12);
     stream->Read(&volume, 4);
     stream->Read(&radius, 4);

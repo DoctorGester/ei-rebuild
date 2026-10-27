@@ -406,7 +406,7 @@ void ReadScript(CScript* s, Builder& b) {
     for (auto* n = s->instances_.head; n; n = n->next, ++i) {
         killFlags.push_back(&n->data.index);
         b.Int("inst#.killed", n->data.index, i);
-        b.Bits("inst#.name", TextHash(n->data.name), i);
+        b.Bits("inst#.name", TextHash(Text(n->data.name)), i);
         b.Bits("inst#.vars", HashVars(n->data.vars), i);
     }
     b.Int("runs", s->runs_.GetCount());

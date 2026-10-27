@@ -34,13 +34,14 @@ bool Empty(const mfc::CArray<T>& a) {
 }
 
 // 004CF4D0: MOV EAX,FS:[0] (6). Bucket: the result.
-BOOL(__fastcall* s_expect)(CScript*, void*, const ScriptTokenList*, ScriptPos*, int);
-BOOL __fastcall ExpectRecord(CScript* self, void*, const ScriptTokenList* tokens, ScriptPos* pos, int id) {
+BOOL(__fastcall* s_expect)(CScript*, void*, const OriginalScriptTokenList*, OriginalScriptPos*, int);
+BOOL __fastcall ExpectRecord(CScript* self, void*, const OriginalScriptTokenList* tokens, OriginalScriptPos* pos,
+                             int id) {
     OfferFixtures();
     Writer w;
     PutError(w, self);
     w.Put<std::int32_t>(id);
-    const ScriptPos from = *pos;
+    const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
     const BOOL result = s_expect(self, nullptr, tokens, pos, id);
     PutRun(w, tokens, from, *pos);
@@ -52,10 +53,11 @@ BOOL __fastcall ExpectRecord(CScript* self, void*, const ScriptTokenList* tokens
 
 // 004CFBC0: PUSH -1; PUSH imm32 (7). Bucket: a plain call, an assignment or a script call, each
 // succeeded or failed.
-BOOL(__fastcall* s_loadFunction)(CScript*, void*, SSCCmd*, ScriptPos*, const ScriptTokenList*, int, ScriptVars*,
-                                 const char*, BOOL, BOOL);
-BOOL __fastcall LoadFunctionRecord(CScript* self, void*, SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
-                                   int id, ScriptVars* locals, const char* signature, BOOL assignment, BOOL scriptCall) {
+BOOL(__fastcall* s_loadFunction)(CScript*, void*, SSCCmd*, OriginalScriptPos*, const OriginalScriptTokenList*, int,
+                                 ScriptVars*, const char*, BOOL, BOOL);
+BOOL __fastcall LoadFunctionRecord(CScript* self, void*, SSCCmd* cmd, OriginalScriptPos* pos,
+                                   const OriginalScriptTokenList* tokens, int id, ScriptVars* locals,
+                                   const char* signature, BOOL assignment, BOOL scriptCall) {
     OfferFixtures();
     const bool empty = Empty(cmd->floatArgs) && Empty(cmd->stringArgs) && Empty(cmd->objectArgs) &&
                        Empty(cmd->groupArgs) && Empty(cmd->localBindings) && Empty(cmd->globalBindings) &&
@@ -75,7 +77,7 @@ BOOL __fastcall LoadFunctionRecord(CScript* self, void*, SSCCmd* cmd, ScriptPos*
                            cmd->localBindings.growBy, cmd->globalBindings.growBy, cmd->subCalls.growBy})
             w.Put<std::int32_t>(growBy);
     }
-    const ScriptPos from = *pos;
+    const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
     const BOOL result = s_loadFunction(self, nullptr, cmd, pos, tokens, id, locals, signature, assignment, scriptCall);
     if (!empty) return result;   // never seen: every caller clears the command
@@ -89,9 +91,10 @@ BOOL __fastcall LoadFunctionRecord(CScript* self, void*, SSCCmd* cmd, ScriptPos*
 }
 
 // 004D1330: PUSH -1; PUSH imm32 (7). Bucket: succeeded or failed, payload up to 4 KB or larger.
-BOOL(__fastcall* s_loadCommands)(CScript*, void*, mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*);
-BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<SSCCmd>* commands, ScriptPos* pos,
-                                   const ScriptTokenList* tokens, ScriptVars* locals) {
+BOOL(__fastcall* s_loadCommands)(CScript*, void*, mfc::CArray<SSCCmd>*, OriginalScriptPos*,
+                                  const OriginalScriptTokenList*, ScriptVars*);
+BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<SSCCmd>* commands, OriginalScriptPos* pos,
+                                   const OriginalScriptTokenList* tokens, ScriptVars* locals) {
     OfferFixtures();
     const bool empty = Empty(*commands);
     Writer w;
@@ -102,7 +105,7 @@ BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<SSCCmd>* co
         w.Put<std::int32_t>(commands->growBy);
     }
     const auto* lastBlock = self->blocks_.tail;
-    const ScriptPos from = *pos;
+    const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
     const BOOL result = s_loadCommands(self, nullptr, commands, pos, tokens, locals);
     if (!empty) return result;   // never seen: the arrays are new
@@ -127,7 +130,8 @@ BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWor
     w.Put<std::int32_t>(runWorldScript);
     const std::uint32_t length = static_cast<std::uint32_t>(text->GetLength());
     std::vector<int> skip;
-    for (int i = 0; i < self->Scripts().size; ++i) skip.push_back(self->Scripts().data[i].ifThen.size);
+    const mfc::CArray<OriginalScriptDefinition>& definitions = OriginalDefinitions(self);
+    for (int i = 0; i < definitions.size; ++i) skip.push_back(definitions.data[i].ifThen.size);
     const auto* lastBlock = self->blocks_.tail;
     const auto* lastWorld = self->worldBlocks_.tail;
     const int runs = self->runs_.count;
@@ -138,7 +142,7 @@ BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWor
     w.Put<std::int32_t>(self->LoadedFlag());
     w.Put<std::int32_t>(self->FileCount());
     w.Put(HashOf([&](Writer& h) { PutText(h, *text); }));
-    w.Put(HashOf([&](Writer& h) { PutDefinitionsAfter(h, self->Scripts(), skip); }));
+    w.Put(HashOf([&](Writer& h) { PutDefinitionsAfter(h, definitions, skip); }));
     w.Put(HashOf([&](Writer& h) { PutVars(h, *self->Globals()); }));
     w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, self->blocks_, lastBlock); }));
     w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, self->worldBlocks_, lastWorld); }));

@@ -117,8 +117,8 @@ const char* __fastcall KeywordNameRecord(int id) {
 void PutCString(Writer& w, const mfc::CString& s) { w.PutString(static_cast<const char*>(s)); }
 
 // 004CF7A0: PUSH -1; PUSH imm32 (7). Error results keep the script's error.
-BOOL(__fastcall* s_tokenize)(CScript*, void*, const mfc::CString*, ScriptTokenList*);
-BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source, ScriptTokenList* tokens) {
+BOOL(__fastcall* s_tokenize)(CScript*, void*, const mfc::CString*, OriginalScriptTokenList*);
+BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source, OriginalScriptTokenList* tokens) {
     OfferFixtures();
     std::uint16_t cw = ControlWord();
     BOOL result = s_tokenize(self, nullptr, source, tokens);
@@ -138,23 +138,23 @@ BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source,
     }
     w.Put(static_cast<std::uint32_t>(tokens->count));
     std::uint64_t all = 0xCBF29CE484222325ull;
-    for (const ScriptTokenList::Node* node = tokens->head; node; node = node->next)
+    for (const OriginalScriptTokenList::Node* node = tokens->head; node; node = node->next)
         all = TokenHash(node->data.text, node->data.line, all);
     w.Put(all);
-    for (const ScriptTokenList::Node* node = tokens->head; node; node = node->next)
+    for (const OriginalScriptTokenList::Node* node = tokens->head; node; node = node->next)
         w.Put(static_cast<std::uint32_t>(TokenHash(node->data.text, node->data.line)));
     g_tokenize.OfferBytes(w, cw, SourceBucket(length));
     return result;
 }
 
 // 004D33E0: MOV EAX,FS:[0] (6). Bucket 1: the line changed.
-void(__fastcall* s_applyDefines)(mfc::CString*, const ScriptDefineList*);
-void __fastcall ApplyDefinesRecord(mfc::CString* line, const ScriptDefineList* defines) {
+void(__fastcall* s_applyDefines)(mfc::CString*, const OriginalScriptDefineList*);
+void __fastcall ApplyDefinesRecord(mfc::CString* line, const OriginalScriptDefineList* defines) {
     OfferFixtures();
     Writer w;
     PutCString(w, *line);
     w.Put(static_cast<std::uint32_t>(defines->count));
-    for (const ScriptDefineList::Node* node = defines->head; node; node = node->next) {
+    for (const OriginalScriptDefineList::Node* node = defines->head; node; node = node->next) {
         PutCString(w, node->data.name);
         PutCString(w, node->data.value);
     }

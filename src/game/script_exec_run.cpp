@@ -119,7 +119,7 @@ void RespawnFxSources(CScript* script) {
         std::memcpy(&sound->volume_, &fx.volume, 4);
         std::memcpy(&sound->radius_, &fx.radius, 4);
         ++sound->refCount_;
-        const char* name = fx.name;
+        const char* name = fx.name.c_str();
         std::memcpy(sound->name_, name, std::strlen(name) + 1);
         TheServerWorld()->AddTimedObject(sound);
     }
@@ -196,19 +196,19 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
     if (call->floatArgs.size - 1 != vars.floats.size) {
-        game::FatalError(kWrongFloatCount, name.GetString());
+        game::FatalError(kWrongFloatCount, name.c_str());
         return;
     }
     if (call->stringArgs.size - 1 != vars.strings.size) {
-        game::FatalError(kWrongStringCount, name.GetString());
+        game::FatalError(kWrongStringCount, name.c_str());
         return;
     }
     if (call->objectArgs.size != vars.objects.size) {
-        game::FatalError(kWrongObjectCount, name.GetString());
+        game::FatalError(kWrongObjectCount, name.c_str());
         return;
     }
     if (call->groupArgs.size != vars.groups.size) {
-        game::FatalError(kWrongGroupCount, name.GetString());
+        game::FatalError(kWrongGroupCount, name.c_str());
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
