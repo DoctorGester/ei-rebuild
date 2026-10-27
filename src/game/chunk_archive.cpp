@@ -18,7 +18,7 @@
 using Ref = ChunkArchive::Ref;
 using Stack = ChunkArchive::Stack;
 using SavedList = ChunkArchive::SavedList;
-using ObjectMap = ChunkArchive::ObjectMap;
+using LoadedObjects = ChunkArchive::LoadedObjects;
 using RefElement = ChunkArchive::RefElement;
 
 namespace {
@@ -256,20 +256,18 @@ EI_REWRITTEN(0x00409640, ChunkArchive::StreamField);
 // The number a save gives an object: its place in the saved list (1, 2, ...), written as the key (the loader maps
 // any key to the object it creates); numbers by first save keep the saves free of heap layout.
 std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
-    const ObjectMap::Node* node = a->objects_.Find(reinterpret_cast<std::uint32_t>(object));
-    return node ? reinterpret_cast<std::uint32_t>(node->value) : 0;
+    const ChunkArchive::SavedNumbers::Node* node = a->numbers_.Find(object);
+    return node ? node->value : 0;
 }
 
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)
-// and the map (value: its number while saving, the archive while loading). Writing
+// and the numbers (also while loading, where nothing reads the number). Writing
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
-    std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
-    if (!objects_.Find(key)) {
+    if (!numbers_.Find(object)) {
         SavedList::Insert(saved_.End(), object);
-        ObjectMap::Node* node = objects_.FindOrInsert({key, nullptr});
-        node->value = loading_ ? reinterpret_cast<CRefObject*>(this)
-                         : reinterpret_cast<CRefObject*>(static_cast<std::uintptr_t>(objects_.Size()));
+        ChunkArchive::SavedNumbers::Node* node = numbers_.FindOrInsert({object, 0});
+        node->value = static_cast<std::uint32_t>(numbers_.Size());
     }
     if (!loading_) {
         std::uint32_t number = SavedNumber(this, object);
@@ -292,7 +290,7 @@ CRefObject* ChunkArchive::ObjectRef(int id) {
         if (FindField(this, id, &child)) std::memcpy(&key, Data() + child.offset, 4);
         else key = 0;
     }
-    ObjectMap::Node* node = objects_.Find(key);
+    LoadedObjects::Node* node = loaded_.Find(key);
     return node ? node->value : nullptr;
 }
 EI_REWRITTEN(0x0040A5A0, ChunkArchive::ObjectRef);
@@ -301,7 +299,8 @@ EI_REWRITTEN(0x0040A5A0, ChunkArchive::ObjectRef);
 
 ChunkArchive::ChunkArchive() {
     stack_.Construct();
-    objects_.Construct(100);
+    loaded_.Construct(100);
+    numbers_.Construct(100);
     saved_.Construct();
     version_ = 1;
 }
@@ -309,7 +308,8 @@ EI_REWRITTEN_SPECIAL(0x0053A7B0, ChunkArchive::ChunkArchive);
 
 ChunkArchive::~ChunkArchive() {
     saved_.Release();
-    objects_.Destroy();
+    numbers_.Destroy();
+    loaded_.Destroy();
     stack_.Release<RefElement>();
 }
 EI_REWRITTEN_SPECIAL(0x004645A0, ChunkArchive::~ChunkArchive);
@@ -385,7 +385,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         Factory factory = Registry().factories[classId];
         CRefObject* object = factory ? factory() : nullptr;
         SavedList::Insert(saved_.End(), object);
-        objects_.FindOrInsert({key, nullptr})->value = object;
+        loaded_.FindOrInsert({key, nullptr})->value = object;
     }
     if (version == 1) Field(2, &version_, 4);
     else version_ = version;
@@ -402,7 +402,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         } else {
             AppendChild(record, 0, &key, 4);
         }
-        CRefObject* object = objects_.FindOrInsert({key, nullptr})->value;
+        CRefObject* object = loaded_.FindOrInsert({key, nullptr})->value;
         if (object && EnterChunk(1)) {
             object->Serialize(this);
             LeaveChunk();
@@ -421,7 +421,7 @@ void ChunkArchive::Close(CStream* stream) {
     if (loading_) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
-        for (ObjectMap::Node* node = objects_.First(); node; node = objects_.After(node)) {
+        for (LoadedObjects::Node* node = loaded_.First(); node; node = loaded_.After(node)) {
             RefPtr counted;
             counted.FromRawCounted(node->value);
             if (counted.ptr) counted.ptr->Release();
@@ -471,7 +471,8 @@ void ChunkArchive::Close(CStream* stream) {
     }
     index->Clear();
     data->Clear();
-    objects_.Clear();
+    loaded_.Clear();
+    numbers_.Clear();
     saved_.Clear();
     stack_.Clear<RefElement>();
 }

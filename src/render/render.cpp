@@ -155,7 +155,7 @@ HRESULT CreateRemovableDevice(const D3D_FEATURE_LEVEL* levels, UINT count, D3D_F
         ei::Log("render: removable device: no D3D12CreateDevice or D3D11On12CreateDevice");
         return E_NOINTERFACE;
     }
-    HRESULT hr = create12(nullptr, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&g_d3d12));
+    HRESULT hr = create12(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&g_d3d12));
     if (FAILED(hr)) {
         ei::Log("render: removable device: D3D12CreateDevice failed (%08lX)", static_cast<unsigned long>(hr));
         g_d3d12 = nullptr;
@@ -171,7 +171,7 @@ HRESULT CreateRemovableDevice(const D3D_FEATURE_LEVEL* levels, UINT count, D3D_F
     }
     D3D12_COMMAND_QUEUE_DESC queue{};
     queue.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    hr = g_d3d12->CreateCommandQueue(&queue, __uuidof(ID3D12CommandQueue), reinterpret_cast<void**>(&g_queue));
+    hr = g_d3d12->CreateCommandQueue(&queue, IID_PPV_ARGS(&g_queue));
     if (SUCCEEDED(hr)) {
         IUnknown* queues[] = {g_queue};
         hr = create11on12(g_d3d12, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, count, queues, 1, 0, &g_device, &g_context, got);
@@ -532,7 +532,7 @@ void LoseDevice() {
 bool RemoveDevice() {
     if (!Active() || !g_started || !g_d3d12) return false;
     ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5)))) {
+    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
         ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
         return false;
     }
@@ -547,7 +547,7 @@ void RemoveIfAsked() {
     if (!g_removeAsked || !g_d3d12) return;
     g_removeAsked = false;
     ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5)))) return;
+    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) return;
     FpuGuard fpu;
     // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown
     // (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver, also in a small program that

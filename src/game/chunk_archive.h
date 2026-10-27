@@ -79,10 +79,11 @@ public:
     static_assert(sizeof(Stack::Node) == 0x18);
     using SavedList = stlp::list<CRefObject*>;
 
-    // Key -> object: while loading, the objects the index names (by the key their records are
-    // stored under); while saving, the objects already listed (value: the object's number by first
-    // save, written as the key instead of the object's address).
-    using ObjectMap = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
+    // While loading: key -> the object the index names (by the key its record is stored under).
+    using LoadedObjects = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
+    // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
+    // instead of the object's address.
+    using SavedNumbers = stlp::hash_map<const CRefObject*, std::uint32_t, stlp::PointerHash>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
@@ -199,7 +200,8 @@ public:
     Stack stack_;                  // the last chunk is the current one
     std::int32_t version_;         // 1 when constructed; field 2 of the root chunk
     std::uint8_t loading_;         // Open stores the low byte of its argument
-    ObjectMap objects_;
+    LoadedObjects loaded_;
+    SavedNumbers numbers_;
     SavedList saved_;              // the objects whose records Close writes
 };
 static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);

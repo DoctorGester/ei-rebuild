@@ -51,12 +51,3 @@ void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
 void __fastcall FillAreaLists(CAIMap* map);
 
-// CAIMap's dirty rectangle (dirtyMinX .. dirtyMaxY).
-struct AIDirtyRect {
-    // Empty: the minimums 10000, the maximums 0.
-    void Reset();
-
-    int minX, maxX;
-    int minY, maxY;
-};
-

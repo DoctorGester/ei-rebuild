@@ -17,10 +17,6 @@
 #include "record_arrays.h"
 
 CAIMap::CAIMap() {
-    dirtyMinX = 10000;
-    dirtyMaxX = 0;
-    dirtyMinY = 10000;
-    dirtyMaxY = 0;
     climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
     climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
     materials.Construct();
@@ -37,7 +33,9 @@ CAIMap::CAIMap() {
     unitLayerLarge.map = this;
     ConstructRegionMap(&regionMap);
     forwardSearch.nodes.Construct(1, 1);
-    reinterpret_cast<SearchGrid<std::int8_t>*>(&forwardSearch.levels)->Construct(1, 1);
+    forwardSearch.levels.width = 1;
+    forwardSearch.levels.height = 1;
+    AllocateGrid(forwardSearch.levels);
     mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
     forwardSearch.map = nullptr;
     backwardSearch.Construct(nullptr);
@@ -47,7 +45,7 @@ CAIMap::CAIMap() {
     Events()->Construct();
     loaded = false;
     batching = false;
-    reinterpret_cast<AIDirtyRect*>(&dirtyMinX)->Reset();
+    dirty.Reset();
     FillAreaLists(this);
     footprintTick = 0;
     refreshUnits = false;

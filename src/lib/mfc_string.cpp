@@ -446,7 +446,7 @@ int CString::Find(char c) const { return Find(c, 0); }
 int CString::Find(char c, int start) const {
     if (start >= GetData()->dataLength) return -1;
     const uchar* found = _mbschr(U(data_ + start), static_cast<uchar>(c));
-    return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
+    return found ? static_cast<int>(found - U(data_)) : -1;
 }
 
 int CString::Find(const char* sub) const { return Find(sub, 0); }
@@ -454,17 +454,17 @@ int CString::Find(const char* sub) const { return Find(sub, 0); }
 int CString::Find(const char* sub, int start) const {
     if (start > GetData()->dataLength) return -1;
     const uchar* found = _mbsstr(U(data_ + start), U(sub));
-    return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
+    return found ? static_cast<int>(found - U(data_)) : -1;
 }
 
 int CString::ReverseFind(char c) const {
     const uchar* found = _mbsrchr(U(data_), static_cast<uchar>(c));
-    return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
+    return found ? static_cast<int>(found - U(data_)) : -1;
 }
 
 int CString::FindOneOf(const char* set) const {
     const uchar* found = _mbspbrk(U(data_), U(set));
-    return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
+    return found ? static_cast<int>(found - U(data_)) : -1;
 }
 
 CString CString::Mid(int first) const { return Mid(first, GetData()->dataLength - first); }
