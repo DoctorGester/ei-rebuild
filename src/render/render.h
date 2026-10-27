@@ -62,7 +62,7 @@ void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (z negative by day). Without it no
 // shadow map is made.
 void ShadowSun(const float direction[3]);
-// The GPU lighting (renderer.md section 13, R16i). The world's draw hands over the frame's light, kept
+// The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights) and the camera. With GpuTerrainLighting (true when Active()) the
 // terrain shader lights each pixel and SectorData::Light writes only the edge fade.
@@ -385,7 +385,7 @@ struct TerrainCacheInfo {
 };
 TerrainCacheInfo TerrainCacheState();
 
-// A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13, R16i). Lights
+// A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights
 // and sun are taken into the part's model space; `crown`: the colours pulled 0.6 of the way to the part's
 // average (the flora's "crown" meshes).
 struct MeshLightSource {
