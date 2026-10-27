@@ -33,17 +33,17 @@ void CInterface3D::ResetInput() {
     shiftDown_ = 0;
     rightDown_ = false;
     doubleClick_ = false;
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
 }
 EI_REWRITTEN(0x005F8C50, CInterface3D::ResetInput);
 
 void CInterface3D::Shutdown() {
     TheCursor()->SetShape(kCursorWait);
-    while (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Input()->Deactivate();
-        ScreenOf(stackEnd_[-1])->CloseScreen();
-        delete stackEnd_[-1];
-        --stackEnd_;
+    while (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Input()->Deactivate();
+        ScreenOf(stack_.Finish()[-1])->CloseScreen();
+        delete stack_.Finish()[-1];
+        --stack_.Finish();
     }
     ResetInput();
     app::PumpMessages();
@@ -101,8 +101,8 @@ void CInterface3D::DestroyBody() {
     helpTopics_.Destroy();
     messages_.ClearWith([](mfc::CString* text) { std::destroy_at(text); });
     stlp::deallocate(messages_.head, sizeof(stlp::list<mfc::CString>::Node));
-    if (stackBegin_) {
-        stlp::deallocate(stackBegin_, static_cast<std::size_t>(stackCapacity_ - stackBegin_) * sizeof(CUiWindow*));
+    if (stack_.Start()) {
+        stlp::deallocate(stack_.Start(), static_cast<std::size_t>(stack_.EndOfStorage() - stack_.Start()) * sizeof(CUiWindow*));
     }
 }
 EI_REWRITTEN(0x005F4790, CInterface3D::DestroyBody);

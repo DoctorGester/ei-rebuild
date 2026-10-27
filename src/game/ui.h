@@ -225,9 +225,7 @@ public:
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing_;
     std::uint8_t unused_31[0x34 - 0x31];
-    CUiWindow** stackBegin_;
-    CUiWindow** stackEnd_;
-    CUiWindow** stackCapacity_;
+    stlp::vector<CUiWindow*> stack_;   // the open windows, the top one last
     CUiWindow* queuedWindow_;        // activated by the next frame update
     bool closeAll_;
     std::uint8_t unused_45[0x48 - 0x45];
@@ -287,7 +285,7 @@ static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
-static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
+static_assert(offsetof(CInterface3D, stack_) == 0x34);
 
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);

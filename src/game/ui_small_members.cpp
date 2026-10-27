@@ -130,9 +130,9 @@ CScreenFade* CScreenFade::Construct() {
 EI_REWRITTEN(0x005E6990, CScreenFade::Construct);
 
 CInterface3D* CInterface3D::Construct() {
-    stackBegin_ = nullptr;
-    stackEnd_ = nullptr;
-    stackCapacity_ = nullptr;
+    stack_.Start() = nullptr;
+    stack_.Finish() = nullptr;
+    stack_.EndOfStorage() = nullptr;
     messages_.Construct();
     helpTopics_.Construct();
     std::construct_at(&messageText_);
