@@ -93,7 +93,7 @@ EI_REWRITTEN(0x00636150, CBattleScreen::OnItemsPicked);
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
-        panel->pageTexts_[0].Empty();
+        panel->pageTexts_[0].clear();
         if (panel->page_ == 0)
             panel->owner_->MessageLog()->SetText(game::EmptyText());
         return;
@@ -126,7 +126,7 @@ void CBattleScreen::SaveState() {
     stream->Write(&Map(map_)->zoom_, 4);
     stream->Write(&interface_->serverFlag_, 1);
     stream->Write(&LocalPlayerData()->money_, 4);   // the party's +0x50 (Create reads it back and drops it)
-    const char* text = TopPanel(topPanel_)->pageTexts_[0];
+    const char* text = TopPanel(topPanel_)->pageTexts_[0].c_str();
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
     stream->Write(&exitPending_, 1);
     stream->Write(&pendingExit_, 4);
@@ -145,7 +145,7 @@ void CBattleScreen::MarkPortrait(int index) {
 void CBattleScreen::OnUnitJoined(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
-        panel->pageTexts_[0].Empty();
+        panel->pageTexts_[0].clear();
         if (panel->page_ == 0)
             panel->owner_->MessageLog()->SetText(game::EmptyText());
         return;

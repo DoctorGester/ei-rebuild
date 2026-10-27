@@ -15,6 +15,7 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
@@ -206,7 +207,7 @@ EI_REWRITTEN(0x005E2A30, CChatOverlay::AddLine);
 void CChatOverlay::SetOpen(bool open) {
     chatOpen_ = open;
     if (open) {
-        typed_.Empty();
+        typed_.clear();
         caret_ = 0;
     }
     DrawTyped();
@@ -232,14 +233,14 @@ void CChatOverlay::DrawTyped() {
         return;
     }
     surfaces_.data[0]->Freeze(1, 0);
-    if (caret_ > typed_.GetLength()) caret_ = typed_.GetLength();
+    if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
-    int width = TextWidth(interface_, typed_.Left(caret_).GetString(), kTypedFont);
+    surface->DrawTextIn(typed_.c_str(), &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    int width = TextWidth(interface_, str::Left(typed_, caret_).c_str(), kTypedFont);
     if (width < kMaxTypedWidth) {
         mfc::impl::CPen pen(PS_SOLID, 1, kTypedColour);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
@@ -264,33 +265,33 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     switch (key) {
     case VK_BACK: {   // by character, as Delete and the caret's steps
         if (caret_ <= 0) break;
-        const int previous = text::PreviousCharacter(typed_.GetString(), caret_);
-        typed_ = typed_.Left(previous) + typed_.Mid(caret_);
+        const int previous = text::PreviousCharacter(typed_.c_str(), caret_);
+        typed_ = str::Left(typed_, previous) + str::Mid(typed_, caret_);
         caret_ = previous;
         break;
     }
     case VK_RETURN:
-        if (typed_.GetLength() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_);
+        if (typed_.size() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_.c_str());
         chatOpen_ = false;
         break;
     case VK_ESCAPE:
         chatOpen_ = false;
         break;
     case VK_END:
-        caret_ = typed_.GetLength();
+        caret_ = typed_.size();
         break;
     case VK_HOME:
         caret_ = 0;
         break;
     case VK_LEFT:
-        caret_ = text::PreviousCharacter(typed_.GetString(), caret_);
+        caret_ = text::PreviousCharacter(typed_.c_str(), caret_);
         break;
     case VK_RIGHT:
-        caret_ = text::NextCharacter(typed_.GetString(), caret_);
+        caret_ = text::NextCharacter(typed_.c_str(), caret_);
         break;
     case VK_DELETE:
-        if (caret_ >= typed_.GetLength()) break;
-        typed_ = typed_.Left(caret_) + typed_.Mid(text::NextCharacter(typed_.GetString(), caret_));
+        if (caret_ >= static_cast<int>(typed_.size())) break;
+        typed_ = str::Left(typed_, caret_) + str::Mid(typed_, text::NextCharacter(typed_.c_str(), caret_));
         break;
     default:
         return;
@@ -301,7 +302,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    std::string line = (text::Typed(typed_.Left(caret_).GetString(), key) + typed_.Mid(caret_)).GetString();
+    std::string line = (text::Typed(str::Left(typed_, caret_).c_str(), key) + str::Mid(typed_, caret_)).GetString();
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.

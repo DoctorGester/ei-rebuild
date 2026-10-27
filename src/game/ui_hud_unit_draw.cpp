@@ -104,7 +104,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     if (slide_ < One()) {
         const int which = hoverUnit_ ? 1 : 0;
         unit = hoverUnit_ ? hoverUnit_ : shownUnit_;
-        name = strings_[which];
+        name = strings_[which].c_str();
         size = viewSize_[which];
         height = viewHeight_[which];
         if (hoverUnit_ == shownUnit_) size = viewSize_[0];

@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CHeroEquipPanel;
 class CHeroQuickStrip;
@@ -193,10 +194,9 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell);
 struct MpVoiceEntry {
     void Destroy();
 
-    mfc::CString file;
-    mfc::CString name;
+    std::string file;
+    std::string name;
 };
-static_assert(sizeof(MpVoiceEntry) == 8 && offsetof(MpVoiceEntry, name) == 4);
 using MpVoiceVector = stlp::vector<MpVoiceEntry>;
 // Opened by the main menu's Multiplayer button (region 5). Modes: 9 hero list, 10 new hero (portrait, name and voice),
 // 11 new hero's statistics. The heroes are records in a global vector.
@@ -320,7 +320,7 @@ public:
     CUiEditField* renameEdit_;  // the hero list's rename edit window (focused_ while renaming)
     CUiEditField* nameEdit_;    // the new hero's name edit window
     CUiScrollbar* voiceScroll_;
-    mfc::CString text_;
+    std::string text_;
     MpVoiceVector voiceLists_[2];   // voices_ points at one of them
     MpVoiceVector* voices_;     // voiceLists_[0] or [1]
     int voiceTop_;
@@ -337,12 +337,9 @@ static_assert(offsetof(CMpHeroScreen, heroTop_) == 0x19C);
 static_assert(offsetof(CMpHeroScreen, weapon_) == 0x1A4);
 static_assert(offsetof(CMpHeroScreen, weaponPanel_) == 0x1B4);
 static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
-static_assert(offsetof(CMpHeroScreen, voices_) == 0x210);
 static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
-static_assert(offsetof(CMpHeroScreen, voiceLists_) == 0x1F8);
 static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
-static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8 && offsetof(CMpHeroScreen, text_) == 0x1F4);
-static_assert(sizeof(CMpHeroScreen) == 0x220);
+static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
 // An entry of a sound set (the sets are the values of a map keyed by a unit prototype's name).
 struct UnitSoundEntry {
@@ -372,8 +369,8 @@ struct MpAddressEntry {
     MpAddressEntry* AssignFrom(const MpAddressEntry& other);
     void Destroy();
 
-    mfc::CString name;             // the server's name
-    mfc::CString description;      // the current map's title
+    std::string name;             // the server's name
+    std::string description;      // the current map's title
     int players;
     int maxPlayers;
     int ping;                      // milliseconds (9999: none)
@@ -383,11 +380,6 @@ struct MpAddressEntry {
     int state;                     // net::ServerEntryBase::State (1: asked directly, forgettable)
     bool password;                 // joining needs a password
 };
-static_assert(offsetof(MpAddressEntry, address) == 0x14);
-static_assert(offsetof(MpAddressEntry, gameType) == 0x24);
-static_assert(offsetof(MpAddressEntry, state) == 0x2C);
-static_assert(offsetof(MpAddressEntry, password) == 0x30);
-static_assert(sizeof(MpAddressEntry) == 0x34);
 
 struct MpAddresses : stlp::vector<MpAddressEntry> {
     void PushDefault();
@@ -489,7 +481,7 @@ public:
     char boxText_[0x80];           // the edit boxes' text (an address, a password)
     bool unlisted_;                // the new game is not announced (1 from Create)
     std::uint8_t unused_221[3];
-    mfc::CString hostPassword_;    // the new game's password
+    std::string hostPassword_;    // the new game's password
     mfc::CStringArray allodNames_; // "lmp_allod_name %d" texts (the game type tabs)
     bool joining_;                 // the client was asking a host last frame
     std::uint8_t unused_23D[3];
@@ -507,10 +499,6 @@ static_assert(offsetof(CMpConnectScreen, gameType_) == 0x19C);
 static_assert(offsetof(CMpConnectScreen, boxText_) == 0x1A0);
 static_assert(offsetof(CMpConnectScreen, unlisted_) == 0x220);
 static_assert(offsetof(CMpConnectScreen, hostPassword_) == 0x224);
-static_assert(offsetof(CMpConnectScreen, joining_) == 0x23C);
-static_assert(offsetof(CMpConnectScreen, texts_) == 0x240);
-static_assert(offsetof(CMpConnectScreen, sortKey_) == 0x258);
-static_assert(sizeof(CMpConnectScreen) == 0x260);
 
 // A message box waiting on a master server request: one cancel button, the link to the master server and a progress bar
 // sprite. Its result is kBoxMaster (| 2 when done).
@@ -529,9 +517,6 @@ public:
     net::MasterLink link_;
     CUiMesh* bar_;
 };
-static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
-static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
-static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
 inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
 inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
@@ -572,10 +557,9 @@ struct TitleLine {
     bool scroll;                // the first word is "#scroll"
     std::uint8_t unused_1[3];
     float speed;                // the second word (atof): the scroll speed, or the seconds shown
-    mfc::CString text;          // the fourth word (the header)
-    mfc::CString style;         // the third word (the text file in the archive)
+    std::string text;          // the fourth word (the header)
+    std::string style;         // the third word (the text file in the archive)
 };
-static_assert(sizeof(TitleLine) == 0x10 && offsetof(TitleLine, text) == 8 && offsetof(TitleLine, style) == 0xC);
 
 // The titles' scrolling text surface.
 class CUiScrollingSurface : public CUiSurface {
@@ -651,7 +635,7 @@ public:
     stlp::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
     stlp::list<TitleLine>::Node* currentLine_;   // the next line (the sentinel at the end)
-    mfc::CString name_;         // ("Titles")
+    std::string name_;         // ("Titles")
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // the last line has gone (cleared by Build)
@@ -660,9 +644,6 @@ public:
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
 static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
-static_assert(offsetof(CCreditsScreen, fromGame_) == 0x1F4);
-static_assert(offsetof(CCreditsScreen, savedDisplay_) == 0x1F8);
-static_assert(sizeof(CCreditsScreen) == 0x1FC);
 
 
 // --- Main menu ----------------------------------------------------------------------------------

@@ -58,7 +58,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
             const ObjectiveExit& exit = exits_[nearestExit_];
             int index = exit.exit_;
             GamePassTime(exit.distance_);
-            RequestZone(shownZone_, index);
+            RequestZone(shownZone_.c_str(), index);
         }
         return;
     case kRegionCancel:
@@ -118,7 +118,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
             const ObjectiveExit& exit = exits_[nearestExit_];
             int index = exit.exit_;
             GamePassTime(exit.distance_);
-            RequestZone(shownZone_, index);
+            RequestZone(shownZone_.c_str(), index);
         }
         handled_ = true;
         break;

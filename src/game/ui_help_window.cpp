@@ -39,15 +39,18 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 
 // Opens text `section` + `key` and, when it is there, replaces `text` with it up to the next '#'
 // (the line ends trimmed).
-void ReadTutorText(CTextManager* texts, const std::string& key, mfc::CString* text) {
+template <typename Text>
+void ReadTutorText(CTextManager* texts, const std::string& key, Text* text) {
     BOOL found;
     {
         std::string section = (mfc::CString(TutorSection()) + key).GetString();
         found = texts->Open(section.c_str());
     }
     if (!found) return;
-    texts->ReadToHash(text, 1);
-    text->TrimRight(LineEnds());
+    mfc::CString read;
+    texts->ReadToHash(&read, 1);
+    read.TrimRight(LineEnds());
+    *text = read.GetString();
 }
 
 int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
@@ -67,8 +70,9 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    texts->ReadLine(&title_, 1);
     mfc::CString line;
+    texts->ReadLine(&line, 1);
+    title_ = line.GetString();
     while (texts->FindLine(ScreenLine())) {
         TextNextLine(texts);
         texts->ReadLine(&line, 1);
@@ -78,7 +82,7 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    ReadTutorText(texts, title_.GetString(), &title_);
+    ReadTutorText(texts, title_.c_str(), &title_);
     for (int i = 0; i < lines_.size; ++i) ReadTutorText(texts, lines_.data[i].GetString(), &lines_.data[i]);
     if (page_ < 0) page_ = 0;
     if (page_ >= lines_.size) page_ = lines_.size - 1;

@@ -260,7 +260,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     if (phrase) {
         // The phrase's text.
         mfc::CString text;
-        mfc::CString line;
+        std::string line;
         UnitName(unit, &line);
         line += ":\n";
         CTextManager* texts = GameClientTexts();
@@ -278,10 +278,10 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             // Both go to the top panel's text and, unless its +0x160, the message log.
             auto post = [this](const char* part) {
                 CHudTopPanel* top = topPanel_;
-                top->PageText(0) += part;
+                top->pageTexts_[0] += part;
                 if (top->page_ == 0) top->owner_->MessageLog()->AddText(part);
             };
-            post(line);
+            post(line.c_str());
             post(text);
         }
     }

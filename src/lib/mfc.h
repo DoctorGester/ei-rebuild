@@ -8,7 +8,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
+#include <utility>
 #include <string>
 
 namespace mfc {
@@ -246,6 +248,21 @@ struct RawElements {
     static void Construct(T*, int) {}
     static void Destruct(T*, int) {}
 };
+
+// An element policy's Relocate for elements that are not relocatable as bytes (a std::string member): each
+// element move-constructed at `to` and its source destroyed, in the direction the overlap needs.
+template <typename T>
+void MoveElements(T* to, T* from, int count) {
+    auto move = [](T* target, T* source) {
+        std::construct_at(target, std::move(*source));
+        std::destroy_at(source);
+    };
+    if (to < from) {
+        for (int i = 0; i < count; ++i) move(to + i, from + i);
+    } else {
+        for (int i = count; i-- > 0;) move(to + i, from + i);
+    }
+}
 
 // Only what the CArray serialisers use: the mode (bit 0: loading).
 class CArchive {

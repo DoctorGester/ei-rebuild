@@ -161,7 +161,7 @@ void CMpConnectScreen::DrawListVanilla() {
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text = str::Format("%s %s", label(7), nameEdit_->text_.GetString());
+            text = str::Format("%s %s", label(7), nameEdit_->text_.c_str());
             if (extended)
                 DrawEllipsis(surface, text.c_str(), &row, kFormatNoPrefix);
             else
@@ -170,9 +170,9 @@ void CMpConnectScreen::DrawListVanilla() {
             if (extended) {
                 RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
                 nameRect.right = kExtendedNameRight;
-                DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
+                DrawEllipsis(surface, entry.name.c_str(), &nameRect, kFormatNoPrefix);
             } else {
-                DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
+                DrawLabel(surface, entry.name.c_str(), &row, kFormatNoPrefix);
             }
             row.left = 142;
             text = str::Format("%d/%d", entry.players, entry.maxPlayers);
@@ -219,7 +219,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             DrawLabel(surface, label(17), &row, 0);
         } else {
-            text = str::Format("%s %s", label(0), entry.name.GetString());
+            text = str::Format("%s %s", label(0), entry.name.c_str());
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
                 int lines = surface->DrawWrappedText(text.c_str(), &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
@@ -238,7 +238,7 @@ void CMpConnectScreen::DrawListVanilla() {
                 text = str::Format("%s %s", label(3), allod(entry.gameType));
             DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
-            text = str::Format("%s %s", label(4), entry.description.GetString());
+            text = str::Format("%s %s", label(4), entry.description.c_str());
             int lines = surface->DrawWrappedText(text.c_str(), &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             stlp::string address;

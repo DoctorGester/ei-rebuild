@@ -150,7 +150,7 @@ void CSaveLoadWindow::CreateScreen() {
         if (EntryCount() != 0) {
             nameTyped_ = false;
             name_ = entries_.begin()->title_;
-            cursor_ = name_.GetLength();
+            cursor_ = name_.size();
         }
     } else {
         selected_ = EntryCount() != 0 ? 0 : -1;
@@ -381,9 +381,9 @@ void CMessageBox::CreateScreen() {
     int font = result_ != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_.c_str(), &rect, 2, 0, 0x411, 1);
     rect = RECT{15, 0, 385, 400};
-    int textHeight = BoxText(surface, text_, &rect, font, 0, 0x411, 1);
+    int textHeight = BoxText(surface, text_.c_str(), &rect, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
@@ -391,7 +391,7 @@ void CMessageBox::CreateScreen() {
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};
-    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_.c_str(), &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
         edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
         edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
@@ -399,7 +399,7 @@ void CMessageBox::CreateScreen() {
         AddChild(edit_);
     } else {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
-        BoxText(surface, text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
+        BoxText(surface, text_.c_str(), &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
     }
     UiSurfaceReleaseDC(surface);
 
@@ -436,7 +436,7 @@ void CDifficultyBox::CreateScreen() {
     UiSurfaceGetDC(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_.c_str(), &rect, 2, 0, 0x411, 1);
     mfc::CString explanation;
     int textHeight = 0;
     if (TheTextManager()->Open("tip option_difficulty") != 0) {
@@ -448,7 +448,7 @@ void CDifficultyBox::CreateScreen() {
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 0x55, 385, 450};
-    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_.c_str(), &rect, 2, 0x31B3FF, 0x11, 1);
     rect = RECT{15, titleHeight + top - 7, 385, 450};
     BoxText(surface, explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
 
@@ -499,7 +499,8 @@ namespace {
 CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
-    const char* WordOrNull() const { return position != -1 ? word.GetString() : nullptr; }
+    // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
+    const char* WordOrEmpty() const { return position != -1 ? word.GetString() : ""; }
 };
 
 } // namespace
@@ -540,7 +541,7 @@ void CCreditsScreen::CreateScreen() {
             words.Start();
             TitleLine record{};
             {
-                std::string first = words.WordOrNull();
+                std::string first = words.WordOrEmpty();
                 record.scroll = gamecrt::mbsicmp(first.c_str(),
                                                 "#scroll") ==
                                 0;
@@ -548,9 +549,9 @@ void CCreditsScreen::CreateScreen() {
             words.Next();
             record.speed = static_cast<float>(std::atof(words.word));
             words.Next();
-            record.style = words.WordOrNull();
+            record.style = words.WordOrEmpty();
             words.Next();
-            record.text = words.WordOrNull();
+            record.text = words.WordOrEmpty();
             stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);
             lines.Next();
         }

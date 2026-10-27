@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,30 +31,30 @@ constexpr int kKeyDelete = 0x2E;
 
 void CUiEditField::OnKeyDown(int key, int, int) {
     if (!focused_) return;
-    mfc::CString& text = Text();
+    auto& text = text_;
     switch (key) {
     case kKeyBackspace:
     case kKeyDelete:
         // The first edit key of a field starts from an empty text.
         if (!editing_) {
             editing_ = true;
-            text.Empty();
+            text.clear();
             caret_ = 0;
             changed_ = true;
         }
         // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
-                const int previous = text::PreviousCharacter(text.GetString(), caret_);
-                std::string tail = text.Mid(caret_).GetString();
-                std::string head = text.Left(previous).GetString();
+                const int previous = text::PreviousCharacter(text.c_str(), caret_);
+                std::string tail = str::Mid(text, caret_);
+                std::string head = str::Left(text, previous);
                 text = head + tail;
                 caret_ = previous;
                 changed_ = true;
             }
-        } else if (caret_ < text.GetLength()) {
-            std::string tail = text.Mid(text::NextCharacter(text.GetString(), caret_)).GetString();
-            std::string head = text.Left(caret_).GetString();
+        } else if (caret_ < static_cast<int>(text.size())) {
+            std::string tail = str::Mid(text, text::NextCharacter(text.c_str(), caret_));
+            std::string head = str::Left(text, caret_);
             text = head + tail;
             changed_ = true;
         }
@@ -65,16 +66,16 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         // The first edit key of a field keeps the text, the caret at its end.
         if (!editing_) {
             editing_ = true;
-            caret_ = text.GetLength();
+            caret_ = text.size();
         }
         if (key == kKeyEnd)
-            caret_ = text.GetLength();
+            caret_ = text.size();
         else if (key == kKeyHome)
             caret_ = 0;
         else if (key == kKeyLeft)
-            caret_ = text::PreviousCharacter(text.GetString(), caret_);
+            caret_ = text::PreviousCharacter(text.c_str(), caret_);
         else
-            caret_ = text::NextCharacter(text.GetString(), caret_);
+            caret_ = text::NextCharacter(text.c_str(), caret_);
         break;
     default:
         return;
@@ -137,16 +138,16 @@ void CUiEditField::OnChar(int key, int, int) {
     if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
     if (interface_->ctrlDown_) return;
     if ((charClasses_ & CharClass(key)) == 0) return;
-    mfc::CString& text = Text();
+    auto& text = text_;
     // The first character of a field starts from an empty text.
     if (!editing_) {
         editing_ = true;
-        text.Empty();
+        text.clear();
         caret_ = 0;
         changed_ = true;
     }
-    std::string tail = text.Mid(caret_).GetString();
-    std::string head = text.Left(caret_).GetString();
+    std::string tail = str::Mid(text, caret_);
+    std::string head = str::Left(text, caret_);
     std::string typed = (text::Typed(head, key) + tail).GetString();
     if (text::CharacterCount(text) < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
         text = typed;
@@ -175,9 +176,9 @@ EI_REWRITTEN(0x0065C1A0, CUiEditField::SetLook);
 
 void CUiEditField::SetText(const char* text) {
     editing_ = false;
-    Text() = text;
+    text_ = text;
     changed_ = true;
-    caret_ = Text().GetLength();
+    caret_ = text_.size();
     DrawContentsVanilla();
 }
 EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
@@ -188,8 +189,8 @@ EI_REWRITTEN(0x0065C2D0, CUiEditField::SetFocused);
 // --- the text and the caret drawn ----------------------------------------------------------------
 
 void CUiEditField::DrawContentsVanilla() {
-    mfc::CString& text = Text();
-    if (caret_ > text.GetLength()) caret_ = text.GetLength();
+    auto& text = text_;
+    if (caret_ > static_cast<int>(text.size())) caret_ = text.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
@@ -198,11 +199,11 @@ void CUiEditField::DrawContentsVanilla() {
     const int width = area_.right - area_.left;
     const int height = area_.bottom - area_.top;
     RECT box{0, 0, width, height};
-    surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    surface->DrawTextIn(text.c_str(), &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
-    int caretX = TextWidth(interface_, text.Left(caret_).GetString(), font_);
-    if (centred_) caretX += width / 2 - TextWidth(interface_, text.GetString(), font_) / 2;
+    int caretX = TextWidth(interface_, str::Left(text, caret_).c_str(), font_);
+    if (centred_) caretX += width / 2 - TextWidth(interface_, text.c_str(), font_) / 2;
     if (caretX >= 0 && caretX < width) {
         mfc::impl::CPen pen(PS_SOLID, 1, caretColour_);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);

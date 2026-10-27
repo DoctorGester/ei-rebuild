@@ -46,7 +46,7 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 // --- Save/load window ----------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
-    const char* folder = entries_.begin()[index].folder_;
+    const char* folder = entries_.begin()[index].folder_.c_str();
     if (gamecrt::mbsicmp(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
@@ -99,28 +99,28 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     int selected = selected_;
     bool editable = selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
                     !IsReservedSave(selected) && !nameTyped_;
-    mfc::CString& name = name_;
+    auto& name = name_;
     switch (key) {
     case kKeyBack:
         if (editable) {
             nameTyped_ = true;
-            name.Empty();
+            name.clear();
             cursor_ = 0;
         }
         if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
-            const int previous = text::PreviousCharacter(name.GetString(), cursor_);
-            name = name.Left(previous) + console::Ops(name).Mid(cursor_);
+            const int previous = text::PreviousCharacter(name.c_str(), cursor_);
+            name = str::Left(name, previous) + str::Mid(name, cursor_);
             cursor_ = previous;
         }
         break;
     case kKeyDelete:
         if (editable) {
             nameTyped_ = true;
-            name.Empty();
+            name.clear();
             cursor_ = 0;
         }
-        if (cursor_ < name.GetLength())
-            name = name.Left(cursor_) + console::Ops(name).Mid(text::NextCharacter(name.GetString(), cursor_));
+        if (cursor_ < static_cast<int>(name.size()))
+            name = str::Left(name, cursor_) + str::Mid(name, text::NextCharacter(name.c_str(), cursor_));
         break;
     case kKeyEnd:
     case kKeyHome:
@@ -129,16 +129,16 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         if (editable) {
             nameTyped_ = true;
             name = entries_.begin()[selected_].title_;
-            cursor_ = name.GetLength();
+            cursor_ = name.size();
         }
         if (key == kKeyEnd)
-            cursor_ = name.GetLength();
+            cursor_ = name.size();
         else if (key == kKeyHome)
             cursor_ = 0;
         else if (key == kKeyLeft)
-            cursor_ = text::PreviousCharacter(name.GetString(), cursor_);
+            cursor_ = text::PreviousCharacter(name.c_str(), cursor_);
         else
-            cursor_ = text::NextCharacter(name.GetString(), cursor_);
+            cursor_ = text::NextCharacter(name.c_str(), cursor_);
         break;
     default:
         return;
@@ -168,15 +168,15 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
         if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
             !IsReservedSave(selected) && !nameTyped_) {
             nameTyped_ = true;
-            name_.Empty();
+            name_.clear();
             cursor_ = 0;
         }
-        mfc::CString& name = name_;
+        auto& name = name_;
         if (!interface_->ctrlDown_ && text::CharacterCount(name) < kMaxNameLength) {
-            std::string tail = console::Ops(name).Mid(cursor_).GetString();
+            std::string tail = str::Mid(name, cursor_);
             std::string typed;
             {
-                std::string head = name.Left(cursor_).GetString();
+                std::string head = str::Left(name, cursor_);
                 typed = text::Typed(head, key) + tail;   // with EI_UTF8 the character's UTF-8 bytes
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
@@ -232,7 +232,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             mfc::CString format;
             std::string message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
-            message = str::Format(format, pressed->name_, other->name_.GetString());
+            message = str::Format(format, pressed->name_, other->name_.c_str());
             // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();
             interface_->PushWindow(box, 1, 1);

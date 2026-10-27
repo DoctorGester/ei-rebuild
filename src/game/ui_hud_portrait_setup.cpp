@@ -71,7 +71,7 @@ void CHudPortraits::ShowFace(int index, int state) {
     case 3: u = 0x80; v = 0x80; break;
     default: u = state; v = state; break;   // a negative index (not reached)
     }
-    std::string name = slots_[index].FaceName().GetString();
+    std::string name = slots_[index].faceName_;
     if (state == 1)
         name += "a";
     else if (state == 2)
@@ -80,7 +80,7 @@ void CHudPortraits::ShowFace(int index, int state) {
         name += "b";
     const int texture = index / 4 + 1;
     if (static_cast<char>(CopyImage(objects_.data[texture], name.c_str(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
-        CopyImage(objects_.data[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+        CopyImage(objects_.data[texture], slots_[index].faceName_.c_str(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 }
 
 void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {
@@ -185,7 +185,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString sex;       // kept from one portrait to the next when the figure is neither
     std::string picture;
     std::string model;
-    mfc::CString tip;
+    std::string tip;
     slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());
 
     for (int i = 0; i < owner_->party_.size; ++i) {
@@ -212,16 +212,16 @@ void CHudPortraits::Rebuild(int wide) {
         }
         slots_[i].flash_ = 0.0f;
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
-        slots_[i].FaceName() = picture;
+        slots_[i].faceName_ = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format("infa%s", unit->name.GetString());
+        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name.GetString());
         const int hair = unit->GetPrototype()->hair;
-        slots_[i].ModelSuffix().Format("%dface", hair + 1);
+        slots_[i].modelSuffix_ = str::Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
         owner_->UnitName(owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
-        regions_.data[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions_.data[i]->SetTipString(tip.c_str(), 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
@@ -247,7 +247,7 @@ void CHudPortraits::Rebuild(int wide) {
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;
-        slots_[count_ - 1].FaceName() = picture;
+        slots_[count_ - 1].faceName_ = picture;
         slots_[count_ - 1].faceState_ = 0;
         slots_[count_ - 1].playerId_ = player->serial_;
         regions_.data[count_ - 1]->SetTipString(player->name_.data(), 1, 0);

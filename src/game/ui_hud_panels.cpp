@@ -262,11 +262,11 @@ void CHudTopPanel::ShowPage() {
     }
     CUiScrollText* log = owner_->MessageLog();
     if (page_ == 0) {
-        log->SetText(pageTexts_[0]);
+        log->SetText(pageTexts_[0].c_str());
         log->SetPosition(log->maxPosition_);
         log->moved_ = true;
     } else {
-        log->SetText(pageTexts_[1]);
+        log->SetText(pageTexts_[1].c_str());
         log->SetPosition(0);
     }
 }
@@ -295,8 +295,8 @@ void CHudTopPanel::ShowItems() {
         merged.AddTail(copy);
     }
 
-    mfc::CString& text = pageTexts_[1];
-    text.Empty();
+    auto& text = pageTexts_[1];
+    text.clear();
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
         texts->CTextManager::GetString("format_money", &format);
@@ -315,7 +315,7 @@ void CHudTopPanel::ShowItems() {
     merged.RemoveAll();
     if (page_ == 1) {
         CUiScrollText* log = owner_->MessageLog();
-        log->SetText(text);
+        log->SetText(text.c_str());
         log->SetPosition(0);
     }
     merged.RemoveAll();

@@ -181,7 +181,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
     while (regions_.size > 9) RemoveRegionAt(9);
 
-    MapRecord* map = FindZone(shownZone_);
+    MapRecord* map = FindZone(shownZone_.c_str());
     if (!map) {
         interface_->SetPendingValue(0);
         return;
@@ -304,7 +304,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix = str::Format("q.%s", shownZone_.GetString());
+        prefix = str::Format("q.%s", shownZone_.c_str());
         table->Fill(prefix.c_str());
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
@@ -323,7 +323,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             for (mfc::CString* s = found.begin(); s != found.end(); ++s) {
                 quests->SetAtGrow(quests->GetSize(), *s);
                 const char* current = listZones_ == 0 ? LastQuest().GetString()
-                                                      : interface_->savedText_.GetString();
+                                                      : interface_->savedText_.c_str();
                 if (gamecrt::mbsicmp(current,
                                     s->GetString()) == 0)
                     selectedQuest_ = quests->GetSize() - 1;
@@ -439,7 +439,7 @@ void CObjectivesWindow::ShowQuest() {
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable = str::Format("q.%s.%s.%s", shownZone_.GetString(), ((*quests)[selectedQuest_]).GetString(),
+        variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), ((*quests)[selectedQuest_]).GetString(),
                         fields[1].GetString());
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         if (state == 0) continue;
@@ -462,7 +462,7 @@ void CObjectivesWindow::ShowQuest() {
     TextClose(texts);
     static_cast<CUiScrollText*>(children_.data[0])->SetText(text);
 
-    MapRecord* map = FindZone(shownZone_);
+    MapRecord* map = FindZone(shownZone_.c_str());
     if (!map) return;
     LoadQuestPlaces((*quests)[selectedQuest_]);
     while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
@@ -582,9 +582,9 @@ void CObjectivesWindow::CreateScreen() {
     blinkTime_ = 0.0f;
 
     if (listZones_ == 0) {
-        ShowZone(zoneName_);
+        ShowZone(zoneName_.c_str());
     } else {
-        MapRecord* allodZone = FindZone(zoneName_);
+        MapRecord* allodZone = FindZone(zoneName_.c_str());
         if (!allodZone) {
             interface_->SetPendingValue(0);
             return;
@@ -597,7 +597,7 @@ void CObjectivesWindow::CreateScreen() {
         auto* table = new (tableStorage) VariableTable();
         table->Fill("q.");
         ZoneNames* zones = &zones_;
-        const char* interfaceQuest = interface_->savedText_;
+        const char* interfaceQuest = interface_->savedText_.c_str();
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() != 3) continue;
@@ -672,7 +672,7 @@ void CObjectivesWindow::DrawQuestList() {
         }
         if (found) texts->ReadLine(&title, 1);
         else title = (*quests)[row];
-        variable = str::Format("q.%s.%s", shownZone_.GetString(), ((*quests)[row]).GetString());
+        variable = str::Format("q.%s.%s", shownZone_.c_str(), ((*quests)[row]).GetString());
         int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

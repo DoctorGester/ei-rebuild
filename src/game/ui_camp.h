@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CConstructorPage;
 class CGlobalMapClouds;
@@ -60,13 +61,13 @@ inline const char* const* AttributeNames() {
 struct GlobalMapZone {
     int state;                       // the player's "z.<zone>" variable, truncated
     int link;                        // -1, or the link that leads to it (state 2)
-    mfc::CString name;
-    mfc::CString title;
+    std::string name;
+    std::string title;
 };
-static_assert(sizeof(GlobalMapZone) == 0x10 && offsetof(GlobalMapZone, name) == 0x08 && offsetof(GlobalMapZone, title) == 0x0C);
 struct GlobalMapZoneElements {
     static void Construct(GlobalMapZone* zones, int count);
     static void Destruct(GlobalMapZone* zones, int count);
+    static void Relocate(GlobalMapZone* to, GlobalMapZone* from, int count) { mfc::MoveElements(to, from, count); }
 };
 struct GlobalMapZoneTable : mfc::CArray<GlobalMapZone, GlobalMapZoneElements> {
     void SetAtGrowZone(int index, const GlobalMapZone* zone);
@@ -80,11 +81,16 @@ struct GlobalMapPlace {
 
     int zone;                        // index into the zones
     Vector3 position;                // on the map model
-    mfc::CString name;
-    mfc::CString title;
+    std::string name;
+    std::string title;
 };
-static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, position) == 0x04 && offsetof(GlobalMapPlace, name) == 0x10 &&
-              offsetof(GlobalMapPlace, title) == 0x14);
+// The links' and the quests' elements: zero-filled, then both texts empty; destroyed title first.
+struct GlobalMapPlaceElements {
+    static void Construct(GlobalMapPlace* places, int count);
+    static void Destruct(GlobalMapPlace* places, int count);
+    static void Relocate(GlobalMapPlace* to, GlobalMapPlace* from, int count) { mfc::MoveElements(to, from, count); }
+};
+using GlobalMapPlaces = mfc::CArray<GlobalMapPlace, GlobalMapPlaceElements>;
 
 // A zone on the way of the global map's way search and the exit taken.
 struct GlobalMapStep {
@@ -168,16 +174,16 @@ public:
     int markerCount_;                // zones + quests + links
     int turning_;                    // -1 / +1 while a turn button is held
     float bobTime_;                  // seconds, for the arrow's bobbing and the layers' frames
-    mfc::CString allodTitle_;
+    std::string allodTitle_;
     Vector3 position_;               // the current zone on the map model
     GlobalMapZoneArray zones_;
-    mfc::CArray<GlobalMapPlace> links_;
-    mfc::CArray<GlobalMapPlace> quests_;
+    GlobalMapPlaces links_;
+    GlobalMapPlaces quests_;
     // The way search from the current zone to target_: the zones on the way so far and their summed
     // "#passtime".
     stlp::vector<GlobalMapStep> path_;
     float pathTime_;
-    mfc::CString target_;
+    std::string target_;
     bool found_;                     // a way reached the target
     bool beyondTarget_;              // the search goes on through the target zone itself
     std::uint8_t unused_1DE[2];
@@ -196,7 +202,7 @@ public:
     std::uint8_t unused_265[3];
     POINT dragStart_;                // where the drag began (layout)
     float dragAngle_;                // angle_ when the drag began
-    mfc::CString shownName_;         // the zone or link whose tip is shown
+    std::string shownName_;         // the zone or link whose tip is shown
     bool gipat_;                     // the allod is gipat
     std::uint8_t unused_279[3];
     int noCamp_;                     // the player's "i.nocamp" (1: no camp button)
@@ -207,23 +213,6 @@ public:
 };
 static_assert(offsetof(CGlobalMap, zoneCount_) == 0x164);
 static_assert(offsetof(CGlobalMap, allodTitle_) == 0x17C);
-static_assert(offsetof(CGlobalMap, zones_) == 0x18C);
-static_assert(offsetof(CGlobalMap, links_) == 0x1A0);
-static_assert(offsetof(CGlobalMap, quests_) == 0x1B4);
-static_assert(offsetof(CGlobalMap, path_) == 0x1C8);
-static_assert(offsetof(CGlobalMap, target_) == 0x1D8);
-static_assert(offsetof(CGlobalMap, arrivals_) == 0x1E0);
-static_assert(offsetof(CGlobalMap, turn_) == 0x1EC);
-static_assert(offsetof(CGlobalMap, depth_) == 0x200);
-static_assert(offsetof(CGlobalMap, backdrop_) == 0x210);
-static_assert(offsetof(CGlobalMap, weatherTable_) == 0x218);
-static_assert(offsetof(CGlobalMap, weatherIndex_) == 0x260);
-static_assert(offsetof(CGlobalMap, shownName_) == 0x274);
-static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
-static_assert(offsetof(CGlobalMap, dragStart_) == 0x268);
-static_assert(offsetof(CGlobalMap, dragAngle_) == 0x270);
-static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
-static_assert(sizeof(CGlobalMap) == 0x294);
 
 // --- Camp trade panel (the level-up page) ---
 // Sells skills for experience: the hero's six magic schools and science, the perks the hero holds and the
@@ -234,15 +223,14 @@ struct TradeRow {
     TradeRow* DeleteThis(int flags);
     TradeRow* CopyConstruct(const TradeRow* from);
 
-    mfc::CString name;
-    mfc::CString key;                // the perk's record name (perk rows)
-    mfc::CString nextKey;            // the next level's record name (held perks below 3)
+    std::string name;
+    std::string key;                // the perk's record name (perk rows)
+    std::string nextKey;            // the next level's record name (held perks below 3)
     int price;                       // experience
     int level;
     bool learnable;                  // set on the learnable list (not written in the others)
     std::uint8_t unused_15[3];
 };
-static_assert(sizeof(TradeRow) == 0x18 && offsetof(TradeRow, key) == 0x04 && offsetof(TradeRow, nextKey) == 0x08 && offsetof(TradeRow, price) == 0x0C);
 
 using TradeRows = stlp::vector<TradeRow>;
 
@@ -526,7 +514,7 @@ public:
     float PartArmour(int part);
 
     int heroIndex_;
-    mfc::CString title_;
+    std::string title_;
     int page_;
     mfc::CStringArray texts_;
     int points_;                     // skill points left (page 10); SetHero puts the height * 100 here
@@ -535,10 +523,6 @@ public:
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, title_) == 0x154);
-static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
-static_assert(offsetof(CHeroStatsPanel, texts_) == 0x15C);
-static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
-static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 
 // --- Hero equipment panel ---
 // The eight quick slots along the top, and in the camp the body with its seven equipment slots.

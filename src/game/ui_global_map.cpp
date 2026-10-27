@@ -79,9 +79,7 @@ MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
 // The links' and the quests' SetSize and their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
-void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
-    mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
-}
+void SetPlaceCount(GlobalMapPlaces& places, int size) { places.SetSize(size); }
 
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
@@ -280,7 +278,7 @@ void CGlobalMap::CreateScreen() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable = str::Format("q.%s", zones_.data[i].name.GetString());
+        variable = str::Format("q.%s", zones_.data[i].name.c_str());
         GameLocalPlayerVariables(variable.c_str(), vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
@@ -321,7 +319,7 @@ void CGlobalMap::CreateScreen() {
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapRecord* zone = FindZone(zones_.data[i].name);
+        MapRecord* zone = FindZone(zones_.data[i].name.c_str());
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
@@ -422,7 +420,7 @@ void CGlobalMap::CreateScreen() {
         AddSurface(text);
         UiSurfaceGetDC(text);
         RECT line1 = {0, 5, 150, 25};
-        SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceText(text, allodTitle_.c_str(), &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
         SurfaceText(text, clock.c_str(), &line2, 2, 0xA7D7E4, 0x25, 1);
         UiSurfaceReleaseDC(text);
@@ -675,6 +673,21 @@ void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
     for (int i = 0; i < count; ++i) {
         std::destroy_at(&zones[i].title);
         std::destroy_at(&zones[i].name);
+    }
+}
+
+void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
+    std::memset(static_cast<void*>(places), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapPlace));
+    for (int i = 0; i < count; ++i) {
+        std::construct_at(&places[i].name);
+        std::construct_at(&places[i].title);
+    }
+}
+
+void GlobalMapPlaceElements::Destruct(GlobalMapPlace* places, int count) {
+    for (int i = 0; i < count; ++i) {
+        std::destroy_at(&places[i].title);
+        std::destroy_at(&places[i].name);
     }
 }
 

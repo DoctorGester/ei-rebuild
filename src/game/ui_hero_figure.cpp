@@ -103,11 +103,10 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     voiceTop_ = 0;
     voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
     MpVoiceVector& voices = Voices();
-    // The first entry's file (read even when the list is empty, like the original).
-    hero->texts[6] = voices.begin()->file;
-    // The entry count compared unsigned (the subtraction shifted arithmetically).
-    std::uint32_t count = static_cast<std::uint32_t>(
-        (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
+    // The first entry's file (the original read it even from an empty list; ours leaves the text then).
+    if (voices.begin() != voices.end()) hero->texts[6] = voices.begin()->file;
+    // The entry count compared unsigned.
+    std::uint32_t count = static_cast<std::uint32_t>(voices.end() - voices.begin());
     voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
     voiceScroll_->SetPosition(0);
     if (mode_ == kModeNewHero) DrawVoices();
