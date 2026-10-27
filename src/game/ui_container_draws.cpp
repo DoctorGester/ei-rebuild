@@ -24,12 +24,12 @@ namespace {
 
 constexpr std::uint32_t kAlphaRef = 0x18;
 
-UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
+CTextureDevice* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
 // IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all of it): only the new
 // renderer clears (the switch-over has no depth buffer); the result is 0.
-void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
-    device->result_ = 0;
+void ClearDepth(CTextureDevice* device, unsigned long count, RECT* rects, float z) {
+    device->lastLoadResult_ = 0;
     render::Rect r[8];
     int n = count < 8 ? static_cast<int>(count) : 8;
     for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -48,9 +48,9 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 
 BOOL CUiContainer::Draw(int pass) {
     if (!interface_->drawing_) return 1;
-    UiRenderer* device = DeviceOf(this);
+    CTextureDevice* device = DeviceOf(this);
     std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
-    device->result_ = device->device_->ApplyStateBlock(handle);
+    device->lastLoadResult_ = uidevice::ApplyStateBlock(device, handle);
     render::state::Block(handle);
     DrawBase(pass);
     CUiContainer* container = this;
@@ -130,7 +130,7 @@ EI_REWRITTEN(0x00622420, CHeroEquipPanel::Draw);
 
 long CObjectivesWindow::RestoreAlphaRef() {
     std::uint32_t value = savedAlphaRef_;
-    long hr = DeviceOf(this)->device_->SetRenderState(kAlphaRef, value);
+    long hr = uidevice::SetRenderState(DeviceOf(this), kAlphaRef, value);
     render::state::Render(kAlphaRef, value);
     return hr;
 }

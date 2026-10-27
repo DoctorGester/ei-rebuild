@@ -136,7 +136,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     converterLibrary_ = gameapi::LoadLibraryA("2DintMMX.dll");
     game::DebugLog("MMX graphics release library loaded.\n");
     if (!converterLibrary_) ThrowGameError("Can't load 2D graphics library.\n");
-    using GetGraphicsProcessor = void*(__cdecl*)();
+    using GetGraphicsProcessor = CPixelConverter*(__cdecl*)();
     const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(converterLibrary_, "GetGraphicsProcessor"));
     if (!getProcessor) ThrowGameError("Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n");

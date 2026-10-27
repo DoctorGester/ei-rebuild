@@ -2,6 +2,7 @@
 // constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_grid_draw.cpp.
 #include "ui.h"
+#include "texture.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "item.h"
@@ -26,7 +27,6 @@ namespace {
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
 constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
-constexpr std::uint32_t kCapsStencil = 0x4000;
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
@@ -38,11 +38,10 @@ void DrawItem(CItemScreen* owner, int pass, ItemCell* cell) { owner->DrawItem(pa
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of it) to
 // `z` under the device lock; the new renderer gets the clear too.
-void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
-    std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
-                                                                                    : kClearZBuffer;
+void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
+    std::uint32_t flags = uidevice::HasStencil(renderer) ? kClearZBuffer | kClearStencil : kClearZBuffer;
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->result_ = renderer->device_->Clear(rect ? 1 : 0, rect, flags, 0, z, 0);
+    renderer->lastLoadResult_ = uidevice::Clear(renderer, rect ? 1 : 0, rect, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     if (!rect) {
         render::ClearDepth(z, nullptr, 0);

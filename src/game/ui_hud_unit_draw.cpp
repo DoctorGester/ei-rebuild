@@ -47,11 +47,9 @@ constexpr int kInfoPage = 2;          // bodyPart_: the page of texts, without t
 constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn with its highlight colours
 constexpr std::uint32_t kPreviewDraw = 0x800;      // the unit's flags_ while the interface draws it
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-constexpr std::uint32_t kStencilFormat = 0x4000;   // DDPF_STENCILBUFFER
 constexpr DWORD kClearedRects = 3;
 
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-IDirect3DDevice7* D3DDevice(UiRenderer* renderer) { return reinterpret_cast<IDirect3DDevice7*>(renderer->device_); }
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
 // The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
@@ -71,11 +69,11 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 
 // The renderer's batches flushed, then the depth buffer (and the stencil when the device has one)
 // of the three screen rectangles set to `z` under the device lock.
-void ClearDepthRects(UiRenderer* renderer, RECT* rects, float z) {
+void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
     DWORD flags = D3DCLEAR_ZBUFFER;
-    if ((renderer->caps_ & kStencilFormat) != 0 && renderer->stencil_ != 0) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
+    if (uidevice::HasStencil(renderer)) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->result_ = device::Clear(D3DDevice(renderer), kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
+    renderer->lastLoadResult_ = device::Clear(D3DDevice(renderer), kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect mirrored[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i)

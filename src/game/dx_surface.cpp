@@ -219,7 +219,7 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
                 target = 0;
             }
         }
-        auto* converter = static_cast<CPixelConverter*>(holder->device->converter_);
+        CPixelConverter* converter = holder->device->converter_;
         converter->SetChannelMasks(target, layout.alphaMask, layout.redMask, layout.greenMask, layout.blueMask);
         for (std::uint32_t row = 0; row < picture->height; ++row) {
             converter->ConvertTo16(reinterpret_cast<std::uint16_t*>(out), reinterpret_cast<const std::uint32_t*>(source), target,

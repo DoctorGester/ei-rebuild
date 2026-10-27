@@ -107,8 +107,8 @@ CCursor* Cursor() { return TheCursor(); }
 
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
-void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
-    device->SetRenderState(state, value);
+void SetRenderState(CTextureDevice* device, unsigned long state, unsigned long value) {
+    uidevice::SetRenderState(device, state, value);
     render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
 }
 
@@ -124,7 +124,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     }
     static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
     for (const auto& state : kStates) {
-        SetRenderState(ui->renderer_->device_, state[0], state[1]);
+        SetRenderState(ui->renderer_, state[0], state[1]);
     }
     app::g_interfaceHasScreen = 1;
     ScreenOf(window)->CreateScreen();
