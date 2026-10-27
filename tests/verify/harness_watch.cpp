@@ -1,13 +1,12 @@
 // The orientation watch (harness_watch.h; tickets SV7b4 / SV3f).
 #include "harness_watch.h"
-#include "game/game_singletons.h"
+
+#include "exe_objects.h"
+#include "harness_digest_read.h"   // the class ids
+#include "image/image_side.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "../../src/game/unit.h"
-#include "../../src/game/world.h"
-#include "game/game_data.h"
-#include "harness_objects.h"
 
 #include <windows.h>
 
@@ -30,8 +29,14 @@ std::uintptr_t g_slot;                  // EI_WATCH_ADDR: one dword watched for 
 unsigned g_slotFrom = 0, g_slotTo = ~0u;  // the world updates it is logged in
 bool g_slotArmed;
 FILE* g_file;
-CUnit* g_unit;          // the unit the registers watch (null: none)
-CUnit* g_wanted;        // what the next arm exception loads (null: clear)
+// A unit's watched words: its flags_ and its localRotation_ (four floats).
+struct Watched {
+    void* unit = nullptr;
+    std::uint32_t* flags = nullptr;
+    std::uint32_t* rotation = nullptr;
+};
+Watched g_unit;         // the unit the registers watch (unit null: none)
+Watched g_wanted;       // what the next arm exception loads (unit null: clear)
 unsigned g_updates;
 DWORD g_mainThread;
 std::uintptr_t g_addonBase, g_addonEnd, g_selfBase, g_selfEnd;
@@ -73,11 +78,11 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         if (g_slot) {
             c->Dr0 = g_slotArmed ? g_slot : 0;
             c->Dr7 = g_slotArmed ? (0x1u | (0xFu << 16)) : 0;   // L0; R/W 11 (reads and writes), LEN 11
-        } else if (g_wanted && g_flags) {
-            c->Dr0 = reinterpret_cast<std::uintptr_t>(&g_wanted->flags_);
+        } else if (g_wanted.unit && g_flags) {
+            c->Dr0 = reinterpret_cast<std::uintptr_t>(g_wanted.flags);
             c->Dr7 = 0x1u | (0xDu << 16);   // L0; R/W 01 (writes), LEN 11
-        } else if (g_wanted) {
-            const auto base = reinterpret_cast<std::uintptr_t>(&g_wanted->localRotation_);
+        } else if (g_wanted.unit) {
+            const auto base = reinterpret_cast<std::uintptr_t>(g_wanted.rotation);
             c->Dr0 = base;
             c->Dr1 = base + 4;
             c->Dr2 = base + 8;
@@ -111,10 +116,10 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
         return EXCEPTION_CONTINUE_EXECUTION;
     }
-    if (code != EXCEPTION_SINGLE_STEP || !g_unit || (c->Dr6 & 0xF) == 0) return EXCEPTION_CONTINUE_SEARCH;
+    if (code != EXCEPTION_SINGLE_STEP || !g_unit.unit || (c->Dr6 & 0xF) == 0) return EXCEPTION_CONTINUE_SEARCH;
     if (GetCurrentThreadId() != g_mainThread) return EXCEPTION_CONTINUE_SEARCH;
     if (g_flags) {
-        const std::uint32_t value = g_unit->flags_;
+        const std::uint32_t value = *g_unit.flags;
         if (value != g_lastFlags) {
             g_lastFlags = value;
             std::fprintf(g_file, "u%u", g_updates);
@@ -133,7 +138,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
         return EXCEPTION_CONTINUE_EXECUTION;
     }
-    const auto* q = reinterpret_cast<const std::uint32_t*>(&g_unit->localRotation_);
+    const std::uint32_t* q = g_unit.rotation;
     std::fprintf(g_file, "u%u dr%X", g_updates, unsigned(c->Dr6 & 0xF));
     Print(c->Eip);
     std::fprintf(g_file, " q %08X %08X %08X %08X fcw %04X <", unsigned(q[0]), unsigned(q[1]), unsigned(q[2]),
@@ -151,20 +156,31 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-CUnit* FindUnit() {
-    CWorldClient* c = HarnessClientWorld();
-    if (!c || !c->objects_.head) return nullptr;
-    for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
-        if (n->data && static_cast<unsigned>(n->data->id_) == g_id && n->data->GetClassId() == world::kClassUnit)
-            return static_cast<CUnit*>(n->data);
+// The client world's unit g_id: ours in the image, game.exe's (its views, exe_objects.h) in its runs.
+Watched FindUnit() {
+    Watched found;
+    if (ei::Standalone()) {
+        found.unit = image::ClientUnit(g_id, &found.flags, &found.rotation);
+        return found;
     }
-    return nullptr;
+    exe::CWorldClient* c = exe::ClientWorld();
+    if (!c->objects_.head) return found;
+    for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
+        exe::CMapObject* object = n->data;
+        if (object && static_cast<unsigned>(object->id_) == g_id && object->GetClassId() == digest::kClassUnit) {
+            found.unit = object;
+            found.flags = &object->flags_;
+            found.rotation = reinterpret_cast<std::uint32_t*>(&object->localRotation_);
+            return found;
+        }
+    }
+    return found;
 }
 
-void Arm(CUnit* unit) {
+void Arm(const Watched& unit) {
     g_wanted = unit;
     RaiseException(kArmCode, 0, 0, nullptr);
-    std::fprintf(g_file, "u%u %s\n", g_updates, unit ? "armed" : "cleared");
+    std::fprintf(g_file, "u%u %s\n", g_updates, unit.unit ? "armed" : "cleared");
 }
 
 int g_scrub = -1;   // EI_STACK_SCRUB=<byte>[,<from>,<to>]: after each world update, below the caller's frame
@@ -261,8 +277,8 @@ void AfterWorldUpdate() {
         std::fflush(g_file);
         return;
     }
-    CUnit* unit = FindUnit();
-    if (unit != g_unit) Arm(unit);
+    const Watched unit = FindUnit();
+    if (unit.unit != g_unit.unit) Arm(unit);
     std::fflush(g_file);
 }
 

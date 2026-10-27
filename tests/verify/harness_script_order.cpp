@@ -1,7 +1,8 @@
 // Script groups ordered by object id in harness runs (harness_script_order.h; ticket SV7b1).
 #include "harness_script_order.h"
 
-#include "../../src/game/script.h"
+#include "exe_objects.h"
+
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 
@@ -11,6 +12,10 @@
 #include <cstring>
 
 namespace {
+
+// game.exe's objects: the comparators run in the original's code only.
+using ei::verify::exe::CEngineObject;
+using ei::verify::exe::ScriptObjectRef;
 
 bool g_wanted = false;
 bool g_patched = false;

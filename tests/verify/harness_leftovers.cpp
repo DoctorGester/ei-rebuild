@@ -2,15 +2,11 @@
 // SV7b6a).
 #include "harness_leftovers.h"
 
-#include "../../src/game/class_templates.h"
-#include "../../src/game/map_object_figures.h"
-#include "../../src/game/unit.h"
-#include "../../src/game/unit_ai.h"
+#include "exe_objects.h"
+#include "harness_original.h"
+
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/unit.h"
-#include "game/unit_create.h"
-#include "harness_original.h"
 
 #include <windows.h>
 
@@ -21,6 +17,8 @@
 namespace ei::verify::leftovers {
 
 namespace {
+
+using namespace ei::verify::exe;   // game.exe's objects: Install patches the original only
 
 // game.exe only: the blocks zeroed, then the original's own function (H30).
 
@@ -46,10 +44,10 @@ int __fastcall ZeroedStatsReset(UnitStats* stats) {
 
 // CMapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
 // without touching the vitals, which are then packed.
-int __fastcall ZeroedVitalsBuild(CMapObjectManager* builder, void*, UnitVitals* vitals, UnitStats* stats,
+int __fastcall ZeroedVitalsBuild(void* builder, void*, UnitVitals* vitals, UnitStats* stats,
                                  const char* name) {
     if (vitals) std::memset(vitals, 0, sizeof(UnitVitals));
-    using BuildFn = int(__thiscall*)(CMapObjectManager*, UnitVitals*, UnitStats*, const char*);
+    using BuildFn = int(__thiscall*)(void*, UnitVitals*, UnitStats*, const char*);
     return OriginalCode<BuildFn>(kBuildFromPrototype)(builder, vitals, stats, name);
 }
 

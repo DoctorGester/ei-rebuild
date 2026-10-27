@@ -15,4 +15,7 @@ namespace ei::verify {
 // type), else its +0.
 std::uintptr_t WindowKind(const void* window);
 
+// The window on top (CInterface3D::GetActiveWindow): ours in the image, game.exe's in its runs; null without one.
+void* TopWindow();
+
 } // namespace ei::verify

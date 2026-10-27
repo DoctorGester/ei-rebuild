@@ -1,32 +1,28 @@
 // The game's address orders settled in harness runs (harness_address_order.h; ticket T2f).
 #include "harness_address_order.h"
 
-#include "../../src/game/address_order.h"
-#include "../../src/game/engine_object.h"
-#include "../../src/game/game_data.h"
-#include "../../src/game/net_classes.h"
-#include "../../src/game/net_messages.h"
-#include "../../src/game/ui.h"
-#include "../../src/game/ui_briefing.h"
-#include "harness_objects.h"
-#include "harness_windows.h"
-#include "../../src/game/terrain_sector.h"
-#include "../../src/game/world.h"
-#include "../../src/hook/log.h"
-#include "../../src/lib/containers.h"
-#include "../../src/lib/stlp_algo.h"
+#include "exe_objects.h"
 #include "harness_original.h"
+#include "harness_windows.h"
+#include "image/image_side.h"
+
+#include "../../src/hook/log.h"
+#include "../../src/lib/stlp_algo.h"
 #include "ei/hook.h"
 
 #include <windows.h>
 
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-using ObjectSet = lib::AlignedArray<std::uint32_t>;
+// The patched sites run in game.exe's code only: they see game.exe's objects.
+using namespace ei::verify::exe;
+
+using ObjectSet = AlignedArray<std::uint32_t>;
 
 bool g_wanted = false;
 bool g_patched = false;
@@ -57,8 +53,8 @@ void __fastcall SortForOriginal(ObjectSet* self) {
 
 // 006C8E90 (cdecl, two slots of SetSun's sector array): by (sy, sx) of the sectors in the slots.
 int __cdecl CompareSectorsForOriginal(const void* a, const void* b) {
-    const auto* x = *static_cast<const terrain::SectorData* const*>(a);
-    const auto* y = *static_cast<const terrain::SectorData* const*>(b);
+    const auto* x = *static_cast<const SectorData* const*>(a);
+    const auto* y = *static_cast<const SectorData* const*>(b);
     if (x->sy != y->sy) return x->sy < y->sy ? -1 : 1;
     if (x->sx != y->sx) return x->sx < y->sx ? -1 : 1;
     return 0;
@@ -96,20 +92,58 @@ __declspec(naked) void MergeStep() {
 // 0041E430 (the client's binding handler; ECX the client, EDX the binding, plain RET): the original's
 // counted assignment, then, when players came before the binding, the interface's refresh 005F82D0
 // (RET 4) on game.exe's interface 007C7D50, as ours does (net_client_handlers.cpp ClientOnBinding, UB1).
-void __fastcall OnBindingForOriginal(net::ClientSession* self, net::BindingMessage* binding) {
+void __fastcall OnBindingForOriginal(net::ClientSession* self, CRefObject* binding) {
     CRefObject* previous = self->binding_;
     self->binding_ = binding;
     if (binding) ++binding->refs_;
-    if (previous && --previous->refs_ == 0) delete previous;
+    if (previous && --previous->refs_ == 0) previous->Delete();
     if (self->players_.Empty()) return;
-    using RefreshFn = void(__thiscall*)(CInterface3D*, int);
-    ei::verify::OriginalCode<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<CInterface3D>(0x007C7D50), 1);
+    using RefreshFn = void(__thiscall*)(void*, int);
+    ei::verify::OriginalCode<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<std::uint8_t>(0x007C7D50), 1);
 }
 
-// The draw lists' order by name (address_order::DrawBefore, src/game/address_order.cpp, which the reference key
-// lists), sorted with STLport's sort as the original (lib/stlp_algo.h).
+// The draw lists' order by name, as ours (address_order::DrawBefore, src/game/address_order.cpp): the first part
+// set's texture (null first, then by name), then the figure (null first, then by name and morph weights), then the
+// view depth as the original.
+const CTexture* RankTexture(const CObject3DClientSpecific* model) {
+    const TextureParts* rank = model->partSets[0];
+    return rank ? rank->texture : nullptr;
+}
+
+int CompareTextures(const CTexture* a, const CTexture* b) {
+    if (!a || !b) return (a != nullptr) - (b != nullptr);
+    const char* aName = a->name_;
+    const char* bName = b->name_;
+    return std::strcmp(aName ? aName : "", bName ? bName : "");
+}
+
+int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
+    if (!a || !b) return (a != nullptr) - (b != nullptr);
+    if (a->name_ < b->name_) return -1;
+    if (b->name_ < a->name_) return 1;
+    for (int i = 0; i < 3; ++i) {
+        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights_[i]);
+        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights_[i]);
+        if (wa != wb) return wa < wb ? -1 : 1;
+    }
+    return 0;
+}
+
+bool DrawBefore(CEngineObject* a, CEngineObject* b) {
+    if (!a || !b) return false;
+    const auto* objectA = static_cast<const CObject3D*>(a);
+    const auto* objectB = static_cast<const CObject3D*>(b);
+    const CObject3DClientSpecific* groupA = objectA->ClientSpecific();
+    const CObject3DClientSpecific* groupB = objectB->ClientSpecific();
+    if (!groupA || !groupB) return false;
+    if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
+    if (int c = CompareFigures(objectA->figure, objectB->figure)) return c < 0;
+    return objectA->worldPosition_.z < objectB->worldPosition_.z;
+}
+
+// Sorted with STLport's sort as the original (lib/stlp_algo.h).
 struct DrawLess {
-    bool operator()(CEngineObject* a, CEngineObject* b) const { return ::address_order::DrawBefore(a, b); }
+    bool operator()(CEngineObject* a, CEngineObject* b) const { return DrawBefore(a, b); }
 };
 using DrawSort = stlp::Sort<CEngineObject*, DrawLess>;
 
@@ -153,6 +187,23 @@ const Site kSites[] = {
 
 namespace ei::verify::address_order {
 
+namespace {
+
+// The base screen `briefing`'s player list in game.exe's run: its client (0079B5D8) and chat window.
+bool OriginalPlayerList(void* briefing, image::PlayerList* list) {
+    auto* client = ei::OriginalGameData<exe::net::ClientSession*>(0x0079B5D8);
+    const exe::CChatWindow* chat = static_cast<const exe::CBriefingScreen*>(briefing)->chat_;
+    if (!client || !chat) return false;
+    list->players = 0;
+    for (auto* node = client->players_.First(); node != client->players_.End(); node = node->next) ++list->players;
+    const exe::CRefObject* binding = client->binding_;
+    list->bound = binding && !(binding->flags7_ & exe::CRefObject::kDetached);
+    list->listed = chat->listed_;
+    return true;
+}
+
+} // namespace
+
 void Install() { g_wanted = true; }
 
 void PatchOriginal() {
@@ -182,24 +233,19 @@ void PatchOriginal() {
 }
 
 bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {
-    CUiWindow* top = HarnessActiveWindow(HarnessInterface());
+    void* top = TopWindow();
     const std::uintptr_t vtable = top ? WindowKind(top) : 0;
-    auto* client = ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
+    image::PlayerList list;
     char line[200];
     bool ok = false;
     if (!top || vtable != briefing) {
         std::snprintf(line, sizeof(line), "the base screen is not on top");
-    } else if (!client || !static_cast<CBriefingScreen*>(top)->chat_) {
+    } else if (!(ei::Standalone() ? image::BriefingPlayerList(top, &list) : OriginalPlayerList(top, &list))) {
         std::snprintf(line, sizeof(line), "no network client, or its base screen has no player list");
     } else {
-        int players = 0;
-        for (auto* node = client->players_.First(); node != client->players_.End(); node = node->next) ++players;
-        const CRefObject* binding = client->binding_;
-        const bool bound = binding && !(binding->flags7_ & CRefObject::kDetached);
-        const int listed = static_cast<CChatWindow*>(static_cast<CBriefingScreen*>(top)->chat_)->listed_;
-        ok = bound && players > 0 && listed == players;
-        std::snprintf(line, sizeof(line), "the base screen lists %d of the client's %d players (binding %s)", listed, players,
-                      bound ? "live" : "missing");
+        ok = list.bound && list.players > 0 && list.listed == list.players;
+        std::snprintf(line, sizeof(line), "the base screen lists %d of the client's %d players (binding %s)", list.listed,
+                      list.players, list.bound ? "live" : "missing");
     }
     *text = line;
     Log("harness: checkplayers: %s: %s", line, ok ? "ok" : "FAIL");

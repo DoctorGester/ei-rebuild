@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace ei::verify::exe {
 
@@ -33,6 +34,21 @@ struct CString {
     operator const char*() const { return text; }
 };
 static_assert(sizeof(CString) == 4);
+
+// STLport's string: start, finish, end of storage. Ordered as STLport's operator< (the bytes, then the length).
+struct StlpString {
+    const char* start;
+    const char* finish;
+    const char* endOfStorage;
+    const char* data() const { return start; }
+    std::size_t size() const { return static_cast<std::size_t>(finish - start); }
+    friend bool operator<(const StlpString& a, const StlpString& b) {
+        const std::size_t n = a.size() < b.size() ? a.size() : b.size();
+        if (const int c = std::memcmp(a.start, b.start, n)) return c < 0;
+        return a.size() < b.size();
+    }
+};
+static_assert(sizeof(StlpString) == 0xC);
 
 // MFC's CArray<T> (CObject's vtable, data, size, capacity, grow-by).
 template <class T>
@@ -77,6 +93,7 @@ struct StlpList {
     Node* head;
     Node* First() const { return head->next; }
     Node* End() const { return head; }
+    bool Empty() const { return head->next == head; }
 };
 static_assert(sizeof(StlpList<int>) == 4);
 
@@ -153,6 +170,11 @@ struct NamedFloatNode {
 using NamedFloatTable = HashTable<NamedFloatNode>;
 static_assert(sizeof(NamedFloatTable) == 0x14);
 
+// An element of the network sessions' lists: a counted pointer.
+struct RefPtr {
+    void* ptr;
+};
+
 // Objects the harness only points at or counts.
 struct AIHeardCall;
 struct AILook;
@@ -188,19 +210,56 @@ static_assert(sizeof(CEngineObject) == 0x1C);
 // A placed object: position and orientation.
 struct CTransformObject : CEngineObject {
     Vector3 localPosition_;                 // +0x1C
-    std::uint8_t unknown28[0xC];
+    Vector3 worldPosition_;                 // +0x28
     Quaternion localRotation_;              // +0x34
     std::uint8_t unknown44[0x10];
 };
 static_assert(sizeof(CTransformObject) == 0x54);
 
+// A texture (texture.h).
+struct CTexture : CEngineObject {
+    CString name_;                          // +0x1C
+    std::uint8_t unknown20[0x48];
+};
+static_assert(sizeof(CTexture) == 0x68);
+
+// A model's part set (map_object_shadow.h).
+struct TextureParts {
+    CTexture* texture;                      // +0x00
+    std::uint8_t unknown4[0x10];
+};
+static_assert(sizeof(TextureParts) == 0x14);
+
+// A 3D object's drawing half (map_object_shadow.h).
+struct CObject3DClientSpecific : CEngineObject {
+    std::uint8_t unknown1C[0x4];
+    TextureParts* partSets[2];              // +0x20
+    std::uint8_t unknown28[0xD4];
+};
+static_assert(sizeof(CObject3DClientSpecific) == 0xFC);
+
+// A figure (link_figure.h).
+struct CLinkMesh {
+    std::uint8_t unknown0[0x8];
+    StlpString name_;                       // +0x08
+    std::uint8_t unknown14[0x1C];
+    float morphWeights_[3];                 // +0x30
+    std::uint8_t unknown3C[0x74];
+};
+static_assert(sizeof(CLinkMesh) == 0xB0);
+
 // A figure in the world: its model's name and scale.
 struct CObject3D : CTransformObject {
-    std::uint8_t unknown54[0x50];
+    std::uint8_t unknown54[0x40];
+    CEngineObject* attached;                // +0x94
+    std::uint8_t unknown98[0xC];
     CString name;                           // +0xA4
     std::uint8_t unknownA8[0x1C];
     Vector3 scale;                          // +0xC4
-    std::uint8_t unknownD0[0xA0];
+    std::uint8_t unknownD0[0x20];
+    CLinkMesh* figure;                      // +0xF0
+    std::uint8_t unknownF4[0x7C];
+    CObject3DClientSpecific* ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }
 };
 static_assert(sizeof(CObject3D) == 0x170);
 
@@ -840,6 +899,135 @@ struct IsaacRandom {
     std::uint32_t c_;                       // +0x810
 };
 static_assert(sizeof(IsaacRandom) == 0x814);
+
+// The AI's Suspection mode (unit_ai.h).
+struct SuspectionMode {
+    const void* const* vtable;              // +0x00
+    std::uint8_t unknown4[0x4];
+    Vector3 point;                          // +0x08
+    int level;                              // +0x14
+    void ClearFields() {
+    point = {};
+    level = 0;
+    }
+};
+static_assert(sizeof(SuspectionMode) == 0x18);
+
+// The AI's Fear mode (unit_ai.h): its fields from `distance` on.
+struct FearMode {
+    const void* const* vtable;              // +0x00
+    std::uint8_t unknown4[0x4];
+    float distance;                         // +0x08
+    std::uint8_t unknownC[0x20];
+    void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
+};
+static_assert(sizeof(FearMode) == 0x2C);
+
+// A class template (class_templates.h).
+struct ClassTemplate {
+    std::uint8_t unknown0[0x34];
+    std::uint8_t weightsTail[4];            // +0x34
+    std::uint8_t unknown38[0x254];
+};
+static_assert(sizeof(ClassTemplate) == 0x28C);
+
+// A path cell (ai_map.h).
+struct PathCell {
+    std::int16_t x;                         // +0x00
+    std::int16_t y;                         // +0x02
+    std::uint16_t flags;                    // +0x04
+    std::uint16_t terrainBits;              // +0x06
+};
+static_assert(sizeof(PathCell) == 0x8);
+
+using PathCells = List<PathCell>;
+
+// A counted network object (core_refcount.h).
+struct CRefObject {
+    const void* const* vtable;              // +0x00
+    std::int16_t refs_;                     // +0x04
+    std::uint8_t unknown6[0x1];
+    std::uint8_t flags7_;                   // +0x07
+    static constexpr std::uint8_t kDetached = 0x80;   // flags7_: shut down by its owner
+    // The scalar deleting destructor (slot 0): game.exe's destructor and operator delete.
+    void Delete() { reinterpret_cast<void*(__thiscall*)(CRefObject*, unsigned)>(vtable[0])(this, 1); }
+};
+static_assert(sizeof(CRefObject) == 0x8);
+
+// A network game's chat window (ui_briefing.h).
+struct CChatWindow {
+    std::uint8_t unknown0[0x148];
+    int listed_;                            // +0x148
+    std::uint8_t unknown14C[0x24];
+};
+static_assert(sizeof(CChatWindow) == 0x170);
+
+// The base screen (ui_briefing.h).
+struct CBriefingScreen {
+    std::uint8_t unknown0[0x280];
+    CChatWindow* chat_;                     // +0x280
+    std::uint8_t unknown284[0x20];
+};
+static_assert(sizeof(CBriefingScreen) == 0x2A4);
+
+namespace net {
+
+struct NetAddress {
+    std::uint8_t unknown0[0x2];
+    std::uint16_t port;                     // +0x02
+    std::uint32_t ip;                       // +0x04
+    std::uint8_t unknown8[0x8];
+};
+static_assert(sizeof(NetAddress) == 0x10);
+
+// A server the client found (net_classes.h).
+struct ServerEntry {
+    std::uint8_t unknown0[0x8];
+    NetAddress address_;                    // +0x08
+    std::uint8_t unknown18[0x8];
+    std::uint8_t foreign_;                  // +0x20
+    std::uint8_t unknown21[0x3];
+    std::uint32_t state_;                   // +0x24
+    StlpString name_;                       // +0x28
+    std::uint32_t kind_;                    // +0x34
+    StlpString description_;                // +0x38
+    std::uint8_t players_;                  // +0x44
+    std::uint8_t maxPlayers_;               // +0x45
+    std::uint8_t password_;                 // +0x46
+    std::uint8_t unknown47[0x1];
+};
+static_assert(sizeof(ServerEntry) == 0x48);
+
+// A server's connection (a list node).
+struct ClientNode {
+    ClientNode* next;                       // +0x00
+    std::uint8_t unknown4[0x8];
+};
+static_assert(sizeof(ClientNode) == 0xC);
+
+// The game's server session (net_classes.h).
+struct ServerSession {
+    std::uint8_t unknown0[0x28];
+    ClientNode* clients_;                   // +0x28
+    std::uint8_t unknown2C[0x25D4];
+};
+static_assert(sizeof(ServerSession) == 0x2600);
+
+// The game's client session (net_classes.h).
+struct ClientSession {
+    std::uint8_t unknown0[0x2598];
+    std::uint32_t joinState_;               // +0x2598
+    std::uint8_t unknown259C[0xC];
+    StlpList<RefPtr> servers_;              // +0x25A8
+    std::uint8_t unknown25AC[0x2C];
+    StlpList<RefPtr> players_;              // +0x25D8
+    std::uint8_t unknown25DC[0x14];
+    CRefObject* binding_;                   // +0x25F0
+    std::uint8_t unknown25F4[0x10C];
+};
+static_assert(sizeof(ClientSession) == 0x2700);
+
+} // namespace net
 
 // game.exe's objects at their addresses.
 inline CWorldServer* ServerWorld() { return &OriginalGameData<CWorldServer>(0x007AFF60); }

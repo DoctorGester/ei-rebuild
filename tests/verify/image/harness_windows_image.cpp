@@ -1,0 +1,102 @@
+// The interface windows in the image by game.exe's table (C19; image_side.h, harness_windows.h).
+#include "image_side.h"
+
+#include "../harness_original.h"
+
+#include "game/game_singletons.h"
+#include "game/ui.h"
+#include "game/ui_briefing.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/ui_screens.h"
+#include "game/ui_view_screen.h"
+
+#include <typeinfo>
+#include <vector>
+
+namespace ei::verify::image {
+
+namespace {
+
+// A window class of the image with game.exe's table of it.
+struct Kind {
+    const void* original;          // game.exe's table: the label
+    const std::type_info* type;    // the class
+    Kind(const void* o, const std::type_info& t) : original(o), type(&t) {}
+};
+
+const std::vector<Kind>& WindowKinds() {
+    static const std::vector<Kind> kinds = {
+        // the plain window, the controls, the chat, the icon window and the HUD panels (batch 19)
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740F60), typeid(CUiWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742C18), typeid(CUiScrollbar)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742CBC), typeid(CUiSlider)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742E9C), typeid(CUiScrollText)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742D5C), typeid(CUiSpin)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742DF4), typeid(CUiEditField)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742F64), typeid(CUiTooltip)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007400DC), typeid(CChatOverlay)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741478), typeid(CChatWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740444), typeid(CItemIconWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742498), typeid(CHudTopPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742530), typeid(CHudMovePanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007425C8), typeid(CHudClock)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742660), typeid(CHudMap)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007426F8), typeid(CHudUnitPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074279C), typeid(CHudWeaponBar)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074283C), typeid(CHudQuickItems)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007428E4), typeid(CHudSpellColumn)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742980), typeid(CHudActionColumn)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742A18), typeid(CHudPortraits)},
+        // the containers and screens (batch 20)
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741008), typeid(CUiContainer)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740764), typeid(CBattleScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740688), typeid(CMainMenu)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007405AC), typeid(CBriefingScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740840), typeid(CViewScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740B3C), typeid(CGlobalMap)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740C3C), typeid(CCreditsScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740E28), typeid(CHelpWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007411BC), typeid(CObjectivesWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007412A4), typeid(CEscMenu)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741388), typeid(CSaveLoadWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741FAC), typeid(COptionsWindow)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742348), typeid(CMessageBox)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074225C), typeid(CDifficultyBox)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741DD8), typeid(CMasterRequestBox)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741CD0), typeid(CMpConnectScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740A2C), typeid(CItemScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074091C), typeid(CCampPages)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740D18), typeid(CExchangeScreen)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074214C), typeid(CMpHeroScreen)},
+        // the item screens' panels and strips
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741B58), typeid(CUiItemPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007404DC), typeid(CItemInfoPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741ABC), typeid(CHeroStatsPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007418E0), typeid(CHeroEquipPanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741844), typeid(CHeroQuickStrip)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007417A8), typeid(CTradePanel)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074170C), typeid(CTradeGrid)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741670), typeid(CSpellMakerPage)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007415D4), typeid(CConstructorPage)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741538), typeid(CRepairGrid)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741A1C), typeid(CUiItemStrip)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074197C), typeid(CForwardingStrip)},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741BF4), typeid(CFigureStrip)},
+    };
+    return kinds;
+}
+
+} // namespace
+
+void* TopWindow() { return TheInterface()->GetActiveWindow(); }
+
+std::uintptr_t WindowKind(const void* window) {
+    const std::uintptr_t vtable = *static_cast<const std::uintptr_t*>(window);
+    const std::type_info& type = typeid(*static_cast<const CUiWindow*>(window));
+    for (const Kind& kind : WindowKinds())
+        if (*kind.type == type) return reinterpret_cast<std::uintptr_t>(kind.original);
+    return vtable;
+}
+
+} // namespace ei::verify::image
