@@ -1,11 +1,8 @@
 #pragma once
 
-// MFC 4.2's CTime (timecore.cpp), written out for the standalone exe
-// (docs/notes/standalone.md section 2): a 32-bit time_t, converted through the CRT's mktime, time,
-// localtime and strftime. In the hook build those are the game CRT's; in the standalone image the
-// host CRT's (32-bit forms), with the current time from GetLocalTime through the game's import
-// table as VC6's time() takes it (so the harness's fixed date applies). Registered at the library
-// addresses (mfc_time.cpp).
+// MFC 4.2's CTime (timecore.cpp): a 32-bit time_t, converted through the host CRT's mktime, time, localtime and
+// strftime (32-bit forms), with the current time from GetLocalTime through the game's import table as VC6's
+// time() takes it (so the harness's fixed date applies).
 
 #include "mfc_string.h"
 

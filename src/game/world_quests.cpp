@@ -546,8 +546,7 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
-// One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
-// records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
+// As SyncPartyRecords does, without the items' records.
 void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
     CUnitServer* controller = unit->ServerController();
     ClearRecordItems(record);

@@ -151,8 +151,7 @@ namespace mfc {
 // AFX_EXCEPTION_LINK's two library functions (the link is mfc_try.h's ExceptionLink).
 ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);
 void __cdecl TryCleanup();
-// The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop
-// in MFC's thread state). The hook build shares game.exe's; the image has its own.
+// The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop).
 ExceptionLink** __cdecl ExceptionLinkTop();
 
 } // namespace mfc

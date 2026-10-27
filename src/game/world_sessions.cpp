@@ -1,8 +1,7 @@
-// The worlds' player sources (player_source.h): the base's destructor, the counted helper at CWorld + 0x5C
-// (CWorldHandle) and the network session at CWorld + 0x60 (netlink::DriverSession): their clones, shutdowns and
-// destructors, and CWorld::OpenSession, which makes a session. The session's lists are STLport list<RefPtr>:
-// drivers owning (RefPtr::Destroy), holders plain (Release); their range inserts are the instantiations' own
-// (library code).
+// The worlds' player sources (player_source.h): the base's destructor, CWorld::shared5C_ (CWorldHandle) and
+// netSession_ (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
+// session's lists are STLport list<RefPtr>: drivers owning (RefPtr::Destroy), holders plain (Release); their range
+// inserts are the instantiations' own (library code).
 #include "world.h"
 
 #include "core_refcount.h"
