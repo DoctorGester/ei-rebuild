@@ -51,8 +51,7 @@ struct FootprintCellSet {
     // first footprint empties them).
     FootprintCellSet* Construct();
 
-    // Resizes the array to `size` (0 frees it). The storage is 32-byte aligned, with the
-    // raw allocation stored just before it. `growBy` != -1 also sets the growth step.
+    // Resizes the array to `size` (0 frees it; 32-byte aligned storage); `growBy` != -1 also sets the step.
     void SetSize(int size, int growBy);
 
     // Adds a top-face sample: raises `high` of the cell (x, y) to `height`, lowering the
@@ -131,10 +130,8 @@ static_assert(sizeof(PathCells) == 0x1C && sizeof(PathCells::Node) == 0x10);
 using PathCellList = PathCells;
 
 // The speed word and terrain bits a path builder gives its cells: the plain step speed, no terrain bits. The
-// original leaves stack leftovers there (the caller's register, a search's row offset, the open cost or a list
-// vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp). SetStepSpeeds
-// rewrites both words of every step but the last, whose speed word becomes UnitMotion's last step speed (read
-// only by a single-cell trajectory).
+// original leaves stack leftovers there; the harness patches them to this too. SetStepSpeeds rewrites both
+// words of every step but the last.
 constexpr std::uint16_t kPlainStepSpeed = 0x200;
 inline void SetPlainCellWords(PathCell* cell) {
     cell->flags = kPlainStepSpeed;
@@ -330,7 +327,6 @@ struct LocalSearch {
     // Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
     // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
     bool PlaceWindow(int x0, int y0, int x1, int y1);
-    // Takes the unit's cost tables, size class and standing level.
     void SetUnit(CUnit* unit);
     // Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
     bool Begin(CUnit* unit, int x0, int y0, int x1, int y1);
@@ -451,8 +447,7 @@ struct CRegionMap {
     // The per-direction block edge words: -1 out of the map, and each edge between two blocks the smaller of its
     // two directions, for every size class.
     void ClampEdgeCosts();
-    // Reads the block grids of every size class from the AI graph stream (width and height 1..256 first); returns
-    // the stream's state byte.
+    // Reads the block grids of every size class from the AI graph stream; returns the stream's state byte.
     bool LoadBlocks(CStream* stream);
     // The block grids as LoadBlocks reads them: width and height, then per size class each row's edge words,
     // representative cells and regions.
@@ -460,8 +455,7 @@ struct CRegionMap {
     // Per size class the representative cell of block (bx, by): (3, 3) unless a passable cell in rings from the
     // middle is better.
     void PickRepresentatives(class CAIMap* map, int bx, int by);
-    // The chain of regions from (fromX, fromY) to (toX, toY) into `chain` (a CList), avoiding the blocks in
-    // `excluded` (CArray<{x, y}>).
+    // The chain of regions from (fromX, fromY) to (toX, toY) into `chain`, avoiding the blocks in `excluded`.
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
                          BlockPointArray* excluded);
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
@@ -469,17 +463,14 @@ struct CRegionMap {
     // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
     // cell / 128. The first argument is not read.
     void MeasureBlockEdges(void* unused, int bx, int by);
-    // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the derived
-    // tables.
+    // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the tables.
     void Attach(class CAIMap* map);
-    // Whether cell (xx, yy) of block (bx, by) can reach both side edges or both end edges of the block for a
-    // size class.
+    // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
-    // Floods `label` over the blocks connected through open edges, breadth first from `frontier`
-    // (CArray<{x, y}>), `next` holding the following ring.
+    // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
     void FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label);
     // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
-    // block y, cost} appended to `out` (a CList, emptied first). `flag` goes to the search's flag member.
+    // block y, cost} into `out` (emptied first).
     void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
@@ -596,8 +587,7 @@ struct PathSmoother {
     // charged (1 - fraction) * 2048. While a pass finds a cheaper path the cells are rebuilt from the tail
     // along it and the pass repeats. Returns the last pass's cost.
     int Smooth(CUnit* unit, CAIMap* map, PathCellList* path, int startDirection, float fraction);
-    // The states of the next cell (`to`, fresh nodes from the pool) from those
-    // of the current one through `table`.
+    // The states of the next cell (fresh nodes from the pool) from those of the current one through `table`.
     void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
 
@@ -750,8 +740,7 @@ public:
     // leg: aim at the best reached cell when it is far enough from the start, else (with `retry`) exclude the
     // region and plan again.
     bool PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
-    // Searches again if the last search failed and nothing is left, else moves on along
-    // the path. True if the path had already been walked to the end.
+    // Searches again if the last search failed and nothing is left, else moves on; true at the path's end.
     bool ContinuePath(CUnit* unit, AIPath* path);
     // Moves up to 32 cells from the path into the steps and points the unit at the next one.
     void AdvancePath(CUnit* unit, AIPath* path);
@@ -784,8 +773,7 @@ public:
     // Stamps (remove = false) or clears (remove = true) the object's footprint in the
     // grid; false if it does not fit. Units go to the unit occupancy layers instead.
     bool MarkFootprint(CEngineObject* object, bool remove);
-    // The footprint of a non-unit object, collected into `footprint` and `bridges` (the parts flagged 0x400).
-    // True if a bridge part was seen.
+    // The footprint of a non-unit object into `footprint` and `bridges` (parts flagged 0x400); true with a bridge.
     bool CollectFootprint(CEngineObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
     // Applies a footprint to the occluder grid (stamp, undone if a cell fails) or clears it.
     bool ApplyFootprint(FootprintCellSet* set, bool remove);
@@ -797,18 +785,15 @@ public:
     void BeginRefresh();
     void EndRefresh();
 
-    // Occupancy shape of a unit with standing height `height` (null at 0.2 or below):
-    // the shape cache entry for the height rounded up to tenths (created on first use).
+    // Occupancy shape for standing height `height` rounded up to tenths (cached; null at 0.2 or below).
     void* UnitShape(float standingHeight);
-    // The first unit near world `position` (within the sum of standing heights) whose
-    // occupancy shape blocks `unit` there; null if none.
+    // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
     CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
     void SetStepSpeeds(CUnit* unit, PathCellList* steps);
     // The passability cost tables for size class `sizeClass`; returns the climb table's middle.
     const int* CostContext(int sizeClass, struct PassCostContext* out);
-    // CostContext for `unit`: its size class and movement speeds,
-    // and the alternative cost table when CUnit::altPassCosts is set.
+    // CostContext for `unit`: its size class, speeds and the alternative table with CUnit::altPassCosts.
     void CostContextFor(CUnit* unit, struct PassCostContext* out);
     // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a kind-3 occluder is
     // evaluated at the size class's level.) Only the low byte of the result is set when the unit is outside the
@@ -824,8 +809,7 @@ public:
     // The largest ground step between consecutive cells on the line, in world height; 1.0 for a zero-length line,
     // 100.0 when an end is off the map.
     double LargestStepAlong(const Vector3* from, const Vector3* to);
-    // Joins the forward and backward local searches where they meet: the path into `cells`, the summed cost into
-    // `cost` (optional); false when they cannot.
+    // Joins the forward and backward local searches where they meet; false when they cannot.
     bool JoinLocalSearches(PathCellList* cells, int* cost);
     // The path to cell (x, y) walked back along the direction marks into `path` (emptied first).
     void BuildCellsTo(int x, int y, PathCellList* path);
@@ -834,9 +818,8 @@ public:
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
     void RefreshArea(int minX, int maxX, int minY, int maxY);
-    // The passability mark of cell (x, y) for a standing level and its height in AI units: from the terrain type,
-    // water depth and the occluders over the cell (cost and damping), looked up in the mark table. `scratch` gets
-    // the state.
+    // The passability mark of cell (x, y) for a standing level from the terrain type, the water depth and the
+    // occluders over the cell, looked up in the mark table.
     std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
     // Refresh's second pass over [x0, x1] x [y0, y1] (kept 2 cells from the border): a cell whose step to a direct
     // neighbour exceeds what size class 0 can climb becomes impassable, one beyond the larger classes keeps only
@@ -926,8 +909,8 @@ struct SpiralCache {
     float radius;
 };
 
-// World coordinate to AI map cell (half-unit cells), as every AI map function computes it:
-// rounded to float, then FISTP (round to nearest).
+// World coordinate to AI map cell (half-unit cells), as every AI map function computes it: rounded to float,
+// then to the nearest integer.
 int WorldToCell(float world);
 
 void __fastcall InitCostTables(CAIMap* map);

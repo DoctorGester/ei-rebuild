@@ -35,10 +35,9 @@ constexpr int kClassSpell = 0x16;    // spell container; quick item table
 constexpr int kCategoryWand = 8;     // quick item category whose spell comes from the prototype
 constexpr std::uint32_t kFlagConstructing = 8;
 
-// "CItemConstructor::BeginCreateItem.\n", passed by its game address.
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
-// The charge rate every item starts with (0x3A83126F).
+// The charge rate every item starts with (0.001).
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
@@ -73,7 +72,6 @@ void DeleteRecord(ItemRecordHead* record) {
     ItemRecordHead::operator delete(record);
 }
 
-// Index of `record` in `table` (the pointer difference divided by the stride, signed).
 template <typename Record>
 std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHead* record) {
     return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
@@ -84,8 +82,8 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
 // --- CItem ---------------------------------------------------------------------------------------
 
 void CItem::InitFromRecord(const ItemRecordHead* head) {
-    // The condition and the charge pass through the FPU (FLD, FST, FSTP), which quiets a signalling NaN; the other
-    // fields are copied as dwords.
+    // The condition and the charge pass through the FPU, which quiets a signalling NaN; the other fields are
+    // copied as dwords.
     std::memcpy(&conditionMax_, &head->condition, sizeof(float));
     std::memcpy(&condition_, &head->condition, sizeof(float));
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
@@ -231,8 +229,7 @@ EI_REWRITTEN(0x006A5D30, CItemConstructor::Cancel);
 
 namespace {
 
-// Build's common part: price, values and charge of the record, from the prototype alone or
-// scaled by the material.
+// Build's common part: price, values and charge of the record, from the prototype alone or scaled by the material.
 void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
     if (!material) {
         CopyBits(record->price, prototype->price);
@@ -244,8 +241,8 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
         CopyBits(record->materialUnits, prototype->materialUnits);
         return;
     }
-    // Price: the prototype's material units (unsigned, FILD qword) times the material's unit
-    // price, plus the prototype's price.
+    // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
+    // the prototype's price.
     double units = x87::FromUnsigned(prototype->materialUnits);
     float unitPrice = material->unitPrice, price = prototype->price;
     record->price = static_cast<float>(units * unitPrice + price);
@@ -350,7 +347,7 @@ EI_REWRITTEN(0x006A5D60, CItemConstructor::Build);
 namespace {
 
 constexpr int kKindSpellContainer = 0x3008;
-constexpr int kLootKindTable = 2;             // a loot item (class 0x15) whose +0x50 names a table
+constexpr int kLootKindTable = 2;             // a loot item (class 0x15) naming a table
 
 const char* const kSpellContainer = "spell container";
 const char* const kMaterialType = "material";
@@ -359,21 +356,11 @@ const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and mate
 
 struct ItemText : mfc::CString {
     int Find(char c) const;
-    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // TrimLeft() (moves the text, memmove)
-    void TrimSpaceRight() { mfc::CString::TrimRight(); }   // TrimRight()
+    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }
+    void TrimSpaceRight() { mfc::CString::TrimRight(); }
 };
 int ItemText::Find(char c) const { return mfc::CString::Find(c); }
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
-
-// atoi.
-
-// Splits `text` at `separator` (text in ECX, the array in EDX, the separator on the stack).
-
-// Prototype lookups by name (NamedRecordTable::Named): weapons, armors, quick items, the class-0x14 table, the
-// class-0x15 table, materials. Each returns the record or null.
-
-// The string-keyed maps the loot item's table index comes from: operator[] of the weapon armor, quick item
-// and spell maps, and the modifier map's find_or_insert of a (name, null) pair.
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 template <typename Table, typename Record>
@@ -381,7 +368,7 @@ int TableIndex(const Table& table, const Record* record) {
     return record ? table.IndexOf(record) : -1;
 }
 
-// The table index of a loot item's second name part (`which`: its +0x50).
+// The table index of a loot item's second name part.
 int LootTableIndex(int which, const char* name) {
     if (which < 0 || which > 4) return 0;
     stlp::string key(name);
@@ -457,7 +444,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (parts.size > 1) material = items.materials.Named(parts.data[1]);
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
-    // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
+    // The bracket part: a spell for most prototypes, the count for materials.
     const char* type = prototype->text04;
     if (extra.GetLength() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();

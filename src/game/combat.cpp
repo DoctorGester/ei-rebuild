@@ -60,7 +60,7 @@ constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // -FLT_MAX
 constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
 constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
 
-constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // immediate (1.89)
+constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // 1.89
 constexpr float kLoadOverloaded = 1.5f;
 constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0.85
 constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 1.7
@@ -101,18 +101,16 @@ float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { static_cast<CUnitController*>(controller)->GetAttackParams(out); }
 
-// The original's branch-free max(0, v): FLD 0; FCOMP v; C0 picks v (0 < v, or v is NaN), else +0.
+// The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
 float MaxZero(float v) { return v <= kZero ? kZero : v; }
 
-// A zero-extended dword loaded with FILD qword (exact; a plain uint32 conversion would add 2^32
-// with an FADD that precision control rounds).
+// A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
+// the precision control rounds).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
 
-// A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
-// the range) and +0x40 (+0x18, the mana cost).
 float SpellDamage(const CSpell* spell) { return spell->damage_; }
 float SpellRange(const CSpell* spell) { return spell->range_; }
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }
@@ -141,8 +139,8 @@ const char* HitLocationName(int location) {
     }
 }
 
-// CUnit + 0x350 (UnitParams +0x20): what last damaged the unit: a weapon type, 0x10 + the
-// attacking creature's +0x18 (its prototype index), or 7 (elemental or no attacker).
+// What last damaged the unit: a weapon type, 0x10 + the attacker's prototype index, or 7 (elemental or no
+// attacker).
 std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->lastHitSource; }
 } // namespace
 
@@ -275,7 +273,7 @@ bool CUnitServer::IsFighting() {
         if (spell) {
             std::uint32_t type = spell->prototypeId_ >> 16;
             if (type <= 8) return true;
-            // Rebirth's FixPlaingBattleMusicFromAntimagic: JMP over the 0x1A test.
+            // Rebirth's FixPlaingBattleMusicFromAntimagic skips the 0x1A test.
             if (type == 0x1A && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
                 return true;
         }
@@ -293,7 +291,7 @@ bool CUnitServer::CanCast(const AIOrder* order) {
         CSpell* spell = item->spell_;
         if (!spell) return false;
         if (item->GetCategory() != 5) return true;
-        // FCOMPP of the charge against the cost: less (or unordered) refuses.
+        // The charge against the cost: less (or unordered) refuses.
         return item->charge_ >= SpellCost(spell);
     }
     CSpell* spell = unit->GetSpellObject(source);
@@ -408,7 +406,7 @@ int CUnitServer::Level() {
     float experience = Combat().experience;
     float base = GameLogicSettings().considerModifier;
     float step = GameLogicSettings().considerLogBase;
-    // ln(experience / base) / ln(step), as FYL2X with FLDLN2, rounded to float, then FISTP.
+    // ln(experience / base) / ln(step) as the x87 computes it, rounded to float, then to the nearest integer.
     const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
 }
@@ -579,7 +577,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     CWorldServer* world = ServerWorld();
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
-    // |+0x20| below FLT_MAX: not resolved yet.
+    // |attackRoll| below FLT_MAX: not resolved yet.
     float roll = std::bit_cast<float>(hit->attackRoll & 0x7FFFFFFFu);
     EI_NAN_AUDIT(roll);
     if (roll < kHitMark) ResolveHit(hit, attacker);

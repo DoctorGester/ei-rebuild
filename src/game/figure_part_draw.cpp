@@ -1,23 +1,17 @@
-// The draw of one figure part (on the part's drawer): the drawer's mesh (FigureMeshDrawer::mesh_, a
-// CFigureMesh) is clip-tested against the view; animated meshes (type 13..16) are advanced to the current
-// time; the mesh's colours are filled (flat meshes, flag 0x100) or lit once (flag 0x10 marks them lit; the
-// new renderer lights them on the GPU from the part's light handed over with every draw,
-// render::MeshLighting: the sun, the lights within reach, the material, the "crown" mesh pulled 0.6 of the way
-// to its average colour when a global is set); then the mesh is drawn through the device (with the
-// per-vertex offsets added into a copy when there are any) or, when the mesh's owner has a figure
-// (CObject3D::figure), through that figure's own virtuals; the screen rectangle goes to the drawer and to
-// `rect`. See docs/notes/models.md ("Figure parts").
+// The draw of one figure part: the mesh is clip-tested, advanced when animated, its colours filled (flat meshes)
+// or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
+// parts").
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureLights
-#include "material.h"             // CMaterial
-#include "link_figure.h"          // CLinkMesh, ITransformPipeline
-#include "map_object_figures.h"   // CObject3D
-#include "model.h"                // CTransformPipeline, CSceneRenderer
-#include "spell.h"                // CLight
-#include "texture.h"              // CTextureDevice, CTexture
-#include "world_data.h"           // SceneSun
-#include "render/render.h"         // MeshSource
+#include "figure_mesh.h"
+#include "material.h"
+#include "link_figure.h"
+#include "map_object_figures.h"
+#include "model.h"
+#include "spell.h"
+#include "texture.h"
+#include "world_data.h"
+#include "render/render.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -45,8 +39,6 @@ int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
-// The drawer's animation at a time (float bits), and the call after the draw (the renderer).
 
 const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
@@ -54,7 +46,7 @@ const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
+// The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
     const CWorldClient* world = TheClientWorld();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
@@ -73,7 +65,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
 // --- The part --------------------------------------------------------------------------------------
 
 struct Part {
-    FigureMeshDrawer* node;   // this
+    FigureMeshDrawer* node;
     CTextureDevice* device;
     const FigureLights* lights;
     CMaterial* material;
@@ -116,11 +108,9 @@ void FlatColours(Part& part) {
     Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
 
-// The part's light for the GPU (render::MeshLighting), every draw of a mesh that is not flat: the model matrix
-// (below), the scene's sun (SceneSun), the ambient colour the transform object was given
-// (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the crown,
-// and the lights within the object's reach (its draw's list; their positions in the landscape's space). This
-// is what the original handed 3DfpFPU's LightMesh, which no longer runs.
+// The part's light for the GPU, every draw of a mesh that is not flat: the model matrix, the scene's sun, the
+// transform object's ambient colour, the material's colours, the options' coefficient, the crown and the lights
+// within the object's reach.
 std::vector<render::MeshLightSource> g_partLights;
 render::MeshLighting g_partLighting;
 
@@ -164,10 +154,8 @@ const render::MeshLighting* PartLighting(const Part& part) {
     return &l;
 }
 
-// Lighting (once, flag 0x10). The new renderer lights the part on the GPU (PartLighting); the colours keep
-// only LightMesh's alpha (the material's diffuse alpha; white otherwise), through the figure (LightPart) or
-// here; the speculars become the alpha unless the material keeps them. The transform object is still given
-// the scene's sun (it holds a reference to it, as before).
+// Lighting (once, flag 0x10). The new renderer lights the part on the GPU; the colours keep only the material's
+// diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
     part.coloursWritten = true;
     if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
