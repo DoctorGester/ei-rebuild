@@ -1,11 +1,9 @@
-// CParticleSource's per-frame tick (vtable slot 6) and the particle pool (00496A20-00498870).
-// Names are provisional.
-// Each tick: copy the world's wind, follow the attachment (or the source's own position) and
-// derive the motion since the last tick with a basis (side, up) around it, run the element
-// callback on every element, the update callback on every particle (rebuilding the bounding box),
-// then emit new particles. The callbacks are __thiscall on the source (effects.h).
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// CParticleSource's per-frame tick and the particle pool. Names are provisional. Each tick: copy the world's
+// wind, follow the attachment (or the source's own position) and derive the motion since the last tick with a
+// basis (side, up) around it, run the element callback on every element, the update callback on every
+// particle (rebuilding the bounding box), then emit new particles. The callbacks are __thiscall on the source
+// (effects.h). Floating point follows the original's x87 code: `double` for values the original keeps on the
+// FPU stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "map_object_figures.h"
 

@@ -42,19 +42,19 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // bits are left as allocated.
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
-// 005BD010 and its copies (00598400 .. 00598B00, 005B1450, 005BCC30, 005CD490): the destructor.
+// The destructor (shared by the grid classes).
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
-// The event table's cells (the Rebirth-patched resize 005C9310 calls it).
+// The event table's cells (Rebirth patches the resize that calls it).
 struct AIEventCell;   // unit_ai.h
-// 005AF580 / 005AF590: the edge and representative-cell grids' default constructors (1 x 1, then
-// the allocator; the region map's constructor hands them to the vector constructor iterator).
+// The edge and representative-cell grids' default constructors (1 x 1, then the allocator; the region map's
+// constructor hands them to the vector constructor iterator).
 void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
 void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
 // The region grids' default constructor (1 x 1; the region map's constructor hands it
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
-// 005B4150 (fastcall on the map; ai_area_lists.cpp): fills the six area lists from their tables.
+// Fills the six area lists from their tables (ai_area_lists.cpp).
 void __fastcall FillAreaLists(CAIMap* map);
 
 // CAIMap's dirty rectangle (+0x004: dirtyMinX .. dirtyMaxY).

@@ -1,6 +1,6 @@
-// CFigureMesh's own file format (vtable slots; no direct calls in the game): 0059F710 writes the
-// mesh to an MFC CFile, 0059F8F0 reads it back. The name, then every array as a count and its
-// elements, then the bounding values. See figure_mesh.h and docs/notes/world.md.
+// CFigureMesh's own file format (reached through virtuals only): the mesh is written to an MFC CFile and read
+// back. The name, then every array as a count and its elements, then the bounding values. See figure_mesh.h
+// and docs/notes/world.md.
 #include "figure_mesh.h"
 
 #include "core_maths.h"
@@ -15,7 +15,7 @@
 
 namespace {
 
-// The file's slots 14 (Write) and 13 (Read).
+// The file's write and read virtuals.
 void Write(mfc::CFileVirtuals* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
 void Read(mfc::CFileVirtuals* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 
@@ -85,11 +85,11 @@ void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
     Read(file, &meshType_, 4);
 }
 
-// ---- Copy (slot 18) and pose (slot 15) ----------------------------------------------------------
+// ---- Copy and pose --------------------------------------------------------------------------------
 
 namespace {
 
-// The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
+// The original's out-of-line Vector3 helpers (the out pointer first).
 
 float One() { return 1.0f /*0073B84C*/; }
 
@@ -119,7 +119,7 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
 }
 
 void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
-    // Slot 14 stores the quaternion as the world rotation (+0x44).
+    // The pose virtual stores the quaternion as the world rotation.
     CombineRotation(rotation);
     // The position (+0x1C) rotated by the quaternion (w, v):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
@@ -149,8 +149,8 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     moved[1] = my;
     moved[2] = mz;
 
-    // The rotation matrix (+0xE0, row-major 4x4) from the stored quaternion (+0x44 w, +0x48 x,
-    // +0x4C y, +0x50 z); the products the original keeps on the FPU stay doubles.
+    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z); the products the original
+    // keeps on the FPU stay doubles.
     float* m = poseMatrix_.m;
     for (int i = 0; i < 16; ++i) reinterpret_cast<std::uint32_t*>(m)[i] = 0;
     std::uint32_t one = 0x3F800000;

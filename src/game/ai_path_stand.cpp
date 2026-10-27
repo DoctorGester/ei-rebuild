@@ -1,10 +1,9 @@
-// A unit's path told to stand where the unit is (005B1DE0, 005B1F10, 005B2050, 005B2190; thiscall
-// on the AIPath): the remaining cells are dropped, the order reset, the target becomes the unit's
-// cell (position * 1 / (0073FD18 * 0.5)) with the flags {reached, -, -, 1}, the excluded regions
-// emptied, and the order starts at the unit's position facing the direction its orientation
-// quaternion (+0x34) gives, negated (computed on the FPU in the original's order). Then the
-// variants add a turn, a tracked object or a turn with an end;
-// 005B2190 starts at the order's own start time. See ai_map.h (AIPath) and docs/notes/ai.md.
+// A unit's path told to stand where the unit is (four variants): the remaining cells are dropped, the order
+// reset, the target becomes the unit's cell (position * cell scale) with the flags {reached, -, -, 1}, the
+// excluded regions emptied, and the order starts at the unit's position facing the direction its orientation
+// quaternion gives, negated (computed on the FPU in the original's order). Then the variants add a turn, a
+// tracked object or a turn with an end; one starts at the order's own start time. See ai_map.h (AIPath) and
+// docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
 #include "map_object.h"
@@ -17,9 +16,9 @@
 
 namespace {
 
-// The facing direction from the quaternion {w, x, y, z} (the unit's +0x34): x = -2(yx - zw) (rounded
-// once), y = -((ww - ((zz + xx) + yy)) + 2yy) and z = -2(yz + xw), the last two rounded to floats
-// before the negation, as the original.
+// The facing direction from the quaternion {w, x, y, z} of the unit: x = -2(yx - zw) (rounded once), y =
+// -((ww - ((zz + xx) + yy)) + 2yy) and z = -2(yz + xw), the last two rounded to floats before the negation, as
+// the original.
 void FacingFromQuaternion(const float* q, float* out) {
     const double w = q[0], x = q[1], y = q[2], z = q[3];
     const double across = y * x - z * w;
@@ -34,7 +33,7 @@ void FacingFromQuaternion(const float* q, float* out) {
 
 
 
-// The common part; `time` is read after the reset (005B2190 passes the path's own +0x10).
+// The common part; `time` is read after the reset (one variant passes the path's own start time).
 void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->cells.RemoveAll();
     path->Reset();

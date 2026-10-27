@@ -1,9 +1,8 @@
-// The save/load window's list (CSaveLoadWindow::RefreshList, 006567A0; A-H26): the visible rows
-// with their dates, the name being typed with its caret, the selection's marker and the selected
-// save's details, all drawn into the window's first surface.
-// Rebirth's WideScreen patches it (the caret's points scaled without the margin), which this
-// reproduces behind the flag (ticket W2). Rebirth-patched callees: the surface's text 005FDE20, the text extent 005F8340, the point scaling 005F7D20 and the sprite's
-// Place 005E6FA0. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md ("A-H26").
+// The save/load window's list (CSaveLoadWindow::RefreshList): the visible rows with their dates, the name
+// being typed with its caret, the selection's marker and the selected save's details, all drawn into the
+// window's first surface. Rebirth's WideScreen patches it (the caret's points scaled without the margin),
+// which this reproduces behind the flag. Rebirth-patched callees: the surface's text, the text extent, the
+// point scaling and the sprite's Place. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"
 
@@ -45,7 +44,7 @@ constexpr int kMarkerSprite = 4;
 constexpr int kMinutesPerDay = 1440;
 
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -88,7 +87,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
-                    // WideScreen (006569F7 / 00656A08: XOR ECX,ECX): without the margin.
+                    // WideScreen (XOR ECX,ECX in the original): without the margin.
                     interface_->CallScalePointToScreenNoMargin(&top);
                     interface_->CallScalePointToScreenNoMargin(&bottom);
                     dc->MoveTo(top.x, top.y);

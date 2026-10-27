@@ -11,8 +11,8 @@
 #include <bit>
 
 namespace {
-constexpr float kAboveSurface = std::bit_cast<float>(0x3F800000u);   // 0073EF24 (1.0)
-constexpr float kMinSight = std::bit_cast<float>(0x3DCCCCCDu);       // 0073EEC0 (0.1)
+constexpr float kAboveSurface = std::bit_cast<float>(0x3F800000u);   // 1.0
+constexpr float kMinSight = std::bit_cast<float>(0x3DCCCCCDu);       // 0.1
 } // namespace
 
 bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
@@ -33,7 +33,7 @@ bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* c
         float ground = static_cast<float>(caster->GroundHeight(eye.x, eye.y));
         eye.z = static_cast<float>(caster->BaseSpeed() + ground);
     }
-    // The original compares the unrounded ST0 result (TEST AH,1: below or unordered fails).
+    // The unrounded ST0 result is compared (TEST AH,1: below or unordered fails).
     return world->AIMap()->LineOfSight(&eye, &to) >= kMinSight;
 }
 EI_REWRITTEN(0x0054BBC0, SpellHasLineOfSight);

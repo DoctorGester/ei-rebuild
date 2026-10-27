@@ -1,6 +1,6 @@
 // The client companion's effect visuals (CMapObjectClientSpecific, map_object.h / unit.h): the
 // particle sources and looping sounds that follow the object's effect list, and the reset of the
-// parts' alpha / tint when an invisibility or stun effect ends (A-U3).
+// parts' alpha / tint when an invisibility or stun effect ends.
 
 #include "effects.h"
 #include "map_object.h"
@@ -51,7 +51,7 @@ constexpr int kRingSource = 0x2018;        // Lichdom's ring
 constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
 constexpr int kFallbackSource = 0x2013;
 
-// The sound distances (0073DBE0 / 0073DBE4: 10 and 50), read from the exe as the original does.
+// The sound distances (10 and 50), read from the exe like the original.
 float SoundNear() { return 10.0f /*0073DBE0*/; }
 float SoundFar() { return 50.0f /*0073DBE4*/; }
 
@@ -121,7 +121,7 @@ void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
     ring->ScaleSize(negate ? -factor : factor);
 }
 
-// The ring's size: power / 16, negative for weaken, rounded to a float as the original stores it.
+// The ring's size: power / 16, negative for weaken, rounded to a float like the original.
 float RingSize(int type, int power) {
     float size = static_cast<float>(power) * kPowerScale;
     float value = size;
@@ -148,14 +148,14 @@ bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type
 // --- Lights ---
 
 constexpr std::uint32_t kLightHidden = 0x80;     // CEngineObject::flags_ of a light
-constexpr std::uint32_t kLightHeld = 0x200;      // held on by slot 19 (mode 1)
+constexpr std::uint32_t kLightHeld = 0x200;      // held on by the light effect (mode 1)
 constexpr std::uint32_t kLightNew = 0x580;
 constexpr std::uint32_t kLightFlag40 = 0x40;
 constexpr int kPointLight = 0x31;
 constexpr float kLightHeight = 2.0f;
 constexpr int kUnitClassId = 0x50;
 
-// The default light of slot 19's mode 1 (0079BEB0: r, g, b; 0079BEBC: radius).
+// The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::TheOptions()->questLight_.red; }
 float DefaultLightRadius() { return options::TheOptions()->questLight_.radius; }
 
@@ -298,8 +298,8 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             break;
         }
         }
-        // SetSize(size + 1), then the element assigned from the local record (00512490: the
-        // source referenced), then the local record's reference released.
+        // SetSize(size + 1), then the element assigned from the local record (the source referenced), then the local
+        // record's reference released.
         int index = particles.size;
         mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(index + 1, -1);
         EffectParticle& record = particles.data[index];
@@ -465,7 +465,7 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
         }
         light->flags_ |= kLightHeld;
         int id = light->id_;
-        stlp::list<int>::Insert(TheLightFactory()->litIds_.End(), id);   // 004049D0 end, 00404A40 insert
+        stlp::list<int>::Insert(TheLightFactory()->litIds_.End(), id);
         return;
     }
     if (mode == 2 && light) DropLight(this);

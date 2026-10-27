@@ -1,13 +1,13 @@
-// Interpolation inside a deformation cage (the figure manager's morphing, 005ACB80): a point at
-// parameters (t, u, w) between the corners of a cube (8 points) or a prism (6 points) read from a
-// record stream. Names provisional; see docs/notes/map_objects.md ("Cages").
+// Interpolation inside a deformation cage (the figure manager's morphing): a point at parameters (t, u, w)
+// between the corners of a cube (8 points) or a prism (6 points) read from a record stream. Names
+// provisional; see docs/notes/map_objects.md ("Cages").
 #include "map_object_cage.h"
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
 
-// Every step is rounded to float where the original stores (its Vector3 constructor arguments,
-// the vector helpers' results); values it keeps on the FPU stack are doubles.
+// Every step is rounded to float where the original stores (its Vector3 constructor arguments, the vector
+// helpers' results); values it keeps on the FPU stack are doubles.
 
 namespace {
 float Sub(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }

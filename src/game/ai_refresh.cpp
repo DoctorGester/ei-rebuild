@@ -20,8 +20,8 @@ namespace {
 
 constexpr int kLevels = 8;
 
-// The occluders' damping scale, ln 0.6: zero at the start, set by its static initialiser (005B2FB0, the
-// x87 FLDLN2 / FYL2X of 0.6 stored as a float), ported on the name and registered at its address.
+// The occluders' damping scale, ln 0.6: zero at the start, set by a static initialiser (the x87 FLDLN2 / FYL2X
+// of 0.6 stored as a float).
 float g_dampScale = /*007C2F8C*/ {};
 void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
 
@@ -33,7 +33,7 @@ int AreaList(int level) {
     return 0;
 }
 
-// 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
+// The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
 
 
 std::uint32_t& CellWord(CAIMap* map, int x, int y) {
@@ -152,8 +152,8 @@ struct MarkState {
     std::uint8_t doubled;   // +0x14 the cost counts twice (occluder type 3)
 };
 
-// passage * e^(table * a * b), stored to a float and rounded (FISTP), with the original's
-// FLDL2E / F2XM1 / FSCALE sequence.
+// passage * e^(table * a * b), stored to a float and rounded (FISTP), with the original's FLDL2E / F2XM1 /
+// FSCALE sequence.
 int Damp(int table, float a, float b, int passage) {
     const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
     return x87::fistp(damped);

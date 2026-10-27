@@ -69,9 +69,8 @@ BOOL CUiRegion::HasActiveTip() const {
 }
 EI_REWRITTEN(0x005FC660, CUiRegion::HasActiveTip);
 
-// Rebirth's WideScreen replaces SetRect and AddPoint (addon's 100230F0, and 100232CC before the
-// original's body from 005FCA79): x is moved by the panel offset its panel builders set
-// (ui_widescreen.h; 0 outside them, and always 0 until those builders are ported, W2-W4).
+// Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
+// is moved by the panel offset its panel builders set (ui_widescreen.h; 0 outside them).
 void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     points_.RemoveAll();
     if (widescreen::Active()) {
@@ -107,7 +106,7 @@ void CUiRegion::AddPoint(int x, int y) {
         if (x > bounds_.right) bounds_.right = x;
         if (y > bounds_.bottom) bounds_.bottom = y;
     }
-    // The vertex array is a lib::AlignedArray of 8-byte points (allocated by 004F65B0).
+    // The vertex array is a lib::AlignedArray of 8-byte points.
     int index = points_.size;
     points_.SetSize(index + 1);
     points_[index].x = x;
@@ -159,7 +158,7 @@ void CUiWindow::UpdateRegionTips(int) {
 }
 EI_REWRITTEN(0x005FEBF0, CUiWindow::UpdateRegionTips);
 
-// The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
+// The same per region, each tooltip then redrawn (the tooltip is re-read).
 void CUiWindow::RedrawRegionTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);
@@ -249,8 +248,8 @@ void CUiWindow::ClearObjects() {
 }
 EI_REWRITTEN(0x005FF1E0, CUiWindow::ClearObjects);
 
-// Returns `surface` (the original leaves its argument in EAX; the titles' Create 0062B7D0 freezes
-// the surface through the result).
+// Returns `surface` (the original leaves its argument in EAX; the titles' Create freezes the surface through
+// the result).
 void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added) = nullptr;
 
 CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
@@ -366,7 +365,7 @@ EI_REWRITTEN(0x005FFA20, CUiWindow::ClearRegions);
 CUiModel* CUiWindow::AddModel() {
     auto* model = gamecrt::operator_new_as<CUiModel>();
     if (!model) return nullptr;
-    model->object_ = nullptr;   // 005FC1C0, the constructor
+    model->object_ = nullptr;   // the constructor
     models_.Add(model);
     return model;
 }
@@ -383,7 +382,7 @@ void CUiWindow::ClearModels() {
 }
 EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 
-// --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
+// --- ReplaceSceneObject ----------------------------------------------------------------------------
 
 namespace {
 // A new object of the model manager by name, or null.
@@ -429,7 +428,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
 }
 EI_REWRITTEN(0x005FF460, CUiWindow::ReplaceSceneObject);
 
-// --- 005FF3C0: AddSprite ---------------------------------------------------------------------------
+// --- AddSprite -------------------------------------------------------------------------------------
 
 CUiMesh* CUiWindow::AddSprite(const char* name) {
     CEngineObject* object = NewModelObject(name);
@@ -448,7 +447,7 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
 }
 EI_REWRITTEN(0x005FF3C0, CUiWindow::AddSprite);
 
-// --- 005FE700: the constructor -----------------------------------------------------------------
+// --- The constructor ---------------------------------------------------------------------------------
 
 namespace {
 constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
@@ -456,8 +455,8 @@ constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f}; 
 
 namespace {
 // The engine object's base constructor (thiscall).
-// The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
-// MaterialCreateOriginal), 0068EAF0 registers it (RET 8, CMaterialManager::FillMaterial).
+// The material manager (thiscall): makes a material (MaterialCreateOriginal), registers it
+// (CMaterialManager::FillMaterial).
 
 // A material's emissive colour (+0x50..+0x58, every component `value`) and one more reference.
 void PrepareMaterial(CMaterial* material, float value) {
@@ -479,7 +478,7 @@ void ClearArray(UiPtrArray<T>& array) {
 
 CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     ClearFields();
-    localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
+    localRotation_.SetIdentity();   // two identity rotations
     worldRotation_.SetIdentity();
     std::memset(spareA0_, 0, sizeof(spareA0_));
     ClearArray(objects_);
@@ -512,7 +511,7 @@ int CUiWindow::Create() { return UiObjectCreate(this); }
 const char* CUiWindow::GetClassName() { return UiObjectClassName(this); }
 int CUiWindow::GetClassId() { return UiObjectClassId(this); }
 
-// --- 00600D30: CUiContainer::AddChild ------------------------------------------------------------
+// --- CUiContainer::AddChild ------------------------------------------------------------------------
 
 void CUiContainer::AddChild(CUiWindow* child) {
     if (!child) return;
@@ -520,7 +519,7 @@ void CUiContainer::AddChild(CUiWindow* child) {
 }
 EI_REWRITTEN(0x00600D30, CUiContainer::AddChild);
 
-// --- 005FE930: the destructor -----------------------------------------------------------------
+// --- The destructor ---------------------------------------------------------------------------------
 
 CUiWindow::~CUiWindow() {
     for (CEngineObject** held : {&blackMaterial_, &whiteMaterial_, &heldObject_}) {

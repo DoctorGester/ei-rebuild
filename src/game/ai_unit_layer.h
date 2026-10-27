@@ -13,9 +13,9 @@
 #include <cstddef>
 #include <cstdint>
 
-// A unit's footprint on the layers: 16 x 16 cell levels around the unit, shared by radius through
-// the shape cache (007C2F70, ai_shape_cache.cpp; its handles are UnitShapeHandle). Methods in
-// ai_unit_shape.cpp. Names provisional.
+// A unit's footprint on the layers: 16 x 16 cell levels around the unit, shared by radius through the shape
+// cache (ai_shape_cache.cpp; its handles are UnitShapeHandle). Methods in ai_unit_shape.cpp. Names
+// provisional.
 class CUnitShape final : public CRefObject {
 public:
     // The levels of a disc: per cell (2 + radius - half its distance from the
@@ -34,8 +34,7 @@ public:
 
 // The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
 using UnitShapeHandle = ShapeCacheHandle;
-// 005B33D0 (the shape cache's slot 0, thiscall with `this` unused: RET 4). A new shape for the
-// handle's radius.
+// The shape cache's creator virtual: a new shape for the handle's radius (`this` unused).
 CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle);
 
 // The bucket of a block key.

@@ -29,7 +29,7 @@ void ResetNode(SearchNode* node) {
     node->usable = true;
 }
 
-// A copy of the inlined CList<PathCell>::AddHead of the original (NewNode, then linked first).
+// CList<PathCell>::AddHead (NewNode, then linked first).
 void AddHead(PathCellList* list, const PathCell& cell) {
     PathCellList::Node* node = list->NewNode(nullptr, list->head);
     node->data = cell;
@@ -223,7 +223,7 @@ EI_REWRITTEN(0x005C30E0, LocalSearch::ExpandAll);
 
 bool LocalSearch::ExpandUntil(int x, int y) {
     if (!active) return false;
-    // The original forms the row pointer without a bounds check; it is only compared.
+    // The row pointer is formed without a bounds check; it is only compared.
     const SearchNode* target = nodes.rows[y - originY] + (x - originX);
     while (current && current != target) Expand();
     return current != nullptr;
@@ -241,8 +241,8 @@ void LocalSearch::PathTo(int x, int y, PathCellList* out) {
     int wx = x - originX;
     int wy = y - originY;
     if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return;
-    // The cells' second dword comes from a stack slot the original never writes. Its only caller,
-    // CAIMap::JoinLocalSearches, leaves the forward search's address there (pushed by Best).
+    // The cells' second dword is a stack word the original never writes. Its only caller,
+    // CAIMap::JoinLocalSearches, leaves the forward search's address there.
     auto stale = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(&map->forwardSearch));
     auto cellAt = [&](int cx, int cy) {
         return PathCell{static_cast<std::int16_t>(originX + cx), static_cast<std::int16_t>(originY + cy),
@@ -465,7 +465,7 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
     if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
-    // A copy of the node grid (005C4BA0, inlined here).
+    // A copy of the node grid.
     SearchGrid<SearchNode> old{nullptr, nullptr, nodes.width, nodes.height};
     AllocateGrid(old);
     if (old.width * old.height > 0) std::memcpy(old.data, nodes.data, old.width * old.height * sizeof(SearchNode));

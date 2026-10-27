@@ -118,8 +118,8 @@ int EdgeShift() {
     return l.active ? l.extra : 0;
 }
 
-// addon's entry handlers (e.g. 10023344 at 00641F20: MOV EAX,[extra]; MOV [offset],EAX; 100232AF at
-// NEG EAX first) and exit handlers (10023359: MOV [offset],0).
+// addon's entry handlers (load the extra into the offset; one negates it first) and exit handlers (zero the
+// offset).
 void EnterLeftPanel() {
     if (Active()) SetPanelOffset(-Get().extra);
 }
@@ -130,8 +130,8 @@ void LeavePanel() {
     if (Active()) SetPanelOffset(0);
 }
 
-// 10023213 (addon's 005F7CA0): x scaled by the 4:3 part's width plus the margin (when ECX is
-// nonzero), y by the mode's height.
+// addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (when ECX is nonzero), y
+// by the mode's height.
 int RectToScreen(RECT* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
@@ -142,7 +142,7 @@ int RectToScreen(RECT* rect, bool margin) {
     return rect->bottom;
 }
 
-// 10023278 (addon's 005F7D20 and 005F7D60).
+// addon's scaling of points and rectangles.
 int PointToScreen(POINT* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
@@ -150,7 +150,7 @@ int PointToScreen(POINT* point, bool margin) {
     return point->y;
 }
 
-// addon's code at 005F7D9E (98 bytes over 005F7DA0): left, right, top, bottom in that order.
+// addon's code for the screen-to-layout scaling: left, right, top, bottom in that order.
 int RectFromScreen(RECT* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
@@ -161,7 +161,7 @@ int RectFromScreen(RECT* rect, bool margin) {
     return rect->bottom;
 }
 
-// addon's code at 005F7DFE (96 bytes over 005F7E00 and 005F7E30, which jumps to 005F7E00).
+// addon's code for the screen-to-layout scaling of a point (two entries, one jumping to the other).
 int PointFromScreen(POINT* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
@@ -169,8 +169,8 @@ int PointFromScreen(POINT* point, bool margin) {
     return point->y;
 }
 
-// addon's code at 005F83CF: MOV EAX,800; IMUL EBX; MOV ECX,width43; IDIV ECX, then the same with 600
-// and the height.
+// addon's text extent code: MOV EAX,800; IMUL EBX; MOV ECX,width43; IDIV ECX, then the same with 600 and the
+// height.
 SIZE TextExtentToLayout(SIZE pixels) {
     const Layout& l = Get();
     return SIZE{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
@@ -212,7 +212,7 @@ void ShowHeroCurtains(CUiWindow* window, int mode) {
     window->SceneMesh(kHeroScreenSprites - 1)->visible_ = shown;
 }
 
-// addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
+// addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
 
 

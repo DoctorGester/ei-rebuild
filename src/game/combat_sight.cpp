@@ -22,22 +22,22 @@
 #include <bit>
 #include <cstring>
 
-// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory)
-// are float locals.
+// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory) are float
+// locals.
 
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kHalf = 0.5f;
 constexpr float kOne = 1.0f;
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 / 0073EEC0 (0.1)
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
-constexpr float kMinusPointThree = std::bit_cast<float>(0xBE99999Au); // 0073CDFC (-0.3)
-constexpr float kPointNine = std::bit_cast<float>(0x3F666666u);     // 0073CD70 (0.9)
-constexpr float kRangeSlack = std::bit_cast<float>(0x3F866666u);    // 0073CEE0 (1.05)
+constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
+constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
+constexpr float kMinusPointThree = std::bit_cast<float>(0xBE99999Au); // -0.3
+constexpr float kPointNine = std::bit_cast<float>(0x3F666666u);     // 0.9
+constexpr float kRangeSlack = std::bit_cast<float>(0x3F866666u);    // 1.05
 constexpr float kMeleeReach = 3.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kPi = std::bit_cast<float>(0x40490FDBu);
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kNearSq = 10.0f;                                    // immediate 0x41200000
 constexpr double kFrontCosine = 0.5;
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with flag18
@@ -61,7 +61,7 @@ constexpr int kCastKindNone = 8;
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-// x87 compares as the original's TEST AH masks read them.
+// x87 compares, as the original's TEST AH masks read them.
 bool Greater(double a, double b) { return a > b; }   // TEST AH,0x41 not taken
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
@@ -72,14 +72,14 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeap
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
-// The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU
-// stack throughout (the double constants at 0073F0A8 / 0073F0A0).
+// The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU stack
+// throughout (double constants).
 int CastDelayTicks(double distanceSq, double flight) {
     return static_cast<int>(gamecrt::Ftol(std::sqrt(distanceSq) * 15.0 / flight - 3.0));
 }
 
-// The spell a cast order's source names: a quick item's spell (+0x44), or the unit's own. The
-// boolean is false when a quick item source has no carrier (the original returns there).
+// The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a
+// quick item source has no carrier (the original returns there).
 bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
@@ -138,9 +138,9 @@ EI_REWRITTEN(0x0054BCB0, CUnitServer::FindSightTarget);
 // --- Can the order be carried out from here ----------------------------------------------------
 
 namespace {
-// AI units only act on a target within 1.05 times their sight range: the smaller of stats +0xC4
-// and the movement factor +0x904 times stats +0xB4 (the original selects the dwords with a mask
-// built from FCOMP's C0, so a NaN product picks the first).
+// AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
+// movement factor times the sight), the original selecting the dwords with a mask built from FCOMP's C0, so a
+// NaN product picks the first.
 bool OutOfSightRange(CUnitServer* self, const float* point) {
     float limit = self->stats.valuesB0[2].current;
     float range = self->moveFactors[3] * self->stats.valuesB0[0].current;
@@ -225,7 +225,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
         float ground = static_cast<float>(sight.unit->GroundHeight(point[0], point[1]));
         sight.point.z = static_cast<float>(sight.unit->ModeSpeed() + ground);
         sight.unit = nullptr;
-        // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
+        // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
     }
     double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->localPosition_);
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
@@ -309,8 +309,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     plan->notSkill = 0;
     plan->castKind = kCastKindNone;
 
-    // The animation and its duration (the builders always set it; the original's is not
-    // initialised).
+    // The animation and its duration (the builders always set it; the original's is not initialised).
     int duration = 0;
     int kind = order->kind;
     if (kind == kOrderAttack) {
@@ -379,7 +378,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         } else {
             double outer = static_cast<double>(range) + kHalf;
             outerSq = static_cast<float>(outer * outer);
-            if (targetUnit->IsLargeUnit()) predict = true;   // slot 54 (the planner's "moving")
+            if (targetUnit->IsLargeUnit()) predict = true;   // the planner's "moving"
         }
         if ((kind == kOrderCast || kind == kOrderCastAt) && !order->flag18 &&
             targetUnit->IsLargeUnit()) {

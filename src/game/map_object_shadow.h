@@ -1,9 +1,8 @@
 #pragma once
 
-// The shadow a 3D object casts on the client (CObject3DClientSpecific, vtable 0073DE90): the
-// figure is drawn from the strongest light direction into a 64x64 texture, which is then laid
-// onto the ground under the object. Names provisional; see docs/notes/map_objects.md
-// ("Shadows").
+// The shadow a 3D object casts on the client (CObject3DClientSpecific): the figure is drawn from the
+// strongest light direction into a 64x64 texture, which is then laid onto the ground under the object. Names
+// provisional; see docs/notes/map_objects.md ("Shadows").
 
 #include "core_refcount.h"   // CountedRef
 #include "engine_object.h"
@@ -29,9 +28,8 @@ struct DecalTexCoord;   // ground_decal.h
 #include "material.h"   // CMaterial
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
-// The world matrix (+0x54) of a 3D object or a figure part as the draws build it (0051B7E0,
-// Map_object_draw.cpp): the rotation of `orientation`, `position` as column 3,
-// the last row (0, 0, 0, 1).
+// The world matrix of a 3D object or a figure part as the draws build it (map_object_draw.cpp): the rotation
+// of `orientation`, `position` as column 3, the last row (0, 0, 0, 1).
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out);
 
 // The parts of a figure drawn with one material (0x14 bytes; a part set's group).
@@ -58,16 +56,15 @@ static_assert(sizeof(TextureParts) == 0x14);
 
 struct WoundsMaterial;   // below
 
-// The client's half of a 3D object (GetClassName "CObject3DClientSpecific", class id 0x37, game.exe's
-// vtable 0073DE90): a CObject3DSpecific with the shadow, the part sets and the skins.
+// The client's half of a 3D object (GetClassName "CObject3DClientSpecific", class id 0x37): a
+// CObject3DSpecific with the shadow, the part sets and the skins.
 class CObject3DClientSpecific : public CObject3DSpecific {
 public:
-    // object3d_client_parts.cpp (A-U12). 0051AB00: the empty arrays and names, the shadow sphere
-    // zeroed, cursor -1, the shadow texture and the wounds texture / material dropped, bounds and
-    // pulse clock 0.
+    // object3d_client_parts.cpp. The empty arrays and names, the shadow sphere zeroed, cursor -1, the shadow
+    // texture and the wounds texture / material dropped, bounds and pulse clock 0.
     CObject3DClientSpecific();
-    // 0051AD90 (deleting: 0051AD70): Destroy, the names, the wounds material and texture and the
-    // shadow texture released, the arrays' blocks freed.
+    // The deleting destructor: Destroy, the names, the wounds material and texture and the shadow texture
+    // released, the arrays' blocks freed.
     ~CObject3DClientSpecific() override;
     // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
     // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
@@ -77,89 +74,81 @@ public:
     // sets destroyed and deleted, every texture and material released and the arrays emptied; no
     // object, touch time and flags_ 0.
     void Destroy() override;
-    // object3d_specific_slots.cpp. 0051AD50 / 0051AD60 (slots 11 / 12): "CObject3DClientSpecific", 0x37.
+    // object3d_specific_slots.cpp. Class name and id: "CObject3DClientSpecific", 0x37.
     const char* GetClassName() override;
     int GetClassId() override;
-    // Slots 19 / 20: Draw and DrawShadow below (`context` is the scene renderer).
+    // Draw and DrawShadow below (`context` is the scene renderer).
     int DrawParts(void* context, int* dirty) override { return Draw(static_cast<CSceneRenderer*>(context), dirty); }
     int DrawPartsShadow(void* context) override { return DrawShadow(static_cast<CSceneRenderer*>(context)); }
-    // Slot 23: PartRectsMeet below.
+    // PartRectsMeet below.
     int PartsIntersectRect(const long* rect) override { return PartRectsMeet(reinterpret_cast<const RECT*>(rect)); }
-    // Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
-    // are on for its kind (0079BD0C > 0 and the per-kind switch) and the object is shown: unless
-    // the shadow is still valid, sums the lights reaching the object into a direction (tilted
-    // to at least 20 degrees above the ground), renders the figure's parts from there into the
-    // 64x64 shadow texture (+0x7C, created on first use) through the render surface, and
-    // projects the texture's square onto the ground (0056C750 into +0x4C/+0x5C/+0x6C). Then the
-    // shadow geometry is drawn with the shadow's alpha (units: their controller's +0x78).
-    // Returns 1, or a fatal error's result when the texture or the surface cannot be had.
+    // Draws the object's shadow (`context` is the scene renderer). When shadows are on for its kind (the option
+    // above 0 and the per-kind switch) and the object is shown: unless the shadow is still valid, sums the lights
+    // reaching the object into a direction (tilted to at least 20 degrees above the ground), renders the figure's
+    // parts from there into the 64x64 shadow texture (created on first use) through the render surface, and
+    // projects the texture's square onto the ground. Then the shadow geometry is drawn with the shadow's alpha
+    // (units: their controller's). Returns 1, or a fatal error's result when the texture or the surface cannot be
+    // had.
     int DrawShadow(CSceneRenderer* context);
 
-    // 0051B7E0 (map_object_draw.cpp). Draws the object (`context` as above; `dirty` receives the screen rectangle the
-    // parts flagged 0x40 covered, or null): the object's state is updated (its slot 26) and its
-    // animation, the lights of 007AF748 within their range + 10 are collected, the
-    // object's matrix (and its extra scale +0xF0) pushed, and every part of the two part sets
-    // (+0x20 / +0x24, the first with the texture +0xDC) within sqrt(1e9) drawn through the
-    // context's slot 13 with those lights. A figure whose parts are all static (part flags 0x10)
-    // becomes static (object flags 0x400; +0xEC the time it did, flags_ bit 8). Returns 1, or
-    // a fatal error's result.
+    // map_object_draw.cpp. Draws the object (`context` as above; `dirty` receives the screen rectangle the parts
+    // flagged 0x40 covered, or null): the object's state is updated and its animation, the lights within their
+    // range + 10 are collected, the object's matrix (and its extra scale) pushed, and every part of the two part
+    // sets (the first with the texture) within sqrt(1e9) drawn through the context's draw with those lights. A
+    // figure whose parts are all static (part flags 0x10) becomes static (object flags 0x400; a member the time it
+    // did, flags_ bit 8). Returns 1, or a fatal error's result.
     int Draw(CSceneRenderer* context, void* dirty);
 
-    // unit_client_update.cpp (A-U). 0051B6D0 / 0051B6F0. Walk the materials (+0x38): the first
-    // (cursor 0; with none the cursor is -1) / the next (the cursor moves on); null at the end.
+    // unit_client_update.cpp. Walk the materials: the first (cursor 0; with none the cursor is -1) / the next
+    // (the cursor moves on); null at the end.
     CMaterial* FirstMaterial();
     CMaterial* NextMaterial();
 
-    // unit_client_animation.cpp (A-U2). The pulse of an invisible or stunned unit: the clock
-    // (+0xE8) moves on by `frames`, its phase fmod(clock, 30) folded at 15 gives 0.2..0.7.
-    // Every drawn part takes it as its alpha. 0051CCD0: every drawn part takes the tint
-    // (pulse, 0, 0) and flags_ 0x10.
+    // unit_client_animation.cpp. The pulse of an invisible or stunned unit: the clock moves on by `frames`, its
+    // phase fmod(clock, 30) folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha. The second: every
+    // drawn part takes the tint (pulse, 0, 0) and flags_ 0x10.
     void InvisiblePulse(float frames);
     void StunnedPulse(float frames);
-    // map_object_client_effects.cpp (A-U3). 0051CCA0: every drawn part's alpha back to 1 (an
-    // invisibility ended). 0051CD60: every drawn part's tint cleared and flags_ 0x10 off (a stun
-    // ended).
+    // map_object_client_effects.cpp. Every drawn part's alpha back to 1 (an invisibility ended). Every drawn
+    // part's tint cleared and flags_ 0x10 off (a stun ended).
     void ResetPartAlpha();
     void ClearPartTints();
-    // unit_client_wounds.cpp (A-U4). 0051C920: the wounds texture (+0xD8) and its material (+0xDC)
-    // are taken off and released (the material deleted at its last reference).
+    // unit_client_wounds.cpp. The wounds texture and its material are taken off and released (the material
+    // deleted at its last reference).
     void HideWounds();
-    // 0051C3D0 (RET 4; unit_client_wounds.cpp, A-U10). Shows the wounds texture `name` (kind 6): 0
-    // without a first part set (+0x20). The texture is found or made on first
-    // use (none: FatalError with the object's class name and id). Unless its .mmp extra block
-    // is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8
-    // cleared, 006922A0); a failed load drops the texture and the material and returns 0. Without
-    // a material, a new one (blended 5 / 6, the renderer helper's preset 4) gets two stages: the
-    // first part set's texture, then the wounds texture. Returns 1.
+    // unit_client_wounds.cpp. Shows the wounds texture `name` (kind 6): 0 without a first part set. The texture
+    // is found or made on first use (none: FatalError with the object's class name and id). Unless its .mmp extra
+    // block is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8 cleared); a failed load
+    // drops the texture and the material and returns 0. Without a material, a new one (blended 5 / 6, the
+    // renderer helper's preset 4) gets two stages: the first part set's texture, then the wounds texture. Returns
+    // 1.
     int ShowWounds(const char* name);
-    // object3d_specific_slots.cpp (A-U4). 0051AD20: virtual slot 18: x, y, z = figureScale. 0051C970:
-    // each drawn part (the cursor +0x48 walks them from 0, up to the first null) registers its
-    // material with the world's material manager (world slot 33, 0068EAF0 with the part's type_).
+    // object3d_specific_slots.cpp. The scale virtual: x, y, z = figureScale. The materials registration: each
+    // drawn part (the cursor walks them from 0, up to the first null) registers its material with the world's
+    // material manager (with the part's type_).
     void GetScale(float* x, float* y, float* z) override;
     void RegisterPartMaterials();
-    // object3d_specific_slots.cpp (A-U11). Slots 22-24, the screen picking (RET 4; a shown object only,
-    // flags_ 0x20 of the 3D object): 0051C130 whether the point (x, y) is in the object's dirtyRect;
-    // 0051C160 in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
-    // 0051C1D0 whether `rect` meets such a part's rectangle (a non-empty intersection).
+    // object3d_specific_slots.cpp. Screen picking (a shown object only, flags_ 0x20 of the 3D object): whether
+    // the point (x, y) is in the object's dirtyRect; in the screen rectangle of one of its parts with their own
+    // mesh (part flags 0x40); whether `rect` meets such a part's rectangle (a non-empty intersection).
     int BoundsContainPoint(const long* point) override;
     int PartsContainPoint(const long* point) override;
     int PartRectsMeet(const RECT* rect);
-    // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
-    // its part of type `type` (CObject3D::FindPartOfType).
+    // The object's part named `name` (CObject3D::FindPart) and its part of type `type`
+    // (CObject3D::FindPartOfType).
     CFigureMesh* FindPart(const char* name) override;
     CFigureMesh* FindPartOfType(int type) override;
 
-    // object3d_client_parts.cpp (A-U12): the part sets and skins.
-    // The wounds material slot (+0xDC) cleared and the material it held released (deleted at its
-    // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
-    // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead).
+    // object3d_client_parts.cpp: the part sets and skins. The wounds material slot cleared and the material it
+    // held released (deleted at its last reference): CountedRef<WoundsMaterial>::Assign(nullptr), inlined by the
+    // callers.
     void ClearWoundsMaterial();
     // `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
     int OnPartAdded(CFigureMesh* part) override;
-    // The part named `name` (slot 16) leaves its group and is released.
-    // Returns it, or null when there is none or no group holds it.
+    // The part named `name` leaves its group and is released. Returns it, or null when there is none or no group
+    // holds it.
     CFigureMesh* RemoveFromPartSets(const char* name) override;
     // `part` leaves its group and is released: 1, or 0 when no group
     // holds it.
@@ -182,56 +171,53 @@ public:
     // not null or "none" (any case) the part set's texture is replaced by the texture manager's of
     // that kind and name or else renamed and loaded. Returns 1.
     int SetSkins(const char* first, const char* second);
-    // Every material takes the world material manager's colours for its kind
-    // (0068EAF0; the cursor walks them), then SetSkins with the names kept (the second only when it
-    // is not "none").
+    // Every material takes the world material manager's colours for its kind (the cursor walks them), then
+    // SetSkins with the names kept (the second only when it is not "none").
     void ApplyMaterials() override;
     // With `lit` every material's emissive colour is pushed on its stack and set
     // to white (alpha kept); without, each takes back the colour last pushed (if any).
     void SetMaterialsLit(int lit);
-    // SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing (EmptySlot25,
-    // registered at its address).
+    // SetMaterialsLit. The unused virtual: nothing (EmptySlot25).
     void SetLit(int lit) override;
     void Unused25(int) override {}
     void EmptySlot25(int);
-    // object3d_client_shadow_state.cpp (A-U12).
-    // Whether shadows are drawn for the object's kind: 0079BD0C above 0 and the switch of
-    // its class (units 0079BD14, class 0x52 0079BD1C, others 0079BD18). All of EAX; with shadows
-    // off only AL is cleared (the original's XOR AL, AL on the setting's value).
+    // object3d_client_shadow_state.cpp. Whether shadows are drawn for the object's kind: the option above 0 and
+    // the switch of its class (units, class 0x52, others each have one). All of EAX; with shadows off only AL is
+    // cleared (the original's XOR AL, AL on the setting's value).
     std::uint32_t ShadowsShown();
     // Drops the shadow: its geometry, texture, bounds and sphere.
     void ClearShadow();
-    // Whether the shadow can be seen: shadows are on for the kind and the half is
-    // flagged 0x20 or its bounds, moved to the object for the test, are not outside the view (the
-    // scene pipeline's ClipTest, 004F16A0, gives 2 for outside).
+    // Whether the shadow can be seen: shadows are on for the kind and the half is flagged 0x20 or its bounds,
+    // moved to the object for the test, are not outside the view (the scene pipeline's ClipTest gives 2 for
+    // outside).
     bool ShadowInView();
 
 
-    // +0x1C the object it belongs to (CObject3DSpecific::object)
-    // +0x20 the two part sets Draw walks: the first has the skin texture (its +0x60 is the shadow
-    // colour key), the second a hero's simple skin (CUnitClientSpecific slot 30).
+    // the object it belongs to (CObject3DSpecific::object)
+    // the two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key), the
+    // second a hero's simple skin (CUnitClientSpecific).
     TextureParts* partSets[2];
     lib::AlignedArray<CTexture*> textures;     // +0x28 the sets' textures (counted)
     lib::AlignedArray<CMaterial*> materials;   // +0x38 the groups' materials (counted): fade-in, tints
     int materialCursor;             // +0x48 the iteration's index, -1 when there are none
-    // The projected shadow (0056C750 fills the three, 004EA4A0 draws them): blocks of four
-    // positions, their texture coordinates, the triangles' indices.
+    // The projected shadow (the projector fills the three, the device draws them): blocks of four positions,
+    // their texture coordinates, the triangles' indices.
     lib::AlignedArray<VertexPacket> vertices;      // +0x4C
     lib::AlignedArray<DecalTexCoord> texCoords;    // +0x5C
     lib::AlignedArray<std::uint16_t> indices;      // +0x6C
     CTexture* texture;              // +0x7C the shadow texture (counted)
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
-    ClipBounds sphere;              // +0x90 the shadow's bounds (the scene object's slot 7), the
+    ClipBounds sphere;              // the shadow's bounds (the scene object's transform), the
                                     //       centre relative to the object
     std::uint8_t unused_BC[0xC8 - 0xBC];    // +0xBC zeroed with the bounds
     RECT drawnRect;                 // +0xC8 the screen area of the dirty parts Draw drew
-    CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
-    CountedRef<WoundsMaterial> woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
+    CTexture* woundsTexture;        // the wounds texture (counted; ShowWounds loads it)
+    CountedRef<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     mfc::CString skinName;          // +0xE0 the first set's texture name (SetSkins)
     mfc::CString secondSkinName;    // +0xE4 the second set's
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
     std::uint32_t touchTime;        // +0xEC the frame time the model was last kept loaded (CollectVisible)
-    Vector3 figureScale;            // +0xF0 the figure's extra scale (slot 18, GetScale)
+    Vector3 figureScale;            // the figure's extra scale (GetScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, textures) == 0x28);
@@ -250,20 +236,20 @@ static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
 static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8 && offsetof(CObject3DClientSpecific, touchTime) == 0xEC);
 static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
-// Whether the game shows `object`'s shadow (0051CE60's tests: shadows on for its kind, the object
-// shown and not invisible) and, when it does, how strongly it casts in the new renderer's shadow map
-// (*strength: 1, a unit as far as it has faded in). Reads only; the shadow draw and the casters
-// outside the view (world_client_shadow_casters.cpp) share it.
+// Whether the game shows `object`'s shadow (the shadow draw's tests: shadows on for its kind, the object shown
+// and not invisible) and, when it does, how strongly it casts in the new renderer's shadow map (*strength: 1,
+// a unit as far as it has faded in). Reads only; the shadow draw and the casters outside the view
+// (world_client_shadow_casters.cpp) share it.
 bool ShadowCastStrength(CObject3D* object, float* strength);
 
-// The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes; game.exe's vtable
-// 0073DF68 over the plain counted root; 0051C3D0 makes it): blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6
+// The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes, over the plain
+// counted root; made when the wounds are first shown): blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6
 // (D3DBLEND_INVSRCALPHA), the renderer helper's preset 4, two stages.
 struct WoundsMaterial final : CDeviceMaterial {
-    // The constructor 0051C3D0 inlines (unit_client_wounds.cpp).
+    // The constructor ShowWounds inlines (unit_client_wounds.cpp).
     WoundsMaterial();
-    // 0051C730 (deleting: 0051C710; object3d_halves.cpp). Every stage destroyed (its texture released, then its
-    // name), the vector's block freed, the preset released (deleted at its last reference).
+    // The deleting destructor (object3d_halves.cpp). Every stage destroyed (its texture released, then its name),
+    // the vector's block freed, the preset released (deleted at its last reference).
     ~WoundsMaterial() override;
 };
 

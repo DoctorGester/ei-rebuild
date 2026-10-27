@@ -1,6 +1,6 @@
-// The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h; 0065ED30-0065F21E): a
-// window surface with a hidden RichEdit control holding an RTF text, formatted into the surface
-// at a scroll offset that moves with the game time. See docs/notes/items_spells.md (A-H17, A-H25).
+// The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h): a window surface with a hidden
+// RichEdit control holding an RTF text, formatted into the surface at a scroll offset that moves with the game
+// time. See docs/notes/items_spells.md.
 #include "app.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -32,8 +32,7 @@ const char* const kRichEditLibrary = "Riched20.dll";
 const char* const kRichEditClass = "RichEdit20A";
 
 
-// The block being streamed into the RichEdit (the original reads it through a CMemFile; its
-// callback is 0065EF10).
+// The block being streamed into the RichEdit (the original reads it through a CMemFile).
 struct RtfSource {
     const std::uint8_t* data;
     std::uint32_t size;

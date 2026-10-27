@@ -1,13 +1,11 @@
-// CRegionMap::ReachesRegion: whether cell (x, y) can reach a region, for a size class. The
-// region map keeps per size class a u16 region per 8x8 block (+0x220 + 16 * class, rows) and the
-// block's representative cell (+0x1A0 + 16 * class, rows of bytes: low nibble x, high nibble y in
-// the block). When none of the 3x3 blocks around the cell's block is in the region, the cell's
-// block is marked unreachable (2) in `marks`; otherwise the local search (+0x98) floods the 3x3
-// blocks from the cell, the region is reached when a representative cell of one of them that is
-// in the region was reached, and every reached cell of the window gets the answer (1 yes, 2 no).
-// CRegionMap::LabelRegions: numbers the connected areas of blocks per size class: each
-// class's region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded
-// by 005AFF10 from a queue of blocks. See ai_map.h and docs/notes/ai.md.
+// CRegionMap::ReachesRegion: whether cell (x, y) can reach a region, for a size class. The region map keeps
+// per size class a u16 region per 8x8 block and the block's representative cell (rows of bytes: low nibble x,
+// high nibble y in the block). When none of the 3x3 blocks around the cell's block is in the region, the
+// cell's block is marked unreachable (2) in `marks`; otherwise the local search floods the 3x3 blocks from the
+// cell, the region is reached when a representative cell of one of them that is in the region was reached,
+// and every reached cell of the window gets the answer (1 yes, 2 no). CRegionMap::LabelRegions: numbers the
+// connected areas of blocks per size class: each class's region grid is cleared, and every block still 0
+// starts a new region (1, 2, ...) flooded from a queue of blocks. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "ai_grids.h"
 #include "core_streams.h"
@@ -26,8 +24,7 @@
 
 namespace {
 
-// A function-local static CArray<{int x, y}> (constructed by 00557230, destroyed at exit by its exit function
-// through 00557250).
+// A function-local static CArray<{int x, y}>, destroyed at exit by its exit function.
 using PointArray = BlockPointArray;
 static_assert(sizeof(BlockPointArray) == 0x14);
 void DestroyPoints(BlockPointArray& points) { mfc::impl::DestructArrayOf<mfc::impl::PointArrayClass>(points); }
@@ -72,8 +69,8 @@ namespace {
 // The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
 // count, ctor, dtor).
 
-// The region map's per size class grids are allocated for their size by 005B1550 (edge words,
-// +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C).
+// The region map's per size class grids (edge words, representative cells, regions) are allocated for their
+// size here.
 
 // A grid resized (freed and reallocated) when the size changes.
 template <typename T>
@@ -276,8 +273,8 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
 }
 
 void CRegionMap::ClampEdgeCosts() {
-    // Per size class (edges): rows of blocks of 8 signed words, one per direction (steps in the
-    // tables 0079110C / 00791130; direction d and (d - 4) & 7 are opposite).
+    // Per size class (edges): rows of blocks of 8 signed words, one per direction (direction d and (d - 4) & 7
+    // are opposite).
     auto grid = [this](int sizeClass) -> SearchGrid<std::int16_t>& { return edges[sizeClass]; };
     const int* dx = StepX();
     const int* dy = StepY();
@@ -402,11 +399,11 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
 }
 
 int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
-    // The reachable blocks around the cell (through the original address, 005B0370).
+    // The reachable blocks around the cell (NearbyBlocks, through its address).
     BlockCostList blocks{BlockCostListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     NearbyBlocks(sizeClass, false, x, y, &blocks);
-    // Count the blocks per region, in first-seen order (the original keeps a CList of {region,
-    // count}; at most nine entries).
+    // Count the blocks per region, in first-seen order (the original keeps a CList of {region, count}; at most
+    // nine entries).
     std::uint16_t seen[9];
     int counts[9];
     int distinct = 0;
@@ -487,8 +484,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
     int columns = search.records.width;
     int rows = search.records.height;
     if (x < 0 || x >= columns || y < 0 || y >= rows) return;
-    // The original builds each cell's second dword (flags) from a stack slot it never writes;
-    // ours writes 0.
+    // The original builds each cell's second dword (flags) from a stack slot it never writes; ours writes 0.
     auto cellAt = [](int cx, int cy) {
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
         return c;
@@ -512,7 +508,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         default: break;
         }
     }
-    // The first cell (the original inlines AddHead; its element zeroed by 00539980 first).
+    // The first cell (AddHead; its element zeroed first).
     path->AddHead(cellAt(x, y));
 }
 
@@ -570,7 +566,7 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-// 005AF3D0 (thiscall, returns this): the region map's constructor.
+// The region map's constructor (returns this).
 CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     // The two block searches start with a 1x1 record grid.
     for (BlockSearch* search : {&self->forward, &self->backward}) {

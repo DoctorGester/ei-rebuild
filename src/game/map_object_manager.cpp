@@ -1,6 +1,6 @@
-// The map object manager ("map objects", class id 0x2D; A-U12): its lifetime, the
-// objects it makes complete with their halves, the animation database lookup and the defaults of
-// an object without a prototype. The object factory (slot 14) is unit_create_object.cpp's.
+// The map object manager ("map objects", class id 0x2D): its lifetime, the objects it makes complete with
+// their halves, the animation database lookup and the defaults of an object without a prototype. The object
+// factory is unit_create_object.cpp's.
 #include "unit_create.h"
 #include "game_strings.h"
 
@@ -43,8 +43,8 @@ constexpr int kTorchHalf = 0x4B;
 constexpr std::uint32_t kKeyVariantBits = 0x7FFF;      // an entry must have every one the key asks for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
-// The third half an object of class `classId` gets (the switch of 00512A30: the table at 00512B08
-// for classes 0x32-0x3A), or 0 for none.
+// The third half an object of class `classId` gets (a switch over a table for classes 0x32-0x3A), or 0 for
+// none.
 int ThirdHalfOf(int classId) {
     switch (classId) {
     case 0x32: case 0x33: case 0x34: case 0x39:
@@ -76,7 +76,7 @@ int CMapObjectManager::GetClassId() { return kManagerClassId; }
 int CMapObjectManager::Create() { return CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
 
-// 00512600 / 00512610 / 00512620 (slots 25, 11, 12).
+// Folder name, class name and class id.
 EI_REWRITTEN(0x00512600, CMapObjectManager::GetFolderName);
 EI_REWRITTEN(0x00512610, CMapObjectManager::GetClassName);
 EI_REWRITTEN(0x00512620, CMapObjectManager::GetClassId);
@@ -84,7 +84,7 @@ EI_REWRITTEN(0x00512620, CMapObjectManager::GetClassId);
 int CMapObjectManager::CreateManager() {
     std::string folder = TheTextFolder().GetString();
     if (!CBaseManager::Create()) return 0;
-    AddArchive((folder + "database.res").c_str());   // the exe's 00784818
+    AddArchive((folder + "database.res").c_str());
     return 1;
 }
 EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
@@ -123,12 +123,11 @@ FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, st
 EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 
 int CMapObjectManager::GiveDefaults(CMapObject* object) {
-    // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the slots'
-    // shares and factors, fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not
-    // what the stack held: a determinism fix. The original's were CWorldServer::CreateObject's
-    // earlier callees' leftovers, heap addresses among them, and gave the main menu's unmoco2 (the
-    // one unit added without a prototype) hit points that followed the heap; the harness zeroes them
-    // in the original too (tests/verify/harness_leftovers.h).
+    // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the shares and factors,
+    // fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not what the stack held: a determinism
+    // fix. The original's were CWorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,
+    // and gave the main menu's unmoco2 (the one unit added without a prototype) hit points that followed the
+    // heap; the harness zeroes them in the original too (tests/verify/harness_leftovers.h).
     UnitVitals vitals{};
     vitals.Reset();
     if (object->GetClassId() != kClassUnit) {

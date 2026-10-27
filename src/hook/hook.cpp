@@ -63,9 +63,8 @@ static bool IsVirtualCallThunk(const void* replacement) {
 }
 
 // The first entry registered for `address` whose replacement or recorder is such a thunk. A game function
-// that is itself a bare vtable dispatch (00675D40 CEffect::Destroy, 00469DE0 / 00469E00 SpecRemove / SpecRefresh,
-// 00552F30) is EI_REWRITTEN: its callers call the virtual (C25 retired EI_REPLACE_DISPATCH, whose check needed
-// game.exe's bytes of the 8 such functions).
+// that is itself a bare vtable dispatch (CEffect::Destroy, SpecRemove / SpecRefresh, the unit controller's
+// alias) is EI_REWRITTEN: its callers call the virtual (EI_REPLACE_DISPATCH is retired).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
     if (it == g_hooksByAddress.end()) return nullptr;
@@ -264,11 +263,10 @@ static void LoadRebirthSettings() {
 }
 
 int InstallHooks() {
-    // The standalone image: every plain replacement goes in (there is no original code to run). game.exe
-    // runs only as the original game (the original's harness: ei_launch sets EI_NO_HOOKS=1 for it), so
-    // nothing of ours is installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors):
-    // each runs the original through its trampoline and samples its calls. Since S21e there is no mode
-    // that runs our rewrites inside game.exe.
+    // The standalone image: every plain replacement goes in (there is no original code to run). game.exe runs
+    // only as the original game (the original's harness: ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours
+    // is installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original
+    // through its trampoline and samples its calls. No mode runs our rewrites inside game.exe.
     const bool standalone = Standalone();
     if (!standalone) {
         char noHooksValue[4], vectorsValue[4];
@@ -317,9 +315,8 @@ int InstallHooks() {
     }
 
     IndexHooks();
-    // The standalone image writes nothing into game.exe's code section (guarded since S18i): the replacements
-    // become the code for their addresses (SetCodeTable, src/standalone/image_code.cpp). game.exe's recorders
-    // write their jumps.
+    // The standalone image writes nothing into game.exe's code section: the replacements become the code for
+    // their addresses (SetCodeTable, src/standalone/image_code.cpp). game.exe's recorders write their jumps.
     std::optional<TextUnprotect> text;
     if (!standalone) text.emplace(nt);
     int installed = 0;

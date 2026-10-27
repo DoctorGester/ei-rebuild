@@ -1,6 +1,6 @@
-// An AI path's network state: the motion order and the next steps written into a delta field
-// (WriteState, 005C7DB0) and read back (ReadState, 005C7FC0). Units' state messages (net_state.cpp),
-// the player's path message (0x0E) and the client's prediction (player_client.cpp) use them.
+// An AI path's network state: the motion order and the next steps written into a delta field (WriteState) and
+// read back (ReadState). Units' state messages (net_state.cpp), the player's path message (0x0E) and the
+// client's prediction (player_client.cpp) use them.
 #include "ai_motion.h"
 
 #include "net_delta.h"
@@ -11,7 +11,7 @@
 #include <cstdint>
 
 namespace {
-// The order angle's range (+-), set by the static initialiser 005C5CB0 (twice 0073FE44).
+// The order angle's range (+-), set by a static initialiser (twice the cell scale constant).
 constexpr float kOrderAngleLimit = /*007C4378*/ 6.2831855f;
 
 constexpr std::uint16_t kMaxStepFlags = 0x3FF;

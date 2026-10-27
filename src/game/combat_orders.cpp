@@ -32,7 +32,7 @@ constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 constexpr float kReachHeight = 1.5f;
 
-// Party messages (0066D6E0 codes).
+// Party messages.
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
@@ -56,7 +56,7 @@ void ResetOrder(UnitAction* order) {
     order->modifier = 0;
 }
 
-// 0052B030 (a counted reference's reset), inlined: release and clear.
+// A counted reference's reset, inlined: release and clear.
 void ReleaseTarget(UnitAction* order) {
     if (order->target) order->target->Release();
     order->target = nullptr;

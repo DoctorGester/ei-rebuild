@@ -1,6 +1,6 @@
-// A frame drawn on an interface surface (CUiSurface::FrameRect 005FDCB0; the tooltips' 0065E880
-// draws their border with it) and the surface filled (Clear 005FE2F0, Fill 005FE370), also on a native
-// surface's canvas (ui_native.h). See docs/notes/ui.md, section 3.
+// A frame drawn on an interface surface (CUiSurface::FrameRect; the tooltips draw their border with it) and
+// the surface filled (Clear, Fill), also on a native surface's canvas (ui_native.h). See docs/notes/ui.md,
+// section 3.
 #include "ui.h"
 #include "ui_gdi.h"
 #include "ui_native.h"
@@ -18,7 +18,7 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
     } else {
         frame = *rect;
-        interface_->ScaleRectToScreenEntry(&frame);   // 005F7CA0 (Rebirth-patched)
+        interface_->ScaleRectToScreenEntry(&frame);   // (Rebirth-patched)
     }
     brush.Attach(gameapi::CreateSolidBrush(colour));
     gameapi::FrameRect(dc->hdc, &frame, static_cast<HBRUSH>(brush.handle));

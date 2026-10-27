@@ -1,10 +1,8 @@
-// CAIMap::StampWaterPatch (005B7EF0, RET 8): adds to (or lifts from) the small-unit layer a
-// pseudo unit made of the water depths around a point: the 15x15 cells from (x - 7, y - 7),
-// clipped to the map (the last row and column excluded), copied into a shared 16x16 shape (a
-// function-local static reference-counted object at 007C2F64, guard 007C2F68 bit 1, released at
-// exit by 005B80C0; recreated when missing or detached). The pseudo unit's key is
-// ((y + 0x800) << 16) + x; the point's cell is truncated from position * 1 / (0073FD18 * 0.5).
-// See ai_map.h and docs/notes/ai.md.
+// CAIMap::StampWaterPatch: adds to (or lifts from) the small-unit layer a pseudo unit made of the water depths
+// around a point: the 15x15 cells from (x - 7, y - 7), clipped to the map (the last row and column excluded),
+// copied into a shared 16x16 shape (a function-local static reference-counted object, released at exit;
+// recreated when missing or detached). The pseudo unit's key is ((y + 0x800) << 16) + x; the point's cell is
+// truncated from position * 1 / (cell size * 0.5). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "at_exit_functions.h"
 #include "ai_unit_layer.h"
@@ -20,8 +18,7 @@
 
 namespace {
 
-// The patch (a counted pointer, a function-local static of StampWaterPatch: guard bit 0 of g_guard), released at
-// exit by 005B80C0 (005B80D0, a counted pointer's release).
+// The patch (a counted pointer, a function-local static of StampWaterPatch), released at exit.
 CUnitShape* g_patch = /*007C2F64*/ {nullptr};
 CUnitShape*& Patch() { return g_patch; }
 void __cdecl ReleasePatch() {

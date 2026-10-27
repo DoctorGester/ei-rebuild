@@ -1,8 +1,7 @@
-// 005A9C90 (thiscall): the figure model's destructor (FigureModel, model.h). Every cached animation
-// is deleted (slot 0 with 1), the map cleared (each node's pair destroyed, the node returned to the
-// STLport node allocator), each archive closed (CloseResource, slot 3) and deleted, then the map's
-// own destructor runs inline: a second clear (empty by then) and the buckets freed. See
-// docs/notes/models.md.
+// The figure model's destructor (FigureModel, model.h). Every cached animation is deleted, the map cleared
+// (each node's pair destroyed, the node returned to the STLport node allocator), each archive closed
+// (CloseResource) and deleted, then the map's own destructor runs inline: a second clear (empty by then) and
+// the buckets freed. See docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
 #include "record_lifetime.h"
@@ -23,14 +22,13 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
     return *static_cast<stlp::vector<typename Map::Node*>*>(table.BucketVector());
 }
 
-// STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
+// STLport deallocate(p, bytes), and the node allocator's deallocate(p, n).
 void __fastcall Deallocate(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // Deallocates `count` pointers (the buckets).
 void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
-// The figure manager's helpers: the model destructor (through its original address), 005AE5D0 (RET 4)
-// the pair destructor, 004FC080 (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the
-// base destructor.
+// The figure manager's helpers: the model destructor (through its original address), the pair destructor, the
+// node allocator's deallocate, the base destructor.
 
 // Visits every node as the game's iterator walks them: the chain, then the head of the next
 // non-empty bucket after the one the node's key hashes to.
@@ -83,9 +81,8 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 EI_REWRITTEN(0x005A9C90, DestroyFigureModel);
 EI_REWRITTEN(0x005AE5B0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
 EI_REWRITTEN(0x005AE5D0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
-// 005AA1C0 (thiscall): the figure manager's destructor: every cached model destroyed and freed,
-// the base's clean-up, the model map cleared and its buckets freed (the map's inline
-// destructor), then the base destructor.
+// The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
+// cleared and its buckets freed (the map's inline destructor), then the base destructor.
 CFigureManager::~CFigureManager() {
     using Node = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>::Node;
     CFigureManager* manager = this;
@@ -96,7 +93,7 @@ CFigureManager::~CFigureManager() {
             gamecrt::operator_delete(model);
         }
     });
-    manager->CResourceManager::Destroy();   // 00674F40, the base's clean-up
+    manager->CResourceManager::Destroy();   // the base's clean-up
     table.ClearWith([](Node* n) {
         n->key.~string();
         stlp::deallocate(n, 20);

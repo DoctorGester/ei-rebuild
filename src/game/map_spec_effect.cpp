@@ -1,7 +1,6 @@
-// The zone file's effect records: particle sources (vtable 0073C758, kind 4), lights (0073C788,
-// kind 2) and sounds (0073C7B8, kind 3) on their base 0073C728 (map_spec.h). They keep the world
-// object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
-// save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
+// The zone file's effect records: particle sources (kind 4), lights (kind 2) and sounds (kind 3) on their base
+// (map_spec.h). They keep the world object they made and its effect, are kept above the terrain when moved,
+// and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "base_manager.h"
 #include "map_spec.h"
 #include "game_strings.h"
@@ -41,8 +40,8 @@ void ReadVector(Chunk& c, Vector3& to) {
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
-// The notification made before a new effect: (kind, family) strings by value, built in their
-// argument slots right to left (the second first, as the original) and destroyed by the callee.
+// The notification made before a new effect: (kind, family) strings by value, built in their argument slots
+// right to left (the second first, like the original) and destroyed by the callee.
 void Notify(const char* kind, const char* family) { EffectNotify(mfc::CString(kind), mfc::CString(family)); }
 
 // A new world object for the record and its effect.
@@ -80,7 +79,7 @@ void EffectSpec::SetVisible(std::uint8_t newVisible) {
     else flags |= 0x40;
 }
 EI_REWRITTEN(0x0046D3F0, EffectSpec::SetVisible);
-EI_REWRITTEN(0x0046E490, EffectSpec::SetVisible);   // the sound record's slot 11 (the same code)
+EI_REWRITTEN(0x0046E490, EffectSpec::SetVisible);   // the sound record's SetVisible (the same code)
 
 void EffectSpec::Move(float dx, float dy, float dz) {
     Vector3& p = position;

@@ -1,11 +1,9 @@
-// The camp trade grid's draw (00627390, CTradeGrid slot 20, vtable 0074170C; thiscall, RET 4).
-// The depth buffer is cleared to 0 over the screen and to 1 over the grid (200..600 x 100..500 in
-// layout coordinates), so the cells' item models draw only there; then the window's sprites and
-// models, and on its surface: every bought item (+0x150) and sold item (+0x154) in its
-// cell of a 4 x 4 layout (100 pixels apart; 005ECA10 draws the item's model), its count when more
-// than one, and unless +0x160 its price (+0x14C slot 54 with the kind +0x158 / +0x15C). Last the
-// depth buffer is cleared to 1 again. The new renderer (src/render) gets the depth clears. See
-// docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
+// The camp trade grid's draw (CTradeGrid). The depth buffer is cleared to 0 over the screen and to 1 over the
+// grid (200..600 x 100..500 in layout coordinates), so the cells' item models draw only there; then the
+// window's sprites and models, and on its surface: every bought item and sold item in its cell of a 4 x 4
+// layout (100 pixels apart; the item's model is drawn there), its count when more than one, and unless a flag
+// its price (the owner's price virtual with the kind). Last the depth buffer is cleared to 1 again. The new
+// renderer (src/render) gets the depth clears. See docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
 #include "item.h"
 #include "game_strings.h"
 #include "ui.h"

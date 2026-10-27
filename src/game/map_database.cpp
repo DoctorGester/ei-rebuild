@@ -36,7 +36,7 @@ namespace {
 // The text manager (item_db_text.h) as the loader uses it. Not rewritten.
 struct TextReader : CTextManager {
     mfc::BOOL Open(const char* name);                          // finds the text, cursor at its start
-    mfc::BOOL NextHeader();                                    // 004DF030 (null key): the next "#" line; false at the end
+    mfc::BOOL NextHeader();                                    // (null key): the next "#" line; false at the end
     int Split(console::CStringArray* words, int flag);         // the current line's words
     mfc::BOOL Close();
 };
@@ -58,8 +58,8 @@ constexpr ElementFn DestructMaps = mfc::impl::DestructElementsAt<gamearrays::Zon
 constexpr ElementFn ConstructExits = mfc::impl::ConstructElementsAt<mfc::impl::Exits3C>;
 constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Exits>;
 
-// *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
-// (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
+// *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the
+// factor is the product of two doubles, rounded by the FPU).
 void StoreRadians(float* out, const char* text) {
     const double degrees = std::atof(text);
     *out = static_cast<float>(degrees * ei::kRadiansPerDegree);
@@ -69,8 +69,7 @@ bool Is(const char* word, const char* text) {
     return gamecrt::mbscmp(word, text) == 0;
 }
 
-// CArray::SetSize(size, -1) as the original inlines it, with the instantiation's element
-// constructor and destructor.
+// CArray::SetSize(size, -1), with the instantiation's element constructor and destructor.
 template <typename Array>
 void SetSize(Array& a, int size, ElementFn construct, ElementFn destruct) {
     using T = std::remove_pointer_t<decltype(a.data)>;
@@ -297,7 +296,7 @@ bool CMapDatabase::Load(const char* fileName) {
 }
 EI_REWRITTEN(0x0045EA20, CMapDatabase::Load);
 
-// 007856A0 "map.txt", 00785694 "map-LMP.txt".
+// The map database file names ("map.txt", "map-LMP.txt").
 bool CMapDatabase::LoadAll() {
     Load("map.txt");
     return Load("map-LMP.txt");
@@ -311,9 +310,8 @@ CMapDatabase* CMapDatabase::Construct() {
 }
 EI_REWRITTEN(0x0045E820, CMapDatabase::Construct);
 
-// The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
-// the exit function it registers; both ported on the name and registered at their addresses
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// The map database, zero at the start: built by a static initialiser in the list's order and destroyed by the
+// exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
 CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 

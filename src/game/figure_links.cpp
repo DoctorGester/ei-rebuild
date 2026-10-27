@@ -1,10 +1,8 @@
-// 005AC880 (thiscall on the figure manager, RET 8): links a figure's pieces from the skeleton file
-// of the model `name`. With the model cached by 005AA5F0 its mesh archive reads the links (GetFile,
-// freed by CloseFile); without it the manager opens "<name>.lnk" (its GetFile / CloseFile); with
-// neither the fatal error "Can't load skeleton file" is returned. The data is a count and that
-// many (child, parent) length-prefixed names (read by 004DBCA0 into CStrings), each passed to
-// the animation state's LinkPiece with the model; FindRoot finishes it.
-// Returns 1. See docs/notes/models.md.
+// Links a figure's pieces from the skeleton file of the model `name`. With the model cached, its mesh archive
+// reads the links (GetFile, freed by CloseFile); without it the manager opens "<name>.lnk" (its GetFile /
+// CloseFile); with neither the fatal error "Can't load skeleton file" is returned. The data is a count and
+// that many (child, parent) length-prefixed names (read into CStrings), each passed to the animation state's
+// LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
 #include "map_object_cage.h"
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone
@@ -21,7 +19,7 @@
 namespace {
 
 // The manager's model of a name (figure_models.cpp).
-// The animation state: LinkPiece (RET 0xC), FindRoot (map_object_animation_bones.cpp).
+// The animation state: LinkPiece, FindRoot (map_object_animation_bones.cpp).
 // Game::FatalError(format, ...).
 
 
@@ -60,11 +58,10 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
 }
 
 EI_REWRITTEN(0x005AC880, CFigureManager::LoadSkeletonLinks);
-// 005ACB80 (thiscall on the figure manager, RET 8): a bone's cage. The data comes from the cached
-// model's bones archive (GetFile with the bone's name and the size out) or from the file
-// "<bone's model name (name3)><bone's name (slot 7)>.bon" (the manager's GetFile with the size
-// out); none returns 0. 0x48 bytes go to the bone's 0050BC00, other sizes to 0050B8C0, as
-// {data, size}. The data is not released here. Returns 1.
+// A bone's cage. The data comes from the cached model's bones archive (GetFile with the bone's name and the
+// size out) or from the file "<bone's model name><bone's name>.bon" (the manager's GetFile with the size
+// out); none returns 0. 0x48 bytes go to one bone loader, other sizes to another, as {data, size}. The data
+// is not released here. Returns 1.
 int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     struct {
         void* data;

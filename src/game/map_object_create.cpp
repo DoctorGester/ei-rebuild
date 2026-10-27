@@ -1,6 +1,6 @@
-// Virtual slot 2 (Create) of map objects (0050E770; Destroy 0050E840 next to it), units
-// and torches: the map object's Create, then the object's number of network fields. See unit.h (CUnit::CreateUnit), torch.h
-// (CTorchObject::CreateTorch) and docs/notes/units.md ("Creation, databases, save").
+// Create of map objects, units and torches: the map object's Create, then the object's number of network
+// fields. See unit.h (CUnit::CreateUnit), torch.h (CTorchObject::CreateTorch) and docs/notes/units.md
+// ("Creation, databases, save").
 #include "map_object.h"
 #include "game_strings.h"
 #include "map_object_figures.h"

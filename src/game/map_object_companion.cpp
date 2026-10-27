@@ -1,6 +1,6 @@
-// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39, vtable 0073DD6C)
-// and CMapObjectClientSpecific (0x3A, vtable 0073DBEC). Both classes are declared in unit.h; their
-// +0x1C is the map object they belong to.
+// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and
+// CMapObjectClientSpecific (0x3A). Both classes are declared in unit.h; each holds the map object it belongs
+// to.
 
 #include "map_object.h"
 #include "object_tables.h"
@@ -31,8 +31,8 @@ constexpr int kSoundStench = 0x13;
 constexpr int kSoundFeebleMind = 0x20;
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kLightHeight = 2.0f;
-constexpr float kEndSoundNear = 8.0f;                // pushed as 0x41000000
-constexpr float kEndSoundFar = 20.0f;                // 0x41A00000
+constexpr float kEndSoundNear = 8.0f;
+constexpr float kEndSoundFar = 20.0f;
 constexpr float kStenchNear = 10.0f;
 constexpr float kStenchFar = 50.0f;
 const char* const kEndSoundName = "magic\\end1.wav";
@@ -40,7 +40,7 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// The sound system (global 007AF784); thiscall.
+// The sound system (a global).
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CLight* light) { return &light->localPosition_.x; }

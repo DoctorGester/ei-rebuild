@@ -48,7 +48,7 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
     lib::InPlace<CFileRegistry> storage;
     auto* reg = storage.Get();
     reg->Construct();
-    // The manager's GetFile (slot 19): the resource file's data.
+    // The manager's GetFile: the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);
     if (!file || !reg->Attach(file)) {
         int result = game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());

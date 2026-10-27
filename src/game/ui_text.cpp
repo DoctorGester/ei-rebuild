@@ -1,4 +1,4 @@
-// Text layout on interface surfaces (game.exe 005FDFA0). See docs/notes/ui.md ("Interface base").
+// Text layout on interface surfaces. See docs/notes/ui.md ("Interface base").
 #include "ui.h"
 #include "game_strings.h"
 #include "console.h"
@@ -16,7 +16,7 @@ namespace {
 
 // The game's multibyte CRT.
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -82,7 +82,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     RECT at = *rect;
     int height = rect->bottom - rect->top;
     for (int i = 0; i < maxLines && i < lines.GetSize(); ++i) {
-        DrawLine(lines[i], &at, font, colour, format, flag);   // 005FDE20 through its address
+        DrawLine(lines[i], &at, font, colour, format, flag);   // through its address
         gameapi::OffsetRect(&at, 0, height);
     }
     return lines.GetSize();

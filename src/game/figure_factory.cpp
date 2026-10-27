@@ -1,12 +1,9 @@
-// 005AA8E0 (virtual, slot of the figure object factory 0073FBC0; thiscall, RET 4, `this` unused):
-// creates a scene object of a class id. 0x41-0x43 are the figure part meshes built on the common
-// base: 0x41 with two empty arrays (CSharedFigureMesh), 0x42 with four more
-// (CPlainFigureMesh), 0x43 the same (CUiMesh, ui.h; the original constructs its six arrays); the
-// original inlines their constructors. 0x44 and 0x300B-0x300D (AnimationTrack 0050A5D0,
-// FigureBone 0050AF40, CFigureAnimationState 0050C5F0) have their own. All are C++ classes,
-// allocated at the game's sizes. The new object's
-// type_ (+0x10) gets the class id; an unknown id or a failed allocation returns null. See
-// docs/notes/models.md.
+// The figure object factory (virtual, `this` unused): creates a scene object of a class id. 0x41-0x43 are the
+// figure part meshes built on the common base: 0x41 with two empty arrays (CSharedFigureMesh), 0x42 with four
+// more (CPlainFigureMesh), 0x43 the same (CUiMesh, ui.h); the original inlines their constructors. 0x44 and
+// 0x300B-0x300D (AnimationTrack, FigureBone, CFigureAnimationState) have their own. All are C++ classes,
+// allocated at the game's sizes. The new object's type_ gets the class id; an unknown id or a failed
+// allocation returns null. See docs/notes/models.md.
 #include "engine_object.h"   // CEngineObject
 #include "figure_mesh.h"     // CFigureMesh
 #include "map_object_animation.h"

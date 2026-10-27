@@ -1,6 +1,5 @@
-// Small virtual slots of a map object's companions (A-U12): the base companion (game.exe's vtable
-// Its slots are what the server's CMapObjectServer, 0073DD6C, mostly keeps) and the client's
-// CMapObjectClientSpecific. Slot names: CMapObjectCompanion (map_object.h).
+// Small virtuals of a map object's companions: the base companion (what the server's CMapObjectServer mostly
+// keeps) and the client's CMapObjectClientSpecific. Virtual names: CMapObjectCompanion (map_object.h).
 #include "map_object.h"
 #include "effects.h"       // CParticleSource
 #include "net_delta.h"
@@ -35,19 +34,18 @@ EI_REWRITTEN(0x00510760, CMapObjectCompanion::Destroy);
 
 int CMapObjectCompanion::UpdateCompanion() { return 0; }
 EI_REPLACE_METHOD(0x005106E0, CMapObjectCompanion::UpdateCompanion);
-// 005106D0 (slot 13 EffectsChanged; the server's too) and 00510700 (slot 19), RET 4: nothing.
+// EffectsChanged (the server's too) and the visibility virtual: nothing.
 void CMapObjectCompanion::IgnoreArgument(int) {}
 EI_REPLACE_METHOD(0x005106D0, CMapObjectCompanion::IgnoreArgument);
 EI_REPLACE_METHOD(0x00510700, CMapObjectCompanion::IgnoreArgument);
-// 005104B0 (slot 14; the client's too) and the server's 00515810: nothing. One byte each (too short
-// to hook).
+// The unused virtual (the client's too) and the server's: nothing. One byte each (too short to hook).
 void __fastcall CompanionNothing(CMapObjectCompanion*) {}
 EI_REPLACE(0x005104B0, CompanionNothing);
 EI_REPLACE(0x00515810, CompanionNothing);
-// 005104C0 (slot 15 Query, RET 8; all three classes): 0.
+// Query (all three classes): 0.
 int CMapObjectCompanion::Query(int, int) { return 0; }
 EI_REWRITTEN(0x005104C0, CMapObjectCompanion::Query);
-// 005106F0 (slot 16 Hit, RET 8; the server's too): nothing.
+// Hit (the server's too): nothing.
 void CMapObjectCompanion::HitNothing(int, int) {}
 EI_REPLACE_METHOD(0x005106F0, CMapObjectCompanion::HitNothing);
 
@@ -60,13 +58,13 @@ void CMapObjectClientSpecific::Hit(int damage, int kind) {
 }
 EI_REWRITTEN(0x005117F0, CMapObjectClientSpecific::Hit);
 
-// 00510520 / 00510530 (slots 11 / 12).
+// Class name and id.
 const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; }
 EI_REWRITTEN(0x00510520, CMapObjectClientSpecific::GetClassName);
 int CMapObjectClientSpecific::GetClassId() { return kClientClassId; }
 EI_REWRITTEN(0x00510530, CMapObjectClientSpecific::GetClassId);
 
-// 005156E0 / 005156F0 (slots 11 / 12).
+// Class name and id.
 const char* CMapObjectServer::GetClassName() { return kServerClassName; }
 EI_REWRITTEN(0x005156E0, CMapObjectServer::GetClassName);
 int CMapObjectServer::GetClassId() { return kServerClassId; }

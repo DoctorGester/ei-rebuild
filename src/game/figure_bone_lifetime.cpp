@@ -1,7 +1,6 @@
-// The skeleton bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in
-// map_object_figures.h): constructor, reset (slot 2), Destroy (slot 3), destructor and deleting
-// destructor. The figure factory makes bones; the animation state links them.
-// See docs/notes/map_objects.md.
+// The skeleton bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in map_object_figures.h): constructor,
+// reset, Destroy, destructor and deleting destructor. The figure factory makes bones; the animation state
+// links them. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone
 
 #include "ei/hook.h"
@@ -18,7 +17,7 @@ namespace {
 constexpr int kChildBlockSize = 10;
 
 
-// The mesh is a counted engine object (its slot 4 releases it).
+// The mesh is a counted engine object (its release virtual).
 void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
 
 } // namespace
@@ -81,7 +80,7 @@ EI_REWRITTEN(0x0050B510, FigureBone::DestroyBone);
 
 // The names go after the body (name3, name2, name), then the engine object's part.
 FigureBone::~FigureBone() {
-    DestroyBone();   // its reset empties the matrices through 0050DD40 here, the same SetSize
+    DestroyBone();   // its reset empties the matrices here, the same SetSize
     if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
     children.vtable = mfc::impl::BoneListClass::Vtable();

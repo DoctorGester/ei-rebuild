@@ -12,7 +12,7 @@
 #include "game_data.h"
 
 int WorldToCell(float world) {
-    float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;   // 0073B84C / (0073FD18 * 0073B86C)
+    float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;
     return x87::fistp(cell);
 }
 
@@ -71,7 +71,7 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     int level = PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
-    // The unit's own cell is not bounds-checked, as in the original.
+    // The unit's own cell is not bounds-checked, like the original.
     if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
         int ux = WorldToCell(unit->localPosition_.x), uy = WorldToCell(unit->localPosition_.y);
         if (cells[y][x].level > cells[uy][ux].level) return false;
@@ -397,7 +397,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
 EI_REWRITTEN(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
-    // Function-local static of the original (guard bit 0 of g_findFreeGuard, destructor 005BAC00).
+    // Function-local static (initialised on first use, destroyed at exit).
     auto& guard = g_findFreeGuard;
     auto* cache = &g_findFreeSpiral;
     if (!(guard & 1)) {

@@ -1,8 +1,8 @@
-// Combat, ninth part: taming (the skill 0054F000 and a spell call it). A tame attempt that beats
-// the roll moves the creature a stage along: 1 no longer hostile to the tamer's side, 2 on the
-// tamer's side (its own side kept at +0x90C), 3 in the tamer's party with a "tamed" AI mode; a
-// failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
-// side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
+// Combat, ninth part: taming (the skill and a spell call it). A tame attempt that beats the roll moves the
+// creature a stage along: 1 no longer hostile to the tamer's side, 2 on the tamer's side (its own side kept in
+// the controller), 3 in the tamer's party with a "tamed" AI mode; a failed attempt (or one on a creature with
+// a player) undoes the taming when it was the tamer's side doing it, and counts as an attack. See
+// docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "engine_object.h"
 #include "map_object.h"
@@ -23,11 +23,6 @@ namespace {
 constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
-// 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
-// CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-// The brain (unit_ai.cpp, controller + 0x980): 005D5F60 AddMode, 005D6140 RemoveMode(kind),
-// 005D7790 StopAction.
-// 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 template <typename T>
 void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
@@ -40,8 +35,8 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
     if (side == tamer->side) self->UndoTaming();
 }
 
-// An empty reference list of the brain (CList of one reference per node): each released, then
-// RemoveAll. `release` picks how the original releases the element.
+// An empty reference list of the brain (CList of one reference per node): each released, then RemoveAll.
+// `release` picks how the original releases the element.
 template <bool kViaRelease>
 void ClearReferenceList(mfc::CTypedPtrList<CUnit>& list) {
     for (auto* node = list.head; node; node = node->next) {
@@ -64,7 +59,7 @@ void ClearReferenceList(mfc::CTypedPtrList<CUnit>& list) {
 
 BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
-    int level = TamingStage();   // slot 39
+    int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.

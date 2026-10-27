@@ -1,9 +1,8 @@
-// A unit's path in the save stream (thiscall on the AIPath, RET 4): 005B2430 loads, 005B2570
-// saves. The stream's slot 1 reads and slot 2 writes (buffer, size). Layout: the cell count and
-// each remaining cell (8 bytes), the order, the target (8 bytes), the goal
-// (12), the four flag bytes one by one, the excluded regions' count and each {x, y} as two
-// dwords, and the smoothing value. Loading appends the cells to the list (created as {0, 0} by
-// 005BD2A0, then read over). See ai_map.h (AIPath).
+// A unit's path in the save stream: load and save through the stream's read and write virtuals (buffer,
+// size). Layout: the cell count and each remaining cell (8 bytes), the order, the target (8 bytes), the goal
+// (12), the four flag bytes one by one, the excluded regions' count and each {x, y} as two dwords, and the
+// smoothing value. Loading appends the cells to the list (created as {0, 0}, then read over). See ai_map.h
+// (AIPath).
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "core_streams.h"
@@ -17,7 +16,7 @@ void AIPath::LoadPath(CStream* stream) {
     int count;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
-        // The original's cell has an uninitialised second dword; it is read over below.
+        // The cell's second dword is uninitialised in the original; it is read over below.
         PathCell cell{0, 0, 0, 0};
         cells.AddTail(cell);
     }
@@ -74,9 +73,9 @@ void PathOrder::LoadOrder(CStream* stream) {
     stream->Read(&order->angle, 4);
     stream->Read(&order->startTime, 4);
     stream->Read(&order->arg5, 0xC);
-    int count = 0;   // the original's local is left as it was when the read fails
+    int count = 0;   // left as it was when the read fails
     stream->Read(&count, 4);
-    // The original's new step is {0, 0} and an uninitialised dword; every step is read over below.
+    // The new step is {0, 0} and an uninitialised dword; every step is read over below.
     for (int i = 0; i < count; ++i) steps.AddTail(PathCell{0, 0, 0, 0});
     for (PathCellList::Node* node = steps.head; node;) {
         PathCellList::Node* next = node->next;

@@ -1,7 +1,5 @@
-// A path on the stack as the unit AI builds one for a test search (unit_ai_moves.cpp,
-// unit_ai_targets.cpp): both cell lists (blocks of 0x80; 00545750 / 0054EAC0 + 00556D10), the
-// excluded blocks, then Clear; freed in reverse (00557250, 00539890 or the
-// vtable and 00556D40).
+// A path on the stack as the unit AI builds one for a test search (unit_ai_moves.cpp, unit_ai_targets.cpp):
+// both cell lists (blocks of 0x80), the excluded blocks, then Clear; freed in reverse.
 #pragma once
 
 #include "ai_map.h"

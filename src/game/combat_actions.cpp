@@ -50,7 +50,7 @@ constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // spell prototype 0x18:
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
-// Party messages (0066D6E0 codes).
+// Party messages.
 constexpr int kMessageKilled = 0x30;
 constexpr int kMessageScienceFailed = 0x11;
 constexpr int kMessageStealFailed = 0x22;
@@ -75,8 +75,8 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
     return false;
 }
 
-// OnDamaged's search of the party (the player's units, walked as 00455830 begin() and 004558B0
-// operator++ do): the first member that is not `self`; a null member ends it.
+// OnDamaged's search of the party (the player's units, walked as the list's begin() and operator++ do): the
+// first member that is not `self`; a null member ends it.
 CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
     const auto& map = player->units_;
     for (auto* node = map.First(); node; node = map.After(node)) {
@@ -89,25 +89,24 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 
 } // namespace
 
-// Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
+// Missile: aims at the object `id`.
 // CWorldServer: applies the quick item `item` (a potion) to `unit`.
-// 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
+// CWorldServer::RemoveObject (world_server.cpp; patched by Rebirth): removes object `id`.
 // Player: receives the items in `list` (a CPtrList).
-// Player messages (player + 0x20 points at it): message `code` about `unit`.
+// Player messages: message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code) {
     static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
-// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
-// worked.
-// The controller's voice (+0xB10): says remark `what`.
-// 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
-// `kind` made by `source`; `unit` died; `controller` updates its perception memory.
-// 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
-// Map object base: drops all effects (+0x198), marks the object changed.
+// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it worked.
+// The controller's voice: says remark `what`.
+// The AI events: a noise of `loudness` and `kind` made by `source`; `unit` died; `controller` updates its
+// perception memory.
+// CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map.
+// Map object base: drops all effects, marks the object changed.
 // CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
-// 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
-// 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
-// UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
+// The death animation's (AnimationSteps) base constructor and copy constructor.
+// CUnitServer::PlayAnimationOrder: plays `animation` (taken by value and destroyed).
+// UnitAction: kind 9, target released, flag18 cleared (the other fields left alone).
 
 
 void CUnitServer::DropQueuedOrder() {
@@ -132,9 +131,8 @@ void CUnitServer::FinishAction(int location, char) {
         CUnit* target = UnitOrNull(action.target);
         if (!target) return;
         if (location >= 6) return;
-        // The kind of the target's body slot `location`: 3 means it can still be aimed at
-        // (OrderAttack aims at "all" otherwise); when it is no longer 3 the order aimed at it now
-        // aims at "all" (6).
+        // The kind of the target's body slot `location`: 3 means it can still be aimed at (OrderAttack aims at "all"
+        // otherwise); when it is no longer 3 the order aimed at it now aims at "all" (6).
         if (target->ServerController()->stats.slots[location].kind == 3) return;
         if (location != static_cast<int>(action.source)) return;
         action.source = 6;
@@ -275,7 +273,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     // The unit's Y axis points backwards: "front" is the negated projection on it.
     double front = -DotUnrounded<Sum3::ZYX, double>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
     float frontStored = static_cast<float>(front);
-    // The X axis of the rotation, kept on the FPU stack (as 0040D940 computes it, unrounded).
+    // The X axis of the rotation, kept on the FPU stack (unrounded).
     AxisUnrounded<double> axisX = AxisXUnrounded<double>(*rotation);
     double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
     float sideStored = static_cast<float>(side);
@@ -464,7 +462,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
         record.level += x87::fistp(mine);
-        // Slot 41 (declared with two ints) takes the use record and the unit.
+        // The use record and the unit are passed to the virtual (declared with two ints).
         if (target->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
         if (!unit->player) return;
         message = kMessageScienceFailed;

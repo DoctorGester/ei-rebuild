@@ -19,8 +19,8 @@
 
 namespace {
 
-// The bridge map's node: {next, key, value}; the original reads the low 16 bits of the value and
-// stores a whole dword (ground, object height, occluder kind).
+// The bridge map's node: {next, key, value}; only the low 16 bits of the value are read but a whole dword is
+// stored (ground, object height, occluder kind).
 using BridgeNode = BridgeMap::Node;
 
 std::uint32_t BridgeKey(int x, int y) {
@@ -31,9 +31,8 @@ std::uint32_t BridgeKey(int x, int y) {
 
 } // namespace
 
-// 005B30B0 (thiscall on the bridge map, RET 0x10; x and y are read as shorts). A cell that has an
-// entry gets back its ground level, its object height (flags & 0x3F) and the occluder word's low
-// five bits; the entry is erased.
+// A cell that has an entry gets back its ground level, its object height (flags & 0x3F) and the occluder
+// word's low five bits; the entry is erased. x and y are read as shorts.
 void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
     BridgeNode* node = Find(BridgeKey(x, y));
     if (!node) return;

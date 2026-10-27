@@ -37,8 +37,8 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-// The original keeps intermediate values on the FPU stack (double locals here) and rounds where
-// it stores to a float (float locals); the order of every operation is the original's.
+// The original keeps intermediate values on the FPU stack (double locals here) and rounds where it stores to a
+// float (float locals); the order of every operation is the original's.
 
 namespace {
 // --- Globals ----------------------------------------------------------------------------------
@@ -62,8 +62,8 @@ ShadowPoints& Points() { return g_points; }
 ShadowPixels& Pixels() { return g_pixels; }
 ShadowQuads& Quads() { return g_quads; }
 
-// The exit functions their static initialisers register: each frees its array's block.
-// The points' and the pixels' are guarded: a guard bit each in 007AF1F0, so a second run frees nothing.
+// The exit functions their static initialisers register: each frees its array's block. The points' and the
+// pixels' are guarded by a guard bit each, so a second run frees nothing.
 constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
 void __cdecl FreeQuads() { g_quads.FreeData(); }
 void __cdecl FreePoints() {
@@ -91,34 +91,33 @@ constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr std::uint32_t kDefaultColour = 0x80FFFFFF;
 
-constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0073C54C 0.3
-constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0073CDE0 0.6
-constexpr float kBlue = std::bit_cast<float>(0x3DCCCCCDu);    // 0073B850 0.1
+constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0.3
+constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0.6
+constexpr float kBlue = std::bit_cast<float>(0x3DCCCCCDu);    // 0.1
 constexpr float kOne = 1.0f;
 constexpr double kOneDouble = 1.0;
 constexpr float kStrongFactor = 10.0f;
-constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // 0073DF80 -tan(20 degrees)
+constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // -tan(20 degrees)
 constexpr float kFarSquared = 1e10f;
 constexpr float kTextureScale = 63.0f;
 constexpr float kAlphaScale = 128.0f;
 constexpr std::uint32_t kDrawDepth = 0x3F7FF972;
 
-// pi, 1/180 and 20: volatile, so the product is formed at run
-// time with the FPU's precision like the original's.
+// pi, 1/180 and 20: volatile, so the product is formed at run time with the FPU's precision like the
+// original's.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
 
-// 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
-// 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
-// the ground.
-// 00501AF0 (CSceneRenderer::SetTexture). Texture stages: binds a texture.
+// The render surface, locked and unlocked.
+// CWorldClient::ProjectDecal. The shadow projector: lays the texture's quad on the ground.
+// CSceneRenderer::SetTexture. Texture stages: binds a texture.
 // Light manager: is the point lit, AL.
-// 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
-// 004018A0 Quaternion::PreMultiply; 005A0CD0 CFigureMesh::DrawOffset.
+// CTextureDevice::DrawFlatBlocks. Device: draws the shadow geometry.
+// Quaternion::PreMultiply; CFigureMesh::DrawOffset.
 
-// *slot = value with counted references; the old value is released (its slot 4).
+// *slot = value with counted references; the old value is released.
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;
@@ -224,8 +223,8 @@ float CornerY(const float* m, float a, float b) {
 // --- The shadow -------------------------------------------------------------------------------
 
 namespace {
-// Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal
-// then skips the platforms (the original reads it in the raster's loop; the raster changes no flag).
+// Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal then skips
+// the platforms (the original reads it in the raster's loop; the raster changes no flag).
 int KeyedParts(const CObject3D* object) {
     int keyedParts = 0;
     for (int i = 0; i < object->parts.size; ++i) {
@@ -317,19 +316,19 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Look from the light; the object turned to face it.
     Matrix4 view;
-    view::LightShearMatrix(view.m, &direction);   // 004F1440 (thiscall on the pipeline, not read)
+    view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
-    // The point and pixel buffers grow without keeping their contents (004545A0 / 004F65B0 allocate).
+    // The point and pixel buffers grow without keeping their contents.
     Points().SetSizeDiscard(kPointBufferSize);
     Pixels().SetSizeDiscard(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    view::LightRotation(&direction, &turn);   // 004F15C0 (likewise)
+    view::LightRotation(&direction, &turn);   // (likewise)
     CObject3D* object = self->object;
-    // The original turns the object back with the conjugate (0051D4E0 PreMultiply), which is not exact:
-    // each re-rendered shadow moved the orientation by an ulp, and how often that ran followed the frame
-    // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
-    // harness does the same in the original, harness_shadow_turn.h).
+    // The original turns the object back with the conjugate (PreMultiply), which is not exact: each re-rendered
+    // shadow moved the orientation by an ulp, and how often that ran followed the frame timing. Ours keeps the
+    // orientation and puts it back (a determinism fix kept in the standalone; the harness does the same in the
+    // original, harness_shadow_turn.h).
     const Quaternion kept = object->localRotation_;
     object->localRotation_.PreMultiply(turn);
     ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
@@ -390,8 +389,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     Pixels().SetSizeDiscard(count);
 
-    // The texture (R16e1: only when it is drawn; the decal's projection below takes only whether
-    // any part is keyed).
+    // The texture (only when it is drawn; the decal's projection below takes only whether any part is keyed).
     const int keyedParts = KeyedParts(self->object);
     if (makeTexture && !MakeTexture(self, device, failure)) {
         if (lights.manager) --lights.manager->refCount_;
@@ -508,9 +506,9 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         *texture->Name() = name;
         flags_ |= kFlagRefresh;
     }
-    // R16e1, R16i: with the new renderer the texture and the decal's draw are left out (the shadow map
-    // draws the shadow; nothing else reads them). The build still projects the decal: its sphere decides
-    // the object's shadow visibility (ShadowInView 0051E300).
+    // With the new renderer the texture and the decal's draw are left out (the shadow map draws the shadow;
+    // nothing else reads them). The build still projects the decal: its sphere decides the object's shadow
+    // visibility (ShadowInView).
     const bool makeTexture = !render::ClassicShadowSkipped();
     std::uint32_t objectFlags = object->flags_;
     const bool gameBuilds = (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);

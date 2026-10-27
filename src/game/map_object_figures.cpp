@@ -18,8 +18,8 @@
 #include <bit>
 #include <cstring>
 
-// The bounds must keep the original's order of operations, its float stores and its NaN
-// behaviour: values it keeps on the FPU stack are double locals, values it stores are floats.
+// The bounds must keep the original's order of operations, its float stores and its NaN behaviour: values it
+// keeps on the FPU stack are double locals, values it stores are floats.
 
 namespace {
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;   // flags_
@@ -46,8 +46,8 @@ void AnimationSetScale(void* state, void*, float x, float y, float z) {
     static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
 }
 
-// The original's branch-free selects: the stored candidate `v` replaces the bound when the
-// comparison sets C0 (it is beyond the bound, or unordered).
+// The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
+// (it is beyond the bound, or unordered).
 std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= Float(bound) ? bound : Bits(v); }
 std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= v ? bound : Bits(v); }
 
@@ -58,8 +58,8 @@ float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<d
 
 // --- AlignedPtrArray --------------------------------------------------------------------------
 
-// 00519E80 / 00519D70: SetAtGrow / SetSize (RET 8). The original's SetAtGrow(-1) stores through
-// the null array it has just freed; ours does too (data[-1] of null), both fault.
+// SetAtGrow / SetSize. The original's SetAtGrow(-1) stores through the null array it has just freed; ours does
+// too (data[-1] of null), both fault.
 EI_REWRITTEN(0x00519E80, AlignedPtrArray::SetAtGrow);
 
 EI_REWRITTEN(0x00519D70, AlignedPtrArray::SetSize);
@@ -180,7 +180,7 @@ EI_REWRITTEN(0x00517700, CObject3D::SetFigureScale);
 int CObject3D::AddPart(CFigureMesh* part) {
     for (int k = 0; k < parts.size; ++k)
         if (parts.data[k] == part) return 1;
-    parts.SetAtGrow(parts.size, part);   // inlined in the original (allocating through 0051A170)
+    parts.SetAtGrow(parts.size, part);
     ++part->refCount_;
     part->SetObject(this);
     if (animation) AnimationAddPart(animation, nullptr, part);

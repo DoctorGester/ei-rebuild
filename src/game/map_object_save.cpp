@@ -1,5 +1,5 @@
-// Saving and loading the map object part of every map object (CMapObject slots 9 / 10) and its
-// server companion's (CMapObjectServer slots 9 / 10). See map_object.h and
+// Saving and loading the map object part of every map object (CMapObject Load / Save) and its
+// server companion's (CMapObjectServer Load / Save). See map_object.h and
 // docs/notes/map_objects.md.
 #include "map_object.h"
 

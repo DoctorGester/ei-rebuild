@@ -24,8 +24,8 @@ constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
 constexpr int kBlockSize = 10;
 
 
-// A step list's constructor (00556850 / 00546060, and 00557B60 with the derived vtable written
-// after it): no steps; `extra` is left as it was.
+// A step list's constructor (also with the derived vtable written after it): no steps; `extra` is left as it
+// was.
 void InitSteps(AnimationSteps& steps) {
     steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     steps.data = nullptr;
@@ -34,8 +34,7 @@ void InitSteps(AnimationSteps& steps) {
     steps.growBy = 0;
 }
 
-// An order's constructor (00545F70: kind 9, no target, flag18 clear), then its Clear
-// and the rest of its fields.
+// An order's constructor (kind 9, no target, flag18 clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {
     action.target = nullptr;
     action.kind = 9;
@@ -45,7 +44,7 @@ void InitAction(UnitAction& action) {
     action.modifier = 0;
 }
 
-// The empty CList of counted object references the memory keeps (00556C80 with blocks of 10).
+// The empty CList of counted object references the memory keeps (blocks of 10).
 void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
     list.vtable = gameslots::VictimListClass::Vtable();
@@ -63,8 +62,8 @@ void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.RemoveAll();
 }
 
-// The attack option arrays' destructor (00557410, inlined for the second): the vtable, the data
-// freed (the options have no destructor).
+// The attack option arrays' destructor (inlined for the second): the vtable, the data freed (the options have
+// no destructor).
 void DestroyAttackOptions(AIAttackOptions& options) {
     options.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     if (options.data) gamecrt::operator_delete(options.data);
@@ -150,7 +149,7 @@ AIBrain* AIBrain::Construct() {
     modes.blockSize = kBlockSize;
     current = nullptr;
     alarmRecords = {};
-    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();   // game.exe: 0073F04C (the same slots)
+    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();   // the same virtuals
     attention.weapons = {};
     attention.weapons.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     attention.spells = {};
@@ -163,9 +162,9 @@ AIBrain* AIBrain::Construct() {
     InitObjectList(memory.seenCorpses);
     InitObjectList(memory.corpses);
     memory.reports = {};
-    memory.reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();   // game.exe: 0073F140 (the same slots)
+    memory.reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();   // the same virtuals
     memory.calls = {};
-    memory.calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();   // game.exe: 0073F070 (the same slots)
+    memory.calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();   // the same virtuals
     Init();
     return this;
 }
@@ -174,12 +173,12 @@ EI_REWRITTEN(0x00545990, AIBrain::Construct);
 void AIMemory::Destruct() {
     calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();
     if (calls.data) {
-        for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // 00558CC0(0)
+        for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // the call records' destructors
         gamecrt::operator_delete(calls.data);
     }
     reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();
     if (reports.data) {
-        for (int i = 0; i < reports.size; ++i) {   // 00558CA0(0): the reference released
+        for (int i = 0; i < reports.size; ++i) {   // the reference released
             if (reports.data[i].object) reports.data[i].object->Release();
             reports.data[i].object = nullptr;
         }

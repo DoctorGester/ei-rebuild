@@ -1,5 +1,5 @@
-// The options window's spin control (CUiSpin, 0065BCD0-0065BFC3): constructor, texts and value.
-// See ui.h and docs/notes/items_spells.md (A-H19).
+// The options window's spin control (CUiSpin): constructor, texts and value. See ui.h and
+// docs/notes/items_spells.md.
 
 #include "ui.h"
 #include "ui_screens.h"
@@ -20,8 +20,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 } // namespace
 
-// game.exe's tables 00742D5C / 00742D28: the window's slots; the input side's click (2) and a left double click
-// that does nothing (7: 0065C000, RET 0xC).
+// The window's virtuals; the input side's click and a left double click that does nothing.
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     texts_.Construct();
     rect_ = rect;
@@ -58,7 +57,7 @@ void CUiSpin::SetValue(int value) {
 }
 EI_REWRITTEN(0x0065BEE0, CUiSpin::SetValue);
 
-// --- 0065BFD0 (A-H25): a click steps the value ----------------------------------------------------
+// --- A click steps the value ------------------------------------------------------------------------
 
 namespace {
 const char* const kOkSound = "buttons\\messbox\\ok.wav";

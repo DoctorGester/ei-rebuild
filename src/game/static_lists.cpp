@@ -1,5 +1,4 @@
-// Static initialisers' list constructors (static_lists.h). Checked in game by
-// verify_static_lists.cpp until S21d.
+// Static initialisers' list constructors (static_lists.h).
 #include "static_lists.h"
 
 #include "app_helpers.h"
@@ -10,10 +9,10 @@
 
 #include <cstdint>
 
-// The three lists, empty at the start: each is built by its static initialiser in the list's order and destroyed by
-// the exit function the initialiser registers with the game's atexit; both are ported on the name and registered at
-// their addresses (docs/notes/standalone.md, "The static initialisers' objects"). The copy protection's check list
-// (app_helpers.h), the DirectDraw driver list (texture.h) and the frame's deferred unit list (world.h).
+// The three lists, empty at the start: each is built by its static initialiser in the list's order and
+// destroyed by the exit function the initialiser registers with the game's atexit (docs/notes/standalone.md,
+// "The static initialisers' objects"). The copy protection's check list (app_helpers.h), the DirectDraw driver
+// list (texture.h) and the frame's deferred unit list (world.h).
 constinit lib::StaticObject<stlp::list<std::uint8_t>> g_protectionChecks = /*0079BC2C*/ {};
 constinit lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers = /*007AEE64*/ {};
 constinit lib::StaticObject<stlp::list<CEngineObject*>> g_deferredUnits = /*007AF5B4*/ {};
@@ -64,9 +63,8 @@ EI_REPLACE(0x004ED5F0, static_lists::DestroyDrivers);
 EI_REPLACE(0x0056A3F0, static_lists::ConstructDeferredUnitsList);
 EI_REPLACE(0x0056A4C0, static_lists::DestroyDeferredUnits);
 
-// ~list() of the lists only exit functions destroy: every node's element destroyed and the
-// node returned to the pool, then the sentinel. 004584E0: the copy protection's check list 0079BC2C
-// (bytes; the exit function 00455F00). 004F0520: the DirectDraw driver list 007AEE64 (each driver's
-// description, then its name; the guarded exit function 004ED5F0).
+// ~list() of the lists only exit functions destroy: every node's element destroyed and the node returned to
+// the pool, then the sentinel. The copy protection's check list (bytes), and the DirectDraw driver list (each
+// driver's description, then its name; the guarded exit function).
 EI_REWRITTEN(0x004584E0, stlp::ListAbi<std::uint8_t>::Destruct);
 EI_REWRITTEN(0x004F0520, stlp::ListAbi<DirectDrawDriver>::Destruct);
