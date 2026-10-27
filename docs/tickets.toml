@@ -3301,7 +3301,7 @@ note = "Delete the comments a reader does not need, not reword them: docs/commen
 id = "C22i2"
 title = "Comment removal C22i, second pass: the largest files read by hand"
 group = "cleanup"
-model = "sonnet"
+model = "opus"
 depends = ["C22i"]
 note = "C22i cut its batch 16% (8,632 to 7,244), half the target, mostly by mechanical rules. Left: hand passes on particle_callbacks.cpp (752 comment lines; element offsets now named unions), net_messages.h, player_client.h, map_object_shadow.h, net_connection.h, net_link.h, net_coder.h, net_lobby.cpp, particle_emitters.cpp; .cpp comments repeating the header's on the same method; ~145 inlined/register notes and ~127 slot mentions in prose. docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
 
@@ -3309,9 +3309,25 @@ note = "C22i cut its batch 16% (8,632 to 7,244), half the target, mostly by mech
 id = "C22h2"
 title = "Comment removal C22h, second pass: offsets in prose, step-by-step declaration comments"
 group = "cleanup"
-model = "sonnet"
+model = "opus"
 depends = ["C22h"]
 note = "C22h cut its batch 16% (8,643 to 7,262), half the target. Left: ~280 +0xNN mentions inside prose (item_stock.h/.cpp, combat.cpp, combat_*.cpp, class_templates.h: name the member or drop), multi-line declaration comments that walk the body (combat.h, ai_map.h), 1,752 trailing comments only touched for offsets, 179 long-block lines (move file-header research to docs/notes), ~80 slot and ~107 register mentions. docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+
+[[ticket]]
+id = "C22j2"
+title = "Comment removal C22j, second pass: terrain, scene loader, sound manager, script and camp sources"
+group = "cleanup"
+model = "opus"
+depends = ["C22j"]
+note = "C22j cut its batch 19.6% (9,015 to 7,245). Left, by size: terrain.h, scene_loader.h/.cpp, sound_manager*.cpp, terrain_sector.h/.cpp, ui_camp.cpp, script_eval.cpp, script_load.cpp, spell_effect_internal.h, ui_battle_update.cpp, and ui.h blocks that were only re-wrapped. Opus (user 2026-10-27: Sonnet stalled at 16-20%). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+
+[[ticket]]
+id = "C22k2"
+title = "Comment removal C22k, second pass: world.h, unit.h, unit_ai.h, ui_screens.h and the ui/unit sources"
+group = "cleanup"
+model = "opus"
+depends = ["C22k"]
+note = "C22k cut its batch 20% (8,861 to 7,079). Left: world.h (739 comment lines), unit.h (527), unit_ai.h (~370), ui_screens.h (363), unit_db.h and unit_client_models.h (~175 each), ui_hud.cpp and ~40 files of 30-60 lines; 107 rulers, 172 offset mentions. Opus (user 2026-10-27). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
 
 [[ticket]]
 id = "S"
