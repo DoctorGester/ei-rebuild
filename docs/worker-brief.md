@@ -35,7 +35,8 @@ Rules:
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
   `--no-hooks` runs game.exe, always the original game (golden recording; with `EI_VECTORS=1`, vector recording:
   docs/notes/standalone-verification.md). Run the `--no-hooks` suite when the harness changes (run_all.py
-  `harness_files`: tests/verify, src/hook, the headers they include); its cache replays only then. Never with `--fresh`
+  `harness_files`: tests/verify but tests/verify/image, src/hook, the headers they include; no game header since
+  H30b); its cache replays only then. Never with `--fresh`
   unless the ticket says so; in game.exe the harness calls only game.exe's code (tests/verify/harness_original.h). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7).
@@ -48,8 +49,7 @@ Rules:
 - Build `build.cmd verify` (the harness build: the image plus the harness and the vector recorders,
   what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
   or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
-  (vector recorders), `tools\check_against_exe.cmd release` (the checks against game.exe, which the build no
-  longer runs) and the checks build.cmd runs at 0 problems.
+  (vector recorders) and the checks build.cmd runs at 0 problems.
 - Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
   no log (the commit history keeps that; docs/notes/README.md).
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is

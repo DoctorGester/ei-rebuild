@@ -12,8 +12,10 @@
                                      into its storage (src/standalone/image_imports.cpp, S18f).
 
 usage: python tools/gen_iat.py [--check]
-  (no option)  write the three files
-  --check      exit 1 when a file differs from what the import directory and the routes give (build.cmd)
+  (no option)  write the three files (reads game.exe's import directory)
+  --check      exit 1 when a file differs from what the committed import table (import_table.h: a member per slot, its
+               DLL and function in the comment) and the routes give; no game.exe (build.cmd). Catches gameapi.h edited
+               by hand, a new harness route on a slot, and image_imports.inc and import_table.h that disagree.
 """
 import argparse, os, re, struct, sys
 
@@ -97,6 +99,21 @@ def member_type(dll, fn):
     return 'FARPROC'
 
 
+def committed_table():
+    """[(slot, dll, function or None, ordinal)] in the import directory's order, read back from the committed files
+    (which is what imports() gave when they were written): the order, DLL, function and ordinal from
+    src/standalone/image_imports.inc, the slot from the position of the entry's member in src/lib/import_table.h
+    (a member per dword of the import address table, in address order)."""
+    text = read(IMPORT_TABLE)
+    body = text[text.index('struct ImportTable {') + len('struct ImportTable {'):]
+    body = body[:body.index('\n};')]
+    slots = {}
+    for index, line in enumerate(l for l in body.split('\n') if l.strip()):
+        slots[re.fullmatch(r'    .+ (\w+);   // .*', line).group(1)] = IAT_BEGIN + 4 * index
+    entry = re.compile(r'\{offsetof\(ei::ImportTable, (\w+)\), "([^"]+)", (?:"([^"]+)"|nullptr), (\d+)\},')
+    return [(slots[name], dll, fn or None, int(ordinal)) for name, dll, fn, ordinal in entry.findall(read(IMAGE_IMPORTS))]
+
+
 def layout(table):
     """[(member, type, dll, fn, ordinal)] for every dword of the import address table, in address order: each
     DLL's slots, then its zero terminator (type None)."""
@@ -126,7 +143,7 @@ def sources(folder, extensions):
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
     "Own import table"): the harness's slot routes (any import slot address tests/ names), the image's routes
-    (ImageRoute's table in hook/standalone.cpp, the UTF-8 routes of game/system_text.cpp), a slot our code takes
+    (ImageRoute's table in hook/standalone_main.cpp, the UTF-8 routes of game/system_text.cpp), a slot our code takes
     (`&gameapi::X`), and KEEP."""
     names = {slot: fn for slot, dll, fn, _ in table}
     out = set(KEEP)
@@ -138,7 +155,7 @@ def routed(table):
                 out.add(fn)
     out.update(re.findall(r'EI_UTF8_ROUTE\((\w+)\)', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
     out.update(re.findall(r'\{"\w+\.dll", "(\w+)", reinterpret_cast',
-                          read(os.path.join(ROOT, 'src', 'hook', 'standalone.cpp'))))
+                          read(os.path.join(ROOT, 'src', 'hook', 'standalone_main.cpp'))))
     for path in sources('src', ('.cpp', '.h')):
         out.update(re.findall(r'&gameapi::(\w+)', read(path)))
     return out
@@ -203,7 +220,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--check', action='store_true')
     args = ap.parse_args()
-    table = imports(exe_path.resolve())
+    table = committed_table() if args.check else imports(exe_path.resolve())
     gameapi, functions = gameapi_text(table, routed(table))
     outputs = [(IMPORT_TABLE, import_table_text(table)), (GAMEAPI, gameapi),
                (IMAGE_IMPORTS, image_imports_text(table))]

@@ -465,13 +465,20 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
 # and the headers they include), so a change of the game's code (src/game, src/lib, src/render) keeps the runs
 # cached and any change of the harness plays them again.
 
-# What game.exe's side of the harness builds from (H30): the harness, the vector recorders, the hook framework, the
-# launcher and the harness's settings; the game's .cpp files it calls in game.exe (HARNESS_SHARED: kept to these);
-# and every header they include. Nothing else of src/ runs in game.exe (its static initialisers build host state only).
-HARNESS_SOURCES = ('tests/verify/*', 'tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp', 'src/hook/*',
-                   'tools/launcher/*', 'config/harness/**/*')
-HARNESS_SHARED = ('src/game/address_order.cpp',      # the draw lists' order by name (harness_address_order.cpp)
-                  'src/lib/rebirth.cpp',             # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
+# What game.exe's side of the harness builds from (H30, H30b): the harness, the hook framework, the launcher and the
+# harness's settings; the game's .cpp files it calls in game.exe (HARNESS_SHARED: kept to these); the vector recorders
+# only in EI_VECTORS=1 runs (HARNESS_VECTORS: they record our functions' vectors from game.exe's runs and read our
+# classes); and every header they include. Since H30b the harness reads game.exe's objects through its own views
+# (tests/verify/exe_objects.h) and reaches our classes only through tests/verify/image (image/image_side.h, functions
+# that name no class of ours), which the image runs alone: tests/verify/* takes no file of that folder, and
+# HARNESS_IMAGE_ONLY leaves out the image's start-up. So no header of src/game, src/render or src/lib is in the key
+# but game_data.h (GameData's shift, 0 in game.exe), lib/stlp_algo.h (the draw lists' sort, as STLport's) and
+# lib/gameapi.h (game.exe's import slots); tools/check_harness_key.py checks it. Nothing else of src/ runs in game.exe
+# (its static initialisers build host state only).
+HARNESS_SOURCES = ('tests/verify/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')
+HARNESS_VECTORS = ('tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp')
+HARNESS_IMAGE_ONLY = ('src/hook/standalone_main.cpp',)   # EiStandaloneMain: ei_standalone.exe's start-up
+HARNESS_SHARED = ('src/lib/rebirth.cpp',             # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
                   'src/standalone/image_data.cpp')   # ei::GameData's shift (0 in game.exe)
 QUOTED_INCLUDE = re.compile(rb'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
 
@@ -530,11 +537,14 @@ def install_fingerprint(root, install, environ=None):
 
 
 @functools.cache
-def harness_files(root):
+def harness_files(root, vectors=False):
     """{path relative to root: content} of the files game.exe's side of the harness builds from: HARNESS_SOURCES,
-    HARNESS_SHARED and the files their quoted includes name (from the including file's folder, include/ or src/)."""
-    todo = [path for pattern in HARNESS_SOURCES + HARNESS_SHARED
-            for path in glob.glob(os.path.join(root, *pattern.split('/')), recursive=True) if os.path.isfile(path)]
+    HARNESS_SHARED (with vectors, HARNESS_VECTORS) but HARNESS_IMAGE_ONLY, and the files their quoted includes name
+    (from the including file's folder, include/ or src/)."""
+    image_only = {os.path.normpath(os.path.join(root, *name.split('/'))) for name in HARNESS_IMAGE_ONLY}
+    todo = [path for pattern in HARNESS_SOURCES + HARNESS_SHARED + (HARNESS_VECTORS if vectors else ())
+            for path in glob.glob(os.path.join(root, *pattern.split('/')), recursive=True)
+            if os.path.isfile(path) and os.path.normpath(path) not in image_only]
     files = {}
     while todo:
         path = os.path.normpath(todo.pop())
@@ -556,10 +566,10 @@ def harness_files(root):
 
 
 @functools.cache
-def harness_digest(root):
-    """One hash of harness_files(root)."""
+def harness_digest(root, vectors=False):
+    """One hash of harness_files(root, vectors)."""
     h = hashlib.sha1()
-    for name, content in sorted(harness_files(root).items()):
+    for name, content in sorted(harness_files(root, vectors).items()):
         h.update(f'{name}\0{len(content)}\0'.encode())
         h.update(content)
     return h.hexdigest()
@@ -581,7 +591,7 @@ def reference_key(name, install, root, clock, environ):
     settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
     h.update(json.dumps(settings, sort_keys=True).encode())
     h.update(install_fingerprint(root, install, environ).encode())
-    h.update(harness_digest(root).encode())
+    h.update(harness_digest(root, settings.get('EI_VECTORS') == '1').encode())
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     if peer := peer_scenario(scenario):          # a pair: the peer's steps decide the run too
         with contextlib.suppress(OSError), open(peer, 'rb') as f:

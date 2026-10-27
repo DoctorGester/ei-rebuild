@@ -22,7 +22,7 @@ static HookEntry* g_hooks = nullptr;
 void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed);
 
 // Every address InstallHooks took, in install order, with its code (the replacement, or a recorder in game.exe,
-// where a jump is written): the standalone image's code table (SetCodeTable) and its check (standalone.cpp CheckCode).
+// where a jump is written): the standalone image's code table (SetCodeTable) and its check (standalone_main.cpp CheckCode).
 static std::vector<std::pair<std::uintptr_t, void*>> g_installed;
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks() { return g_installed; }
 
@@ -396,7 +396,7 @@ int InstallHooks() {
 // game.exe (the original game's harness): the recorders (EI_VECTORS), the coverage breakpoints (EI_COVER)
 // and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
 // has applied its own patches from a hook on the WinMain call. The standalone image calls InstallHooks
-// from EiStandaloneMain (standalone.cpp).
+// from EiStandaloneMain (standalone_main.cpp).
 void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();

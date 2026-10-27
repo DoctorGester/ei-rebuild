@@ -3,12 +3,11 @@
 #include "harness_starter.h"
 
 #include "harness_addon.h"
+#include "exe_objects.h"
 #include "harness_original.h"
-#include "../../src/game/resource.h"
-#include "../../src/game/world_data.h"
+#include "image/image_side.h"
 #include "../../src/hook/log.h"
 #include "../../src/hook/rebirth_hook.h"
-#include "../../src/lib/mfc.h"
 #include "ei/hook.h"
 
 #include <windows.h>
@@ -155,14 +154,29 @@ void Install(const char* savesDir) {
             music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
-// CMappedResource's constructor (00671280), OpenResource (00671730) and Destroy (006714A0): ours, or in a
-// --no-hooks run the game's own code.
-__declspec(naked) CMappedResource* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
-__declspec(naked) int __fastcall OriginalMappedResourceOpen(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
+// game.exe's CMappedResource (0x58 bytes) in a --no-hooks run: its constructor (00671280), OpenResource (00671730) and
+// Destroy (006714A0), GetFile (slot 5: 00671B40, Rebirth's ResOverride) and CloseFile (slot 6). The bytes of `name` in
+// the archive at `path`: -2 when the archive does not open, 0 without the file.
+__declspec(naked) void* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
+__declspec(naked) int __fastcall OriginalMappedResourceOpen(void* /*resource*/, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
-__declspec(naked) void __fastcall OriginalMappedResourceDestroy(CMappedResource*) EI_ORIGINAL(0x006714A0)
-CMappedResource* HarnessMappedResourceConstruct(void* memory) {
-    return ei::Standalone() ? new (memory) CMappedResource() : OriginalMappedResourceConstruct(memory);
+__declspec(naked) void __fastcall OriginalMappedResourceDestroy(void* /*resource*/) EI_ORIGINAL(0x006714A0)
+long OriginalModFile(const std::string& path, const char* name) {
+    constexpr std::size_t kMappedResourceSize = 0x58;
+    void* memory = ::operator new(kMappedResourceSize);
+    std::memset(memory, 0, kMappedResourceSize);
+    void* res = OriginalMappedResourceConstruct(memory);
+    long got = -2;   // the archive did not open
+    if (OriginalMappedResourceOpen(res, nullptr, path.c_str(), 0)) {
+        void* const* vtable = *static_cast<void* const* const*>(res);
+        std::uint32_t size = 0;
+        void* data = reinterpret_cast<void*(__thiscall*)(void*, const char*, std::uint32_t*)>(vtable[5])(res, name, &size);
+        got = data ? static_cast<long>(size) : 0;
+        if (data) reinterpret_cast<bool(__thiscall*)(void*, void*)>(vtable[6])(res, data);
+    }
+    OriginalMappedResourceDestroy(res);
+    ::operator delete(memory);
+    return got;
 }
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
@@ -172,22 +186,9 @@ std::string ModFileStep(const std::string& argument) {
         return "modfile " + argument + ": not <archive> <file> <bytes>";
     // The archive as the game opens its own: the text resources' folder and the name. In game.exe's --no-hooks
     // runs its own folder: our named copy (C18) is never set there.
-    const mfc::CString& folder = ei::Standalone() ? TheTextFolder()
-                                                  : ei::OriginalGameData<mfc::CString>(0x007AF45C);
-    const std::string path = std::string(static_cast<const char*>(folder)) + archive;   // host strings only (H30)
-    void* memory = ::operator new(sizeof(CMappedResource));
-    std::memset(memory, 0, sizeof(CMappedResource));
-    CMappedResource* res = HarnessMappedResourceConstruct(memory);
-    long got = -2;   // the archive did not open
-    if (ei::Standalone() ? res->CMappedResource::OpenResource(path.c_str(), 0)
-                            : OriginalMappedResourceOpen(res, nullptr, path.c_str(), 0)) {
-        std::uint32_t size = 0;
-        void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
-        got = data ? static_cast<long>(size) : 0;
-        if (data) res->CloseFile(data);
-    }
-    ei::Standalone() ? res->CMappedResource::Destroy() : OriginalMappedResourceDestroy(res);
-    ::operator delete(memory);
+    const char* folder = ei::Standalone() ? image::TextFolder() : ei::OriginalGameData<const exe::CString>(0x007AF45C).text;
+    const std::string path = std::string(folder) + archive;   // host strings only (H30)
+    const long got = ei::Standalone() ? image::ModFile(path.c_str(), name) : OriginalModFile(path, name);
     Log("harness: modfile %s %s: %ld bytes (expected %ld)", path.c_str(), name, got, expected);
     if (got == expected) return std::string();
     char error[2 * MAX_PATH + 64];

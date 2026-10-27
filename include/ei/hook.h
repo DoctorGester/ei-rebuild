@@ -158,8 +158,7 @@ struct RegRecord {
     EI_REG_RECORD(ei_reg_standalone_, addr, ::ei::kRegStandalone); \
     static ::ei::HookRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
-// Replace the function under five bytes at `addr` (src/game/short_functions.cpp; tools/check_short_functions.py
-// checks the kinds).
+// Replace the function under five bytes at `addr` (src/game/short_functions.cpp).
 #define EI_REPLACE_SHORT(addr, fn) \
     EI_REG_RECORD(ei_reg_short_, addr, ::ei::kRegShort); \
     static ::ei::HookRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
@@ -177,7 +176,7 @@ struct RegRecord {
 // .eiorg of the module, which nothing reads at run time and InstallHooks does not take: the compiler checks the name,
 // the record keeps the function's own copy in the image (as a registration did), and check_registrations reads it
 // (one original per address, none also registered). The tools' function-to-original map is the registrations and
-// these lines together (check_signatures.registrations(): check_fp_fold and check_signatures; coverage.py,
+// these lines together (check_signatures.registrations(): check_signatures; coverage.py,
 // save_trace.py, ui_census_report.py, progress.py's rewritten count). tools/registration_readers.py
 // --drop writes one in place of each registration it drops.
 #pragma section(".eiorg", read, write)

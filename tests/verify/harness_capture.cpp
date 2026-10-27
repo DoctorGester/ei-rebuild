@@ -17,16 +17,13 @@
 // reads back as black, and in full screen the window is not on the desktop at all.
 #include "harness_capture.h"
 #include "harness_hooks.h"
-#include "game/game_singletons.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "ei/main_loop.h"
-#include "../../src/render/render.h"
-#include "game/game_data.h"
-#include "../../src/game/model.h"   // CSceneRenderer
 #include "harness_objects.h"
 #include "harness_original.h"
+#include "image/image_side.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -215,14 +212,14 @@ void Capture() {
     // The image (the new renderer presents by itself): the old render target holds nothing worth
     // keeping; the new frame is the capture.
     if (HarnessRenderActive()) {
-        render::EndFrame();
+        image::EndFrame();
         Image frame;
         char path[MAX_PATH];
         ei::OutputPath("frames", path);
         CreateDirectoryA(path, nullptr);
         std::size_t used = std::strlen(path);
         std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", g_name.c_str());
-        if (!render::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
+        if (!image::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
             g_state = State::Failed;
             g_detail = "the new renderer has no frame";
             return;
@@ -239,7 +236,7 @@ void Capture() {
         g_state = State::Done;
         return;
     }
-    char* device = reinterpret_cast<char*>(HarnessSceneRenderer()->device_.device);
+    char* device = static_cast<char*>(HarnessSceneDevice());
     char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
     auto* surface = target ? *reinterpret_cast<IDirectDrawSurface7**>(target + 0x10) : nullptr;
     if (!surface) {

@@ -9,27 +9,26 @@ whose initialiser carries the original's address as a tag right after the `=`:
 The code then names the global (kSlotXs[i]), not the address (GamePointer<const int>(0x0074111C)), and the range's
 bytes leave the image's generated copy of the sections (gen_image_cells.py --bytes writes them zero).
 
---check (build.cmd):
-  * every tagged initialiser is game.exe's bytes at the tag: its numbers are packed by the declared element type
-    (TYPES; a struct type its fields' formats, nested braces flattened) and compared with the file's bytes
-    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site but NAMED_ADDON_SITES, the ones
-    the image writes itself, no two ranges overlapping);
+--check (build.cmd; reads no game.exe: the comparisons with its bytes and cells were tools/check_against_exe.cmd's until
+C25d, the proof of each definition when it was made, `--emit` runs it in reverse):
+  * every tagged initialiser is well formed: its numbers pack by the declared element type (TYPES; a struct type its
+    fields' formats, nested braces flattened), it lies in .rdata past the import table or .data and its zero-filled
+    tail, no addon.dll site but NAMED_ADDON_SITES (the ones the image writes itself), no two ranges overlapping, and one
+    in .rdata is constexpr;
   * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it, and
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
-    one pointer `constexpr const char* kX = /*addr*/ "text";`) names what game.exe's pointer in its place points at,
-    and that is compared: a string literal the text at the target, the name of another named range its address
-    (qualified or not; or `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
-    registration (EI_REPLACE*, EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), nullptr a zero;
-  * nothing else reaches a named range: no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked)
-    inside it, no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it but at its
-    pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
-    code does not name and no cell points at, nothing reads: the zero bytes are never seen.
+    one pointer `constexpr const char* kX = /*addr*/ "text";`) names a string literal, another named range (qualified
+    or not; or `NAME + k` its element k: _pctype's `kCtypeC + 1`, written by hand), a function of ours with a
+    registration (EI_REPLACE*, EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), or nullptr;
+  * no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked) lies inside a named range, a retired vtable
+    (config/retired_vtables.csv) or an unread object (config/unread_data.csv). What the image's code does not name,
+    nothing reads: the zero bytes are never seen.
 
-The bytes a definition is compared with are game.exe's as its static initialisers leave them (C18j): their stores,
+The bytes a definition replaces are game.exe's as its static initialisers leave them (C18j): their stores,
 float folds and fills in list order (gen_static_init.stored_values; tools/gen_static_init.py leaves those statements
 out of static_init.cpp, the definition's initialiser takes their place). A call's stored result is unknown: such a
-range is refused (port that initialiser by hand on the name), unless the generated code stores it into the name
+range is ported by hand on the name, unless the generated code stores it into the name
 (gen_static_init.GENERATED_NAMES): then the definition is the zero start. The unread objects of config/unread_data.csv (written
 by gen_static_init.py: only their initialiser stores into them) get the same proof that nothing reaches them.
 
@@ -56,7 +55,7 @@ and our registration of it: the extent of an object and every function that read
 
 --emit ADDRESS TYPE COUNT NAME (C18o): prints the tagged definition of COUNT elements of TYPE (a TYPES key; COUNT
 '4x10' for rows) at ADDRESS from game.exe's bytes as the static initialisers leave them, by the same packing --check
-uses run in reverse: numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
+uses run in reverse (reads game.exe): numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
 string's start as string literals, pointers to a named range's start by its name, to code by our registration's
 function, zero as nullptr. What it cannot name prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
 it then packs the text back and says where it differs. The declaration is `constexpr` (a string table
@@ -66,7 +65,7 @@ it then packs the text back and says where it differs. The declaration is `const
 by address, `GamePointer<T>(0x...)` / `GameData<T>(0x...)` (a `DataId(0x...)` argument too) where T is the element
 type and the address an element's start, become the name (`NAME`, `(NAME + k)`, `NAME[k]`); the other mentions
 (DataId constants, other types, a field's address, tests/) are listed for a person. Without --apply it only lists.
---check stays the proof of both steps.
+--check stays the proof of both steps' form; the emitted text packs back to game.exe's bytes (emit says where it differs).
 
 usage: python tools/named_data.py --check | --update | --owner BEGIN [END] | --split [KIND ...] | --refs BEGIN [END]
                                   | --emit ADDRESS TYPE COUNT NAME | --rewrite NAME [--apply]  [--exe game.exe]
@@ -401,6 +400,15 @@ def _pack_pointers(self, fmt, img, targets):
                 bits = struct.calcsize(code) * 8
                 out += struct.pack('<' + code.upper(), v & ((1 << bits) - 1))
             continue
+        if img is None:   # no game.exe (--check): the element must name something the check can compare; zero stands in
+            if not (kind == 'text' or kind == 'name' and (v == 'nullptr' or v in targets.ranges or v in targets.functions)
+                    or kind == 'number' and v == 0 or kind == 'element' and v[0] in targets.element_sizes):
+                self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
+                                'ours with a registration (EI_REPLACE*, EI_REWRITTEN, UnportedSlot) or nullptr')
+                return
+            self.pointers.add(len(out))
+            out += bytes(4)
+            continue
         cell = struct.unpack_from('<I', img, at - BASE)[0] if RDATA[0] <= at < DATA[1] else None
         if cell is None:
             self.problem = f'the pointer at {at:08X} is outside game.exe\'s data'
@@ -494,18 +502,6 @@ NAMED_ADDON_SITES = {
     0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session_tick.cpp)",
 }
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
-
-# Retired vtables game.exe's pointer cells may still point at: type_info's 007472B0 (C19 batch 23), the vtable field
-# of the 74 RTTI type descriptors (gen_image_cells' REVIEWED_RDATA). Nothing in the image calls a type descriptor's
-# virtual: the frame handlers compare descriptors by address and name, and no descriptor is ever destroyed (they are
-# static data with no destructor registered), so the table's zero bytes are never read.
-RETIRED_POINTED = {0x007472B0}
-# Cells of game.exe's data that may point into a named range because nothing in the image reads them: they lie in
-# data config/standalone_unreachable.csv lists (C18r). cell -> why.
-UNREACHABLE_CELLS = {
-    0x00746C80: "CWnd's message map entry for the DragList message (ON_REGISTERED_MESSAGE): its variable is "
-                "mfc::impl::g_dragListMessage; only CWnd::OnWndMsg dispatches the map, and no window of the image is a CWnd",
-}
 
 
 def other_files():
@@ -671,25 +667,16 @@ def initialised(img_path):
     return values, {a for a, v in values.items() if v is None}
 
 
-def check(img, update, img_path):
+def check(update):
+    """--check / --update: the definitions of src/ against each other and config/*.csv; no game.exe (the comparison
+    with its bytes and its cells was tools/check_against_exe.cmd's, until C25d). A pointer element is checked for
+    what it names, not for its value."""
     problems = []
     sources = srcscan.load_sources()
     defs = definitions(sources)
     targets = Targets(defs, sources)
-    # A definition is compared with what the static initialisers leave there (their stores are left out of the
-    # generated static_init.cpp for a named range: the definition's initialiser takes their place).
-    values, unknown = initialised(img_path)
-    import gen_static_init
-    generated_stores = set(gen_static_init.GENERATED_NAMES)
-    if values is None:
-        problems.append('game.exe\'s static initialisers do not decode (tools/check_static_init.py)')
-        values = {}
-    img = bytearray(img)
-    for a, v in values.items():
-        if v is not None:
-            struct.pack_into('<I', img, a - BASE, v)
     for d in defs:
-        d.pack(img, targets)
+        d.pack(None, targets)
         if d.problem:
             problems.append(f'{d.where()}: {d.name}: {d.problem}')
             continue
@@ -700,17 +687,6 @@ def check(img, update, img_path):
         own_site = any(lo <= a < hi for a in NAMED_ADDON_SITES)
         if hi <= RDATA[1] and not d.const and not own_site:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
-        want = bytes(img[lo - BASE:hi - BASE])
-        # A call's result the generated static_init.cpp stores into the name in list order (gen_static_init's
-        # GENERATED_NAMES): the definition is the zero start the original has before that call.
-        late = sorted(a for a in unknown if lo <= a < hi and a not in generated_stores)
-        if late:
-            problems.append(f'{d.where()}: {d.name}: a static initialiser stores a call\'s result at {late[0]:08X}: port '
-                            'that initialiser by hand on the name')
-        elif d.packed != want:
-            at = next(i for i in range(d.size) if d.packed[i] != want[i])
-            problems.append(f'{d.where()}: {d.name} is not the bytes of game.exe: first difference at {lo + at:08X} '
-                            f'(+{at}): ours {d.packed[at:at + 4].hex()}, game.exe {want[at:at + 4].hex()}')
         for a, b in addon_sites():
             if a < hi and lo < b and a not in NAMED_ADDON_SITES:
                 problems.append(f'{d.where()}: {d.name} overlaps the addon.dll site {a:08X}: that cell is written')
@@ -750,32 +726,6 @@ def check(img, update, img_path):
                 return d
         return None
 
-    # game.exe's pointer and code cells (gen_image_cells' scans, the named ranges' own cells included): a cell inside a
-    # named range is one of its pointer elements (compared by pack_pointers; the image's cell lists leave it out), and
-    # no cell outside the named ranges points into one.
-    kinds = gen_image_cells.structures(img)
-    data_cells, unread_cells = [], set()
-    for c, v in gen_image_cells.scan(img, keep_named=True):
-        group = (gen_image_cells.group_of(c, v, kinds) or ('',))[0]
-        if group != 'text':
-            data_cells.append((c, v))
-        if group == 'unread':
-            unread_cells.add(c)
-    code_cells = [(c, v) for c, v, _ in gen_image_cells.code_check(img, [], keep_named=True)[0]]
-    for cells, what in ((data_cells, 'pointer cell'), (code_cells, 'code cell')):
-        for cell, value in cells:
-            d = inside(cell)
-            if d is not None and cell - d.address not in getattr(d, 'pointers', ()):
-                problems.append(f'{d.where()}: {d.name} holds game.exe\'s {what} at {cell:08X} (-> {value:08X}) where '
-                                'it has no pointer element: game.exe\'s data reaches it; it is not ours alone')
-            # A cell of gen_image_cells' UNREAD tables (only game.exe's dead code reads them) is zero in the image, so it
-            # may point into a named range (the units' model folders 0078F7EC hold the empty string kEmptyText).
-            pointing = what == 'pointer cell' and d is None and cell not in UNREACHABLE_CELLS and cell not in unread_cells
-            t = inside(value) if pointing else None
-            if t is not None and not (isinstance(t, Retired) and value in RETIRED_POINTED):
-                problems.append(f'{t.where()}: {t.name} is pointed at by game.exe\'s cell at {cell:08X}: game.exe\'s '
-                                'data reaches it; it is not ours alone')
-
     for rel, full in other_files():
         if rel.endswith(('image_cells.inc', 'image_code_cells.inc')):
             continue
@@ -785,7 +735,7 @@ def check(img, update, img_path):
         for m in LITERAL.finditer(code):
             a = int(m.group(1), 16)
             d = inside(a)
-            # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
+            # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (tests/verify/harness_original.h).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
             if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
                 line = raw.count('\n', 0, m.start()) + 1
@@ -1204,21 +1154,21 @@ def main():
     a = ap.parse_args()
     if a.rewrite:
         return rewrite(a.rewrite, a.apply)
+    if a.owner:
+        return owner(int(a.owner[0], 16), int(a.owner[-1], 16))
+    if not (a.split is not None or a.refs or a.emit):
+        return check(a.update)   # --check, --update: no game.exe
     try:
         path = exe_path.find_exe(a.exe)
         img = image(path)
     except exe_path.ExeNotFound as e:
         sys.exit(f'named_data: {e}')
-    if a.owner:
-        return owner(int(a.owner[0], 16), int(a.owner[-1], 16))
     if a.split is not None:
         return split(img, set(a.split))
     if a.refs:
         return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
-    if a.emit:
-        address, type_, shape, name = a.emit
-        return emit(img, path, int(address, 16), type_, shape, name)
-    return check(img, a.update, path)
+    address, type_, shape, name = a.emit
+    return emit(img, path, int(address, 16), type_, shape, name)
 
 
 if __name__ == '__main__':

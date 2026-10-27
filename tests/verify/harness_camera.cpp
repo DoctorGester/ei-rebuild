@@ -1,7 +1,7 @@
 // The camera's motion frame by frame: the smooth camera's check (harness_camera.h; ticket R18).
 #include "harness_camera.h"
 
-#include "game/camera.h"
+#include "image/image_side.h"
 #include "ei/hook.h"
 #include "../../src/hook/log.h"
 
@@ -80,12 +80,11 @@ int KindOf(const char* name) {
 
 void Frame(const void* camera, float seconds) {
     if (!g_recording || !camera) return;
-    const CCamera* c = static_cast<const CCamera*>(camera);
     g_frameTime += seconds;
-    g_flags = c->flags_;
-    const Quaternion& q = c->viewRotation_;
-    g_samples.push_back(Sample{c->focus_.x, c->focus_.y, 2.0 * std::atan2(static_cast<double>(q.z), static_cast<double>(q.w)),
-                               c->distance_});
+    const image::CameraState c = image::Camera(camera);   // the image's camera (recorded only there)
+    g_flags = c.flags;
+    g_samples.push_back(Sample{c.focusX, c.focusY, 2.0 * std::atan2(static_cast<double>(c.turnZ), static_cast<double>(c.turnW)),
+                               c.distance});
 }
 
 bool UsedBy(const std::string& verb) { return verb == "camtrace" || verb == "camsame" || verb == "camsmooth"; }

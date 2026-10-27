@@ -1,7 +1,6 @@
 // The game's heap in harness runs on the virtual clock (harness_heap.h).
 #include "harness_heap.h"
 
-#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "game/game_data.h"

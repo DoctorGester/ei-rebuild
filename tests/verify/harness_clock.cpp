@@ -1,12 +1,12 @@
 // The game's clocks in harness runs: virtual clock, held clocks, clock trace (harness_clock.h).
 #include "harness_clock.h"
 
+#include "../../src/game/game_data.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "ei/main_loop.h"
-#include "../../src/game/random.h"
-#include "../../src/lib/crt.h"
-#include "game/game_data.h"
+#include "exe_objects.h"
+#include "image/image_side.h"
 #include "harness_original.h"
 
 #include <windows.h>
@@ -812,14 +812,13 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
 }
 
 // game.exe: the generator's Next (004667F0), which jumps here; its refill is game.exe's own.
-std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
+std::uint32_t __fastcall TracedNext(exe::IsaacRandom* self, void*) {
     if (self->count_-- == 0) {
-        ei::verify::OriginalCode<void(__thiscall*)(IsaacRandom*)>(kIsaacRefill)(self);
+        ei::verify::OriginalCode<void(__thiscall*)(exe::IsaacRandom*)>(kIsaacRefill)(self);
         self->count_ = 255;
     }
     const std::uint32_t value = self->results_[self->count_];
-    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value,
-              self == &ei::OriginalGameData<IsaacRandom>(0x007A9D40) ? "" : " (another generator)",
+    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value, self == &exe::Random() ? "" : " (another generator)",
               self->c_ * 256u + 255u - self->count_);
     return value;
 }
@@ -832,15 +831,6 @@ int __cdecl TracedRand() {
     const int value = static_cast<int>((hold >> 16) & 0x7FFF);
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()", hold);
     return value;
-}
-
-// The image: the draws of our generator and rand(), through their observers.
-void ObservedDraw(IsaacRandom& random, std::uint32_t value, const void* caller) {
-    WriteDraw(reinterpret_cast<std::uintptr_t>(caller), value, &random == &IsaacRandom::Global() ? "" : " (another generator)",
-              random.c_ * 256u + 255u - random.count_);
-}
-void ObservedRand(int value, const void* caller) {
-    WriteDraw(reinterpret_cast<std::uintptr_t>(caller), static_cast<std::uint32_t>(value), " rand()", libcrt::RandState());
 }
 
 // game.exe: a JMP at `entry` to `to`.
@@ -888,8 +878,7 @@ void InstallRandomTrace(const unsigned* frames) {
     g_selfEnd = g_selfBase + info.SizeOfImage;
     // The generator's Next and rand().
     if (ei::Standalone()) {
-        IsaacRandom::SetDrawObserver(&ObservedDraw);
-        gamecrt::SetRandObserver(&ObservedRand);
+        image::ObserveDraws(&WriteDraw);   // the draws of our generator and rand(), through their observers
     } else {
         JumpFrom(kIsaacNext, reinterpret_cast<const void*>(&TracedNext));
         JumpFrom(kCrtRand, reinterpret_cast<const void*>(&TracedRand));

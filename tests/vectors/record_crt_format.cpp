@@ -3,6 +3,7 @@
 // through the trampoline. Every scenario reaches them (file names, interface text, the databases'
 // numbers).
 #include "crt_format_vectors.h"
+#include "../verify/harness_original.h"
 
 #include "ei/hook.h"
 #include "game/game_data.h"

@@ -8,7 +8,7 @@ from its bytes into one of the kinds below and registered with EI_REPLACE_SHORT.
 Unported = config/functions.csv's game functions, minus config/library.csv and config/dead_code.csv,
 under five bytes (src/hook/function_sizes.inc), with no EI_REPLACE / EI_REPLACE_METHOD / UI input
 handler registration in src/ (the output file itself is not read). A byte pattern that is not one
-of the kinds stops the script. tools/check_short_functions.py checks the result.
+of the kinds stops the script.
 
 usage: python tools/gen_short_functions.py [--exe game.exe]
 """
@@ -150,8 +150,7 @@ HEADER = '''\
 // The game functions under five bytes that no rewrite ports (docs/notes/standalone.md, S2). A jump
 // needs five bytes, so these have no replacement in game.exe's layout (EI_REPLACE_SHORT); the standalone
 // image writes a jump here at each (the next function leaves room). Each kind compiles to the
-// original's own bytes: tools/check_short_functions.py (build.cmd) compares every registration's kind
-// with game.exe and with our compiled code.
+// original's own bytes (tools/gen_short_functions.py writes this file from game.exe).
 #include "ei/hook.h"
 
 #include <cstddef>

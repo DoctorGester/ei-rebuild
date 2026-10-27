@@ -5,7 +5,6 @@
 // come from its settings file (game/settings_file.h): the same change is made to each read of them there.
 #include "log.h"
 #include "ei/hook.h"
-#include "game/settings_file.h"
 #include "lib/gameapi.h"
 
 #include <cstdint>
@@ -13,8 +12,12 @@
 #include <windows.h>
 
 #include <cstring>
+#include <string>
 
 namespace ei {
+
+// The settings file's reads filtered: the image's start-up's (standalone_main.cpp), which game.exe's runs leave out.
+void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, std::string& data));
 
 namespace {
 char g_root[MAX_PATH];
@@ -46,7 +49,7 @@ void RedirectGamePaths() {
     strcpy_s(g_root, root);
     if (g_root[n - 1] != '\\') strcat_s(g_root, "\\");
     if (Standalone()) {
-        settings_file::AddReadFilter(&RedirectedPath);
+        RedirectSettingsReads(&RedirectedPath);
         Log("game paths redirected to %s (the settings file's)", g_root);
         return;
     }

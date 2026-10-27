@@ -3,8 +3,9 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
-#include "game/settings_file.h"
+#include "image/image_side.h"
+
+#include "../../src/game/game_data.h"
 
 #include <windows.h>
 
@@ -90,7 +91,7 @@ void AtWindowClass() {
     if (done || g_discPrompts < 0) return;
     done = true;
     if (ei::Standalone()) {
-        settings_file::AddReadFilter(&DiscPathRead);
+        image::AddSettingsReadFilter(&DiscPathRead);
     } else {
         TakeSlot(kRegQueryValueExASlot, &DiscPathQuery, g_query);
     }

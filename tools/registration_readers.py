@@ -28,8 +28,7 @@ readers, each a set of addresses:
     exit generator   an exit function game.exe registers with atexit that a rewrite registers (camera_object.cpp, ...):
                      gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
   tools that read every registration but need none of them: check_thunks, check_registrations (they check the
-  registration itself), standalone_gaps.py. The tools that need a function's original address (check_fp_fold,
-  check_signatures, coverage.py, save_trace.py, ui_census_report.py, progress.py's rewritten
+  registration itself), standalone_gaps.py. The tools that need a function's original address (check_signatures, coverage.py, save_trace.py, ui_census_report.py, progress.py's rewritten
   count) read the function-to-original map: the registrations and the EI_REWRITTEN lines (C20d, include/ei/hook.h).
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,

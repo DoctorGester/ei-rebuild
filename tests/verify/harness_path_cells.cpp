@@ -1,7 +1,7 @@
 // Path cells with plain words in the original code (harness_path_cells.h; ticket SV7d2).
 #include "harness_path_cells.h"
 
-#include "../../src/game/ai_map.h"
+#include "exe_objects.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "harness_original.h"
@@ -15,29 +15,41 @@ namespace ei::verify::path_cells {
 
 namespace {
 
+using namespace ei::verify::exe;   // game.exe's path cells: the wrappers run in the original's code only
+
+// The speed word and terrain bits ours gives every path cell (kPlainStepSpeed, ai_map.h): the plain step speed, no
+// terrain bits.
+constexpr std::uint16_t kPlainStepSpeed = 0x200;
+void SetPlainCellWords(PathCells* list) {
+    for (PathCells::Node* node = list->head; node; node = node->next) {
+        node->data.flags = kPlainStepSpeed;
+        node->data.terrainBits = 0;
+    }
+}
+
 constexpr std::uintptr_t kSearchPathTo = 0x005C3200;   // LocalSearch: the path to a cell (RET 0xC)
 constexpr std::uintptr_t kBuildCells = 0x005B9A20;     // CAIMap::BuildCellsTo (RET 0xC)
 constexpr std::uintptr_t kSmooth = 0x005C46C0;         // PathSmoother::Smooth (RET 0x14)
 
-using SearchPathToFn = void(__fastcall*)(void*, void*, int, int, PathCellList*);
-using BuildCellsFn = void(__fastcall*)(CAIMap*, void*, int, int, PathCellList*);
-using SmoothFn = int(__fastcall*)(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, float);
+using SearchPathToFn = void(__fastcall*)(void*, void*, int, int, PathCells*);
+using BuildCellsFn = void(__fastcall*)(void*, void*, int, int, PathCells*);
+using SmoothFn = int(__fastcall*)(void*, void*, void*, void*, PathCells*, int, float);
 
 // SearchPathTo clears `path` first, so every cell afterwards is its own.
-void __fastcall PlainSearchPathTo(void* search, void*, int x, int y, PathCellList* path) {
+void __fastcall PlainSearchPathTo(void* search, void*, int x, int y, PathCells* path) {
     ei::verify::OriginalCode<SearchPathToFn>(kSearchPathTo)(search, nullptr, x, y, path);
     SetPlainCellWords(path);
 }
 
 // BuildCellsTo clears `path` first too.
-void __fastcall PlainBuildCells(CAIMap* map, void*, int x, int y, PathCellList* path) {
+void __fastcall PlainBuildCells(void* map, void*, int x, int y, PathCells* path) {
     ei::verify::OriginalCode<BuildCellsFn>(kBuildCells)(map, nullptr, x, y, path);
     SetPlainCellWords(path);
 }
 
 // FindPath's cells have the plain words from the two builders above (or from FindPath itself for
 // a single cell); the smoother's rebuilt cells get them here.
-int __fastcall PlainSmooth(PathSmoother* smoother, void*, CUnit* unit, CAIMap* map, PathCellList* path,
+int __fastcall PlainSmooth(void* smoother, void*, void* unit, void* map, PathCells* path,
                            int startDirection, float fraction) {
     int cost = ei::verify::OriginalCode<SmoothFn>(kSmooth)(smoother, nullptr, unit, map, path, startDirection, fraction);
     SetPlainCellWords(path);

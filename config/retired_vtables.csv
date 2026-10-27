@@ -607,7 +607,7 @@ vtable,slots,class,file,note
 00747214,5,CTempMenu,src/lib/mfc_window.cpp,CTempMenu
 00747240,6,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
-007472B0,1,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image (named_data.RETIRED_POINTED)"
+007472B0,1,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image"
 00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
 00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
 007482AC,11,Streambuf,src/lib/crt_iostream.h,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)

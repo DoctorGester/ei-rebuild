@@ -34,7 +34,7 @@ namespace ei::verify::input {
 
 // Routes DirectInputCreateEx (once; from the game's CreateWindowExA, harness.cpp CreateWithoutActivating: the
 // DirectInput mouse takes the game window, so it comes later). Not at the harness's start: in the image the host
-// still routes that slot itself then (standalone.cpp RouteImageCalls, which finds the slot by the export it holds,
+// still routes that slot itself then (standalone_main.cpp RouteImageCalls, which finds the slot by the export it holds,
 // to give DirectInput the host's module handle), and a slot the harness had routed first was not found.
 void Install();
 

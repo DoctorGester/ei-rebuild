@@ -4,6 +4,7 @@
 // verify_unit_hit_location.cpp). Reached
 // by every scenario with units (the panel, the AI's attack options, hits and healing).
 #include "stats_vectors.h"
+#include "../verify/harness_original.h"
 #include "vectors.h"
 
 #include "../../src/game/logic_settings.h"

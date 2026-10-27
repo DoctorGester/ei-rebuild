@@ -4,7 +4,7 @@
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "harness_original.h"
-#include "lib/vecmath.h"
+#include "exe_objects.h"
 
 #include <windows.h>
 
@@ -20,21 +20,21 @@ constexpr std::uintptr_t kTurnCall = 0x0051D479;   // DrawShadow: toward the lig
 constexpr std::uintptr_t kBackCall = 0x0051D4E0;   // DrawShadow: back, by the conjugate
 
 // DrawShadow runs on the main thread only and does not nest.
-Quaternion* g_turned = nullptr;
-Quaternion g_kept{};
+ei::verify::exe::Quaternion* g_turned = nullptr;
+ei::verify::exe::Quaternion g_kept{};
 
-// game.exe's Quaternion::PreMultiply (thiscall).
-void PreMultiply(Quaternion* q, const Quaternion* r) {
-    ei::verify::OriginalCode<void(__thiscall*)(Quaternion*, const Quaternion*)>(kPreMultiply)(q, r);
+// game.exe's ei::verify::exe::Quaternion::PreMultiply (thiscall).
+void PreMultiply(ei::verify::exe::Quaternion* q, const ei::verify::exe::Quaternion* r) {
+    ei::verify::OriginalCode<void(__thiscall*)(ei::verify::exe::Quaternion*, const ei::verify::exe::Quaternion*)>(kPreMultiply)(q, r);
 }
 
-void __fastcall KeepAndTurn(Quaternion* q, void*, const Quaternion* r) {
+void __fastcall KeepAndTurn(ei::verify::exe::Quaternion* q, void*, const ei::verify::exe::Quaternion* r) {
     g_turned = q;
     g_kept = *q;
     PreMultiply(q, r);
 }
 
-void __fastcall PutBack(Quaternion* q, void*, const Quaternion* r) {
+void __fastcall PutBack(ei::verify::exe::Quaternion* q, void*, const ei::verify::exe::Quaternion* r) {
     if (q == g_turned) {
         *q = g_kept;
     } else {

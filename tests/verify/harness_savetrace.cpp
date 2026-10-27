@@ -1,10 +1,10 @@
 // The save trace (harness_savetrace.h; ticket SV7a).
 #include "harness_savetrace.h"
+#include "harness_original.h"
+#include "image/image_side.h"
 
-#include "../../src/game/core_streams.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -76,7 +76,6 @@ void Note(void* stream, std::uint32_t size, void* const* frame) {
     LeaveCriticalSection(&g_lock);
 }
 
-void ObservedWrite(CMemoryStream* stream, std::uint32_t size, void* const* frame) { Note(stream, size, frame); }
 
 template <int kVtable>
 void __fastcall TracedWrite(void* stream, void* edx, const void* buffer, std::uint32_t size) {
@@ -96,7 +95,7 @@ void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     g_selfEnd = selfEnd;
     InitializeCriticalSection(&g_lock);
     g_streams = new std::unordered_map<void*, Trace>;
-    if (ei::Standalone()) g_memoryStreamWriteObserver = &ObservedWrite;
+    if (ei::Standalone()) image::ObserveStreamWrites(&Note);
     const WriteFn traced[2] = {&TracedWrite<0>, &TracedWrite<1>};
     void* const tables[2] = {&ei::OriginalGameData<std::uint8_t>(0x0073BD90), &ei::OriginalGameData<std::uint8_t>(0x0073C960)};
     for (int i = 0; i < 2 && !ei::Standalone(); ++i) {

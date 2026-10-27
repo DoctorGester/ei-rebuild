@@ -365,7 +365,7 @@ happen (the harness logs "share id" if one does).
   modern CRT for sqrt / sin / cos / atan2 / exp / log, so rewrites use `std::sqrt` (FSQRT at the precision control here; a float argument cast to double first) and `x87::fsin / fcos / fpatan / fexp / flog /
   flog10` as VC6 inlined them.
 - **Constant products** the original computes at run time (FLD; FMUL / FDIV) round to 24 bits there; the compiler folds
-  them to doubles. `tools/check_fp_fold.py` (build.cmd) fails on x87 constants the original never loads (terrain::Sine's
+  them to doubles. `tools/check_fp_fold.py` (removed in C25d) failed on x87 constants the original never loaded (terrain::Sine's
   256 / pi, the briefing's and the lighting's pi / 180 are floats now; the double pi / 180 moved three menu units by
   1-2 ulps).
 - **Never-set memory** is made canonical, never emulated (section 5). Before adding a new site, find the field with
@@ -389,13 +389,21 @@ happen (the harness logs "share id" if one does).
   canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
   so a golden that changes with the allocation order is a missing canonicalisation: check with the jitter passes.
 - **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
-- **The reference cache** keys on the scenario commit, the install and the harness (H30; run_all.py `harness_files`:
-  tests/verify, the recorders, src/hook, the launcher, config/harness, the few game .cpp files the harness calls in
-  game.exe, `HARNESS_SHARED`, and every header they include). In game.exe the harness runs no game code of ours: it
-  calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`, `GameCode` for code both sides call)
-  and reads game.exe's objects (`ei::OriginalGameData`); ours sits behind `ei::Standalone()`. A src/ static
-  initialiser builds host state only (it runs in game.exe too). A new call from game.exe's side into a src .cpp goes
-  into `HARNESS_SHARED`, or the cache misses its changes.
+- **The reference cache** keys on the scenario commit, the install and the harness (H30, H30b; run_all.py
+  `harness_files`: tests/verify (not tests/verify/image), src/hook but the image's start-up (`HARNESS_IMAGE_ONLY`,
+  hook/standalone_main.cpp), the launcher, config/harness, `HARNESS_SHARED` (rebirth.cpp, image_data.cpp), the vector
+  recorders only in `EI_VECTORS=1` runs, and every header they include). In game.exe the harness runs no game code of
+  ours: it calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`, `GameCode` for code both sides
+  call) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member
+  names at game.exe's offsets, frozen when H30b split them off; `OriginalGameData` for globals). Our classes it reaches
+  only in the image, through tests/verify/image (image_side.h declares functions that name no class of ours; the .cpp
+  files there include our headers), chosen by `ei::Standalone()`. Reading code both sides share is a template or an
+  .inc compiled once per side (harness_digest_read.inc, harness_hud_read.inc, harness_netstate_read.h). So a cleanup
+  may reorder, retype or rename our members without playing the original's runs again; tools/check_harness_key.py
+  (build.cmd) fails when a header of src/game, src/render or src/lib other than game_data.h, gameapi.h,
+  import_table.h and stlp_algo.h comes back into the key. A src/ static initialiser builds host state only (it runs in
+  game.exe too). A new call from game.exe's side into a src .cpp goes into `HARNESS_SHARED`, or the cache misses its
+  changes.
 
 ## 9. Open
 

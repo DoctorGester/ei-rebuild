@@ -7,7 +7,7 @@
 // static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
 // A library type's destructor is called at its address in the image (a library
 // port, S4-S12; the standalone check logs the callees with no code yet).
-// tools/check_static_init.py (build.cmd) checks this file and the functions' sizes against game.exe.
+// tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
 #include "ei/hook.h"

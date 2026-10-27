@@ -9,7 +9,7 @@ rem            with --no-hooks for goldens and EI_VECTORS recording)
 rem   debug    the release build unoptimised
 rem   utf8     with EI_UTF8 (every string inside the game in UTF-8, src/game/asset_text.h), into
 rem            build\<cfg>-utf8 (run_all / work.py test with EI_BUILD_DIR=build\verify-utf8)
-rem Neither the build nor its checks read game.exe (C25c); the checks against it are tools\check_against_exe.cmd.
+rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.
 if defined EI_VSROOT (set "VSROOT=%EI_VSROOT%") else (set "VSROOT=E:\bin\vs\buildtools")
@@ -41,6 +41,14 @@ python "%~dp0tools\comments.py" check || exit /b 1
 rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,
 rem the rest per file no more than config/data_seam.csv allows.
 python "%~dp0tools\data_seam.py" --check || exit /b 1
+rem game.exe's side of the harness reads game.exe's objects through its own views, ours only through
+rem tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files; H30b).
+python "%~dp0tools\check_harness_key.py" || exit /b 1
+rem Generated and listed files against what they come from, without game.exe (C25d): the import files (gameapi.h by
+rem hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables and committed cells.
+python "%~dp0tools\gen_iat.py" --check || exit /b 1
+python "%~dp0tools\named_data.py" --check || exit /b 1
+python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%OUT%\ei_vectors.exe" || exit /b 1
 rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
