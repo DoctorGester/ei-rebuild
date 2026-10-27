@@ -45,7 +45,6 @@ using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
 struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
-// ---- Records -------------------------------------------------------------------------------------
 
 // Network delta fields (0xA0 bytes): constructed and destroyed.
 // Out of line (world_effect_lifetime.cpp), so the replays that link this file need no streams.

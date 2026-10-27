@@ -25,7 +25,6 @@ std::uint32_t g_offsetCodes[34] = /*0079B738*/ {};
 std::uint32_t g_lengthBits[34] = /*0079B7C0*/ {};
 std::uint32_t g_lengthCodes[34] = /*0079B848*/ {};
 
-// --- BufferCursor ---------------------------------------------------------------------------------
 
 void BufferCursor::PutBits(std::uint32_t value, std::uint8_t count) {
     if (bits == 0) {
@@ -179,7 +178,6 @@ void __cdecl InitCodeTables() {
 }
 EI_REPLACE(0x0042FAE0, InitCodeTables);
 
-// --- Compression ----------------------------------------------------------------------------------
 
 void CoderState::EncodeMatch(std::int32_t at) {
     std::uint32_t offset = (pos - static_cast<std::uint32_t>(matchLen) - static_cast<std::uint32_t>(at) - 1) & kWindowMask;
@@ -331,7 +329,6 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
 }
 EI_REPLACE_METHOD(0x00430450, CoderState::Compress);
 
-// --- Decompression --------------------------------------------------------------------------------
 
 namespace {
 

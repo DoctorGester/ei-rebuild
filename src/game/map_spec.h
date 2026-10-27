@@ -16,11 +16,11 @@
 #include <cstddef>
 #include <cstdint>
 
-class CStream;   // core_streams.h
-class CEngineObject;   // engine_object.h
-class CMapObject;      // map_object.h
-class CTransformObject;   // core_transform.h
-class CUnit;           // unit.h
+class CStream;
+class CEngineObject;
+class CMapObject;
+class CTransformObject;
+class CUnit;
 
 // ---- The world objects' parts of the trap and lever records ---------------------------------------
 // The fields after a record's ObjectSpec (+0x8C), which the world object's SetUp reads in place.
@@ -50,14 +50,14 @@ static_assert(sizeof(TrapPoints) == 0x14);
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
-    std::uint32_t sides;        // +0x00 (-1); the zone loader makes it the players the
+    std::uint32_t sides;        // (-1); the zone loader makes it the players the
                                 // owner (+0x6E) is hostile to (relation 2), one bit each
-    mfc::CString spell;         // +0x04 the spell's text
-    Vector3 position;           // +0x08 the position when the zone loaded
-    TrapArea area;              // +0x14
-    TrapPoints points;          // +0x28
-    std::int32_t period;        // +0x3C (15)
-    std::uint8_t singleTarget;  // +0x40
+    mfc::CString spell;         // the spell's text
+    Vector3 position;           // the position when the zone loaded
+    TrapArea area;
+    TrapPoints points;
+    std::int32_t period;
+    std::uint8_t singleTarget;
 };
 static_assert(offsetof(MagicTrapRecord, area) == 0x14);
 static_assert(offsetof(MagicTrapRecord, period) == 0x3C);
@@ -65,12 +65,12 @@ static_assert(sizeof(MagicTrapRecord) == 0x44);
 
 // The lever part of a zone object record (mapspec::LeverSpec::lever), what Lever::SetUp reads.
 struct LeverSetup {
-    LockKey lock;                   // +0x00 ({1, 0, 0}; chunk BBAC0006, a 12-byte blob)
-    std::int32_t state;             // +0x0C (chunk BBAC0002, a byte)
-    std::int32_t stateCount;        // +0x10 (2; chunk BBAC0003, a byte)
-    std::uint8_t flag260;           // +0x14 (chunk BBAC0007)
-    std::uint8_t keepsMapFlag;      // +0x15 (chunk BBAC0008)
-    std::uint8_t cycling;           // +0x16 (chunk BBAC0004)
+    LockKey lock;                   // ({1, 0, 0}; chunk BBAC0006, a 12-byte blob)
+    std::int32_t state;             // (chunk BBAC0002, a byte)
+    std::int32_t stateCount;        // (2; chunk BBAC0003, a byte)
+    std::uint8_t flag260;           // (chunk BBAC0007)
+    std::uint8_t keepsMapFlag;      // (chunk BBAC0008)
+    std::uint8_t cycling;           // (chunk BBAC0004)
 };
 static_assert(offsetof(LeverSetup, cycling) == 0x16);
 static_assert(sizeof(LeverSetup) == 0x18);
@@ -83,17 +83,17 @@ using PlainArray = mfc::CArray<std::uint8_t>;
 // A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one).
 // A waypoint (0x14 bytes).
 struct Waypoint {
-    Vector3 position;            // +0x00
-    float time;                  // +0x0C the look's turning time (AILook::time; chunk BBBE0003)
-    std::int16_t lookWait;       // +0x10 the wait after the look (AILook::wait; chunk BBBE0002)
-    std::uint16_t stopFirst;     // +0x12 bit 0: AILook::stopFirst (chunk BBBE0004)
+    Vector3 position;
+    float time;                  // the look's turning time (AILook::time; chunk BBBE0003)
+    std::int16_t lookWait;       // the wait after the look (AILook::wait; chunk BBBE0002)
+    std::uint16_t stopFirst;     // bit 0: AILook::stopFirst (chunk BBBE0004)
 };
 static_assert(sizeof(Waypoint) == 0x14);
 
 // A patrol (0x20 bytes): where it starts and its waypoints (CArray).
 struct Patrol {
     Vector3 position;
-    mfc::CArray<Waypoint> waypoints;   // +0x0C
+    mfc::CArray<Waypoint> waypoints;
 };
 static_assert(sizeof(Patrol) == 0x20);
 
@@ -112,20 +112,20 @@ struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(CStream* stream);
     void Write(CStream* stream) const;
-    std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
+    std::int32_t type;           // (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     Patrols patrols;
-    Vector3 guard;               // +0x18 the unit's position when saved
-    std::uint32_t loop;          // +0x24 (1) a patrol loops; 0: its points are walked back too
-    std::uint32_t flags;         // +0x28 bit 3: the unit is always updated (the brain's +0x37)
-    float guardRadius;           // +0x2C (10)
-    float field0A;               // +0x30 (-1) chunk BBBC000A, only read and written with the record
-    std::uint32_t alarmKind;     // +0x34 the alarm raised when the countdown ends (low byte)
-    std::uint32_t enabled;       // +0x38 (1 for the first record) HearAlarm applies a record other than the
+    Vector3 guard;               // the unit's position when saved
+    std::uint32_t loop;          // (1) a patrol loops; 0: its points are walked back too
+    std::uint32_t flags;         // bit 3: the unit is always updated (the brain's +0x37)
+    float guardRadius;
+    float field0A;               // (-1) chunk BBBC000A, only read and written with the record
+    std::uint32_t alarmKind;     // the alarm raised when the countdown ends (low byte)
+    std::uint32_t enabled;       // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
     std::uint32_t callRadius;    // float bits
-    std::uint32_t alertMode;     // +0x40
-    std::uint32_t alarmDelay;    // +0x44 (75) the alarm countdown (at least 1)
-    std::uint32_t alarm;         // +0x48 the reaction modes 0..3 (4 while reading: unset)
+    std::uint32_t alertMode;
+    std::uint32_t alarmDelay;    // (75) the alarm countdown (at least 1)
+    std::uint32_t alarm;         // the reaction modes 0..3 (4 while reading: unset)
 };
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
@@ -166,14 +166,14 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    std::int32_t id;             // +0x18 the object's id (-1)
-    CEngineObject* object;       // +0x1C the world object made from the record (null: none)
-    Vector3 position;            // +0x20
-    Quaternion rotation;         // +0x2C (1, 0, 0, 0)
-    mfc::CString name;           // +0x3C
-    mfc::CString comment;        // +0x40
-    std::int32_t spareId;        // +0x44 (-1) only set and copied (ObjectSpec::Assign)
-    std::int32_t kind;           // +0x48 which record this is: 0 the base, 1 an object, 2 a light, 3 a sound,
+    std::int32_t id;             // the object's id (-1)
+    CEngineObject* object;       // the world object made from the record (null: none)
+    Vector3 position;
+    Quaternion rotation;         // (1, 0, 0, 0)
+    mfc::CString name;
+    mfc::CString comment;
+    std::int32_t spareId;        // (-1) only set and copied (ObjectSpec::Assign)
+    std::int32_t kind;           // which record this is: 0 the base, 1 an object, 2 a light, 3 a sound,
                                  // 4 a particle source, 5 a unit, 6 a flame, 7 a magic trap, 8 a lever
 };
 
@@ -205,18 +205,18 @@ public:
     CUnit* Unit() const;   // map_spec_unit.cpp
 
     mfc::CString model;          // (empty)
-    std::int32_t parentId;       // +0x50
-    mfc::CString texture;        // +0x54
-    mfc::CString primaryTexture; // +0x58
-    std::int32_t player;         // +0x5C (-1); the type name formats it
-    Vector3 scale;               // +0x60 (0.5 each; read and written y, x, z)
-    std::uint8_t shadow;         // +0x6C
-    std::uint8_t visible;        // +0x6D (1)
-    std::uint8_t side;           // +0x6E the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
+    std::int32_t parentId;
+    mfc::CString texture;
+    mfc::CString primaryTexture;
+    std::int32_t player;         // (-1); the type name formats it
+    Vector3 scale;               // (0.5 each; read and written y, x, z)
+    std::uint8_t shadow;
+    std::uint8_t visible;
+    std::uint8_t side;           // the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
     std::uint8_t unused_6F;
-    mfc::CString parentIname;    // +0x70
-    mfc::CString skinTexture;    // +0x74 (chunk B008) the texture swapped onto the figure ("none": none)
-    mfc::CStringArray parts;      // +0x78
+    mfc::CString parentIname;
+    mfc::CString skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
+    mfc::CStringArray parts;
 };
 
 // A flame (0xA0 bytes; chunk BBBF0000).
@@ -230,9 +230,9 @@ public:
     void Apply() override;          // the world object is always made again
     void Save() override;           // chunk BBBF0000 with the flame's fields, then the common ones
 
-    float volume;                // +0x8C (0.7)
-    Vector3 offset;              // +0x90
-    mfc::CString sound;          // +0x9C ("nature\fire\small.wav")
+    float volume;                // (0.7)
+    Vector3 offset;
+    mfc::CString sound;          // ("nature\fire\small.wav")
 };
 
 // A magic trap (0xD0 bytes; chunk BBAB0000).
@@ -249,7 +249,7 @@ public:
     // the common ones.
     void Save() override;
 
-    MagicTrapRecord trap;        // +0x8C
+    MagicTrapRecord trap;
 };
 
 // A lever (0xA4 bytes; chunk BBAC0000).
@@ -262,14 +262,14 @@ public:
     void OnChunk() override;
     void Save() override;           // chunk BBAC0000
 
-    LeverSetup lever;            // +0x8C
+    LeverSetup lever;
 };
 
 // The zone's player table (0x1014 bytes; DiplomacyConstruct): the relation of every pair of the 32 players (1
 // by default, 0 with itself, 2 hostile) and their names.
 struct ZoneDiplomacy {
     std::int32_t relations[32][32];
-    mfc::CStringArray names;      // +0x1000
+    mfc::CStringArray names;
 };
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);
@@ -289,8 +289,8 @@ public:
     // The world object an effect record makes (the effect's carrier: a transform object).
     CTransformObject* Transform() const;
 
-    void* effect;                // +0x4C the effect the world object runs
-    std::uint8_t visible;        // +0x50 (1)
+    void* effect;                // the effect the world object runs
+    std::uint8_t visible;
     std::uint8_t unused_51[3];
 
 protected:
@@ -309,8 +309,8 @@ public:
     void Apply() override;          // makes the source (when it has a type) or updates its effect
     void Save() override;           // chunk DD01
 
-    std::int32_t type;           // +0x54 (0: none made)
-    float scale;                 // +0x58 (1)
+    std::int32_t type;           // (0: none made)
+    float scale;
 };
 
 // A light (chunk AA01).
@@ -324,10 +324,10 @@ public:
     void Apply() override;          // makes the light or updates its effect (colour, radius, position)
     void Save() override;           // chunk AA01
 
-    Vector3 colour;              // +0x54 (1, 1, 1)
-    std::uint8_t shadows;        // +0x60 (1)
+    Vector3 colour;              // (1, 1, 1)
+    std::uint8_t shadows;
     std::uint8_t unused_61[3];
-    float radius;                // +0x64 (10)
+    float radius;
 };
 
 // A sound (chunk CC01).
@@ -343,16 +343,16 @@ public:
     void Apply() override;
     void Save() override;           // chunk CC01
 
-    mfc::CStringArray sounds;     // +0x54 (none made without any)
+    mfc::CStringArray sounds;     // (none made without any)
     std::int32_t volume;         // (10; chunk CC04) the sound's volume
-    std::int32_t radius;         // +0x6C (15; chunk CC0B) the sound's radius
-    std::int32_t unused_70;      // +0x70 (1)
-    std::int32_t minInterval;    // +0x74 (1500; chunk CC06) an ambient sound's shortest pause
-    std::int32_t maxInterval;    // +0x78 (3000; chunk CC07) and longest
-    std::int32_t unused_7C;      // +0x7C
-    std::int32_t unused_80;      // +0x80
-    std::uint8_t ambient;        // +0x84 (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
-    std::uint8_t field0E;        // +0x85 chunk CC0E, only read and written with the record
+    std::int32_t radius;         // (15; chunk CC0B) the sound's radius
+    std::int32_t unused_70;
+    std::int32_t minInterval;    // (1500; chunk CC06) an ambient sound's shortest pause
+    std::int32_t maxInterval;    // (3000; chunk CC07) and longest
+    std::int32_t unused_7C;
+    std::int32_t unused_80;
+    std::uint8_t ambient;        // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
+    std::uint8_t field0E;        // chunk CC0E, only read and written with the record
     std::uint8_t unused_86[2];
 };
 
@@ -368,9 +368,9 @@ public:
     void Apply() override;          // makes the unit, or moves, turns and rescales it
     void Save() override;           // chunk BBBB0000
 
-    std::int32_t behaviours;     // +0x08C records read so far
-    Behaviour behaviour[5];      // +0x090
-    mfc::CString prototype;      // +0x20C ("none")
+    std::int32_t behaviours;     // records read so far
+    Behaviour behaviour[5];
+    mfc::CString prototype;      // ("none")
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
@@ -380,7 +380,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
 // buckets to start) and the largest id read.
 struct MobRecords {
     stlp::hash_map<std::int32_t, Spec*, stlp::IntHash> byId;
-    std::int32_t maxId;          // +0x14
+    std::int32_t maxId;
 };
 static_assert(offsetof(MobRecords, maxId) == 0x14);
 

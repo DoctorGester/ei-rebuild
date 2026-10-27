@@ -70,7 +70,6 @@ const PartyItemArray& ConstList(CItem** const& data) { return *reinterpret_cast<
 
 } // namespace
 
-// --- PartyUnitRecord ----------------------------------------------------------------------------
 
 void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party) {
     ClearItems();
@@ -97,7 +96,6 @@ EI_REWRITTEN(0x00664950, PartyUnitRecord::Assign);
 EI_REWRITTEN(0x00664490, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x006645D0, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
-// --- CParty -------------------------------------------------------------------------------------
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();

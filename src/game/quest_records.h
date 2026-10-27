@@ -30,14 +30,14 @@ struct QuestRecord {
     void AssignQuest(const QuestRecord* source);
     void ConstructDefault();
 
-    stlp::string name;              // +0x00
-    float exp;                      // +0x0C
-    std::uint32_t field2;           // +0x10 archive field 2 (0 when loaded from the quests); nothing else reads it
-    float money;                    // +0x14
-    int zone;                       // +0x18 the zone index
-    int order;                      // +0x1C
-    stlp::vector<float> places;     // +0x20 x and y in turn
-    stlp::string text;              // +0x2C
+    stlp::string name;
+    float exp;
+    std::uint32_t field2;           // archive field 2 (0 when loaded from the quests); nothing else reads it
+    float money;
+    int zone;                       // the zone index
+    int order;
+    stlp::vector<float> places;     // x and y in turn
+    stlp::string text;
 };
 static_assert(offsetof(QuestRecord, places) == 0x20);
 static_assert(offsetof(QuestRecord, text) == 0x2C);
@@ -61,11 +61,11 @@ struct QuestBriefingRecord {
     // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
     enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
 
-    stlp::string name;              // +0x00
-    float exp;                      // +0x0C
-    float money;                    // +0x10
-    CStringVector lists[6];         // +0x14 by ListKind
-    stlp::string text;              // +0x5C
+    stlp::string name;
+    float exp;
+    float money;
+    CStringVector lists[6];         // by ListKind
+    stlp::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
     std::int32_t specials;
@@ -84,8 +84,8 @@ struct QuestBriefingTable {
     // records). False for null or a name already there.
     bool Add(const QuestBriefingRecord* record);
 
-    stlp::vector<QuestBriefingRecord> records;   // +0x00
-    Index index;                                 // +0x0C
+    stlp::vector<QuestBriefingRecord> records;
+    Index index;
 };
 static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
@@ -114,16 +114,16 @@ struct QuestDatabase {
     // null entry for a missing name.
     QuestRecord* FindQuest(const char* name);
 
-    stlp::vector<QuestRecord> quests;   // +0x00
-    QuestIndex questsByName;            // +0x0C
-    QuestBriefingTable briefings;       // +0x20
+    stlp::vector<QuestRecord> quests;
+    QuestIndex questsByName;
+    QuestBriefingTable briefings;
 };
 static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp
 inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 
 
-class CFileRegistry;   // registry.h
+class CFileRegistry;
 // (__fastcall registry, section; key and list on the stack; quest_database.cpp).
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).

@@ -24,11 +24,11 @@
 
 // Bounding volume of a figure part, tested against the view frustum. 0x2C bytes.
 struct ClipBounds {
-    std::uint32_t flags;   // +0x00 bit 0: centre/radius valid, bit 1: box valid
-    Vector3 center;        // +0x04
-    float radius;          // +0x10 half the side of the cube around the centre
-    Vector3 boxMin;        // +0x14 box corners, relative to the centre
-    Vector3 boxMax;        // +0x20
+    std::uint32_t flags;   // bit 0: centre/radius valid, bit 1: box valid
+    Vector3 center;
+    float radius;          // half the side of the cube around the centre
+    Vector3 boxMin;        // box corners, relative to the centre
+    Vector3 boxMax;
 
     // Sets the box and its flag; returns the new flags (left in EAX).
     std::uint32_t SetBox(const float* min, const float* max);
@@ -45,14 +45,14 @@ struct MatrixStack {
     MatrixStack(const MatrixStack&) = delete;
     MatrixStack& operator=(const MatrixStack&) = delete;
 
-    Matrix4* matrices;      // +0x00
-    int count;              // +0x04 the top is matrices[count - 1]
+    Matrix4* matrices;
+    int count;              // the top is matrices[count - 1]
 };
 static_assert(sizeof(MatrixStack) == 8);
 
-struct VertexPacket;   // figure_mesh.h
-struct TLVertex;       // clip.h
-class CLight;          // spell.h
+struct VertexPacket;
+struct TLVertex;
+class CLight;
 
 // The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
 // the code calls it.
@@ -201,9 +201,9 @@ public:
     // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
     std::uint8_t unused_08[4] = {};
-    ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
-    void* library_;                   // +0x10 3DfpFPU.dll's module (FreeLibrary in the destructor)
-    MatrixStack stacks_[16];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
+    ITransformPipeline* transform_;   // 3DfpFPU.dll's transform object (projects and clips vertices)
+    void* library_;                   // 3DfpFPU.dll's module (FreeLibrary in the destructor)
+    MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 static_assert(sizeof(CTransformPipeline) == 0x94);
@@ -213,14 +213,14 @@ static_assert(sizeof(CTransformPipeline) == 0x94);
 CTransformPipeline* ScenePipeline();
 
 struct tagRECT;
-struct ScreenPoints;   // renderer_lines.h
+struct ScreenPoints;
 class CTextureDevice;
 namespace options {
 class GameOptions;
 }
-class CLight;   // spell.h
-class CTexture;   // texture.h
-class CPixelConverter;   // texture.h
+class CLight;
+class CTexture;
+class CPixelConverter;
 
 // A render state preset the renderer's helper keeps (counted; over an abstract base
 // with one pure virtual and the plain counted root, neither with fields; render_helper.cpp).
@@ -239,12 +239,12 @@ public:
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
 
-    int refs_ = 0;                       // +0x04
+    int refs_ = 0;
     // +0x08 Direct3D state block handles: the texture stages' first, then one for each state from
     // `stages_` on (its blend factors). The device's draws apply them (device_draw.cpp).
     stlp::vector<std::uint32_t> blocks_;
-    int stages_;                         // +0x14 texture stages the first block sets
-    int index_;                          // +0x18 the index it was recorded with (below 9: built in)
+    int stages_;                         // texture stages the first block sets
+    int index_;                          // the index it was recorded with (below 9: built in)
 };
 static_assert(offsetof(CRenderPreset, blocks_) == 0x08 && sizeof(CRenderPreset) == 0x1C);
 
@@ -254,19 +254,19 @@ struct RenderPresetRecord {
     // One texture stage's operations and the blend factors of its pass. Direct3D's values
     // (D3DTEXTUREOP, D3DTA_*, D3DBLEND).
     struct State {
-        bool enabled;               // +0x00 the stage's operations are set
-        std::uint32_t colourOp;     // +0x04
-        std::uint32_t colourArg1;   // +0x08
-        std::uint32_t colourArg2;   // +0x0C
-        std::uint32_t alphaOp;      // +0x10
-        std::uint32_t alphaArg1;    // +0x14
-        std::uint32_t alphaArg2;    // +0x18
-        bool blend;                 // +0x1C the blend factors are set
-        std::uint32_t sourceBlend;  // +0x20
-        std::uint32_t destBlend;    // +0x24
+        bool enabled;               // the stage's operations are set
+        std::uint32_t colourOp;
+        std::uint32_t colourArg1;
+        std::uint32_t colourArg2;
+        std::uint32_t alphaOp;
+        std::uint32_t alphaArg1;
+        std::uint32_t alphaArg2;
+        bool blend;                 // the blend factors are set
+        std::uint32_t sourceBlend;
+        std::uint32_t destBlend;
     };
-    stlp::vector<State> states;   // +0x00
-    CRenderPreset* preset;        // +0x0C counted
+    stlp::vector<State> states;
+    CRenderPreset* preset;        // counted
 };
 static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
 static_assert(offsetof(RenderPresetRecord::State, blend) == 0x1C);
@@ -311,11 +311,11 @@ public:
     // `states` (emptied first); false beyond the nine. Presets 0 and 8 have no states.
     bool RenderHelperBuiltInStateList(stlp::vector<RenderPresetRecord::State>* states, unsigned index);
 
-    int refs_ = 0;   // +0x04
-    IDirect3DDevice7* device_;          // +0x08 counted (AddRef / Release)
-    std::uint8_t caps_[0xEC];           // +0x0C the device's D3DDEVICEDESC7
-    stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // +0xF8 by preset
-    stlp::vector<CRenderPreset*> presets_;   // +0x10C the nine built-in presets (not counted)
+    int refs_ = 0;
+    IDirect3DDevice7* device_;          // counted (AddRef / Release)
+    std::uint8_t caps_[0xEC];           // the device's D3DDEVICEDESC7
+    stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // by preset
+    stlp::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
 };
 static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
 static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
@@ -389,12 +389,12 @@ public:
     // SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
-    std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation
-    CTransformPipeline* pipeline_;   // +0x08 counted
-    CPixelConverter* graphicsProcessor_;   // +0x0C 2DintMMX.dll's GetGraphicsProcessor()
-    void* graphicsLibrary_;          // +0x10 the HMODULE of 2DintMMX.dll
-    std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
-    std::uint32_t colour_;           // +0x18 the draw colour
+    std::uint32_t flags_;            // bit 0: the software cursor option; bit 1 set by the creation
+    CTransformPipeline* pipeline_;   // counted
+    CPixelConverter* graphicsProcessor_;   // 2DintMMX.dll's GetGraphicsProcessor()
+    void* graphicsLibrary_;          // the HMODULE of 2DintMMX.dll
+    std::uint32_t fogColour_;        // also the colour the frame is cleared with
+    std::uint32_t colour_;           // the draw colour
     // +0x1C the sun (counted; set together with the ambient colour, the client's lighting
     // moves it every frame).
     CLight* sun_;
@@ -552,24 +552,24 @@ public:
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through the first virtual.
     void SetFogColour(float r, float g, float b);
 
-    HeldDevice device_;              // +0x20 the device object, a counted holder
-    CRenderHelper* helper_;          // +0x24 counted
+    HeldDevice device_;              // the device object, a counted holder
+    CRenderHelper* helper_;          // counted
     // +0x28 .. +0x30: the display settings SetGamma last applied, as given.
     float brightness_;
     float contrast_;
     float gamma_;
     // +0x34 .. +0x58: the frame statistics (milliseconds; BeginScene / EndScene), set by the
     // creation to 0, 0x80000000, zeros, the time, zeros.
-    std::uint32_t frameTime_;        // +0x34 the last frame's
-    std::uint32_t shortestFrame_;    // +0x38
-    std::uint32_t longestFrame_;     // +0x3C (under 1000)
-    std::uint32_t averageFrame_;     // +0x40 over the last second's worth of frames
-    std::uint32_t totalTime_;        // +0x44
-    std::uint32_t frameCount_;       // +0x48
-    std::uint32_t frameStart_;       // +0x4C timeGetTime at this frame's BeginScene
-    std::uint32_t lastFrameStart_;   // +0x50 the previous frame's (the creation: its time)
-    std::uint32_t windowTime_;       // +0x54 the time and frames toward the average
-    std::uint32_t windowFrames_;     // +0x58
+    std::uint32_t frameTime_;        // the last frame's
+    std::uint32_t shortestFrame_;
+    std::uint32_t longestFrame_;     // (under 1000)
+    std::uint32_t averageFrame_;     // over the last second's worth of frames
+    std::uint32_t totalTime_;
+    std::uint32_t frameCount_;
+    std::uint32_t frameStart_;       // timeGetTime at this frame's BeginScene
+    std::uint32_t lastFrameStart_;   // the previous frame's (the creation: its time)
+    std::uint32_t windowTime_;       // the time and frames toward the average
+    std::uint32_t windowFrames_;
 
     CSceneRenderer();
 };
@@ -602,8 +602,8 @@ class CMappedResource;
 struct LinkArchiveNode {
     LinkArchiveNode* next;
     LinkArchiveNode* prev;
-    stlp::string name;           // +0x08
-    CMappedResource* resource;   // +0x14 a CMMIOResource
+    stlp::string name;
+    CMappedResource* resource;   // a CMMIOResource
 };
 static_assert(sizeof(LinkArchiveNode) == 0x18);
 
@@ -616,10 +616,10 @@ struct FigureModel {
     CMappedResource* FindAnimation(const stlp::string* name);
     using AnimationMap = stlp::hash_map<stlp::string, CMappedResource*, stlp::StringHash>;
 
-    CMappedResource* mesh;          // +0x00 the .mod archive
-    CMappedResource* bones;         // +0x04
-    CMappedResource* animations;    // +0x08
-    AnimationMap animationCache;    // +0x0C each a CMMIOResource over the animation's data
+    CMappedResource* mesh;          // the .mod archive
+    CMappedResource* bones;
+    CMappedResource* animations;
+    AnimationMap animationCache;    // each a CMMIOResource over the animation's data
 
     // The link figure loader's sets open
     // the three archives from the images of the figure's .mod / .bon / .anm files (OpenFromMemory);
@@ -715,15 +715,14 @@ public:
     void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
     void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
-    int refCount_ = 0;                // +0x04
-    ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
-    LinkArchiveNode* archives_;       // +0x0C list sentinel
-    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // +0x10 by figure name
-    CTextureDevice* renderer_;        // +0x24 the device object, counted; meshes take their pipeline from it
-    stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
+    int refCount_ = 0;
+    ITransformPipeline* pipeline_;    // the renderer's (+0x24) +0xAC -> +0xC
+    LinkArchiveNode* archives_;       // list sentinel
+    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // by figure name
+    CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
+    stlp::map<stlp::string, CLinkMesh*> cache_;   // a multimap of counted references
 };
 
-// ---- Databases ---------------------------------------------------------------------------------
 
 // What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime
 // in ticks (the client world's +0x7A8 picks chunk 3).
@@ -745,9 +744,9 @@ struct PrintRecord {
 
     virtual void Serialize(ChunkArchive* ar);
 
-    stlp::string name;           // +0x04
-    PrintLook look2;             // +0x10 chunk 2
-    PrintLook look3;             // +0x1C chunk 3
+    stlp::string name;
+    PrintLook look2;             // chunk 2
+    PrintLook look3;             // chunk 3
 };
 static_assert(offsetof(PrintRecord, name) == 0x04);
 static_assert(sizeof(PrintRecord) == 0x28);
@@ -761,10 +760,10 @@ struct PrintRecord2 {
 
     virtual void Serialize(ChunkArchive* ar);
 
-    stlp::string name;           // +0x04
-    PrintLook look2;             // +0x10 chunk 2
-    PrintLook look3;             // +0x1C chunk 3
-    std::uint32_t values10[3];   // +0x28 chunk 10
+    stlp::string name;
+    PrintLook look2;             // chunk 2
+    PrintLook look3;             // chunk 3
+    std::uint32_t values10[3];   // chunk 10
 };
 static_assert(offsetof(PrintRecord2, name) == 0x04);
 static_assert(sizeof(PrintRecord2) == 0x34);
@@ -791,12 +790,12 @@ struct PrintsDatabase {
     // last: the index's nodes and buckets, then the records and their storage.
     void Destruct();
 
-    stlp::vector<PrintRecord> blood;          // +0x00
-    NameIndex<PrintRecord> bloodByName;       // +0x0C
-    stlp::vector<PrintRecord2> footprints;    // +0x20
-    NameIndex<PrintRecord2> footprintsByName; // +0x2C
-    stlp::vector<PrintRecord> scorch;         // +0x40
-    NameIndex<PrintRecord> scorchByName;      // +0x4C
+    stlp::vector<PrintRecord> blood;
+    NameIndex<PrintRecord> bloodByName;
+    stlp::vector<PrintRecord2> footprints;
+    NameIndex<PrintRecord2> footprintsByName;
+    stlp::vector<PrintRecord> scorch;
+    NameIndex<PrintRecord> scorchByName;
 };
 static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
 static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(PrintsDatabase) == 0x60);

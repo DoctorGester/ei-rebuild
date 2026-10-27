@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CLight;        // spell.h
+class CLight;
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
@@ -76,10 +76,10 @@ struct FigureMeshDrawer : FigureDrawerBase {
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
 static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
-class CTextureDevice;   // texture.h
-class CTexture;         // texture.h
+class CTextureDevice;
+class CTexture;
 
-struct CDXSurface;   // texture.h
+struct CDXSurface;
 
 // A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
 // map inserts it).

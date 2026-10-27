@@ -13,12 +13,12 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-struct FigureAnimation;   // map_object_figures.h
+struct FigureAnimation;
 
 // The animation tracks' defaults without key frames (static initialisers: the origin and the identity).
 inline constexpr Vector3 kTrackDefaultPosition = /*007AF110*/ {};
 inline constexpr Quaternion kTrackDefaultRotation = /*007AF100*/ {1.0f, 0.0f, 0.0f, 0.0f};
-struct FigureBone;        // map_object_figures.h
+struct FigureBone;
 
 // A part's track (only the fields used here): key frames of positions, rotations and morphed vertex sets, one
 // per time unit, and the values at the current time. Class id 0x300B, made by a bone's manager on first use
@@ -56,17 +56,17 @@ struct AnimationTrack : CEngineObject {
     // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
     void DestroyTrack();
 
-    const FigureAnimation* animation;   // +0x1C the animation playing (null: none)
-    FigureBone* bone;               // +0x20 the bone it animates
-    int positionCount;              // +0x24
-    const float* positions;         // +0x28 three floats each
-    int rotationCount;              // +0x2C
-    const float* rotations;         // +0x30 quaternions
-    int vertexCount;                // +0x34
-    lib::AlignedArray<float*> frames;   // +0x38 vertex sets (three floats per vertex), one per key frame
-    float time;                     // +0x48 (0 when the animation changes)
-    Vector3 position;               // +0x4C
-    Quaternion rotation;            // +0x58
+    const FigureAnimation* animation;   // the animation playing (null: none)
+    FigureBone* bone;               // the bone it animates
+    int positionCount;
+    const float* positions;         // three floats each
+    int rotationCount;
+    const float* rotations;         // quaternions
+    int vertexCount;
+    lib::AlignedArray<float*> frames;   // vertex sets (three floats per vertex), one per key frame
+    float time;                     // (0 when the animation changes)
+    Vector3 position;
+    Quaternion rotation;
     // the morphed vertices ({data, size} is what a bone gives).
     lib::AlignedArray<Vector3> vertices;
 };

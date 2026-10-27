@@ -88,7 +88,6 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
 
 } // namespace
 
-// ---- CLinkMesh ------------------------------------------------------------------------------------
 
 // No references is the base's.
 CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*name) { headers_.Construct(); }

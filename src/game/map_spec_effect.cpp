@@ -153,7 +153,6 @@ void ParticleSpec::Apply() {
 }
 EI_REWRITTEN(0x0046D870, ParticleSpec::Apply);
 
-// ---- Lights -----------------------------------------------------------------------------
 
 LightSpec::LightSpec() {
     colour.x = 1.0f;
@@ -214,7 +213,6 @@ void LightSpec::Apply() {
 }
 EI_REWRITTEN(0x0046DD70, LightSpec::Apply);
 
-// ---- Sounds -------------------------------------------------------------------------------
 
 SoundSpec::SoundSpec() {
     sounds.Construct();

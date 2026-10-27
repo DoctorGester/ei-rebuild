@@ -18,26 +18,26 @@
 #include <cstddef>
 #include <cstdint>
 
-class CStream;              // core_streams.h
-class CMapObjectServer;     // unit.h
-class CMapObjectClientSpecific;   // unit.h
+class CStream;
+class CMapObjectServer;
+class CMapObjectClientSpecific;
 class CMapObjectCompanion;  // below
-struct DeltaState;          // net_delta.h
+struct DeltaState;
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
-class Terrain;              // camera.h
+class Terrain;
 
 // An active effect (0x14 bytes; CArray at +0x194).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
 // 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.
 struct MapEffect {
-    std::uint8_t type;              // +0x00
-    std::uint8_t power;             // +0x01
+    std::uint8_t type;
+    std::uint8_t power;
     std::uint8_t unused_02[2];
-    int ticksLeft;                  // +0x04 counted down once per world update; removed at 0
-    std::uint32_t value;            // +0x08 a float (EffectValue) or a sound handle
-    std::uint32_t strength;         // +0x0C a float (saved; Rebirth compares it, map_object.cpp)
-    std::uint8_t ending;            // +0x10 the client plays no end sound when set
+    int ticksLeft;                  // counted down once per world update; removed at 0
+    std::uint32_t value;            // a float (EffectValue) or a sound handle
+    std::uint32_t strength;         // a float (saved; Rebirth compares it, map_object.cpp)
+    std::uint8_t ending;            // the client plays no end sound when set
     std::uint8_t unused_11[3];
 
     // spell_lifetime.cpp: type, power, ticksLeft, value and ending cleared (strength not). Returns this.
@@ -57,13 +57,13 @@ struct UnitVitalsPacked {
     // Zeroes it. Returns 0.
     int Reset();
 
-    std::uint8_t spare00;           // +0x00 0 after Reset; nothing reads it
+    std::uint8_t spare00;           // 0 after Reset; nothing reads it
     std::uint8_t unused_01;
-    std::int16_t hitPoints;         // +0x02
-    std::int16_t maxHitPoints;      // +0x04
-    std::uint16_t mana;             // +0x06 (read unsigned)
-    std::uint16_t maxMana;          // +0x08
-    std::int16_t protection[7];     // +0x0A
+    std::int16_t hitPoints;
+    std::int16_t maxHitPoints;
+    std::uint16_t mana;             // (read unsigned)
+    std::uint16_t maxMana;
+    std::int16_t protection[7];
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
@@ -77,10 +77,10 @@ constexpr int kEnlarge = 0x25;         // scale up (x, y and z)
 constexpr int kShrink = 0x26;          // scale down
 } // namespace mapeffect
 
-struct DamageInfo;   // spell.h
-struct AttackParams; // combat.h
-struct UnitStats;    // unit.h
-struct LockKey;      // unit.h
+struct DamageInfo;
+struct AttackParams;
+struct UnitStats;
+struct LockKey;
 
 // The spots a use order may go to (the `out` of the use-spots virtual): an MFC CArray<Vector3>.
 using UseSpotArray = mfc::CArray<Vector3>;
@@ -295,7 +295,6 @@ public:
     UnitVitalsPacked* PackedVitals() { return &packedVitals; }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
 
-    // --- Helpers ----------------------
 
     // The world the object lives in (via its owner), or null.
     CWorld* World();
@@ -303,7 +302,7 @@ public:
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
     // radius +0x134, half box `above` +0x144).
-    CMapObjectCompanion* companion; // +0x170 CMapObjectServer / CMapObjectClientSpecific
+    CMapObjectCompanion* companion; // CMapObjectServer / CMapObjectClientSpecific
     // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
     CMapObjectServer* ServerCompanion() const;
     // The companion as the client's CMapObjectClientSpecific (on the client; defined in unit.h).
@@ -311,22 +310,22 @@ public:
     // +0x174 world updates until the object's effects are next looked at (5 after Create; the
     // server world's update map sets it, world_units.cpp / world_server.cpp).
     int updateCountdown;
-    float animationSpeed;           // +0x178 the animation's speed factor (CUnit::animationSpeed; 1 after Create)
-    UnitVitalsPacked packedVitals;  // +0x17C hit points +0x17E, maximum +0x180, mana +0x182, maximum +0x184
+    float animationSpeed;           // the animation's speed factor (CUnit::animationSpeed; 1 after Create)
+    UnitVitalsPacked packedVitals;  // hit points +0x17E, maximum +0x180, mana +0x182, maximum +0x184
     void* effectsVtable;            // CArray<MapEffect> (SetEffectCount is its SetSize)
-    MapEffect* effects;             // +0x198 |
-    int effectCount;                // +0x19C |
-    int effectCapacity;             // +0x1A0 |
-    int effectGrowBy;               // +0x1A4 /
-    mfc::CString name2;             // +0x1A8
-    Vector3 baseScale;              // +0x1AC
-    int sectorCellX;                // +0x1B8
-    int sectorCellY;                // +0x1BC
-    int changeStamp;                // +0x1C0 world + 0x68 when last changed
+    MapEffect* effects;             // |
+    int effectCount;                // |
+    int effectCapacity;             // |
+    int effectGrowBy;               // /
+    mfc::CString name2;
+    Vector3 baseScale;
+    int sectorCellX;
+    int sectorCellY;
+    int changeStamp;                // world + 0x68 when last changed
     // +0x1C4 the network state (DeltaState, net_delta.h, up to +0x238: its field records, masks
     // and two memory streams at +0x1E8 / +0x210); NetState(). Its mask is changedParts.
     std::uint8_t netState[0x1DC - 0x1C4];
-    std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
+    std::uint16_t changedParts;     // bit per part changed (MarkChanged)
     std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams at +0x1E8 and +0x210
 
 protected:
@@ -386,7 +385,7 @@ public:
     // EAX on, which nothing reads, so it is void.
     virtual void SetLightMode(int) {}
 
-    CMapObject* owner;              // +0x1C the map object (CMapObject::AttachCompanion sets it)
+    CMapObject* owner;              // the map object (CMapObject::AttachCompanion sets it)
 };
 static_assert(offsetof(CMapObjectCompanion, owner) == 0x1C);
 inline CMapObjectCompanion* CompanionSlots(CEngineObject* companion) {

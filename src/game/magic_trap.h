@@ -16,8 +16,8 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CSpell;    // spell.h
-class CStream;   // core_streams.h
+class CSpell;
+class CStream;
 
 class MagicTrap : public CMapObject {
 public:
@@ -36,10 +36,10 @@ public:
     int Create() override { return CreateTrap(); }
     void Destroy() override { DestroyTrap(); }
     int RunTick() override { return UpdateTrap(); }
-    void Load(CStream* stream) override;                      // 9: LoadTrap
-    void Save(CStream* stream) override;                      // 10: SaveTrap
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
     const char* GetClassName() override;                   // 11: "CMagicTrapObject" (trap_object.cpp)
-    int GetClassId() override;                             // 12: 0x61
+    int GetClassId() override;
     bool IsSynchronised() override { return true; }        // 29: the trap's
 
     // SaveTrap (virtual slot 10). The map object part, the spell's id (-1:
@@ -99,14 +99,14 @@ public:
 
     using UnitList = mfc::CTypedPtrList<CUnit>;
 
-    std::uint32_t sides;            // +0x238 bit per unit side (+0x250) that sets it off
-    CSpell* spell;                  // +0x23C a counted reference; null: none
-    TrapArea area;                  // +0x240
-    TrapPoints points;              // +0x254 where it casts ({x, y})
+    std::uint32_t sides;            // bit per unit side (+0x250) that sets it off
+    CSpell* spell;                  // a counted reference; null: none
+    TrapArea area;
+    TrapPoints points;              // where it casts ({x, y})
     UnitList inside;                // the units inside: counted references
-    int period;                     // +0x284 0: casts at newcomers; else ticks between casts
-    int countdown;                  // +0x288
-    int singleTarget;               // +0x28C cast at one unit only
+    int period;                     // 0: casts at newcomers; else ticks between casts
+    int countdown;
+    int singleTarget;               // cast at one unit only
 };
 static_assert(offsetof(MagicTrap, sides) == 0x238);
 static_assert(offsetof(MagicTrap, spell) == 0x23C);

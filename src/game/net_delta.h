@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 
-struct CoderState;   // net_coder.h
+struct CoderState;
 
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
@@ -55,8 +55,8 @@ std::uint32_t UnpackFloat16(std::uint16_t packed);
 
 // One numbered field of a DeltaState (0xA0 bytes).
 struct DeltaField {
-    BitStream snapshot[2];   // +0x00, +0x28: per channel, the bytes last sent
-    BitStream out[2];        // +0x50, +0x78: per channel, what is sent now
+    BitStream snapshot[2];   // , +0x28: per channel, the bytes last sent
+    BitStream out[2];        // , +0x78: per channel, what is sent now
 
     // Identical copies: four empty memory streams.
     DeltaField() = default;
@@ -130,17 +130,17 @@ static_assert(sizeof(DeltaField) == 0xA0);
 // The fields of one object.
 struct DeltaState {
     std::uint32_t unused_0;
-    DeltaField* fields_;     // +0x04
-    int fieldCount_;         // +0x08
-    int fieldCapacity_;      // +0x0C (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
-    int fieldGrowBy_;        // +0x10
-    std::uint16_t sentMask_; // +0x14
-    std::uint16_t lastMask_; // +0x16
-    std::uint16_t mask_;     // +0x18 fields to write / read
+    DeltaField* fields_;
+    int fieldCount_;
+    int fieldCapacity_;      // (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
+    int fieldGrowBy_;
+    std::uint16_t sentMask_;
+    std::uint16_t lastMask_;
+    std::uint16_t mask_;     // fields to write / read
     std::uint16_t unused_1A;
-    BitStream* reader_;      // +0x1C
-    int mode_;               // +0x20 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    BitStream header_[2];    // +0x24, +0x4C
+    BitStream* reader_;
+    int mode_;               // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
+    BitStream header_[2];    // , +0x4C
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 

@@ -57,7 +57,6 @@ void RemoveEntry(CItem**& data, CItem* entry) {
 
 } // namespace
 
-// --- Items --------------------------------------------------------------------------------------
 
 CItem* CItem::Clone(CSpellManager* spells) {
     auto* copy = owner_->CreateObjectAs<CItem>(type_, -1);

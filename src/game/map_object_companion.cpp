@@ -51,7 +51,6 @@ bool IsScaleEffect(int type) {
 }
 } // namespace
 
-// --- CMapObjectServer ------------------------------------------------------------------------
 
 int CMapObjectServer::RunTick() {
     if (owner->effectCount <= 0) return 0;
@@ -94,7 +93,6 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
 }
 EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
 
-// --- CMapObjectClientSpecific ----------------------------------------------------------------
 
 int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about

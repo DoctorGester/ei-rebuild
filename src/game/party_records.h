@@ -26,8 +26,8 @@ public:
     // field 2.
     void Serialize(ChunkArchive* ar) override;
 
-    PartyStorage party;         // +0x08 the party
-    mfc::CString name;          // +0x78 "" for the unnamed record
+    PartyStorage party;         // the party
+    mfc::CString name;          // "" for the unnamed record
 
     CParty* Party() { return party.Get(); }
 };
@@ -48,8 +48,8 @@ struct NamedPartyRecords {
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
     stlp::vector<PartyRecord*> records;
-    mfc::CString text0C;        // +0x0C
-    mfc::CString text10;        // +0x10
+    mfc::CString text0C;
+    mfc::CString text10;
 
     // Chunk 1: the records as object references (field 1 per chunk 1; loading releases the old ones first);
     // then the strings as fields 2 and 3.

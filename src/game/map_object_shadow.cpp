@@ -41,7 +41,6 @@
 // float (float locals); the order of every operation is the original's.
 
 namespace {
-// --- Globals ----------------------------------------------------------------------------------
 
 int ShadowMode() { return options::TheOptions()->shadowQuality_; }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
@@ -130,7 +129,6 @@ constexpr int kShadowStack = 10;
 
 const float* TopMatrix(const CTransformPipeline* pipeline) { return pipeline->Top(kShadowStack)->m; }
 
-// --- Lights -----------------------------------------------------------------------------------
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {

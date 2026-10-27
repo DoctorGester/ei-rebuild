@@ -23,7 +23,7 @@ public:
     int Create() override { return CreateClient(); }
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
-    const char* GetClassName() override;                              // "CPlayerClient"
+    const char* GetClassName() override;
     int GetClassId() override;                                        // 0x3C
     void ForgetSentObjects() override {}                              // Virtual 13 (empty)
     void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }
@@ -257,8 +257,8 @@ public:
     // +0x24 the message handlers by type (0: refused; 256 of them).
     using Handler = int(__fastcall*)(CPlayerClient*, void*);
     lib::AlignedArray<Handler> handlers_;
-    BitStream in_;                  // +0x34 the server's messages being run
-    BitStream out_;                 // +0x5C requests for the server
+    BitStream in_;                  // the server's messages being run
+    BitStream out_;                 // requests for the server
     // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession_;
@@ -266,8 +266,8 @@ public:
     // requested party, clears it for a new zone.
     std::uint8_t sendParty_;
     std::uint8_t unused_86[2];
-    CoderState compressor_;         // +0x88 for the requests sent
-    CoderState decompressor_;       // +0x28B0 for the messages received
+    CoderState compressor_;         // for the requests sent
+    CoderState decompressor_;       // for the messages received
     // +0x50D8 the ids of the party's units (message 0x60; Clear frees it; the HUD's map and the client world's NearestVisibleUnit read them)
     lib::AlignedArray<int> partyUnitIds_;
     // +0x50E8 the ids of the other players' units the map shows (message 0x60)

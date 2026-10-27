@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-class CStream;   // core_streams.h
+class CStream;
 
 struct LockKey {
     // Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in

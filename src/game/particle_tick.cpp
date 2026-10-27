@@ -98,7 +98,6 @@ EI_REWRITTEN(0x00498870, CParticleManager::AcquireParticle);
 void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
 EI_REWRITTEN(0x004987C0, CParticleManager::ReleaseParticle);
 
-// --- Source -------------------------------------------------------------------------------------
 
 // A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.

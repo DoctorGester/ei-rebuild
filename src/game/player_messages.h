@@ -21,16 +21,16 @@
 #include <cstdint>
 
 class CPlayer;
-class CItem;    // item.h
-class CParty;   // party.h
-class CPlayerClient;   // player_client.h
-class CUnit;    // unit.h
-class CMapObject;   // map_object.h
-class CEffect;      // world_effect.h
-struct WaterTweens;   // water_tweens.h
-struct PathOrder;     // ai_map.h
+class CItem;
+class CParty;
+class CPlayerClient;
+class CUnit;
+class CMapObject;
+class CEffect;
+struct WaterTweens;
+struct PathOrder;
 namespace netlink {
-class NetLink;  // net_link.h
+class NetLink;
 }
 
 // A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
@@ -103,7 +103,7 @@ public:
 
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
-    const char* GetClassName() override;                                   // "CPlayerServer"
+    const char* GetClassName() override;
     int GetClassId() override;                                             // 0x3B
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     // Virtual 14 (empty; CPlayerConnection's).
@@ -385,7 +385,7 @@ public:
 
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
-    const char* GetClassName() override;               // "CPlayer"
+    const char* GetClassName() override;
     int GetClassId() override;                         // 0xF
 
     // DestroyPlayer; returns 1.

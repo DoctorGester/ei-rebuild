@@ -98,7 +98,6 @@ void Spec::Move(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x00469F40, Spec::Move);
 
-// ---- Objects ------------------------------------------------------------------------
 
 ObjectSpec::ObjectSpec() {
     parts.Construct();
@@ -270,7 +269,6 @@ mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
 }
 EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
 
-// ---- Flames ------------------------------------------------------------------------
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -403,7 +401,6 @@ void TrapSpec::OnChunk() {
 }
 EI_REWRITTEN(0x0046B7D0, TrapSpec::OnChunk);
 
-// ---- Levers -------------------------------------------------------------------------
 
 LeverSpec::LeverSpec() {
     lever.lock.mask = 1;

@@ -36,7 +36,6 @@ bool Active(ei::rebirth::Patch p);
 // The mod's folder with a trailing '\' (AddonPath), empty without one.
 const std::string& ModPath();
 
-// ---- ResOverride ----
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).
 void OnOpenResource(CMappedResource* res, const char* path);
@@ -56,7 +55,6 @@ void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* p
 const std::vector<std::string>& FigureArchives();
 const std::vector<std::string>& TextureArchives();
 
-// ---- Maps ----
 // The site kinds addon passes (1-9): NewZone's map and mob, MapPath, the client's LoadZone, the zone
 // table's "*.mq" list, LoadZoneQuests (twice), MapFileExists, WriteMapFile.
 enum class MapsSite : int {

@@ -17,11 +17,11 @@
 // A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
 // and the specular power. 0x44 bytes; copied as dwords.
 struct MaterialColors {
-    Vector4 diffuse;        // +0x00
-    Vector4 ambient;        // +0x10
-    Vector4 specular;       // +0x20
-    Vector4 emissive;       // +0x30
-    float power;            // +0x40
+    Vector4 diffuse;
+    Vector4 ambient;
+    Vector4 specular;
+    Vector4 emissive;
+    float power;
 };
 static_assert(sizeof(MaterialColors) == 0x44);
 
@@ -61,15 +61,15 @@ public:
     // 7: the name's text (short_functions.cpp)
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
-    int GetClassId() override;             // 12: 5
+    int GetClassId() override;
 
-    mfc::CString name;                      // +0x1C
-    MaterialColors colors;                  // +0x20
-    stlp::deque<MaterialEntry> entries;     // +0x64
-    mfc::CString name2;                     // +0x8C (the scene file's second name)
-    int spare90;                            // +0x90 0 after Create; nothing reads it
-    mfc::CString name3;                     // +0x94 (the scene file's third name)
-    int spare98;                            // +0x98 0 after Create; nothing reads it
+    mfc::CString name;
+    MaterialColors colors;
+    stlp::deque<MaterialEntry> entries;
+    mfc::CString name2;                     // (the scene file's second name)
+    int spare90;                            // 0 after Create; nothing reads it
+    mfc::CString name3;                     // (the scene file's third name)
+    int spare98;                            // 0 after Create; nothing reads it
 };
 static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) == 0x20 &&
               offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
@@ -88,7 +88,7 @@ public:
     // The colour table freed, then CResourceManager's destructor.
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: "CMaterialManager"
-    int GetClassId() override;               // 12: 0x27
+    int GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 
     // 2: Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
@@ -109,7 +109,7 @@ public:
     // into `material`; 1, or 0 for a null material.
     int FillMaterial(CMaterial* material, unsigned key);
 
-    ColorTable colors_;     // +0xBC
+    ColorTable colors_;
 };
 static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
 

@@ -19,10 +19,10 @@
 #include <windows.h>   // RECT
 
 class CObject3D;
-class CTexture;      // texture.h
-class CFigureMesh;   // figure_mesh.h
-struct VertexPacket;    // figure_mesh.h
-struct DecalTexCoord;   // ground_decal.h
+class CTexture;
+class CFigureMesh;
+struct VertexPacket;
+struct DecalTexCoord;
 
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "material.h"   // CMaterial
@@ -37,8 +37,8 @@ struct PartGroup {
     // Every part released, the array's block freed. Returns 1.
     int ReleaseParts();
 
-    CMaterial* material;                    // +0x00 counted
-    lib::AlignedArray<CFigureMesh*> parts;   // +0x04 counted
+    CMaterial* material;                    // counted
+    lib::AlignedArray<CFigureMesh*> parts;   // counted
 };
 static_assert(sizeof(PartGroup) == 0x14);
 
@@ -49,8 +49,8 @@ struct TextureParts {
     // array freed. The texture is only forgotten (the half's `textures` holds its reference).
     void Destruct();
 
-    CTexture* texture;                      // +0x00
-    lib::AlignedArray<PartGroup*> groups;   // +0x04 owned
+    CTexture* texture;
+    lib::AlignedArray<PartGroup*> groups;   // owned
 };
 static_assert(sizeof(TextureParts) == 0x14);
 
@@ -197,26 +197,26 @@ public:
     // the two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key), the
     // second a hero's simple skin (CUnitClientSpecific).
     TextureParts* partSets[2];
-    lib::AlignedArray<CTexture*> textures;     // +0x28 the sets' textures (counted)
-    lib::AlignedArray<CMaterial*> materials;   // +0x38 the groups' materials (counted): fade-in, tints
-    int materialCursor;             // +0x48 the iteration's index, -1 when there are none
+    lib::AlignedArray<CTexture*> textures;     // the sets' textures (counted)
+    lib::AlignedArray<CMaterial*> materials;   // the groups' materials (counted): fade-in, tints
+    int materialCursor;             // the iteration's index, -1 when there are none
     // The projected shadow (the projector fills the three, the device draws them): blocks of four positions,
     // their texture coordinates, the triangles' indices.
-    lib::AlignedArray<VertexPacket> vertices;      // +0x4C
-    lib::AlignedArray<DecalTexCoord> texCoords;    // +0x5C
-    lib::AlignedArray<std::uint16_t> indices;      // +0x6C
-    CTexture* texture;              // +0x7C the shadow texture (counted)
-    float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
+    lib::AlignedArray<VertexPacket> vertices;
+    lib::AlignedArray<DecalTexCoord> texCoords;
+    lib::AlignedArray<std::uint16_t> indices;
+    CTexture* texture;              // the shadow texture (counted)
+    float bounds[4];                // minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // the shadow's bounds (the scene object's transform), the
                                     //       centre relative to the object
-    std::uint8_t unused_BC[0xC8 - 0xBC];    // +0xBC zeroed with the bounds
-    RECT drawnRect;                 // +0xC8 the screen area of the dirty parts Draw drew
+    std::uint8_t unused_BC[0xC8 - 0xBC];    // zeroed with the bounds
+    RECT drawnRect;                 // the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // the wounds texture (counted; ShowWounds loads it)
     CountedRef<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
-    mfc::CString skinName;          // +0xE0 the first set's texture name (SetSkins)
-    mfc::CString secondSkinName;    // +0xE4 the second set's
-    float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
-    std::uint32_t touchTime;        // +0xEC the frame time the model was last kept loaded (CollectVisible)
+    mfc::CString skinName;          // the first set's texture name (SetSkins)
+    mfc::CString secondSkinName;    // the second set's
+    float pulseClock;               // frames counted by the invisible / stunned pulses
+    std::uint32_t touchTime;        // the frame time the model was last kept loaded (CollectVisible)
     Vector3 figureScale;            // the figure's extra scale (GetScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);

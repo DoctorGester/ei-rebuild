@@ -32,9 +32,9 @@
 #include <cstdint>
 
 namespace net {
-class SessionBase;   // net_classes.h
+class SessionBase;
 }
-class CWorldHandle;   // world.h
+class CWorldHandle;
 
 namespace netlink {
 
@@ -93,14 +93,14 @@ public:
     ~NetLink() override;
 
     // 1: Serialize (empty); 2 / 3 pure.
-    virtual bool Connected() = 0;               // 4
+    virtual bool Connected() = 0;
     virtual bool Alive() = 0;                   // 5: something to read, or connected
-    virtual bool HasIncoming() = 0;             // 6
+    virtual bool HasIncoming() = 0;
     virtual int IncomingCount();                // Virtual 7 (1 when HasIncoming)
     virtual bool Send(CStream* stream);         // Virtual 8 (dropped: true)
     virtual bool Receive(CMemoryStream* stream);      // Virtual 9 (records the stream: true)
     virtual void Pump() {}                      // Virtual 10 (empty)
-    virtual void Disconnect() = 0;              // 11
+    virtual void Disconnect() = 0;
     virtual int Unknown12() { return 0; }
 
     // Starts recording into a new file `path`; the first message is dropped.
@@ -111,10 +111,10 @@ public:
     // dropped, the others written to the file with their size.
     void Record(CStream* stream);
 
-    std::uint8_t recording_;     // +0x08
-    std::uint8_t skipNext_;      // +0x09 the next recorded message is dropped (set by OpenRecording)
+    std::uint8_t recording_;
+    std::uint8_t skipNext_;      // the next recorded message is dropped (set by OpenRecording)
     std::uint8_t unused_0A[2];
-    FileStream record_;          // +0x0C
+    FileStream record_;
 
 protected:
     // The record stream, not recording (the count and +9 are the creator's).
@@ -150,8 +150,8 @@ public:
     // to the player's link (+8), the second is returned.
     static LoopbackLink* __stdcall CreatePair(CWorldHandle* player);
 
-    StreamQueue queue_;          // +0x28
-    LoopbackLink* peer_;         // +0x2C counted
+    StreamQueue queue_;
+    LoopbackLink* peer_;         // counted
 
 private:
     void DestroyQueue();
@@ -179,7 +179,7 @@ public:
     // A replay link reading the recording `path`.
     static ReplayLink* __stdcall Create(const char* path);
 
-    FileStream replay_;          // +0x28 the recording played back (reading)
+    FileStream replay_;          // the recording played back (reading)
 };
 
 // The framed link (abstract, 0x50 bytes).
@@ -193,14 +193,14 @@ public:
     int IncomingCount() override;
     bool Send(CStream* stream) override;        // Virtual 8 (framed, then SendBytes)
     bool Receive(CMemoryStream* stream) override;     // Virtual 9 (a memory stream)
-    virtual bool SendBytes(const void* data, std::uint32_t size) = 0;   // 13
+    virtual bool SendBytes(const void* data, std::uint32_t size) = 0;
 
     // `size` bytes appended at the end of the inbox.
     void Append(const void* data, std::uint32_t size);
     // `out` emptied, then given everything in the inbox, which is emptied.
     void TakeAll(CStream* out);
 
-    CMemoryStream inbox_;        // +0x28 received bytes: {uint32 length, bytes} per message
+    CMemoryStream inbox_;        // received bytes: {uint32 length, bytes} per message
 
 protected:
     // The base and an empty inbox.
@@ -229,7 +229,7 @@ public:
     void Disconnect() override;                 // Virtual 11 (the unread bytes given back)
     bool SendBytes(const void* data, std::uint32_t size) override;
 
-    RefPtrTo<net::Connection> player_;   // +0x50 counted
+    RefPtrTo<net::Connection> player_;   // counted
 };
 
 // A node of the session's driver lists (STLport list<RefPtr>, 12 bytes from the node pool).
@@ -256,8 +256,8 @@ public:
     bool Query() override { return true; }
     void TakeNew(JoinedLinks* joined) override;   // The live holders' links appended (player_sources.cpp)
 
-    DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
-    DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)
+    DriverNode* drivers_;        // list<RefPtr> (owning)
+    DriverNode* holders_;        // list of plain holders (released, not detached)
 
     // A driver for every new connection of `session` (the game client or server)
     // with something queued; then each driver pumped, and those whose player is gone erased.

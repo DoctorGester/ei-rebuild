@@ -12,7 +12,7 @@
 #include <cstdint>
 
 namespace netlink {
-class NetLink;   // net_link.h
+class NetLink;
 }
 
 // The list slot 6 appends the new connections to, counted (the server world's AcceptNewPlayers'

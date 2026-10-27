@@ -39,7 +39,7 @@ template <typename T>
 class TargetChunk : public Chunk {
 public:
     explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
-    T* target;                   // +0x18
+    T* target;
 };
 // A waypoint, a patrol and a behaviour record.
 class WaypointChunk : public TargetChunk<Waypoint> {
@@ -307,7 +307,6 @@ void BehaviourChunk::Write() {
 }
 EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
 
-// ---- Units ------------------------------------------------------------------------------
 
 UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);

@@ -262,7 +262,6 @@ EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
 } // namespace net
 
-// ---- Destruction ----------------------------------------------------------------------------------
 
 namespace net {
 

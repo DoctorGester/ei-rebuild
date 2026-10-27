@@ -314,7 +314,6 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 
 } // namespace
 
-// --- --------------------------------------------------------------
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
@@ -391,7 +390,6 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
 }
 EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 
-// --- ------------------------------------------------------------------------------------
 
 // Draws a sprite per point: `points` an aligned array
 // of SpritePoint, `sprites` an MFC-style array of Sprite (same count). With `additive` (only its low

@@ -83,9 +83,9 @@ public:
     // and the result is 0.
     BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);
 
-    BOOL attached_;               // +0x00 1: the data is not ours (Attach)
-    CMappedFile file_;            // +0x04
-    const std::uint8_t* data_;    // +0x14
+    BOOL attached_;               // 1: the data is not ours (Attach)
+    CMappedFile file_;
+    const std::uint8_t* data_;
 };
 static_assert(sizeof(CFileRegistry) == 0x18);
 

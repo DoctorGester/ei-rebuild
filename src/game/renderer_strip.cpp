@@ -153,7 +153,6 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
     SetUv(bottom, g_bottomV);
 }
 
-// --- ---------------------------------------------------------------
 
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from

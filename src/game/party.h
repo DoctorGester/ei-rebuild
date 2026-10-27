@@ -21,14 +21,14 @@ using BOOL = int;
 
 class CItem;
 class CItemConstructor;
-struct CItemManager;   // item.h
+struct CItemManager;
 class CParty;
 class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
 class ChunkArchive;
-class CStream;   // core_streams.h
-struct PartyUnitRecord;   // unit.h
+class CStream;
+struct PartyUnitRecord;
 
 // A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an
 // aligned array of item pointers.
@@ -83,7 +83,7 @@ public:
     // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;
-    const char* GetClassName() override;   // "CParty"
+    const char* GetClassName() override;
     int GetClassId() override;             // class id 9
 
     CItemConstructor* ItemConstructor() override;

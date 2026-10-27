@@ -145,7 +145,6 @@ bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type
     return false;
 }
 
-// --- Lights ---
 
 constexpr std::uint32_t kLightHidden = 0x80;     // CEngineObject::flags_ of a light
 constexpr std::uint32_t kLightHeld = 0x200;      // held on by the light effect (mode 1)

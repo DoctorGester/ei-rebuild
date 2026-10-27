@@ -29,17 +29,17 @@ const char* __fastcall FigureGetName(const CEngineObject* figure);
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);
 
 // "CHoover" (class id 0x1F): no fields of its own seen. object.cpp.
-class CItem;    // item.h
-class CUnit;    // unit.h
-class CWorld;   // world.h
+class CItem;
+class CUnit;
+class CWorld;
 class CHoover final : public CEngineObject {
 public:
     CHoover();              // the engine object's fields cleared
     ~CHoover() override;
 
-    int Create() override;                  // 1
+    int Create() override;
     void Destroy() override {}              // empty
-    const char* GetClassName() override;    // "CHoover"
+    const char* GetClassName() override;
     int GetClassId() override;              // 0x1F
 
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the

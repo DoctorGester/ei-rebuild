@@ -13,7 +13,6 @@
 #include <cstring>
 #include <type_traits>
 
-// ---- ChunkArchive -------------------------------------------------------------------------------
 // The rest of the archive is in chunk_archive.cpp.
 
 namespace {
@@ -108,7 +107,6 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
 }
 EI_REWRITTEN(0x006D4270, PrintRecord2::Serialize);
 
-// ---- WaterTweens --------------------------------------------------------------------------------
 
 EI_REWRITTEN(0x006D43E0, WaterTweens::RemoveAll);
 EI_REWRITTEN(0x006D4840, WaterTweens::SetSize);

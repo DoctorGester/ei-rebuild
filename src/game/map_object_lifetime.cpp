@@ -87,7 +87,6 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 }
 } // namespace
 
-// --- CObject3D --------------------------------------------------------------------------------
 
 CObject3D::CObject3D() { SetUpObject3D(); }
 EI_REWRITTEN_SPECIAL(0x00515BD0, CObject3D::CObject3D);
@@ -150,7 +149,6 @@ void CObject3D::TearDownObject3D() {
     effectSources.blocks = nullptr;
 }
 
-// --- CMapObject -------------------------------------------------------------------------------
 
 CMapObject::CMapObject() { SetUpMapObject(); }
 EI_REWRITTEN_SPECIAL(0x0050E2D0, CMapObject::CMapObject);
@@ -202,7 +200,6 @@ EI_REWRITTEN_SPECIAL(0x0050E560, CMapObject::~CMapObject);
 EI_REWRITTEN_SPECIAL(0x00529B20, CMapObject::~CMapObject);
 EI_REWRITTEN_SPECIAL(0x00529B50, CMapObject::~CMapObject);
 
-// --- CUnit ------------------------------------------------------------------------------------
 
 CUnit::CUnit() {
     // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
@@ -298,7 +295,6 @@ CUnit::~CUnit() {
 EI_REWRITTEN_SPECIAL(0x0052E310, CUnit::~CUnit);
 EI_REWRITTEN_SPECIAL(0x0052E2A0, CUnit::~CUnit);   // deleting
 
-// --- Companions -------------------------------------------------------------------------------
 
 CMapObjectServer::CMapObjectServer() {
     strings.Construct();

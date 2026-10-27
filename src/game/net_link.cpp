@@ -70,7 +70,6 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 
 } // namespace
 
-// ================================================================================================
 // FileStream
 
 FileStream::FileStream() { new (file_.Get()) mfc::CFile(); }
@@ -110,7 +109,6 @@ void FileStream::Clear() { Restart(); }
 EI_REWRITTEN(0x00477F70, FileStream::Size);
 EI_REWRITTEN(0x00477F80, FileStream::Position);
 
-// ================================================================================================
 // NetLink
 
 NetLink::NetLink() { recording_ = 0; }
@@ -158,7 +156,6 @@ void NetLink::CloseRecording() {
 }
 EI_REWRITTEN(0x004780E0, NetLink::CloseRecording);
 
-// ================================================================================================
 // LoopbackLink
 
 LoopbackLink::LoopbackLink() {
@@ -287,7 +284,6 @@ void LoopbackLink::Disconnect() {
 }
 EI_REWRITTEN(0x00478140, LoopbackLink::Disconnect);
 
-// ================================================================================================
 // ReplayLink
 
 ReplayLink::ReplayLink() {}
@@ -340,7 +336,6 @@ EI_REWRITTEN(0x00478C70, ReplayLink::Receive);
 void ReplayLink::Disconnect() { replay_.Close(); }
 EI_REWRITTEN(0x00478C90, ReplayLink::Disconnect);
 
-// ================================================================================================
 // FramedLink
 
 FramedLink::FramedLink() {}
@@ -448,7 +443,6 @@ bool FramedLink::Receive(CMemoryStream* stream) {
 }
 EI_REWRITTEN(0x0047BB70, FramedLink::Receive);
 
-// ================================================================================================
 // DriverLink
 
 DriverLink::DriverLink() { player_.ptr = nullptr; }

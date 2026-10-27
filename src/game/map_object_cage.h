@@ -20,10 +20,10 @@ struct CageInterpolator {
     void InterpolatePrism(const float** stream);
 
     std::uint8_t unused_00[0x5C];
-    Vector3 point;      // +0x5C the result
-    float t;            // +0x68
-    float u;            // +0x6C
-    float w;            // +0x70
+    Vector3 point;      // the result
+    float t;
+    float u;
+    float w;
 };
 static_assert(offsetof(CageInterpolator, point) == 0x5C);
 static_assert(offsetof(CageInterpolator, w) == 0x70);

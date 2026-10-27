@@ -27,7 +27,6 @@ EI_REWRITTEN(0x00477100, SceneNodes::DestructElements);
 EI_REWRITTEN(0x00474DB0, FaceGroups::SetSize);
 EI_REWRITTEN(0x00476F20, FaceGroups::DestructElements);
 EI_REWRITTEN(0x00454A50, ArrayHeader<FaceGroupArrayClass>::Construct);
-// ---- Records -------------------------------------------------------------------------------------
 
 EI_REWRITTEN(0x0050FA30, DeltaFields::SetSize);
 EI_REWRITTEN(0x005101A0, DeltaFields::ConstructElements);

@@ -99,7 +99,7 @@ public:
     // (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
     void ReserveRead(std::int32_t size) override;
     void ReserveWrite(std::int32_t size) override;
-    int ReadMore(void*, std::uint32_t) override;   // 0
+    int ReadMore(void*, std::uint32_t) override;
     // Grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
     int WriteMore(const void* from, std::uint32_t size) override;
     // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents
@@ -124,7 +124,7 @@ public:
 
     void ReserveRead(std::int32_t) override;    // Virtual 0 (nothing to reserve)
     void ReserveWrite(std::int32_t) override;
-    int ReadMore(void*, std::uint32_t) override;          // 0
+    int ReadMore(void*, std::uint32_t) override;
     int WriteMore(const void*, std::uint32_t) override;
     // The cursor moved to `position` bytes from the start; returns it.
     std::uint8_t* Seek(std::int32_t position) override;

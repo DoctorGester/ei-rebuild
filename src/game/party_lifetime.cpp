@@ -42,7 +42,6 @@ void SetDefaults(PartyUnitRecord& record) {
 
 } // namespace
 
-// --- PartyUnitRecord ----------------------------------------------------------------------------
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
     for (mfc::CString& text : texts) new (&text) mfc::CString();
@@ -164,7 +163,6 @@ CSpellManager::CSpellManager() {
 }
 EI_REWRITTEN_SPECIAL(0x00688840, CSpellManager::CSpellManager);
 
-// --- CParty -------------------------------------------------------------------------------------
 
 namespace {
 

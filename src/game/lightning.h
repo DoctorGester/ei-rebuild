@@ -17,7 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTexture;   // texture.h
+class CTexture;
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -89,7 +89,7 @@ public:
     int Create() override;
     // Power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
-    const char* GetClassName() override;    // "CLightning"
+    const char* GetClassName() override;
     int GetClassId() override;              // 0x1E
 
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
@@ -139,7 +139,7 @@ public:
     CLightningManager();
     // Every listed bolt released, the list emptied, then CBaseManager's destructor.
     ~CLightningManager() override;
-    const char* GetClassName() override;           // "CLightningManager"
+    const char* GetClassName() override;
     int GetClassId() override;                     // 0x35
     // A new bolt.
     CEngineObject* NewObject(int type) override;

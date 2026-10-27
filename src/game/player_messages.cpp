@@ -252,7 +252,6 @@ PartyUnitRecord* CParty::Find(int unitId) const {
     return nullptr;
 }
 
-// --- CPlayer ------------------------------------------------------------------------------------
 
 namespace {
 // Looks an object up by id (base_manager.cpp), through its game address.
@@ -419,7 +418,6 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     out_.Write(data, written.Size());
 }
 
-// --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REWRITTEN(0x0066C730, CPlayerServer::GetClassName);
 EI_REWRITTEN(0x0066C740, CPlayerServer::GetClassId);

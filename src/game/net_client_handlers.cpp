@@ -201,7 +201,6 @@ EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
 EI_REWRITTEN(0x0041E3E0, ClientDropParty);
 
-// --- Handlers ----------------------------------------------------------------------------------
 
 // The binding of this client: kept at +0x25F0, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may

@@ -43,7 +43,6 @@ std::int32_t Length(GameBuffer* b) {
 
 } // namespace
 
-// ---- Addresses --------------------------------------------------------------------------------------
 
 bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));

@@ -20,10 +20,10 @@ public:
     // CBaseManager's destructor.
     ~CPlayerManager() override;
     // The deleting destructor (slot 0).
-    int Create() override;                         // 2: CreatePlayers
-    const char* GetClassName() override;           // "CPlayerManager"
+    int Create() override;
+    const char* GetClassName() override;
     int GetClassId() override;                     // 0x2E
-    CEngineObject* NewObject(int type) override;   // 14: NewPlayer
+    CEngineObject* NewObject(int type) override;
 
     // CBaseManager's Create, its result made 0 / 1.
     BOOL CreatePlayers();
