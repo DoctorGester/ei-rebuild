@@ -153,3 +153,27 @@ Most functions are verified "ours only" with consistency checks: a wrong branch 
 the scenarios (patrol, guard, sentry, follow, aggression, fear) are the behavioural check. Floats: `double` locals for values
 the original keeps on the FPU stack, `volatile float` where it stores to a float. The area 0x005D0000-0x005DC000 is done;
 next candidates for 0x540000-0x5E0000 are in world.md, "Open items".
+
+## FearMode::Evaluate
+
+Remembers a seen object (notice 1000 / -2; `distance`
+grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
+class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
+within [Logic] RangedAttackDist (RangedRunDist while aggressive) and is walking on command or
+finds a way back 5 from it (a random point within 3, path search, the order check from the
+path's end, which must lie within 1; then kept in `fleePoint`, z 1). 3000 while it sees an
+enemy; 350 in shelter (a kind 3 occluder at the unit, a small or non-0 size class unit, or at
+the last shelter). With `flag` the nearest player unit in sight inside `distance` is noticed.
+Then noticedLevel / 6 when it is above 50 and the mode is in charge or the noticed point is
+within `distance`; else `distance` moves a 31st back to the default and -1000.
+
+## AIBrain::ApplyBehaviour
+
+The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic]
+CallForHelpRadius) and alert mode taken; type 1 guards the record's point, 5 the point of world alarm
+`slot`, 3 a sentry there, 2 patrols (each patrol's start on its half-cell's middle, its waypoints as
+looks from there; without `loop` the points are walked back too), 4 the party's Player mode. Except for
+types 0 and 4 the reaction (`alarm`) adds Aggression (0) or Revenge (1) with Suspection, CorpseWatcher
+and Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm (kind, `slot`,
+countdown at least 1, not alerted), no action or target, the attack options rebuilt, and with flag bit
+3 the unit joins the world's update map.

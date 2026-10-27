@@ -1,27 +1,10 @@
 #pragma once
 
-// Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering")
-// behind the flag ei::rebirth::Patch::WideScreen. With the starter's Settings\WideScreen on (DWORD, 1 when
-// absent) and the starter's EvilIslands\General Settings\VIDEORESOLUTION ("WxH") a valid mode wider than 4:3,
-// addon widens the 800x600 interface layout: the 4:3 part of the screen keeps the 800x600 layout in the middle
-// (width43 = H * 800 / 600 pixels) and the margins left and right of it (margin pixels each) add `extra`
-// layout units on either side. addon computes these once, when it applies its patches before WinMain, from
-// the registry (not from the game's screen), and so does this module (Startup, before the hooks are
-// installed). Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
-// scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
-// them without it; every one is without the margin when called with ECX 0), CUiRegion::SetRect / AddPoint and
-// the sprites' Place (x + the panel offset); the sprite shapes (x moved by the panel offset), the text extent
-// (TextExtentToLayout), and the places addon scales without the margin (ECX 0: the text surfaces' draw, the
-// edit field, the connection list, the save / load list, the chat line and the tooltip with its right edge
-// LayoutRight; CInterface3D::CallScale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
-// panel, the weapon bar, the quick items, the action and spell columns, the clock, the movement panel:
-// ui_hud_*.cpp) set the panel offset (EnterLeftPanel / EnterRightPanel / LeavePanel) and move their layout
-// constants by EdgeShift; the projection's x scale (the axis swap: AxisScale), the interface fonts' size
-// (CInterface3D::Create: FontScale), the screen backdrop at the mode's size (DrawOverlays), the drags scaled
-// without the margin (the camera's and the global map's mouse moves), the global map's pick picture read
-// without the margin (through addon's 9 bytes: PickShift), the curtains over the margins of the camp and the
-// multiplayer hero screen and the tutorial messages' frames moved with the panels. With the flag off, or a
-// mode addon would refuse, everything is the original's.
+// Rebirth's WideScreen patch behind the flag ei::rebirth::Patch::WideScreen (docs/notes/rebirth.md, "Widescreen and
+// rendering"). With a valid mode wider than 4:3 the 800x600 interface layout is widened: the 4:3 part of the screen keeps
+// the layout in the middle (width43 = H * 800 / 600 pixels) and the margins left and right of it add `extra` layout units
+// on either side. With the flag off, or a mode addon would refuse, everything is the original's. The list of what moves
+// is in docs/notes/rebirth.md, "WideScreen module overview".
 
 #include <windows.h>
 

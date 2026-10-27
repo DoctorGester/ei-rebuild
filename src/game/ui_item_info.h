@@ -1,13 +1,10 @@
 #pragma once
 
-// The item description panel of the camp, the multiplayer hero screen and the exchange window
-// (see docs/notes/ui.md, "Item descriptions"). Names provisional.
-// The panel is a CUiWindow with one surface (200 x 300 at the layout point x_, y_) on which it writes
-// what the mouse is over: an item (DescribeItem puts it in the panel's item list and describes it,
-// dispatching on the item's kind), a statistic of the hero or the level-up page or a camp help topic.
-// Its draw virtual draws the described item's model through the owner screen (ui_item_view.cpp).
-// Every description writes into the surface with the same layout: the title wrapped in white at
-// (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
+// The item description panel of the camp, the multiplayer hero screen and the exchange window (docs/notes/ui.md, "Item
+// descriptions"). A CUiWindow with one surface (200 x 300 at the layout point x_, y_) on which it writes what the mouse is
+// over: an item (DescribeItem), a statistic of the hero or the level-up page, or a camp help topic. Its draw draws the
+// described item's model through the owner screen (ui_item_view.cpp). Every description writes the title wrapped in white
+// at (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
 
 #include "core_refcount.h"
 #include "item.h"

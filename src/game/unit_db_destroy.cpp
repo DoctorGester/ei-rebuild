@@ -1,11 +1,7 @@
-// Lifetime of the unit databases (docs/notes/units.md): the unit database (constructor, destructor), its
-// prototype /
-// NPC / model tables alone, the record destructors and the skill database. All are thiscall (or fastcall) with no
-// arguments; the destructors run at exit (from the dynamic atexit functions) and when the database file
-// changes (the
-// resource reload destroys each table, constructs the database again and loads it); the record destructors
-// also from
-// the tables' erase / reallocation code.
+// Lifetime of the unit databases (docs/notes/units.md): the unit database (constructor, destructor), its prototype / NPC /
+// model tables alone, the record destructors and the skill database. The destructors run at exit and when the database file
+// changes (the resource reload destroys each table, constructs the database again and loads it); the record destructors
+// also from the tables' erase / reallocation code.
 #include "unit_db.h"
 
 

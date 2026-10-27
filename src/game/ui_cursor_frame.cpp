@@ -1,19 +1,7 @@
-// The software mouse cursor in the frame (thiscall on the cursor object; called
-// by the frame function after the scene and the interface, before the present, when the
-// display option's software cursor bit (the renderer's +4 bit 0) is set). The DirectDraw version copies the
-// cursor's screen rectangle (updated) from the render target into the background
-// surface, combines the cursor image (the part `from_` of it) with it in the composition surface
-// ((background & mask) | image) and copies that back to the render target; `drawn_`
-// keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
-// renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
-// ("Cursor") and docs/notes/renderer.md.
-// Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
-// thread (redraws the cursor on the primary every 41 ms between frames) and the background
-// save. The cursor's holders have no DirectDraw surface: the background saves,
-// the composition the holder blits are left out (the two
-// ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
-// presenting the last frame again (render::CursorBetweenFrames);
-// not while the image is hidden (the movie players and the loading screen hide it).
+// The software mouse cursor in the frame: the image and its mask for the cursor's rectangle go to the new renderer
+// (render::Cursor), which draws it in every frame it presents; the cursor thread moves it between frames by presenting
+// the last frame again (render::CursorBetweenFrames), not while the image is hidden. The DirectDraw background saves
+// and composition are left out. See docs/notes/ui.md, "Cursor", and docs/notes/renderer.md.
 #include "model.h"
 #include "ui_cursor.h"
 #include "texture.h"

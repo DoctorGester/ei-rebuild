@@ -341,3 +341,17 @@ they depend on.
 - E:\workspace\ei\src\game\ui_text_draw.cpp (005FDE20 / 005F8340; W2 conflict) and E:\workspace\ei\src\game\ui_text.cpp (005FDFA0)
 - E:\workspace\ei\src\game\ui_surface_blit.cpp, E:\workspace\ei\src\game\ui_surface_dc.cpp, E:\workspace\ei\src\game\ui_surface_frame.cpp, E:\workspace\ei\src\game\ui_surface_pixels.cpp, E:\workspace\ei\src\game\ui_surface_create.cpp
 - E:\workspace\ei\src\game\ui_interface_draw.cpp (frame order, backdrop / greyscale / save picture), E:\workspace\ei\src\game\ui_interface_create.cpp (fonts), E:\workspace\ei\src\game\ui_global_map_places.cpp (pick picture)
+
+## Overview of the surface canvases
+
+The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
+family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status so far) gets a
+canvas for its holder when it is made (Adopt), and the surface functions record their drawing on it
+beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
+truth (a lost device brings canvases back black). The blit draws the canvas when
+render::ui::DrawsCanvas says so.
+Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
+greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
+canvas back, which the code that reads or draws the memory on the CPU calls first (GetDC, PixelAt,
+Rgb565Copy, SwapContents). Without a "ui" word in EI_RENDER nothing is adopted and every function here
+does nothing.

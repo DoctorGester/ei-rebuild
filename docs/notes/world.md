@@ -421,3 +421,15 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   exe's bits; and under /fp:fast a `constexpr float` initialised with an inexact constant expression (`1.0f / 65534.0f`)
   is folded at double precision where it meets a double, so write such constants as exact fractions or bit patterns with a
   static_assert on the bits.
+## Zone state block
+
+Patched by Rebirth, so hooked in the vanilla launch only: the player's client reaches it through
+its address. The zone's state block: the flow acknowledges the server, sounds stop, then from
+`block` the tick, the map and .mob names, the exits, the cave flag and the unit looks; the local
+server makes sure it has the zone; the ground prints, ResetZoneObjects, ClearMaps, the items and
+spells and the idle particle sources go; the terrain loads the map (a name without a drive from
+the maps folder) with the allod of the local player's zone, the sector grids take its size (cells
+of 16), the sky, lights table, exit markers, lighting and music follow the cave flag, the local
+server's pending messages are appended to the view's, the unit skins are built and the view
+resumes. Loading movie steps 8-11, then closed. Returns 1, or the result of the fatal error when
+the map does not load.

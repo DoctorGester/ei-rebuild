@@ -1,12 +1,6 @@
-// The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel):
-// their layouts at the current slide offset, their per-frame updates
-// (Update) and their setups.
-// Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (
-// ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
-// offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
-// Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
-// through their addresses. See ui.h ("Battle screen and its HUD panels"), docs/notes/items_spells.md
-// and docs/notes/rebirth.md ("WideScreen").
+// The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel): their layouts at the
+// current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
+// reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
 #include "game_strings.h"
 

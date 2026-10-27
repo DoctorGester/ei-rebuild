@@ -1,16 +1,9 @@
-// The rain and snow draws of the world's rain / snow layer: two functions,
-// thiscall with the scene renderer, returning 1; the layer's draw
-// (weather_draw.cpp) calls the one of the mode after the fade's step and the texture's bind.
-// Both walk the 81 x 81 cells (half a unit apart) around the point the wind carries a particle to
-// the camera from. A cell's place gives a 16-bit number; with the world's time it gives the cycle
-// the cell's particle is in (a rain drop falls for 200 ticks, a snowflake for 1000) and how far it
-// has fallen. `density` of 64 cycles show a particle; the cycle also shifts it within the cell and
-// picks one of the texture's four frames. The corners go to the transform library as packets of
-// four, the ones on screen become pre-transformed triangles drawn with the device's current state.
-// Kept as the game has it: the vertices' colour and specular are never written (what the
-// buffer held stays, the distance fog only lowers the specular's alpha), the packets' w neither;
-// the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number
-// would loop forever in the rain's wrap. See docs/notes/renderer.md, section 12.
+// The rain and snow draws of the world's rain / snow layer (weather_draw.cpp calls the one of the mode): both walk the 81 x 81
+// cells (half a unit apart) around the point the wind carries a particle to the camera from; a cell's place and the
+// world's time give its particle's cycle and fall, `density` of 64 cycles show one. See docs/notes/renderer.md, section 12.
+// Kept as the game has it: the vertices' colour and specular are never written (what the buffer held stays, the distance
+// fog only lowers the specular's alpha), the packets' w neither; the rain's height uses the snow's rise (kSnowRise; both
+// are 40); a height that is not a number would loop forever in the rain's wrap.
 #include "effects.h"
 
 #include "ai_motion.h"

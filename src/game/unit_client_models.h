@@ -183,15 +183,7 @@ public:
     // animation has no such node (`out` untouched).
     bool WeaponPoint(Vector3* out);
 
-    // Virtual slot 6, the per-tick update on the client: the motion order's times
-    // shift by one tick while +0x260 is 1, +0x258 counts while +0x25C is 1, the weapon in hand is
-    // hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags_ 8 (not
-    // drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
-    // one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
-    // goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown;
-    // the blink (+0xD0: every 2..9 ticks); the bow's arrow;
-    // the step sounds; the speech queue; for +0x255 == -2 with animation
-    // state +0x50 below 3, (0). Returns 1.
+    // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update". Returns 1.
     int RunTick() override;
     // The blink. With a face texture and a skin texture (the client half's material), unless the eyes
     // already are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
@@ -246,15 +238,8 @@ public:
     // plays it (`play`) or queues it.
     void StartIdleAnimation(std::uint8_t play);
 
-    // Virtual slot 46 (StatChanged), a hit on body location `location` (0 head .. 5 right leg) of
-    // strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
-    // "weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
-    // kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
-    // heroes the first armour worn over the location as "stone" (crystal, bone, stone),
-    // "Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd", "lh2",
-    // "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
-    // 0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
-    // rand offsets within the unit's size, a rand variant).
+    // StatChanged: a hit on body location `location` (0 head .. 5 right leg) of strength `amount`; the hit sound and blood
+    // particles; see docs/notes/units.md, "StatChanged on the client".
     void StatChanged(int location, float amount, std::uint32_t flags) override;
     // Virtual slot 47 (Wound; the argument is not read): sparks (particles 0x2043, 10 alpha)
     // attach to the unit, sized by its radius; the parts flash unless they are
@@ -309,16 +294,8 @@ public:
     // Virtual slot 35: the weapon slot holding `id` is emptied. False (AL) when none does.
     bool RemoveWeaponModel(std::uint32_t id) override;
 
-    // The sounds of the animation playing between the last update's frame
-    // (+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
-    // moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
-    // 1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
-    // 1000, idles and hits at 0; walk / run (0x100000 / 0x140000) at a step frame play the footstep
-    // of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
-    // +0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
-    // the model's +0x11C) through the client world. An attack's sound waits for the
-    // speech sound and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
-    // animation and frame.
+    // The sounds of the animation playing between the last update's frame and now (attacks, deaths, skills, idles, hits,
+    // footsteps); see docs/notes/units.md, "Animation sounds".
     void PlayStepSounds();
     // The footstep sound on ground kind `terrain` into `out` (CString::Format), for units
     // whose prototype's model has sounds for it (+0x144 counts): on a platform 0.01 or more away

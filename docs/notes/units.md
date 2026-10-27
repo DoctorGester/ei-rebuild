@@ -383,3 +383,52 @@ models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and
 zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
 (net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways
 ("object3d_figure_setup part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.
+## CUnitClientModels per-tick update
+
+Virtual slot 6, the per-tick update on the client: the motion order's times
+shift by one tick while +0x260 is 1, +0x258 counts while +0x25C is 1, the weapon in hand is
+hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags_ 8 (not
+drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
+one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
+goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown;
+the blink (+0xD0: every 2..9 ticks); the bow's arrow;
+the step sounds; the speech queue; for +0x255 == -2 with animation
+state +0x50 below 3, (0). Returns 1.
+
+## StatChanged on the client
+
+Virtual slot 46 (StatChanged), a hit on body location `location` (0 head .. 5 right leg) of
+strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
+"weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
+kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
+heroes the first armour worn over the location as "stone" (crystal, bone, stone),
+"Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd", "lh2",
+"rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
+0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
+rand offsets within the unit's size, a rand variant).
+
+## Animation sounds
+
+The sounds of the animation playing between the last update's frame
+(+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
+moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
+1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
+1000, idles and hits at 0; walk / run (0x100000 / 0x140000) at a step frame play the footstep
+of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
++0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
+the model's +0x11C) through the client world. An attack's sound waits for the
+speech sound and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
+animation and frame.
+
+## Creation helpers
+
+Slot 14's body: a new object of class id `classId`
+(0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
+other ids.
+Gives `unit` the starting equipment of prototype
+`name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
+slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
+weapon (unless named "none" or empty; the slot it lands in becomes +0x270) and the second
+weapon; every unit gets each spell. A piece that cannot be made gets a FatalError message
+(a weapon is added even then: AddWeapon(null) returns 0, so +0x270 becomes 0). Without the
+prototype a FatalError message and 0; else 1.

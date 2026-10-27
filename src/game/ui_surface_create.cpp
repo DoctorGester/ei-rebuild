@@ -1,13 +1,7 @@
-// The window surface's constructors and destructor (CUiSurface): one for a window showing an .mmp
-// picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
-// taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
-// (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
-// surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
-// DirectDraw surface, only the new renderer's memory (dx_surface.cpp): the surface is already zero (a new DIB
-// section), so the colour fill is left out, and the descriptions the surface-bytes total takes come from that
-// memory, for picture windows as well. Making a window asks DirectDraw for nothing. (The picture constructor
-// has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's
-// allocation throws (freeing the holder's memory) is not reproduced: that throw ends the game.
+// The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface, only the new
+// renderer's memory (dx_surface.cpp): the surface is already zero, so the original's colour fill is left out. Making a
+// window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv). See docs/notes/ui.md,
+// "Surface construction".
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"

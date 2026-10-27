@@ -1,12 +1,6 @@
-// The battle HUD's unit panel: its draw (CHudUnitPanel).
-// Rebirth patches it for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
-// the panel offset while it draws (until the window's base draw), the model's x moved left by
-// EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
-// too (the sprites' Place, the layout scaling) are called through their
-// addresses. The function drives
-// the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
-// made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
-// See ui.h (CHudUnitPanel) and docs/notes/items_spells.md.
+// The battle HUD's unit panel: its draw (CHudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
+// the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
+// new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
 #include "device.h"   // the old device's calls
 #include "ui.h"
 

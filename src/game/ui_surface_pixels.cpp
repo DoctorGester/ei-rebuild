@@ -1,11 +1,7 @@
-// The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5
-// copy of a surface at a given size (the save game's picture) and greying a surface in place (the escape
-// menu's background). The escape menu's drawing (Rebirth-patched) runs all three when the menu opens. See
-// docs/notes/ui.md, "Item descriptions, item view". These work on the surfaces' memory (the new renderer's;
-// the holders have no DirectDraw surface) directly (DirectPixels): no Lock, the screen copy from the new
-// renderer's frame, the stretched copy on the CPU. A holder without that memory (none is made) is left alone.
-// A native surface (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative
-// instead of in its memory), and its canvas is read back before its memory is read or kept.
+// The interface surfaces' pixel work (CUiSurface): copying the screen into a surface, a 16-bit 5:6:5 copy of a surface at
+// a given size (the save game's picture) and greying a surface in place (the escape menu's background), on the surfaces'
+// memory directly (DirectPixels). A native surface (ui_native.h) gets the screen copy and the greying on its canvas too.
+// See docs/notes/ui.md, "Surface pixel work".
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"

@@ -1,13 +1,7 @@
-// The item description panel: what the camp, the multiplayer hero screen and
-// the exchange window write about the item or statistic under the mouse. See ui_item_info.h and
-// docs/notes/ui.md ("Item descriptions").
-// Each function draws text lines into the panel's surface 0 between Begin and End Text
-// (Rebirth-patched, called through its address) for single lines and DrawWrappedText for the wrapped
-// title and description. Values the game truncates with its _ftol are converted the same way; values
-// of the statistics functions (UnitStats, WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated
-// as they come back in ST0: the ones the original leaves unrounded are declared double there, so no
-// rounding happens in between. Compiled with precise floating point so that products keep the
-// original's order.
+// The item description panel: what the camp, the multiplayer hero screen and the exchange window write about the item or
+// statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions"). Values the game truncates with its
+// _ftol are converted the same way; the statistics functions' results that the original leaves unrounded are declared
+// double, so no rounding happens in between. Compiled with precise floating point so that products keep the original's order.
 #include "party.h"
 #include "ui_screens.h"
 #include "text_reader.h"

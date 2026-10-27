@@ -518,14 +518,6 @@ EI_REWRITTEN(0x006337B0, CDifficultyBox::CreateScreen);
 // --- Titles ----------------------------------------------------------------------------
 
 namespace {
-// Not rewritten: the loading screen steps it; one call stops the music, another
-// shows or hides the cursor on the renderer; one plays the
-// movies listed under a section (a flag clears the screen first; then clear-after and two values
-// on the stack); one (on a CString) drops its CRs (Remove 0x0D); two construct the scrolling text surface
-// (0x58 bytes: interface, RECT*) and a plain one; one returns the display object; one (the player) starts a
-// movie. The tokenizer (start / next word; null at the end) splits a CString at
-// movie. The tokenizer (start / next word; null at the end) splits a CString at
-// a separator.
 CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {

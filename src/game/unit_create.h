@@ -82,16 +82,8 @@ struct CMapObjectManager : CResourceManager {
     CEngineObject* CreateObject(int classId, int id) override;   // CreateMapObject
     const char* GetFolderName() override;                   // "map objects"
 
-    // Slot 14's body: a new object of class id `classId`
-    // (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
-    // other ids.
-    // Gives `unit` the starting equipment of prototype
-    // `name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
-    // slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
-    // weapon (unless named "none" or empty; the slot it lands in becomes +0x270) and the second
-    // weapon; every unit gets each spell. A piece that cannot be made gets a FatalError message
-    // (a weapon is added even then: AddWeapon(null) returns 0, so +0x270 becomes 0). Without the
-    // prototype a FatalError message and 0; else 1.
+    // A new object of class id `classId` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
+    // for other ids. The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
     // The base manager's Create (0 when it fails), then the archive

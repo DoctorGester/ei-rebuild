@@ -60,16 +60,10 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// An item's texture name (an armour's: out, material index, armour index; a weapon's: out, weapon record, material
-// record); the weapon and material records are the tables' At: WeaponAt / MaterialAt. The 12-byte record list of a
-// unit's textures (filled by UnitTextureRecords): its constructor (allocator) and destructor. The texture
-// set's byte
-// array: destructor, allocation. The texture cache: build a composite texture
-// (CTextureManager::Compose: out name, set, name, name, 3, 0, 0x5551) and register it (kind, name). The second
-// list:
-// the unit's texture names from its prototype (unit in ECX, record +4 in EDX; record +0x10, names, more names);
-// vector<string> members: constructor, copy into new storage (count, first, last), element destructors, storage
-// free, push_back's copy and overflow, range insert; the node allocator.
+// An item's texture name (an armour's: out, material index, armour index; a weapon's: out, weapon record, material record);
+// the 12-byte record list of a unit's textures and its allocator; the texture set's byte array; the texture cache: build
+// a composite texture (CTextureManager::Compose) and register it; the unit's texture names from its prototype; the
+// vector<string> members the texture lists use.
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
 
 // --- The dressed units ---------------------------------------------------------------------------

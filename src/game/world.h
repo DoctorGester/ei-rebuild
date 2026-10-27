@@ -1271,16 +1271,9 @@ public:
     // them), the second grid's cells cleared (counted elements released), every timed object released,
     // the bird reset.
     void ResetZoneObjects();
-    // Patched by Rebirth, so hooked in the vanilla launch only: the player's client reaches it through
-    // its address. The zone's state block: the flow acknowledges the server, sounds stop, then from
-    // `block` the tick, the map and .mob names, the exits, the cave flag and the unit looks; the local
-    // server makes sure it has the zone; the ground prints, ResetZoneObjects, ClearMaps, the items and
-    // spells and the idle particle sources go; the terrain loads the map (a name without a drive from
-    // the maps folder) with the allod of the local player's zone, the sector grids take its size (cells
-    // of 16), the sky, lights table, exit markers, lighting and music follow the cave flag, the local
-    // server's pending messages are appended to the view's, the unit skins are built and the view
-    // resumes. Loading movie steps 8-11, then closed. Returns 1, or the result of the fatal error when
-    // the map does not load.
+    // The zone's state block: the flow acknowledges the server, then the tick, map and .mob names, exits, cave flag and unit
+    // looks are read, the terrain loads the map and the view resumes. Returns 1, or the result of the fatal error when the map
+    // does not load. See docs/notes/world.md, "Zone state block".
     int LoadZone(CStream* block);
     // The local session takes a new link: the single-player loopback pair for `player` (CWorld's
     // teardown first), a replay of the recording `path`, or a driver for the game client's first

@@ -1,12 +1,7 @@
-// The save / load window's saving, its entry list and the selected save's picture. See ui.h
-// (CSaveLoadWindow) and docs/notes/renderer.md (section 11). The window shows two 256x256 5:6:5 textures (a
-// CTexture with its holder): objects_[1], into which ShowPicture reads the selected save's shot.sav (256x192
-// pixels), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
-// screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
-// the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
-// Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
-// given by the texture manager; dx_surface.cpp, render::SurfaceMemory): written into and read from that memory
-// with no Lock (DirectPixels).
+// The save / load window's saving, its entry list and the selected save's picture (ui.h, CSaveLoadWindow). The window shows
+// two 256x256 5:6:5 textures; the 0x18000 bytes of a 256x192 picture are one block from the start of the pixels (a pitch
+// of 512 bytes is taken for granted). The pixels live only in the new renderer's memory, written and read with no Lock
+// (DirectPixels). See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 11.
 #include "app.h"
 #include "app_helpers.h"
 #include "lib/mfc_time.h"

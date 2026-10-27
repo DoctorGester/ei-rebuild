@@ -776,3 +776,138 @@ client's, cleared) and the partner's, then the children: the description panel a
 party's item strip (forwarding, action 1, items), the players' figure strip (top, no arrow tips), the trade
 grid over both offers (mode 5) and the money field (0..200 x 0x15E..0x16E, empty), and four 200-wide
 surfaces.
+
+## Container draws
+
+Interface draws that still talked to the old Direct3D device without handing anything to the new
+renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
+- the container windows' base draw (CUiContainer): stage-0 state block
+  applied, then the window's own sprites and models and its enabled children;
+- the draws of interface screens 3 the base / briefing screen,
+and 2: the menu frame step, (screen 3) a mouse move to the input
+  side, a depth clear, then the children;
+- the hero equipment panel's draw (CHeroEquipPanel): the two
+  highlight frames placed, the quick slots' item models, and with the body (the camp) the seven
+  equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
+  afterwards), as the hero preview and the trade grid do;
+- the alpha reference set to the window's +0x1EC.
+Every state set goes to render::state too; every depth clear to render::ClearDepth. In the
+switch-over (`present`) the old device's clears are left out: nothing the old path still draws
+there reads its depth buffer (its interface and world meshes are off). The item models go through
+and the mesh draws, which hand over already.
+
+## Cursor in the frame
+
+The software mouse cursor in the frame (thiscall on the cursor object; called
+by the frame function after the scene and the interface, before the present, when the
+display option's software cursor bit (the renderer's +4 bit 0) is set). The DirectDraw version copies the
+cursor's screen rectangle (updated) from the render target into the background
+surface, combines the cursor image (the part `from_` of it) with it in the composition surface
+((background & mask) | image) and copies that back to the render target; `drawn_`
+keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
+renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
+("Cursor") and docs/notes/renderer.md.
+Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
+thread (redraws the cursor on the primary every 41 ms between frames) and the background
+save. The cursor's holders have no DirectDraw surface: the background saves,
+the composition the holder blits are left out (the two
+ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
+presenting the last frame again (render::CursorBetweenFrames);
+not while the image is hidden (the movie players and the loading screen hide it).
+
+## Battle HUD corner panels
+
+The battle HUD's two corner panels, the game clock (CHudClock) and the movement panel
+(CHudMovePanel): their setups, which make the panels' sprites and their
+regions about the layout's bottom corners.
+Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
+the clock at the screen's right edge, the movement panel at its left (the panel offset while
+they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
+Place and SetTriangle, the regions' AddPoint, the panel's ShowMode)
+are called through their addresses. See ui.h ("Battle screen and its HUD panels"),
+docs/notes/items_spells.md and docs/notes/rebirth.md ("WideScreen").
+
+## Battle HUD sliding panels
+
+The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel):
+their layouts at the current slide offset, their per-frame updates
+(Update) and their setups.
+Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (
+ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
+offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
+Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
+through their addresses. See ui.h ("Battle screen and its HUD panels"), docs/notes/items_spells.md
+and docs/notes/rebirth.md ("WideScreen").
+
+## Battle HUD unit panel draw
+
+The battle HUD's unit panel: its draw (CHudUnitPanel).
+Rebirth patches it for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
+the panel offset while it draws (until the window's base draw), the model's x moved left by
+EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
+too (the sprites' Place, the layout scaling) are called through their
+addresses. The function drives
+the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
+made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
+See ui.h (CHudUnitPanel) and docs/notes/items_spells.md.
+
+## Item description drawing
+
+The item description panel: what the camp, the multiplayer hero screen and
+the exchange window write about the item or statistic under the mouse. See ui_item_info.h and
+docs/notes/ui.md ("Item descriptions").
+Each function draws text lines into the panel's surface 0 between Begin and End Text
+(Rebirth-patched, called through its address) for single lines and DrawWrappedText for the wrapped
+title and description. Values the game truncates with its _ftol are converted the same way; values
+of the statistics functions (UnitStats, WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated
+as they come back in ST0: the ones the original leaves unrounded are declared double there, so no
+rounding happens in between. Compiled with precise floating point so that products keep the
+original's order.
+
+## Save / load window pictures
+
+The save / load window's saving, its entry list and the selected save's picture. See ui.h
+(CSaveLoadWindow) and docs/notes/renderer.md (section 11). The window shows two 256x256 5:6:5 textures (a
+CTexture with its holder): objects_[1], into which ShowPicture reads the selected save's shot.sav (256x192
+pixels), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
+screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
+the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
+Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
+given by the texture manager; dx_surface.cpp, render::SurfaceMemory): written into and read from that memory
+with no Lock (DirectPixels).
+
+## Surface blit
+
+A window surface's draw (CUiSurface::Blit; called by CUiWindow's surface pass and the interface's draw for
+the backdrop and the frame rate surface): when the surface exists and is shown (flags_ bit 4), the part of
+its screen rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
+surface (holder_) onto the render target (the holder's device object's renderTarget_): with the matching
+source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
+when bit 1 is set. Nothing when the surface is the render target itself. The new renderer (src/render)
+takes the blit (render::SurfaceBlit); the holder has no DirectDraw surface, only the new renderer's memory
+(the original's Blt is gone with the DirectDraw fallback). A native surface (ui_native.h) can draw its
+canvas instead. See docs/notes/renderer.md and docs/notes/ui-native.md.
+
+## Surface construction
+
+The window surface's constructors and destructor (CUiSurface): one for a window showing an .mmp
+picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
+taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
+(Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
+surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
+DirectDraw surface, only the new renderer's memory (dx_surface.cpp): the surface is already zero (a new DIB
+section), so the colour fill is left out, and the descriptions the surface-bytes total takes come from that
+memory, for picture windows as well. Making a window asks DirectDraw for nothing. (The picture constructor
+has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's
+allocation throws (freeing the holder's memory) is not reproduced: that throw ends the game.
+
+## Surface pixel work
+
+The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5
+copy of a surface at a given size (the save game's picture) and greying a surface in place (the escape
+menu's background). The escape menu's drawing (Rebirth-patched) runs all three when the menu opens. See
+docs/notes/ui.md, "Item descriptions, item view". These work on the surfaces' memory (the new renderer's;
+the holders have no DirectDraw surface) directly (DirectPixels): no Lock, the screen copy from the new
+renderer's frame, the stretched copy on the CPU. A holder without that memory (none is made) is left alone.
+A native surface (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative
+instead of in its memory), and its canvas is read back before its memory is read or kept.

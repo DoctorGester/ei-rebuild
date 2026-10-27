@@ -1,16 +1,9 @@
 #pragma once
 
-// The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
-// family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status so far) gets a
-// canvas for its holder when it is made (Adopt), and the surface functions record their drawing on it
-// beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
-// truth (a lost device brings canvases back black). The blit draws the canvas when
-// render::ui::DrawsCanvas says so.
-// Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
-// greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
-// canvas back, which the code that reads or draws the memory on the CPU calls first (GetDC, PixelAt,
-// Rgb565Copy, SwapContents). Without a "ui" word in EI_RENDER nothing is adopted and every function here
-// does nothing.
+// The interface surfaces drawn on GPU canvases (docs/notes/ui-native.md, "P1"). A surface of a family EI_RENDER's "uiboth" /
+// "uinative" lists gets a canvas when it is made (Adopt); the surface functions record their drawing on it beside GDI and
+// the CPU code, and the memory stays the source of truth. Without a "ui" word in EI_RENDER nothing is adopted and every
+// function here does nothing. See docs/notes/ui-native.md, "Overview of the surface canvases".
 
 #include <windows.h>
 
