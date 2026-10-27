@@ -1,4 +1,4 @@
-// A region's tooltip (CUiRegion, ui.h): made from a text id ("tip <id>" in the texts, 005FC730)
+// A region's tooltip (CUiRegion, ui.h): made from a text id ("tip <id>" in the texts)
 // or a string, its text changed, and the region's contents released
 //. Every screen and HUD panel builder gives its regions tooltips. See
 // docs/notes/ui.md ("Interface manager and window base").

@@ -16,7 +16,7 @@ namespace {
 const char* PersonPattern() { return "pers *"; }
 constexpr int kPersonPrefixLength = 5;                                               // "pers "
 
-// What 00609E70 inserts: the key and the text.
+// What the insert puts in: the key and the text.
 struct PersonTextPair {
     int key;
     mfc::CString text;

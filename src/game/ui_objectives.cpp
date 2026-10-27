@@ -69,8 +69,8 @@ MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); 
 // Finds text `key`; non-zero when found (the cursor at its start).
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
-// The quest the window last selected (a global CString): built empty by the static initialiser 0064BE00 in the list's
-// order, destroyed once by the exit function it registers (guard bit in 007C8174). Both are ported on the names and
+// The quest the window last selected (a global CString): built empty by its static initialiser in the list's
+// order, destroyed once by the exit function it registers. Both are ported on the names and
 // registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
@@ -86,14 +86,14 @@ void __cdecl DestroyLastQuest() {
     g_lastQuest.Destroy();
 }
 
-// 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
+// Not rewritten: splits `text` at `separator` into `out`.
 
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
-    VariableTable() { table_.ConstructDefault(); }   // 00609C10 with 100 buckets
+    VariableTable() { table_.ConstructDefault(); }   // with 100 buckets
     void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
-    ~VariableTable() { table_.Destroy(); }   // inlined: every node's key released, then the buckets
+    ~VariableTable() { table_.Destroy(); }   // every node's key released, then the buckets
 
     NamedFloatTable::Node* First() const { return table_.First(); }
     NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const { return table_.Next(node); }
@@ -128,13 +128,13 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The window's exit list: CArray<ObjectiveExit> at +0x188 (SetAtGrow 0064F160).
+// The window's exit list: CArray<ObjectiveExit> at +0x188.
 
 // The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;
 using DistanceNode = DistanceMap::Node;
 
-// A surface's text (005FDE20, Rebirth-patched).
+// A surface's text (Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
@@ -387,9 +387,9 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 namespace {
 
 // The text reader's line steps (text_reader.cpp; called through their addresses).
-// The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
-// [0065CFE0].
-// The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
+// The quest log (the window's first child): clear, set the text
+// (called through their addresses).
+// The quest database's index (map<string, record*>): operator[], creating an
 // empty slot for a name it lacks.
 QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
@@ -722,7 +722,7 @@ EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);
 
-// --- 0064BE40 / 0064D990 (A-H25): what the window is opened for, and its help topic --------------------
+// --- What the window is opened for, and its help topic --------------------
 
 namespace {
 const char* const kGlobalMapTopic = "quest_global_map";
