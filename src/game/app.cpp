@@ -1,7 +1,6 @@
 // Application helpers around WinMain: window procedure, input dispatcher,
 // message pump and the start of the first map. See app.h.
-// Callees patched by Rebirth (0057C700, 00595480, FatalError) are reached through their
-// fixed addresses.
+// Callees patched by Rebirth (the fatal-error path among them) are reached through their fixed addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
 #include "console.h"

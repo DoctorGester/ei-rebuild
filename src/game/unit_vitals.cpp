@@ -60,8 +60,8 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// base ^ (ln(experience / divisor) / ln(logBase)), computed as: FYL2X with FLDLN2 for both logarithms and
-// the CRT's _CIpow (ST1 ^ ST0). Returned unrounded.
+// base ^ (ln(experience / divisor) / ln(logBase)), computed as FYL2X with FLDLN2 for both logarithms and the
+// CRT's _CIpow (ST1 ^ ST0). Returned unrounded.
 double ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
     return libcrt::CiPow(*base, x87::flog(static_cast<double>(*experience) / *divisor) / x87::flog(*logBase));
 }

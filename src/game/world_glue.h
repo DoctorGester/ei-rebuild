@@ -74,9 +74,8 @@ void __stdcall GameSetServerPaused(int paused);
 void GameStopCameraRecording();
 // The client world's flag 0x10 on, then CameraOpenFile(name); its result.
 int __stdcall GameStartCameraRecording(const char* name);
-// Loads the path file (0040ECD0 with `flag`); when that works the camera plays it (flag 0x20) from now: the
-// time offset is the client time (tick + fraction) less the first key's, the key index 0. Returns 1 when
-// loaded.
+// Loads the path file (with `flag`); when that works the camera plays it (flag 0x20) from now: the time offset
+// is the client time (tick + fraction) less the first key's, the key index 0. Returns 1 when loaded.
 int __stdcall GamePlayCameraPath(const char* name, int flag);
 // Loads the path file and jumps to its first key (PlaybackStart).
 int __stdcall GameShowCameraPath(const char* name);

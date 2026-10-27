@@ -1,6 +1,5 @@
-// CWorldServer's own slots 2 and 3: Setup (0058AE10, Create) and Teardown (0058B020, Destroy).
-// WinMain calls both on the global server: Setup at start-up, Teardown at exit. See
-// world.h and docs/notes/world.md.
+// CWorldServer's own Create (Setup) and Destroy (Teardown). WinMain calls both on the global server: Setup at
+// start-up, Teardown at exit. See world.h and docs/notes/world.md.
 #include "player_messages.h"
 #include "world.h"
 #include "world_data.h"
@@ -46,7 +45,7 @@ int CWorldServer::Create() {
     if (!opened) return game::FatalError(CantOpenText());
 
     manager44_ = new CServerSpecificManager();
-    ++manager44_->refCount_;   // the original counts the reference without testing the pointer
+    ++manager44_->refCount_;   // the reference is counted without testing the pointer
     manager44_->SetContext(this);
     hoover_ = new CHoover();
     ++hoover_->refCount_;
@@ -70,7 +69,7 @@ int CWorldServer::Create() {
 }
 
 void CWorldServer::Destroy() {
-    // Every player disconnected and released (a heap iterator, as the original allocates it).
+    // Every player disconnected and released (a heap iterator).
     auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     if (PlayerList()) {
@@ -89,7 +88,7 @@ void CWorldServer::Destroy() {
 
     if (hoover_) {
         --hoover_->refCount_;
-        if (hoover_) delete hoover_;   // slot 0 with 1 (the virtual destructor)
+        if (hoover_) delete hoover_;   // the virtual destructor
         hoover_ = nullptr;
     }
     ScriptReset(MainScript());
