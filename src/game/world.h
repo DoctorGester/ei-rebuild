@@ -2,7 +2,6 @@
 
 // The world: the server side that runs the game rules (CWorldServer) and the client side that draws it and answers
 // terrain queries (CWorldClient), both derived from a common base. Class names come from the game's error strings.
-// Only the members used by the rewritten functions are declared.
 
 #include <cstddef>
 #include "options.h"
@@ -35,7 +34,6 @@
 
 #undef GetClassName
 
-// New units' orientation (a static initialiser: the identity; world_party.cpp, world_zone.cpp).
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 using BOOL = int;
@@ -95,15 +93,13 @@ struct ObjectIdMap {
     int maxId;
 
     void Set(const unsigned& key, CEngineObject* const& value);
-    // Releases every object up to the first empty entry, frees
-    // the nodes (the buckets stay) and clears maxId. The player's maps of sent objects use it too.
+    // Releases every object up to the first empty entry, frees the nodes (the buckets stay) and clears maxId.
     void ReleaseAll();
     // 100 buckets (193), maxId 0.
     void Construct();
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
-// The server world's maps of map objects (objects_, sentObjects_, mapObjects_, ...): ObjectIdMap's shape with CMapObject* values.
 struct MapObjectIdMap {
     stlp::hash_map<unsigned, CMapObject*, stlp::IntHash> map;
     int maxId;
@@ -134,7 +130,7 @@ struct PlayerIterator : ObjectListIterator {
 };
 static_assert(sizeof(PlayerIterator) == 8);
 
-// Walks an object map's values: First gives the first object or null, Next the one after it (null at the end).
+// Walks an object map's values; null at the end.
 struct ObjectMapIterator {
     stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>::Node* node;
     ObjectIdMap* table;
@@ -145,10 +141,9 @@ struct ObjectMapIterator {
 };
 static_assert(sizeof(ObjectMapIterator) == 12);
 
-// The client's flying numbers: the "numbers" texture (counted) and the list of the numbers shown.
 class CFlyingHitPoints;
 
-// A light colour of the client's tables: r, g, b and 1.
+// A light colour of the client's tables (a is 1).
 struct LightColour {
     float r, g, b, a;
 };
@@ -159,8 +154,7 @@ public:
     CWorld();
     ~CWorld() override;
 
-    // The world's folders from the configured paths, the managers made and attached, the ISAAC generator seeded and the
-    // countdowns set up. Returns 1.
+    // Folders, managers, the ISAAC generator and the countdowns set up. Returns 1.
     int Create() override;
     // Every object of the spell manager gets ClearState, then the managers are deleted whatever their counts.
     void Destroy() override;
@@ -178,11 +172,9 @@ public:
     CSpellManager* SpellManager() override { return manager4C_; }
     CLinkFigureLoader* FigureLoader() override { return figureLoader_; }
 
-    // The world's own virtuals (the client adds MoveObject's override). Names and evidence: docs/notes/map_objects.md ("Virtual
-    // slot names").
+    // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
     virtual const char* TexturePath() { return nullptr; }   // the client's "textures\"
     virtual int IsServer() { return 0; }                    // the server's 1
-    // The terrain height at (x, y).
     virtual double GridHeightAt(float x, float y) = 0;
     // The server's AI map height.
     virtual double RawSurfaceHeightAt(float x, float y) = 0;
@@ -197,7 +189,7 @@ public:
     // Seconds per tick become 1 / speed (0: stopped; negative: the setting) times 1/15, keeping the time
     // of day (SetTime). The server's updates the players and weather as SetTime does.
     virtual void SetTimeSpeed(float speed);
-    // The client's managers (CLightManager among them), null in the base.
+    // The client's managers; null in the base.
     virtual CMaterialManager* MaterialManager() { return nullptr; }
     virtual CTextureManager* TextureManager() { return nullptr; }
     virtual CBaseManager* ClientLightManager() { return nullptr; }
@@ -205,7 +197,6 @@ public:
     virtual CEngineObject* ClientManager194() { return nullptr; }   // not identified
     virtual CEngineObject* ClientManager198() { return nullptr; }   // not identified
     virtual int Unused39() { return 0; }
-    // The server's FindObject: the map object manager's object with this id, or null.
     virtual CMapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
     virtual void MoveObject(CEngineObject*, const float*) {}
@@ -215,13 +206,11 @@ public:
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     void GetTime(float* hours, float* speed);
     void SetWind(const Vector3* direction, float strength);
-    // The world object with this id when it is a unit (class 0x50), else null.
     CUnit* FindUnit(int id);
     // How dark the time of day is: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by midnight.
     double NightLevel();
     // A new empty network session shared into the world's session pointer, the previous one destroyed.
     void OpenSession();
-    // The session destroyed and the pointer cleared.
     void CloseSession();
     // Stores paused_. SetServerPaused is the server's entry: EI_Plugin's Pause in mode 3 makes it a plain return.
     void SetPaused(std::uint8_t value);
@@ -232,9 +221,9 @@ public:
     std::uint8_t windDirection_[12];      // three floats; saved and loaded as they are
     std::uint32_t windStrength_;          // float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // counted (the client's from SetUpGraphics; FigureLoader returns it)
-    CPlayerManager* players_;            // player list (PlayerList returns it)
+    CPlayerManager* players_;
     CBaseManager* manager3C_;            // FigureManager
-    CMapObjectManager* manager40_;       // map objects by id (MapObjectManager; its NewObject creates one)
+    CMapObjectManager* manager40_;       // map objects by id (its NewObject creates one)
     CBaseManager* manager44_;            // SpecificManager
     CBaseManager* manager48_;            // the timed objects (spells, effects; TimedObjectManager)
     CSpellManager* manager4C_;           // the spells (SpellManager)
@@ -250,7 +239,7 @@ public:
     // skips its own ticks, and the client copies the server's flag from message 0x60, telling the HUD.
     std::uint8_t paused_;
     std::uint8_t unused_06D[0x70 - 0x6D];
-    WaterTweens countdowns_;   // the water level tweens (water_tweens.h)
+    WaterTweens countdowns_;
 };
 static_assert(offsetof(CWorld, shared5C_) == 0x5C);
 static_assert(offsetof(CWorld, updateCount_) == 0x68);
@@ -262,8 +251,7 @@ static_assert(offsetof(CWorld, players_) == 0x38);
 static_assert(offsetof(CWorld, netSession_) == 0x60);
 static_assert(offsetof(CWorld, tick_) == 0x64);
 
-// One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY
-// read them).
+// One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY).
 struct WorldAlarm {
     std::uint8_t active;
     std::uint8_t unused_01[3];
@@ -274,10 +262,9 @@ static_assert(sizeof(WorldAlarm) == 16);
 
 // The world the missiles find while they load.
 inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
-// The world server's missiles (the spells being applied): an MFC CList of counted pointers; FreeNode releases the node's missile.
+// The world server's missiles (the spells being applied), counted.
 using ProjectileList = mfc::CTypedPtrList<CSpellEffect>;
 
-// The stream the world's save and load code reads and writes is the engine's CStream; version_ is the save format version.
 using WorldStream = CStream;
 
 // CArray<T*> of counted references to engine objects of class T.
@@ -291,28 +278,22 @@ struct CountedPtrs : mfc::CArray<T*> {
 };
 using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
-// An element of the world server's shared-object list: object id, player, a third dword and an MFC CArray of counted
-// object pointers (the loot a unit left: AddSharedObject, Load through the item manager).
+// An entry of the world server's shared-object list: the loot a unit left.
 struct SharedObject {
     int objectId;
     int player;
     std::uint32_t money;                    // gold the loot adds to the finder's party
     CountedPtrs<CItem> objects;
 
-    // The three dwords, then the array by its Copy. Returns this.
     SharedObject* CopyFrom(const SharedObject* from);
-    // The body, then operator delete when bit 0 of the flags is set. Returns this.
     SharedObject* DeletingDestruct(unsigned flags);
     // Reads the entry: id, player, value, then object ids resolved by the item manager; each found
     // object is appended with a reference.
     void Load(WorldStream* stream);
 };
 static_assert(sizeof(SharedObject) == 0x20);
-// MFC CList<SharedObject>.
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The unit / party records handed around as MFC CArray<record*>: CWorldClient::
-// CreatePartyUnits, CWorldServer's unit creation, the hero screens.
 struct PartyUnitRecord;
 using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 
@@ -321,14 +302,14 @@ public:
     CWorldServer();
     ~CWorldServer() override;
 
-    // Destroy first, then the managers (CWorld::Create), the messages registry, the side-specific manager, the CHoover, the wind
-    // (1, 0, 0; strength 0.4) and the zone state cleared. Returns 1, or FatalError's result when the managers or the registry fail.
+    // Destroy first, then the managers, the messages registry, the side-specific manager, the CHoover, the
+    // wind (1, 0, 0; strength 0.4) and the zone state. Returns 1, or FatalError's result when the managers or
+    // the registry fail.
     int Create() override;
     void Destroy() override;
-    // One world update: drops disconnected players and lets the others' units wake what they hear,
-    // accepts new players, runs the players and the world tick (unless paused_), rebuilds the local
-    // players' "Heroes" group, synchronises every player (SyncPlayer; 0 drops it) and counts the update.
-    // Returns 1. A plain member as well: the main loop and the harness reach it by its address.
+    // One world update: drops disconnected players and lets the others' units wake what they hear, accepts
+    // new players, runs the players and the world tick (unless paused_), rebuilds the local players' "Heroes"
+    // group, synchronises every player (SyncPlayer; 0 drops it). Returns 1.
     int Update();
     int RunTick() override { return Update(); }
     const char* GetClassName() override;
@@ -336,8 +317,8 @@ public:
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
     int IsServer() override;
     double GridHeightAt(float x, float y) override { return GridHeight(x, y); }
-    // The server's height virtuals. RawSurfaceHeightAt: the AI map's top height at (x, y, 0). GroundHeightAt / SurfaceHeightAt:
-    // GridHeightAt / RawSurfaceHeightAt as they are.
+    // RawSurfaceHeightAt: the AI map's top height at (x, y, 0); the other two return GridHeightAt /
+    // RawSurfaceHeightAt unclamped.
     double RawSurfaceHeightAt(float x, float y) override;
     double GroundHeightAt(float x, float y) override;
     double SurfaceHeightAt(float x, float y) override;
@@ -346,11 +327,10 @@ public:
     CMapObject* ObjectWithId(int id) override { return FindObject(static_cast<unsigned>(id)); }
 
     CMapObject* FindObject(unsigned id);
-    // Creates the object a .mob record (base.kind its kind) describes: map objects and units (1, 5, 8, 9;
-    // 6 with a figure and maybe a campfire; 7) go into the object maps, the update map and the sector
-    // map; sounds (3), lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused,
-    // the message's address for an unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit
-    // without a prototype record.
+    // Creates the object a .mob record describes (base.kind): map objects and units (1, 5, 8, 9; 6 with a
+    // figure and maybe a campfire; 7) go into the object maps, the update map and the sector map; sounds (3),
+    // lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused, the message's address
+    // for an unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
     int CreateObject(mapspec::Spec* message);
     // Removes object `id` from the server: out of the sector map and every id map, its ClearState,
     // flagged 1, the command queues, every object's ForgetObject, the missiles and the players' states forget
@@ -440,16 +420,15 @@ public:
     int LoadSave(WorldStream* stream, const char* map);
     // Writes what LoadSave reads.
     void SaveWorld(WorldStream* stream);
-    // Reads the map objects SaveMapObjects wrote, registers them in the id maps
-    // and wakes them.
+    // Reads the map objects SaveMapObjects wrote, registers them in the id maps and wakes them.
     void LoadSavedMapObjects(WorldStream* stream);
     // Adds the time each player missed since its last update (plus `offset`) to its "gtime" variable.
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`. `unused` is ignored.
     void AddSharedObject(int id, int unused, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects);
-    // Before a save: every living unit refills its controller's slots and runs the controller's matching virtual with
-    // 0.
+    // Before a save: every living unit refills its controller's slots and runs the controller's matching
+    // virtual with 0.
     void PrepareSave();
     // Reads the zone's AI graph into the memory stream `out`: the 0x31415926 chunk of the .mob file when
     // there is one, else the whole <map>.grp file. 1 when found.
@@ -542,9 +521,8 @@ public:
     // zoneLoaded_) its records without a unit are dropped and the rest stored (StoreParty).
     void CollectParty(CPlayer* player, mfc::CArray<UnitPlacement>* placements);
 
-    // Moves quest items (class 0x14) from `itemArray` (a CArray of item pointers) to `list` (CPtrList):
-    // in single player only those whose description names this zone or whose id an object of the zone
-    // asks for (the object's quest-item virtuals); otherwise all.
+    // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
+    // names this zone or whose id an object of the zone asks for; otherwise all.
     void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
@@ -594,9 +572,8 @@ public:
     MapObjectIdMap updateMap_;
     // SendZone also sends the player its start (at its first unit) when set; nothing in the game sets it.
     std::uint8_t sendsStartPosition_;
-    // (LoadMap, world_map.cpp: LoadedFresh / KeepsState): CreateObject makes objects answering map
-    // IsSynchronised, sounds, lights and particle sources only with loadedFresh_ set,
-    // the other map objects only with keepsState_ set; a refused object is released.
+    // CreateObject makes objects answering IsSynchronised, sounds, lights and particle sources only with
+    // loadedFresh_ set, the other map objects only with keepsState_ set; a refused object is released.
     std::uint8_t loadedFresh_;            // the zone is not loaded from a save
     std::uint8_t keepsState_;
     std::uint8_t unused_11F;
@@ -604,26 +581,24 @@ public:
     mfc::CStringArray mobFiles_;           // .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // 0 while the game runs
     std::uint32_t lastRainBoltTick_;      // the tick of the last bolt in the rain (one per 20 ticks); saved
-    CHoover* hoover_;                     // a CHoover (object.h), counted; made by Setup, deleted by Teardown
-    // A CFileRegistry (registry.h) with the server's messages: the login handler reads "SrvErrMsg" /
-    // "WrongClientVersion" from it.
+    CHoover* hoover_;                     // counted; made by Setup, deleted by Teardown
+    // The server's messages: the login handler reads "SrvErrMsg" / "WrongClientVersion" from it.
     lib::InPlace<CFileRegistry> messages_;
     CFileRegistry* Messages() { return messages_.Get(); }
     int zoneLoaded_;                      // set by LoadMap, cleared by the teardown and a .mob file that fails to load
     int scriptsActive_;                   // non-zero: Tick runs the zone's script (set by Redeploy)
     Vector3 startPosition_;               // where joining players start
-    // The AI map (ai_map.h).
     CAIMap aiMap_;
     CAIMap* AIMap() { return &aiMap_; }
     CSectorMap* Sectors() { return &aiMap_.sectorMap; }
-    AIEventTable aiEvents_;         // the AI events (unit_ai.h: time wheel, grid)
+    AIEventTable aiEvents_;
     AIEventTable* AIEvents() { return &aiEvents_; }
-    // The zone's CScript (script.h): its globals_ hold the "Heroes" group.
+    // Its globals_ hold the "Heroes" group.
     lib::InPlace<CScript> commandsA_;
     CScript* MainScript() { return commandsA_.Get(); }
-    lib::InPlace<CScript> commandsB_;     // the second script
+    lib::InPlace<CScript> commandsB_;
     CScript* SecondScript() { return commandsB_.Get(); }
-    CDiplomacy diplomacy_;                // object_diplomacy.h
+    CDiplomacy diplomacy_;
     // The session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld updates the
     // players' "gtime" first. Joining players take it (CPlayer::sessionKind100_). Also the campaign mode
     // (in the server world): GameFlow::StartZone stores its mode here (1 battle, 2 main menu, 3 base,
@@ -642,7 +617,7 @@ public:
     CMemoryStream zoneHeader_;
     ProjectileList projectiles_;
     mfc::CTypedPtrList<CEngineObject> counted_; // counted references (released on clear)
-    SharedObjectList sharedObjects_;      // (world_save.cpp; AddSharedObject, IsObjectShared)
+    SharedObjectList sharedObjects_;
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
@@ -664,8 +639,7 @@ static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
 static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
 static_assert(offsetof(CWorldServer, zoneLoaded_) == 0x15C);
 
-// One walkable platform (bridge, deck) the client tests positions against: the element of the platform set's MFC
-// CList.
+// One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
     int id;                               // the object it belongs to (RemoveObject drops its faces)
     float x, y;                           // centre of the bounding circle
@@ -699,9 +673,8 @@ public:
     float SurfaceHeight(const Vector3* point, float height);
     // Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
-    // Used by CParticleSource::TickGroundPlane (the particles' ground plane). The highest platform
-    // surface above 0 at (x, y) (with a 0.5 margin): *height its z and *normal its normal; 0 and
-    // (0, 0, 1) when there is none.
+    // The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its z and *normal its
+    // normal; 0 and (0, 0, 1) when there is none.
     void SurfacePlane(float x, float y, Vector3* normal, float* height);
     // Adds the face with corner `a`, edges to `b` and `c` and `normal` when normal.z >= 0.8: origin a,
     // unit axes (b - a) / |b - a| and (c - a) / |c - a|, the two lengths, the normal; *out = the new
@@ -762,7 +735,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
 struct SectorCellObjects : stlp::list<CEngineObject*> {
-    // The cells' vector deleting destructor: bit 1 of `flags` means a new[] block (every list destroyed from the
+    // The vector deleting destructor: bit 1 of `flags` means a new[] block (every list destroyed from the
     // last), bit 0 frees the memory. Returns the block.
     SectorCellObjects* VectorDelete(unsigned flags);
 };
@@ -775,7 +748,7 @@ using MapObjectList = stlp::list<CMapObject*>;
 void DestroySectorList(stlp::list<CEngineObject*>* list);
 void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list);
 struct SectorGrid {
-    SectorList* cells_;                   // the lists
+    SectorList* cells_;
     SectorList** rows_;                   // row y: its lists
     int unknown08_, unknown0C_;           // (resized when they change)
     std::uint32_t width_;                 // cells along x
@@ -783,10 +756,10 @@ struct SectorGrid {
     // unknown08_ x unknown0C_ cells: a new[] block of empty lists (the count before them), then the
     // row pointers.
     void Allocate();
-    // When the storage has another size: the lists destroyed and the storage freed
-    // (SectorList::VectorDelete, flags 3), the size taken, then Allocate.
+    // When the storage has another size: the lists destroyed and the storage freed, the size taken, then
+    // Allocate.
     void Resize(int width, int height);
-    // Moves `object` to `position` (stored in the object): when the cell (FISTP of x and y, >> 4)
+    // Moves `object` to `position` (stored in the object): when the cell (x and y rounded to nearest, >> 4)
     // changes, out of the old cell's list and to the end of the new one's (cells outside the grid are
     // skipped).
     void Move(CEngineObject* object, const float* position);
@@ -808,7 +781,7 @@ struct ReleaseIdentified {
     bool Test(CEngineObject* object);
     std::uint8_t unused;
 };
-// hash_map<unsigned, node*>: the client's pending map from an object id to its node in the pending list.
+// The client's pending map from an object id to its node in the pending list.
 struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CEngineObject*>::Node*, stlp::IntHash> {
     int Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const;
 };
@@ -824,7 +797,7 @@ struct OpaqueRecord {
 class CWorldHandle final : public CPlayerSource {
 public:
     CWorldHandle() : pendingLink_(nullptr) {}
-    ~CWorldHandle() override;           // the link released
+    ~CWorldHandle() override;
 
     int OnShutdown() override;
     CWorldHandle* Clone() override;
@@ -846,7 +819,7 @@ public:
 
 // A window rectangle of the frame (the client's screen list and hit vector).
 struct ScreenEntry {
-    int classId;                          // the object's class id
+    int classId;
     unsigned objectId;                    // the object, in the map object manager
     std::int32_t rect[4];                 // RECT on the screen
 };
@@ -881,7 +854,6 @@ struct HitCollector {
     ScreenHits* hits;
 };
 
-// The client's rain / snow layer: an engine object (Teardown calls its Destroy) that keeps the world.
 class CRainSnow;
 
 class CLightningManager;
@@ -903,8 +875,8 @@ struct ClientArrayManager : CBaseManager {
     mfc::CList<CEngineObject*> list;      // counted
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
-// The manager's Clear (its object and every listed one released, the list
-// emptied); a new fog object, counted, at the list end.
+// The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
+// counted, at the list end.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 
@@ -920,11 +892,10 @@ public:
     int Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
-    // The client's tick ("Segment"): autosave event and sound volumes on frame 10, the terrain, sound
-    // and session updates, the objects and units, effect lists, the lights' grey levels, the map state
-    // every 32 ticks. Returns 1; 0 when the session's view has lost its connection (the session is
-    // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session). A plain member as
-    // well: the main loop and the harness reach it by its address.
+    // The client's tick: autosave event and sound volumes on frame 10, the terrain, sound and session
+    // updates, the objects and units, effect lists, the lights' grey levels, the map state every 32 ticks.
+    // Returns 1; 0 when the session's view has lost its connection (the session is disconnected, FatalError;
+    // Rebirth's DisableExitOnCrashReport keeps the session).
     int Segment();
     int RunTick() override { return Segment(); }
     const char* GetClassName() override;
@@ -933,8 +904,7 @@ public:
     double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
     // The height of whatever surface is on top at (x, y): the ground, or the water when the point is submerged.
     double RawSurfaceHeightAt(float x, float y) override;
-    // The client's ground / surface heights: GridHeightAt / RawSurfaceHeightAt at (x, y) raised to the platforms over
-    // the point (PlatformSet::SurfaceHeight).
+    // GridHeightAt / RawSurfaceHeightAt raised to the platforms over the point.
     double GroundHeightAt(float x, float y) override;
     double SurfaceHeightAt(float x, float y) override;
     CMaterialManager* MaterialManager() override;
@@ -995,7 +965,7 @@ public:
     bool IsLocalPlayerIdle();
     // Index of the exit whose area contains `point` and that leads somewhere.
     BOOL FindExitAt(const float* point, int* index);
-    float* ExitCentre(float* out, int index);   // returns out
+    float* ExitCentre(float* out, int index);
     // One ZoneExit particle source (0x2038) per exit that leads somewhere, in countedA0_ at the exit's index (the old
     // markers released), then UpdateExitMarkers.
     void CreateExitMarkers();
@@ -1003,8 +973,8 @@ public:
     // record) stands in an exit (FindExitAt) and that exit is `exit`. Those that do are listed in
     // `inExit` (emptied first). 0 when no unit lives.
     BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
-    // Makes the bird (bird_, a CEffectMoshka) when there is none, resets it and has it follow
-    // the unit of the local party's first record.
+    // Makes the bird when there is none, resets it and has it follow the unit of the local party's first
+    // record.
     void SummonBird();
     // A quest variable "q.<quest>.<name>" changed to `value`: every filed object whose name is <name>
     // (the text after the second dot) gets the visibility level `value`; a value of 2 (or NaN) with a
@@ -1012,8 +982,8 @@ public:
     void OnQuestVariable(const char* name, float value);
     // The party variable of an object's name: "q.<local player's name>.<name>", constructed in `out`.
     mfc::CString* ObjectVariableName(mfc::CString* out, const char* name);
-    // Used when the client's party variables arrived. Every filed object with a name gets the
-    // visibility level of its variable (ObjectVariableName) in the local session's variables.
+    // Every filed object with a name gets the visibility level of its variable (ObjectVariableName) in the
+    // local session's variables; run when the party variables arrive.
     void ApplyObjectVariables();
     // Flags describing the current environment for `unit`: unit state, island (gipat/ingos/suslanger),
     // night (0x100) or day (0x80), and two world settings.
@@ -1041,17 +1011,14 @@ public:
     void RefreshPlatforms(CMapObject* object);
     // Files `object` in dynamicObjects_ and dynamicNodes_ (as AddObject does) unless its id is there already.
     bool QueueSynchronised(CEngineObject* object);
-    // Called by the options' OK after a shadow switch changed. Every filed object whose kind has no
-    // shadows drops its shadow.
+    // Every filed object whose kind has no shadows drops its shadow (after an options change).
     void DropShadows();
-    // Takes `object` out of the selection list list7BC_, its highlight off (flags 0x110 cleared, side
-    // half's highlight virtuals with 0) when it was on; with null every listed object's highlight goes off and
-    // the list empties.
+    // Takes `object` out of the selection list, its highlight off when it was on; with null every listed
+    // object's highlight goes off and the list empties.
     void Deselect(CEngineObject* object);
     // Adds `object` (not null) to the selection list: its part bounds refreshed, the highlight on when it was off,
     // and its id appended unless it is listed already.
     void Select(CEngineObject* object);
-    // Draws every line list of lineLists_ (with the scene pipeline and the renderer). Returns 1.
     int DrawLineLists();
     // One more reference on every item and, when the item factory exists, on every spell.
     void ReferenceItemsAndSpells();
@@ -1201,20 +1168,18 @@ public:
     CEngineObject* manager194_;           // (ClientManager194 returns it; not identified)
     CEngineObject* manager198_;           // (ClientManager198 returns it; not identified)
     CParticleManager* particleManager_;        // counted
-    CLightningManager* listManager_;      // owned (lightning.h)
+    CLightningManager* listManager_;      // owned
     ClientArrayManager* arrayManager_;    // owned
-    struct CMusicSystem* music_;          // owned (sound.h)
-    struct CSky* skyDome_;                // the sky (owned; sky_object.h)
+    struct CMusicSystem* music_;          // owned
+    struct CSky* skyDome_;                // the sky (owned)
     CEffectMoshka* bird_;                 // the bird following the party (SummonBird), owned
     CFlyingHitPoints* numbers_;           // owned
-    // The ground prints (ground_print.h; element destructors). Segment ticks them and colours
-    // the blood prints by the light.
+    // Segment ticks the ground prints and colours the blood prints by the light.
     stlp::list<BloodPrint> bloodPrints_;
     stlp::list<Footprint> footprints_;
     stlp::list<GroundPrint> scorchMarks_;
-    // Erase(pos) of the three lists: the node unlinked, its print destroyed (GroundPrint::Destruct), the
-    // node deleted (operator delete: the nodes are over 128 bytes); *out the node that followed it.
-    // Return out.
+    // Erase(pos) of the three lists: the node unlinked, its print destroyed, the node deleted (operator
+    // delete: the nodes are over 128 bytes); *out the node that followed it. Return out.
     static void** __fastcall EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
     static void** __fastcall EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
     static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
@@ -1250,13 +1215,12 @@ public:
     int constant6E8_;                     // 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // Segment's count; AddObject fades units in when >= 1
     float tickFraction_;                  // added to the tick for the units' time (network client)
-    // The rain / snow layer, built and destroyed in place with the world (world_construct.cpp,
-    // world_destructors.cpp); RainSnow() is the object. Its `mode` (1 rain, 2 snow) picks the ground
-    // prints' wet look and an environment flag.
+    // The rain / snow layer, built and destroyed in place with the world. Its `mode` (1 rain, 2 snow) picks
+    // the ground prints' wet look and an environment flag.
     alignas(4) std::uint8_t rainSnow_[0xC8];
     CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
     const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
-    stlp::list<int> list7BC_;             // the selected objects' ids (nodes of 0xC bytes)
+    stlp::list<int> list7BC_;             // the selected objects' ids
     int worldValue_;                      // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     int constants7C4_[3];                 // 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // HCURSOR wincurs\Df0000.cur
@@ -1308,13 +1272,11 @@ static_assert(offsetof(CWorldClient, constant228_) == 0x228 && offsetof(CWorldCl
 static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C && offsetof(CWorldClient, constants7C4_) == 0x7C4);
 static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) == 0x7E4);
 
-// Sorting predicates passed to STLport sort (operator() of empty or small functors).
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
 struct DepthLess {
-    float* view;                          // the view matrix (row-major 4x4): row 2 the depth axis, its
-                                          // translation the offset
-    CBaseManager* manager;                // the manager holding the objects
+    float* view;                          // the view matrix (row-major): row 2 the depth axis, its translation the offset
+    CBaseManager* manager;
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // The draw lists' order (DrawPass): by the first part set's texture, then the figure, then the view
@@ -1333,7 +1295,6 @@ void __fastcall StampIntroSort(stlp::list<RefPtr>::Node** first, stlp::list<RefP
                                const void* comp);
 void __fastcall StampInsertionSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, const void* comp);
 
-// Whether a multiplayer client session is active.
 BOOL IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
 float GameTime();
@@ -1344,7 +1305,6 @@ float __stdcall LocalPlayerVariable(const char* name);
 // of the server otherwise (0 without that player).
 float __stdcall PlayerZeroVariable(const char* name);
 
-// The game flow object.
 struct GameFlow {
     // Saves the game into saves\<slot>\ (single player only): empties the folder, copies the visited zones' files
     // from saves\current, writes scenario.sav and, outside the cutscene zones, mission.sav. Without scenario.sav the
@@ -1406,8 +1366,8 @@ struct GameFlow {
     void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
     void StartClient();
     void JoinServer(const net::NetAddress* address, const char* password);
-    // The flow's requests (world_game.cpp): the state (state_) the flow's update acts on next, the zone
-    // or save name (requestTarget_), requestArg_ and, for 5 and 6, a copy of a party (requestParty_).
+    // The flow's requests: the state (state_) the flow's update acts on next, the zone or save name
+    // (requestTarget_), requestArg_ and, for 5 and 6, a copy of a party (requestParty_).
     void RequestState3();
     void RequestLoad(const char* name, char flag);                   // 2, requestArg_ = flag != 0
     void RequestZoneChange(const char* zone, int entrance);          // 4, requestArg_ = entrance
@@ -1461,7 +1421,7 @@ struct GameFlow {
 
     int state_;                           // the pending request (1..6; ProcessRequest runs it)
     mfc::CString requestTarget_;          // the request's zone or save name
-    PartyStorage requestParty_;           // a CParty: RequestParty()
+    PartyStorage requestParty_;
     int requestArg_;                      // the entrance (4) or the load flag (2)
     mfc::CString zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // set by SwitchMultiplayerZone, cleared by the game's start
@@ -1498,7 +1458,7 @@ struct MpHeroRecord {
 };
 static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
-// The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
+// The saved multiplayer parties.
 struct SavedParties {
     // Rebuilds the list from the folder's "*.mp" files: each is read into party records; a loaded one
     // has its variables emptied and, with a record's field == 1, is appended. Rebirth's
@@ -1528,9 +1488,9 @@ void UnloadQuestTexts();
 extern stlp::vector<stlp::string> g_questFiles;
 
 // Loads the quest texts of `zone`: false without the briefing texts or when the maps folder has no
-// "<zone>.mq" (CFileFind). A running game server first lists the file's bytes under "<zone>.mq" for its
-// clients (ShareFile); then a path not yet among the quest files joins them and the briefing texts add
-// it as a source. Rebirth patches it: hooked in the vanilla launch only.
+// "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients
+// (ShareFile); then a path not yet among the quest files joins them and the briefing texts add it as a
+// source.
 bool __stdcall LoadZoneQuests(const char* zone);
 
 bool __fastcall NameInList(const char* const* list, const char* name);
@@ -1546,10 +1506,9 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
 int __stdcall LoadMission(CStream* file);
 
-// SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte
-// and the LZ-compressed data (or, when decompressing it does not give the data back, 0 and the raw
-// data). SaveFileRead (memory stream, magic) reads one back (versions up to
-// kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
+// SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte and the LZ-compressed data
+// (or, when decompressing it does not give the data back, 0 and the raw data). SaveFileRead reads one back
+// (versions up to kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
 void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
 bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
 inline constexpr int kSaveVersion = /*00790260*/ 116;
@@ -1575,9 +1534,8 @@ inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_;
 inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
 inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
-// The client's per-frame draw lists (world_client_view.cpp files the visible objects in them, world_client_draw.cpp
-// sorts, draws and empties them): STLport vectors of object pointers, the globals in this order. The deferred unit
-// list follows (an STLport list of counted object pointers).
+// The client's per-frame draw lists (CollectVisible files the visible objects, DrawPass sorts, draws and
+// empties them), the globals in this order; then the deferred unit list (counted pointers).
 using FrameQueue = stlp::vector<CEngineObject*>;
 extern FrameQueue g_touchedModels;
 extern FrameQueue g_shadow52;
@@ -1622,18 +1580,15 @@ inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_;
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.
 void __stdcall ShowBolt(Vector3 from, Vector3 to);
 
-// With `plain` 0 the players' gold, party records and, on the server,
-// their units' controller statistics are XORed with a new random key, with 1 they are
-// XORed back; also the party records outside a game. Nothing when the state is already `plain`. One
-// helper does one player list.
+// With `plain` 0 the players' gold, party records and, on the server, their units' controller statistics are
+// XORed with a new random key, with 1 they are XORed back; also the party records outside a game. Nothing
+// when the state is already `plain`.
 void __stdcall GuardPlayerData(char plain);
 void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
 
-// ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
-// The client's draw pass (patched by Rebirth) fills per-frame vectors of object pointers with
-// CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for two
-// orderings. The entry points keep STLport's internal calling convention: first, last, then a dummy
-// value-type pointer, the depth limit and the (empty) comparator on the stack.
+// ---- Client draw lists and their sorting --------------------------------
+// STLport's sort instantiated for two orderings; the entry points keep STLport's signature (first, last, a
+// dummy value-type pointer, the depth limit, the empty comparator).
 
 // STLport __introsort_loop with UnitOrderLess (model rank, a model field, view depth).
 void __fastcall IntroSortByModel(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
