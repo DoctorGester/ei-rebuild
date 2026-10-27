@@ -1,4 +1,4 @@
-// The console window's text and placement (game.exe 0x005E3E90-0x005E4170). See
+// The console window's text and placement. See
 // docs/notes/console.md.
 #include "console.h"
 #include "ui.h"
@@ -15,7 +15,7 @@ void ConsoleWindow::SetRect(const RECT* rect) {
     int screenWidth = screen_->width_;
     int screenHeight = screen_->height_;
     screenRect_ = *rect;
-    // The 3D interface scales 800x600 to pixels (005F7CA0, Rebirth-patched, so through its address).
+    // The 3D interface scales 800x600 to pixels (Rebirth patches it, so it is called through its address).
     screen_->ScaleRectToScreenEntry(&screenRect_);
     width_ = screenRect_.right - screenRect_.left;
     height_ = screenRect_.bottom - screenRect_.top;
@@ -49,7 +49,7 @@ void ConsoleWindow::AddText(const char* text) {
     CStringArray pieces;
     text::Split(text, &pieces, '\n');
     if (lines_.GetSize() != 0)
-        lines_[lines_.GetSize() - 1] += *pieces.data;   // the original reads piece 0 unchecked
+        lines_[lines_.GetSize() - 1] += *pieces.data;   // reads piece 0 unchecked, as the original does
     else
         lines_.SetAtGrow(lines_.GetSize(), *pieces.data);
     for (int i = 1; i < pieces.GetSize(); ++i) lines_.SetAtGrow(lines_.GetSize(), pieces[i]);

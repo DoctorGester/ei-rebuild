@@ -1,4 +1,4 @@
-// The link figure loader's .lnk reading and mesh cache (A-S7): 004DB9C0, 004F7020-004F7D20. See
+// The link figure loader's .lnk reading and mesh cache. See
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "core_refcount.h"
 #include "link_figure.h"
@@ -38,7 +38,7 @@ using Cache = stlp::map<stlp::string, CLinkMesh*>;
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr double kSameMorph = 1e-5;           // squared distance of the coefficients
 
-// The cache's node values: the name, then one more reference on the mesh (004FC6E0, as
+// The cache's node values: the name, then one more reference on the mesh (as
 // lib_trees::MeshCache's counted pointer copies it).
 struct CachedMesh {
     static void Copy(CLinkMesh** to, CLinkMesh* const& from) {

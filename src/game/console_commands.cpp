@@ -1,5 +1,5 @@
-// Console command handlers (game.exe 0x005DD920-0x005E0A8B). Each gets the command's arguments,
-// already lower-cased, in ECX. See docs/notes/console.md.
+// Console command handlers. Each gets the command's arguments, already lower-cased, in ECX.
+// See docs/notes/console.md.
 #include "app.h"
 #include "ei/x87.h"
 #include "console.h"
@@ -45,7 +45,7 @@ bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || Arg
 
 // The interface manager.
 
-// The world's player `id` (00594180, through its address), or null.
+// The world's player `id`, or null.
 CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
 // The client world's local player (its local view's player).
 CPlayer* LocalPlayer() {
@@ -319,7 +319,7 @@ EI_REWRITTEN(0x005DF0F0, Give);
 
 namespace {
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
-// to the game flow's request 5 / 6 (00581730 / 00581760: a copy of it) with the map name.
+// to the game flow's request 5 / 6 with the map name.
 template <void (GameFlow::*Request)(const char*, CParty*)>
 void RequestWithParty(CStringArray* args, const char* extra) {
     CParty party;
@@ -329,7 +329,7 @@ void RequestWithParty(CStringArray* args, const char* extra) {
 }
 } // namespace
 
-// 005DF3A0 (no Ghidra function): join <map>: the flow's request 5 with a party of one
+// join <map>: the flow's request 5 with a party of one
 // ("Hercules").
 void __fastcall Join(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, server name");
@@ -337,7 +337,7 @@ void __fastcall Join(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DF3A0, Join);
 
-// 005DF490 (no Ghidra function): server <map>: "Starting up a server", then the flow's
+// server <map>: "Starting up a server", then the flow's
 // request 6 with a party of one ("Serv").
 void __fastcall HostServer(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, map name");
@@ -346,11 +346,11 @@ void __fastcall HostServer(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DF490, HostServer);
 
-// 005DF5A0 (a jump to the empty 00455CD0): memusage does nothing.
+// memusage does nothing.
 void __fastcall MemUsage(CStringArray*) {}
 EI_REWRITTEN(0x005DF5A0, MemUsage);
 
-// 005DFC10 (a jump to GameFlow 00581620; no Ghidra function): disconnect, any arguments: the
+// disconnect, any arguments: the
 // client world's local player disconnects.
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
 EI_REWRITTEN(0x005DFC10, Disconnect);
@@ -393,7 +393,7 @@ void __fastcall Net(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DF9B0, Net);
 
-// 005DFC20 / 005DFCE0. Every speech of the list that has a text, as two lines: "#say <name>" and
+// Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 namespace {
 void WriteSpeech(CStdioFileVirtuals* file, mfc::CString& line, const SpeechRecord& speech) {

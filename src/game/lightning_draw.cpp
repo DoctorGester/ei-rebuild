@@ -1,4 +1,4 @@
-// Drawing a lightning bolt (00467AD0, CLightning's renderer virtual; called by DrawAll) and its
+// Drawing a lightning bolt (CLightning's renderer virtual; called by DrawAll) and its
 // glow: the segments as textured strips through the render device (slot 16), then a
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
@@ -29,9 +29,9 @@ namespace {
 
 // The visibility of a bounds record for the device's view (+8): 2 is outside.
 // The world an engine object belongs to (its frame counter at +0x64).
-// The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
-// points' exit-time free 004679F0; sprite record constructor 00468F90 [pointer, count]; aligned
-// allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled.
+// The glow's static arrays: CArray constructor, its exit-time destructor, the points' exit-time free,
+// the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
+// The sprite records are zero filled.
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
 
@@ -43,17 +43,17 @@ struct SpriteElements {
     static void Construct(SpriteRecord* records, int count) { mfc::PlainElements<SpriteRecord>::Construct(records, count); }
     static void Destruct(SpriteRecord*, int) {}
 };
-using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584
+using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;
 static_assert(sizeof(SpriteArray) == 0x14);
 constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00467A10
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
 void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
-// The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
+// The two static arrays' SetSize(8), as inlined.
 void SizeSprites() { Sprites().SetSize(8); }
 void SizePoints() { GlowPoints().SetSize(8); }
 

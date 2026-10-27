@@ -1,8 +1,7 @@
 #pragma once
 
-// Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, a real virtual class since C28f; game.exe's 0073C550 is retired) and
-// the manager that owns and draws them (CLightningManager; a real virtual class: the compiler makes
-// its vtable, C19, game.exe's 0073F5B8 is retired). A bolt is a main
+// Lightning bolts: CLightning (class id 0x1E) and
+// the manager that owns and draws them (CLightningManager). A bolt is a main
 // segment from one end point to the other plus six branches that start at points along it; every
 // segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
@@ -69,9 +68,9 @@ struct LightningSegment {
     // Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
-    // 00468900 (no Ghidra function; lightning_start.cpp): the points empty.
+    // The points empty.
     LightningSegment();
-    // 00468920 (lightning_start.cpp): the points' block freed.
+    // The points' block freed.
     ~LightningSegment();
     LightningSegment(const LightningSegment&) = delete;
     LightningSegment& operator=(const LightningSegment&) = delete;
@@ -79,10 +78,10 @@ struct LightningSegment {
 
 class CLightning final : public CEngineObject {
 public:
-    // 00468680's inline construction (lightning_start.cpp): the engine object's fields cleared, no
+    // The construction (lightning_start.cpp): the engine object's fields cleared, no
     // textures, the bounds cleared, the segments empty, then reset like slot 3.
     CLightning();
-    // 00468810 (deleting: 004687F0; lightning_start.cpp): reset like slot 3, then the segments.
+    // Reset like slot 3, then the segments (lightning_start.cpp).
     ~CLightning() override;
 
     // Slot 2: resets the bolt like slot 3, then adds it to the manager's list of new
@@ -90,11 +89,11 @@ public:
     int Create() override;
     // Slot 3: power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
-    const char* GetClassName() override;    // 11: 004687D0 "CLightning"
-    int GetClassId() override;              // 12: 004687E0 (0x1E)
+    const char* GetClassName() override;    // "CLightning"
+    int GetClassId() override;              // 0x1E
 
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
-    // 00467AD0 (lightning_draw.cpp). Draws the bolt (render device virtuals, glow sprites).
+    // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
     int Draw(void* device);
     // Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
@@ -105,7 +104,7 @@ public:
     // New end points: main segment, then the branches (spread along the main segment,
     // or random parallel bolts when power is 0); animates when power is negative.
     void SetEndpoints(const Vector3* from, const Vector3* to);
-    // 004680D0 (lightning_start.cpp). A new bolt: power, sway, the main segment and six branches
+    // A new bolt (lightning_start.cpp): power, sway, the main segment and six branches
     // (or six parallel bolts for power 0) with fresh noise, animated once, its bounds, and the
     // textures ("Lightning" / "SmtgLight", or the "Demon" pair).
     void Start(const Vector3* from, const Vector3* to, float power, bool demon);
@@ -128,28 +127,27 @@ constexpr int kLightningNoiseRows = 32;
 constexpr int kLightningNoiseRowLength = 400;
 inline float g_lightningNoise[kLightningNoiseRows][kLightningNoiseRowLength] = /*0079CE78*/ {};
 inline float* LightningNoiseTable() { return g_lightningNoise[0]; }
-// 00468A00 (cdecl; lightning_load.cpp, A-E1; Rebirth-patched: callers use LoadLightningNoiseOriginal).
+// (cdecl; lightning_load.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
 int __cdecl LoadLightningNoise();
 
-// The client world's +0x1A0 (*007AF758). Built by the client world's Setup (world_client_maps.cpp,
+// The client world's lightning manager. Built by the client world's Setup (world_client_maps.cpp,
 // the constructor inlined there), which also holds its lifetime and slots.
 class CLightningManager : public CBaseManager {
 public:
-    // CBaseManager's constructor, then the list of new bolts (vtable 0073F61C, block size 10).
+    // CBaseManager's constructor, then the list of new bolts (block size 10).
     CLightningManager();
     // Every listed bolt released, the list emptied, then CBaseManager's destructor.
     ~CLightningManager() override;
-    const char* GetClassName() override;           // 11: 00562D80 "CLightningManager"
-    int GetClassId() override;                     // 12: 00562D90 (0x35)
-    // 13: 00562D70, CBaseManager's Init (the same code at its own address).
+    const char* GetClassName() override;           // "CLightningManager"
+    int GetClassId() override;                     // 0x35
+    // CBaseManager's Init.
     // A new bolt.
     CEngineObject* NewObject(int type) override;
     // Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);
-    // 004689D0, slot 2 (A-E1; class_slots.cpp). Loads the noise table on the first call (the
-    // flag at 007A9694, the loader 00468A00), then the base manager's Create.
+    // Slot 2 (class_slots.cpp). Loads the noise table on the first call, then the base manager's Create.
     int Create() override;
 
     mfc::CTypedPtrList<CLightning> newBolts_;   // +0xB0 (each entry holds a reference)

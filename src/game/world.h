@@ -1338,7 +1338,7 @@ public:
     // 00569D60 (Render calls it last; A-W13). Draws every line list of lineLists_ (0049B780 with the
     // scene pipeline and the renderer). Returns 1.
     int DrawLineLists();
-    // 005630B0. One more reference on every item (slot 18's manager) and, when the item
+    // One more reference on every item (slot 18's manager) and, when the item
     // factory exists (tested again, not the spell manager), on every spell (slot 22's).
     void ReferenceItemsAndSpells();
     // 00563190 (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
