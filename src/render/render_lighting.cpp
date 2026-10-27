@@ -1,4 +1,4 @@
-// The GPU lighting's scene light (R16i; docs/notes/renderer.md section 16): what the world's draw hands
+// The GPU lighting's scene light (docs/notes/renderer.md section 16): what the world's draw hands
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
@@ -63,6 +63,8 @@ namespace detail {
 
 void LightUniforms(LightParams* params) {
     *params = g_params;
+    const Frame& f = CurrentFrame();
+    for (int k = 0; k < kMostSceneLights; ++k) params->shadowSlots[k] = static_cast<float>(PointShadowSlot(f, k) + 1);
     const ShadowFrame& sh = CurrentFrame().shadow;
     Vector3 travel{params->sun[0], params->sun[1], params->sun[2]};
     if (sh.haveSun) MapLightDirection(sh.sun, &travel);
@@ -96,9 +98,9 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     };
     const float* diffuse = l.diffuseColour;
     p.on[0] = 1.0f;
-    p.on[1] = l.crown ? 0.6f : 0.0f;   // 0073CDE0
+    p.on[1] = l.crown ? 0.6f : 0.0f;
     if (l.sun) {
-        const Vector3 towards = toModel(-l.sunDirection);   // as 005A7A70's TransformSun (no translation)
+        const Vector3 towards = toModel(-l.sunDirection);   // as the figure part draw's TransformSun (no translation)
         p.sun[0] = towards.x;
         p.sun[1] = towards.y;
         p.sun[2] = towards.z;
@@ -123,9 +125,24 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
         p.points[k][0][2] = position.z;
         p.points[k][0][3] = s.inverseRangeSquared;
         for (int j = 0; j < 3; ++j) p.points[k][1][j] = diffuse[j] * s.colour[j] * l.coefficient;
+        p.points[k][1][3] = static_cast<float>(SceneLightIndex(s.position) + 1);   // its point shadow at the draw
     }
     p.on[2] = static_cast<float>(count);
     *params = p;
+}
+
+const float (*SceneLightPoints(int* count))[2][4] {
+    *count = static_cast<int>(g_params.counts[0]);
+    return g_params.points;
+}
+
+int SceneLightIndex(const Vector3& position) {
+    const int count = static_cast<int>(g_params.counts[0]);
+    for (int k = 0; k < count; ++k) {
+        const float* at = g_params.points[k][0];
+        if (at[0] == position.x && at[1] == position.y && at[2] == position.z) return k;
+    }
+    return -1;
 }
 
 Vector3 SceneSunDirection() { return Vector3{g_params.sun[0], g_params.sun[1], g_params.sun[2]}; }

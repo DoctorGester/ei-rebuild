@@ -1,7 +1,6 @@
 // Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a
 // point, the start of a planned action and the controller's reset. See combat.h, combat_plan.h
 // and docs/notes/combat.md ("Update").
-//
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
 #include "ai_alarm.h"
@@ -43,8 +42,8 @@ namespace {
 
 constexpr int kStateIdle = 0;
 constexpr int kStateTurning = 2;
-constexpr int kStateAnimation = 3;   // an animation order plays (00548DE0)
-constexpr int kStateEmote = 4;       // an emote plays (00548FA0)
+constexpr int kStateAnimation = 3;   // an animation order plays
+constexpr int kStateEmote = 4;       // an emote plays
 constexpr int kStateActing = 5;
 constexpr int kStateChasing = 6;
 constexpr int kOrderMove = 1;
@@ -80,17 +79,17 @@ constexpr int kMessagePartial = 0x01;
 // The world server's timed objects (world_server.cpp).
 // The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
-// 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
+// The player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
 // blank step; 00544FD0 OrderPlan's reset.
-// MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
+// MFC: CPlex::FreeDataChain; the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
+// The world server, its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -201,7 +200,7 @@ struct LocalMotionOrder : PathOrder {
     }
     ~LocalMotionOrder() {
         steps.vtable = PathCellListVtable();
-        steps.RemoveAll();   // 00556D40
+        steps.RemoveAll();
     }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
@@ -608,7 +607,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
         if (current.size != 1 || moving.size != 1 || current.data[0].variant != moving.data[0].variant) {
             Queue(this).CopySteps(moving);
             QueueTime(this) = moving.extra;
-            Queue(this).Assign(moving);   // 005483C0
+            Queue(this).Assign(moving);
             StartQueueIfUnset(this);
             PopFinishedSteps();
             ShowCurrentStep();
@@ -739,12 +738,12 @@ void CUnitServer::ResyncWithUnit() {
     action.modifier = 0;
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {   // the first is always true
         action2.kind = kOrderNone;
-        action2.target.Reset();   // 0052B030
+        action2.target.Reset();
         action2.flag18 = 0;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = 0;
-        action2.target.Assign(nullptr);   // 0052A8F0
+        action2.target.Assign(nullptr);
         action2.modifier = 0;
     }
     RecordFromMode(&moveMode, unit->moveMode);

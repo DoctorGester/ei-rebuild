@@ -1,6 +1,6 @@
-// The party manager's save and load (004A8560 / 004A8310) and the archive chunks they write: the
-// parties by key (004ACEC0), the entries (004AD0C0), the class templates (004ACDC0) and the named
-// records (004A64B0). See party_manager.h and docs/notes/script.md ("Leftovers").
+// The party manager's save and load and the archive chunks they write: the
+// parties by key, the entries, the class templates and the named
+// records. See party_manager.h and docs/notes/script.md ("Leftovers").
 #include "item_stock.h"
 #include "party_manager.h"
 
@@ -27,7 +27,7 @@ namespace {
 // (The record and template vectors' resize, 004AD700 / 004AD8D0: stlp::CountedRefVector's.)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
-// pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
+// pointers, whose release the original inlines: one reference less, the
 // object deleted (slot 0 with 1) at zero.
 void Release(CRefCounted* counted) {
     if (counted && --counted->refs_ == 0) delete counted;
@@ -70,7 +70,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            CParty* party = parties->At(&key)->Get();   // 004A91B0
+            CParty* party = parties->At(&key)->Get();
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();
@@ -162,7 +162,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     if (ar->EnterChunk(1)) {
         int count;
         if (ar->loading_) {
-            // erase(begin, end) (004A9910): every record released in order.
+            // erase(begin, end): every record released in order.
             for (PartyRecord** p = records.Start(); p != records.Finish(); ++p) Release(*p);
             records.Finish() = records.Start();
             count = ar->CountChunks(1);

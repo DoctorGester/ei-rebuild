@@ -116,7 +116,7 @@ mfc::CString CItemArmor::PictureName() {
     return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
-// 006A0CC0. The original formats the number into a 4-byte buffer just before the name buffer; a
+// The original formats the number into a 4-byte buffer just before the name buffer; a
 // number above 999 would overrun it (none in the database; the overlapping strcat that would
 // follow is not reproduced).
 bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {

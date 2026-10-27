@@ -1,4 +1,4 @@
-// The renderer's creation (00500B70, virtual slot 2 of the renderer at 007AF060, vtable 0073D93C):
+// The renderer's creation. It
 // picks the Direct3D driver from the settings, creates the device object, fills the transform
 // pipeline's matrix stacks (projection, viewport, the fixed axis swap and their products), sets the
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the
@@ -33,7 +33,7 @@ namespace {
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
+// The device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
 // one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
@@ -41,8 +41,8 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
     if (pipeline) ++pipeline->refs_;
     if (previous) previous->Release();
 }
-// Matrices (model.cpp, called through their addresses): 004F1370 viewport,
-// 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (Matrix4::Multiply).
+// Matrices (model.cpp, called through their addresses): viewport,
+// the axis swap (x, -y, z; patched by Rebirth); the product (Matrix4::Multiply).
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
@@ -67,7 +67,7 @@ void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE
 // --- Matrix stacks -------------------------------------------------------------------------------
 
 // A push onto one of the pipeline's matrix stacks, as the original inlines it: the first entry is
-// `m` itself, later ones are the previous top times `m` (004D9880 with the new top as out).
+// `m` itself, later ones are the previous top times `m` (with the new top as out).
 void StackPush(MatrixStack& stack, const Matrix4* m) {
     if (stack.count == 0) {
         stack.count = 1;
@@ -105,7 +105,7 @@ void Transpose(float* m) {
 void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
-    // 0040D380 (CameraGetRange): the camera's near and far distances and field of view, as dwords.
+    // The camera's near and far distances and field of view, as dwords.
     const CCamera* cam = TheCamera();
     float zNear, zFar, fov;
     std::memcpy(&zNear, &cam->nearDistance_, 4);
@@ -137,8 +137,8 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
 }
 
 // The pipeline's viewport size (floats) and depth range (the options' fog start and far clip
-// distances, moved as dwords; the first version passed only one argument, and the callee's RET 8
-// then unbalanced the stack).
+// distances, moved as dwords; both arguments must be passed, or the callee's stack cleanup
+// unbalances the stack).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device_->screen_;
     float width = static_cast<float>(screen.right - screen.left);
@@ -194,7 +194,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     CLight* light = TheLightFactory()->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
-    light->SetDirectional(&colour, &position);   // 0068D0A0
+    light->SetDirectional(&colour, &position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
@@ -202,8 +202,8 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The original pushes the flag as EDX with only DL set (the rest
-// of EDX is what operator new left there); the constructor reads only the low byte.
+// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the original
+// pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
     CRenderHelper* helper = new CRenderHelper(D3DDevice(renderer), flag);
@@ -215,7 +215,6 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 
 } // namespace
 
-// 00500B70 (thiscall, RET 8).
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
     CreateBase(window, settings);
@@ -262,7 +261,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     windowFrames_ = 0;
     AddDefaultLight(this);
 
-    // The ambient colour (slot 7): grey 50 from three FISTPs of 50.0.
+    // The ambient colour: grey 50 from three FISTPs of 50.0.
     std::uint32_t r = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t g = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t b = static_cast<std::uint32_t>(x87::fistp(50.0f));
@@ -296,7 +295,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);
     // Unlike the creation, only the viewport and axis swap products are inlined; the rest go
-    // through the pipeline's own push (004D9B80).
+    // through the pipeline's own push.
     StackPush(stacks[kStackA], StackTop(stacks[kViewport]));
     StackPush(stacks[kStackA], StackTop(stacks[kAxisSwap]));
     StackPush(stacks[kStackA], StackTop(stacks[kProjection]));

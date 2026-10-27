@@ -1,5 +1,5 @@
-// The unit AI's movement helpers: the looks planned for a move (005D5B40), a free place to stand
-// (005D7F80), following a leader (005D6F90) and the player mode's path test (005D37E0).
+// The unit AI's movement helpers: the looks planned for a move, a free place to stand
+// following a leader and the player mode's path test.
 #include "unit_ai.h"
 
 #include "ai_map.h"
@@ -28,24 +28,24 @@
 #include <cstring>
 
 namespace {
-constexpr float kEyeHeight = 1.4f;                  // 0073CDF8: looks are tested from this high
-constexpr float kWanderScale = 15.0f;               // 0073C518
+constexpr float kEyeHeight = 1.4f;                  // looks are tested from this high
+constexpr float kWanderScale = 15.0f;
 constexpr float kDefaultWander = 40.0f;
-constexpr float kMinWaitFraction = 0.25f;           // 0073C3B0
-// 0073FFD0: a random word to an angle in [0, 6.3).
+constexpr float kMinWaitFraction = 0.25f;
+// A random word to an angle in [0, 6.3).
 constexpr double kAngleScale = std::bit_cast<double>(0x3E19333340193333ull);
-// 0073C468: a random word to [0, 1) (2^-32 and a little).
+// A random word to [0, 1) (2^-32 and a little).
 constexpr double kUnitScale = std::bit_cast<double>(0x3DF0000000100000ull);
-constexpr const char kHumanPrefix[] = "unhu";       // 00791EC4
+constexpr const char kHumanPrefix[] = "unhu";
 
-constexpr float kMaxSlope = 0.3f;                   // 0073C54C
-constexpr float kAllySpace = 2.5f;                  // 0073CE18 x the standing height
-constexpr float kRangePerDistance = 3.0f;           // 0073BAA4
-constexpr float kRangeBase = 10.0f;                 // 0073BAAC
-constexpr float kOne = 1.0f;                        // 0073FEC8 / 0073B84C
-constexpr float kHalf = 0.5f;                       // 0073B86C: half-cells to world units
-constexpr float kDetourFactor = 5000.0f;            // 0073FFC4
-constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // 0073D9A4 (1 / 3)
+constexpr float kMaxSlope = 0.3f;
+constexpr float kAllySpace = 2.5f;                  // x the standing height
+constexpr float kRangePerDistance = 3.0f;
+constexpr float kRangeBase = 10.0f;
+constexpr float kOne = 1.0f;
+constexpr float kHalf = 0.5f;                       // half-cells to world units
+constexpr float kDetourFactor = 5000.0f;
+constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // (1 / 3)
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -54,16 +54,16 @@ constexpr int kLeaderAhead = 5;                     // ticks ahead of the leader
 constexpr int kLeaderFirstStep = 6;
 constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
-constexpr float kOnTheWaySq = 1.3f;                 // 0073FF20
-constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // 0073FFD8 (1.365)
-constexpr float kReachedSq = 0.1f;                  // 0073B850
+constexpr float kOnTheWaySq = 1.3f;
+constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // (1.365)
+constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;
 constexpr int kOrderMove = 1;
 
-constexpr float kSamePointSq = 0.01f;               // 0073C548
+constexpr float kSamePointSq = 0.01f;
 
-// 007C5404 / 007C5408: how close a follower stays and how far its goal may drift before it walks
+// how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
 float FollowNear() { return GameLogicSettings().followMinDist; }
 float FollowFar() { return GameLogicSettings().followMaxDist; }
@@ -71,7 +71,7 @@ float FollowFar() { return GameLogicSettings().followMaxDist; }
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
-// The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
+// The CPtrList the sector map fills (blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
     list.vtable = mfc::impl::PtrListClass::Vtable();
@@ -79,7 +79,6 @@ void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
 }
 } // namespace
 
-// 005D5B40
 void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool farGoal) {
     AILookArray& planned = order->looks;
     if (planned.data) {
@@ -132,7 +131,6 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
 }
 EI_REWRITTEN(0x005D5B40, AIBrain::PlanLooks);
 
-// 005D7F80
 bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     if (standCooldown > 0) {
         --standCooldown;
@@ -191,7 +189,6 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
 }
 EI_REWRITTEN(0x005D7F80, AIBrain::FindStandPoint);
 
-// 005D6F90
 void AIBrain::UpdateFollow() {
     if (!target || ObjectSlots(target)->IsDead()) {
         target.Assign(nullptr);
@@ -309,7 +306,6 @@ void AIBrain::UpdateFollow() {
 }
 EI_REWRITTEN(0x005D6F90, AIBrain::UpdateFollow);
 
-// 005D37E0
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* to) {
     double fy = from->y - to->y;
     double fx = from->x - to->x;

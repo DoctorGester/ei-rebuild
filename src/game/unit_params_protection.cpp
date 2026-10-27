@@ -1,4 +1,4 @@
-// UnitParams::ProtectionBlock (005270E0): the protection figures the unit panel and the script
+// UnitParams::ProtectionBlock: the protection figures the unit panel and the script
 // addon show, from the packed parameters (CUnit + 0x330) and packed vitals (+0x17C). See unit.h.
 #include "unit.h"
 
@@ -12,7 +12,7 @@
 namespace {
 constexpr int kDamageTypes = 7;
 constexpr int kSlotKindWorn = 1;   // a slot counts when its kind is above this
-// The protection factor by difficulty (GameDifficulty, ui.h): the setting "Absorption" (007C54A0).
+// The protection factor by difficulty (GameDifficulty, ui.h): the setting "Absorption".
 inline const float* DifficultyFactors() { return GameLogicSettings().absorption; }
 } // namespace
 

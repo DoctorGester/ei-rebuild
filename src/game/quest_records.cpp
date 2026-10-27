@@ -1,5 +1,5 @@
 // The quest database's records in an archive: the records' Serialize (006AD7D0 quests, 006AD900
-// briefings) and the two vectors' (006B1F20, 006B2010). See quest_records.h and
+// briefings) and the two vectors'. See quest_records.h and
 // docs/notes/items_spells.md ("Quest database").
 #include "quest_records.h"
 
@@ -63,7 +63,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
         // erase(begin, end), then resize(count, 0.0f): the vector is empty, so a fill insert.
         places.Finish() = places.Start();
         count = ar->CountChunks(1);
-        places.FillInsert<stlp::PlainElement<float>>(places.Finish(), static_cast<unsigned>(count), 0.0f);   // 006ADC10
+        places.FillInsert<stlp::PlainElement<float>>(places.Finish(), static_cast<unsigned>(count), 0.0f);
     } else {
         count = static_cast<int>(places.size());
     }

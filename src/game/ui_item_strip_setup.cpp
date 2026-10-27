@@ -1,7 +1,6 @@
-// The item strips' setups (00621160, 00629A40): the camp's item, spell and part strips and the
+// The item strips' setups: the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
-// the forwarding strip's constructor, and the figure strips' draw, count and click (00629AF0,
-// 00629AD0, 00629DB0).
+// the forwarding strip's constructor, and the figure strips' draw, count and click.
 // See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui.h"
@@ -18,9 +17,9 @@
 
 namespace {
 
-constexpr const char* kTopTexture = "Inventory02";        // 00793CDC
-constexpr const char* kBottomTexture = "Inventory01";     // 00793CD0
-constexpr const char* kFigureTexture = "InventoryM01";    // 00793F58
+constexpr const char* kTopTexture = "Inventory02";
+constexpr const char* kBottomTexture = "Inventory01";
+constexpr const char* kFigureTexture = "InventoryM01";
 constexpr int kTextureKind = 3;
 
 // A text surface of the layout rectangle (left, top, right, bottom), format 5 (0x38 bytes; null
@@ -29,8 +28,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
-// Layout constants of the strips (the exe's floats at 0073B858, 0073BAB0, 0074023C, 0073B84C,
-// 0073CD70, 0073C51C, 0073D09C).
+// Layout constants of the strips (the exe's floats).
 constexpr float kZero = 0.0f;
 constexpr float kCell = 100.0f;
 constexpr float kHalfCell = 50.0f;

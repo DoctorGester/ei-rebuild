@@ -1,4 +1,4 @@
-// MFC 4.2's worker threads (mfc_thread.h, ticket S16).
+// MFC 4.2's worker threads (mfc_thread.h).
 #include "mfc_thread.h"
 
 #include "crt.h"
@@ -23,7 +23,7 @@ struct Startup {
     HANDLE resume;
 };
 
-// _AfxThreadEntry (0070215D): the thread object made current, the creator released, then (once the
+// _AfxThreadEntry: the thread object made current, the creator released, then (once the
 // creator has set the priority) the procedure, and AfxEndThread with its result. The original runs
 // InitInstance / Run for a thread without a procedure; the game has none.
 unsigned __stdcall ThreadEntry(void* argument) {
@@ -39,7 +39,7 @@ unsigned __stdcall ThreadEntry(void* argument) {
     return 0;
 }
 
-// CWinThread::CreateThread (007024B4): FALSE when an event or the thread cannot be made.
+// CWinThread::CreateThread: FALSE when an event or the thread cannot be made.
 BOOL CreateThread(WinThread* thread, DWORD flags, UINT stackSize, LPSECURITY_ATTRIBUTES security) {
     Startup startup{thread, gameapi::CreateEventA(nullptr, TRUE, FALSE, nullptr),
                     gameapi::CreateEventA(nullptr, TRUE, FALSE, nullptr)};

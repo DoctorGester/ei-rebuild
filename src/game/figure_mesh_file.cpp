@@ -97,7 +97,7 @@ float One() { return 1.0f /*0073B84C*/; }
 
 void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     BuffersChanged();
-    CTransformObject::CopyTransform(*other);   // 00401490: the transform base's copy
+    CTransformObject::CopyTransform(*other);   // the transform base's copy
     name_ = other->name_;
     buffers_.corners = other->buffers_.corners;
     buffers_.cornerCount = other->buffers_.cornerCount;

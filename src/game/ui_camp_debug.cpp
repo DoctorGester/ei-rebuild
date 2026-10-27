@@ -1,4 +1,4 @@
-// The camp's debug fill of the constructors' lists (00612CF0, slot 39). See ui_camp.h and
+// The camp's debug fill of the constructors' lists. See ui_camp.h and
 // docs/notes/ui.md, section 5.
 #include "spell.h"
 #include "ui_camp.h"

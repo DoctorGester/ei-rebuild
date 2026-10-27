@@ -1,5 +1,5 @@
-// The units database records' serialisers: unit prototypes (0052D740), unit models (0052DC70) and NPCs
-// (0052DA60); the skill (perk) database's records, vectors and lookups (A-U10).
+// The units database records' serialisers: unit prototypes, unit models and NPCs
+// the skill (perk) database's records, vectors and lookups (A-U10).
 // See unit_db.h and docs/notes/units.md ("Database records").
 #include "chunk_archive.h"
 #include "unit_db.h"
@@ -20,7 +20,7 @@ namespace {
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
-void StringsClear(CStringVector* strings) {   // 0052E010
+void StringsClear(CStringVector* strings) {
     strings->EraseRange<stlp::ObjectElement<mfc::CString>>(strings->begin(), strings->end());
 }
 
@@ -34,7 +34,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     if (ar->loading_) {
         StringsClear(strings);
         count = ar->CountChunks(1);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));   // 0051F5B0
+        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }

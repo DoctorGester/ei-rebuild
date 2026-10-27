@@ -1,4 +1,4 @@
-// CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface base").
+// CInterface3D's per-frame update. See docs/notes/ui.md ("Interface base").
 #include "app.h"
 #include "object_tables.h"
 #include "text_split.h"
@@ -27,9 +27,9 @@ namespace {
 // The value a window leaves pending that ends the game session (the message boxes' "yes").
 constexpr std::uint32_t kLeaveGame = 0x990001;
 
-// Not rewritten: the mouse cursor's SetShape (005E5200 on 007C7BD8), the game session's
-// (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
-// a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
+// Not rewritten: the mouse cursor's SetShape, the game session's
+// Disconnect and LeaveGame, the client's server flag,
+// a surface's contents saved and the message box constructor (interface,
 // caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
 
@@ -110,7 +110,7 @@ void CInterface3D::Update() {
     mouseY_ = MouseScreenY();
     if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
-        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
+        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::GameClient()->joinState_));
         CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, 1, 1);
@@ -119,16 +119,16 @@ void CInterface3D::Update() {
     }
     root_->Update();
 }
-// ---- String events (005F8070) ------------------------------------------------------------------
+// ---- String events ------------------------------------------------------------------
 
 namespace {
 
-// 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
-// The tutorial queue (+0x84, an STLport list of CStrings): end() (005F97D0) and insert(position,
-// value) (005F97E0).
-// Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
-// message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
-// the interface's ShowWindow (005F7350: window, 1, 1).
+// A number from the text (its characters' upper-case codes mixed).
+// The tutorial queue (+0x84, an STLport list of CStrings): end() and insert(position,
+// value).
+// Rebirth's game over message: the menu object (with 1, then another call), the
+// message window (0x180 bytes, constructor: interface, title, text, 0x20000, 3, 1) and
+// the interface's ShowWindow (window, 1, 1).
 
 int Compare(const mfc::CString& word, const char* text) {
     return gamecrt::mbscmp(word.GetString(),
@@ -144,7 +144,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     std::string text = event;
     text::SplitWords(text.c_str(), &words, ' ');
     words.data[0].MakeLower();
-    // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
+    // Rebirth's NewStringEvents: "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data[0], "gameover") == 0) {

@@ -8,18 +8,18 @@
 
 // The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use (combat.cpp).
 struct GameOstream : libcrt::Ostream {
-    GameOstream* Put(const char* text);     // 006FC31D
-    GameOstream* Put(long value);           // 006FC9C6
-    GameOstream* Put(double value);         // 006FC7FA
-    GameOstream* PutChar(int c);            // 006FC0B0
-    GameOstream* Apply(libcrt::Manipulator manipulator);  // 00434FE0: manipulator(*this)
+    GameOstream* Put(const char* text);
+    GameOstream* Put(long value);
+    GameOstream* Put(double value);
+    GameOstream* PutChar(int c);
+    GameOstream* Apply(libcrt::Manipulator manipulator);  // manipulator(*this)
 
     // The logs set x_floatused to 1 before each floating point number.
     void SetField4() { floatUsed = 1; }
 };
 static_assert(sizeof(GameOstream) == 8);
 
-// The combat log (the AI stream; combat.cpp) and the manipulator that ends a line (00435000).
+// The combat log (the AI stream; combat.cpp) and the manipulator that ends a line.
 GameOstream* GameLog();
 inline const libcrt::Manipulator kLogEndLine = libcrt::FlushManipulator;
 
@@ -28,6 +28,6 @@ inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }
 inline UnitVitals* ServerStatsOf(CUnit* unit) { return &unit->ServerCompanion()->vitals; }
 
 // Defined in combat_actions.cpp.
-// 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
+// Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code);
 

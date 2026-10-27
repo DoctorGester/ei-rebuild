@@ -1,9 +1,9 @@
-// The scene renderer's lifetime and small slots (the renderer at 007AF060, vtable 0073D93C; its base
-// class, vtable 0073D8A0, owns +0x04 .. +0x1C): constructors and destructors, Destroy (slot 3), the
-// draw colour and sun, the frame clear (slot 8), texture binding (slot 11), the figure draws (slots
+// The scene renderer's lifetime and small slots (the renderer; its base
+// class, owns +0x04 .. +0x1C): constructors and destructors, Destroy, the
+// draw colour and sun, the frame clear, texture binding, the figure draws (slots
 // 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a switch back
 // (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
-// (docs/notes/renderer.md). A-U11.
+// (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
 #include "texture.h"       // CTextureDevice, CTexture, CDXSurface
@@ -29,21 +29,21 @@
 
 namespace {
 
-constexpr float kColourScale = 255.0f;          // 0073C370
-constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 0073D904, 1 / 255
+constexpr float kColourScale = 255.0f;
+constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
 // TransformAmbientColour: what SetBaseColour gave the transform object last.
 float g_transformAmbientColour[3] = {};
 constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObject)
 
-// 0078EDF8: "Final loading data to NULL texture!" and a newline.
+// "Final loading data to NULL texture!" and a newline.
 const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
 
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
 } // namespace
 
-// --- Base class (CVisualizator; C19: compiled in place of game.exe's 0073D8A0) ----------------------
+// --- Base class (CVisualizator) ----------------------
 
 CVisualizator* CVisualizator::SetUpBase() {
     pipeline_ = nullptr;
@@ -115,9 +115,9 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 }
 EI_REWRITTEN(0x00500800, CVisualizator::SetSunAndAmbient);
 
-// --- The renderer (C19: compiled in place of game.exe's 0073D93C) -----------------------------------
+// --- The renderer -----------------------------------
 
-// 00500960 (cdecl, no arguments). The renderer.
+// The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
 EI_REWRITTEN(0x00500960, SceneRenderer);
 
@@ -136,8 +136,8 @@ CSceneRenderer::~CSceneRenderer() {
 }
 EI_REWRITTEN_SPECIAL(0x00500AC0, CSceneRenderer::~CSceneRenderer);
 
-// The scene renderer and the device's lock, zero at the start: built by their static initialisers (00500930, 004F0B10)
-// in the list's order and destroyed by the exit functions those register (00500950, 004F0B30); all ported on the
+// The scene renderer and the device's lock, zero at the start: built by their static initialisers
+// in the list's order and destroyed by the exit functions those register;
 // names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
 static_assert(sizeof(CSceneRenderer) == 0x5C);
@@ -146,13 +146,13 @@ constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
 namespace {
-void __cdecl DestroySceneRenderer() { g_sceneRenderer.Destroy(); }   // 00500950
-void __cdecl ConstructSceneRenderer() {                                        // 00500930
+void __cdecl DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
+void __cdecl ConstructSceneRenderer() {
     g_sceneRenderer.Construct();
     libcrt::AtExit(DestroySceneRenderer);
 }
-void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }   // 004F0B30
-void __cdecl ConstructDeviceLock() {                                                  // 004F0B10
+void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
+void __cdecl ConstructDeviceLock() {
     gameapi::InitializeCriticalSection(&g_deviceLock);
     libcrt::AtExit(DestroyDeviceLock);
 }
@@ -240,13 +240,13 @@ EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
 // The original sets the cooperative level and the display mode again in full screen, restores every
 // DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
-// to lose, nor a display mode to set again (a lost Direct3D 11 device is ticket R9c's): true.
+// to lose, nor a display mode to set again (a lost Direct3D 11 device is): true.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 EI_REWRITTEN(0x00504780, CSceneRenderer::RestoreSurfaces);
 
 // --- The device object's counted holder (+0x20) ----------------------------------------------------
 
-// 00504E20 (RET 4). The holder takes `device` (one more reference), then the old one is released.
+// The holder takes `device` (one more reference), then the old one is released.
 void HeldDevice::Assign(CTextureDevice* value) {
     CTextureDevice* old = device;
     device = value;

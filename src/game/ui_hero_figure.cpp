@@ -1,4 +1,4 @@
-// The multiplayer hero screen's figure choice (00616AC0, slot 52). See docs/notes/ui.md, section 5.
+// The multiplayer hero screen's figure choice. See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "world_glue.h"
 #include "ui_camp.h"

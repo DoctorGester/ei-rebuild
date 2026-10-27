@@ -9,7 +9,6 @@
 //   - the titles' script credits.scr (CCreditsScreen::Build, ui_layouts.cpp)
 // Identifiers and file names inside assets are ASCII, which is the same in both. RTF (the titles'
 // pages) names its own code page and is left as it is.
-//
 // EI_UTF8 is a compile-time switch (`build.cmd verify utf8`, CMake -DEI_UTF8=ON), off by default; with it
 // off nothing here changes a byte. EI_ASSET_CODEPAGE (CMake cache, default 1251) is the assets' code page.
 
@@ -49,8 +48,7 @@ int CharacterCount(std::string_view text);
 int CharacterCount(const mfc::CString& text);
 inline int CharacterCount(const std::string& text) { return CharacterCount(std::string_view(text)); }
 
-// --- Lengths and cuts by character (U5) -----------------------------------------------------------
-//
+// --- Lengths and cuts by character -----------------------------------------------------------
 // Where the original limits or indexes text by bytes (one byte one character in the asset code page),
 // with EI_UTF8 these count characters as CharacterCount does and never cut inside a UTF-8 sequence.
 // Without EI_UTF8 each is the original's byte count.
@@ -71,8 +69,7 @@ std::size_t FittingBytes(std::string_view text, std::size_t room);
 // at a character's end (strncpy_s with _TRUNCATE without EI_UTF8).
 void CopyFitting(char* to, std::size_t size, const char* from);
 
-// --- Typing (U4) ---------------------------------------------------------------------------------
-//
+// --- Typing ---------------------------------------------------------------------------------
 // With EI_UTF8 the game window is a Unicode one (system_text.h), so a typed character reaches the editors
 // (the message box's edit field, the console line, the chat line, the save window's name) as its code point
 // (app.cpp's DispatchInput joins a surrogate pair) and is stored as UTF-8. The editors' caret stays a byte

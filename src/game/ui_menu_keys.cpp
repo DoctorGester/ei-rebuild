@@ -1,8 +1,7 @@
-// The Esc menu's save/load and options windows: their key handlers (006548A0, 00650E40) and the
-// save/load window's selection helpers (00655430, 00657820). See ui.h and docs/notes/ui.md.
-//
+// The Esc menu's save/load and options windows: their key handlers and the
+// save/load window's selection helpers. See ui.h and docs/notes/ui.md.
 // Both key handlers live on the window's input side (`this` = window + 0x94, ui_screens.h). They
-// pass the key to the base handler first (00601820), set the input side's handled flag for the
+// pass the key to the base handler first, set the input side's handled flag for the
 // keys they use, and ignore keys while the window slides in.
 #include "asset_text.h"
 #include "ui.h"
@@ -47,7 +46,7 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-// --- 00657820 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::IsReservedSave -----------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const char* folder = entries_.begin()[index].folder_;
@@ -56,7 +55,7 @@ bool CSaveLoadWindow::IsReservedSave(int index) {
     return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
-// --- 00655430 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::ShowSelection ------------------------------------------------------
 
 void CSaveLoadWindow::ShowSelection() {
     if (selected_ < 0) selected_ = 0;
@@ -72,7 +71,7 @@ void CSaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-// --- 006548A0 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::OnKeyDown ----------------------------------------------------------
 
 void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
@@ -115,7 +114,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             name.Empty();
             cursor_ = 0;
         }
-        if (cursor_ > 0) {   // by character (U4), as Delete and the cursor's steps
+        if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
             const int previous = text::PreviousCharacter(name, cursor_);
             name = name.Left(previous) + console::Ops(name).Mid(cursor_);
             cursor_ = previous;
@@ -155,10 +154,10 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-// --- 00655050 ------------------------------------------------------------------------------------
+// --- TextWidth ---------------------------------------------------------------------------
 
 namespace {
-// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -202,7 +201,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
     CUiContainer::Char(key, repeat, flags);
 }
 
-// --- 00650E40 ------------------------------------------------------------------------------------
+// --- COptionsWindow::OnKeyDown -----------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;

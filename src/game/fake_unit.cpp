@@ -67,7 +67,7 @@ void FakeUnitScene::ReleaseParts() {
 FakeUnitScene::~FakeUnitScene() {
     using namespace fakeunit;
     ReleaseParts();
-    figures.SetSize(0, -1);   // 0044FCD0
+    figures.SetSize(0, -1);
     scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) --figureRecords.data[i].refCount_;
     DestructArray(helpers, recordarrays::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });

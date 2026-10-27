@@ -1,7 +1,7 @@
 // The battle screen's weapon bar, quick items, spell column and action column: the four
-// constructors (0063BAB0, 0063C800, 0063E2A0, 0063F300), the functions that add a slot's sprite
-// (0063BCC0, 0063CAE0, 0063E4B0, 0063F500) and the weapon bar's highlight (0063C050). Rebirth
-// patches all nine for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// constructors, the functions that add a slot's sprite
+// and the weapon bar's highlight. Rebirth
+// patches all nine for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the weapon bar and the action column at the screen's left edge, the quick items and the spell
 // column at its right (the panel offset while some of them run, layout constants moved by
 // EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
@@ -24,9 +24,9 @@
 namespace {
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-// A texel as a texture offset: 1 / 256 (0073EEB8).
+// A texel as a texture offset: 1 / 256.
 float TexelStep() { return 0.00390625f /*0073EEB8*/; }
-// The layout y the columns' bottom button sits at (00742948, 490).
+// The layout y the columns' bottom button sits at (490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
 
 
@@ -101,7 +101,7 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
-    // WideScreen: the rectangle and the first region from 80 - shift (0063BAFC, 0063BB2B); the
+    // WideScreen: the rectangle and the first region from 80 - shift; the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
     rect_ = {80 - shift, 520, 240 - shift, 600};
@@ -134,7 +134,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
         widescreen::LeavePanel();
         return;
     }
-    // The more weapons, the larger each: 1.2 (0073CDF4) per slot in use, 24 (0073CE28) deep at scale 1.
+    // The more weapons, the larger each: 1.2 per slot in use, 24 deep at scale 1.
     float scale = 1.0f /*0073B84C*/;
     for (int i = count_; i > 0; --i) scale *= 1.2f /*0073CDF4*/;
     float depth = scale * 24.0f /*0073CE28*/;
@@ -149,14 +149,14 @@ EI_REWRITTEN(0x0063C050, CHudWeaponBar::Highlight);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
-    // half. (The original leaves both unset for a count over 3, which SetUnit never reaches.)
+    // half. (Left unset, as in the original, for a count over 3, which SetUnit never reaches.)
     const int x = count_ >= 2 ? kWeaponWidth : 0;
     const int y = (count_ & 1) ? kWeaponHeight : 0;
     CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
-        // Turned about z, then y, then z again: pi * -0.05 (00742804), pi * -1/3 (00742800) and
-        // pi * 0.75 (0073C524).
+        // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and
+        // pi * 0.75.
         Quaternion first, second, third;
         first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f /*00742804*/));
         second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f /*00742800*/));
@@ -166,7 +166,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     } else {
         sprite = AddSprite(nullptr);
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats
-        // written over 005FC9F4, 0063BF71 / 0063BF80).
+        // written over).
         float offset = static_cast<float>(count_ * kStep);
         const float shift = static_cast<float>(widescreen::EdgeShift());
         sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f /*00741F1C*/ - shift), 520.0f,
@@ -189,7 +189,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
     entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
     const int shift = widescreen::EdgeShift();
-    rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen: 0063C880 / 0063C894
+    rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 550, x + 50, 600);
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 500, x + 50, 550);
@@ -218,7 +218,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
         sprite->localRotation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
     } else {
         sprite = AddSprite(nullptr);
-        const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen: 0063CC13 / 0063CC07
+        const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen
         sprite->SetRectangle(20.0f, 20.0f, 680.0f + shift, 560.0f, 720.0f + shift, 600.0f, 0, 0, kIconSize, kIconSize);
     }
     SetOffsets(sprite, at.x, at.y + kIconSize);
@@ -232,7 +232,7 @@ EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
     const int shift = widescreen::EdgeShift();
-    rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen: 0063E306 / 0063E31A
+    rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen
     ClearSceneObjects();
     ClearRegions();
     count_ = 0;
@@ -278,7 +278,7 @@ EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
-    // WideScreen (addon's 10023416 at 0063F378, 0063F38E): the panel offset from here on, the
+    // WideScreen (addon's handler): the panel offset from here on, the
     // rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
@@ -305,7 +305,7 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     Quaternion turn;
     sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
     float y = ColumnBottom() - static_cast<float>(count_ * kStep);
-    sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen: 0063F633
+    sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen
     MakePlain(sprite);
     int place = actions_.size;
     actions_.SetSize(place + 1, -1);

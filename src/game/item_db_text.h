@@ -1,7 +1,6 @@
 #pragma once
 
 // Item names and descriptions from the game's text resources (004E0000-004E15C0).
-//
 // The game keeps its localized texts in resource archives (CMappedResource, resource.h). A text
 // manager (global pointer at 007AF788; class name unknown, provisional CTextManager) holds a
 // list of those archives and a read cursor into the last text it found. A text is looked up by
@@ -9,7 +8,6 @@
 // slot 5) knows the key wins, and the cursor is set to the start of the file's data. Then
 // 004DF8D0 reads one line from the cursor (the name) and 004DFB80 reads up to a '#' (the
 // description).
-//
 // Keys of items are built from the database records (item_db.h): the record's name CString,
 // spaces replaced by '_' and upper-cased, after a prefix that depends on the item kind.
 
@@ -30,17 +28,17 @@ struct TextSource {
 static_assert(sizeof(TextSource) == 0x10);
 
 // The archive list (STLport list<pair<string, CMappedResource*>>, CTextManager +0x1C). Nodes come
-// from the STLport node allocator's 0x18-byte free list (0079B22C).
+// from the STLport node allocator's 0x18-byte free list.
 struct TextSources : stlp::list<TextSource> {
     // 004E1530 and its byte-identical copies (other lists' begin in the world range; A-W12): *out =
     // the first node.
     void Begin(Node** out);
-    // 004E1550. erase(pos): unlinks the node, frees its name and returns the node to the free list;
+    // Erase(pos): unlinks the node, frees its name and returns the node to the free list;
     // *out = the next node. Returns out.
     Node** Erase(Node** out, Node* pos);
-    // 004E15C0 (RET 4). _M_create_node(value): a node from the pool, the pair copied into it.
+    // _M_create_node(value): a node from the pool, the pair copied into it.
     Node* CreateNode(const TextSource* value);
-    // 004E1590. insert(pos, value): a new node (004E15C0 copies the pair) linked before `pos`; *out =
+    // Insert(pos, value): a new node (004E15C0 copies the pair) linked before `pos`; *out =
     // the new node. Returns out.
     Node** Insert(Node** out, Node* pos, const TextSource* value);
     // text_sources.cpp. 004DE930 (RET 8): unless an archive of that exact name is listed (then 1),
@@ -70,55 +68,55 @@ static_assert(sizeof(TextSources) == 4);
 class CTextManager : public CEngineObject {
 public:
     // The constructor as the client world's Setup inlines it (text_sources.cpp): the engine
-    // object's fields, the archive list (00562A80), then Create (004DED20).
+    // object's fields, the archive list, then Create.
     CTextManager();
     // 005629B0 (deleting: 00562990; text_sources.cpp). ClearSources, then the archive list's own
-    // clear (004DEB60) and destruction (the sentinel back to the node pool).
+    // clear and destruction (the sentinel back to the node pool).
     ~CTextManager() override;
 
     int Create() override;                  // 2: 004DED20 (below)
-    void Destroy() override { ClearSources(); }   // 3: 004DED40
+    void Destroy() override { ClearSources(); }
     const char* GetClassName() override;    // 11: 00562970 "CTextManager" (world_class_slots.cpp)
     int GetClassId() override;              // 12: 00562980 (0x2A)
 
-    // 004DF770. The first word at the cursor (leading spaces and line ends skipped; it ends at a
+    // The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
     BOOL PeekWord(mfc::CString* out);
     using SourceNode = TextSources::Node;
 
-    // 004E0000. Whether `p` is at or past the end of the current text (signed compare).
+    // Whether `p` is at or past the end of the current text (signed compare).
     BOOL IsPastEnd(const char* p);
 
-    // 004E0020. Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed) into
+    // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed) into
     // `out`. When there is no such text `out` becomes `name` itself (unless it already holds that
     // very buffer) and the result is 0. Either way the cursor is cleared afterwards.
     BOOL GetString(const char* name, mfc::CString* out);
 
-    // 004E0150. The name, description and kind ("item_weapon", ...) of an item, each looked up
+    // The name, description and kind ("item_weapon", ...) of an item, each looked up
     // in the texts; parts that are not found stay empty. Always returns 1.
     BOOL GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);
 
-    // 004E13E0. The item's display name: "format_item1" (or "format_item2" with the stack count
+    // The item's display name: "format_item1" (or "format_item2" with the stack count
     // when the item's +0x48 is above 1) applied to the kind and the name.
     BOOL FormatItemName(CItem* item, mfc::CString* out);
 
     // The line reader (text_reader.cpp).
-    // 004DEFC0. Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
+    // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
     BOOL Open(const char* key);
     // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
     // are, never converted (EI_UTF8). Without EI_UTF8 the same as Open.
     BOOL OpenData(const char* key);
-    // 004DF8D0. The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
+    // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
     BOOL ReadLine(mfc::CString* out, BOOL advance);
-    // 004DFB80. The text up to the next '#' into `out`; with `advance` the cursor moves there.
+    // The text up to the next '#' into `out`; with `advance` the cursor moves there.
     BOOL ReadToHash(mfc::CString* out, BOOL advance);
-    // 004DFCB0. The current line's words (separated by spaces and tabs; a word still open when the
+    // The current line's words (separated by spaces and tabs; a word still open when the
     // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
     // a comment. 0 when the cursor is at the end.
     BOOL Split(console::CStringArray* words, BOOL advance);
-    // 004DF030. Moves the cursor to the line that starts with `key`: null finds the next "#..." header
+    // Moves the cursor to the line that starts with `key`: null finds the next "#..." header
     // (not a "##" comment); one word compares the line's first word; several words (split at spaces)
     // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).
     BOOL FindLine(const char* key);
@@ -147,7 +145,7 @@ static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
 using TextSourceNode = TextSources::Node;
 
-// 004E1540. Copies an iterator (thiscall: *out = *this).
+// Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {
     CTextManager::SourceNode* node;
     // 004E1540 and its byte-identical copies: *out = node; returns `out` in EAX, which some callers use

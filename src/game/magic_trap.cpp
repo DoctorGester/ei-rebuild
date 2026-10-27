@@ -1,8 +1,8 @@
-// Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
-// sides in its circles (0052A920), casting the spell (0052A4B0), set-up from the zone record
-// (0052A2C0), the constructor and destructor body (00529DD0 / 00529F90), Save and Load (0052B070 /
-// 0052ADC0), Create / Destroy (0052A100 / 0052A200), the update (0052AC20), firing (0052AB30) and
-// forgetting a removed object (0052AC90). See magic_trap.h and docs/notes/units.md ("Magic traps").
+// Magic traps: who is inside, and casting at newcomers, the living units of the trap's
+// sides in its circles, casting the spell, set-up from the zone record
+// the constructor and destructor body, Save and Load (0052B070 /
+// 0052ADC0), Create / Destroy, the update, firing and
+// forgetting a removed object. See magic_trap.h and docs/notes/units.md ("Magic traps").
 #include "base_manager.h"
 #include "magic_trap.h"
 
@@ -91,7 +91,7 @@ void MagicTrap::UpdateVictims() {
             else node->prev->next = node->next;
             if (node == victims->tail) victims->tail = node->prev;
             else node->next->prev = node->prev;
-            mfc::impl::FreeNodeAs<gamelists::ObjectRefs>(victims, node);   // 0052CE20
+            mfc::impl::FreeNodeAs<gamelists::ObjectRefs>(victims, node);
         }
         node = next;
     }
@@ -145,7 +145,7 @@ void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std
 EI_REWRITTEN(0x0052A920, FindTrapVictims);
 
 namespace {
-// The object's world [00455950]; the world server (007AFF60) casts `spell` from `caster` at
+// The object's world [00455950]; the world server casts `spell` from `caster` at
 // `from` on `target` at `at` [0058E850 (spell, caster, from, target, at, 0), RET 0x18].
 constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell +0x3C (targetFlags_): cast at the units
 constexpr float kFar = 1e30f;                        // 0073E73C, a squared distance
@@ -179,7 +179,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             }
             if (!closest) return;
             units->RemoveAll();
-            units->AddTail(closest);   // the original's AddTail calls the list's NewNode (0052CEF0)
+            units->AddTail(closest);   // the original's AddTail calls the list's NewNode
         }
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;

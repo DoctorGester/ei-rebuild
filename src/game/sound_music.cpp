@@ -58,7 +58,7 @@ void WaitAndEndAfter(CSoundManager* snd) {
     snd->StopStream(1);
 }
 
-// ---- Theme loading (006B4710) ----
+// ---- Theme loading ----
 
 
 // The themes' registry (registry.cpp).
@@ -93,7 +93,7 @@ const mfc::CString& TextPath() { return TheTextFolder(); }
 
 } // namespace
 
-// 006B4710. The error message names the file without its path, and its text is FatalError's
+// The error message names the file without its path, and its text is FatalError's
 // format string (original).
 int CMusicSystem::LoadThemes() {
     Registry reg;
@@ -142,7 +142,7 @@ int CMusicSystem::LoadThemes() {
 }
 EI_REWRITTEN(0x006B4710, CMusicSystem::LoadThemes);
 
-// 006B4E30. Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
+// Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
 void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     TheSoundManager()->StreamNotify(4);
@@ -166,7 +166,6 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
 }
 EI_REWRITTEN(0x006B4E30, CMusicSystem::SetZoneMode);
 
-// 006B4F70.
 void CMusicSystem::Stop() {
     state = 0;
     TheSoundManager()->StopStream(4);
@@ -190,7 +189,6 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, mfc::CString MusicThe
 }
 } // namespace
 
-// 006B4F90.
 void CMusicSystem::PlayBriefing(const char* allod) {
     state = 2;
     TheSoundManager()->StopStream(4);
@@ -198,7 +196,6 @@ void CMusicSystem::PlayBriefing(const char* allod) {
 }
 EI_REWRITTEN(0x006B4F90, CMusicSystem::PlayBriefing);
 
-// 006B5080.
 void CMusicSystem::PlayConstructor(const char* allod) {
     state = 3;
     TheSoundManager()->StopStream(4);
@@ -206,7 +203,6 @@ void CMusicSystem::PlayConstructor(const char* allod) {
 }
 EI_REWRITTEN(0x006B5080, CMusicSystem::PlayConstructor);
 
-// 006B5170.
 void CMusicSystem::PlayCredits() {
     state = 5;
     TheSoundManager()->StopStream(4);
@@ -215,7 +211,6 @@ void CMusicSystem::PlayCredits() {
 }
 EI_REWRITTEN(0x006B5170, CMusicSystem::PlayCredits);
 
-// 006B51F0.
 void CMusicSystem::PlayMainMenu() {
     state = 4;
     TheSoundManager()->StopStream(4);
@@ -224,7 +219,7 @@ void CMusicSystem::PlayMainMenu() {
 }
 EI_REWRITTEN(0x006B51F0, CMusicSystem::PlayMainMenu);
 
-// 006B5270. A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
+// A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
 // waits until it has finished.
 void CMusicSystem::PlayJingle(const char* name) {
     if (state != 1) return;
@@ -292,12 +287,12 @@ EI_REWRITTEN(0x006B5350, CMusicSystem::UpdateMusic);
 // ---- Lifetime and the engine object's slots (A-H13) ----
 
 namespace {
-// 006B56C0: the theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
+// The theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
 void ThemesDestruct(void* themes) {
     recordarrays::Themes::Destruct<recordarrays::ThemeArrayClass>(static_cast<recordarrays::Themes::Array*>(themes));
 }
 constexpr int kMusicClassId = 0xE;
-// "CMusicSystem" (007967F4).
+// "CMusicSystem".
 const char* MusicClassNameText() { return "CMusicSystem"; }
 } // namespace
 

@@ -28,7 +28,7 @@ HANDLE g_main = nullptr;
 std::uintptr_t g_stackBase = 0;
 std::uintptr_t g_selfBase = 0, g_selfEnd = 0, g_exeCode = 0, g_exeCodeEnd = 0;
 
-// game.exe's code sections only: a stack word into its data (the image's sealed .bss) is not read (SV10j).
+// game.exe's code sections only: a stack word into its data (the image's sealed .bss) is not read.
 bool InCode(std::uintptr_t a) { return (a >= g_exeCode && a < g_exeCodeEnd) || (a >= g_selfBase + 0x1000 && a < g_selfEnd); }
 
 // A return address: the bytes before it are a CALL (E8 rel32, or FF /2 in its 2-7 byte forms).
@@ -121,7 +121,7 @@ void InstallProfiler() {
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
     // game.exe's code: its module's code sections. None in the standalone image: none of game.exe's code runs
-    // there and its code section is guarded (S18i), so a stack word there is not read.
+    // there and its code section is guarded, so a stack word there is not read.
     const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);

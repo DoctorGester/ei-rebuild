@@ -1,6 +1,6 @@
 #pragma once
 
-// The game's text as std::string (C14a): what MFC's CString did that std::string has no member for, with
+// The game's text as std::string: what MFC's CString did that std::string has no member for, with
 // CString's answers (the game's code was written against them).
 //   - Find / ReverseFind / FindOneOf return an int position, -1 when absent (the multibyte CRT's _mbschr,
 //     _mbsstr, _mbsrchr, _mbspbrk, as CString searched).

@@ -1,6 +1,6 @@
 #pragma once
 
-// MFC 4.2's worker threads as the game starts them (mfc_thread.cpp, ticket S16): AfxBeginThread with
+// MFC 4.2's worker threads as the game starts them (mfc_thread.cpp): AfxBeginThread with
 // a thread procedure (the sound stream, the MIDI player and the cursor) and AfxEndThread, which the
 // procedures call at their end. The CWinThread constructor and its CommonConstruct are registered in
 // both builds; AfxBeginThread and AfxEndThread in the image only (the hook build keeps the original's
@@ -19,16 +19,16 @@ namespace mfc::impl {
 
 using ThreadProc = UINT(__cdecl*)(void* parameter);
 
-// CWinThread (0x68 bytes; game.exe's table 007466E0: CCmdTarget's 20 slots, then the thread's; the destructor and
-// Delete ported, the message loop's unported: the game's threads only run their procedure, never InitInstance / Run).
+// CWinThread (0x68 bytes; CCmdTarget's 20 slots, then the thread's; the destructor and
+// Delete are here, the message loop is not: the game's threads only run their procedure, never InitInstance / Run).
 struct WinThread : CCmdTarget {
-    // 0070C259 (thiscall, RET 8): CCmdTarget's constructor, the procedure and its parameter, then CommonConstruct.
+    // CCmdTarget's constructor, the procedure and its parameter, then CommonConstruct.
     WinThread(ThreadProc procedure, void* parameter);
-    // ~CWinThread (0070E132, deleting 0070C29D): the thread handle closed, no longer the current thread, then
+    // ~CWinThread (deleting): the thread handle closed, no longer the current thread, then
     // CCmdTarget's destructor.
     ~WinThread() override;
 
-    const CRuntimeClass* GetRuntimeClass() const override;                                       // 0: 0070C328
+    const CRuntimeClass* GetRuntimeClass() const override;
     void OnFinalRelease() override { ei::UnportedSlot(0x00704179); }                             // 4
     const void* GetMessageMap() const override { ei::UnportedSlot(0x00704161); }                 // 10
     virtual BOOL InitInstance() { ei::UnportedSlot(0x007025A8); }                                // 20
@@ -41,10 +41,10 @@ struct WinThread : CCmdTarget {
     virtual LRESULT ProcessWndProcException(void*, const MSG*) { ei::UnportedSlot(0x00702876); } // 27
     virtual BOOL ProcessMessageFilter(int, MSG*) { ei::UnportedSlot(0x00702969); }               // 28
     virtual CWnd* GetMainWnd() { ei::UnportedSlot(0x00702AB3); }                                 // 29
-    // 00702596 (30): deleted (slot 1) when autoDelete is set.
+    // Deleted when autoDelete is set.
     virtual void Delete();
 
-    // 0070C2F6 (thiscall): no windows, no thread yet, the message state cleared, the cursor position
+    // No windows, no thread yet, the message state cleared, the cursor position
     // (GetCursorPos), no filter or OLE hook, deleted when its thread ends.
     void CommonConstruct();
 
@@ -65,12 +65,12 @@ static_assert(sizeof(WinThread) == 0x68);
 static_assert(offsetof(WinThread, thread) == 0x28 && offsetof(WinThread, threadParams) == 0x4C);
 static_assert(offsetof(WinThread, cursorLast) == 0x5C && offsetof(WinThread, msgLast) == 0x64);
 
-// 007022A0 AfxBeginThread (stdcall): a new CWinThread for `procedure`, its thread created suspended
-// (CreateThread 007024B4: started, then held until the creator has its handle), the priority set,
+// AfxBeginThread: a new CWinThread for `procedure`, its thread created suspended
+// (CreateThread: started, then held until the creator has its handle), the priority set,
 // then resumed unless `flags` has CREATE_SUSPENDED. Null when the thread cannot be created. Image only.
 WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security);
-// 00702380 AfxEndThread (stdcall; does not return): the current thread's OLE hook, then its object
+// AfxEndThread (does not return): the current thread's OLE hook, then its object
 // deleted when `deleteThread` (and autoDelete) is set, then _endthreadex(exitCode). Image only.
 void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread);
 

@@ -1,5 +1,5 @@
-// The unit AI's look arrays (CArray<AILook> template code: 005573F0, 005D8EE0, 005D8B60,
-// 005D9DE0), clearing a prepared move (00545B20) and adding a patrol point (005D12B0).
+// The unit AI's look arrays CArray<AILook> template code:
+// clearing a prepared move and adding a patrol point.
 #include "unit_ai.h"
 
 #include "core_maths.h"
@@ -14,8 +14,8 @@
 #include <cstring>
 
 namespace {
-constexpr float kOne = 1.0f;                        // 0073FEC8 / 0073B84C
-constexpr float kHalf = 0.5f;                       // 0073B86C
+constexpr float kOne = 1.0f;
+constexpr float kHalf = 0.5f;
 
 // CArray growth when the capacity is exceeded: the step (0: an eighth of the size, 4..1024) added
 // to the capacity, or the new size when that is more.
@@ -33,7 +33,7 @@ int GrownCapacity(int size, int max, int growBy, int wanted) {
     return capacity <= wanted ? wanted : capacity;
 }
 
-// The element constructor (004CDE10): zero bytes.
+// The element constructor: zero bytes.
 void ZeroLooks(AILook* first, int count) { std::memset(first, 0, sizeof(AILook) * static_cast<unsigned>(count)); }
 } // namespace
 

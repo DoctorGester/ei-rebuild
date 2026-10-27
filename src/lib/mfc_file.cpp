@@ -65,7 +65,6 @@ const char g_chNil[1] = /*007C8BA8*/ {""};
 const char* ChNil() { return g_chNil; }
 
 // ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
-//
 // The game's FILE* is the host CRT's (crt_file.cpp): these are the host's.
 
 FILE* Host(gamecrt::CrtFile* stream) { return reinterpret_cast<FILE*>(stream); }
@@ -212,17 +211,17 @@ const void* __fastcall FileRuntimeClass(const void*) { return &kClassCFile; }
 const void* __fastcall StdioFileRuntimeClass(const void*) { return &kClassCStdioFile; }
 const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFind; }
 
-// ---- The compiled tables (C19) --------------------------------------------------------------------
+// ---- The compiled tables --------------------------------------------------------------------
 
 namespace {
 
 // CFile's 21 slots (MFC 4.2's CFile virtuals), each the body of `File` that game.exe's table points at: CFile's
-// for game.exe's 00745DF4, CStdioFile's own (or the CFile one it inherits) for 007464F0.
+// for, CStdioFile's own (or the CFile one it inherits) for.
 template <typename Self, typename File, const CRuntimeClass* kClass>
 struct FileTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                       // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
-    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual void Serialize(void*) {}
     virtual unsigned long GetPosition() const { return This()->GetPosition(); }                  // 3
     virtual CString GetFileName() const { return This()->GetFileName(); }                         // 4
     virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5
@@ -251,11 +250,11 @@ protected:
     const File* This() const { return this->template ObjectAs<File>(); }
 };
 
-// game.exe's 00745DF4 (0: 0070BE58, 1: 00701050, 3-20: 007013B9 ... 0070150F).
+// The plain CFile's table.
 struct PlainFileTable final : FileTable<PlainFileTable, CFile, &kClassCFile> {};
 
-// game.exe's 007464F0 (0: 0070C15B, 1: 00701B8F): CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /
-// 12 / 20, and 21-23 its own. UnlockRange (16, 0070204B) is LockRange's body (not supported).
+// CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /
+// 12 / 20, and 21-23 its own. UnlockRange is LockRange's body (not supported).
 struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdioFile> {
     void UnlockRange(unsigned long position, unsigned long count) override { This()->LockRange(position, count); }
     virtual void WriteString(const char* text) { This()->WriteString(text); }                     // 21
@@ -263,11 +262,11 @@ struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdi
     virtual char* ReadString(char* buffer, unsigned size) { return This()->ReadString(buffer, size); }   // 23
 };
 
-// CFileFind's 19 slots (game.exe's 00745EE8; 0: 0070BE5E, 1: 006E6391, 3-18: 006E684B ... 006E6429).
+// CFileFind's 19 slots (game.exe's table).
 struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }             // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
-    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual void Serialize(void*) {}
     virtual CString GetFileName() const { return This()->GetFileName(); }                         // 3
     virtual CString GetFilePath() const { return This()->GetFilePath(); }                         // 4
     virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5

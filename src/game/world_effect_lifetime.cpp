@@ -41,7 +41,7 @@ EI_REWRITTEN(0x00675F70, DeltaField::Empty);
 
 CEffect::CEffect() {
     ClearFields();
-    // Identity rotations (w first); the positions are not initialised (00453400).
+    // Identity rotations (w first); the positions are not initialised.
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     velocity_ = Vector3{0.0f, 0.0f, 0.0f};

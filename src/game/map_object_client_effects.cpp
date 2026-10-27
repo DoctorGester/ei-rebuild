@@ -34,7 +34,7 @@ constexpr std::uint32_t kFlagInvisible = 0x10000;     // CEngineObject::flags_ o
 constexpr std::uint32_t kFlagStunned = 0x40000;
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
-constexpr float kPowerScale = 0.0625f;                // 0073D040: power / 16
+constexpr float kPowerScale = 0.0625f;                // power / 16
 
 constexpr int kInvisibility = 0x0F;
 constexpr int kLichdom = 0x11;
@@ -135,7 +135,7 @@ float RingSize(int type, int power) {
 void AddReference(CParticleSource* source) { ++source->refCount_; }
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
-// The feeble mind sequence's chooser (005117C0): the first name once, then the second.
+// The feeble mind sequence's chooser: the first name once, then the second.
 int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
@@ -152,7 +152,7 @@ constexpr std::uint32_t kLightHeld = 0x200;      // held on by slot 19 (mode 1)
 constexpr std::uint32_t kLightNew = 0x580;
 constexpr std::uint32_t kLightFlag40 = 0x40;
 constexpr int kPointLight = 0x31;
-constexpr float kLightHeight = 2.0f;             // 0073DBE8
+constexpr float kLightHeight = 2.0f;
 constexpr int kUnitClassId = 0x50;
 
 // The default light of slot 19's mode 1 (0079BEB0: r, g, b; 0079BEBC: radius).
@@ -177,7 +177,6 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 } // namespace
 
-// 005114D0 (__fastcall; RET 0xC).
 void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
     CSoundManager* sounds = TheSoundManager();

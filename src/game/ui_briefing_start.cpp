@@ -53,7 +53,7 @@ constexpr int kConstructorPrefix = 6;    // "constr"
 constexpr int kConstructorNumber = 7;    // where the constructor's number starts
 constexpr int kCampScreen = 5;
 constexpr int kStateStarting = 2;
-constexpr float kSpacing = 2.5f;         // 0073CE18, added to the prototype's viewDistance
+constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
 
 int Compare(const char* a, const char* b) {
     return gamecrt::mbsicmp(a, b);
@@ -84,7 +84,7 @@ void Normalise(Vector3* v) {
     v->z = inverse * v->z;
 }
 
-// 00609A40 inlined: the node unlinked and back to the pool.
+// inlined: the node unlinked and back to the pool.
 void EraseMover(BriefingMover* node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -107,7 +107,7 @@ void DropMover(BriefingMover* movers, const CUnit* person, Vector3* place, Vecto
 
 } // namespace
 
-// --- 006064E0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     immediate_ = immediate;
@@ -220,7 +220,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
 }
 EI_REWRITTEN(0x006064E0, CBriefingScreen::StartDialogue);
 
-// --- 00608450 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
@@ -231,7 +231,7 @@ void CBriefingScreen::ClearShownItems() {
         if (node->back) RemoveSceneObject(node->back);
         if (node->frame) RemoveSceneObject(node->frame);
     }
-    // list::clear (the name's destructor 0060ABE0, the node back to the pool 005FA8E0).
+    // list::clear (the name's destructor, the node back to the pool).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
         node->name.~CString();
@@ -265,7 +265,7 @@ void CBriefingScreen::FinishDialogue() {
         // (The original then looks for the unit among the party's first members; the result is
         // not used.)
     }
-    // vector::clear (0060AB60, then the entries' destructor 0060AC00).
+    // vector::clear (then the entries' destructor).
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
     speakersEnd_ = speakers_;
     speaking_ = nullptr;

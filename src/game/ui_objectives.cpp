@@ -1,9 +1,8 @@
-// The objectives window (CObjectivesWindow, ui.h): its Create (0064BE80), the zone page
-// (0064CC10) and the selected quest's description and places (0064DC60). TAB in a zone opens it
+// The objectives window (CObjectivesWindow, ui.h): its Create, the zone page
+// and the selected quest's description and places. TAB in a zone opens it
 // for the current zone; opened with `listZones_` it lists the zones of the zone's allod in which
 // the player has quests and shows one of them. See
 // docs/notes/ui.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "stl_sorts.h"
@@ -69,34 +68,34 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 
-// 004DEFC0: finds text `key`; non-zero when found (the cursor at its start).
+// Finds text `key`; non-zero when found (the cursor at its start).
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
-// The quest the window last selected (a global CString): built empty by the static initialiser 0064BE00 in the list's
-// order, destroyed once by the exit function it registers (guard bit in 007C8174). Both are ported on the names and
+// The quest the window last selected (a global CString): built empty by its static initialiser in the list's
+// order, destroyed once by the exit function it registers. Both are defined on the names and
 // registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
 mfc::CString& LastQuest() { return *g_lastQuest; }
 
-void __cdecl ConstructLastQuest() {   // 0064BE00
+void __cdecl ConstructLastQuest() {
     g_lastQuest.Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
 }
-void __cdecl DestroyLastQuest() {   // 0064BE20
+void __cdecl DestroyLastQuest() {
     if (g_lastQuestDestroyed & 1) return;
     g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
     g_lastQuest.Destroy();
 }
 
-// 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
+// Not rewritten: splits `text` at `separator` into `out`.
 
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
-    VariableTable() { table_.ConstructDefault(); }   // 00609C10 with 100 buckets
+    VariableTable() { table_.ConstructDefault(); }   // with 100 buckets
     void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
-    ~VariableTable() { table_.Destroy(); }   // inlined: every node's key released, then the buckets
+    ~VariableTable() { table_.Destroy(); }   // every node's key released, then the buckets
 
     NamedFloatTable::Node* First() const { return table_.First(); }
     NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const { return table_.Next(node); }
@@ -113,7 +112,7 @@ void PushBack(ZoneNames* v, const mfc::CString& x) {
         new (v->Finish()) mfc::CString(x);
         ++v->Finish();
     } else {
-        v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);   // 0051F790
+        v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);
     }
 }
 
@@ -131,13 +130,13 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The window's exit list: CArray<ObjectiveExit> at +0x188 (SetAtGrow 0064F160).
+// The window's exit list: CArray<ObjectiveExit> at +0x188.
 
 // The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;
 using DistanceNode = DistanceMap::Node;
 
-// A surface's text (005FDE20, Rebirth-patched).
+// A surface's text (Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
@@ -173,21 +172,21 @@ void GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
 }
 
 // Layout constants (zone picture centre and size on the right half of the window).
-constexpr float kPictureCentreX = 580.0f;   // 00742B38
-constexpr float kPictureCentreY = 190.0f;   // 00742B3C
-constexpr float kPictureHalf = 150.0f;      // 0073D618
-constexpr float kTexels = 256.0f;           // 00742B40
-constexpr float kPictureSpan = 300.0f;      // 0073FA98
-constexpr float kMarkerHeight = 20.0f;      // 0073CCF8
-constexpr float kMarkerHalfWidth = 10.0f;   // 0073BAAC
-constexpr float kExitHalf = 15.0f;          // 0073C518
+constexpr float kPictureCentreX = 580.0f;
+constexpr float kPictureCentreY = 190.0f;
+constexpr float kPictureHalf = 150.0f;
+constexpr float kTexels = 256.0f;
+constexpr float kPictureSpan = 300.0f;
+constexpr float kMarkerHeight = 20.0f;
+constexpr float kMarkerHalfWidth = 10.0f;
+constexpr float kExitHalf = 15.0f;
 constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
 constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
-constexpr float kExitTurnDown = 3.1415927f; // 00742B24
+constexpr float kExitTurnDown = 3.1415927f;
 
 } // namespace
 
-// --- 0064CC10: the zone page ----------------------------------------------------------------------
+// --- The zone page ----------------------------------------------------------------------
 
 void CObjectivesWindow::ShowZone(const char* zone) {
     shownZone_ = zone;
@@ -385,14 +384,14 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
 }
 
-// --- 0064DC60: the selected quest ------------------------------------------------------------------
+// --- The selected quest ------------------------------------------------------------------
 
 namespace {
 
 // The text reader's line steps (text_reader.cpp; called through their addresses).
-// The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
-// [0065CFE0].
-// The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
+// The quest log (the window's first child): clear, set the text
+// (called through their addresses).
+// The quest database's index (map<string, record*>): operator[], creating an
 // empty slot for a name it lacks.
 QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
@@ -450,7 +449,7 @@ void CObjectivesWindow::ShowQuest() {
     if (QuestRecord* record = FindQuestRecord((*quests)[selectedQuest_])) {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
-        if (experience > 0.0f) {   // 0073B858
+        if (experience > 0.0f) {
             part = str::Format("%s %d\n ", costExp.GetString(), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
             text += part;
         }
@@ -520,7 +519,7 @@ void CObjectivesWindow::ShowQuest() {
     }
 }
 
-// --- 0064BE80: Create ------------------------------------------------------------------------------
+// --- Create ------------------------------------------------------------------------------
 
 void CObjectivesWindow::CreateScreen() {
     UiD3DDevice* device = interface_->renderer_->device_;
@@ -725,7 +724,7 @@ EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);
 
-// --- 0064BE40 / 0064D990 (A-H25): what the window is opened for, and its help topic --------------------
+// --- What the window is opened for, and its help topic --------------------
 
 namespace {
 const char* const kGlobalMapTopic = "quest_global_map";

@@ -1,5 +1,5 @@
-// The battle screen's slot 1 (00638A10), double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
-// input side slots 1, 7, 11 and 12. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
+// The battle screen's close, double click, key release and wheel: its
+// input side. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -8,11 +8,11 @@
 namespace {
 // Key actions 0x11..0x16 hold the order keys; each releases its flag in orderKeys_.
 constexpr int kFirstOrderKeyAction = 0x11;
-// Which orderKeys_ entry each of them releases (the original's jump table at 0063B754).
+// Which orderKeys_ entry each of them releases.
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 } // namespace
 
-// --- 00638A10: the battle screen loses the top -----------------------------------------------
+// --- the battle screen loses the top -------------------------------------------------------------
 
 void CBattleScreen::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
@@ -22,7 +22,7 @@ void CBattleScreen::OnDeactivate() {
 }
 EI_REWRITTEN(0x00638A10, CBattleScreen::OnDeactivate);
 
-// --- 00638AD0: a double click on the battle screen -------------------------------------------
+// --- a double click on the battle screen ---------------------------------------------------------
 
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
@@ -37,7 +37,7 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638AD0, CBattleScreen::OnLeftDouble);
 
-// --- 0063B6D0: a key released on the battle screen -------------------------------------------
+// --- a key released on the battle screen ---------------------------------------------------------
 
 void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
@@ -47,7 +47,7 @@ void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
 }
 EI_REWRITTEN(0x0063B6D0, CBattleScreen::OnKeyUp);
 
-// --- 0063B770: the wheel on the battle screen ------------------------------------------------
+// --- the wheel on the battle screen --------------------------------------------------------------
 
 BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
     if (portraitMode_ != 0) return 1;

@@ -169,7 +169,7 @@ void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
             std::memcpy(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex], sizeof(float));
             break;
         case kScriptString:
-            vars->strings.CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);   // 004C2F80
+            vars->strings.CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);
             break;
         case kScriptObject:
             objectArgs.data[b.argIndex] = &vars->objects.data[b.varIndex];

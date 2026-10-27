@@ -3,9 +3,8 @@
 // interface, layout left, top, right, bottom, format, scale flag; RET 0x1C) and 005FCDD0 (thiscall:
 // interface, layout rectangle, format; always scaled; RET 0xC). Both scale the rectangle to the
 // screen (005F7CA0, Rebirth's wide-screen patch sits there), make a surface holder of its size
-// (004EF7B0), add height * pitch to the surface-bytes total 007C7E78, clear the surface to 0 with a
+// add height * pitch to the surface-bytes total 007C7E78, clear the surface to 0 with a
 // colour-fill Blt and set flag 4 of +0x0C.
-//
 // The holder has no DirectDraw surface, only the new renderer's memory (dx_surface.cpp, ticket R7):
 // the surface is already zero (a new DIB section), so the colour fill is left out, and the
 // descriptions the surface-bytes total takes (here and in 005FCF80 / 005FD120) come from that
@@ -83,7 +82,7 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
 void* CUiSurface::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CUiSurface::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// 005FD120. The destructor: frees the kept bytes (total 007C7E74), takes the surface's
+// The destructor: frees the kept bytes (total 007C7E74), takes the surface's
 // height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
 CUiSurface::~CUiSurface() {
     ui_native::Forget(this);
@@ -102,7 +101,7 @@ EI_REWRITTEN_SPECIAL(0x005FD120, CUiSurface::~CUiSurface);
 
 // 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
 // "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
-// picture holder (004EFC60); its size is the picture's, the screen rectangle (0, 0, width, height),
+// picture holder; its size is the picture's, the screen rectangle (0, 0, width, height),
 // flag 1.
 CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     CUiSurface* self = this;
@@ -120,7 +119,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
     if (made) ++made->refs_;
-    if (previous) previous->Release();   // 004E6BA0
+    if (previous) previous->Release();
     manager->CloseFile(picture);
     CDXSurface* holder = self->holder_;
     self->width_ = holder->width;
@@ -144,7 +143,6 @@ CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int botto
 }
 EI_REWRITTEN_SPECIAL(0x005FCC00, CUiSurface::CUiSurface);
 
-// 005FCDD0.
 CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, int format) {
     Begin(this, ui, format);
     rect_ = *rect;

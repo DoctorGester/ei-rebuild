@@ -1,6 +1,6 @@
 // The region map's block searches (BlockSearch, ai_map.h): Dijkstra over the 8x8-cell blocks of
 // one size class along the edge words, open records in eight buckets by x & 7 sorted by cost. And
-// the region map's block update (005AFC70), which re-measures the blocks after the AI map changed.
+// the region map's block update, which re-measures the blocks after the AI map changed.
 // See docs/notes/ai.md.
 #include "ai_map.h"
 
@@ -14,8 +14,8 @@ constexpr int kUnreached = 0x7FFFFFFF;
 
 
 // Progress steps of UpdateBlocks: the representative cells take the first eighth, the edges the rest.
-constexpr float kFirstPassShare = 0.125f;   // 0073C520
-constexpr float kSecondPassShare = 0.875f;  // 0073FCEC
+constexpr float kFirstPassShare = 0.125f;
+constexpr float kSecondPassShare = 0.875f;
 } // namespace
 
 void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
@@ -28,7 +28,7 @@ void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
         gamecrt::operator_delete(records.rows);
         records.width = width;
         records.height = height;
-        // 005B1500: the record block and its row table.
+        // The record block and its row table.
         records.data = static_cast<BlockRecord*>(gamecrt::operator_new(records.width * records.height * sizeof(BlockRecord)));
         records.rows = static_cast<BlockRecord**>(gamecrt::operator_new(records.height * sizeof(BlockRecord*)));
         for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;

@@ -2,8 +2,8 @@
 // empties a variable table, the "gvar." entries survive. addon copies them into an
 // std::unordered_map<std::string, float> of its own compiler (MSVC 2010: FNV-1 over every
 // (len / 10 + 1)-th character, 8 buckets growing by 8 at a load factor above 1, nodes kept in one
-// list with each bucket's range in it), lets the game clear the table (00461540), then sets the
-// entries again (00460BC0) in the order of that list. The order decides the order of the entries
+// list with each bucket's range in it), lets the game clear the table, then sets the
+// entries again in the order of that list. The order decides the order of the entries
 // in the game's hash chains (and so in saves and in listings), so the container is reproduced
 // here exactly: AddonStringMap below is that unordered_map's insert, find and rehash.
 // See docs/notes/rebirth.md ("PersistentGlobalVars").
@@ -133,6 +133,6 @@ void ClearVariablesKeepingGlobals(NamedFloatTable* table) {
         if (std::strncmp(node->value.key, "gvar.", 5) != 0) continue;
         kept.Find(node->value.key.GetString()).value = node->value.mapped;
     }
-    table->Clear();   // 00461540
-    for (const AddonStringMap::Element& e : kept.Elements()) table->Set(e.key.c_str(), e.value);   // 00460BC0
+    table->Clear();
+    for (const AddonStringMap::Element& e : kept.Elements()) table->Set(e.key.c_str(), e.value);
 }

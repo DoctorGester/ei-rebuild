@@ -1,5 +1,4 @@
 // The text manager's line reader (004DEFC0-004DFFFF). See text_reader.h.
-//
 // The original inlines the same few loops many times with small differences (the end test inline
 // or through IsPastEnd 004E0000, the character code inline or through 004DF4E0); `Advance` below
 // reproduces each variant by its call pattern.

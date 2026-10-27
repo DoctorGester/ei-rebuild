@@ -1,5 +1,5 @@
-// The AI's eye (the world server's +0x2838): what a unit sees each brain tick (005CAA00), the
-// nearby units (005CA1D0), seeing new ones (005CA5A0) and the eye's height and facing (005CA410).
+// The AI's eye (the world server's +0x2838): what a unit sees each brain tick, the
+// nearby units, seeing new ones and the eye's height and facing.
 #include "ai_map.h"
 #include "combat.h"
 #include "effects.h"
@@ -25,16 +25,16 @@
 #include <cstring>
 
 namespace {
-constexpr float kOne = 1.0f;                    // 0073FE80 / 0073B84C
-constexpr float kZero = 0.0f;                   // 0073B858
+constexpr float kOne = 1.0f;
+constexpr float kZero = 0.0f;
 constexpr float kNoCone = -1.0f;                // pushed as 0xBF800000: every direction
 constexpr float kNoLineOfSight = -1000.0f;      // pushed as 0xC47A0000: below -100, no line-of-sight test
 constexpr int kNoGridOrigin = 0x7FFFFFFF;
-constexpr float kHalf = 0.5f;                   // 0073B86C
-constexpr float kNonPlayerReach = 1.05f;        // 0073FEAC: units without a player keep sight a little longer
-constexpr float kEyeHeightFactor = 1.8f;        // 0073EBD0
-constexpr float kSightCellsFactor = 2.0f;       // 0073FE8C
-constexpr float kSectorScale = 0.03125f;        // 0073FA48
+constexpr float kHalf = 0.5f;
+constexpr float kNonPlayerReach = 1.05f;        // units without a player keep sight a little longer
+constexpr float kEyeHeightFactor = 1.8f;
+constexpr float kSightCellsFactor = 2.0f;
+constexpr float kSectorScale = 0.03125f;
 constexpr int kCorpseLevel = 800;
 constexpr int kCorpseKind = -3;
 constexpr int kLostLevel = 1000;
@@ -109,7 +109,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         for (auto* node = units->head; node; node = node->next) {
             CUnit* other = node->data;
             if (other == self) continue;
-            // At the head, holding a reference (the original's inlined AddHead): See walks the list
+            // At the head, holding a reference (AddHead): See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.AddHead(other);
             if (other) ++other->refCount_;
@@ -210,7 +210,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
-                // The original's inlined AddTail (a second copy follows below).
+                // AddTail (a second copy follows below).
                 memory->seenCorpses.AddTail(other);
                 ++other->refCount_;
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
@@ -249,7 +249,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     seer->EyePoint(&eye);
     grid->x0 = kNoGridOrigin;
     grid->y0 = kNoGridOrigin;
-    grid->cells.Resize(1, 1);   // 005CD3A0
+    grid->cells.Resize(1, 1);
     std::memset(grid->cells.data, 0, static_cast<std::size_t>(grid->cells.height * grid->cells.width));
 
     CUnitServer* mine = seer->ServerController();

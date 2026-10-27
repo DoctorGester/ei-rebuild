@@ -1,6 +1,6 @@
 #pragma once
 
-// The NaN audit (C16c; docs/notes/cleanup-tooling.md, "SSE2 build"). The game's comparisons are plain
+// The NaN audit (docs/notes/cleanup-tooling.md, "SSE2 build"). The game's comparisons are plain
 // C++: a NaN operand compares as IEEE says, where the original's FCOM / FNSTSW / TEST AH treated an
 // unordered result as "equal" or "less". No NaN reaches those comparisons in the scenario suite; one
 // that does is a bug upstream. EI_NAN_AUDIT(values...) next to such a comparison logs to ei_hook.log,

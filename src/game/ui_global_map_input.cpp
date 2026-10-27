@@ -99,7 +99,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{MouseDragX(), MouseDragY()};
         (console::g_graphicsLogOut <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
-        // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
+        // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f /*00740204*/ + angle_);   // 1 / 300
         angle_ = turned;
@@ -124,7 +124,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         }
         if (region < 0) {
             // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
-            // WideScreen takes the margin off its x (0063023C: addon's code at 005FD237).
+            // WideScreen takes the margin off its x (addon's code).
             std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= zoneCount_) index = -1;
@@ -213,7 +213,7 @@ EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
 
 EI_REWRITTEN(0x0062FF10, CGlobalMap::OnDeactivate);
 
-// 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
+// The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);

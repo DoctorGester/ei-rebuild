@@ -1,7 +1,6 @@
-// 0055EE40: the world's managers created (the server's and the client's world both call it, and
-// it is a virtual slot of their base, vtable entry 0073F194). See docs/notes/combat.md ("Rewritten"),
-// the 0055C000-00560000 managers.
-//
+// The world's managers created (the server's and the client's world both call it, and
+// it is a virtual slot of their base). See docs/notes/combat.md ("Rewritten"),
+// the managers.
 // The world's paths are taken from the command line globals; every manager is made, referenced
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
 // a counted pointer at +0x5C; then the ISAAC generator is seeded and +0x70 set up.
@@ -31,7 +30,7 @@
 
 namespace {
 
-// 006D43E0 the world's +0x70 set up.
+// The world's +0x70 is set up.
 
 // A new object (its class's operator new and constructor), counted once: the original counts the reference
 // without testing the pointer.
@@ -42,7 +41,7 @@ T* MakeNew() {
     return object;
 }
 
-// A manager attached to the world (its slot 13), after the world holds it.
+// A manager attached to the world, after the world holds it.
 void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
 } // namespace
@@ -61,17 +60,17 @@ int CWorld::Create() {
 
     players_ = MakeNew<CPlayerManager>();
     Attach(players_, this);
-    manager40_ = MakeNew<CMapObjectManager>();   // 005125E0
+    manager40_ = MakeNew<CMapObjectManager>();
     Attach(manager40_, this);
-    manager3C_ = MakeNew<CFigureManager>();   // 005AA070
+    manager3C_ = MakeNew<CFigureManager>();
     Attach(manager3C_, this);
     manager48_ = MakeNew<CEffectManager>();
     Attach(manager48_, this);
-    manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
+    manager50_ = MakeNew<CSpellConstructor>();
     manager50_->Create();
-    manager4C_ = MakeNew<CSpellManager>();   // 00688840
+    manager4C_ = MakeNew<CSpellManager>();
     Attach(manager4C_, this);
-    manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
+    manager58_ = MakeNew<CItemConstructor>();
     manager58_->Create();
     itemManager_ = MakeNew<CItemManager>();
     Attach(itemManager_, this);

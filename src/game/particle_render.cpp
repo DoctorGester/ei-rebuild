@@ -2,7 +2,6 @@
 // (007A9BD0: position and size interpolated between the last two ticks) and sprite array
 // (007A9BE0: interpolated colour, texture frame), binds its texture and hands both arrays to the
 // renderer (007AF060, vtable 0073D93C, slot 17 = 00502CA0). Names are provisional.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
@@ -35,11 +34,11 @@ double Unsigned(std::uint32_t value) {
 
 constinit lib::AlignedArray<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 lib::AlignedArray<ParticleVertex>& Vertices() { return g_vertices; }
-void __cdecl FreeVertices() { g_vertices.FreeData(); }   // 00497D10
+void __cdecl FreeVertices() { g_vertices.FreeData(); }
 static_assert(sizeof(ParticleSpriteArray) == 0x14);
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00497D30 (00468D80)
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00497D30
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
@@ -60,7 +59,7 @@ void ConstructArrays() {
         Vertices().growBy = 0;
         Vertices().capacity = 0;
         Vertices().size = 0;
-        libcrt::AtExit(FreeVertices);   // 00497D10
+        libcrt::AtExit(FreeVertices);
     }
 }
 
@@ -82,7 +81,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-// 00497D40: the list's GetNext (the list itself not read).
+// The list's GetNext (the list itself not read).
 EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
 // Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
 EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
@@ -95,11 +94,11 @@ int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
 }
 EI_REWRITTEN(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
-// 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
+// CArray::SetSize for the 8-byte sprites: new elements are zeroed.
 EI_REWRITTEN(0x00497D50, ParticleSpriteArray::SetSize);
 EI_REPLACE(0x00497D30, DestroySprites);
 
-// 004976B0. Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
+// Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
 // and drawn; 0 when the texture cannot be bound.
 int CParticleSource::Draw(void* renderer) {

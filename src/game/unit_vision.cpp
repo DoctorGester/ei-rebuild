@@ -16,13 +16,13 @@
 
 namespace {
 
-constexpr float kPercent = 0.01f;       // 0073D09C
-constexpr float kNoSkill = 0.0f;        // 0073B858
-constexpr float kOne = 1.0f;            // 0073B84C, 0073E9C4
+constexpr float kPercent = 0.01f;
+constexpr float kNoSkill = 0.0f;
+constexpr float kOne = 1.0f;
 
 } // namespace
 
-// 00526860 (__stdcall, RET 4). The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B
+// The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B
 // for weapon types 0-4 and 8, +0x7C for 5 and 6; ST0. An unknown prototype reads its type from
 // address 0x0C (the original faults), other types index 0x7FFFFFFF bytes on (kept).
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {

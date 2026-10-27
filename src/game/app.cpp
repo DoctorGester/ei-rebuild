@@ -1,6 +1,5 @@
-// Application helpers around WinMain: window procedure (00457D40), input dispatcher (00457970),
-// message pump (00458220) and the start of the first map (00456140). See app.h.
-//
+// Application helpers around WinMain: window procedure, input dispatcher,
+// message pump and the start of the first map. See app.h.
 // Callees patched by Rebirth (0057C700, 00595480, FatalError 00480080) are reached through their
 // original addresses.
 #include "device.h"   // the old device's calls
@@ -40,13 +39,13 @@ namespace {
 
 
 
-// The interface (007C7D50) takes the input: pending windows closed before and after each message
-// (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
+// The interface takes the input: pending windows closed before and after each message
+// then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
 
 // The console's ostream.
 libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
-// Objects told about activation changes: the cursor (007C7BD8), the display device
+// Objects told about activation changes: the cursor, the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
 // (pointer at 007AF784).
 CDirectInputMouse* TheMouse() { return Mouse(); }
@@ -129,7 +128,7 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
-// EI_UTF8 (U4): the window is a Unicode one (system_text.h), so WM_CHAR carries a UTF-16 unit, and a character
+// EI_UTF8: the window is a Unicode one (system_text.h), so WM_CHAR carries a UTF-16 unit, and a character
 // past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
 // half of a pair waits for the second (a half that comes alone is dropped).
 unsigned g_highSurrogate = 0;
@@ -275,7 +274,7 @@ int __cdecl StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
-    client->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
+    client->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
     if (cmdScript.GetLength() == 0) return 1;
@@ -294,7 +293,7 @@ int __cdecl StartFirstMap() {
 }
 EI_REWRITTEN(0x00456140, StartFirstMap);
 
-// ---- FatalError (00480080) ---------------------------------------------------------------------
+// ---- FatalError ---------------------------------------------------------------------
 
 namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
@@ -347,7 +346,7 @@ EI_REWRITTEN(0x00480080, game::FatalError);
 
 namespace app {
 
-// ---- FatalErrorCode (004800E0) -----------------------------------------------------------------
+// ---- FatalErrorCode -----------------------------------------------------------------
 
 namespace {
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
@@ -373,7 +372,7 @@ int __cdecl FatalErrorCode(long result, const char* format, ...) {
 }
 EI_REWRITTEN(0x004800E0, FatalErrorCode);
 
-// ---- The operator new handler (00455A30) -------------------------------------------------------
+// ---- The operator new handler -------------------------------------------------------
 
 namespace {
 const char* MemoryDepletedText() { return "Memory depleted"; }

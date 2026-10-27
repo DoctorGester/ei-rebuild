@@ -30,7 +30,7 @@ using IdNode = IdList::Node;
 // The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
-// 00783C00: the fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
+// The fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
 const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't find first free key.\n"; }
 
 // --- Helpers ------------------------------------------------------------------------------------
@@ -233,7 +233,7 @@ void CBaseManager::DestroyAll() {
 }
 
 // --- Slots 16-22: no archives -------------------------------------------------------------------
-// 18 (00402D80) and 22 (00402DC0) are shorter than the hook's jump and stay original.
+// 18 and 22 are shorter than the hook's jump and stay original.
 
 BOOL CBaseManager::AddArchive(const char*) { return 0; }
 BOOL CBaseManager::RemoveArchive(const char*) { return 0; }
@@ -261,12 +261,12 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
     object->type_ = type;
     if (id == -1) {
         int chosen = NextFreeId(this);
-        if (!objects_.Find(static_cast<unsigned>(chosen))) {   // Lookup (00404F80)
+        if (!objects_.Find(static_cast<unsigned>(chosen))) {   // Lookup
             objectList_.AddTail(object);
             ObjectNode* tail = objectList_.tail;
             InsertKey(positions_, maxPositionId_, chosen)->value = tail;
         }
-        InsertKey(objects_, maxId_, chosen)->value = object;   // SetAt (00404E80)
+        InsertKey(objects_, maxId_, chosen)->value = object;   // SetAt
         object->id_ = chosen;
         lastId_ = chosen;
     } else {
@@ -351,7 +351,7 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     int type = object->type_;
     ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id));
     if (found && found->value == object) {
-        if (objects_.Find(static_cast<unsigned>(id))) {   // Lookup (00404F80)
+        if (objects_.Find(static_cast<unsigned>(id))) {   // Lookup
             hash400::ObjectsRemoveKey(objects_, static_cast<unsigned>(id));
             if (auto* position = hash400::PositionsRemoveKey(positions_, static_cast<unsigned>(id)))
                 objectList_.RemoveAt(position);

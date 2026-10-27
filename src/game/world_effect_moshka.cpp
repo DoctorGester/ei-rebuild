@@ -40,27 +40,27 @@ constexpr float kCirclingFrames = 100.0f;     // then a perch is looked for
 constexpr float kFlyingOffFrames = 150.0f;    // after which the bird is reset
 constexpr float kMaxStep = 5.0f;              // frames per Update at most
 constexpr float kNearSquared = 25.0f;         // planar distance^2 at which a perched bird starts circling
-constexpr float kCircleRadius = 1.5f;         // 007433DC, around the followed object
-constexpr float kCircleHeight = 3.2f;         // 007433E0, above it
-constexpr float kAngularSpeed = 0.2f;         // 0073BAD4, radians per frame
+constexpr float kCircleRadius = 1.5f;         // around the followed object
+constexpr float kCircleHeight = 3.2f;         // above it
+constexpr float kAngularSpeed = 0.2f;         // radians per frame
 constexpr float kCircleStartHeight = 30.0f;
-constexpr double kAngleOffset = 1.5;          // 007438F0
-constexpr double kPerchSearchRadius = 50.0;   // 0073D0A0
-constexpr float kHalfPi = 1.5707964f;         // 007C8430 (pi * 0.5, set at startup from 007433A8)
-constexpr float kClearance = 0.5f;            // 0073B86C: above the ground, the sight threshold, height step
+constexpr double kAngleOffset = 1.5;
+constexpr double kPerchSearchRadius = 50.0;
+constexpr float kHalfPi = 1.5707964f;         // pi * 0.5, set at startup
+constexpr float kClearance = 0.5f;            // above the ground, the sight threshold, height step
 // The flight speed per frame: sqrt(distance to the followed object) * 0.03 + 0.3 (double
-// constants 007438E8 / 007438E0, the floats 0.03 and 0.3 widened).
+// the floats 0.03 and 0.3 widened).
 constexpr double kSpeedFactor = static_cast<double>(0.03f);
 constexpr double kSpeedBase = static_cast<double>(0.3f);
-// FindPerch: the eye 1.5 above the start (0073C51C), radius 50 (0074023C) less 5 (0073BF34) each
-// try but at least 4, height 30 rising by 3 (0073BAA4).
+// FindPerch: the eye 1.5 above the start, radius 50 less 5 each
+// try but at least 4, height 30 rising by 3.
 constexpr float kEyeHeight = 1.5f;
 constexpr float kPerchRadius = 50.0f;
 constexpr float kPerchRadiusStep = 5.0f;
 constexpr float kPerchMinRadius = 4.0f;
 constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
-constexpr double kRandomAngle = 1.4621764913365538e-09;   // 0073CF18, 2 pi / 2^32
+constexpr double kRandomAngle = 1.4621764913365538e-09;   // 2 pi / 2^32
 
 // FCOMP; TEST AH,40h: equal.
 bool Same(float a, float b) {
@@ -81,8 +81,8 @@ CEffectMoshka::CEffectMoshka() {
     Reset();
 }
 
-// The original's first, inline reset clears the source through 0056F1A0 and the figure through
-// 0052B030; both end as Reset's.
+// The original's first, inline reset clears the source through a counted-pointer assignment and the figure through
+// Both end as Reset's.
 CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again through slot 18
@@ -255,7 +255,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);
-    attached->SetLit(1);   // slot 26
+    attached->SetLit(1);   // SetLit
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);

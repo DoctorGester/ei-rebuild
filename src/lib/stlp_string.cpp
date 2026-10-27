@@ -1,5 +1,4 @@
-// STLport basic_string<char> members (stlp_string.h) registered at the library addresses. Checked
-// in game by verify_stlp_string.cpp until S21d.
+// STLport basic_string<char> members (stlp_string.h) registered at the library addresses.
 #include "stlp_string.h"
 
 #include "ei/hook.h"
@@ -167,17 +166,17 @@ bool __fastcall StringAbi::Equals(const string* a, const string* b) { return *a 
 
 namespace {
 
-// STLport's out_of_range (C25c: a class of ours, thrown by the compiler with its own throw information in place of
-// game.exe's ThrowInfo 0074C640, catchable types and type descriptors, and of its tables 0073B994 / 0073BE8C):
+// STLport's out_of_range (a class of ours, thrown by the compiler with its own throw information in place of
+// game.exe's ThrowInfo, catchable types and type descriptors, and of its tables):
 // std::exception, __Named_exception's 256-byte name (its what), logic_error. Nothing catches one by type.
 class NamedException : public std::exception {
 public:
-    // 004219A0: the text copied into the name (strncpy, the last byte zero).
+    // The text copied into the name (strncpy, the last byte zero).
     explicit NamedException(const string& what) {
         gamecrt::strncpy(name_, what.data(), sizeof(name_));
         name_[sizeof(name_) - 1] = 0;
     }
-    const char* what() const noexcept override { return name_; }   // 0040C430
+    const char* what() const noexcept override { return name_; }
 
 private:
     char name_[0x100];

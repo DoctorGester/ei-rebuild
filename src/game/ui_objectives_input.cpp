@@ -40,7 +40,7 @@ constexpr int kRegionNextZone = 3;
 constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
-// The quest database's index (007C87B4; operator[] adds an empty slot for an unknown name).
+// The quest database's index (operator[] adds an empty slot for an unknown name).
 QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 } // namespace
@@ -180,16 +180,16 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
 }
 EI_REWRITTEN(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
 
-// --- 0064E990 / 0064E8B0 / 0064E760 (A-H24) --------------------------------------------------------
+// --- Quest list handlers --------------------------------------------------------
 
 namespace {
 constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
 constexpr int kVisibleRows = 5;
-constexpr float kNearestScale = 1.2f;    // 0073CDF4
+constexpr float kNearestScale = 1.2f;
 constexpr float kOtherExitU = -0.125f;   // 0xBE000000
 constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
-// The blink: (cos(rate x t) x amplitude + base) x 255 (0073CE18 2.5, 0073C54C 0.3, 0073B86C 0.5;
-// 0073BF34 5.0, 0073B868 0.4, 0073CDE0 0.6; 0073C370 255).
+// The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
+// 5.0, 0.4, 0.6; 255).
 constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
 constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
 constexpr float kAlphaScale = 255.0f;

@@ -46,7 +46,7 @@ void ConstructList(mfc::CTypedPtrList<T>* list, void* vtable) {
 
 // The root places the skeleton (0050C230, through its address) at the owner's time factor at
 // its scale z times its default scale: x and y from the factor stored to a float, z from it
-// unrounded (0050D3E0, 0050D450, 0050D7C0).
+// unrounded.
 void PlaceRoot(CFigureAnimationState* state) {
     CObject3D* owner = state->owner;
     double factor = owner->AnimationFactor(owner->scale.z);
@@ -304,7 +304,7 @@ void CFigureAnimationState::CollectBoneNames(mfc::CStringArray* out) {
 }
 EI_REWRITTEN(0x0050D920, CFigureAnimationState::CollectBoneNames);
 
-// 0050DFF0 (RET 8): AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key
+// AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key
 // frames' vertex sets; 0050A720, 0050C552). Registered on the template (map_object_figures.cpp).
 EI_REWRITTEN(0x0050DFF0, AlignedPtrArray::SetSize);
 

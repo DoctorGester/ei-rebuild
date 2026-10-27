@@ -30,10 +30,6 @@ constexpr std::uint32_t kExtraRemark = 0x30;
 // The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
 constexpr int kPtrListBlockSize = 10;
 
-// Called through their game addresses (rewritten elsewhere; config/direct_calls_skip.csv): 00525AF0
-// UnitStats::RefillSlots in unit_vitals.cpp, 0066D6E0 a player's message writer in player_messages.cpp.
-// 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
-
 // The player's message writer (CPlayerServer, player + 0x20).
 CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
@@ -86,7 +82,7 @@ EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 
 void CUnit::DropBrokenEquipment() {
     CPlayer* owner = player;
-    if (!owner) return;   // the empty list's destructor (00429F10) has nothing to free
+    if (!owner) return;   // the empty list's destructor has nothing to free
     UnitItems broken{};
     broken.vtable = mfc::impl::ItemListClass::Vtable();
     broken.blockSize = kPtrListBlockSize;

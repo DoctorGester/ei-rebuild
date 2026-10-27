@@ -20,7 +20,7 @@ namespace {
 constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags_
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr std::int8_t kNoEntry = -1;                  // +0x254 / +0x255
-constexpr float kLongStep = 500.0f;                   // 0073BAB4
+constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
 constexpr int kMotionPaused = 1;                      // the unit's +0x25C
 constexpr int kMotionScaled = 2;
@@ -29,12 +29,12 @@ constexpr std::uint32_t kNoPrototype = 0xFFFF;
 constexpr std::uint8_t kNaturalWeapons = 7;
 constexpr std::uint32_t kKeyNotHero = 0x10000;
 constexpr std::uint32_t kKeySpecialIdle = 0x80580000;
-constexpr double kPulsePeriod = 30.0;                 // 0073DF70
-constexpr float kPulseFold = 15.0f;                   // 0073C518
-constexpr float kPulseFull = 30.0f;                   // 0073BAF0
-constexpr float kPulseScale = 0.06666667f;            // 0073DF6C, 1/15
-constexpr float kHalf = 0.5f;                         // 0073B86C
-constexpr float kPulseBase = 0.2f;                    // 0073BAD4
+constexpr double kPulsePeriod = 30.0;
+constexpr float kPulseFold = 15.0f;
+constexpr float kPulseFull = 30.0f;
+constexpr float kPulseScale = 0.06666667f;            // 1/15
+constexpr float kHalf = 0.5f;
+constexpr float kPulseBase = 0.2f;
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
 // The pulse's value after the clock moved on by `frames`.

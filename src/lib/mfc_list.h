@@ -1,14 +1,14 @@
 #pragma once
 
 // MFC 4.2's CList<TYPE, ARG_TYPE>, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> (afxtempl.h) and CPlex
-// (afxplex_.h) as game.exe instantiates them, for the standalone exe (ticket S7,
-// docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the map bodies are
+// (afxplex_.h) as game.exe instantiates them, for the standalone exe
+// (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the map bodies are
 // written here over mfc::CMap's layout; what differs between the instantiations is the element: its
 // size (read from each NewNode's CPlex::Create) and the element policy (mfc_array.h: how
 // ConstructElements builds a new one, how DestructElements destroys it). ListAbi / MapAbi turn the
 // members into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused);
 // mfc_list.cpp registers the library-only instantiations, src/game/game_lists.cpp the ones whose
-// elements are game types. Checked in game by verify_mfc_list.cpp until S21d.
+// elements are game types.
 
 #include "mfc_array.h"
 #include "game/game_data.h"
@@ -21,12 +21,12 @@ namespace mfc::impl {
 
 // ---- CPlex ----------------------------------------------------------------------------------------
 
-// 006FE8EF CPlex::Create (__stdcall, RET 0xC): a block of `count` elements of `elementSize` bytes
+// CPlex::Create (__stdcall): a block of `count` elements of `elementSize` bytes
 // after the CPlex header (operator new), linked in front of `head`. Returns the block.
 CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
-// 006FE90F CPlex::FreeDataChain (__thiscall, `this` may be null): every block of the chain freed.
+// CPlex::FreeDataChain (__thiscall, `this` may be null): every block of the chain freed.
 // Returns 0: the original leaves EAX as its caller had it for a null chain, and AIPath::Reset
-// (005C7D50) returns that EAX (0 there; its checks run on empty lists).
+// returns that EAX (0 there; its checks run on empty lists).
 int __fastcall FreePlexChain(CPlex* head);
 
 // ---- CList ----------------------------------------------------------------------------------------
@@ -37,20 +37,20 @@ struct ListAbi : CList<T, E> {
     using List = CList<T, E>;
     using Node = typename List::Node;
 
-    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count, then each element from the
+    // Serialize (vtable slot 2; defined in mfc_slots.h): the count, then each element from the
     // head. Loading reads each into a local and adds it at the tail.
     void Serialize(CArchive* ar);
     // The same stored form, loading through a temporary of `Through` (a ListTemporary, mfc_slots.h).
     template <typename Through>
     void SerializeThrough(CArchive* ar);
 
-    // The instantiations' NewNode(pPrev, pNext) (RET 8: the node, its element constructed), FreeNode(pNode)
-    // (RET 4: the element destroyed, the node onto the free list; the last one frees every block),
-    // RemoveAt(position) (RET 4: unlinked, then FreeNode) and RemoveAll (plain RET: the elements
+    // The instantiations' NewNode(pPrev, pNext) (the node, its element constructed), FreeNode(pNode)
+    // (the element destroyed, the node onto the free list; the last one frees every block),
+    // RemoveAt(position) (unlinked, then FreeNode) and RemoveAll (the elements
     // destroyed, every block freed) are CList's own members (mfc.h), registered through this type.
-    // AddTail / AddHead with ARG_TYPE by value (RET 4): the new node (POSITION).
+    // AddTail / AddHead with ARG_TYPE by value: the new node (POSITION).
     Node* AddTailByValue(T value) { return List::AddTail(value); }
-    // RemoveHead (plain RET): the head's element (EAX).
+    // RemoveHead: the head's element.
     static T __fastcall RemoveHeadByValue(List* self) { return self->RemoveHead(); }
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
@@ -61,8 +61,8 @@ struct ListAbi : CList<T, E> {
     }
 };
 
-// The constructor of every instantiation: the vtable of `Class`, empty, the block size given (RET 4)
-// or fixed (plain RET). Returns this.
+// The constructor of every instantiation: the vtable of `Class`, empty, the block size given
+// or fixed. Returns this.
 template <typename Class>
 struct ListHeader : CList<void*> {
     using List = CList<void*>;
@@ -137,7 +137,7 @@ struct MapAbi : CMap<K, V> {
     using Map = CMap<K, V>;
     using Assoc = typename Map::Assoc;
 
-    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count, then (when there are any)
+    // Serialize (vtable slot 2; defined in mfc_slots.h): the count, then (when there are any)
     // key and value of each association, bucket by bucket. Loading reads each pair and sets it.
     void Serialize(CArchive* ar);
 
@@ -173,20 +173,20 @@ struct TempListClass;   // a pointer list built around each item creation (world
 struct CellListClass;   // the units' path cell lists
 struct LootListClass;   // the loot lists
 struct PlatformListClass;   // the client maps' platform lists
-struct ClientListClass;   // the client map's lists (world_client_maps 0056FD40)
-struct ClientList2Class;   // 00570EA0's list
-struct ClientList3Class;   // 005715D0's list
+struct ClientListClass;   // the client map's lists (world_client_maps)
+struct ClientList2Class;   // 's list
+struct ClientList3Class;   // 's list
 struct NodeListClass;   // the AI map's node lists
 struct BlockCostListClass;   // the AI's block cost lists
 struct AiMapListClass;   // the AI map's lists
 struct WaypointListClass;   // the AI plan's waypoint lists
-struct StaticListClass;   // the list a static initialiser builds (005CDAD0)
+struct StaticListClass;   // the list a static initialiser builds
 struct DwordMapClass;   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
 struct ScriptCommandsClass;   // CArray<SSCCmd> (a script block, a CList element)
 
 // ---- Elements ------------------------------------------------------------------------------------
 
-// 8-byte lightning records: 0, then -1 (004CEAD0).
+// 8-byte lightning records: 0, then -1.
 struct Lightning8 {
     int object;
     int id;
@@ -211,7 +211,7 @@ using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
 
-// The ConstructElements helpers those NewNodes call (__stdcall, RET 8).
+// The ConstructElements helpers those NewNodes call (__stdcall).
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;

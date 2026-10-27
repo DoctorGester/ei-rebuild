@@ -1,8 +1,7 @@
 // Small allocation helpers of the script runtime (ticket S4): the parser's new command blocks
-// (004BF540) and WorldScript block (004BF900), the area lookup that creates missing areas
-// (004BCE10), the temporary object references of the evaluator (004B59F0) and SSCCmd::Clear
-// (004B5F70). See script.h and docs/notes/script.md.
-//
+// and WorldScript block, the area lookup that creates missing areas
+// the temporary object references of the evaluator and SSCCmd::Clear
+//. See script.h and docs/notes/script.md.
 // The original inlines CList::AddTail / NewNode and builds a temporary element on its stack that it
 // copies into the new node or array slot. Both temporaries are empty, so the copies (the
 // instantiations' Copy, called through their addresses as the original does) leave the new element
@@ -36,7 +35,7 @@ BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList:
 
 
 // CList::AddTail of an empty ScriptDecl, as 004BF540 / 004BF900 inline it: the node after the tail,
-// the empty temporary's commands copied in (004CC0C0), linked; the id is the list's count (the
+// the empty temporary's commands copied in, linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
 ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
     ScriptCommands empty;
@@ -68,7 +67,7 @@ ScriptDecl* CScript::NewWorldScript() {
 EI_REWRITTEN(0x004BF900, CScript::NewWorldScript);
 
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
-// 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
+// 004CDB30 constructs the slot), the empty temporary's parts are copied in and the last
 // slot gets the id.
 ScriptAreaParts* CScript::FindArea(int id) {
     auto& areas = areas_;
@@ -78,7 +77,7 @@ ScriptAreaParts* CScript::FindArea(int id) {
     mfc::CArray<ScriptAreaPart> empty{mfc::impl::ScriptAreaPartsClass::Vtable(), nullptr, 0, 0, 0};
     int index = areas.size;
     mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(areas).SetSize(index + 1, -1);
-    areas.data[index].parts.Copy(empty);   // 004CE2F0
+    areas.data[index].parts.Copy(empty);
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
 }
@@ -86,11 +85,11 @@ EI_REWRITTEN(0x004BCE10, CScript::FindArea);
 
 // 004B59F0 CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
-// it is empty; the element is constructed (004CC800) and then assigned null (released if set).
+// it is empty; the element is constructed and then assigned null (released if set).
 ScriptObjectRef* CScript::NewTempObject() {
     static_assert(sizeof(ScriptTempObjects::Node) == 0xC);
     auto& list = tempObjects_;
-    ScriptTempObjects::Node* node = list.NewNode(list.tail, nullptr);   // the element zeroed (004CC800)
+    ScriptTempObjects::Node* node = list.NewNode(list.tail, nullptr);   // the element zeroed
     ScriptObjectRef* ref = &node->data;
     if (ref->object) ref->object->Release();
     ref->object = nullptr;

@@ -1,6 +1,6 @@
-// The camp's Create (0060C870, CCampPages slot 25). Rebirth's WideScreen replaces the function with
+// The camp's Create (CCampPages). Rebirth's WideScreen replaces the function with
 // the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
-// which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
+// which this reproduces; nothing in our code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "unit_create.h"
@@ -66,7 +66,7 @@ const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templat
 CParty* LocalParty() { return LocalPlayerData(); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
-// Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
+// Whether the local player's variable `name` is 1. The original's FCOMP also takes an
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
 
@@ -74,19 +74,19 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
     return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
 }
 
-// An item list of the constructors: made through its slot 2 (not checked, as in the original).
+// An item list of the constructors: made through its factory (not checked, as in the original).
 CParty* NewItemList() {
     CParty* list = new CParty();
     list->Create();
     return list;
 }
 
-// Slot 18 of a panel: its Build.
+// A panel's Build.
 void BuildPanel(CUiWindow* panel) {
     panel->Build();
 }
 
-// The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
+// The time in animation frames: milliseconds / 1024 * 15.
 double FramesNow() {
     return x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f /*0073BB24*/ * 15.0f /*0073C518*/;
 }

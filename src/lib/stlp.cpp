@@ -10,7 +10,7 @@
 namespace stlp {
 
 namespace {
-// __node_alloc<true,0>::allocate / deallocate (00405950 / 00404D70: libcrt::NodeAllocate / NodeDeallocate, crt.h).
+// __node_alloc<true,0>::allocate / deallocate (libcrt::NodeAllocate / NodeDeallocate, crt.h).
 
 constexpr std::size_t kPrimes[28] = {
     53ul, 97ul, 193ul, 389ul, 769ul, 1543ul, 3079ul, 6151ul, 12289ul, 24593ul,
@@ -29,8 +29,8 @@ std::size_t NextPrime(std::size_t n) {
     return p == std::end(kPrimes) ? kPrimes[27] : *p;
 }
 
-// 00408A50 lower_bound<unsigned*> (RET 8; the last argument is the distance tag): STLport's binary
-// search, halving the length, unsigned comparisons (S16: the hashtable constructors' prime lookup).
+// lower_bound<unsigned*> (the last argument is the distance tag): STLport's binary
+// search, halving the length, unsigned comparisons (the hashtable constructors' prime lookup).
 const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
                                                  const std::uint32_t* value, int) {
     int length = static_cast<int>(last - first);

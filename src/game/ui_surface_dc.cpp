@@ -3,7 +3,7 @@
 // pixels are in the new renderer's memory (dx_surface.cpp, a DIB section; the holder has no
 // DirectDraw surface), drawn through a memory DC on it instead of DirectDraw's GetDC. GDI keeps the
 // bounds of what is drawn through the DC; its release marks them written for the new renderer
-// (render::SurfaceWritten, R16a). See docs/notes/renderer.md ("Interface windows", section 6).
+// (render::SurfaceWritten). See docs/notes/renderer.md ("Interface windows", section 6).
 #include "app.h"
 #include "dx_surface.h"
 #include "game_strings.h"
@@ -47,7 +47,7 @@ void MarkDrawn(const CDXSurface* holder, HDC dc) {
 // The verify build's interface census (tests/verify/ui_census.cpp): a memory DC 005FDC00 gave out.
 bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 
-// 005FDC00. The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
+// The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
 // the DC failed (also: no memory) and the report said stop (the device lock then stays held, as in
 // the original).
 mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
@@ -69,7 +69,7 @@ mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
 }
 EI_REWRITTEN(0x005FDC00, UiSurfaceGetDC);
 
-// 005FDC60. Leaves the device lock and releases the DC (nothing for a DC 005FDC00 did not make).
+// Leaves the device lock and releases the DC (nothing for a DC 005FDC00 did not make).
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (holder) {

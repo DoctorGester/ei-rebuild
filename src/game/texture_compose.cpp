@@ -168,7 +168,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
 }
 EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 
-// 00693180. `out` receives the name of the texture used; `name` is the cache file to use, `fallback`
+// `out` receives the name of the texture used; `name` is the cache file to use, `fallback`
 // another one tried when `name` has no file. A cached file whose extra block equals the request's
 // layer bytes is reused (1). Otherwise the image (`request->flags` pixels square, cleared to
 // `fill`) is drawn from the layers and written with `mipCount` levels in `format` (1), or, without

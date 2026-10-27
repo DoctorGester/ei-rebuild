@@ -1,22 +1,23 @@
-// Object shadows through a sun shadow map (R16j; docs/notes/renderer.md section 13). The game hands
+// Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands
 // over the sun (CWorldClient::Render), which object each mesh belongs to (BeginCaster, the object
-// draws of 0056AFE0) and which objects cast this frame (CastsShadow, from their shadow draw 0051CE60:
+// draws) and which objects cast this frame (CastsShadow, from their shadow draw:
 // the options' switches and the game's own visibility of the shadow). Once a frame, before the world
 // draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
 // meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
 // alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
-// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli, R16j2). The
-// game's decals are neither made nor drawn (R16i).
-// R20: objects the game does not draw (outside the view) whose shadow can reach the visible ground
+// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli). The
+// game's decals are neither made nor drawn.
+// Objects the game does not draw (outside the view) whose shadow can reach the visible ground
 // cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
 // of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
-// R16i: the map holds depth only (R22's caster ids are gone): the receivers lit on the GPU take the sun
+// The map holds depth only: the receivers lit on the GPU take the sun
 // away by their normals' facing (a face turned away gets no sun to lose), the others are shadowed on their
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
-// R16i2: a unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
+// A unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
 // (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
-//
+// The point lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, their
+// pass inside the shadow map's time (FrameStats::shadowMs, shadowDraws, the GPU's shadow map time).
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
 // for the landscape's space; that space is the one the map is fitted in (the inverse of the
 // terrain's matrix times a mesh's gives the mesh's model matrix into it).
@@ -46,12 +47,12 @@ using namespace detail;
 // The map: kMapSize texels a side over the visible ground (its larger side seen from the sun, in
 // steps of kExtentStep world units so that the texel size changes seldom), the origin snapped to
 // whole texels (shadows do not swim while the camera moves). Along the light it reaches from the
-// nearest caster towards the sun (R20: every caster whose bounds are in the map's area seen from the
+// nearest caster towards the sun (every caster whose bounds are in the map's area seen from the
 // sun and in front of the ground's far side; none is too high) to kDepthMargin behind the ground.
 constexpr int kMapSize = 4096;
 constexpr double kExtentStep = 8.0;
 constexpr double kDepthMargin = 2.0;
-// The sun at least this far above the horizon (the old shadows' 20 degrees, 0051CE60).
+// The sun at least this far above the horizon (the old shadows' 20 degrees).
 constexpr double kLeastElevation = 20.0 * 3.14159265358979323846 / 180.0;
 // How dark a fully shadowed pixel gets (the old decal: alpha 0x80 of black), the receivers' constant
 // depth bias in world units, the largest depth slope taken per world unit across.
@@ -59,7 +60,7 @@ constexpr float kStrength = 0.5f;
 constexpr double kDepthBias = 0.04;
 constexpr double kLargestSlope = 4.0;
 constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fading in) do not cast
-// Soft edges (R16j2): the filter's radius in world units is the distance along the light from the
+// Soft edges: the filter's radius in world units is the distance along the light from the
 // receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: far larger
 // than the real sun's, for the old blurred decals' look), at least kLeastRadius texels, at most
 // kWidestRadius units (also the blocker search's radius).
@@ -155,10 +156,10 @@ bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 const void* g_caster = nullptr;     // BeginCaster .. EndCaster
-bool g_casterFigure = false;        // ... a unit's draw (R16i2)
+bool g_casterFigure = false;        // ... a unit's draw
 ShadowInfo g_info, g_lastInfo;
 
-// --- R20: casters outside the view --------------------------------------------------------------------
+// --- Casters outside the view --------------------------------------------------------------------
 
 // A corner of a caster handed over by ShadowCasterMesh: as a kept mesh's (MeshLayout's cached layout).
 struct CasterVertex {
@@ -187,8 +188,8 @@ std::uint32_t g_strengthsFrame = 0xFFFFFFFFu;
 std::size_t g_strengthsCount = 0;
 bool g_outsideOn = true;   // SetOffscreenCasters: not View
 bool g_walkedOnly = false; // SetOffscreenCasters: Walked
-bool g_shadowView = false; // SetShadowView (R25)
-int g_shadowShift = 0;     // SetShadowShift (R25): texels
+bool g_shadowView = false; // SetShadowView
+int g_shadowShift = 0;     // SetShadowShift: texels
 // How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
 // kept), by the texture's view: a caster outside the view with that texture cuts it out the same way;
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
@@ -216,7 +217,7 @@ struct CasterFs {
 
 sg_shader g_casterShader{};
 sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
-sg_shader g_terrainCasterShader{};    // the ground's casters (R16i, shaders/shadow_terrain.hlsl)
+sg_shader g_terrainCasterShader{};    // the ground's casters (shaders/shadow_terrain.hlsl)
 sg_pipeline g_terrainCasterPipeline{};
 sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
@@ -228,7 +229,7 @@ sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
 sg_view g_cellsAttachment{}, g_cellsTexture{}, g_rangeAttachment{}, g_rangeTexture{};
 sg_sampler g_point{};
-sg_sampler g_rangeLinear{};   // the receivers read the range filtered (R25)
+sg_sampler g_rangeLinear{};   // the receivers read the range filtered
 sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
 sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
@@ -286,7 +287,7 @@ bool MakeCasterPipelines() {
     return ok;
 }
 
-// The ground's casters (R16i): TerrainCasterVertex (position, normal), the light matrix in the vertex
+// The ground's casters: TerrainCasterVertex (position, normal), the light matrix in the vertex
 // uniforms, the sun's direction in the fragment ones.
 bool MakeTerrainCasterPipeline() {
     if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
@@ -352,29 +353,6 @@ bool MakeColour(int size, sg_pixel_format format, const char* label, sg_image* i
     return ok;
 }
 
-// A depth image of `size` with an attachment and a texture view.
-bool MakeDepth(int size, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
-    sg_image_desc d{};
-    d.usage.depth_stencil_attachment = true;
-    d.width = size;
-    d.height = size;
-    d.pixel_format = kDepthFormat;
-    d.sample_count = 1;
-    d.label = label;
-    *image = sg_make_image(&d);
-    sg_view_desc v{};
-    v.depth_stencil_attachment.image = *image;
-    *attachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.texture.image = *image;
-    *texture = sg_make_view(&v);
-    bool ok = sg_query_image_state(*image) == SG_RESOURCESTATE_VALID &&
-              sg_query_view_state(*attachment) == SG_RESOURCESTATE_VALID &&
-              sg_query_view_state(*texture) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the %dx%d shadow depth image could not be made", size, size);
-    return ok;
-}
-
 void DestroyTarget(sg_image* image, sg_view* attachment, sg_view* texture) {
     if (attachment->id) sg_destroy_view(*attachment);
     if (texture->id) sg_destroy_view(*texture);
@@ -396,7 +374,7 @@ sg_sampler PointSampler() {
     return g_point;
 }
 
-// The receivers' read of the range (R25): bilinear between the four cells around the point, clamped at
+// The receivers' read of the range: bilinear between the four cells around the point, clamped at
 // the map's edges (shaders/shadow_receiver.hlsli).
 sg_sampler RangeSampler() {
     if (g_rangeLinear.id) return g_rangeLinear;
@@ -476,25 +454,11 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     sg_end_pass();
 }
 
-sg_sampler CompareSampler() {
-    if (g_compare.id) return g_compare;
-    sg_sampler_desc d{};
-    d.min_filter = SG_FILTER_LINEAR;
-    d.mag_filter = SG_FILTER_LINEAR;
-    d.mipmap_filter = SG_FILTER_NEAREST;
-    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    d.compare = SG_COMPAREFUNC_LESS_EQUAL;
-    d.label = "ei-shadow-compare";
-    g_compare = sg_make_sampler(&d);
-    return g_compare;
-}
-
 // The 1 x 1 map bound when there is none (cleared to the far plane once).
 void EnsureDummy() {
     if (!g_rangeDummy.id)
         MakeRange(1, "ei-shadow-range-none", &g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
-    if (!g_dummy.id && !MakeDepth(1, "ei-shadow-none", &g_dummy, &g_dummyAttachment, &g_dummyTexture)) return;
+    if (!g_dummy.id && !MakeShadowDepth(1, 1, "ei-shadow-none", &g_dummy, &g_dummyAttachment, &g_dummyTexture)) return;
     if (g_dummyCleared) return;
     sg_pass pass{};
     pass.action.depth.load_action = SG_LOADACTION_CLEAR;
@@ -576,6 +540,18 @@ struct Fit {
 };
 Fit g_fit;
 
+// The world's first ground batch (its command), SIZE_MAX: none.
+std::size_t FirstGround(const Frame& f) {
+    for (const Frame::Range& r : f.worldRanges) {
+        std::size_t end = std::min(r.end, f.commands.size());
+        for (std::size_t k = r.first; k < end; ++k) {
+            const Command& c = f.commands[k];
+            if (c.kind == Command::Terrain && !f.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
+        }
+    }
+    return SIZE_MAX;
+}
+
 // Landscape space to the map's clip space: x, y -1..1 over the area, z 0..1 from `zNear` to the
 // ground's far side.
 M4 LightMatrix(const Fit& fit, double zNear, double* depth) {
@@ -606,15 +582,7 @@ const Fit& FitMap(Frame& f) {
     if (!sh.haveSun || f.worldRanges.empty()) return g_fit;
 
     // The world's first ground batch gives the camera's matrix (landscape space to clip).
-    std::size_t firstGround = SIZE_MAX;
-    for (const Frame::Range& r : f.worldRanges) {
-        std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end && firstGround == SIZE_MAX; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain && !f.terrainBatches[static_cast<std::size_t>(c.index)].water) firstGround = k;
-        }
-        if (firstGround != SIZE_MAX) break;
-    }
+    const std::size_t firstGround = FirstGround(f);
     if (firstGround == SIZE_MAX) return g_fit;
     const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
     M4 camera = FromMatrix(f.matrices[static_cast<std::size_t>(ground.matrix)]);
@@ -680,6 +648,58 @@ const Fit& FitMap(Frame& f) {
 // --- The hand-over ----------------------------------------------------------------------------------
 
 namespace detail {
+
+bool WorldCamera(const Frame& f, Matrix4* clip, Vector3* eye) {
+    const std::size_t firstGround = FirstGround(f);
+    if (firstGround == SIZE_MAX) return false;
+    const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
+    *clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
+    M4 fromClip;
+    if (!Invert(FromMatrix(*clip), &fromClip)) return false;
+    // The camera's position: the point clip space puts at w = 0 (x = y = 0).
+    D4 at = Transform(fromClip, D4{0.0, 0.0, 1.0, 0.0});
+    if (std::fabs(at.w) <= 1e-12) return false;
+    *eye = Vector3{static_cast<float>(at.x / at.w), static_cast<float>(at.y / at.w), static_cast<float>(at.z / at.w)};
+    return true;
+}
+
+bool MakeShadowDepth(int width, int height, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
+    sg_image_desc d{};
+    d.usage.depth_stencil_attachment = true;
+    d.width = width;
+    d.height = height;
+    d.pixel_format = kDepthFormat;
+    d.sample_count = 1;
+    d.label = label;
+    *image = sg_make_image(&d);
+    sg_view_desc v{};
+    v.depth_stencil_attachment.image = *image;
+    *attachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = *image;
+    *texture = sg_make_view(&v);
+    bool ok = sg_query_image_state(*image) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*attachment) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*texture) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the %dx%d shadow depth image %s could not be made", width, height, label);
+    return ok;
+}
+
+sg_sampler ShadowCompareSampler() {
+    if (g_compare.id) return g_compare;
+    sg_sampler_desc d{};
+    d.min_filter = SG_FILTER_LINEAR;
+    d.mag_filter = SG_FILTER_LINEAR;
+    d.mipmap_filter = SG_FILTER_NEAREST;
+    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    d.compare = SG_COMPAREFUNC_LESS_EQUAL;
+    d.label = "ei-shadow-compare";
+    g_compare = sg_make_sampler(&d);
+    return g_compare;
+}
+
+sg_view NoShadowTexture() { return g_dummyTexture; }
 
 bool MapLightDirection(const Vector3& sun, Vector3* travel) {
     double horizontal = std::sqrt(LengthSquared2DUnrounded<double>(sun.x, sun.y));
@@ -876,7 +896,7 @@ ShadowInfo ShadowState() { return g_lastInfo; }
 
 namespace {
 
-// R16i2: a unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
+// A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
@@ -923,6 +943,7 @@ void PrepareShadows(Frame& f) {
     sh.on = false;
     sh.lights.clear();
     g_info = ShadowInfo{};
+    PreparePointShadows(f);
     if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0))
         return;
     StatsTimer timer(&FrameStats::shadowMs);
@@ -988,7 +1009,7 @@ void PrepareShadows(Frame& f) {
     p.soft[3] = static_cast<float>(kMapSize);
     // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
     // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
-    // between the four cells around a pixel (R25), each of which must hold the pixel's taps.
+    // between the four cells around a pixel, each of which must hold the pixel's taps.
     double reachTexels = widestTexels + 1.0;
     g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
     sh.params = p;
@@ -1032,7 +1053,7 @@ void DrawShadowMap(Frame& f) {
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
         bool ok = MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
-                  (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
+                  (g_map.id || MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
                   MakeRangePipeline(kReduceShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
                                     &g_reduceShader, &g_reducePipeline) &&
                   MakeRangePipeline(kDilateShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
@@ -1043,7 +1064,7 @@ void DrawShadowMap(Frame& f) {
             f.shadow.on = false;
             g_info.made = false;
         } else {
-            // The casters outside the view (R20): their stream (appended before the pass).
+            // The casters outside the view: their stream (appended before the pass).
             int outsideVertices = -1, outsideIndices = -1;
             if (!g_outside.empty()) {
                 outsideVertices = g_outsideVertexBuffer.Append(g_outsideVertices.data(),
@@ -1138,7 +1159,7 @@ void DrawShadowMap(Frame& f) {
                 g_info.outsideCasters = static_cast<int>(outside.size());
                 g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
             }
-            // The ground (R16i): the sectors handed over, their faces turned away from the sun.
+            // The ground: the sectors handed over, their faces turned away from the sun.
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = ToMatrix(g_fit.light);
                 sg_range vr{&light, sizeof(light)};
@@ -1167,6 +1188,7 @@ void DrawShadowMap(Frame& f) {
             }
         }
     }
+    DrawPointShadows(f);
 #if defined(EI_RENDER_VALIDATION)
     if (g_querySlot >= 0) D3DContext()->End(g_queries[g_querySlot].stamps[1]);
 #endif
@@ -1194,7 +1216,7 @@ void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
     bool on = g_mapTexture.id && g_rangeTexture.id && CurrentFrame().shadow.on;
     b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
-    b.samplers[samplerSlot] = CompareSampler();
+    b.samplers[samplerSlot] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
     b.views[viewSlot + 1] = on ? g_rangeTexture : g_rangeDummyTexture;
     b.samplers[samplerSlot + 1] = RangeSampler();
@@ -1228,6 +1250,7 @@ void DestroyShadows() {
 #if defined(EI_RENDER_VALIDATION)
     ReleaseQueries();
 #endif
+    DestroyPointShadows();
     g_outsideVertexBuffer.Destroy();
     g_outsideIndexBuffer.Destroy();
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);

@@ -1,4 +1,4 @@
-// The link figure loader's .lnk reading and mesh cache (A-S7): 004DB9C0, 004F7020-004F7D20. See
+// The link figure loader's .lnk reading and mesh cache. See
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "core_refcount.h"
 #include "link_figure.h"
@@ -36,9 +36,9 @@ namespace {
 using Cache = stlp::map<stlp::string, CLinkMesh*>;
 
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
-constexpr double kSameMorph = 1e-5;           // 0073B860: squared distance of the coefficients
+constexpr double kSameMorph = 1e-5;           // squared distance of the coefficients
 
-// The cache's node values: the name, then one more reference on the mesh (004FC6E0, as
+// The cache's node values: the name, then one more reference on the mesh (as
 // lib_trees::MeshCache's counted pointer copies it).
 struct CachedMesh {
     static void Copy(CLinkMesh** to, CLinkMesh* const& from) {
@@ -94,7 +94,7 @@ CLinkMesh* FindCached(const Cache& cache, const stlp::string* name, float s, flo
 void AddToCache(Cache* cache, const stlp::string* name, CLinkMesh* mesh) {
     Cache::Value value{stlp::string(*name), mesh};
     if (mesh) ++mesh->refCount_;
-    cache->InsertEqual<CacheElement>(value);   // 004FBD80: multimap insert_equal
+    cache->InsertEqual<CacheElement>(value);   // multimap insert_equal
     if (mesh) --mesh->refCount_;   // the value's reference; the node keeps one
 }
 
@@ -288,7 +288,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
 }
 
 namespace {
-// The archive list's clear (004FBCF0): each node's name freed and the node returned to the pool,
+// The archive list's clear: each node's name freed and the node returned to the pool,
 // the sentinel linked to itself.
 void ClearArchives(LinkArchiveNode* head) {
     for (LinkArchiveNode* n = head->next; n != head;) {
@@ -316,7 +316,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     }
     if (CTextureDevice* device = renderer_) {
         renderer_ = nullptr;
-        device->Release();   // 004E6BA0
+        device->Release();
     }
     CLinkFigureLoader::ClearCache();
     stlp::deallocate(cache_.end(), sizeof(Cache::Node));

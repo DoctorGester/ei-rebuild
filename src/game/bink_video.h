@@ -12,9 +12,9 @@ struct CDXSurface;
 // Set while a .mob file loads: the loading screen's movie stays as it is (bink_video.cpp).
 extern std::uint8_t g_loadingMovieOff;
 
-// 005DA400. The loading screen's movie at progress step `progress` (bink_video.cpp).
+// The loading screen's movie at progress step `progress` (bink_video.cpp).
 void __fastcall ShowLoadingMovie(int progress);
-// 005DB3F0: plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space
+// Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space
 // end it, Space skips frames, the screen cleared first, a loading screen step first, unused).
 // Returns 0 when Esc ended it.
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
@@ -39,7 +39,7 @@ static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 struct CBinkVideo {
     // 0x005DBD80 (bink_video.cpp).
     unsigned Frame(char toPrimary);
-    // 005DBA50 (RET 8): closes the movie open before, opens `name` (with movies on), hides the
+    // Closes the movie open before, opens `name` (with movies on), hides the
     // cursor, makes the decode surface's holder and the screen rectangle (centred at the movie's size
     // in movies mode 1, else stretched to the screen's width). Nonzero (the low byte) when it plays.
     char Open(const char* name, char loadingStep);
@@ -48,7 +48,7 @@ struct CBinkVideo {
     // 005DBF70 (the titles' end, 0062BD80 / 0062BFD0). Closes the movie when one is open, lets the
     // holder go, takes the cursor's background from the primary surface again and shows the cursor.
     void Close();
-    // 005DB350. The destructor: the same steps (the holder member's own destructor then finds it
+    // The destructor: the same steps (the holder member's own destructor then finds it
     // gone).
     void Destruct();
 

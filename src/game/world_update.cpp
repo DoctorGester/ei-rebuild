@@ -32,7 +32,7 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
-// 00665A10. Disconnects a player (its connection and units).
+// Disconnects a player (its connection and units).
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's

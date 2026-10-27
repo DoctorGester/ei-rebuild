@@ -1,6 +1,6 @@
 // The constructors' second pages (CConstructorPage, ui_camp.h): the slot item under a point
-// (slot 25), which the camp's hover and help ask every panel for. The spell maker 00628B50, the
-// item maker 006298B0. See docs/notes/ui.md, section 5.
+// which the camp's hover and help ask every panel for. The spell maker, the
+// item maker. See docs/notes/ui.md, section 5.
 #include "ui_camp.h"
 
 #include "item.h"
@@ -22,7 +22,7 @@ constexpr int kTopicPart = 0xE;
 constexpr int kTopicMaterial = 0xF;
 constexpr int kTopicItemContainer = 0x10;
 
-// The item predicates (005EE050-005EE130, through their addresses).
+// The item predicates (through their addresses).
 bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
 
 // The `nth` (from 0) of the slots' items that `matches`, or null.

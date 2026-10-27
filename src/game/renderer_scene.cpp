@@ -1,7 +1,7 @@
-// The renderer's scene bracket and texture draw (the renderer at 007AF060, vtable 0073D93C): slot 4
-// BeginScene (00503F40) with the frame statistics, slot 5 EndScene (005040A0) with the debug panel's
-// FPS and counts, slot 21 DrawTexture (00504860). The main loop (00458010) brackets each frame's
-// drawing with slots 4 and 5. The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
+// The renderer's scene bracket and texture draw: BeginScene
+// with the frame statistics, EndScene with the debug panel's
+// FPS and counts, DrawTexture. The main loop brackets each frame's
+// drawing with the first two. The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
 #include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CTexture

@@ -1,4 +1,4 @@
-// Where an attack lands when the body part it aims at is gone (00525B20). See unit.h
+// Where an attack lands when the body part it aims at is gone. See unit.h
 // (UnitStats::PickLocation) and docs/notes/units.md ("Statistics in play").
 #include "random.h"
 #include "unit.h"

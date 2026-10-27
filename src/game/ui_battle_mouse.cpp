@@ -1,5 +1,4 @@
-// The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
-// (0063B920). See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
 #include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -19,12 +18,12 @@
 namespace {
 constexpr int kCursorArrow = 0;
 constexpr int kCursorPickPlayer = 0xD;   // a portrait click picks a player
-constexpr const char* kUnitTextPrefix = "unit ";   // 00794498
+constexpr const char* kUnitTextPrefix = "unit ";
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
 } // namespace
 
-// --- 00639D60: the mouse moved over the battle screen ------------------------------------------
+// --- the mouse moved over the battle screen ------------------------------------------------------
 
 void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
@@ -56,7 +55,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00639D60, CBattleScreen::OnMouseMove);
 
-// --- 00638A40: the left button went down on the battle screen ------------------------------------
+// --- the left button went down on the battle screen ----------------------------------------------
 
 void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
@@ -74,7 +73,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
-// --- 0063B920: a unit's name line --------------------------------------------------------------
+// --- a unit's name line --------------------------------------------------------------------------
 
 void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
     CTextManager* texts = TheTextManager();

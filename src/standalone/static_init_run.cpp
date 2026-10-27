@@ -1,5 +1,5 @@
 // Running the generated static initialisers in the standalone image, and what the image still lacks
-// for them and their exit functions (static_init.h; docs/notes/standalone.md, S3, S3a).
+// for them and their exit functions (static_init.h; docs/notes/standalone.md).
 #include "static_init.h"
 
 #include "hook/log.h"

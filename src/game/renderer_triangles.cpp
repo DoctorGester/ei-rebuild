@@ -1,7 +1,7 @@
-// The renderer's triangle draw (00501BB0, virtual slot 12 of the renderer at 007AF060, vtable
-// 0073D93C; thiscall, RET 0x10): pre-transformed vertices (FVF 0x1C4) drawn as an indexed triangle
+// The renderer's triangle draw of
+// pre-transformed vertices (FVF 0x1C4) as an indexed triangle
 // list with the current state, fogged first by distance when the device's distanceFog_ is set (the
-// transform object's FogVertices). Used by the flying hit points (005E18E0). The new renderer
+// transform object's FogVertices). Used by the flying hit points. The new renderer
 // (src/render) takes the draw; with the old path's objects off it is skipped. See
 // docs/notes/renderer.md.
 #include "clip.h"     // TLVertex
@@ -19,7 +19,7 @@ namespace {
 constexpr DWORD kFvf = 0x1C4;   // D3DFVF_TLVERTEX
 }
 
-// 00501BB0. Returns 1.
+// Returns 1.
 int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const std::uint16_t* indices, unsigned indexCount) {
     void* vertices = const_cast<void*>(vertexData);
     CTextureDevice* device = device_;

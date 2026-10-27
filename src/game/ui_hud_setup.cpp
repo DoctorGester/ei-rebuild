@@ -1,12 +1,12 @@
 // The battle HUD's two corner panels, the game clock (CHudClock) and the movement panel
-// (CHudMovePanel): their setups (00648520, 00649190), which make the panels' sprites and their
+// (CHudMovePanel): their setups, which make the panels' sprites and their
 // regions about the layout's bottom corners. A-H26.
-// Rebirth patches both for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the clock at the screen's right edge, the movement panel at its left (the panel offset while
 // they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
-// Place 005E6FA0 and SetTriangle 005E99D0, the regions' AddPoint 005FCA70, the panel's ShowMode
-// 00649910) are called through their addresses. See ui.h ("Battle screen and its HUD panels"),
-// docs/notes/items_spells.md ("A-H26") and docs/notes/rebirth.md ("WideScreen").
+// Place and SetTriangle, the regions' AddPoint, the panel's ShowMode)
+// are called through their addresses. See ui.h ("Battle screen and its HUD panels"),
+// docs/notes/items_spells.md and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 #include "world.h"
 
@@ -77,12 +77,12 @@ void SetHand(CUiMesh* sprite) {
 
 } // namespace
 
-// --- 00648520: the clock ---------------------------------------------------------------------------
+// --- The clock ---------------------------------------------------------------------------
 
 void CHudClock::SetupVanilla(int fast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
-    rect_ = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};   // WideScreen: 00648531 / 00648545
+    rect_ = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};   // WideScreen
     Builder(AddSprite(nullptr))->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddSprite(nullptr));
     for (int i = 0; i < 4; ++i) {
@@ -126,12 +126,12 @@ void CHudClock::SetupVanilla(int fast) {
 }
 EI_REWRITTEN(0x00648520, CHudClock::SetupVanilla);
 
-// --- 00649190: the movement panel --------------------------------------------------------------------
+// --- The movement panel --------------------------------------------------------------------
 
 void CHudMovePanel::SetupVanilla() {
     widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
     const int shift = widescreen::EdgeShift();
-    rect_ = RECT{-shift, 520, 80 - shift, kLayoutBottom};   // WideScreen: 0064919F / 006491B3
+    rect_ = RECT{-shift, 520, 80 - shift, kLayoutBottom};   // WideScreen
     // The flag button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
     middle->AddPoint(0, kLayoutBottom);

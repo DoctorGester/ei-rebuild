@@ -45,7 +45,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 
 int CFigureManager::CreateWithArchives() {
     if (!CBaseManager::Create()) return 0;
-    // Rebirth's ResOverride (005AA544): the mod's figure archives come first.
+    // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
     }

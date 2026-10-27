@@ -1,5 +1,5 @@
-// The options window's settings and key bindings (00651350..006524A0) and its slider's layout
-// (0065B8B0). See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
+// The options window's settings and key bindings and its slider's layout
+// (ui.h: COptionsWindow, CUiSlider; docs/notes/ui.md "Objectives, save/load, options").
 #include "record_vectors.h"
 #include "ui.h"
 
@@ -64,7 +64,7 @@ float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above th
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The game's option globals the window loads (00652200) and stores (006524A0), by setting.
+// The game's option globals the window loads and stores, by setting.
 int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
 int& OptVolume1() { return options::TheOptions()->audioStreaming_; }       // setting 1
 int& OptVolume2() { return options::TheOptions()->audioSpeech_; }       // setting 2
@@ -90,7 +90,7 @@ float& OptGamma14() { return options::TheOptions()->brightness_; }   // settings
 float& OptGamma15() { return options::TheOptions()->contrast_; }
 float& OptGamma16() { return options::TheOptions()->gamma_; }
 int& Opt17() { return options::TheOptions()->drawFlyingHp_; }
-// Setting 18: help windows (Rebirth's ForceShowTutorial patches its store at 00652663).
+// Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
 int& OptHelp18() { return options::TheOptions()->showTutorial_; }
 int& Opt19() { return options::TheOptions()->autosave_; }
 float& Opt20() { return options::TheOptions()->toolTipTime_; }        // setting 20
@@ -128,11 +128,11 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 };
 
 int& Opt24() { return options::TheOptions()->reverseStereo_; }
-int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty 0079BEC0)
+int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// A row text into the surface (005FDE20, Rebirth-patched: through its address).
+// A row text into the surface (Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
     surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
@@ -163,7 +163,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 }
 } // namespace
 
-// --- 00651350 ------------------------------------------------------------------------------------
+// --- COptionsWindow::RefreshRows ---------------------------------------------------------
 
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
@@ -208,7 +208,7 @@ void COptionsWindow::RefreshRows() {
 }
 EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
 
-// --- 00651D70 ------------------------------------------------------------------------------------
+// --- COptionsWindow::ShowGroup -----------------------------------------------------------
 
 void COptionsWindow::ShowGroup(int group) {
     mfc::CString tip;
@@ -266,10 +266,10 @@ void COptionsWindow::ShowGroup(int group) {
 }
 EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 
-// --- 00651940 ------------------------------------------------------------------------------------
+// --- COptionsWindow::BuildSettings -------------------------------------------------------
 
 void COptionsWindow::BuildSettings() {
-    settings_.clear();   // 00652F80 copy and the 00653800 destructors, inlined by the original
+    settings_.clear();   // copy and destructors inlined
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         // The original's temporary has only its string constructed; its other fields are copied
         // as the stack left them and all written below for both kinds.
@@ -306,10 +306,10 @@ void COptionsWindow::BuildSettings() {
 }
 EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 
-// --- 00651600 ------------------------------------------------------------------------------------
+// --- COptionsWindow::BuildBindings -------------------------------------------------------
 
 void COptionsWindow::BuildBindings() {
-    // clear(): 00652E30 copy and the 006537E0 destructors, inlined by the original.
+    // clear(): copy and destructors inlined.
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.Finish() = bindings_.Start();
 
@@ -320,7 +320,7 @@ void COptionsWindow::BuildBindings() {
         binding.action_ = action;
         ShownName(&binding.name_, TextActionPrefix(), action->name_);
 
-        // The first key name of a scan code bound to the action (00652E10 clears the list).
+        // The first key name of a scan code bound to the action (the list is cleared first).
         binding.keys_.clear();
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
             if (keyOfScan_[scan] != action->id_) continue;
@@ -339,7 +339,7 @@ void COptionsWindow::BuildBindings() {
 }
 EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 
-// --- 00652000 ------------------------------------------------------------------------------------
+// --- RebuildKeysText ---------------------------------------------------------------------
 
 namespace {
 // The keys' names, each followed by "  |  ", the last separator trimmed (as BuildBindings).
@@ -370,9 +370,9 @@ void COptionsWindow::CommitBinding() {
     if (binding != other) {
         if (binding->keys_.size() != 0) {
             for (const UiKeyName* key : binding->keys_) keyOfScan_[key->scan_] = 0;
-            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): 00653150 copies nothing
+            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): copies nothing
         }
-        binding->keys_.push_back(pressedKey_);   // 006527A0 on overflow
+        binding->keys_.push_back(pressedKey_);   // on overflow
         RebuildKeysText(*binding);
         if (other) {
             for (const UiKeyName** key = other->keys_.begin(); key != other->keys_.end(); ++key) {
@@ -387,7 +387,7 @@ void COptionsWindow::CommitBinding() {
 }
 EI_REWRITTEN(0x00652000, COptionsWindow::CommitBinding);
 
-// --- 00652200 ------------------------------------------------------------------------------------
+// --- COptionsWindow::LoadSettings --------------------------------------------------------
 
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
@@ -435,7 +435,7 @@ void COptionsWindow::LoadSettings() {
 }
 EI_REWRITTEN(0x00652200, COptionsWindow::LoadSettings);
 
-// --- 006524A0 ------------------------------------------------------------------------------------
+// --- COptionsWindow::Apply ---------------------------------------------------------------
 
 void COptionsWindow::Apply() {
     std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));
@@ -484,7 +484,7 @@ void COptionsWindow::Apply() {
 }
 EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
-// --- 0065B8B0: the slider's slot 26 ---------------------------------------------------------------
+// --- The slider's slot 26 ---------------------------------------------------------------
 
 namespace {
 // The slider's sprites lie along x: a quarter turn about z (pi / 2).

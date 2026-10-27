@@ -16,7 +16,7 @@
 
 namespace {
 
-// The server world's object by id (00593AA0).
+// The server world's object by id.
 CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
 
 // The game's CRT.
@@ -52,7 +52,7 @@ int __cdecl CompareMembers(const void* a, const void* b) {
 
 } // namespace
 
-// ---- Member order (SV7b1) -------------------------------------------------------------------------
+// ---- Member order -------------------------------------------------------------------------
 
 bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     if (!x || !y) return x != nullptr;

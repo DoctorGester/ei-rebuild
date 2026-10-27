@@ -17,9 +17,9 @@
 #include "lib/nan_audit.h"
 
 namespace {
-constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";           // 00793A88
-constexpr const char* kSoundSelect = "buttons\\save\\select.wav";      // 00793A60
+constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
+constexpr const char* kSoundSelect = "buttons\\save\\select.wav";
 
 // Pending values a window hands the interface when it closes (CInterface3D::SetPendingValue):
 // the low word 1 closes the top window, the high word is the result its parent receives.
@@ -27,7 +27,7 @@ constexpr std::uint32_t kCloseSaveLoad = 0x100001;
 constexpr std::uint32_t kCloseSaveLoadLoad = 0x100002;
 constexpr std::uint32_t kCloseOptions = 0x110001;
 
-// Results of the save/load window's message boxes (slot 27).
+// Results of the save/load window's message boxes.
 constexpr int kResultDelete = 0x10001;
 constexpr int kResultOverwrite = 0x20001;
 constexpr int kResultLoad = 0x30001;
@@ -177,11 +177,11 @@ EI_REWRITTEN(0x00654450, CSaveLoadWindow::OnDialogResult);
 // --- Options window ----------------------------------------------------------------------------
 
 void COptionsWindow::RestoreSettings() {
-    // The values the window saved when it opened (0079BCC4..0079BD04).
+    // The values the window saved when it opened.
     TheSoundManager()->SetEffectsVolume(options::TheOptions()->audioSfx_);
     TheSoundManager()->SetMusicVolume(options::TheOptions()->audioStreaming_);
     TheSoundManager()->SetSpeechVolume(options::TheOptions()->audioSpeech_);
-    // The scene renderer's gamma (007AF060, slot 22).
+    // The scene renderer's gamma.
     SceneRenderer()->SetGamma(options::TheOptions()->brightness_, options::TheOptions()->contrast_,
                               options::TheOptions()->gamma_);
 }
@@ -267,7 +267,7 @@ void COptionsWindow::OnDialogResult(int result) {
 }
 
 const char* COptionsWindow::HelpTopic() {
-    // "options" (00794848) unless a key binding waits for its key.
+    // "options" unless a key binding waits for its key.
     return waitingForKey_ ? nullptr : "options";
 }
 
@@ -279,8 +279,8 @@ constexpr int kSettingVolumeC = 2;     // /
 constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
 constexpr int kSettingGammaLast = 16;
 constexpr int kSettingCount = 26;
-constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
-constexpr float kSlideSeconds = 0.5f;  // 00742B74
+constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
+constexpr float kSlideSeconds = 0.5f;
 } // namespace
 
 void COptionsWindow::Update() {
@@ -333,7 +333,7 @@ EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
 EI_REWRITTEN(0x00650900, COptionsWindow::HelpTopic);
 EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
-// --- 0062B180: the destructor body ------------------------------------------------------------------
+// --- The destructor body ------------------------------------------------------------------
 
 COptionsWindow::~COptionsWindow() {
     groupNames_.Destruct();

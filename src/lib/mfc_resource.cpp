@@ -40,7 +40,7 @@ constexpr int kFormatLength = 256;
 
 namespace {
 
-// The strings of MFC's table that our code can reach (C23; game.exe's .rsrc held the whole table, which the host no
+// The strings of MFC's table that our code can reach (game.exe's .rsrc held the whole table, which the host no
 // longer has). They are loaded by CString::LoadResourceString and AfxFormatString1, which CException::ReportError
 // and the exceptions' GetErrorMessage (mfc_exception.cpp) call:
 //   0xF006 the unnamed file's name; 0xF020 ReportError's "no error" fallback;

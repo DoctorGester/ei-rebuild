@@ -1,4 +1,4 @@
-// CWorldServer::CreateUnits (0058EF20): creates units from unit records (script AddUnitToServer,
+// CWorldServer::CreateUnits: creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
@@ -67,7 +67,7 @@ using PlacementArray = mfc::CArray<Placement>;
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
     UnitPrototypeRecord* prototype;
     {
-        prototype = unitdb::PrototypeNamed(stlp::string(prototypeName));   // find_or_insert of {name, null} (00514880)
+        prototype = unitdb::PrototypeNamed(stlp::string(prototypeName));   // find_or_insert of {name, null}
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
@@ -281,7 +281,7 @@ namespace {
 
 constexpr int kQuickEffectType = 9;
 constexpr std::uint32_t kQuickEffectFlags = 0x3010;
-constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
+constexpr std::uint32_t kFlagsNewEffect = 0x180000;
 
 } // namespace
 
@@ -303,7 +303,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
 }
 
-// ---- CreateObject (005927C0) -------------------------------------------------------------------
+// ---- CreateObject -------------------------------------------------------------------
 
 namespace {
 

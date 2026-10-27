@@ -1,5 +1,5 @@
-// The client's attack figures of a party unit (CUnitClientSpecific slot 50, 00538960) and the copy
-// of the damage scale it uses (005285D0). See unit_client_models.h and docs/notes/units.md ("Rewritten").
+// The client's attack figures of a party unit (CUnitClientSpecific slot 50) and the copy
+// of the damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
 #include "unit_client_models.h"
 
 #include "combat.h"   // AttackParams
@@ -21,12 +21,7 @@ constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
-constexpr float kZero = 0.0f;               // 0073B858
-
-// Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
-// calls: 00527850 UnitParams::WeaponSkillBonus (unit_params_skill.cpp, ST0), 005285D0 the damage
-// scale (this file; thiscall on the parameters, which it does not read: RET 8, ST0).
-// 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
+constexpr float kZero = 0.0f;
 
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
 
@@ -79,13 +74,13 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         }
     }
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
-    out->damageMax = ScaleDamageByEffects(owner, out->damageMax);   // 005285D0 (thiscall on the parameters, not read)
+    out->damageMax = ScaleDamageByEffects(owner, out->damageMax);   // (not read)
     out->damageMin = ScaleDamageByEffects(owner, out->damageMin);
     out->attackSpread = params->combat[2];
     out->ScaleForDifficulty(keyed);
 }
 EI_REWRITTEN(0x00538960, CUnitClientSpecific::GetAttackParams);
 
-// 005285D0 is a byte-for-byte copy of 00523D30 (unit_vitals.cpp), reached as a method of the
+// is a byte-for-byte copy (unit_vitals.cpp), reached as a method of the
 // packed parameters.
 EI_REWRITTEN(0x005285D0, ScaleDamageByEffects);

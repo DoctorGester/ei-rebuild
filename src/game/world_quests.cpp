@@ -40,8 +40,8 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-// 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
-// 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
+// The text key (object id) of a name (object_tables.cpp), ECX = name.
+// Named float table Get; the value is left in ST0.
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
@@ -156,7 +156,7 @@ namespace {
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
-// 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
+// The item manager creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
 
@@ -241,7 +241,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         if (parts.GetSize() == 3) TheGameFlow()->RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
         // 005924D1): the client queues the completion script as well. The plugin formats it with the
-        // caller's EBX as the name; the client's only caller (00608851) holds the name there.
+        // caller's EBX as the name; the client's only caller holds the name there.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
@@ -282,7 +282,7 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
 
 namespace {
 
-// 0055FB00 (RET 4). CWorld: the unit object with a text key.
+// CWorld: the unit object with a text key.
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
@@ -347,8 +347,8 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-// 00553380 (RET 4). The unit controller gains experience.
-// 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
+// The unit controller gains experience.
+// A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
@@ -416,7 +416,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         it.manager = nullptr;
     }
     list.vtable = mfc::impl::ExperienceListClass::Vtable();
-    list.RemoveAll();   // 0059D5C0
+    list.RemoveAll();
 }
 
 // With a player: its living heroes share `amount` equally.
@@ -470,7 +470,7 @@ constexpr int kSpellSlots = 8;
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
-// The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
+// The unit's slots: quick, worn, belt, spells.
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
@@ -548,7 +548,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         node = next;
     }
     RecordPtrArray list{mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, &MercRecord(player, i));   // 0059D2E0
+    for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, &MercRecord(player, i));
     for (int i = 0; i < list.size; ++i) {
         auto* record = list.data[i];
         CUnit* unit = static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
@@ -597,7 +597,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
         record->weaponIndex = unit->activeWeapon;
     }
     record->fightAtWill = unit->fightAtWill;
-    record->stats.RestoreSlots();   // 00523C80
+    record->stats.RestoreSlots();
 }
 
 } // namespace
@@ -624,7 +624,7 @@ void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArra
             entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
             entry.value24 = unit->activeWeapon;
             mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)
-                .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));   // 0059C510
+                .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));
         }
         if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
         if (!ObjectSlots(unit)->IsDead()) RemoveObject(unit->id_);

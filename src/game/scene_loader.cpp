@@ -1,5 +1,4 @@
-// The CFakeUnit scene loader (00471B10). See scene_loader.h for the file layout.
-//
+// The CFakeUnit scene loader. See scene_loader.h for the file layout.
 // The original inlines MFC's CArray::SetSize and CMap::operator[] many times over; here they are
 // the shared templates: mfc::CArray with the element constructors of each instantiation (plain ones
 // zero-fill; the others call the original's out of line), lib::AlignedArray for the vertex arrays.
@@ -27,7 +26,6 @@
 #include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -55,7 +53,7 @@ struct FileUv {
 using FilePointArray = mfc::CArray<PointBits>;                // A: 12-byte positions
 using FileUvArray = mfc::CArray<FileUv>;                      // B
 using FileFaceArray = mfc::CArray<FileFace>;                  // C
-using GroupRecordArray = recordarrays::FaceGroups::Array;     // D (00454DB0 / 00476F20)
+using GroupRecordArray = recordarrays::FaceGroups::Array;     // D
 // The file's key records: the frame word, then the values (the loader copies them through the
 // FPU into the node's keys).
 struct FileRotationKey {       // E (0x14): a vector at +8
@@ -95,7 +93,7 @@ using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> 
 } // namespace
 
 
-// 00454F30: the keys zero filled. 00453700: each key's points freed (the block at +4).
+// The keys zero filled. 00453700: each key's points freed (the block at +4).
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
     for (; count--; ++keys) keys->points.FreeData();
@@ -202,10 +200,10 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
         // The third corner goes through the out-of-line Add instantiations (same effect).
         if (corner < 2) {
             m.texCoords.SetAtGrow(m.texCoords.size, UvBits{{u, v}});
-            m.sources.SetAtGrow(m.sources.size, face->position[corner]);   // 004773F0
+            m.sources.SetAtGrow(m.sources.size, face->position[corner]);
         } else {
             m.texCoords.Add(UvBits{{u, v}});
-            m.sources.Add(face->position[corner]);   // 00476640
+            m.sources.Add(face->position[corner]);
         }
         m.index.ElementAt(key) = static_cast<std::uint32_t>(m.positions.size - 1);
         m.seen.ElementAt(key) = 1;
@@ -485,12 +483,12 @@ void Loader::SkipRecord() {
     if (version_ == kVersionWithNormals) Read(file_, normals.data, normals.size * 0x14);
     for (int k = 0; k < morphHeads.size; ++k) {
         PointBuffer points;
-        points.Construct();                    // 00475F10
-        points.SetSize(h.pointCount, -1);      // 00475F40
+        points.Construct();
+        points.SetSize(h.pointCount, -1);
         Read(file_, &morphHeads.data[k].frame, 4);
         Read(file_, &morphHeads.data[k].extra, 4);
         Read(file_, points.data, h.pointCount * 12);
-        points.FreeData();   // 00475F20
+        points.FreeData();
     }
     DestructArrayOf<mfc::impl::NormalArrayClass>(normals);
     DestructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
@@ -566,18 +564,13 @@ void FaceGroup::Assign(const FaceGroup* from) {
 }
 EI_REWRITTEN(0x00474C50, FaceGroup::Assign);
 
-// ---- Element constructors and destructors (S7a) --------------------------------------------------
+// ---- Element constructors and destructors --------------------------------------------------
 
 namespace {
 
 template <typename A>
 void FreeArray(A& array, void* vtable) {
     array.vtable = vtable;
-    array.FreeData();
-}
-template <typename A>
-void FreeArray(A& array, std::uintptr_t vtableAddress) {
-    array.vtable = ei::GamePointer<void>(vtableAddress);
     array.FreeData();
 }
 
@@ -619,10 +612,10 @@ void SceneNode::Destruct() {
 }
 EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
-// ---- Element constructors (S6b; their ConstructElements are record_arrays.cpp's) -----------------
+// ---- Element constructors (their ConstructElements are record_arrays.cpp's) -----------------
 
 // 00454F80's element. The original then sizes the rotation and position keys, the frames and the
-// children to 0 (00455170, 004552B0, 00450F20, 00453790), which leaves empty arrays as they are.
+// children to 0, which leaves empty arrays as they are.
 void SceneNode::Construct() {
     new (&name) mfc::CString();
     new (&parent) mfc::CString();
@@ -635,7 +628,7 @@ void SceneNode::Construct() {
     morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
     normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(mfc::impl::BoneLinkArrayClass::Vtable());
-    children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
+    children.Construct(mfc::impl::NodeItemsCClass::Vtable());
 }
 
 // 004545C0's element.
@@ -646,7 +639,7 @@ SceneMesh::SceneMesh() {
     groups.Construct(recordarrays::FaceGroupArrayClass::Vtable());
 }
 
-// Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
+// Each group is destroyed by its scalar deleting destructor with 0, FaceGroup::Destruct.
 SceneMesh::~SceneMesh() {
     FaceGroupArrayDestruct(&groups);
     faces.FreeData();
@@ -733,7 +726,7 @@ struct SceneLoad {
 
 } // namespace
 
-// 00446C10. Loads the scene `fileName` (an .amf) into the fake unit: meshes, helpers and nodes,
+// Loads the scene `fileName` (an .amf) into the fake unit: meshes, helpers and nodes,
 // then the figure's .reg file (`registryName`, or "Ini's\\<name>.reg" for a scene under
 // "scenes\\"), the figures, skeleton and textures. Returns 0 if the file cannot be opened or the
 // scene has more than one top-level node (a fatal error). The caller also passes the unit in ECX;
@@ -789,7 +782,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             s.path = mfc::CString(registryName);
         }
         LoadFigureRegistry(fakeUnit, &s.path, &s.textureLinks, &s.textureNames);
-        WeldMeshVertices(fakeUnit, &s.nodes);   // 0044C4A0
+        WeldMeshVertices(fakeUnit, &s.nodes);
     }
 
     // One figure per mesh.
@@ -805,7 +798,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), &u->skin))
         game::FatalError(scenedata::ModelNameText(), fileName);
-    PackMeshPositions(fakeUnit);   // 0044E3B0
+    PackMeshPositions(fakeUnit);
 
     // Each figure takes the bone links of the nodes of the same name.
     BoneLinkArray& linkArray = *boneLinks;
@@ -826,7 +819,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     ComputeMeshNormals(meshes);
     IndexMeshCorners(meshes);
-    for (int i = 0; i < meshes->size; ++i) ComputeMeshBounds(&meshArray.data[i]);   // 0044E8A0
+    for (int i = 0; i < meshes->size; ++i) ComputeMeshBounds(&meshArray.data[i]);
 
     // The figures take the meshes' matrices (64-byte blocks: the figure's vertex and normal
     // packets); their colour arrays get four entries per matrix.
@@ -849,8 +842,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     // The textures named in the registry file (without ".bmp") and their links.
     for (int t = 0; t < s.textureNames.size; ++t) {
-        // The unit's material holder: its texture of the id (0051B2F0) named, then a material
-        // (0051B470) for each link of the id.
+        // The unit's material holder: its texture of the id named, then a material
+        // for each link of the id.
         auto* owner = u->Object3D()->ClientSpecific();
         mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->Name();
         bool bmp = gamecrt::mbsicmp(s.textureNames[t].name.Right(4).GetString(),

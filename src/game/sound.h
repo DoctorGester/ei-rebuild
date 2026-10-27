@@ -38,9 +38,9 @@ struct SoundFader {
     std::int32_t finished;      // +0x14 set when a fade out reached 0
     std::uint32_t holdUntil;    // +0x18 timeGetTime() at which the fade is cancelled (0: none)
 
-    void SetHold(std::uint32_t until);  // 006B5E80
+    void SetHold(std::uint32_t until);
     void Update();                      // 006B5EE0 (stream thread)
-    void Recalc();                      // 006B5FF0
+    void Recalc();
 };
 static_assert(sizeof(SoundFader) == 0x1C);
 
@@ -64,7 +64,7 @@ struct SoundSlot {
     float farDistance;          // +0x4C silent outside
     std::int32_t handle;        // +0x50 sound handle (-1: free)
 
-    void End(struct CSoundManager* manager);  // 006B5CD0
+    void End(struct CSoundManager* manager);
 };
 static_assert(sizeof(SoundSlot) == 0x54);
 static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handle) == 0x50);
@@ -93,7 +93,7 @@ static_assert(sizeof(DeferredSound) == 0x48);
 using SoundNameArray = mfc::CStringArray;
 
 // An ambient emitter (16 at CSoundManager + 0x26C, 0x38 bytes): plays one of its names at random
-// intervals while the listener is within `outerRadius` (006B9B10).
+// intervals while the listener is within `outerRadius`.
 struct SoundEmitter {
     std::int32_t active;        // +0x00
     SoundNameArray names;       // +0x04
@@ -135,18 +135,18 @@ struct SoundSequence {
     std::int32_t generation;    // +0x44
     std::int32_t id;            // +0x48 generation << 8 | slot (-1: free)
 
-    int PlayNext(struct CSoundManager* manager);  // 006BA140
+    int PlayNext(struct CSoundManager* manager);
 };
 static_assert(sizeof(SoundSequence) == 0x4C);
 
 // The STLport hash_map<int, DeferredSound*> at CSoundManager + 0x884.
-// Find is the inlined bucket walk (006BC440), Clear the inlined clear() (nodes freed, buckets kept);
+// Find is the inlined bucket walk, Clear the inlined clear() (nodes freed, buckets kept);
 // the buckets are at CSoundManager + 0x888, the count at + 0x894.
 using DeferredMap = stlp::hash_map<std::int32_t, DeferredSound*, stlp::IntHash>;
 using DeferredNode = DeferredMap::Node;
 static_assert(sizeof(DeferredMap) == 0x14);
 
-// The wave cache (006B89F0): a list of loaded waves, most recently used first, and a hash_map from
+// The wave cache: a list of loaded waves, most recently used first, and a hash_map from
 // the wave name to its list node (CSoundManager + 0x870).
 // The name stays raw words: the record is copied bitwise by the cache list (CList with raw
 // elements, RemoveHead by value) and its name built and freed by hand; Name() is the string.
@@ -171,7 +171,7 @@ using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
 // CSoundManager (0x8C0 bytes, class id 0xE). Only the fields used by the rewritten code are
-// named. A real virtual class: the compiler makes its vtable (C19; game.exe's 007440F0 is retired).
+// named. A real virtual class: the compiler makes its vtable (game.exe's 007440F0 is retired).
 // Miles' ASISTAGE (mss.h), the codec stage of a sample's pipeline as the stream uses it: the ASI
 // codec's stream functions (all __stdcall) and the handles of the attributes it reports.
 struct AsiStage {
@@ -198,15 +198,15 @@ struct CSoundManager : CEngineObject {
     // 006B63D0 / 006B63F0 through the CRT's eh vector iterator), the wave cache list, both hash
     // maps (100 buckets), AIL_startup, then Reset.
     CSoundManager();
-    // 006B65D0. Close, AIL_shutdown, the hash maps, the cache list (each record's DestructElements
+    // Close, AIL_shutdown, the hash maps, the cache list (each record's DestructElements
     // 006BE210), the sequences and emitters, the MIDI and stream parts, the wave source list, the
     // registries, the stream reader; the members' destructors (the strings, the archive) after it,
     // then CEngineObject's.
     ~CSoundManager() override;
     // The deleting destructor (slot 0, 006B62B0) frees into the game's heap.
 
-    int Create() override { return CreateBody(); }   // 2: 006B6D70
-    void Destroy() override { Close(); }             // 3: 006B6D80
+    int Create() override { return CreateBody(); }
+    void Destroy() override { Close(); }
     const char* GetClassName() override;              // 11: 006B6290 "CSoundManager"
     int GetClassId() override;                        // 12: 006B62A0 (0xE)
 
@@ -284,43 +284,43 @@ struct CSoundManager : CEngineObject {
     std::int32_t spare;                 // +0x89C 0 after Reset; nothing reads it
     std::int32_t reverbOn;              // +0x8A0
     std::int32_t panDirect;             // +0x8A4 0: pans are mirrored
-    float reverb[3];                    // +0x8A8 room type / level / reflect time (006B69E0)
+    float reverb[3];                    // +0x8A8 room type / level / reflect time
     std::int32_t effectsVolume;         // +0x8B4 0..100
     std::int32_t speechVolume;          // +0x8B8 0..100
     std::int32_t randomStart;           // +0x8BC ms
 
     // Rewritten (sound_manager.cpp).
-    void SetReverb(float room, float level, float time);                                  // 006B69E0
-    void PauseAll();                                                                      // 006B7320
-    void ResumeAll();                                                                     // 006B7380
-    void SetEffectsVolume(int volume);                                                    // 006B7740
-    void SetSpeechVolume(int volume);                                                     // 006B78A0
-    void SetMusicVolume(int volume);                                                      // 006B7A00
-    SoundSlot* FindPlaying(int handle);                                                   // 006B7C10
-    DeferredSound* FindDeferred(std::uint32_t handle);                                    // 006B7CB0
-    void UpdatePositional(SoundSlot* slot);                                               // 006B7FC0
-    int SetSoundVolume(int handle, int volume, int pan);                                 // 006B9100
-    int SetSoundPosition(int handle, const float* position, float nearDist, float farDist);  // 006B92F0
-    int StopSound(int handle);                                                            // 006B94A0
-    void SetListener(const float* position, const float* axis);                           // 006B9750
+    void SetReverb(float room, float level, float time);
+    void PauseAll();
+    void ResumeAll();
+    void SetEffectsVolume(int volume);
+    void SetSpeechVolume(int volume);
+    void SetMusicVolume(int volume);
+    SoundSlot* FindPlaying(int handle);
+    DeferredSound* FindDeferred(std::uint32_t handle);
+    void UpdatePositional(SoundSlot* slot);
+    int SetSoundVolume(int handle, int volume, int pan);
+    int SetSoundPosition(int handle, const float* position, float nearDist, float farDist);
+    int StopSound(int handle);
+    void SetListener(const float* position, const float* axis);
     int AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer, int minInterval,
-                   int maxInterval);                                                      // 006B9950
+                   int maxInterval);
     void MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
-                     int maxInterval);                                                    // 006B9A30
-    int RemoveEmitter(int index);                                                         // 006B9AA0
+                     int maxInterval);
+    int RemoveEmitter(int index);
     int AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist, float farDist,
-                    int random, int count, int(__fastcall* chooser)(int, int));                // 006BA2D0
-    int MoveSequence(std::uint32_t id, const float* position);                           // 006BA400
-    int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);  // 006BA5E0
-    int RemoveSequence(std::uint32_t id);                                                 // 006BA7C0
-    void Tick();                                                                          // 006B9B10
-    void FadeOutStream();                                                                 // 006BAFA0
-    void FadeInStream();                                                                  // 006BAFE0
-    int RequestStream(const char* name, int mode);                                       // 006BB020
-    void StopStream(int mode);                                                            // 006BB240
+                    int random, int count, int(__fastcall* chooser)(int, int));
+    int MoveSequence(std::uint32_t id, const float* position);
+    int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);
+    int RemoveSequence(std::uint32_t id);
+    void Tick();
+    void FadeOutStream();
+    void FadeInStream();
+    int RequestStream(const char* name, int mode);
+    void StopStream(int mode);
 
     // A-H14 (sound_manager.cpp).
-    // 006B71C0 (RET 4). Every voice ended (its cached wave released), handles restart at 0, the
+    // Every voice ended (its cached wave released), handles restart at 0, the
     // deferred sounds deleted; with `stopStream` the stream stops too (StopStream(4)).
     void StopAll(bool stopStream);
     // 006B96E0 (RET 8; `this` and `size` unused). A wave's length in seconds (AIL_WAV_info): the
@@ -331,18 +331,18 @@ struct CSoundManager : CEngineObject {
     // A-H14 (sound_manager_lifetime.cpp).
     // 006B6D70 (slot 2, the engine object's Create; named so, rule 4): Reset, then 1.
     int CreateBody();
-    // 006B7060. Every wave source removed from the list and deleted (slot 0).
+    // Every wave source removed from the list and deleted (slot 0).
     void ClearWaveSources();
-    // 006B7AB0 (RET 4). Opens the archive `path` and appends it to the wave sources. 1 (also when
+    // Opens the archive `path` and appends it to the wave sources. 1 (also when
     // sound is off), 0 when it cannot be opened (the archive is deleted again).
     int AddWaveSource(const char* path);
-    // 006B8960 (RET 0xC). The first wave source holding `name`: its data (GetFile, size into
+    // The first wave source holding `name`: its data (GetFile, size into
     // *size), the source into *source when not null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
     // 006B7110 (RET 8; A-H26, Rebirth-patched: callers use SoundSystemListFilesOriginal). `out`
     // emptied, then the names matching `pattern` of every wave source appended, source by source.
     void ListWaveFiles(mfc::CStringArray* out, const char* pattern);
-    // 006BAE20 (RET 8). The sound folder (a backslash appended when missing) and the sound
+    // The sound folder (a backslash appended when missing) and the sound
     // registry opened. 1 when sound is off; else whether the registry opened.
     int SetPath(const char* folder, const char* registryPath);
 
@@ -373,7 +373,7 @@ struct CSoundManager : CEngineObject {
     // threadsQuit, every 100 ms under the stream lock: a step of the music fader, its level as
     // the sample's volume, and for every half Miles has played out the spare buffer loaded into
     // it (the two change places, the position moves on by streamBufferFrames) and the next one
-    // read (006BB3A0). Ends the thread (AfxEndThread), so it does not return.
+    // read. Ends the thread (AfxEndThread), so it does not return.
     void StreamThread();
     // 006BB3A0 (A-H26; Rebirth-patched, so hooked in the vanilla launch only and called through
     // its address; `stream` is the manager's +0x100). The stream thread's reader: fills the spare
@@ -418,10 +418,10 @@ struct CSoundManager : CEngineObject {
     // Not rewritten.
     void StreamNotify(int mode);                                                          // 006BBAC0 (empty)
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
-               int speech);                                                               // 006B8600
+               int speech);
     int Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
-               int compressed);                                                          // 006B8250
-    // 006B89F0. Puts wave `name` into the voice (from the cache, or read from the archives; with
+               int compressed);
+    // Puts wave `name` into the voice (from the cache, or read from the archives; with
     // `compressed` an MP3 decompressed through the ASI codec), sets its length, marks it playing
     // and gives it a new handle. 0 when the wave is nowhere.
     int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
@@ -466,18 +466,18 @@ struct MusicTheme {
 static_assert(sizeof(MusicTheme) == 0x38);
 
 // CMusicSystem (0x58 bytes, class id 0xE): picks the music for the game state. A real virtual
-// class: the compiler makes its vtable (C19; game.exe's 00744098 is retired).
+// class: the compiler makes its vtable (game.exe's 00744098 is retired).
 struct CMusicSystem : CEngineObject {
-    // 006B4350. CEngineObject's fields, an empty theme array, the strings empty, then ResetThemes
+    // CEngineObject's fields, an empty theme array, the strings empty, then ResetThemes
     // (theme, +0x3C, is left as it is).
     CMusicSystem();
-    // 006B44B0. ResetThemes, the theme array's destructor (006B56C0), the strings, CEngineObject's.
+    // ResetThemes, the theme array's destructor, the strings, CEngineObject's.
     ~CMusicSystem() override;
     // The deleting destructor (slot 0, 006B4490) frees into the game's heap.
 
-    int Create() override { return LoadThemes(); }        // 2: 006B4710
-    void Destroy() override { ResetThemes(); }           // 3: 006B4690
-    int RunTick() override { return UpdateMusic(); }     // 6: 006B5350
+    int Create() override { return LoadThemes(); }
+    void Destroy() override { ResetThemes(); }
+    int RunTick() override { return UpdateMusic(); }
     const char* GetClassName() override;                 // 11: 006B4470 "CMusicSystem"
     int GetClassId() override;                           // 12: 006B4480 (0xE)
 
@@ -491,24 +491,24 @@ struct CMusicSystem : CEngineObject {
     std::int32_t state;                 // +0x38 0 off, 1 zone, 2 briefing, 3 constructor, 4 main menu, 5 credits
     std::int32_t theme;                 // +0x3C
     std::int32_t inCombat;              // +0x40
-    std::int32_t holding;               // +0x44 set by SetZoneMode, cleared by the world frame (005641F0)
+    std::int32_t holding;               // +0x44 set by SetZoneMode, cleared by the world frame
     mfc::CString combatTrack;           // +0x48
     mfc::CString jingle;                // +0x4C
     std::int32_t jinglePlaying;         // +0x50
     std::uint32_t calmDue;              // +0x54 timeGetTime() for the next calm track (0: not chosen)
 
     // 006B4710 (vtable slot 2, the engine object's Create): reads music.reg from the text path
-    // (007AF45C): Common\Credits and Common\MainMenu, then for every other section an open land
+    //: Common\Credits and Common\MainMenu, then for every other section an open land
     // theme (CalmOpen) and a dungeon theme (CalmDungeon), both with the section's Briefing,
     // Constructor and Combat. Returns 1, or FatalError's result when the file cannot be opened.
     int LoadThemes();
-    void SetZoneMode(const char* allod, int dungeon);  // 006B4E30
-    void Stop();                                       // 006B4F70
-    void PlayBriefing(const char* allod);              // 006B4F90
-    void PlayConstructor(const char* allod);           // 006B5080
-    void PlayCredits();                                // 006B5170
-    void PlayMainMenu();                               // 006B51F0
-    void PlayJingle(const char* name);                 // 006B5270
+    void SetZoneMode(const char* allod, int dungeon);
+    void Stop();
+    void PlayBriefing(const char* allod);
+    void PlayConstructor(const char* allod);
+    void PlayCredits();
+    void PlayMainMenu();
+    void PlayJingle(const char* name);
     int UpdateMusic();                                // 006B5350 (vtable slot 6)
 
     // 006B4690 (slot 3, the engine object's Destroy; named so, rule 4). State 0, the themes
@@ -523,12 +523,12 @@ static_assert(offsetof(CMusicSystem, credits) == 0x30);
 static_assert(offsetof(CMusicSystem, holding) == 0x44);
 static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
 static_assert(sizeof(CMusicSystem) == 0x58);
-// 006BA950. The music stream file's read callback (__stdcall, handed to the ASI decoder by the
+// The music stream file's read callback (__stdcall, handed to the ASI decoder by the
 // stream fill 006BB3A0; stream thread): seeks to `offset` unless it is negative, then reads up to
 // `size` bytes, cut at the end of the file. Returns the byte count (0 when the read fails); the
 // read position advances by it.
 int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);
-// 006B89B0 (__stdcall, RET 8; no Ghidra function; S16b). The callback the speech and sound loader
+// 006B89B0 (__stdcall, RET 8; no Ghidra function). The callback the speech and sound loader
 // hands to Miles's AIL_decompress_ASI (006B8xxx's .mp3 path): at state 1 it asks the decoder through
 // `set` (name, value) for "Requested bit width" 16, "Requested sample rate" 44100 and "Requested # of
 // channels" 2. Returns 1.

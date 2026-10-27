@@ -1,6 +1,6 @@
 // The game server's awards: the zone completion command (00418ED0, "<zone>_3"), the host's item
-// awards (004191C0) and the queued award message (00419D90), plus the counted pointer copy they
-// use (004263F0). See net_classes.h and docs/notes/network.md.
+// awards and the queued award message, plus the counted pointer copy they
+// use. See net_classes.h and docs/notes/network.md.
 
 #include "net_messages.h"
 #include "quest_records.h"
@@ -41,7 +41,7 @@ void DestroyInline(RefPtr* p) {
 
 } // namespace net
 
-// 004263F0: the counted pointer copy constructor (the same as Share with the other's object).
+// The counted pointer copy constructor (the same as Share with the other's object).
 RefPtr* RefPtr::CopyShared(const RefPtr* other) {
     Share(other->ptr);
     return this;
@@ -51,7 +51,7 @@ namespace net {
 EI_REWRITTEN(0x004263F0, RefPtr::CopyShared);
 EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 
-// 00419D90: queues an award message for `connection` on the pending awards (+0x25B4) with a 60
+// Queues an award message for `connection` on the pending awards (+0x25B4) with a 60
 // second delay. `text` is the caller's string (made in the argument slot), destroyed here as the
 // callee destroys a by-value argument.
 void ServerSession::QueueAward(CRefObject* connection, int kind, float value, stlp::string text) {
@@ -76,7 +76,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     DestroyInline(&shared);
 }
 
-// 004191C0: finds the host (the first binding whose player is live and has the host flag) and,
+// Finds the host (the first binding whose player is live and has the host flag) and,
 // when its connection is live, queues a kind 2 award for each item name of `entry` (its given items)
 // and, with `withFinal`, a kind 4 award with an empty text.
 void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
@@ -107,12 +107,11 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     if (withFinal) QueueAward(connection, 4, 0.0f, stlp::string(game::EmptyText()));
 }
 
-// 00418ED0: the zone completion command ("<zone>_3"). Announces the current map's title (text 7)
+// The zone completion command ("<zone>_3"). Announces the current map's title (text 7)
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
 // its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and queues the following zones
-// (00418530).
 void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
@@ -161,10 +160,10 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
     QueueMapList();
 }
 
-// 00418CC0: the zone leaving command ("<zone>_2"). When a map message is held: announces the
+// The zone leaving command ("<zone>_2"). When a map message is held: announces the
 // map's title (text 6) and, when the map registry knows "<map>_1", queues the host's items with
 // the final award. Then drops the map message, empties the queued messages (+0x25AC), +0x25B0
-// and +0x2598, queues the following zones (00418530) and clears the world's map (0057ED60 with
+// and +0x2598, queues the following zones and clears the world's map (0057ED60 with
 // null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;

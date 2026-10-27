@@ -4,11 +4,10 @@
 // 0x200 (DX2), 0x300 (DX3), 0x500 (DX5), 0x600, 0x601, 0x700 or 0x800. As in the SDK sample, some
 // interfaces are never released and some failures leave a library loaded; kept as is. The
 // interface ids and class ids are the game's own (named below). See docs/notes/app.md.
-//
 // PF3 (decided by the user 2026-10-14): when the DDRAW.DLL loaded is the system's (not one in the
 // game exe's folder, such as dgVoodoo's) DirectX 7 is a given and nothing is probed. The probe cost
 // about half a second at startup there, and with several games on the machine it failed now and
-// then, ending the run at the "DirectX 7 or later" box (R9b1). The result is then 0x800, what the
+// then, ending the run at the "DirectX 7 or later" box. The result is then 0x800, what the
 // probe reports on any current Windows. With a DDRAW.DLL in the exe's folder the probe runs as the
 // original's.
 #include "ei/hook.h"

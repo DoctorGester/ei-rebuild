@@ -10,11 +10,11 @@ class CStream;       // core_streams.h
 class CUnitServer;   // combat.h
 
 struct AIAlarm {
-    // 005AEA40. Everything cleared.
+    // Everything cleared.
     void Reset();
-    // 005AEA50. The same, returning the state (the controller's constructor).
+    // The same, returning the state (the controller's constructor).
     AIAlarm* Construct();
-    // 005AEA60 (RET 4). The pending level becomes at least `level`.
+    // The pending level becomes at least `level`.
     void Raise(int level);
     // 005AEA80 (RET 4; ai_alarm.cpp). The step: a raised alarm taken up (the unit acknowledges), the
     // level of the owner's group passed on while it lasts.

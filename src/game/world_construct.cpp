@@ -1,5 +1,5 @@
-// The two worlds (g_serverWorld 007AFF60, g_clientWorld 007AF5B8) and their constructors (S3b): CWorldServer 00589ED0
-// and CWorldClient 005612F0. Only their static initialisers (00589BE0, 00560620, ported here on the names) call them.
+// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer
+// and CWorldClient. Only their static initialisers (defined here on the names) call them.
 // The members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
 // written out in the original's order (the inlined ones) or called (the out-of-line ones).
 #include "world.h"
@@ -7,7 +7,6 @@
 #include "ai_map.h"
 #include "core_streams.h"
 #include "effects.h"
-#include "game_data.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "registry.h"
@@ -33,7 +32,7 @@ constexpr std::uint32_t kClientFlags = 0x3DC0;
 constexpr std::uint32_t kClientDebugFlags = 0xB;
 constexpr int kClientConstant228 = 10;
 
-// CList's constructor as inlined (or 0059A340 / 0056FD70): the instantiation's vtable, empty, no
+// CList's constructor as inlined: the instantiation's vtable, empty, no
 // blocks.
 template <typename T>
 void ConstructList(mfc::CList<T>& list, void* vtable) {
@@ -45,8 +44,6 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.blocks = nullptr;
     list.blockSize = kListBlockSize;
 }
-template <typename T>
-void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) { ConstructList(list, ei::GamePointer<void>(vtableAddress)); }
 
 // The ground print lists' sentinels come from operator new (their nodes are larger than the node
 // allocator's 128 bytes): 0xA4, 0x9C and 0x94 bytes.
@@ -66,7 +63,7 @@ PlatformSet::PlatformSet() {
     ConstructList(list, mfc::impl::PlatformListClass::Vtable());
 }
 
-// ---- CWorldServer (00589ED0) ------------------------------------------------------------------------
+// ---- CWorldServer ------------------------------------------------------------------------
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -86,7 +83,7 @@ CWorldServer::CWorldServer() {
 }
 EI_REWRITTEN_SPECIAL(0x00589ED0, CWorldServer::CWorldServer);
 
-// ---- CWorldClient (005612F0) ------------------------------------------------------------------------
+// ---- CWorldClient ------------------------------------------------------------------------
 
 CWorldClient::CWorldClient() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -147,8 +144,8 @@ EI_REWRITTEN_SPECIAL(0x005612F0, CWorldClient::CWorldClient);
 
 // ---- The two worlds -------------------------------------------------------------------------------
 
-// Zero at the start: built by their static initialisers (00589BE0, 00560620) in the list's order and destroyed by the
-// exit functions those register (00589C00, 00560640); all ported on the names and registered at their addresses
+// Zero at the start: built by their static initialisers in the list's order and destroyed by the
+// exit functions those register; all defined on the names
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CWorldServer> g_serverWorld = /*007AFF60*/ {};
 constinit lib::StaticObject<CWorldClient> g_clientWorld = /*007AF5B8*/ {};
@@ -156,13 +153,13 @@ CWorldServer* TheServerWorld() { return &*g_serverWorld; }
 CWorldClient* TheClientWorld() { return &*g_clientWorld; }
 
 namespace {
-void __cdecl DestroyServerWorld() { g_serverWorld.Destroy(); }   // 00589C00
-void __cdecl ConstructServerWorld() {                             // 00589BE0
+void __cdecl DestroyServerWorld() { g_serverWorld.Destroy(); }
+void __cdecl ConstructServerWorld() {
     g_serverWorld.Construct();
     libcrt::AtExit(DestroyServerWorld);
 }
-void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }   // 00560640
-void __cdecl ConstructClientWorld() {                             // 00560620
+void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }
+void __cdecl ConstructClientWorld() {
     g_clientWorld.Construct();
     libcrt::AtExit(DestroyClientWorld);
 }

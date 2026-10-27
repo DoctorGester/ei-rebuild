@@ -16,23 +16,23 @@
 
 namespace {
 
-// The sound manager (*007AF784).
+// The sound manager.
 
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 
-// The choosers (00676DD0..00676F90): called with the previous index and the number of sounds
+// The choosers: called with the previous index and the number of sounds
 // started so far; bit 30 of the result loops the sound. Without a first name any of the n names is
 // picked; with one, the first call plays it (index 0) and later calls pick among the n after it.
-int __fastcall LoopFirst(int, int) { return 0x40000000; }                        // 00676DD0
-int __fastcall AnyOf2(int, int) { return static_cast<int>(NextRandom() & 1); }    // 00676DE0
-int __fastcall AnyOf3(int, int) { return static_cast<int>(NextRandom() % 3); }    // 00676E10
-int __fastcall AnyOf4(int, int) { return static_cast<int>(NextRandom() & 3); }    // 00676E50
-int __fastcall AnyOf5(int, int) { return static_cast<int>(NextRandom() % 5); }    // 00676E80
-int __fastcall FirstThenLoop1(int, int played) { return played != 0 ? 0x40000001 : 0; }                      // 00676EC0
-int __fastcall FirstThenOf2(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 1) + 1 : 0; }  // 00676ED0
-int __fastcall FirstThenOf3(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 3) + 1 : 0; }  // 00676F10
-int __fastcall FirstThenOf4(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 3) + 1 : 0; }  // 00676F50
-int __fastcall FirstThenOf5(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 5) + 1 : 0; }  // 00676F90
+int __fastcall LoopFirst(int, int) { return 0x40000000; }
+int __fastcall AnyOf2(int, int) { return static_cast<int>(NextRandom() & 1); }
+int __fastcall AnyOf3(int, int) { return static_cast<int>(NextRandom() % 3); }
+int __fastcall AnyOf4(int, int) { return static_cast<int>(NextRandom() & 3); }
+int __fastcall AnyOf5(int, int) { return static_cast<int>(NextRandom() % 5); }
+int __fastcall FirstThenLoop1(int, int played) { return played != 0 ? 0x40000001 : 0; }
+int __fastcall FirstThenOf2(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 1) + 1 : 0; }
+int __fastcall FirstThenOf3(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 3) + 1 : 0; }
+int __fastcall FirstThenOf4(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 3) + 1 : 0; }
+int __fastcall FirstThenOf5(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 5) + 1 : 0; }
 
 using Chooser = int(__fastcall*)(int, int);
 

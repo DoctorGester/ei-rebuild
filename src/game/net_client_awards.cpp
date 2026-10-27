@@ -1,4 +1,4 @@
-// The game client's tick (0041CCD0, slot 14) and its award handling (0041CD80): timers count down,
+// The game client's tick (0041CCD0, slot 14) and its award handling: timers count down,
 // and received awards (+0x2608) are applied to the local player. See net_classes.h and
 // docs/notes/network.md.
 
@@ -35,7 +35,7 @@ using GivenItems = mfc::CTypedPtrList<CItem>;
 constexpr int kClassQuestItem = 0x14;
 
 CWorldServer* World() { return TheServerWorld(); }
-// 00594180: player 0 of the world (the local player), or null.
+// Player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
 
 void InitList(GivenItems& list, void* vtable) {
@@ -50,7 +50,7 @@ void InitList(GivenItems& list, void* vtable) {
 
 } // namespace
 
-// 0041CD80: applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
+// Applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
 // to player 0 and empties the list. Kind 0: experience (005911C0 with the value's bits); 1: money
 // (the party's, the value truncated), then an empty item list given; 2: the item named by the text,
 // given; 3: the first given item whose IsSameAs (slot 14) with the named item returns 0 is taken
@@ -89,7 +89,7 @@ void ClientSession::ApplyAwards() {
             items.tail = added;
             player->GiveItems(&items, 0);
             items.vtable = gameslots::ItemObjectListClass::Vtable();
-            mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();   // 00429E50
+            mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();
             break;
         }
         case 3: {
@@ -127,12 +127,12 @@ void ClientSession::ApplyAwards() {
 }
 EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 
-// 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
+// The client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
 // mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
-    self->ClientBase::Tick(dt);   // 00442AD0
+    self->ClientBase::Tick(dt);
     TimedNode* sentinel = self->timers_.End();
     TimedNode* node = sentinel->next;
     if (node != sentinel) {

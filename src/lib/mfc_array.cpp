@@ -1,5 +1,5 @@
 // The game's CArray<T> instantiations (mfc_array.h) registered at their own addresses: the ones something still
-// reaches by game.exe's address (tools/registration_readers.py, C20c); our code calls the others directly.
+// reaches by game.exe's address (tools/registration_readers.py); our code calls the others directly.
 // Instantiations with the same element policy share one body; the
 // groups were found by comparing the instructions of every instantiation our code forwards to
 // (addresses masked), the element sizes and helpers read from each.
@@ -10,8 +10,8 @@
 
 namespace mfc::impl {
 
-// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
-// loop, 007085AF; here so the vectors build, which links no registration file, has it for StringArrayClass).
+// CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
+// loop, here so the vectors build, which links no registration file, has it for StringArrayClass).
 template <>
 void Strings::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {

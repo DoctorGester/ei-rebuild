@@ -30,13 +30,13 @@ struct DecalTexCoord;   // ground_decal.h
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
 // The world matrix (+0x54) of a 3D object or a figure part as the draws build it (0051B7E0,
-// 0051CE60; map_object_draw.cpp): the rotation of `orientation` (004D9AA0), `position` as column 3,
+// Map_object_draw.cpp): the rotation of `orientation`, `position` as column 3,
 // the last row (0, 0, 0, 1).
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out);
 
 // The parts of a figure drawn with one material (0x14 bytes; a part set's group).
 struct PartGroup {
-    // 0051AAA0. Every part released, the array's block freed. Returns 1.
+    // Every part released, the array's block freed. Returns 1.
     int ReleaseParts();
 
     CMaterial* material;                    // +0x00 counted
@@ -47,7 +47,7 @@ static_assert(sizeof(PartGroup) == 0x14);
 // A part set of a 3D object's client half (0x14 bytes): a texture and the groups of parts drawn
 // with it, one per material.
 struct TextureParts {
-    // 0051A370. The destructor: every group's parts and material released, the group deleted; the
+    // The destructor: every group's parts and material released, the group deleted; the
     // array freed. The texture is only forgotten (the half's `textures` holds its reference).
     void Destruct();
 
@@ -69,11 +69,11 @@ public:
     // 0051AD90 (deleting: 0051AD70): Destroy, the names, the wounds material and texture and the
     // shadow texture released, the arrays' blocks freed.
     ~CObject3DClientSpecific() override;
-    // 0051AEC0 (slot 2). The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
+    // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
     // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
     // Returns 1.
     int Create() override;
-    // 0051AF70 (slot 3). The shadow and wounds textures and the wounds material dropped, both part
+    // The shadow and wounds textures and the wounds material dropped, both part
     // sets destroyed and deleted, every texture and material released and the arrays emptied; no
     // object, touch time and flags_ 0.
     void Destroy() override;
@@ -85,7 +85,7 @@ public:
     int DrawPartsShadow(void* context) override { return DrawShadow(static_cast<CSceneRenderer*>(context)); }
     // Slot 23: PartRectsMeet below.
     int PartsIntersectRect(const long* rect) override { return PartRectsMeet(reinterpret_cast<const RECT*>(rect)); }
-    // 0051CE60. Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
+    // Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
     // are on for its kind (0079BD0C > 0 and the per-kind switch) and the object is shown: unless
     // the shadow is still valid, sums the lights reaching the object into a direction (tilted
     // to at least 20 degrees above the ground), renders the figure's parts from there into the
@@ -97,7 +97,7 @@ public:
 
     // 0051B7E0 (map_object_draw.cpp). Draws the object (`context` as above; `dirty` receives the screen rectangle the
     // parts flagged 0x40 covered, or null): the object's state is updated (its slot 26) and its
-    // animation (0050D450), the lights of 007AF748 within their range + 10 are collected, the
+    // animation, the lights of 007AF748 within their range + 10 are collected, the
     // object's matrix (and its extra scale +0xF0) pushed, and every part of the two part sets
     // (+0x20 / +0x24, the first with the texture +0xDC) within sqrt(1e9) drawn through the
     // context's slot 13 with those lights. A figure whose parts are all static (part flags 0x10)
@@ -112,7 +112,7 @@ public:
 
     // unit_client_animation.cpp (A-U2). The pulse of an invisible or stunned unit: the clock
     // (+0xE8) moves on by `frames`, its phase fmod(clock, 30) folded at 15 gives 0.2..0.7.
-    // 0051CC20: every drawn part takes it as its alpha. 0051CCD0: every drawn part takes the tint
+    // Every drawn part takes it as its alpha. 0051CCD0: every drawn part takes the tint
     // (pulse, 0, 0) and flags_ 0x10.
     void InvisiblePulse(float frames);
     void StunnedPulse(float frames);
@@ -125,9 +125,9 @@ public:
     // are taken off and released (the material deleted at its last reference).
     void HideWounds();
     // 0051C3D0 (RET 4; unit_client_wounds.cpp, A-U10). Shows the wounds texture `name` (kind 6): 0
-    // without a first part set (+0x20). The texture is found (00692D30) or made (00691D00) on first
+    // without a first part set (+0x20). The texture is found or made on first
     // use (none: FatalError with the object's class name and id). Unless its .mmp extra block
-    // (006928C0) is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8
+    // is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8
     // cleared, 006922A0); a failed load drops the texture and the material and returns 0. Without
     // a material, a new one (blended 5 / 6, the renderer helper's preset 4) gets two stages: the
     // first part set's texture, then the wounds texture. Returns 1.
@@ -154,54 +154,54 @@ public:
     // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
     // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead).
     void ClearWoundsMaterial();
-    // 0051B050 (slot 13, RET 4). `part` joins the group of its material (piece +0x158) in the set
+    // `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
     int OnPartAdded(CFigureMesh* part) override;
-    // 0051B210 (slot 14, RET 4). The part named `name` (slot 16) leaves its group and is released.
+    // The part named `name` (slot 16) leaves its group and is released.
     // Returns it, or null when there is none or no group holds it.
     CFigureMesh* RemoveFromPartSets(const char* name) override;
-    // 0051B160 (slot 15, RET 4). `part` leaves its group and is released: 1, or 0 when no group
+    // `part` leaves its group and is released: 1, or 0 when no group
     // holds it.
     int OnPartRemoved(CFigureMesh* part) override;
-    // 0051B2F0 (RET 4). The texture of kind `kind`: one of `textures`, else a new one of the client
-    // world (005655D0) for a new part set, the first for the skin kinds (1, 3, 4, 6-9, 0xB,
+    // The texture of kind `kind`: one of `textures`, else a new one of the client
+    // world for a new part set, the first for the skin kinds (1, 3, 4, 6-9, 0xB,
     // 0xD-0x10), the second for any other; an existing set only has its texture's kind changed (the
     // first with a debug log line). Objects of type 0x35 flag the texture 0x2000.
     CTexture* FindOrAddTexture(int kind);
-    // 0051B470 (RET 8). The material of kind `material` in the set whose texture has kind
-    // `texture`: its group's, else a new one of the client world (005655F0) in a new group. Null
+    // The material of kind `material` in the set whose texture has kind
+    // `texture`: its group's, else a new one of the client world in a new group. Null
     // when no set has the texture.
     CMaterial* FindOrAddMaterial(int texture, int material);
-    // 0051B5B0 (RET 8). The same lookup without adding: the material or null.
+    // The same lookup without adding: the material or null.
     CMaterial* FindMaterial(int texture, int material);
-    // 0051B630 (RET 4). `texture` replaces the one of its kind in `textures` (referenced; the old
+    // `texture` replaces the one of its kind in `textures` (referenced; the old
     // one released) and in the part set of that kind. Returns the old texture, or null.
     CTexture* ReplaceTexture(CTexture* texture);
-    // 0051C250 (RET 8). The skin names (+0xE0 / +0xE4) become `first` / `second`; for each that is
+    // The skin names (+0xE0 / +0xE4) become `first` / `second`; for each that is
     // not null or "none" (any case) the part set's texture is replaced by the texture manager's of
-    // that kind and name (00692D30) or else renamed and loaded (006922A0). Returns 1.
+    // that kind and name or else renamed and loaded. Returns 1.
     int SetSkins(const char* first, const char* second);
-    // 0051CB30 (slot 21). Every material takes the world material manager's colours for its kind
+    // Every material takes the world material manager's colours for its kind
     // (0068EAF0; the cursor walks them), then SetSkins with the names kept (the second only when it
     // is not "none").
     void ApplyMaterials() override;
-    // 0051C9F0 (RET 4). With `lit` every material's emissive colour is pushed on its stack and set
+    // With `lit` every material's emissive colour is pushed on its stack and set
     // to white (alpha kept); without, each takes back the colour last pushed (if any).
     void SetMaterialsLit(int lit);
-    // 0051C9E0 (slot 26, RET 4): SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing (EmptySlot25,
+    // SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing (EmptySlot25,
     // registered at its address).
     void SetLit(int lit) override;
     void Unused25(int) override {}
     void EmptySlot25(int);
     // object3d_client_shadow_state.cpp (A-U12).
-    // 0051E200. Whether shadows are drawn for the object's kind: 0079BD0C above 0 and the switch of
+    // Whether shadows are drawn for the object's kind: 0079BD0C above 0 and the switch of
     // its class (units 0079BD14, class 0x52 0079BD1C, others 0079BD18). All of EAX; with shadows
     // off only AL is cleared (the original's XOR AL, AL on the setting's value).
     std::uint32_t ShadowsShown();
-    // 0051E280. Drops the shadow: its geometry, texture, bounds and sphere.
+    // Drops the shadow: its geometry, texture, bounds and sphere.
     void ClearShadow();
-    // 0051E300. Whether the shadow can be seen: shadows are on for the kind and the half is
+    // Whether the shadow can be seen: shadows are on for the kind and the half is
     // flagged 0x20 or its bounds, moved to the object for the test, are not outside the view (the
     // scene pipeline's ClipTest, 004F16A0, gives 2 for outside).
     bool ShadowInView();
@@ -253,7 +253,7 @@ static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof
 // Whether the game shows `object`'s shadow (0051CE60's tests: shadows on for its kind, the object
 // shown and not invisible) and, when it does, how strongly it casts in the new renderer's shadow map
 // (*strength: 1, a unit as far as it has faded in). Reads only; the shadow draw and the casters
-// outside the view (R20, world_client_shadow_casters.cpp) share it.
+// outside the view (world_client_shadow_casters.cpp) share it.
 bool ShadowCastStrength(CObject3D* object, float* strength);
 
 // The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes; game.exe's vtable

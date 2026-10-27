@@ -30,27 +30,27 @@ void __stdcall ConstructDirectDrawDrivers() { g_directDrawDrivers->Construct(); 
 void __stdcall ConstructDeferredUnits() { g_deferredUnits->Construct(); }
 
 namespace {
-void __cdecl ConstructProtectionChecksList() {   // 00455E30
+void __cdecl ConstructProtectionChecksList() {
     app::ConstructProtectionChecks();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455F00));
 }
-void __cdecl DestroyProtectionChecks() {   // 00455F00
+void __cdecl DestroyProtectionChecks() {
     stlp::ListAbi<std::uint8_t>::Destruct(&g_protectionChecks.Get());
 }
-void __cdecl ConstructDriversList() {   // 004ED520
+void __cdecl ConstructDriversList() {
     ConstructDirectDrawDrivers();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x004ED5F0));
 }
-void __cdecl DestroyDrivers() {   // 004ED5F0
+void __cdecl DestroyDrivers() {
     if (g_driversDestroyed & 1) return;
     g_driversDestroyed = static_cast<std::uint8_t>(g_driversDestroyed | 1);
     stlp::ListAbi<DirectDrawDriver>::Destruct(&g_directDrawDrivers.Get());
 }
-void __cdecl ConstructDeferredUnitsList() {   // 0056A3F0
+void __cdecl ConstructDeferredUnitsList() {
     ConstructDeferredUnits();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0056A4C0));
 }
-void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }   // 0056A4C0
+void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
 } // namespace
 
 } // namespace static_lists
@@ -64,7 +64,7 @@ EI_REPLACE(0x004ED5F0, static_lists::DestroyDrivers);
 EI_REPLACE(0x0056A3F0, static_lists::ConstructDeferredUnitsList);
 EI_REPLACE(0x0056A4C0, static_lists::DestroyDeferredUnits);
 
-// ~list() of the lists only exit functions destroy (S3c): every node's element destroyed and the
+// ~list() of the lists only exit functions destroy: every node's element destroyed and the
 // node returned to the pool, then the sentinel. 004584E0: the copy protection's check list 0079BC2C
 // (bytes; the exit function 00455F00). 004F0520: the DirectDraw driver list 007AEE64 (each driver's
 // description, then its name; the guarded exit function 004ED5F0).

@@ -1,5 +1,5 @@
 // CWorldServer's own slots 2 and 3: Setup (0058AE10, Create) and Teardown (0058B020, Destroy).
-// WinMain calls both on the global server (007AFF60): Setup at start-up, Teardown at exit. See
+// WinMain calls both on the global server: Setup at start-up, Teardown at exit. See
 // world.h and docs/notes/world.md.
 #include "player_messages.h"
 #include "world.h"

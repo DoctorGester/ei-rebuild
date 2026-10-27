@@ -33,7 +33,7 @@ namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
 // weapon's type; number: the number in "armor<nn>") and the unit prototypes (hair, -1 none; skin).
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
-constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed on to 00517240
+constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed
 
 constexpr int kLayerSkin = 0x32;
 constexpr int kLayerArmour = 0x3005;
@@ -61,9 +61,9 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-// 005AA5F0. Figure manager: the model named `name`.
-// 00516A80. 3D object: its figure part named `name`, or null.
-// 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
+// Figure manager: the model named `name`.
+// 3D object: its figure part named `name`, or null.
+// SkinLayerArray::SetSize (the 12-byte path records' instantiation).
 void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
@@ -124,7 +124,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 EI_REWRITTEN(0x005381B0, CUnitClientSpecific::ArmourPutOn);
 
 namespace {
-// The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
+// The figure parts collects: an array in 32-byte aligned storage (the block kept at
 // data[-1]), as SkinRequest's layers.
 using PartArray = FigurePartArray;
 
@@ -159,7 +159,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             part = str::Format("hr.%.2d", hair);
         }
         PartArray parts{nullptr, 0, 0, 0};
-        unit->CollectPartsByPrefix(part.c_str(), &parts);   // 00516B50
+        unit->CollectPartsByPrefix(part.c_str(), &parts);
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part.c_str(), parts.data[0]->GetName()) != 0) {
@@ -223,7 +223,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
 }
 EI_REWRITTEN(0x00535590, CUnitClientSpecific::ShowWeapon);
 
-// --- The weapon in hand and the bow's arrow during animations (A-U) ------------------------------
+// --- The weapon in hand and the bow's arrow during animations ------------------------------
 
 void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
@@ -455,7 +455,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         auto* request = new (storage) SkinRequest{{}, {}, 0};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        request->layers.SetSize(bytes);   // the aligned CArray SetSize, inlined in the original
+        request->layers.SetSize(bytes);   // the aligned CArray SetSize
         std::memcpy(request->layers.data, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(

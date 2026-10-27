@@ -21,7 +21,7 @@ class CWorld;
 
 class CManagerContext : public CEngineObject {
 public:
-    int Create() override;   // 0055E930: 1
+    int Create() override;   // 1
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (0055EB40 returns this)
     virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's manager48_ (the client's Segment ticks its objects)

@@ -1,6 +1,6 @@
 // The global map's (CGlobalMap, ui_camp.h) places: the titles and positions of its allod, zones
 // and quests from the texts and map.txt, the zone selection's marker colours and the weather. The
-// map's Create (0062D350, ui_global_map.cpp) calls them through their addresses. See
+// map's Create (ui_global_map.cpp) calls them through their addresses. See
 // docs/notes/ui.md ("Camp, global map, hero screens").
 #include "global_map_clouds.h"
 #include "model.h"
@@ -24,14 +24,14 @@
 
 namespace {
 
-constexpr const char* kAllodPrefix = "allod ";     // 00794200
-constexpr const char* kZonePrefix = "zone ";       // 007941F8
-constexpr const char* kQuestPrefix = "quest ";     // 00790790
-constexpr const char* kMapText = "map.txt";        // 007856A0
-constexpr const char* kZoneEntry = "#zone %s";     // 007941EC
-constexpr const char* kPositionLine = "#position"; // 007941E0
-constexpr const char* kQuestEntry = "#quest %s";   // 007941D4
-constexpr const char* kMissingNumber = "0";        // 007856B8
+constexpr const char* kAllodPrefix = "allod ";
+constexpr const char* kZonePrefix = "zone ";
+constexpr const char* kQuestPrefix = "quest ";
+constexpr const char* kMapText = "map.txt";
+constexpr const char* kZoneEntry = "#zone %s";
+constexpr const char* kPositionLine = "#position";
+constexpr const char* kQuestEntry = "#quest %s";
+constexpr const char* kMissingNumber = "0";
 
 // The text `prefix` + `name` (empty when there is none), constructed into `out`.
 mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {
@@ -61,7 +61,7 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 
 } // namespace
 
-// --- 00631110 / 00631030 / 00630F50: titles ----------------------------------------------------
+// --- titles --------------------------------------------------------------------------------------
 
 mfc::CString* CGlobalMap::AllodTitle(mfc::CString* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
 EI_REWRITTEN(0x00631110, CGlobalMap::AllodTitle);
@@ -72,7 +72,7 @@ EI_REWRITTEN(0x00631030, CGlobalMap::ZoneTitle);
 mfc::CString* CGlobalMap::QuestTitle(mfc::CString* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
 EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 
-// --- 00630E00 / 00630CC0: positions -------------------------------------------------------------
+// --- positions -----------------------------------------------------------------------------------
 
 bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
     CTextManager* texts = TheTextManager();
@@ -107,7 +107,7 @@ Vector3* CGlobalMap::QuestPosition(Vector3* out, const char* quest) {
 }
 EI_REWRITTEN(0x00630CC0, CGlobalMap::QuestPosition);
 
-// --- 00630860: the selected zone -----------------------------------------------------------------
+// --- the selected zone ---------------------------------------------------------------------------
 
 void CGlobalMap::SelectZone(int index, bool isLink) {
     int zone = -1;
@@ -140,7 +140,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 }
 EI_REWRITTEN(0x00630860, CGlobalMap::SelectZone);
 
-// --- 00630670: the pick picture ------------------------------------------------------------------
+// --- the pick picture ----------------------------------------------------------------------------
 
 // Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
 // layers and the rest) shown or hidden.
@@ -178,7 +178,7 @@ void CGlobalMap::RefreshSelection() {
 }
 EI_REWRITTEN(0x00630670, CGlobalMap::RefreshSelection);
 
-// --- 0062EE90: the weather -----------------------------------------------------------------------
+// --- the weather ---------------------------------------------------------------------------------
 
 void CGlobalMap::SetWeather() {
     int index = weatherIndex_;

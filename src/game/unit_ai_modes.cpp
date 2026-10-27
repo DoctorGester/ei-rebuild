@@ -1,4 +1,4 @@
-// Unit AI modes (005D0000-005DC000): the simple virtual slots of Guard, Patrol, Sentry, Follow,
+// Unit AI modes: the simple virtual slots of Guard, Patrol, Sentry, Follow,
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
 #include "combat.h"
@@ -30,11 +30,11 @@
 namespace {
 constexpr int kPriority = 50;
 constexpr int kNoPriority = -1000;
-constexpr float kZero = 0.0f;                                           // 0073B858
-// 0073CCB0 (a double, 0.4 / 2^32) and 0073CCA8 (0.8f): the new alertness decay.
+constexpr float kZero = 0.0f;
+// (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
-// Diplomacy: one mask of allied sides per side (007C2BC4).
+// Diplomacy: one mask of allied sides per side.
 const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
 
@@ -67,13 +67,13 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
 
 
 constexpr float kMoveTime = 1000000.0f;                                 // 0x49742400
-constexpr float kNearX = 35.0f;                                         // 0073FEF8
-constexpr float kNearY = 80.0f;                                         // 0073FEF4
-constexpr float kHalf = 0.5f;                                           // 0073B86C
+constexpr float kNearX = 35.0f;
+constexpr float kNearY = 80.0f;
+constexpr float kHalf = 0.5f;
 constexpr float kNoWander = -1.0f;                                      // 0xBF800000
 constexpr float kStandRadius = 5.0f;                                    // 0x40A00000
-constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // 0073BAD4 (0.2)
-constexpr float kCloseSq = 25.0f;                                       // 0073E124
+constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // (0.2)
+constexpr float kCloseSq = 25.0f;
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
 constexpr int kRemarkIdle = 1;
 
@@ -118,13 +118,13 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built by
-// 004C96A0, destroyed at exit by 005D2570 (through 004C96F0).
+// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on first use and
+// destroyed at exit.
 static_assert(sizeof(AIObjectList) == 0x1C);
 constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
 AIObjectList& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
-void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }   // 005D2570
+void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }
 
 } // namespace
 
@@ -234,7 +234,7 @@ void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
-    // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
+    // "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
@@ -328,7 +328,7 @@ void SentryMode::Execute(AIBrain* brain) {
     std::memcpy(&order.point, &point, sizeof(Vector3));
     bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
-    // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
+    // the wander radii of a far and a near look-around.
     float wanderRadius = farLook ? GameLogicSettings().guardStayTime : GameLogicSettings().sentryStayTime;
     brain->PlanLooks(&order, &none, wanderRadius, farLook);
     StartMove(brain, &order);
@@ -676,7 +676,6 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        // (The original inlines the walk, its GetNext 005D9830.)
         PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
         if (leaderMode && leaderMode->state == kStateCommand) return;
         UpdateCombat(brain);

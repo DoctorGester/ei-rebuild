@@ -82,7 +82,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     const double dx = static_cast<double>(target[0]) - position[0];
     const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
     const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
-    // FILD steps; FDIVR 1.0f (0073B84C), rounded to float.
+    // FILD steps; FDIVR 1.0f, rounded to float.
     const float inverse = static_cast<float>(static_cast<double>(1.0f /*0073B84C*/) / light->steps);
     light->step.x = static_cast<float>(dx * inverse);
     light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
@@ -121,7 +121,7 @@ void CScript::DeleteArea(int id) {
         ScriptArea* areas = areas_.data;
         if (areas[i].id != id) continue;
         int after = areas_.size - i - 1;
-        gamearrays::DestroyArea(&areas[i]);   // 004BCF10: the parts freed
+        gamearrays::DestroyArea(&areas[i]);   // the parts freed
         if (after) {
             areas = areas_.data;
             std::memmove(&areas[i], &areas[i + 1], after * kAreaSize);
@@ -326,8 +326,8 @@ void __cdecl ConstructScriptQuestObjectives() {   // 004B17C0 (the constructor 0
     mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
     libcrt::AtExit(DestroyScriptQuestObjectives);
 }
-void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }   // 004B17B0
-void __cdecl ConstructScriptQuestName() {                               // 004B1790
+void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
+void __cdecl ConstructScriptQuestName() {
     g_scriptQuestName.Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004B17B0));
 }

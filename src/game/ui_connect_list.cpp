@@ -1,7 +1,7 @@
-// The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla 0061D780): the
+// The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla): the
 // servers' rows, the new game's controls and the selected entry's details, drawn on the screen's
-// first surface. Rebirth patches it twice and both are reproduced behind their flags: WideScreen (W2: the
-// line under the titles scaled without the margin) and ExtendedServerName (W2a: wider columns, the
+// first surface. Rebirth patches it twice and both are reproduced behind their flags: WideScreen (the
+// line under the titles scaled without the margin) and ExtendedServerName (wider columns, the
 // servers' names and the new game's row drawn shortened with an ellipsis, the selected server's name
 // wrapped); the screen's other members call it through its address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
@@ -48,8 +48,8 @@ constexpr int kTipUnlisted = 0x9EA4, kTipPassword = 0x9EA5;
 constexpr int kNewGameType = 4;
 constexpr int kGameTypes = 4;
 
-// ExtendedServerName (addon's replacements of the draw calls at 0061DC7F, 0061DC9E, 0061E009 and the
-// constants at 0061D9FC, 0061DB23, 0061DBEF, 0061DD40): vanilla / extended.
+// ExtendedServerName (the addon's replacement of the draw calls'
+// constants): vanilla / extended.
 struct Layout {
     int rowRight, lineRight, rowLeftPing;
     float selectionX;
@@ -145,7 +145,7 @@ void CMpConnectScreen::DrawListVanilla() {
     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
-    // WideScreen (0061DB0E / 0061DB3E: XOR ECX,ECX): without the margin.
+    // WideScreen: without the margin.
     interface_->CallScalePointToScreenNoMargin(&from);
     interface_->CallScalePointToScreenNoMargin(&to);
     dc->MoveTo(from.x, from.y);

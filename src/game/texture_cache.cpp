@@ -41,7 +41,7 @@ void __cdecl DeleteComposedTextures() {
         more = find.FindNext();
         BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());   // 006E6722, the path released after
         if (!deleted) {
-            const std::string name = find.GetFileName().GetString();   // 006E684B
+            const std::string name = find.GetFileName().GetString();
             game::DebugLog(CantDeleteText(), name.c_str(), gameapi::GetLastError());
         }
     } while (more);

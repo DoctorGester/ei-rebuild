@@ -1,6 +1,6 @@
-// The battle HUD panels' state displays: the unit panel's bars and numbers (006477E0, 00647B70),
-// the movement panel's flag button (00649810) and the top panel's pages and layout (0064A320,
-// 00649E20). See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
+// The battle HUD panels' state displays: the unit panel's bars and numbers,
+// the movement panel's flag button and the top panel's pages and layout.
+// See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
 // lists").
 #include "ui.h"
 
@@ -27,15 +27,15 @@
 
 namespace {
 
-constexpr const char* kSoundClick = "buttons\\battle\\click.wav";   // 00794460
+constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-constexpr char kNewLine[] = {'\n', '\0'};                           // 00784340
+constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // The panel's scene object `index` (the HUD's are interface sprites).
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
+// Text into the panel's first surface (Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
     window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }
@@ -67,7 +67,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 }
 
 
-// The local view, whose SetUnitFlag438 (0066AF30) sets a unit's +0x438 flag and sends it to the server.
+// The local view, whose SetUnitFlag438 sets a unit's +0x438 flag and sends it to the server.
 CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 } // namespace
@@ -98,7 +98,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
 EI_REWRITTEN(0x006477E0, CHudUnitPanel::ShowHealth);
 
 void CHudUnitPanel::ShowParts(CUnit* unit) {
-    // Label positions of the six parts (00742434 / 0074244C).
+    // Label positions of the six parts.
     static constexpr int kLabelX[6] = {50, 50, 95, 5, 95, 5};
     static constexpr int kLabelY[6] = {35, 105, 70, 70, 140, 140};
     static const char* const kPartNames[4] = {"skull", "torso", "leg", "arm"};
@@ -157,7 +157,7 @@ void CHudMovePanel::ToggleFlag() {
 }
 EI_REWRITTEN(0x00649810, CHudMovePanel::ToggleFlag);
 
-// --- Unit panel: the effects on the unit (00646B90) -----------------------------------------------
+// --- Unit panel: the effects on the unit -----------------------------------------------
 
 void CHudUnitPanel::ShowEffects(CUnit* unit) {
     constexpr int kPlaces = 6;
@@ -235,7 +235,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
 }
 EI_REWRITTEN(0x00646B90, CHudUnitPanel::ShowEffects);
 
-// --- Unit panel: the body part buttons (006481D0) -------------------------------------------------
+// --- Unit panel: the body part buttons -------------------------------------------------
 
 void CHudUnitPanel::ShowBodyPart() {
     constexpr int kFirstPartButton = 3;
@@ -323,7 +323,7 @@ void CHudTopPanel::ShowItems() {
 EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
-    // Place (005E6FA0) is Rebirth-patched: through its address.
+    // Place is Rebirth-patched: through its address.
     float offset = static_cast<float>(offset_);
     static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(400.0f, 57.5f - offset, 20.0f);
     static_cast<CUiMesh*>(sceneObjects_.data[1])->PlaceBody(400.0f, 10.0f - offset, 20.0f);

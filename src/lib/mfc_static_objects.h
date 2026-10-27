@@ -1,10 +1,10 @@
 #pragma once
 
-// MFC's globals that only game.exe's static initialisers and their exit functions reach (C18u): the generated
+// MFC's globals that only game.exe's static initialisers and their exit functions reach: the generated
 // static_init.cpp / static_exit.cpp name them (tools/gen_static_init.py's GENERATED_NAMES) where the original's code
 // has their addresses. Nothing else of ours reads them: the code that does in game.exe (AfxThrowUserException,
-// AfxGetThreadState's locals, _AfxCbtFilterHook) is not ported, the image's MFC state is ImageModuleState and
-// thread_local handle maps (mfc_state.h). docs/notes/standalone.md, "Named data (C18)".
+// AfxGetThreadState's locals, _AfxCbtFilterHook) is not in our source, the image's MFC state is ImageModuleState and
+// thread_local handle maps (mfc_state.h). docs/notes/standalone.md, "Named data".
 
 #include <cstdint>
 
@@ -17,8 +17,8 @@
 namespace mfc::impl {
 
 // The once-only guards of the exit functions that destroy MFC's static fixed allocators and windows: bit 1 CTempDC's
-// allocator (007C8D18), bit 2 CTempGdiObject's (007C8CF0); CTempWnd's (007CA940); CTempMenu's (007CAAA8); bits 1, 2,
-// 4, 8 the static windows wndTop, wndBottom, wndTopMost, wndNoTopMost (007CAA28, 007CA9E8, 007CA9A8, 007CA968).
+// allocator, bit 2 CTempGdiObject's; CTempWnd's; CTempMenu's; bits 1, 2,
+// 4, 8 the static windows wndTop, wndBottom, wndTopMost, wndNoTopMost.
 extern std::uint8_t g_gdiAllocExitGuards;
 extern std::uint8_t g_tempWndAllocExitGuard;
 extern std::uint8_t g_tempMenuAllocExitGuard;
@@ -36,7 +36,7 @@ extern CThreadLocalObject g_ctl3dThreadLocal;
 extern CProcessLocalObject g_ctl3dStateLocal;
 extern CProcessLocalObject g_winStateLocal;
 
-// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook, 00704BE6:
+// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook:
 // no game window is a CWnd).
 extern BOOL g_afxDbcs;
 

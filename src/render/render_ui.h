@@ -5,11 +5,9 @@
 // frames, lines, pixels, glyph runs) and by the surface pixel code (the screen copy, greying), read
 // back into the surface's memory for the readers, and blitted onto the frame as SurfaceBlit draws a
 // surface. No GDI here.
-//
 // A canvas belongs to a surface holder (the CDXSurface of a CUiSurface) and holds what the surface's
 // memory would: every channel cut to the format's bits and widened again (render_textures.cpp's
 // Expand), so 16-bit surfaces quantise as GDI does and the colour key compares exactly.
-//
 // Commands are queued in call order and drawn on the GPU before the frame's next pass (the hoisting:
 // drawing before a canvas's first blit of the frame lands before that blit). Drawing into a canvas
 // already blitted in the frame and not drawn yet first draws the frame so far (a pass split), so the
@@ -68,10 +66,10 @@ void Pixel(const void* holder, int x, int y, Colour colour);
 // underlines fully covered; clipped to the layout's clip rectangle. Over black this is
 // text::ComposeAgainstBlack. The font (and its atlas) must outlive the canvas's queued commands.
 void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, Colour colour);
-// 005FD3D0's screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
+// The screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
 // pixel (CopyFrameTo's rule), quantised to the format.
 void CopyFrame(const void* holder, const Rect& source);
-// 005FE440's greying, on the format's bits.
+// The greying, on the format's bits.
 void Greyscale(const void* holder);
 
 // The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false

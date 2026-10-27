@@ -1,6 +1,6 @@
 // CPlex and the game's CList<T> / CMap<K, V> instantiations whose elements need nothing of the game
 // (mfc_list.h); registered at their own addresses where something still reaches them by game.exe's address
-// (tools/registration_readers.py, C20c), our code calls them directly. The groups
+// (tools/registration_readers.py), our code calls them directly. The groups
 // were found by comparing the instructions of every instantiation our code forwards to (addresses
 // masked); each node size is the one its NewNode passes to CPlex::Create.
 #include "mfc_list.h"
@@ -33,7 +33,7 @@ EI_REWRITTEN(0x006FE90F, FreePlexChain);
 
 // ---- Pointer lists (CPtrList / CTypedPtrList: 4-byte elements, zeroed, nothing destroyed) ---------
 
-// The constructor (block size given; 00545750 blocks of 0x80).
+// The constructor (block size given; blocks of 0x80).
 EI_REWRITTEN(0x004C96A0, ListHeader<PtrListClass>::Construct);
 EI_REWRITTEN(0x004C98C0, ListHeader<ItemListClass>::Construct);
 EI_REWRITTEN(0x00556D10, ListHeader<CellListClass>::Construct);

@@ -44,7 +44,7 @@ CMappedResource::CMappedResource() {
 }
 
 CMappedResource::~CMappedResource() {
-    // Rebirth's ResOverride (006714A2): addon forgets the archive first.
+    // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (fd_ >= 0) {
@@ -66,10 +66,10 @@ CMappedResource::~CMappedResource() {
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
-void CMappedResource::Flush() {}   // 4: 00671390 (short_functions.cpp)
+void CMappedResource::Flush() {}   // 4: (short_functions.cpp)
 
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
-    // Rebirth's ResOverride (00671738): addon loads the mod's archives on the first open and records
+    // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
@@ -129,7 +129,7 @@ void CMappedResource::CloseResource() {
     header_ = ResHeader{};
 }
 
-// Rebirth's ResOverride sends every call of 00671B40 and the vtable slot 007432F4 to addon.
+// Rebirth's ResOverride sends every call to addon.
 void* CMappedResource::GetFile(const char* name, std::uint32_t* size) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);

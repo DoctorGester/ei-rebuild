@@ -1,11 +1,11 @@
-// The renderer's ribbon draw (00501D90, virtual slot 16 of the renderer at 007AF060, vtable
-// 0073D93C) with its helpers 00502A20 (indexed draw of TL vertices), 00502AC0 (one ribbon cross
-// section) and 00502B90 (the direction at a point). A polyline of world points is projected (slot 13
-// of the pipeline's transform object, or slot 8 with clipping flags), and every point becomes a
+// The renderer's ribbon draw
+// with its helpers (indexed draw of TL vertices, one ribbon cross
+// section, the direction at a point). A polyline of world points is projected (by the transform
+// object's point projection, with clipping flags when asked), and every point becomes a
 // pair of screen vertices offset across the line's screen direction by width * rhw * 15, with the
 // texture's u running along the ribbon and v across it; consecutive pairs make two triangles. The
 // ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
-// function-local statics (007AF000..007AF05C). See docs/notes/models.md ("Renderer").
+// function-local statics. See docs/notes/models.md ("Renderer").
 #include "clip.h"
 #include "device.h"
 #include "model.h"
@@ -31,30 +31,30 @@ namespace {
 
 using devicebuffers::ProjectedVertex;
 
-// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls 004ECB70,
-// 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
+// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls,
+// for the element sizes, which AlignedArray::Allocate matches).
 constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
 lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
-void __cdecl FreeStrip() { g_strip.FreeData(); }   // 00502C00
+void __cdecl FreeStrip() { g_strip.FreeData(); }
 constinit lib::AlignedArray<TLVertex> g_ribbon = /*007AF010*/ {};
 lib::AlignedArray<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
-void __cdecl FreeRibbon() { g_ribbon.FreeData(); }   // 00502C20
+void __cdecl FreeRibbon() { g_ribbon.FreeData(); }
 constinit lib::AlignedArray<ProjectedVertex> g_projected = /*007AF020*/ {};
 lib::AlignedArray<ProjectedVertex>& Projected() { return g_projected; }
-void __cdecl FreeProjected() { g_projected.FreeData(); }   // 00502C40
+void __cdecl FreeProjected() { g_projected.FreeData(); }
 constinit lib::AlignedArray<std::uint16_t> g_indices = /*007AF030*/ {};
 lib::AlignedArray<std::uint16_t>& Indices() { return g_indices; }
-void __cdecl FreeIndices() { g_indices.FreeData(); }   // 00502C60
+void __cdecl FreeIndices() { g_indices.FreeData(); }
 constinit lib::AlignedArray<std::uint8_t> g_clipped = /*007AF040*/ {};
 lib::AlignedArray<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
-void __cdecl FreeClipped() { g_clipped.FreeData(); }   // 00502C80
+void __cdecl FreeClipped() { g_clipped.FreeData(); }
 std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
 float g_currentU = /*007AF05C*/ {};
 
-// The index array's SetAtGrow (00452FC0) and Add (00504E50).
+// The index array's SetAtGrow and Add.
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
@@ -66,11 +66,11 @@ void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* o
 }
 
 void EnsureStatics() {
-    EnsureStatic(1, Clipped(), FreeClipped);     // 00502C80
-    EnsureStatic(2, Indices(), FreeIndices);     // 00502C60
-    EnsureStatic(4, Projected(), FreeProjected); // 00502C40
-    EnsureStatic(8, Ribbon(), FreeRibbon);       // 00502C20
-    EnsureStatic(0x10, Strip(), FreeStrip);      // 00502C00
+    EnsureStatic(1, Clipped(), FreeClipped);
+    EnsureStatic(2, Indices(), FreeIndices);
+    EnsureStatic(4, Projected(), FreeProjected);
+    EnsureStatic(8, Ribbon(), FreeRibbon);
+    EnsureStatic(0x10, Strip(), FreeStrip);
 }
 
 // --- Device calls --------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- Cross sections ------------------------------------------------------------------------------
 
-// The screen width of a ribbon per unit of width * rhw (0073C518).
+// The screen width of a ribbon per unit of width * rhw.
 constexpr float kWidthScale = 15.0f;
 
 // The texture coordinates of a new cross-section vertex: the current u and `v` (copied as bits).
@@ -90,7 +90,7 @@ void SetUv(TLVertex* vertex, const float& v) {
     std::memcpy(&vertex->v, &v, sizeof(float));
 }
 
-// The first cross section of a ribbon, inlined by the original at the line's first point: the
+// The first cross section of a ribbon, at the line's first point: the
 // direction (dx, dy) to the next point rounded to floats, k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 moved by (k*dy, -k*dx) as in EmitSection, vertex 2 by
 // (-(float)(k*dy), k*dx) (its x offset rounded first).
@@ -134,10 +134,10 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
-// 00502AC0. The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
+// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
 // by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
-// `*count`. __fastcall: src in ECX, direction in EDX.
+// `*count`.
 void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
@@ -153,11 +153,11 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
     SetUv(bottom, g_bottomV);
 }
 
-// --- 00502B90 / 00502AC0 / 00502A20 ---------------------------------------------------------------
+// --- ---------------------------------------------------------------
 
-// 00502B90. The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
+// The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
-// the previous one), else (1, 0). __fastcall: out in ECX, index in EDX. Returns out.
+// the previous one), else (1, 0). Returns out.
 float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
     const auto* points = static_cast<const lib::AlignedArray<TLVertex>*>(array);
     const TLVertex* v = points->data;
@@ -176,8 +176,8 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
 EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
-// 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
-// of TL vertices under the device's critical section (007AEE78); with distanceFog_ set the
+// Draws an indexed triangle list
+// of TL vertices under the device's critical section; with distanceFog_ set the
 // transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
@@ -198,7 +198,7 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
 }
 EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 
-// 00501D90 (thiscall, RET 0x18). `points` is an array {data, count} of world points (16 bytes each:
+// `points` is an array {data, count} of world points (16 bytes each:
 // x, y, z and one more); `width` scales the ribbon's screen width; `mode` 0 projects, 1 projects and
 // clips (points flagged by the transform object are skipped), 2 only sizes the buffers; u runs over
 // `uLength` along the ribbon (0.875 at the start when it is 0), v from `vStart` over `vSize`.

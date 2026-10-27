@@ -20,14 +20,14 @@
 namespace {
 const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
-// 0078F730: the script the trap runs when set off (x, y, z).
+// The script the trap runs when set off (x, y, z).
 const char* const kTrapScript = "Worldscript( CreateParticleSource( 100, %g, %g, %g, 1, \"Mushroom\"))";
 constexpr int kClassTrap = 0x55;
 constexpr int kClassMagicTrap = 0x61;
 constexpr std::uint32_t kFlag40 = 0x40;
 constexpr std::uint32_t kArmed = 0x80000;
 constexpr std::uint32_t kArmedFresh = 0x100000;
-constexpr float kTriggerRadius = 1.0f;   // 0073E174
+constexpr float kTriggerRadius = 1.0f;
 constexpr int kBlockSize = 10;
 } // namespace
 

@@ -31,17 +31,17 @@ inline BitStream* g_readSnapshot = /*007A9794*/ {nullptr};
 inline BitStream* g_received = /*007A9798*/ {nullptr};
 
 // Writers of one channel (__fastcall, the first two arguments in ECX / EDX).
-// 0047E740. WriteDelta for a single channel. Returns nothing.
+// WriteDelta for a single channel. Returns nothing.
 void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out);
-// 0047E5E0. Bits and changed words of `data` against `old` (no snapshot stream).
+// Bits and changed words of `data` against `old` (no snapshot stream).
 void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out);
-// 0047E6D0. All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
+// All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 
-// 0047EAE0. BitStream::GetBit as a function: 0 or 1 in EAX.
+// BitStream::GetBit as a function: 0 or 1 in EAX.
 int __fastcall GetBit(BitStream* reader);
-// 0047EB20. Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
+// Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true; the result is in AL only).
 bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
 
@@ -79,31 +79,31 @@ struct DeltaField {
     // 0047DC20 / 0047FAF0. Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.
     void EndField();
-    // 0047DCA0. Writes `size` bytes on both channels against their snapshots.
+    // Writes `size` bytes on both channels against their snapshots.
     void WriteDelta(const void* data, std::uint32_t size);
-    // 0047E000. Reads `size` bytes written by WriteDelta (also stores them in snapshot[1]).
+    // Reads `size` bytes written by WriteDelta (also stores them in snapshot[1]).
     void ReadDelta(void* data, std::uint32_t size);
-    // 0047E140. Writes the bytes to both outputs as they are.
+    // Writes the bytes to both outputs as they are.
     void WriteBoth(const void* data, std::uint32_t size);
-    // 0047E2D0. Writes the string with its terminator to both outputs.
+    // Writes the string with its terminator to both outputs.
     void WriteStringBoth(const char* text);
-    // 0047E170. Reads raw bytes from the reader; returns what the stream's Read returns.
+    // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // 0047E310. Reads a CString from the reader into `cstring` (raw storage it constructs, as
+    // Reads a CString from the reader into `cstring` (raw storage it constructs, as
     // CStream::ReadString); returns it.
     mfc::CString* ReadString(void* cstring);
     // 0047E340 (RET 8; A-E1). Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);
-    // 0047E190 (RET 4). BitStream::WriteStream of `from` into both outputs (inlined twice; the
+    // BitStream::WriteStream of `from` into both outputs (inlined twice; the
     // pending bits stored before each).
     void WriteStreamBoth(BitStream* from);
-    // 0047E240 (RET 4). BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
+    // BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
     int ReadStream(BitStream* to);
-    // 0047E3A0. Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
+    // Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
     // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float and FISTP.
     void WritePosition(const Vector3* position);
-    // 0047E930. Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
+    // Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
     // A changed value is also stored in snapshot[1].
     void ReadPosition(Vector3* position);
     // 0047EBF0 / 0047EE00. The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
@@ -144,16 +144,16 @@ struct DeltaState {
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 
-    // 0047FB70. Empties every field's four streams and the two headers; mode idle.
+    // Empties every field's four streams and the two headers; mode idle.
     void Reset();
-    // 0050FA30: the fields' SetSize(count, -1) (new fields constructed, dropped ones destroyed;
+    // The fields' SetSize(count, -1) (new fields constructed, dropped ones destroyed;
     // recordarrays::DeltaFields).
     void SetFieldCount(int count);
-    // 0047FBF0. Prepares field `index` for the current mode; null when it is not in mask_.
+    // Prepares field `index` for the current mode; null when it is not in mask_.
     DeltaField* BeginField(int index);
-    // 0047FD50. Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.
+    // Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.
     void SetWriteMode(int deltaOnly);
-    // 0047FD80. Reading: takes the field mask from `reader`; returns `second`.
+    // Reading: takes the field mask from `reader`; returns `second`.
     int BeginRead(int second, BitStream* reader);
     // 0047FE90 (A-E1). Ends a write or a read. After a delta write the written fields join
     // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel

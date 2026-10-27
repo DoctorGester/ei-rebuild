@@ -40,13 +40,13 @@ void CountDown(List& list, float dt) {
 
 } // namespace
 
-// 004182E0 (slot 14): the base layer's tick, then the timed entries of the finished trades and the
+// The base layer's tick, then the timed entries of the finished trades and the
 // awards count down by `dt` (as a float), and when the game is public the announcement timer does
 // too: when it runs out it is reset and, with a master server host set, the game is announced.
 // A timer that lands within rounding of zero may expire one tick apart from the original (x87
 // versus plain float maths).
 void ServerSession::Tick(double dt) {
-    ServerBase::Tick(dt);   // 00443590
+    ServerBase::Tick(dt);
     float step = static_cast<float>(dt);
     CountDown(finishedTrades_, step);
     CountDown(awards_, step);
@@ -61,7 +61,7 @@ void ServerSession::Tick(double dt) {
 }
 EI_REWRITTEN(0x004182E0, ServerSession::Tick);
 
-// 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
+// Whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;

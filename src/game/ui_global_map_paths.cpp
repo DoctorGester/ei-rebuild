@@ -1,6 +1,6 @@
-// The global map's way search (006312C0): from the current zone through the zones the player may
+// The global map's way search: from the current zone through the zones the player may
 // pass to the zone clicked (CGlobalMap::target_), recording per arrival exit of the target the
-// shortest summed "#passtime". The click (0062F950, Rebirth-patched) empties the results, sets
+// shortest summed "#passtime". The click (Rebirth-patched) empties the results, sets
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
@@ -30,7 +30,7 @@ namespace {
 
 using Arrivals = stlp::map<int, float>;
 
-constexpr const char* kZoneVariable = "z.%s";   // 00794148
+constexpr const char* kZoneVariable = "z.%s";
 
 // value_type of the arrivals map.
 struct ArrivalPair {
@@ -38,9 +38,9 @@ struct ArrivalPair {
     float time;
 };
 
-// 006316E0: insert(hint, value) of the arrivals map (lib_trees::Arrivals').
+// Insert(hint, value) of the arrivals map (lib_trees::Arrivals').
 
-// operator[] as the original inlines it: lower_bound (00631C80), and a new {exit, 0} entry
+// operator[]: lower_bound, and a new {exit, 0} entry
 // inserted there when the key is not in the map.
 float& Arrival(Arrivals& arrivals, int exit) {
     Arrivals::Node* at = arrivals.lower_bound(exit);
@@ -55,7 +55,7 @@ bool SameName(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
-// --- The click (0062F950) ---
+// --- The click ---
 
 const char* MoveSound() { return "buttons\\globalmap\\move.wav"; }
 const char* TransitSound() { return "buttons\\globalmap\\transit.wav"; }
@@ -160,7 +160,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = region - kFirstLinkRegion;
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
-        // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
+        // WideScreen takes the margin off its x (addon's code).
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;

@@ -1,4 +1,4 @@
-// The smooth option's multisampling (R12a; docs/notes/renderer.md section 11): render.cpp draws the
+// The smooth option's multisampling (docs/notes/renderer.md section 11): render.cpp draws the
 // world view's commands into a multisampled colour and depth target and resolves the colour into the
 // frame target at the end of each such pass; the interface draws into the frame target as without the
 // option. Here: the sample count the device gives and the two copies between the targets where the

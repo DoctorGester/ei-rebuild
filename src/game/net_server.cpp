@@ -15,7 +15,7 @@ namespace net {
 
 namespace {
 
-// 00421800: STLport string constructor with room for n bytes, library.
+// STLport string constructor with room for n bytes, library.
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
@@ -83,7 +83,7 @@ T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.p
 
 } // namespace
 
-// 00417EB0 (slot 13). What the connection being updated receives: the players and the variables,
+// What the connection being updated receives: the players and the variables,
 // its own binding (the binding whose connection it is; hosting when its player is the host), the
 // newer chat lines meant for everyone or for it (numbered after the player's first line), every
 // shared file with, for the one a request of this connection names, its chunks (priority 1), the

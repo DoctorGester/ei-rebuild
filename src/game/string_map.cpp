@@ -2,7 +2,7 @@
 // (slot 1), drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the
 // interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
-// constructor (00444740) runs from a static initialiser before the hooks are installed; a start-up
+// constructor runs from a static initialiser before the hooks are installed; a start-up
 // check compared what it built (verify_static_initialisers.cpp until S21d). See docs/notes/app.md.
 #include "debug_panel.h"
 
@@ -30,14 +30,14 @@ namespace {
 using Node = StringMap::Node;   // 0x28 bytes
 static_assert(sizeof(Node) == 0x28);
 
-// STLport (library): the map<string, string> instantiation's pair constructor (00445170), insert
-// with a hint (004450B0), pair destructor (00445040) and its scalar deleting destructor (004457F0),
+// STLport (library): the map<string, string> instantiation's pair constructor, insert
+// with a hint, pair destructor and its scalar deleting destructor,
 // as the map's element policy runs them (lib_trees::StringPairs registers them).
 using Pair = StringMap::Element;
 
 } // namespace
 
-// 004447E0 (slot 0): table[key] = value (a missing key is inserted at its lower bound with an
+// Table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void CDebugPanel::Set(const char* key, const char* value) {
     stlp::string k(key);
@@ -55,7 +55,7 @@ void CDebugPanel::Set(const char* key, const char* value) {
 }
 EI_REWRITTEN(0x004447E0, CDebugPanel::Set);
 
-// 004449A0 (slot 1): removes `key`.
+// Removes `key`.
 void CDebugPanel::Remove(const char* key) {
     StringMap& map = entries_;
     Node* it;
@@ -67,9 +67,9 @@ void CDebugPanel::Remove(const char* key) {
 }
 EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
-// 00444690: the destructor (at exit): every node destroyed and freed (the original inlines _M_erase's loop: the
+// The destructor (at exit): every node destroyed and freed (the original inlines _M_erase's loop: the
 // right subtree, the pair's deleting destructor with 0, the node back to the pool 004452D0), then the header pushed
-// on the 0x28-byte nodes' free list (0079B234) as the pool's deallocate does.
+// on the 0x28-byte nodes' free list as the pool's deallocate does.
 CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
 EI_REWRITTEN_SPECIAL(0x00444690, CDebugPanel::~CDebugPanel);
 
@@ -81,14 +81,14 @@ CDebugPanel::CDebugPanel() { entries_.Construct(); }
 EI_REWRITTEN_SPECIAL(0x00444740, CDebugPanel::CDebugPanel);
 
 // The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
-// function it registers (00444680); both ported on the name and registered at their addresses
+// function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
 static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
-void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }   // 00444680
-void __cdecl ConstructDebugPanel() {                           // 00444660
+void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }
+void __cdecl ConstructDebugPanel() {
     g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }
@@ -104,7 +104,7 @@ namespace {
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
 // surface's constructor and destructor body.
 
-// The panel's font face (007842C8).
+// The panel's font face.
 const char* FontFace() { return "Courier New"; }
 
 void DrawString(mfc::impl::CDC* dc, const stlp::string& s, RECT* rect) {
@@ -113,7 +113,7 @@ void DrawString(mfc::impl::CDC* dc, const stlp::string& s, RECT* rect) {
 
 } // namespace
 
-// 00444A70: binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
+// Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
 void CDebugPanel::Init(CInterface3D* ui) {
     ui_ = ui;
     surface_ = nullptr;
@@ -129,7 +129,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
 }
 EI_REWRITTEN(0x00444A70, CDebugPanel::Init);
 
-// 00444BD0: frees the panel surface and the font.
+// Frees the panel surface and the font.
 void CDebugPanel::Release() {
     if (CUiSurface* surface = surface_) {
         delete surface;
@@ -140,7 +140,7 @@ void CDebugPanel::Release() {
 }
 EI_REWRITTEN(0x00444BD0, CDebugPanel::Release);
 
-// 00444C10: the panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
+// The panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
 // screen; a shown panel is made again.
 void CDebugPanel::SetRect(const RECT* rect) {
     CInterface3D* ui = ui_;
@@ -167,7 +167,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
 }
 EI_REWRITTEN(0x00444C10, CDebugPanel::SetRect);
 
-// 00444CD0: redraws at most every 500 ms, then the panel surface's slot 0 (Blit).
+// Redraws at most every 500 ms, then the panel surface's slot 0 (Blit).
 void CDebugPanel::Tick() {
     DWORD now = gameapi::timeGetTime();
     if (now - lastDraw_ > 500) {
@@ -178,7 +178,7 @@ void CDebugPanel::Tick() {
 }
 EI_REWRITTEN(0x00444CD0, CDebugPanel::Tick);
 
-// 00444D00: clears the panel and draws each entry (the key in the left half, the value in the
+// Clears the panel and draws each entry (the key in the left half, the value in the
 // right half; a dark copy one pixel down and right first) until the next line would not fit.
 void CDebugPanel::Redraw() {
     CUiSurface* surface = surface_;
@@ -215,7 +215,7 @@ void CDebugPanel::Redraw() {
 }
 EI_REWRITTEN(0x00444D00, CDebugPanel::Redraw);
 
-// 00444F50: shows the panel (its surface made when missing, drawn at once) or hides it (the
+// Shows the panel (its surface made when missing, drawn at once) or hides it (the
 // surface freed).
 void CDebugPanel::Show(std::uint8_t show) {
     visible_ = show;

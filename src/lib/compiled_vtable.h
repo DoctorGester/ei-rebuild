@@ -1,6 +1,6 @@
 #pragma once
 
-// Compiled tags (C19; docs/notes/standalone.md, "Compiler-made vtables"): a class whose objects keep game.exe's
+// Compiled tags (docs/notes/standalone.md, "Compiler-made vtables"): a class whose objects keep game.exe's
 // layout with the vtable as a plain field (`void* vtable`) gets the compiler's table in place of game.exe's through
 // a tag, a C++ class declaring the same slots whose bodies call the class's functions. Its constructors and
 // destructors store `Tag::Vtable()`; the original's dispatch through the field reaches the tag's slots. The tag is
@@ -47,7 +47,7 @@ struct DeleteTarget<R (C::*)(Flags)> {
     using Type = C;
 };
 
-// A one-slot table whose slot 0 is the class's scalar deleting destructor (thiscall, the flags, RET 4: the
+// A one-slot table whose slot 0 is the class's scalar deleting destructor (the flags: the
 // destructor's body, the memory freed when bit 0 is set; returns the object): `Delete` is that member.
 template <typename Self, auto Delete>
 class CompiledDeleter : public CompiledTag<Self> {
@@ -58,9 +58,9 @@ public:
     }
 };
 
-// The body of a compiled table's slot whose game.exe body at `address` is not ported: the image never reaches it
+// The body of a compiled table's slot whose game.exe body at `address` is not in our source: the image never reaches it
 // (config/standalone_unreachable.csv lists the address with the reason: the class is never made, or never called
-// through that slot). Reached anyway, it is reported as missing code at `address`, as game.exe's table's slot was.
+// through that slot). Reached anyway, it is reported as missing code at `address`.
 [[noreturn]] __declspec(noinline) inline void UnportedSlot(std::uintptr_t address) {
     ReportNoCode(address, reinterpret_cast<std::uintptr_t>(_ReturnAddress()));
 }

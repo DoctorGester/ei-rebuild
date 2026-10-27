@@ -1,6 +1,5 @@
-// Terrain sectors: loading (006C13A0), building (006C1C00), water levels (006C30E0) and the small
+// Terrain sectors: loading, building, water levels and the small
 // lookups around them. See terrain_sector.h for the layout.
-//
 // Floating point: values the original keeps on the FPU stack are `double` here; every store the
 // original makes to a float is a static_cast<float>. Constants it multiplies at run time are read
 // from the exe (rule 9: Rebirth may patch data).
@@ -48,7 +47,7 @@ constexpr int kVertices = 33 * 33;      // per layer
 
 
 // Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
-// (006C4F90 / 006C4F60) and the tile lists' (006C5050 / 006C5010) instantiations.
+// and the tile lists' instantiations.
 constexpr auto ConstructFlagArrays = mfc::impl::ConstructElementsAt<mfc::impl::ByteArrays>;
 constexpr auto DestroyFlagArrays = mfc::impl::DestructElementsAt<mfc::impl::ByteArrays>;
 constexpr auto ConstructTileLists = mfc::impl::ConstructElementsAt<mfc::impl::AlignedArrays>;
@@ -57,7 +56,7 @@ constexpr auto DestroyTileLists = mfc::impl::DestructElementsAt<mfc::impl::Align
 } // namespace
 
 // The sector's CArray element policies. The records start zeroed (006C4F10, inlined) and release
-// their lights when dropped (006C4EE0); the flag arrays and tile lists go through the original
+// their lights when dropped; the flag arrays and tile lists go through the original
 // helpers, which match the loops the original inlines in their SetSize(0) (the CByteArray
 // destructor through its vtable, 006C5120 per tile list).
 void RecordElements::Construct(SectorVertex* records, int count) {
@@ -428,7 +427,7 @@ void SectorData::Build() {
         tiles[q].SetSize(pageCount);
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
-            tileFlags[q].data[k].SetSize(c, -1);   // CByteArray::SetSize (006FF64A)
+            tileFlags[q].data[k].SetSize(c, -1);   // CByteArray::SetSize
             tiles[q].data[k].SetSize(c * 9);
         }
     }
@@ -449,7 +448,7 @@ void SectorData::Build() {
             int k = 0;
             while (k < waterMaterials.size && waterMaterials.data[k] != id) ++k;
             if (k == waterMaterials.size)
-                waterMaterials.SetAtGrow(waterMaterials.size, static_cast<std::uint8_t>(id));   // CByteArray (006FF7DC)
+                waterMaterials.SetAtGrow(waterMaterials.size, static_cast<std::uint8_t>(id));   // CByteArray
         }
         if (hasWater) {
             mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
@@ -460,7 +459,7 @@ void SectorData::Build() {
             ApplyWaterLevels();
         }
     }
-    render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU (R16c)
+    render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU
 }
 
 void SectorData::ApplyWaterLevels() {
@@ -563,31 +562,31 @@ constinit lib::AlignedArray<ProjectionVertex> g_projectionOutput = /*007C88E8*/ 
 ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
 ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 
-// The exit functions their static initialisers (006BFA00, 006BFA60) register: each frees its buffer, once (a guard
+// The exit functions their static initialisers register: each frees its buffer, once (a guard
 // bit each in g_freed; bit 4 is the outcodes' destructor's, 006BFAE0).
 std::uint8_t g_freed = /*007C88C9*/ {};
 std::uint8_t& Freed() { return g_freed; }
-void __cdecl FreeProjectionInput() {   // 006BFA30
+void __cdecl FreeProjectionInput() {
     if (Freed() & 1) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 1);
     g_projectionInput.FreeData();
 }
-void __cdecl FreeProjectionOutput() {   // 006BFA90
+void __cdecl FreeProjectionOutput() {
     if (Freed() & 2) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 2);
     g_projectionOutput.FreeData();
 }
-// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser 006BFAC0 (006FF5EA),
-// destroyed at exit, once, by 006BFAE0 (006FF61D).
+// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser 006BFAC0,
+// destroyed at exit, once, by 006BFAE0.
 static_assert(sizeof(FlagArray) == 0x14);
 constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
 FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
-void __cdecl DestroyProjectionOutcodes() {   // 006BFAE0
+void __cdecl DestroyProjectionOutcodes() {
     if (Freed() & 4) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 4);
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
 }
-void __cdecl ConstructProjectionOutcodes() {   // 006BFAC0
+void __cdecl ConstructProjectionOutcodes() {
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
     libcrt::AtExit(DestroyProjectionOutcodes);
 }
@@ -606,11 +605,11 @@ SectorData* SectorData::Construct() {
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
     waterMaterials.Construct(mfc::impl::ByteArrayClass::Vtable());
     vertices.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    records.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SectorVertexArrayClass::Vtable()));
+    records.Construct(recordarrays::SectorVertexArrayClass::Vtable());
     tileTextures.Construct();
     waterTiles.Construct();
     for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
-    for (auto& lists : tiles) lists.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::TerrainAlignedArrayClass::Vtable()));
+    for (auto& lists : tiles) lists.Construct(recordarrays::TerrainAlignedArrayClass::Vtable());
     animated.Construct();
     classCounts.Construct();
     detail = 0;
@@ -656,7 +655,7 @@ void SectorData::DestructBody() {
     records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
     vertices.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     vertices.FreeData();
-    waterMaterials.vtable = mfc::impl::ByteArrayClass::Vtable();   // ~CByteArray (006FF61D)
+    waterMaterials.vtable = mfc::impl::ByteArrayClass::Vtable();   // ~CByteArray
     waterMaterials.FreeData();
 }
 EI_REWRITTEN(0x006BF8A0, SectorData::DestructBody);

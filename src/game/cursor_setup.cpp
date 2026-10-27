@@ -1,4 +1,4 @@
-// The mouse cursor's set-up (005DAEA0) and reset (005DAE70): the cursor object (007C7BD8) is
+// The mouse cursor's set-up and reset: the cursor object is
 // initialised and given its 25 shapes, the "sm_" set when the small cursors are on. The cursor
 // object itself (005E5xxx-005E6xxx) is not rewritten yet.
 #include "ei/hook.h"
@@ -9,8 +9,8 @@
 #include <cstdint>
 
 namespace {
-// The cursor object (007C7BD8) and its methods (thiscall).
-// The device the cursor is drawn on (007AF080).
+// The cursor object and its methods (thiscall).
+// The device the cursor is drawn on.
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
 void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
     SetUpCursors(modeTwo, context, smallCursors, flags);
@@ -55,7 +55,7 @@ const CursorShape kShapes[] = {
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags) {
     TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,
-                                                reinterpret_cast<CDirectInputMouse*>(context), smallCursors);   // 005E60B0
+                                                reinterpret_cast<CDirectInputMouse*>(context), smallCursors);
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
         TheCursor()->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
@@ -64,7 +64,7 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
 
 // 005DAE70 (fastcall, RET 8). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
-    TheCursor()->Shutdown();   // 005E62E0: the drawing thread stopped, the shapes released
+    TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }
 

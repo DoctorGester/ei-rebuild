@@ -1,4 +1,4 @@
-// The resource databases' resets (S13a): the compiler-generated code that destroys a database and
+// The resource databases' resets: the compiler-generated code that destroys a database and
 // constructs it again in place, which the resource switch 0057CB50 runs before it loads the
 // databases of another resource folder (the skill database's is SkillDatabase::Reset, unit_db.cpp).
 // Each table's members go last to first: the name index (hash_map::Destroy: every chain from its

@@ -51,14 +51,14 @@ class CUnit;   // unit.h
 struct PartyUnitRecord;   // unit.h
 class CTextManager;
 
-// The server world's (007AFF60).
-// 00578560 (RET 4). Player 0's connection, when there is one, sends "constr.current" = `value`.
+// The server world's.
+// Player 0's connection, when there is one, sends "constr.current" = `value`.
 void __stdcall GameSetConstructionVariable(std::uint32_t value);
-// 005786A0 (RET 8). CWorldServer::SetWeather.
+// CWorldServer::SetWeather.
 void __stdcall GameSetWeather(int weather, float strength);
-// 005786E0. The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)), in ST0.
+// The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)), in ST0.
 double GameServerTimeOfDay();
-// 00578700 (RET 4). The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)
+// The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)
 // unless it is negative or a NaN.
 void __stdcall GamePassTime(float offset);
 // 00578730 (RET 8; the client's state block 00567AB0). CWorldServer::EnsureZone.
@@ -74,31 +74,31 @@ void __stdcall GameSetUnitHeight(int id, float z);
 std::uint8_t GameServerPaused();
 void __stdcall GameSetServerPaused(int paused);
 
-// 005787D0. Recording stops: CameraCloseFile, the client world's flag 0x10 off.
+// Recording stops: CameraCloseFile, the client world's flag 0x10 off.
 void GameStopCameraRecording();
-// 005787F0 (RET 4). The client world's flag 0x10 on, then CameraOpenFile(name); its result.
+// The client world's flag 0x10 on, then CameraOpenFile(name); its result.
 int __stdcall GameStartCameraRecording(const char* name);
 // 00578820 (RET 8; the script's camera command, the briefing). Loads the path file (0040ECD0 with
 // `flag`); when that works the camera plays it (flag 0x20) from now: the time offset is the client
 // time (tick + fraction) less the first key's, the key index 0. Returns 1 when loaded.
 int __stdcall GamePlayCameraPath(const char* name, int flag);
-// 00578880 (RET 4). Loads the path file and jumps to its first key (PlaybackStart).
+// Loads the path file and jumps to its first key (PlaybackStart).
 int __stdcall GameShowCameraPath(const char* name);
-// 005788B0. Whether a path is playing (flag 0x20, not 0 / 1).
+// Whether a path is playing (flag 0x20, not 0 / 1).
 std::uint32_t GameCameraPathPlaying();
 
-// The client world's (007AF5B8).
-// 00578910. CWorldClient::Render (its result).
+// The client world's.
+// CWorldClient::Render (its result).
 int GameRender();
-// 00578920 (RET 4). CSoundManager::StopAll(stopStream).
+// CSoundManager::StopAll(stopStream).
 void __stdcall GameStopSounds(int stopStream);
 // 00578940 / 00578950. The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
 void GameStopAmbience();
 void GameStartAmbience();
-// 00578960 (RET 4). The sound manager is asked for the music stream `name` (null: the default
+// The sound manager is asked for the music stream `name` (null: the default
 // 0079BECC), mode 4; RequestStream's result.
 int __stdcall GamePlayMusic(const char* name);
-// 00578980 (RET 4). CWorld::FindUnit on the client world.
+// CWorld::FindUnit on the client world.
 CUnit* __stdcall GameFindClientUnit(int id);
 // 005789C0 (RET 8) / 005789E0 (RET 4). CWorldClient::CreatePartyUnits / RemoveUnitsOf.
 void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
@@ -108,19 +108,19 @@ void __stdcall GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records);
 int __stdcall GameFindExitAt(const float* point, int* index);
 int __stdcall GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit);
 const char* __stdcall GameExitTarget(int index);
-// 00578AC0 (RET 4). Leaves through exit `exit`: with a live client session the flow switches the
+// Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void __stdcall GameLeaveThroughExit(int exit);
 // 00578B00 (RET 4) / 00578B20. The interface's close-all flag (007C7D94, CInterface3D +0x44) set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
-// 00578B70 (RET 8). The local player's variables whose names start with `prefix`, into `out`.
+// The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
-// 00578BC0. CWorldClient::LocalView.
+// CWorldClient::LocalView.
 CPlayerClient* GameLocalView();
-// 00578D30 (RET 4). CWorldClient::SendFlag10 (its result).
+// CWorldClient::SendFlag10 (its result).
 int __stdcall GameSendFlag10(int value);
-// 00578D50. The client world's pause flag.
+// The client world's pause flag.
 std::uint8_t GameClientPaused();
-// 00578E20. The client world's text resources (+0x1D0).
+// The client world's text resources (+0x1D0).
 CTextManager* GameClientTexts();

@@ -26,8 +26,8 @@ namespace {
 
 // The records read through an archive, then each filed in the name index under its name (the
 // index's find_or_insert of {name, null}: 00613B70 quick items, 006A7870 loot, 0069E2A0 quest
-// items). The chunk serialisers' names cross over: SerializeLoot (006A7D20) reads the quest items,
-// SerializeQuestItems (006A7E10) the loot.
+// items). The chunk serialisers' names cross over: SerializeLoot reads the quest items,
+// SerializeQuestItems the loot.
 template <typename Record>
 void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int field) {
     ChunkArchive archive;
@@ -139,7 +139,7 @@ EI_REWRITTEN(0x006A73B0, itemdb::LootItemTable::Load);
 
 namespace {
 
-// The vectors' resize (00685730, 006858D0, 00684D60): recordvec::ResizeUntyped.
+// The vectors' resize: recordvec::ResizeUntyped.
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.

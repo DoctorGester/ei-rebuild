@@ -1,11 +1,9 @@
 // CParticleSource's per-frame tick (vtable slot 6) and the particle pool (00496A20-00498870).
 // Names are provisional.
-//
 // Each tick: copy the world's wind, follow the attachment (or the source's own position) and
 // derive the motion since the last tick with a basis (side, up) around it, run the element
 // callback on every element, the update callback on every particle (rebuilding the bounding box),
 // then emit new particles. The callbacks are __thiscall on the source (effects.h).
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
@@ -85,7 +83,7 @@ void RestorePrevious(Particle* p) {
 
 // --- Particle pool --------------------------------------------------------------------------------
 
-// 00498870. The head of the free list, or a fresh 0x64-byte particle when it is empty.
+// The head of the free list, or a fresh 0x64-byte particle when it is empty.
 Particle* CParticleManager::AcquireParticle() {
     if (freeParticles.count == 0) return gamecrt::operator_new_as<Particle>();
     mfc::CTypedPtrList<Particle>::Node* node = freeParticles.head;
@@ -98,13 +96,13 @@ Particle* CParticleManager::AcquireParticle() {
 }
 EI_REWRITTEN(0x00498870, CParticleManager::AcquireParticle);
 
-// 004987C0. Appends the particle to the free list.
+// Appends the particle to the free list.
 void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
 EI_REWRITTEN(0x004987C0, CParticleManager::ReleaseParticle);
 
 // --- Source -------------------------------------------------------------------------------------
 
-// 00496A20. A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
+// A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.
 void CParticleSource::AddParticle(Particle* p) {
     p->dead = 0;
@@ -254,7 +252,7 @@ struct TickSteps {
 
 } // namespace
 
-// 00496EB0 (slot 6). Returns 1 while the source is still needed: a free source while it keeps
+// Returns 1 while the source is still needed: a free source while it keeps
 // alive (flag 4) or has particles, an attached one while it emits or has particles.
 int CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;

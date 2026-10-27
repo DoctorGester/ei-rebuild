@@ -103,7 +103,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
-            // 006FE795: CTime::Format.
+            // CTime::Format.
             const std::string date = (reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat)).GetString();
             surface->DrawTextIn(date.c_str(), &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }

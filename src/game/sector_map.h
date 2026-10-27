@@ -18,7 +18,6 @@ class CUnit;
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
 // A sector's one slot (game.exe's vtable 0073FADC) is its destructor.
-//
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
 struct SectorOccluder {
@@ -41,14 +40,14 @@ struct Sector {
     // 005BFE00 (the constructor's body). No free record, the records' storage freed, both lists
     // emptied (RemoveAll).
     void Clear();
-    // 005BFE70. A free record's index: the head of the free list, else the array grown by one
+    // A free record's index: the head of the free list, else the array grown by one
     // (SetSize; new records zeroed) and its last index.
     int NewOccluder();
-    // 005BFFD0 (RET 0x14). Unlinks the first record equal to (top, bottom, kind, transparency) from
+    // Unlinks the first record equal to (top, bottom, kind, transparency) from
     // the chain starting at `head` (its low 16 bits; negative: no chain) and puts it on the free
     // list. Returns the chain's head afterwards, sign-extended from 16 bits.
     int RemoveOccluder(int head, int bottom, int top, int kind, int transparency);
-    // 005C0060 (RET 4). Puts record `index` on the free list.
+    // Puts record `index` on the free list.
     void FreeOccluder(int index);
 
     mfc::CTypedPtrList<CMapObject> objects;      // +0x04 non-unit objects
@@ -62,7 +61,7 @@ static_assert(offsetof(Sector, occluders) == 0x40);
 
 // CArray<Sector>'s element functions: 0059DF90 (__stdcall, RET 8; sector_map.cpp) constructs
 // (zeroed, then each sector's constructor), the destructor destroys.
-void __stdcall ConstructSectors(Sector* sectors, int count);   // 0059DF90
+void __stdcall ConstructSectors(Sector* sectors, int count);
 struct SectorElements {
     static void Construct(Sector* sectors, int count);
     static void Destruct(Sector* sectors, int count) {
@@ -73,11 +72,11 @@ struct SectorElements {
 // The radii of the sector spiral (007C2FD8, filled by the static initialiser 005BF8F0): a complete
 // binary search tree in an array, root at index 1.
 struct RadiusTree {
-    // 005BF7D0 (RET 4). The slot of `radius` (in sectors): `depth` steps down the tree, right
+    // The slot of `radius` (in sectors): `depth` steps down the tree, right
     // where the radius is above the node's key, then the node index masked. The floats are
     // compared as integers, which orders non-negative values.
     int Find(float radius) const;
-    // 005BF5F0 (RET 8). The tree over `count` ascending values: the smallest depth (at least 1) with
+    // The tree over `count` ascending values: the smallest depth (at least 1) with
     // 2^depth >= count, the keys of every level filled from the values in order (past the last
     // value, the last one). The bottom level holds the values themselves.
     void Build(const float* values, int count);
@@ -94,8 +93,8 @@ struct SpiralOffset {
 };
 static_assert(sizeof(SpiralOffset) == 4);
 // The sector spiral's tables, built by the static initialiser 005BF8F0: the 441 offsets of a 21 x 21
-// square of sectors ordered by distance (007C2FF8), the number of offsets within each distinct
-// distance (007C2FC0) and the tree that finds a distance's place among them (007C2FD8).
+// square of sectors ordered by distance, the number of offsets within each distinct
+// distance and the tree that finds a distance's place among them.
 // Defined, built and destroyed in sector_spiral.cpp.
 extern lib::StaticObject<mfc::CArray<int>> g_spiralLengths;
 extern lib::StaticObject<RadiusTree> g_spiralRadii;
@@ -115,23 +114,23 @@ public:
     // destroyed (its destructor) and the array's storage freed.
     virtual ~CSectorMap();
 
-    // 005C0DF0. Registers `object` in the sector under its position and stamps its footprint.
+    // Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
     bool Add(CMapObject* object);
 
-    // 005C0BD0. Fills `result` (cleared first) with the units within `radius` of `position`,
+    // Fills `result` (cleared first) with the units within `radius` of `position`,
     // nearest sectors first; each match is inserted at the head of the list.
     void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
 
-    // 005C11D0. Moves `object` to `position`, re-stamping its footprint (restored on failure) and
+    // Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
     // first refuses a position with x or y below 0 (or NaN).
     bool Move(CMapObject* object, const Vector3* position);
 
-    // 005C0930. The unit list of sector (sx, sy), null outside the map.
+    // The unit list of sector (sx, sy), null outside the map.
     mfc::CTypedPtrList<CUnit>* UnitsAt(int sx, int sy);
 
-    // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
+    // Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CMapObject* object);
 
     // 005C06F0 (RET 0xC; called by CAIMap::Load). Sizes the map for a cell grid: width and

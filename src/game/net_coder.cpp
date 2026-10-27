@@ -116,7 +116,7 @@ EI_REWRITTEN(0x0041D930, BufferCursor::End);
 
 // --- Code tables ----------------------------------------------------------------------------------
 
-// 0042FAE0: the startup initialiser (from the .data list at 007830C0) of the code tables: for match
+// The startup initialiser (from the .data list at 007830C0) of the code tables: for match
 // lengths 1..0x22 the code and its bit count (g_lengthCodes / g_lengthBits, at length - 1), for distance
 // buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits). It runs
 // before the hooks are installed; the rewrite is for the standalone build.
@@ -428,5 +428,5 @@ EI_REWRITTEN_SPECIAL(0x0047D960, BufferView::~BufferView);
 EI_REWRITTEN_SPECIAL(0x004DA850, BufferView::~BufferView);
 EI_REWRITTEN_SPECIAL(0x0047D940, BufferView::~BufferView);
 
-// The base's deleting destructor (0047D910): nothing of its own.
+// The base's deleting destructor: nothing of its own.
 EI_REWRITTEN_SPECIAL(0x0047D910, GameBuffer::~GameBuffer);

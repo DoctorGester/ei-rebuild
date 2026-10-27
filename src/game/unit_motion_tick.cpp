@@ -131,7 +131,7 @@ void QueueNextAnimation(CUnitServer* c) {
     AnimationSteps* next = c->NextAnimation();
     Queue(c)->CopySteps(*next);
     QueueStart(c) = next->extra;
-    Queue(c)->Assign(*next);   // 005483C0
+    Queue(c)->Assign(*next);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();
@@ -147,7 +147,7 @@ void HitWhileTurning(CUnitServer* c) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
-            c->savedQueue.Assign(*Queue(c));   // 005483C0
+            c->savedQueue.Assign(*Queue(c));
             c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
@@ -176,7 +176,7 @@ void HitWhileMoving(CUnitServer* c) {
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.size; ++i) {
         AnimationStep step;
-        step = current.data[i];   // GetAt by value (00558920)
+        step = current.data[i];   // GetAt by value
         // The original passes the dwords at step + 1 / step + 0; AddEmote / AddStep keep their low
         // byte only (the variant / the animation).
         if (step.animation == 0xFF) {
@@ -318,7 +318,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
 
 // Running units of a player tire: the server object's mana (vitals +0x14) is their breath and drains
 // by the maximum (+0x18) times a factor per tick; out of breath they stop running (message 0x1D).
-// Then the tick's end (00548520).
+// Then the tick's end.
 void Exhaustion(CUnitServer* c) {
     CUnit* unit = UnitOf(c);
     if (unit->obstacle == 0) return;

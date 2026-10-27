@@ -15,7 +15,7 @@ namespace {
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
-// _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
+// _ftol of a float: FLD, then the game's _ftol (truncates).
 int FloatToInt(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
@@ -74,7 +74,7 @@ CFileRegistry* CFileRegistry::Construct() {
 EI_REWRITTEN(0x00694520, CFileRegistry::Construct);
 
 void CFileRegistry::Destroy() {
-    if (!attached_) file_.Close();   // 00675720
+    if (!attached_) file_.Close();
     attached_ = 0;
     data_ = nullptr;
     file_.Close();                   // 006756D0, the mapped file's destructor
@@ -219,7 +219,7 @@ EI_REWRITTEN(0x00694D20, CFileRegistry::GetString);
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        // EI_UTF8: the UTF-8 text is cut to the buffer at a character's end (U5; without it the bytes, the
+        // EI_UTF8: the UTF-8 text is cut to the buffer at a character's end (without it the bytes, the
         // asset's 16-bit length).
         const std::string string = text::FromAssetText(std::string_view(reinterpret_cast<const char*>(value + 2), U16(value)));
         int count;

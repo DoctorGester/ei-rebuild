@@ -1,4 +1,4 @@
-// The 3D library's figure meshes and their part loaders (004F2650-004FBD80); see link_figure.h.
+// The 3D library's figure meshes and their part loaders; see link_figure.h.
 #include "link_figure.h"
 
 #include "library_trees.h"
@@ -116,7 +116,7 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float 
 EI_REWRITTEN_SPECIAL(0x004F2C00, CLinkMesh::CLinkMesh);
 
 CLinkMesh::~CLinkMesh() {
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     ranges_.Destroy();
     indices_.FreeData();
     words_.FreeData();
@@ -133,7 +133,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
                         const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                         const std::uint16_t* indices, int indexCount) {
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     if (ranges_.find(*name) != ranges_.end()) return false;
 
     LinkPartRanges ranges{};
@@ -146,7 +146,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     std::memcpy(corners_.data + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     ranges.corners = {start, cornerCount};
 
-    // The original's out-of-line SetSize(n, -1) (00452EB0 / 0044FA90) for these two.
+    // The original's out-of-line SetSize(n, -1) for these two.
     ranges.words = {Append(words_, words, wordCount), wordCount};
     ranges.indices = {Append(indices_, indices, indexCount), indexCount};
 
@@ -276,7 +276,7 @@ bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* ve
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
     std::memcpy(vertices_.data + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
-    render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps (R16d)
+    render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps
     return true;
 }
 EI_REWRITTEN(0x004F3800, CLinkMesh::SetPartVertices);
@@ -334,9 +334,9 @@ EI_REWRITTEN(0x004F30D0, CLinkMesh::LoadPart);
 bool CLinkMesh::RemovePart(const stlp::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     LinkPartRanges removed = node->second;
-    ranges_.Erase(node);   // 004F4E40
+    ranges_.Erase(node);
 
     CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count);
     CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count);

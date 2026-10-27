@@ -50,7 +50,7 @@ EI_REWRITTEN(0x005575F0, OwnedRefs::Destruct<gameslots::OwnedRefListClass>);
 EI_REWRITTEN(0x0052CE20, ObjectRefs::FreeNode);
 EI_REWRITTEN(0x00599FA0, CountedEngineList::AddTailCounted);
 
-// ---- The script lists with the game's copy semantics (S7a) ----------------------------------------
+// ---- The script lists with the game's copy semantics ----------------------------------------
 
 namespace {
 

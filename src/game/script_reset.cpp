@@ -1,4 +1,4 @@
-// CScript reset (004BE6E0): empties a script before a zone's mission script is loaded (world
+// CScript reset: empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md.
 #include "game_arrays.h"
@@ -27,7 +27,7 @@ namespace {
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
 inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
-// The world (007AFF60): timed objects.
+// The world: timed objects.
 
 // CList::RemoveAll as the reset inlines it: each element destroyed in place, the list emptied
 // and its blocks freed.
@@ -109,7 +109,7 @@ void __fastcall ScriptReset(CScript* script) {
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
         lib::InPlace<ScriptDecl> block;
-        script->blocks_.PopHead(block.Get());   // 004C69B0
+        script->blocks_.PopHead(block.Get());
         ScriptDeclDestruct(block.Get());
     }
 }

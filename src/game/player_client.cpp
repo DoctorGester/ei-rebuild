@@ -83,8 +83,8 @@ struct TextBuffer {
 const char* QuestPrefix() { return "q."; }
 
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
-// (00567A60, 00567950); all RET 4 with the block.
-// 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
+// all RET 4 with the block.
+// The quest log passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
@@ -99,7 +99,7 @@ void RefreshQuestLog() {
     mfc::PlexFreeDataChain(none.blocks);
 }
 
-// 0056CE40 (RET 0xC): the client world shows a number over a unit (id, value, kind).
+// The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
@@ -337,7 +337,7 @@ constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0074317C (0.5)
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
-// 0079BE70: path markers are shown (written by 006524A0).
+// Path markers are shown (written by 006524A0).
 bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
@@ -401,7 +401,7 @@ int CPlayerClient::OnParty() {
         GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
         TheGameFlow()->ReturnLocalParty();
     }
-    saved.Destroy();   // inlined: every node deleted (004616A0), then the bucket vector (00609F50)
+    saved.Destroy();   // inlined: every node deleted, then the bucket vector
     return 1;
 }
 
@@ -501,7 +501,7 @@ constexpr std::uint32_t kFlagCow = 0x10000000;
 constexpr std::uint32_t kPartFlagFigure = 8;
 constexpr int kWeaponPike = 5;
 constexpr int kWispParticles = 0x204D;
-constexpr float kWispSize = 0.05f;          // 0073C52C
+constexpr float kWispSize = 0.05f;
 constexpr int kTextSize = 0x100;
 constexpr int kSessionClient = 3;
 
@@ -593,7 +593,7 @@ int CPlayerClient::OnNewObject() {
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
     object->ApplyBaseScale();
-    object->name2 = secondName.c_str();   // 0050F150
+    object->name2 = secondName.c_str();
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
@@ -631,7 +631,7 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;   // 00517910
+        for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;
         created->flags_ |= kFlagNoParts;
     }
     CObject3DClientSpecific* attached = figure->ClientSpecific();
@@ -768,9 +768,9 @@ CPlayerClient::~CPlayerClient() {
 EI_REWRITTEN_SPECIAL(0x00666FD0, CPlayerClient::~CPlayerClient);
 EI_REWRITTEN_SPECIAL(0x00666FB0, CPlayerClient::~CPlayerClient);
 
-const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }   // 00666F90
+const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
 EI_REWRITTEN(0x00666F90, CPlayerClient::GetClassName);
-int CPlayerClient::GetClassId() { return 0x3C; }   // 00666FA0
+int CPlayerClient::GetClassId() { return 0x3C; }
 EI_REWRITTEN(0x00666FA0, CPlayerClient::GetClassId);
 
 EI_REWRITTEN(0x006671A0, CoderState::Reset);
@@ -788,15 +788,15 @@ constexpr int kSessionKindSingle = 1;
 // clear 0066BA70.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // The set, empty at the start: built by the static initialiser 00668B40 in the list's order and destroyed by the exit
-// function it registers (00668B60); both ported on the name and registered at their addresses
+// function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void __cdecl ConstructPartyIdSet() {   // 00668B40
+void __cdecl ConstructPartyIdSet() {
     g_partyIdSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
 }
-void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }   // 00668B60
+void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
 
 int ReadDword(BitStream* in) {
     int value;

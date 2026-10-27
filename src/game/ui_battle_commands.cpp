@@ -1,6 +1,6 @@
-// The battle screen's party commands: the member toggle (006379E0), the attack on a unit
-// (00637190), the order on a dead unit (006373A0), a unit's speech event (006366F0, slot 32) and
-// the pending spell or quick item used on a unit or a point (00637500, 00637750).
+// The battle screen's party commands: the member toggle, the attack on a unit
+// the order on a dead unit, a unit's speech event and
+// the pending spell or quick item used on a unit or a point.
 // See docs/notes/ui.md ("Battle screen").
 #include "acks_db.h"
 #include "base_manager.h"
@@ -32,38 +32,26 @@ namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
 
-// A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
+// A random value times ~-2^-34 * 0.3: the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
 }
 
-// The orders' unit list: an MFC CArray<CUnit*> on the stack (vtable 007402AC, SetSize 005EBDB0,
-// RET 8); its data is freed with operator delete.
+// The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize);
+// its data is freed with operator delete.
 using OrderUnits = mfc::CArray<CUnit*>;
-// The toggle's CArray<DWORD> (vtable 0073C3D0; 00460500 SetAtGrow, RET 8).
 
-// The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
-// the selection, 00566030 (RET 4) controls a unit.
 inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
-// The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
-// CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
-// 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 
 
-// The local view's spell and quick item orders (thiscall, RET 0x10): on a unit 0066AC70 (spell) /
-// 0066AD40 (quick item) with (slot, member, target, ctrl), at a point 0066ACD0 / 0066ADD0 with
-// (slot, member, &point, 0).
-// CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
-// CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
-// The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
-// actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
+// A sprite's scale and opacity; the HUD's quick item slots.
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
 
 // After a spell or quick item was used: no pending action and no highlighted slot in the quick
-// item panel (0063CD20 per slot). The spell and action panels: 00637500 resets each sprite inline
-// (scale 1, colour opaque, the highlight index walking along), 00637750 calls their setters.
+// item panel (per slot). The spell and action panels: resets each sprite inline
+// (scale 1, colour opaque, the highlight index walking along), calls their setters.
 template <typename Column>
 void DropColumn(Column* panel, bool inlinePanels) {
     for (int i = 0; i < panel->count_; ++i) {
@@ -99,7 +87,7 @@ void NodPortrait(CBattleScreen* self, int i) {
 
 } // namespace
 
-// --- 006379E0: a party member toggled ----------------------------------------------------------
+// --- a party member toggled ----------------------------------------------------------------------
 
 void CBattleScreen::ToggleMember(int index) {
     auto* party = &party_;
@@ -159,7 +147,7 @@ void CBattleScreen::ToggleMember(int index) {
 }
 EI_REWRITTEN(0x006379E0, CBattleScreen::ToggleMember);
 
-// --- 00637190 / 006373A0: the selected members ordered at a unit -------------------------------
+// --- the selected members ordered at a unit ------------------------------------------------------
 
 void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
@@ -206,7 +194,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
 }
 EI_REWRITTEN(0x006373A0, CBattleScreen::OrderDeadUnit);
 
-// --- 00637500 / 00637750: the pending spell or quick item used ---------------------------------
+// --- the pending spell or quick item used --------------------------------------------------------
 
 void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     auto* party = &party_;
@@ -262,7 +250,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
 }
 EI_REWRITTEN(0x00637750, CBattleScreen::UseAtPoint);
 
-// --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
+// --- a unit's speech event -----------------------------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     CUnit* unit = UnitWithId(TheObjectManager(), id);

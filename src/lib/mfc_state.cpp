@@ -17,11 +17,11 @@ namespace {
 using GetVersionFn = DWORD(WINAPI*)();
 DWORD Version() { return ei::ImportAs<GetVersionFn>(ei::Imports().GetVersion)(); }
 
-// 0070D158 / 0070D188 as the original calls them: on afxData, no arguments.
+// as the original calls them: on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 
-// AfxWingdixTerm as the exe's atexit list holds it: its address (ours, through the registration).
+// AfxWingdixTerm as the exe's atexit list holds it: its address.
 using ExitFunction = void(__cdecl*)();
 ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0); }
 
@@ -31,7 +31,7 @@ namespace {
 // _afxThreadData: made on first use of a thread local, which the image never makes (null).
 constinit CThreadSlotData* g_afxThreadData = /*007C9084*/ {nullptr};
 // afxData, zero at the start: built by its static initialiser in the list's order and its menu-dot bitmap deleted by
-// the exit function it registers (both ported on the name below and registered at their addresses).
+// the exit function it registers.
 constinit lib::StaticObject<AuxData> g_afxData = /*007C90C8*/ {};
 } // namespace
 
@@ -62,12 +62,12 @@ void CProcessLocalObject::Destruct() {
 
 EI_REWRITTEN(0x0070C71F, CThreadSlotData::FreeSlot);
 EI_REWRITTEN(0x0070CA59, CThreadLocalObject::Destruct);
-EI_REPLACE_METHOD(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE> (007C90C0)
-EI_REPLACE_METHOD(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T> (007CAA84)
+EI_REPLACE_METHOD(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE>
+EI_REPLACE_METHOD(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T>
 EI_REWRITTEN(0x0070CAD2, CProcessLocalObject::Destruct);
-EI_REPLACE_METHOD(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE> (007C90BC)
-EI_REPLACE_METHOD(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T> (007CAA88)
-EI_REPLACE_METHOD(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T> (007CAA8C)
+EI_REPLACE_METHOD(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE>
+EI_REPLACE_METHOD(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
+EI_REPLACE_METHOD(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
 
 // ---- GDI objects and AUX_DATA ----------------------------------------------------------------------
 
@@ -149,8 +149,8 @@ EI_REWRITTEN(0x0070D158, UpdateAfxScrollMetricsMarked4);
 EI_REWRITTEN(0x0070D188, UpdateAfxScrollMetrics);
 
 namespace {
-void __cdecl DestroyAfxData() { g_afxData->Destruct(); }   // 0070D14E
-void __cdecl ConstructAfxData() {                          // 0070D12E
+void __cdecl DestroyAfxData() { g_afxData->Destruct(); }
+void __cdecl ConstructAfxData() {
     g_afxData->Construct();
     libcrt::AtExit(DestroyAfxData);
 }
@@ -163,7 +163,7 @@ EI_REPLACE(0x0070D14E, DestroyAfxData);
 
 namespace mfc::impl {
 
-// ---- Module state, runtime class list, global locks (S3f) ----------------------------------------
+// ---- Module state, runtime class list, global locks ----------------------------------------
 
 void CSimpleList::AddHead(void* element) {
     *reinterpret_cast<void**>(static_cast<char*>(element) + nextOffset) = head;
@@ -241,7 +241,7 @@ constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
-// The original keeps atexit's answer in _afxWingdixTerm (007C8D44), which nothing reads.
+// The original keeps atexit's answer in _afxWingdixTerm, which nothing reads.
 void __cdecl AfxWingdixTermInit() { libcrt::AtExit(WingdixTermAt()); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);

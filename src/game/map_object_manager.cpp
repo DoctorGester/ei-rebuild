@@ -125,7 +125,7 @@ EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 int CMapObjectManager::GiveDefaults(CMapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the slots'
     // shares and factors, fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not
-    // what the stack held: a determinism fix (SV7b3). The original's were CWorldServer::CreateObject's
+    // what the stack held: a determinism fix. The original's were CWorldServer::CreateObject's
     // earlier callees' leftovers, heap addresses among them, and gave the main menu's unmoco2 (the
     // one unit added without a prototype) hit points that followed the heap; the harness zeroes them
     // in the original too (tests/verify/harness_leftovers.h).

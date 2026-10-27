@@ -1,5 +1,4 @@
-// The titles window's frame and close (0062BD80, 0062BD00) and its script lines' destructor
-// (0062BCB0). The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
+// The titles window's frame and close and its script lines' destructor. The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
 #include "app.h"
 #include "app_helpers.h"
@@ -21,25 +20,25 @@
 
 namespace {
 
-constexpr const char* kOutroSuffix = "fout";    // 00794044
+constexpr const char* kOutroSuffix = "fout";
 constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
-// 00455E20: the movie flag (00784752; 1: movies shown at their own size). __cdecl, AL.
-// CBinkVideo's frame step (005DBD80, RET 4: AL whether the movie still plays; rewritten in
-// bink_video.cpp) and close (005DBF70, plain RET).
+// The movie flag (1: movies shown at their own size).
+// CBinkVideo's frame step (whether the movie still plays;
+// bink_video.cpp) and close.
 
 
 } // namespace
 
-// --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
+// --- a window above the titles closed ------------------------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
-// --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
+// --- the scrolling surface's load (ui_scrolling_surface.cpp), through its address ----------------
 
-// --- 0062BCB0: a script line's destructor ---------------------------------------------------------
+// --- a script line's destructor ------------------------------------------------------------------
 
 void TitleLine::Destroy() {
     style.~CString();
@@ -47,7 +46,7 @@ void TitleLine::Destroy() {
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
-// --- 0062BD80: the frame -------------------------------------------------------------------------
+// --- the frame -----------------------------------------------------------------------------------
 
 BOOL CCreditsScreen::Draw(int pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
@@ -87,7 +86,7 @@ BOOL CCreditsScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
-// --- 0062BD00: the close ---------------------------------------------------------------------------
+// --- the close -----------------------------------------------------------------------------------
 
 void CCreditsScreen::OnClose() {
     lines_.ClearWith([](TitleLine* line) { line->Destroy(); });

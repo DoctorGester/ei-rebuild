@@ -1,5 +1,5 @@
-// The client world's light by the time of day (UpdateLighting, 00566360) and the zone exit
-// markers' colour (UpdateExitMarkers, 00567680). See world.h and docs/notes/world.md.
+// The client world's light by the time of day (UpdateLighting) and the zone exit
+// markers' colour (UpdateExitMarkers). See world.h and docs/notes/world.md.
 #include "party.h"
 #include "world.h"
 #include "world_data.h"
@@ -24,31 +24,31 @@
 
 namespace {
 
-constexpr double kHoursPerDay = 24.0;           // 0073D108
-constexpr float kAmbientFromSun = 0.8f;          // 0073CCA8: a black ambient entry takes 0.8 x the sunlight
+constexpr double kHoursPerDay = 24.0;
+constexpr float kAmbientFromSun = 0.8f;          // a black ambient entry takes 0.8 x the sunlight
 constexpr int kHours = 24;
 // The fog start: the day's value from 6 to 18, the night's before 2 and from 22, linear between.
-constexpr float kDawnStart = 2.0f, kDayStart = 6.0f;      // 0073F3E8, 0073F3DC
-constexpr float kDayEnd = 18.0f, kNightStart = 22.0f;     // 0073F3E0, 0073F3E4
-constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;   // 0073F3EC, 0073F3F0
+constexpr float kDawnStart = 2.0f, kDayStart = 6.0f;
+constexpr float kDayEnd = 18.0f, kNightStart = 22.0f;
+constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;
 // The sun's elevation (degrees): 30 at hours 4 and 20, 90 at noon (a tent in between), and from
 // 30 to 75 over the night (falling from hour 0 to 4, rising from 20 to 24).
-constexpr float kSunrise = 4.0f, kSunset = 20.0f;         // 0073F3F4, 0073F3F8
-constexpr float kDayLength = 24.0f;                       // 0073CE28
-constexpr float kHalf = 0.5f;                             // 0073B86C
-constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;   // 0073F74C, 0073BAF0
-constexpr double kPi = 3.141592653589793;                 // 0073F3D0
-constexpr double kPerDegree = 1.0 / 180.0;                // 0073BA30
-// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kSunrise = 4.0f, kSunset = 20.0f;
+constexpr float kDayLength = 24.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
+constexpr double kPi = 3.141592653589793;
+constexpr double kPerDegree = 1.0 / 180.0;
+// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (not the folded double).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
-const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 0073F748: 1/24 (the sun turns once a day)
+const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).
 const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
 
-// 0078FF38: the hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
+// The hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
 using worlddata::g_lastLitHour;
 
-// Terrain::SetSun (006C8ED0) takes the ambient colour as a Vector4 (and copies it).
+// Terrain::SetSun takes the ambient colour as a Vector4 (and copies it).
 Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
 
 // The FCOMP / TEST AH,0x40 test: equal.

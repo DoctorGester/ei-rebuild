@@ -1,5 +1,5 @@
-// The renderer base part's creation (00500540, CVisualizator::Create in the original's messages;
-// base slot 2 of vtable 0073D8A0, called once by the renderer's creation 00500B70; A-U12): makes
+// The renderer base part's creation (CVisualizator::Create in the original's messages;
+// called once by the renderer's creation): makes
 // the transform pipeline, checks the processor for MMX and loads the 2D graphics library.
 #include "model.h"
 #include "game_strings.h"
@@ -38,7 +38,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
         libcrt::Exit(-1);
     }
 
-    graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");   // the exe's 0078E46C
+    graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");
     game::DebugLog(kLibraryLoadedText);
     if (!graphicsLibrary_) {
         game::FatalError(kNoLibraryText);
@@ -46,7 +46,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
     }
     using GetGraphicsProcessor = CPixelConverter*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
-        gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));   // the exe's 0078E42C
+        gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));
     if (!getProcessor) {
         game::FatalError(kNoFunctionText);
         libcrt::Exit(-1);

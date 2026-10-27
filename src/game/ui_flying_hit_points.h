@@ -1,7 +1,7 @@
 #pragma once
 
-// The numbers that fly up from units hit (the world client's; constructed by 00563710, destroyed by
-// 00563290, drawn by 005E18E0). Names provisional.
+// The numbers that fly up from units hit (the world client's; constructed, destroyed by
+// drawn). Names provisional.
 
 #include "lib/stlp.h"
 
@@ -24,14 +24,14 @@ static_assert(sizeof(FlyingHitPoint) == 0x10);
 
 class CFlyingHitPoints {
 public:
-    // 005E1710. Constructor: no object, an empty list. Returns this.
+    // Constructor: no object, an empty list. Returns this.
     CFlyingHitPoints* Construct();
-    // 005E17E0. Destructor: the object released (its slot 4), the list's nodes and sentinel freed.
+    // Destructor: the object released (its slot 4), the list's nodes and sentinel freed.
     void Destruct();
-    // 005E1870 (RET 0xC). Appends a number for `target` (nonzero) and `amount` (not negative),
+    // Appends a number for `target` (nonzero) and `amount` (not negative),
     // starting now, or 0.5 s from now with flag 8; nothing otherwise.
     void Add(int target, int amount, std::uint32_t flags);
-    // 005E18E0 (RET 4). No texture object: 0. Binds it (renderer slot 11; failure is fatal), erases
+    // No texture object: 0. Binds it (renderer slot 11; failure is fatal), erases
     // the entries older than 3 s, and with option 17 (ShowHitNumbersOption) draws each started
     // entry (0..3 s) over its unit (shown, on screen, pickable; the screen rectangle of its "hd",
     // "bd" or "hp" part): the amount in 8-pixel digits rising 100 pixels and drifting 120 to the

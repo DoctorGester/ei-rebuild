@@ -38,7 +38,7 @@ namespace scriptaddon {
 namespace {
 
 
-// 0079BE6C: the "draw all units" flag (the console's spectator mode).
+// The "draw all units" flag (the console's spectator mode).
 int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
 
 CPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }

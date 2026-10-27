@@ -1,6 +1,5 @@
 // A party unit's client controller (CUnitClientSpecific, class 0x3D) placing its unit on the
-// motion it follows (00535850). See docs/notes/units.md ("Client path placement").
-//
+// motion it follows. See docs/notes/units.md ("Client path placement").
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
 // (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
@@ -24,22 +23,16 @@
 
 namespace {
 
-// The controller's world [00455950]; the motion's sample [005C7430 on unit +0x27C: world, order,
-// time, turning, position (half-cells), direction, speed, cell x, cell y]; the unit's ground height
-// [00530280 (x, y)], its turn toward a direction [00401F00 (direction, flag)], its heading from a
-// direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
-// facing axis [0040F560 on the quaternion (out)].
-
-constexpr float kCellScale = 1.0f;            // 0073EBF0
-constexpr float kHalf = 0.5f;                 // 0073B86C
-constexpr float kHalfTurn = 3.1416f;          // 0073CF80
-constexpr float kDecay = -0.3f;               // 0073CDFC
-constexpr float kAnimationRate = 15.0f;       // 0073C518
+constexpr float kCellScale = 1.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kHalfTurn = 3.1416f;
+constexpr float kDecay = -0.3f;
+constexpr float kAnimationRate = 15.0f;
 constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: pi + pi
 
 } // namespace
 
-// 00535850 (RET 8; slot 41 passes (+0x34, 0); 00535B30 the tick's time and rate). Samples the
+// (slot 41 passes (+0x34, 0); the tick's time and rate). Samples the
 // motion at `time`, moves the unit there (on the ground, +0x320 above), snaps its facing once when
 // +0x76 is set, then turns it: at once with unit flag 0x10000000, else blended toward the motion's
 // direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally the animation
@@ -73,7 +66,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         Vector3 axis;
         unit->localRotation_.AxisY(&axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
-        // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
+        // a float ULP in about one call in ten, and at a heading of +-pi (where jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
         float current = static_cast<float>(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
         float target = static_cast<float>(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
@@ -128,6 +121,5 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
 void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 EI_REWRITTEN(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
-// 00535B20 (A-U12; unit_client_models.h).
 void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
 EI_REWRITTEN(0x00535B20, CUnitClientSpecific::MotionChanged);

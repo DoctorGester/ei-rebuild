@@ -1,8 +1,8 @@
-// The game CRT's formatted text (S4a): MSVC 6's _output behind sprintf / vsprintf / fprintf / printf, with the
+// The game CRT's formatted text: MSVC 6's _output behind sprintf / vsprintf / fprintf / printf, with the
 // CRT's own number conversion: $I10_OUTPUT's 17 digits from a 12-byte long double (96-bit mantissa products, the
 // exe's power-of-ten tables) and _fptostr's rounding of that digit string. All integer arithmetic, so the results
-// are the same bytes as the original's in either build. docs/notes/standalone.md, S4a. atof and sscanf are the
-// host CRT's (C26); the host's printf differs (two-digit exponents, "inf"), so _output stays.
+// are the same bytes as the original's in either build. atof and sscanf are the
+// host CRT's; the host's printf differs (two-digit exponents, "inf"), so _output stays.
 #include "crt.h"
 #include "crt_locale_data.h"
 
@@ -72,7 +72,7 @@ void PutInfinity(Ld12& x, std::uint16_t sign) { x = Ld12{{0, 0, 0, 0, 0x8000, st
 // ISZERO_12: the mantissa and exponent, not the sign.
 bool IsZero(const Ld12& x) { return (Get32(x, 4) & 0x7FFFFFFF) == 0 && Get32(x, 2) == 0 && Get32(x, 0) == 0; }
 
-// __ld12mul (006FACA6): x *= y. Only the partial products of the upper 96 bits are summed, a carry out
+// __ld12mul: x *= y. Only the partial products of the upper 96 bits are summed, a carry out
 // of a 32-bit sum goes into the next 16-bit word only, then normalise, round to the 80 bits above the
 // low word (half up when above half or odd), flush to zero / infinity.
 void Multiply(Ld12& x, const Ld12& y) {
@@ -196,7 +196,7 @@ constexpr Ld12 kPow10Negative[29] = /*0079AFC0*/ {
     {{0x2DE4, 0x9FDE, 0xD2CE, 0x04C8, 0xA6DD, 0x0AD8}},
 };
 
-// __multtenpow12 (006FAEC6): x *= 10^power, three bits of the power per table row. A table entry whose
+// __multtenpow12: x *= 10^power, three bits of the power per table row. A table entry whose
 // extra word is at or above half is used one unit lower in its low mantissa dword ("unrounded").
 // Without `mult12` the extra word of x is cleared first.
 void MultiplyByPowerOfTen(Ld12& x, int power, bool mult12) {
@@ -237,7 +237,7 @@ void PutZeroDigits(DigitString& out) {
     out.digits[1] = '\0';
 }
 
-// $I10_OUTPUT (006FAA13) on an 80-bit value (the low and high mantissa dwords, sign and exponent):
+// $I10_OUTPUT on an 80-bit value (the low and high mantissa dwords, sign and exponent):
 // scale into [0.1, 1) by a power of ten estimated low from the exponent and the mantissa's top byte,
 // generate `count` + 1 digits (at most 22) by multiplying the 96-bit fraction by ten, and round on the
 // last one; trailing zeros are dropped. With `fixed` (flag 1) `count` counts from the decimal point.
@@ -330,7 +330,7 @@ struct Decimal {
     char* digits;
 };
 
-// _fltout2 (006F9584): __dtold to 80 bits (a zero of either sign becomes +0; a denormal is
+// _fltout2: __dtold to 80 bits (a zero of either sign becomes +0; a denormal is
 // normalised), then 17 digits.
 Decimal ToDecimal(double value, char* digits) {
     std::uint64_t bits;
@@ -366,12 +366,12 @@ Decimal ToDecimal(double value, char* digits) {
     return Decimal{out.sign, out.exponent, digits};
 }
 
-// _shift (006EF3F6): moves the string `distance` places right.
+// _shift: moves the string `distance` places right.
 void ShiftText(char* text, int distance) {
     if (distance) std::memmove(text + distance, text, std::strlen(text) + 1);
 }
 
-// _fptostr (006F950D): `count` digits after a guard '0' (zeros past the end of the digits), rounded half
+// _fptostr: `count` digits after a guard '0' (zeros past the end of the digits), rounded half
 // up on the next digit; a carry into the guard moves the point, otherwise the guard is dropped.
 void PlaceDigits(char* buffer, int count, Decimal& number) {
     const char* digit = number.digits;
@@ -391,7 +391,7 @@ void PlaceDigits(char* buffer, int count, Decimal& number) {
     }
 }
 
-// _cftoe2 (006EF154): d.ddde+NNN (three exponent digits) from the placed digits.
+// _cftoe2: d.ddde+NNN (three exponent digits) from the placed digits.
 void ExponentForm(char* buffer, int decimals, bool capitals, const Decimal& number, bool general) {
     if (general) ShiftText(buffer + (number.sign == '-'), decimals > 0);
     char* p = buffer;
@@ -421,7 +421,7 @@ void ExponentForm(char* buffer, int decimals, bool capitals, const Decimal& numb
     }
 }
 
-// _cftof2 (006EF26B): ddd.ddd from the placed digits.
+// _cftof2: ddd.ddd from the placed digits.
 void FixedForm(char* buffer, int decimals, const Decimal& number, bool general) {
     const int point = number.point;
     if (general && point - 1 == decimals) {
@@ -448,7 +448,7 @@ void FixedForm(char* buffer, int decimals, const Decimal& number, bool general) 
     }
 }
 
-// _cfltcvt (006EF3A5) with _cftoe / _cftof / _cftog: %e, %f and %g of `value` into `buffer`.
+// _cfltcvt with _cftoe / _cftof / _cftog: %e, %f and %g of `value` into `buffer`.
 void FormatFloat(double value, char* buffer, int format, int precision, bool capitals) {
     char digits[24];
     Decimal number = ToDecimal(value, digits);
@@ -477,7 +477,7 @@ void FormatFloat(double value, char* buffer, int format, int precision, bool cap
     }
 }
 
-// _forcdecpt (006EEFF5): a decimal point after the leading digits (or before an exponent).
+// _forcdecpt: a decimal point after the leading digits (or before an exponent).
 void ForceDecimalPoint(char* text) {
     if (Tolower(*text) != 'e') {
         do {
@@ -494,7 +494,7 @@ void ForceDecimalPoint(char* text) {
     } while (*text != '\0');
 }
 
-// _cropzeros (006EF04F): trailing zeros of the fraction, and then a bare point, removed.
+// _cropzeros: trailing zeros of the fraction, and then a bare point, removed.
 void CropZeros(char* text) {
     const char point = DecimalPoint();
     while (*text && *text != point) ++text;
@@ -508,7 +508,7 @@ void CropZeros(char* text) {
     }
 }
 
-// wctomb (006F9846): one wide character in the locale's code page; -1 (errno EILSEQ) when it has none.
+// wctomb: one wide character in the locale's code page; -1 (errno EILSEQ) when it has none.
 int WideToBytes(char* to, wchar_t c) {
     if (CtypeLocale() == 0) {
         if (static_cast<unsigned short>(c) < 0x100) {
@@ -524,7 +524,7 @@ int WideToBytes(char* to, wchar_t c) {
     return -1;   // the original's errno = EILSEQ: its callers never read it
 }
 
-// ---- _output (006F17D4) ----
+// ---- _output ----
 
 // FL_* flags.
 constexpr unsigned kSignPlus = 0x1;
@@ -540,7 +540,7 @@ constexpr unsigned kForceOctal = 0x200;
 constexpr unsigned kWide = 0x800;
 constexpr unsigned kInt64 = 0x8000;
 
-// __lookuptable (007476D0): for ' '..'x' the character class in the low nibble; the next state in the
+// __lookuptable: for ' '..'x' the character class in the low nibble; the next state in the
 // high nibble of entry class * 8 + state.
 constexpr unsigned char kFormatLookup[89] = {
     0x06, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x10, 0x00, 0x03, 0x06, 0x00, 0x06, 0x02, 0x10,

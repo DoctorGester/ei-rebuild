@@ -1,4 +1,4 @@
-// The spell column's unit (0063E820): a sprite and a tooltip per spell of the unit. See ui.h
+// The spell column's unit: a sprite and a tooltip per spell of the unit. See ui.h
 // (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
 #include "item_db_text.h"
 #include "spell.h"
@@ -31,7 +31,7 @@ template <typename T> T Get(const void* base, int offset) {
 // `image`), counted in +0x14C.
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
-// 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
+// A spell's prototype record (+0x10 school, +0x7B shows a number).
 const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }

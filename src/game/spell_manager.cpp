@@ -140,7 +140,7 @@ EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 CSpellContainer::CSpellContainer() {
     ClearFields();
     modifiers_.Construct();
-    // The code string: empty, with room for 8 bytes (00424E40).
+    // The code string: empty, with room for 8 bytes.
     codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';

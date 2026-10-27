@@ -1,9 +1,9 @@
-// The help / message window's page (CHelpWindow::ShowPage, 00659420; A-H26): everything the
+// The help / message window's page (CHelpWindow::ShowPage): everything the
 // window shows is rebuilt from the texts for page page_ (see ui.h).
-// Rebirth's WideScreen patches it (a context hook at +574: the pulsing frames of some tutorial
+// Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial
 // messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
-// installs in both launches. Rebirth-patched callees: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
-// SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
+// installs in both launches. Rebirth-patched callees: the surface's text, the sprites' Place, SetRectangle and
+// SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"
 
@@ -85,12 +85,11 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
 
 void SetRegion(CUiRegion* region, const RECT& rect) { region->SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
-// Rebirth's WideScreen (addon's handler 10023702, a context hook over the first AddSprite of a
-// "#rectangle" line at 00659994): on a message window (message_), the page "<text_>:<page_>" of the
+// Rebirth's WideScreen (addon's handler, a context hook over the first AddSprite of a
+// "#rectangle" line): on a message window (message_), the page "<text_>:<page_>" of the
 // zone tutorials whose frames point at the battle screen's left panels moves them left by the
 // layout's extra units, of those pointing at its right panels right (addon's two string sets, built
-// once from its literals 100AF5F0..100AF668; the frame's left and right, the original's locals
-// [ESP+0x64] / [ESP+0x58], change; top and bottom do not).
+// once from its literals; the frame's left and right, the original's locals, change; top and bottom do not).
 constexpr const char* kLeftPanelPages[] = {"zt9:0", "zt12:0", "zt12:1", "zt13:0", "zt14:0", "zt14:2", "zt17:0", "zt20:0", "zt22:0"};
 constexpr const char* kRightPanelPages[] = {"zt3:2", "zt4:0", "zt4:1", "zt7:0", "zt10:0", "zt10:1", "zt18:0"};
 

@@ -19,11 +19,11 @@
 
 namespace {
 
-// 005187B0 (thiscall on the object, RET 8): plays `animation` (with `restart` 1 from here).
+// Plays `animation` (with `restart` 1 from here).
 void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int restart) {
     object->PlayAnimation(animation, restart);
 }
-// 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
+// The object of `kind` named `name`.
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
     return static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind);
 }
@@ -37,10 +37,10 @@ void ShowFigurePart(CFigureMesh* part, int show) {
     else object->flags_ |= kHidden;
 }
 
-// The interface's animation clock: timeGetTime() * 1/67 (00740EFC), the milliseconds loaded as an
+// The interface's animation clock: timeGetTime() * 1/67, the milliseconds loaded as an
 // unsigned qword.
 float InterfaceClock() {
-    constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728 (00740EFC)
+    constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728
     return static_cast<float>(x87::FromUnsigned(gameapi::timeGetTime()) * static_cast<double>(kRate));
 }
 
@@ -54,21 +54,21 @@ constexpr std::uint32_t kPreviewDraw = 0x800;
 
 } // namespace
 
-// 005FC1D0. The object released (slot 4) and forgotten.
+// The object released and forgotten.
 void CUiModel::ReleaseObject() {
     if (object_) object_->Release();
     object_ = nullptr;
 }
 EI_REWRITTEN(0x005FC1D0, CUiModel::ReleaseObject);
 
-// 005FC3B0 (RET 4). Skill animation `animation` + 1 of the object (00518FC0) played.
+// Skill animation `animation` + 1 of the object played.
 void CUiModel::Play(int animation) {
     CObject3D* object = Figure();
     PlayAnimation(object, nullptr, object->FindSkillAnimation(animation + 1), 1);
 }
 EI_REWRITTEN(0x005FC3B0, CUiModel::Play);
 
-// 005FC3D0. The rest pose: the object named like the figure (+0xA4) of kind 0x80590000 from the
+// The rest pose: the object named like the figure (+0xA4) of kind 0x80590000 from the
 // object manager, played.
 void CUiModel::Stop() {
     CObject3D* object = Figure();
@@ -77,20 +77,20 @@ void CUiModel::Stop() {
 }
 EI_REWRITTEN(0x005FC3D0, CUiModel::Stop);
 
-// 005FC4C0 (RET 8). The part named `name` (005169A0) shown or hidden (`show`'s low byte).
+// The part named `name` shown or hidden (`show`'s low byte).
 void CUiModel::ShowPart(const char* name, int show) {
     if (CFigureMesh* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
 }
 EI_REWRITTEN(0x005FC4C0, CUiModel::ShowPart);
 
-// 005FC4F0 (RET 4). Every part (+0xD0) shown or hidden; null entries skipped.
+// Every part (+0xD0) shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
         if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
 }
 EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 
-// 005FC2F0 (RET 4). Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
+// Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
 // afterwards) at the interface clock, with flag 0x800 set during the draw. The original builds
 // the white from three FISTPs of 255.0.
 void CUiModel::Draw(CSceneRenderer* pass) {
@@ -105,7 +105,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 }
 EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 
-// 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
+// The figure's steps go through their addresses.
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);

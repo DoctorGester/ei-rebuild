@@ -1,11 +1,10 @@
-// CWorldClient's draw path: Render (00569E40) and DrawPass (0056AFE0), with Rebirth's
+// CWorldClient's draw path: Render and DrawPass, with Rebirth's
 // LandscapeDrawRadius and ObjectsDrawRadius behind their flags. See world.h and
 // docs/notes/world.md.
-//
-// Both talk to Direct3D 7 through the renderer (TheRenderDevice(), 007AF080: d3dDevice_ the
+// Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the
 // IDirect3DDevice7, lastLoadResult_ the last state block result) and to the scene pipeline's matrix
-// stacks (ScenePipeline(), 007AF068), exactly as the original: the same calls in the same order.
-// Callees are reached through their original addresses (rewritten ones included, so the verify
+// stacks (ScenePipeline()), exactly as the original: the same calls in the same order.
+// Callees are reached through their original addresses (the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
 #include "lightning.h"
@@ -69,7 +68,7 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     render::state::Block(handle);
 }
 
-// The pipeline's matrix stacks: 1 and 2 pushed by 004D9B80 (PushSceneMatrixOriginal), 5 the world
+// The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world
 // draw's, 9 the views.
 constexpr int kStackScene1 = 1;    // +0x1C
 constexpr int kStackScene2 = 2;    // +0x24
@@ -111,37 +110,37 @@ float StarterDrawRadius(const char* name) {
     return radius;
 }
 
-// The terrain's draw distance (the PUSH 100.0 of 00569E40).
+// The terrain's draw distance (the PUSH 100.0).
 float LandscapeDrawRadius() {
     static const float setting = StarterDrawRadius("LandscapeDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
 }
 
 // DrawPass's callees.
-// clear() 0056E870 and the erase's copy 00571E30 of vector<CEngineObject*>.
+// clear() and the erase's copy of vector<CEngineObject*>.
 void VectorClear(stlp::vector<CEngineObject*>* v) { v->EraseRange<stlp::PlainElement<CEngineObject*>>(v->begin(), v->end()); }
 CEngineObject** VectorCopyBack(CEngineObject** first, CEngineObject** last, CEngineObject** out) {
     return stlp::CopyElements<CEngineObject*>(first, last, out);
 }
 
-// The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
+// The object margin around the camera when collecting what to draw (100.0).
 float ObjectsDrawMargin() { return 100.0f /*0073BAB0*/; }
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
-// 0073B84C: 1.0, the map edge's margin.
+// 1.0, the map edge's margin.
 float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
-// 0073F750: the length of the shadows' projection along the camera's Z axis.
+// The length of the shadows' projection along the camera's Z axis.
 float ShadowLength() { return (-0.02f /*0073F750*/); }
-// The light effect settings (0079BD50, 0079BD4C, 0079BD54: the three lists +0x1B8 / +0x1BC /
-// +0x1C0) and the game mode (0079BE64; 1 single player).
+// The light effect settings (the three lists +0x1B8 / +0x1BC /
+// +0x1C0) and the game mode (1 single player).
 int LightEffectsSetting(const int& setting) { return setting; }
 int LightEffects1B8() { return LightEffectsSetting(options::TheOptions()->enableBloodprints_); }
 int LightEffects1BC() { return LightEffectsSetting(options::TheOptions()->enableFootprints_); }
 int LightEffects1C0() { return LightEffectsSetting(options::TheOptions()->enableFireprints_); }
 int GameMode() { return options::TheOptions()->selectionType_; }
-// 007900E4: the part a selection marker sits on.
+// The part a selection marker sits on.
 const char* MarkerPartName() { return "hp"; }
 
 // FLD a; FADD/FSUB b; FSTP: the result rounded to float.
@@ -193,9 +192,9 @@ void DrawEach(FrameList list, Draw draw) {
     CEngineObject** end = FrameObjects(list).end();
     for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) draw(ObjectSlots(*p));
 }
-// The drawn objects' slots 22 / 23 / 24 (+0x58 / +0x5C / +0x60; 005783C0, 005783A0, 005783B0 in
+// The drawn objects' slots 22 / 23 / 24 (+0x58 / +0x5C / +0x60)
 // the old notes) with the scene context; their results are ignored. The new renderer learns which
-// object the meshes of a figure draw belong to (its shadow map's casters, R16j).
+// object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](CMapObjectVirtuals* object) {
     render::BeginCaster(object, false);
     object->DrawFigure(TheSceneRenderer());
@@ -208,8 +207,7 @@ constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
 };
 constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(TheSceneRenderer()); };
 
-// Empties the deferred unit list: each node's counted pointer released, the node freed (0056FB40
-// or 0056F700).
+// Empties the deferred unit list: each node's counted pointer released, the node freed.
 void EmptyDeferred() {
     using Node = stlp::list<CEngineObject*>::Node;
     stlp::list<CEngineObject*>* deferred = FrameDeferredUnits();
@@ -226,7 +224,7 @@ void EmptyDeferred() {
     deferred->head->prev = deferred->head;
 }
 
-// Calls 006CEDE0 on the value of every node of an effect list (+0x1B8 / +0x1BC / +0x1C0).
+// Calls the ground print draw on the value of every node of an effect list (+0x1B8 / +0x1BC / +0x1C0).
 template <typename T>
 void DrawLightEffects(stlp::list<T>& list) {
     typename stlp::list<T>::Node* head = list.head;
@@ -254,17 +252,17 @@ int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* 
 }
 EI_REWRITTEN(0x0056A370, QueueScreenEntry);
 
-// ---- Render (00569E40) --------------------------------------------------------------------------
+// ---- Render --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
-    // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
+    // The world view for the new renderer's smooth option (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
     CTextureDevice* renderer = TheRenderDevice();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
-    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun), as this
-    // frame's lighting turned it; the GPU lighting's sun, ambient and point lights (R16i).
+    // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
+    // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
     if (terrain_ && terrain_->sun) {
         const Vector3& d = terrain_->sun->direction_;
         const float direction[3] = {d.x, d.y, d.z};
@@ -272,7 +270,7 @@ int CWorldClient::Render() {
     }
     HandOverSceneLights(this);
     Matrix4 view;
-    view::CameraViewMatrix(view.m, TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
+    view::CameraViewMatrix(view.m, TheCamera());   // (the result is not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -317,8 +315,8 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
         terrain_->DrawWater(TheSceneRenderer());
     }
-    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above),
-    // and the ground's own (R16i).
+    // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
+    // and the ground's own.
     if (flags_ & 0x100) HandOverTerrainCasters(this);
     HandOverOutsideCasters(this);
     net::Pump();
@@ -363,7 +361,7 @@ int CWorldClient::Render() {
 }
 EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
-// 00569D60 (A-W13).
+//
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
         static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), TheRenderDevice());
@@ -379,7 +377,7 @@ constexpr std::uint32_t kShowRenderInfo = 2;
 constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
-// The debug info panel (0079B930, what 004447D0 returns) loses the line `key` (its slot 1).
+// The debug info panel loses the line `key` (its slot 1).
 void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
 } // namespace
 
@@ -426,7 +424,7 @@ void CWorldClient::HideWorldData() {
 }
 EI_REWRITTEN(0x00569B20, CWorldClient::HideWorldData);
 
-// ---- DrawPass (0056AFE0) ------------------------------------------------------------------------
+// ---- DrawPass ------------------------------------------------------------------------
 
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;
@@ -435,7 +433,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    FrameDeferredUnits()->Clear<stlp::HeldObject>();   // 005703C0
+    FrameDeferredUnits()->Clear<stlp::HeldObject>();
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
                                          FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
@@ -446,7 +444,7 @@ int CWorldClient::DrawPass() {
     if (bird_) bird_->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
-    // (size - 0073B84C) and to 0, in 16-unit sectors.
+    // (size - 1) and to 0, in 16-unit sectors.
     const float margin = ObjectsDrawRadius();
     const float edge = MapEdgeMargin();
     terrain = terrain_;
@@ -506,7 +504,7 @@ int CWorldClient::DrawPass() {
         while (node != queued.head) {
             Node* current = node;
             node = node->next;
-            stlp::deallocate(current, 32);   // 0056F840
+            stlp::deallocate(current, 32);
         }
         queued.head->next = queued.head;
         queued.head->prev = queued.head;
@@ -548,7 +546,7 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 14, 1);
     }
 
-    // Shadows: projected along the camera's Z axis (its rotation, 0079B2DC) scaled by 0073F750.
+    // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
     if (flags_ & 0x200) {
         SortByModel(FrameList::Shadow54);
         SortByModel(FrameList::ShadowOther);
@@ -618,7 +616,7 @@ int CWorldClient::DrawPass() {
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);
                     }
-                    stlp::list<int>::Erase(node);   // 00512030
+                    stlp::list<int>::Erase(node);
                 }
             }
             node = next;

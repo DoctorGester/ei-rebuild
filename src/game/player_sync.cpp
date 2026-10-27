@@ -58,7 +58,7 @@ const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
-// 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
+// 2.0: a unit level at most this asks the client to refresh the party.
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
@@ -106,7 +106,7 @@ using GivenList = mfc::CTypedPtrList<CItem>;
 using GatheredList = mfc::CTypedPtrList<CItem>;
 using GatheredSpells = mfc::CTypedPtrList<CSpell>;
 void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
-// SaveListedObjects (0055E8A0) on a typed list (one CPtrList layout).
+// SaveListedObjects on a typed list (one CPtrList layout).
 template <typename T>
 void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
     SaveListedObjects(reinterpret_cast<mfc::CList<CEngineObject*>*>(list), stream);
@@ -126,7 +126,7 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     GatheredSpells spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
-        GatherItem(&gathered, &spells, node->data);   // 0069FB60
+        GatherItem(&gathered, &spells, node->data);
     CMemoryStream states;
     SaveListed(&spells, &states);
     SaveListed(&gathered, &states);

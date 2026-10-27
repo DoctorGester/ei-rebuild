@@ -15,8 +15,8 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;           // 0073B858
-constexpr float kStatBase = 25.0f;      // 0073E124
+constexpr float kZero = 0.0f;
+constexpr float kStatBase = 25.0f;
 
 constexpr int kNoSlot = 7;              // an entry of the coverage table that covers nothing
 constexpr int kBodySlot = 1;
@@ -50,7 +50,7 @@ EI_REWRITTEN(0x005230C0, UnitStats::AddArmourLayer);
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
-        CItemArmor* piece = unit->armor[i];   // 00530830
+        CItemArmor* piece = unit->armor[i];
         if (!piece) continue;
         float condition = piece->condition_;
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest

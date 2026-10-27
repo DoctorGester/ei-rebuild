@@ -26,7 +26,7 @@
 
 namespace {
 constexpr std::uint32_t kFlagNoEffect = 8;            // StatChanged's flags
-constexpr float kMinAmount = 0.0001f;                 // 0073CD44
+constexpr float kMinAmount = 0.0001f;
 constexpr int kNoArmourSlot = 7;
 constexpr std::uint32_t kNoMaterial = 0xFFFF;
 constexpr std::uint8_t kNoSoundKind = 7;
@@ -35,25 +35,25 @@ constexpr int kSoundPriority = 1000;
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 constexpr std::uint32_t kFiguresLoaded = 0x80;        // the unit's flags_
-constexpr float kBloodScale = 2.5f;                   // 0073CE18
+constexpr float kBloodScale = 2.5f;
 constexpr float kBloodHeight = 0.1f;
-constexpr float kBloodMinAlpha = 0.1f;                // 0073B850
-constexpr float kBloodMaxAlpha = 1.0f;                // 0073B84C
+constexpr float kBloodMinAlpha = 0.1f;
+constexpr float kBloodMaxAlpha = 1.0f;
 constexpr float kBloodRate = 1.0f / 30.0f;            // 0x3D088889
 constexpr std::uint32_t kLastDecalBlood = 4;
-constexpr float kHalf = 0.5f;                         // 0073B86C
-constexpr float kDecalScale = 0.3f;                   // 0073C54C
-constexpr float kSpreadUnits = 100.0f;                // 0073BAB0
-constexpr float kSpreadStep = 0.02f;                  // 0073CCD8
-constexpr float kDecalLength = 3.0f;                  // 0073BAA4
-constexpr double kDeathDecalScale = 0.75;             // 0073EEB0
+constexpr float kHalf = 0.5f;
+constexpr float kDecalScale = 0.3f;
+constexpr float kSpreadUnits = 100.0f;
+constexpr float kSpreadStep = 0.02f;
+constexpr float kDecalLength = 3.0f;
+constexpr double kDeathDecalScale = 0.75;
 constexpr int kDeathVariantBase = 2;
 constexpr int kSparks = 0x2043;
 constexpr float kSparkAlpha = 10.0f;
 constexpr int kSparkAttach = 7;
 constexpr int kMinFlashTicks = 4;
 
-// The armour slots covering each hit location (0073EC78: four ints per location; columns 2, 0,
+// The armour slots covering each hit location (four ints per location; columns 2, 0,
 // 1 are tried in that order, 7 none). Indexed as the original does, without a range check.
 constexpr std::int32_t kHitArmourRows[6][4] = /*0073EC78*/ {{7, 7, 0, 7}, {3, 7, 1, 7}, {3, 6, 1, 7}, {3, 6, 1, 7}, {4, 5, 2, 7}, {4, 5, 2, 7}};
 constexpr int kArmourColumns[3] = {2, 0, 1};
@@ -68,7 +68,7 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 // The particle type of each blood kind (1..8).
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
-// The party light (0079BEA0: r, g, b; 0079BEAC: radius).
+// The party light (r, g, b; radius).
 const float* PartyLightColour() { return &options::TheOptions()->heroLight_.red; }
 float PartyLightRadius() { return options::TheOptions()->heroLight_.radius; }
 

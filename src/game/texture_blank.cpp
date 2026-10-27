@@ -2,12 +2,11 @@
 // screen's pictures, the global map's weather, the item pictures and the other interface textures
 // made through 005FF0B0 / 005EC020) and the blank surface it gets (0068F6C0, also used by the
 // shadow textures 00692010 / 00692140).
-//
 // The blank surface is no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): its holder
 // has only the new renderer's memory (NewMemoryTextureHolder, dx_surface.cpp), which the writers
 // fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp,
 // texture_shadow.cpp) and the new renderer reads. The binders' SetTexture gets the holder's null
-// surface (004EB300 / 004EBAF0 / 00501AF0). See docs/notes/renderer.md (section 7).
+// surface. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "dx_surface.h"

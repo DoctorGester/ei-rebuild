@@ -1,10 +1,9 @@
-// The software cursor between frames in the switch-over without DirectDraw (R9c2; docs/notes/renderer.md,
-// section 9). The game's cursor thread (005E5690, every 41 ms) drew the cursor straight onto the
+// The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md,
+// section 9). The game's cursor thread (every 41 ms) drew the cursor straight onto the
 // primary surface when it moved, so it kept moving while the main thread drew no frame (a long frame,
 // a blocking load). Without DirectDraw the cursor thread hands the move here instead
 // (render::CursorBetweenFrames): the last frame presented on the game window, which holds no cursor
 // (the present draws it over the frame), is presented again with the cursor at its new place.
-//
 // The main thread keeps using sokol alone. The cursor thread makes no sokol call: it records its
 // present on a Direct3D 11 deferred context with the raw objects of sokol's present pipeline (the frame
 // target and the cursor through the gamma ramp into the back buffer: the draw the main thread's present
@@ -453,7 +452,7 @@ bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& 
     if (!cut) return Refused(Refusal::Picture);
     if (!g_kit.valid) return Refused(Refusal::NoFrame);
     if (GetTickCount64() - g_lastPresent < kBetweenFrames) return Refused(Refusal::Recent);
-    // The cursor's rectangle is clipped to its bounds by the game (005E52E0); kept inside the frame.
+    // The cursor's rectangle is clipped to its bounds by the game; kept inside the frame.
     if (to.left < 0 || to.top < 0 || to.right > g_kit.frameWidth || to.bottom > g_kit.frameHeight ||
         to.right - to.left != from.right - from.left || to.bottom - to.top != from.bottom - from.top)
         return Refused(Refusal::Outside);

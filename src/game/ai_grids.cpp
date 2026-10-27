@@ -1,7 +1,7 @@
 // The AI map's grid template instantiations (ai_grids.h) and the small constructors of the map's
-// members: the local search (005B3FF0), the unit layers' base (005B4110), the event table
-// (005B3F40 / 005C9250 / 005C91F0), the dirty rectangle's reset (005B40F0); and the terrain types'
-// open-cell marks (005B8620). See ai_map.h and docs/notes/ai.md.
+// members: the local search, the unit layers' base, the event table
+// the dirty rectangle's reset; and the terrain types'
+// open-cell marks. See ai_map.h and docs/notes/ai.md.
 #include "ai_grids.h"
 
 #include "ai_unit_layer.h"

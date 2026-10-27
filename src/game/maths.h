@@ -7,7 +7,7 @@
 
 #include "lib/vecmath.h"
 
-// 00401E00. A free __fastcall function in the original (both pointers in registers), not a method.
+// A free __fastcall function in the original (both pointers in registers), not a method.
 // (z * z' + y * y') + x * x' (DotZYX), returned unrounded in ST0.
 float __fastcall Dot(const Vector3& a, const Vector3& b);
 

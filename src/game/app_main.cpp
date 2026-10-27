@@ -1,18 +1,15 @@
 // WinMain (00456440; A-E2): the application's start-up, its main loop and its shutdown.
-//
 // Start-up: the system messages (res\sysmsg.txt, three lines, with built-in ones as a fallback),
 // the DirectX version, the command line, the window class and a second instance's hand-over, the
 // folders and the options from the registry, the two worlds and the camera, the free disk space and
 // the second disc, the mouse object, the save folders, the window, the renderer and what the video
 // memory allows, the sound, the intro movies, the databases, the cursors, the interface, the maps
 // and the first map (or the main menu).
-//
 // Main loop: while no message waits, the time since the last pass runs the server world in whole
 // ticks and the client world in ticks stretched by the "client speed" (1 in a local game; a network
 // client speeds up or slows down by its backlog of server updates), then the camera, the interface
 // and a frame. A waiting message goes to the interface's input (after a frame) or to the window
 // procedure (while the renderer is inactive).
-//
 // Every game function is called through its address, so hooks and verify wrappers on the callees
 // keep running. Rebirth patches the original (NivalRegistry), so in game.exe this body runs in the
 // vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
@@ -97,34 +94,34 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 
 // The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
-void __cdecl ConstructCameraFile() {   // 00455CE0
+void __cdecl ConstructCameraFile() {
     g_cameraFile.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D00));
 }
-void __cdecl ConstructCommandLineScript() {   // 00455D10
+void __cdecl ConstructCommandLineScript() {
     g_commandLineScript.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D30));
 }
-void __cdecl ConstructCommandLineMob() {   // 00455D40
+void __cdecl ConstructCommandLineMob() {
     g_commandLineMob.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D60));
 }
-void __cdecl ConstructCommandLineMap() {   // 00455D70
+void __cdecl ConstructCommandLineMap() {
     g_commandLineMap.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D90));
 }
-void __cdecl ConstructMovieFolder() {   // 00455DA0
+void __cdecl ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455DC0));
 }
 
 // The exit functions.
-void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }                 // 00455D00
-void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }   // 00455D30
-void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }         // 00455D60
-void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }         // 00455D90
-void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }               // 00455DC0
-// 00455DF0: the mouse's reference dropped (ShutDown has already taken it: null at exit).
+void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
+void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
+void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
+void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
+void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
+// The mouse's reference dropped (ShutDown has already taken it: null at exit).
 void __cdecl ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
         if (--mouse->references_ == 0) delete mouse;
@@ -217,20 +214,20 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- The callees -----------------------------------------------------------------------------------
 
-// app::TypeRegistryRegister (00458570): a class the chunk archives can hold, by id and factory. The
+// app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The
 // two factories: 00457850 (class 1) and 00457740 (class 2, the party record).
 using ClassFactory = void* (__cdecl*)();
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 // The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
 // camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) the frame's update.
-// The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
+// The renderer: 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
 // registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
-// The interface (007C7D50): 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
+// The interface: 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
 // shut down.
-// The game flow (007AFE20): 00581660 both sessions closed.
+// The game flow: 00581660 both sessions closed.
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -333,7 +330,7 @@ void RegisterWindowClass(HINSTANCE instance) {
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = instance;
-    windowClass.hIcon = nullptr;     // game.exe's icon 105 is not shipped (C24)
+    windowClass.hIcon = nullptr;     // game.exe's icon 105 is not shipped
     windowClass.hIconSm = nullptr;
     windowClass.hCursor = nullptr;
     windowClass.hbrBackground = nullptr;
@@ -520,7 +517,7 @@ constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;
 constexpr int kLongestPassTicks = 5;
 
-// The world tick's length in milliseconds (0078FF34) and the factor from milliseconds to the
+// The world tick's length in milliseconds and the factor from milliseconds to the
 // camera's time (0073C348: 1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) {
@@ -537,8 +534,8 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
-int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }   // 0058DFF0
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }   // 005641F0
+int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
 WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return &UpdateServer;
@@ -548,7 +545,7 @@ WorldUpdate ClientSegment() {
     return &RunClientSegment;
 }
 
-// The smooth camera's clock (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the
+// The smooth camera's clock (render::SmoothCamera; docs/notes/renderer.md section 14): the
 // client's time in ms, a tick for each client tick run plus the part of the next tick it has
 // (its backlog, up to a tick). Without the option each client tick moves the camera by a tick (in
 // RunWorlds) on top of the frame's real time: half of every pan, turn and zoom arrives in jumps of

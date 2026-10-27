@@ -38,37 +38,37 @@ static_assert(sizeof(MotionWaypoint) == 0x0C);
 struct MotionCubic {
     float c0, c1, c2, c3;
 
-    // 005C73B0. Hermite fit: value p0 / slope d0 at u = 0, value p1 / slope d1 at u = length.
+    // Hermite fit: value p0 / slope d0 at u = 0, value p1 / slope d1 at u = length.
     void Fit(float p0, float d0, float p1, float d1, float length);
-    // 004E5660. The value at u, unrounded (ST0).
+    // The value at u, unrounded (ST0).
     double Value(float u);
-    // 005C7410. The slope at u, unrounded (ST0).
+    // The slope at u, unrounded (ST0).
     double Slope(float u);
 };
 static_assert(sizeof(MotionCubic) == 0x10);
 
 struct UnitMotion {
-    // 005C7430. Samples the motion of `order` at world time `time`: position (x, y) in half-cells,
+    // Samples the motion of `order` at world time `time`: position (x, y) in half-cells,
     // direction (x, y, 0), speed (0.1 if unchanged) and the path cell reached (-1 if none).
     // `turning` is set while the unit only turns. Returns false when the order is complete.
     // `world` resolves object ids for tracking orders (its ObjectWithId).
     bool Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
                 float* speed, int* cellX, int* cellY);
-    // 005C6FC0. Sample for a path order; `time` is relative to the order's start.
+    // Sample for a path order; `time` is relative to the order's start.
     bool SamplePath(float time, bool* turning, float* position, float* direction, float* speed, int* cellX,
                     int* cellY);
-    // 005C67D0. Rebuilds the trajectory for `order` (a PathOrder with its steps).
+    // Rebuilds the trajectory for `order` (a PathOrder with its steps).
     void Build(PathOrder* order);
-    // 005C6270. Empties the trajectory. Returns 0 (EAX, as the original).
+    // Empties the trajectory. Returns 0 (EAX, as the original).
     int Clear();
-    // 005C6750. Stores the path cells of the steps in the trajectory points.
+    // Stores the path cells of the steps in the trajectory points.
     void AssignCells(PathOrder* order);
-    // 005C66C0. Splits every waypoint segment into points, one per path cell.
+    // Splits every waypoint segment into points, one per path cell.
     void Subdivide();
-    // 005C6370. Adds the points of the segment from `a` to `b` covering `cells` path cells.
+    // Adds the points of the segment from `a` to `b` covering `cells` path cells.
     void SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint* b, int cells, float startOffset,
                           float endOffset, int* stepIndex);
-    // 005C6290. Slows the points down where the turn to the next one takes longer than the way.
+    // Slows the points down where the turn to the next one takes longer than the way.
     void LimitSpeeds(float turnRate);
     // 005C7860 / 005C79B0 (RET 4; the unit's save, unit_save.cpp). The points (count, then 0x1C
     // bytes each), the waypoints (0xC each), the step speeds (4 each), then +0x3C..+0x4C as dwords.

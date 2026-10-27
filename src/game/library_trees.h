@@ -40,8 +40,8 @@ struct TintListValue {
 };
 using TintLists = PairTree<stlp::string, TintListValue>;
 
-// A link mesh's part headers (LinkHeaderMap, 0x6C-byte nodes): copied as bytes (004F65F0), zeroed by
-// the pair's destructor (004F4E70) before the key goes.
+// A link mesh's part headers (LinkHeaderMap, 0x6C-byte nodes): copied as bytes, zeroed by
+// the pair's destructor before the key goes.
 struct ZeroedHeader {
     using Type = LinkPartHeader;
     static void Copy(LinkPartHeader* to, const LinkPartHeader& from) { std::memcpy(to, &from, sizeof(*to)); }
@@ -53,14 +53,14 @@ static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkH
 // (`headers_.Subscript<LinkHeaderElement>(name)`).
 using LinkHeaderElement = stlp::PairElement<LinkHeaderMap::Value, ZeroedHeader>;
 static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeaderElement>>);
-// 005197B0: find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the
+// Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the
 // header for none.
 inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) { return map->find(*key); }
 // A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
 using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 
 // The link loader's mesh cache (a multimap<string, CLinkMesh*> of counted references; 0x20-byte
-// nodes): one more reference per copy (004FC6E0), released by the pair's destructor (004F7A80).
+// nodes): one more reference per copy, released by the pair's destructor.
 struct CountedMesh : stlp::CountedRef {
     using Type = RefPtr;
 };
@@ -84,7 +84,7 @@ static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18
               sizeof(Arrivals::Node) == 0x18);
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors 00633F50 /
-// 00633FF0 (S12e): map() (the header from the pool, empty), then the limit 50.
+// Map() (the header from the pool, empty), then the limit 50.
 using HeroItemCache = ItemObjectCache;
 HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);
 

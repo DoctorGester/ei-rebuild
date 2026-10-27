@@ -58,5 +58,5 @@ EI_REWRITTEN(0x006A83F0, QuickItemVector::ResizeDefault);
 EI_REWRITTEN(0x006A85A0, QuestItemVector::ResizeDefault);
 EI_REWRITTEN(0x006A8790, LootVector::ResizeDefault);
 // The game flow's zone table: _M_insert_overflow (RET 0xC).
-EI_REWRITTEN(0x00583920, ZoneTableVector::Destruct);   // S3c: the zone table 007AFDE0 at exit (0057F4A0)
+EI_REWRITTEN(0x00583920, ZoneTableVector::Destruct);   // S3c: the zone table 007AFDE0 at exit
 EI_REWRITTEN(0x00587480, ZoneTableVector::InsertOverflow);

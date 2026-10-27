@@ -24,15 +24,15 @@ namespace {
 CFixedAlloc& TempDCAlloc() { return *g_tempDCAlloc; }
 CFixedAlloc& TempGdiObjectAlloc() { return *g_tempGdiObjectAlloc; }
 
-// CTempGdiObject (game.exe's 0074645C: 0, 0070C08D; 1, 0070C044): its memory goes back to the fixed allocator.
+// CTempGdiObject: its memory goes back to the fixed allocator.
 class CTempGdiObject final : public CGdiObject {
 public:
-    // 0070C064: ~CGdiObject.
+    // ~CGdiObject.
     const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempGdiObject; }
     static void* operator new(std::size_t) noexcept { return TempGdiObjectAlloc().Alloc(); }
     static void operator delete(void* block) { TempGdiObjectAlloc().Free(block); }
 };
-// CTempDC (game.exe's 007463E4; 0: 0070C022, 1: 0070BFFD): ~CDC, the memory back to the fixed allocator.
+// CTempDC: ~CDC, the memory back to the fixed allocator.
 class CTempDC final : public CDC {
 public:
     const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempDC; }

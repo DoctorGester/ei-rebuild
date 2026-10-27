@@ -1,10 +1,9 @@
-// The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h; A-U3): the face
+// The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h): the face
 // texture ("<model>mouth") holds the open and the closed state, which the original copies over a
 // rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
-//
 // No texture has a DirectDraw surface (dx_surface.h; the skins are decoded by the new renderer):
 // the new renderer draws the face's rectangle over the skin's in its shader instead
-// (render::TexturePatch, R11d; docs/notes/units.md); the skin's texture is not changed.
+// (render::TexturePatch, docs/notes/units.md); the skin's texture is not changed.
 #include "unit_client_models.h"
 
 #include "map_object_figures.h"
@@ -23,7 +22,7 @@
 
 namespace {
 
-constexpr float kEyeUnit = 0.00390625f;    // 0073EEB8: 1/256 of the skin's width
+constexpr float kEyeUnit = 0.00390625f;    // 1/256 of the skin's width
 constexpr int kSkinUnits = 0x100;
 
 // _ftol: truncation through a 64-bit integer, of which the low half is kept.
@@ -59,7 +58,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 
 } // namespace
 
-// 00533980 (__fastcall, RET 8). The original blits (Blt, DDBLT_WAIT) `from` of `source` to the
+// The original blits (Blt, DDBLT_WAIT) `from` of `source` to the
 // rectangle of its size at `at` of `target`, then on each next level of both mip chains
 // (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose references are never released) with each of
 // the eight edges halved (SAR), until either has no further level. Ours hands the first level's

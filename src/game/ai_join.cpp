@@ -3,7 +3,7 @@
 // cell of one side is looked up in the other, first forward then backward, until a cell reached by
 // both is found (or a side has nothing left: false). Then the forward search's path to the cell
 // goes into `path`, the backward one's into a scratch list, which is reversed and appended
-// (005C5E60 / 005C5DA0) and the result fixed up (005C6000); `cost` (optional) gets the summed
+// and the result fixed up; `cost` (optional) gets the summed
 // cost. Both searches are reset either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
@@ -19,7 +19,7 @@ namespace {
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
 
-// 00539980: ConstructElements<PathCell> (zero-fills `count`).
+// ConstructElements<PathCell> (zero-fills `count`).
 
 constexpr int kUnreached = 0x7FFFFFFF;
 

@@ -1,8 +1,7 @@
-// The texture manager's shadow textures: the 64x64 texture of each object's shadow (00692010) and
-// the shared render surface the shadows are rasterised into (00692140), with the lock and unlock
-// 0051CE60 writes the render surface through (00690FC0 / 00691030) and its copy of the render
+// The texture manager's shadow textures: the 64x64 texture of each object's shadow and
+// the shared render surface the shadows are rasterised into, with the lock and unlock
+// 0051CE60 writes the render surface through and its copy of the render
 // surface into the shadow's texture (LoadPixelsFrom; inline in 0051CE60).
-//
 // Both have no DirectDraw texture (ticket R8): their holders have only the new renderer's memory
 // (CreateBlank -> NewMemoryTextureHolder), the lock describes that memory (no Lock / Unlock), the copy
 // (the original: the device's Load) is a CPU copy of its rows, and the new renderer reads the shadow

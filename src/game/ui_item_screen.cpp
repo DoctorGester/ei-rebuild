@@ -1,6 +1,6 @@
 // The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
-// the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
-// frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
+// the caches' trimming, the base Create and the icon window's
+// frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "model.h"
 #include "ui.h"
@@ -26,13 +26,13 @@ namespace {
 inline double D(float f) { return f; }
 
 
-// Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a
-// rectangle, 005E7680 a strip of `count` framed cells.
+// Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): a
+// rectangle, a strip of `count` framed cells.
 struct SpriteBuild {
     void Rectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-                   int v1);   // 005E70E0
+                   int v1);
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-               int v1, int count, int flag);   // 005E7680
+               int v1, int count, int flag);
 };
 void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
@@ -49,7 +49,7 @@ void ItemObjectCache::Construct(std::uint8_t compare) {
 }
 
 // While the cache holds more than its limit: the least recently used entry (used before now) has
-// its object released (slot 4) and is erased (005F3140 / 005F32A0). Spins while every entry was
+// its object released and is erased. Spins while every entry was
 // used at or after now.
 void __fastcall TrimItemCache(ItemObjectCache* cache) {
     while (cache->map.size() > cache->limit) {
@@ -70,7 +70,7 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
 EI_REWRITTEN(0x005F2F20, TrimItemCache);
 EI_REWRITTEN(0x005F2F90, TrimItemCache);
 
-// --- 005F2A90: the icon window's frame -------------------------------------------------------------
+// --- The icon window's frame -------------------------------------------------------------
 
 void CItemIconWindow::Build() {
     auto sprite = [this] { return reinterpret_cast<SpriteBuild*>(AddSprite(0)); };
@@ -99,7 +99,7 @@ void CItemIconWindow::Build() {
 }
 EI_REWRITTEN(0x005F2A90, CItemIconWindow::Build);
 
-// --- 005F2E00: the first two bars moved ------------------------------------------------------------
+// --- The first two bars moved ------------------------------------------------------------
 
 void CItemIconWindow::PlaceBars(int y) {
     constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
@@ -112,7 +112,7 @@ void CItemIconWindow::PlaceBars(int y) {
 }
 EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);
 
-// --- 005EDD80: the item screens' base Create ------------------------------------------------------
+// --- The item screens' base Create ------------------------------------------------------
 
 void CItemScreen::CreateBase() {
     CItemIconWindow* icons = new CItemIconWindow(interface_);
@@ -139,12 +139,12 @@ void CItemScreen::CreateBase() {
 }
 EI_REWRITTEN(0x005EDD80, CItemScreen::CreateBase);
 
-// --- 005F6470 / 005F6620: the item screens' destructor bodies -----------------------------------
+// --- The item screens' destructor bodies -----------------------------------
 
 namespace {
 // A cache's objects released (slot 4), in key order, then its map destroyed: the nodes erased
-// (the original's inlined loop over the left spine, or 005FAFF0 / 005FB040 on the root), the
-// header back to the pool (005FA920 / 005FA960, or 005FA060 / 005FA090).
+// (a loop over the left spine, or a call on the root), the
+// header back to the pool.
 void DestroyCache(ItemObjectCache& cache) {
     ReleaseCachedObjects(&cache);
     cache.map.Destroy();
@@ -159,7 +159,7 @@ EI_REWRITTEN_SPECIAL(0x005F6470, CItemScreen::~CItemScreen);
 EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);   // the input side's
 
-// 005F6620: the page titles, the heroes CArray (vtable 007402AC), then the item screen's.
+// The page titles, the heroes CArray, then the item screen's.
 CCampPages::~CCampPages() {
     pageTitles_.Destruct();
     heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
@@ -169,10 +169,10 @@ EI_REWRITTEN_SPECIAL(0x005F6620, CCampPages::~CCampPages);
 EI_REWRITTEN_SPECIAL(0x005F6600, CCampPages::~CCampPages);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);   // the input side's
 
-// --- 005F7010: screen 9's destructor (vtable 00740D18) ------------------------------------------
+// --- Screen 9's destructor ------------------------------------------
 
 // The figure names (vector<CString> at +0x1AC): the strings, then the storage through STLport's
-// node allocator (00404D70, inlined by the original); then the item screen's.
+// node allocator; then the item screen's.
 CExchangeScreen::~CExchangeScreen() {
     for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) at->~CString();
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
@@ -181,7 +181,7 @@ EI_REWRITTEN_SPECIAL(0x005F7010, CExchangeScreen::~CExchangeScreen);
 EI_REWRITTEN_SPECIAL(0x005F6FF0, CExchangeScreen::~CExchangeScreen);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);   // the input side's
 
-// --- 005EE1B0 / 005EE2C0: moving items between lists ----------------------------------------------
+// --- Moving items between lists ----------------------------------------------
 
 namespace {
 // CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
@@ -191,7 +191,7 @@ CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
 void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
 } // namespace
 
-// --- 005ED710 / 005ED780: the turning state's Clone and deleting destructor -----------------------
+// --- The turning state's Clone and deleting destructor -----------------------
 
 ItemTurn* ItemTurn::Clone() {
     auto* copy = new ItemTurn();

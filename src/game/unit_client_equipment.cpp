@@ -40,7 +40,7 @@ bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bo
 
 int CUnitClientSpecific::RefreshEquipment() {
     mfc::CString name;
-    // EI_Plugin's Fixes (00536132): the test for a hero is gone, every unit is refreshed.
+    // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
     if (unit->type_ != kUnitTypeHero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* detailed = SkinTexture(half->partSets[0]);

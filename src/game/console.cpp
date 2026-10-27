@@ -1,5 +1,5 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
-// game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
+// See docs/notes/console.md.
 #include "console.h"
 #include "app_helpers.h"
 #include "world.h"
@@ -34,16 +34,16 @@ void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
 
 // The library's CStdioFile (lib/mfc_file.h) has this layout.
 mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
-CStdioFile::CStdioFile() { Impl()->Construct(); }                                                   // 00701B79
-CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }    // 00701BD4
-CStdioFile::~CStdioFile() { Impl()->Destruct(); }                                                   // 00701C6D
-mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, void* error) {                         // 00701CB0
+CStdioFile::CStdioFile() { Impl()->Construct(); }
+CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }
+CStdioFile::~CStdioFile() { Impl()->Destruct(); }
+mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, void* error) {
     return Impl()->Open(name, flags, static_cast<mfc::impl::CFileException*>(error));
 }
-mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return Impl()->ReadLine(reinterpret_cast<mfc::impl::CString&>(line)); }   // 00701E93
-char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadString(buffer, size); }   // 00701E4E
-void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }                       // 00701E23
-void CStdioFile::Close() { Impl()->Close(); }                                                       // 00701FE0
+mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return Impl()->ReadLine(reinterpret_cast<mfc::impl::CString&>(line)); }
+char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadString(buffer, size); }
+void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }
+void CStdioFile::Close() { Impl()->Close(); }
 
 GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
 GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
@@ -61,13 +61,12 @@ int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// 007C7D50: the interface manager (ConsoleAddText hands a line to its console window, if any).
+// The interface manager (ConsoleAddText hands a line to its console window, if any).
 
-// 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
-// 0079B5D8 present and active).
+// A network game is running (the server object is present and active).
 bool NetworkGame() { return IsMultiplayerClient(); }
 
-// 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
+// Posts WM_QUIT (when the game window exists).
 
 } // namespace
 
@@ -79,19 +78,16 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
-// 005DC200
 ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : Streambuf(buffer_, sizeof(buffer_)), filter_(filter) {}
 EI_REWRITTEN_SPECIAL(0x005DC200, ConsoleStreambuf::ConsoleStreambuf);
 
-// 005DC260
 ConsoleStreambuf::~ConsoleStreambuf() {}
 EI_REWRITTEN_SPECIAL(0x005DC260, ConsoleStreambuf::~ConsoleStreambuf);
 EI_REWRITTEN_SPECIAL(0x005DC240, ConsoleStreambuf::~ConsoleStreambuf);   // deleting
 
-// 005DC230
 int ConsoleStreambuf::Underflow() { return -1; }
 
-// 005DC150: moves the put area (and `c`, unless EOF) into the line, when this streambuf's
+// Moves the put area (and `c`, unless EOF) into the line, when this streambuf's
 // category is shown; a hidden category keeps its put area as it is. Always returns 0.
 int ConsoleStreambuf::Overflow(int c) {
     if (filter_ == 0 || (g_filterMask & filter_) != 0) {
@@ -106,7 +102,7 @@ int ConsoleStreambuf::Overflow(int c) {
 }
 EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 
-// 005DC1B0: overflow(EOF), the line to the console window, then empty it.
+// Overflow(EOF), the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_);
@@ -148,7 +144,7 @@ const CommandRegistration kCommandRegistrations[27] = {
     {false, "localrate", commands::LocalRate},
 };
 
-// 005DC620. Every call (re)registers all commands. The first token is the command; "@", "#" and
+// Every call (re)registers all commands. The first token is the command; "@", "#" and
 // "$" lines (cheat word given, not in a network game) become WorldScript lines. Other commands and
 // their arguments are lower-cased; "quit"/"exit" quit; otherwise the public map is tried, then the
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
@@ -165,7 +161,7 @@ void __fastcall Execute(const char* text) {
     command = args[0];
     args.RemoveAt(0, 1);
     bool local = !NetworkGame();
-    // Rebirth's AddNewConsoleCommands (context hook at 005DD565): addon's commands, registered
+    // Rebirth's AddNewConsoleCommands: addon's commands, registered
     // again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = command.GetString()[0];
@@ -209,7 +205,7 @@ void __fastcall Execute(const char* text) {
 }
 EI_REWRITTEN(0x005DC620, Execute);
 
-// 004DC200. States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
+// States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.
 int __fastcall Tokenize(const char* text, CStringArray* out) {
     std::string token;
@@ -262,7 +258,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
 }
 EI_REWRITTEN(0x004DC200, Tokenize);
 
-// 005DD800. The arguments are joined back with single spaces.
+// The arguments are joined back with single spaces.
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix) {
     ScriptErrorInfo error{};

@@ -1,5 +1,5 @@
-// The lightning noise table's load (00468A00; A-E1). Rebirth patches the function (it redirects the
-// file lookup, the call at 00468B16, to a mod folder's copy): this is the vanilla function and it
+// The lightning noise table's load. Rebirth patches the function (it redirects the
+// file lookup to a mod folder's copy): this is the vanilla function and it
 // installs in the vanilla launch only (rule 9). The lightning manager's Create calls it through
 // its address (LoadLightningNoiseOriginal). Main thread. See docs/notes/objects.md.
 #include "lightning.h"
@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <string>
 
-// 00468A00 (cdecl, no arguments). Opens <text folder>gfx.res and reads lightning.dat into the noise
+// Opens <text folder>gfx.res and reads lightning.dat into the noise
 // table, row by row through a memory stream (a short file leaves the rest zero-filled, as the
 // stream's Read does). Returns 0 when the archive does not open (no message), the fatal error's
 // result when the file is missing, else 1.
@@ -25,7 +25,7 @@ int __cdecl LoadLightningNoise() {
     {
         std::string folder = TheTextFolder().GetString();
         std::string path = folder + "gfx.res";
-        // Through the vtable: slot 1 is 00671730.
+        // Through the vtable.
         opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
     }
     if (!opened) return 0;

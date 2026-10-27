@@ -42,7 +42,7 @@ void Resolution(int* width, int* height) {
     char text[64] = {};
     DWORD size = sizeof(text) - 1, type = 0;
     if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == ERROR_SUCCESS && type == REG_SZ) {
-        // addon: its own CRT's sscanf; ours is the host CRT's (C26).
+        // addon: its own CRT's sscanf; ours is the host CRT's.
         sscanf_s(text, "%dx%d", width, height);
     }
 }
@@ -119,7 +119,7 @@ int EdgeShift() {
 }
 
 // addon's entry handlers (e.g. 10023344 at 00641F20: MOV EAX,[extra]; MOV [offset],EAX; 100232AF at
-// 00645F80: NEG EAX first) and exit handlers (10023359: MOV [offset],0).
+// NEG EAX first) and exit handlers (10023359: MOV [offset],0).
 void EnterLeftPanel() {
     if (Active()) SetPanelOffset(-Get().extra);
 }
@@ -192,7 +192,7 @@ void SetCurtainLook(CUiMesh* curtain, int visible) {
 }
 } // namespace
 
-// 100234AB / 100235BA: AddSprite(0) (005FF3C0) and SetRectangle (005E70E0) through their addresses;
+// 100234AB / 100235BA: AddSprite(0) and SetRectangle through their addresses;
 // FILD margin; FCHS for the left edge, FILD margin; FADD 800.0 (a double) for the right one.
 void AddCurtains(CUiWindow* window, int visible) {
     if (!Active()) return;

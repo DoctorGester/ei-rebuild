@@ -1,6 +1,6 @@
-// Item copies and item lists: CItem::Clone / CopyTo (0069FF70, 0069FFC0) and the subclasses' CopyTo
-// (006A0730, 006A3140, 006A3C50, 006A4540, 006A4B50, 006A57F0), the party's item list
-// (00661DB0, 00661F30) and the party unit records' four item lists (006608D0-00661000). See
+// Item copies and item lists: CItem::Clone / CopyTo and the subclasses' CopyTo
+// the party's item list
+// and the party unit records' four item lists (006608D0-00661000). See
 // party.h, item.h, unit.h and docs/notes/items_spells.md ("Party item lists").
 #include "base_manager.h"
 #include "item.h"
@@ -90,7 +90,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
 }
 
 
-// The subclasses' slot 15: the base copy (0069FFC0), then their own dwords.
+// The subclasses' slot 15: the base copy, then their own dwords.
 BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyTo(target, spells)) return 0;
     CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon

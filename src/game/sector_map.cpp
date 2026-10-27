@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr float kCellSize = 1.0f;   // 0073FDD0
+constexpr float kCellSize = 1.0f;
 constexpr float kZero = 0.0f;
 
 } // namespace
@@ -74,7 +74,7 @@ Sector::Sector() {
     Clear();
 }
 
-// 0059DF90: CArray<Sector>'s ConstructElements with the constructor inlined.
+// CArray<Sector>'s ConstructElements with the constructor inlined.
 void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) new (sectors) Sector();
@@ -166,7 +166,7 @@ bool CSectorMap::Remove(CMapObject* object) {
 
     bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
-        object->NotifyCompanion();   // 0050E930
+        object->NotifyCompanion();
         object->sectorCellX = -1;
         object->sectorCellY = -1;
     }
@@ -216,7 +216,6 @@ void RadiusTree::Build(const float* values, int count) {
 EI_REWRITTEN(0x005BF5F0, RadiusTree::Build);
 
 // ---- The spiral's tables ------------------------------------------------------------------------
-//
 // Built by a static initialiser, before the hooks are installed: the builder is registered at the
 // original's addresses, but a running game never calls it. What it builds was compared with the
 // original's tables once at start-up (verify_ai_static_tables.cpp until S21d).
@@ -298,7 +297,7 @@ void* __fastcall BuildSectorSpiral(void* self) {
 EI_REWRITTEN(0x005BF8F0, BuildSectorSpiral);
 
 // 005BF8E0, the static initialiser (cdecl) that builds the spiral at its place in the list. The object it passes
-// (007C2FB8) has no fields and nothing reads it.
+// has no fields and nothing reads it.
 void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
 EI_REPLACE(0x005BF8E0, BuildSectorSpiralStatic);
 

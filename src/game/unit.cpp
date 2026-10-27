@@ -16,19 +16,19 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                                   // 0073B858
-constexpr float kOne = 1.0f;                                    // 0073B84C
-constexpr float kSpeedByteScale = std::bit_cast<float>(0x3D20A0A1u);  // 0073EBC0 (1 / 25.5)
-constexpr float kTwo = 2.0f;                                    // 0073E9A4
-constexpr float kByteScale = std::bit_cast<float>(0x3B808081u);       // 0073C36C (1 / 255)
-constexpr float kThree = 3.0f;                                  // 0073BAA4
-constexpr float kTen = 10.0f;                                   // 0073BAAC
-constexpr float kNoPlayerValue = 1000000.0f;                    // 0073EBC4
-constexpr float kFastSpeedScale = std::bit_cast<float>(0x3FE66666u);  // 0073EBD0 (1.8)
-constexpr double kWalkSpeedScale = 0.7;                         // 0073EBC8 (a double)
-constexpr float kSlowModeScale = std::bit_cast<float>(0x3F333333u);   // 0073C538 (0.7)
-constexpr float kIdleScale = std::bit_cast<float>(0x3E4CCCCDu);       // 0073BAD4 (0.2)
-constexpr float kOverkill = -5.0f;                              // 0073DDC0
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
+constexpr float kSpeedByteScale = std::bit_cast<float>(0x3D20A0A1u);  // (1 / 25.5)
+constexpr float kTwo = 2.0f;
+constexpr float kByteScale = std::bit_cast<float>(0x3B808081u);       // (1 / 255)
+constexpr float kThree = 3.0f;
+constexpr float kTen = 10.0f;
+constexpr float kNoPlayerValue = 1000000.0f;
+constexpr float kFastSpeedScale = std::bit_cast<float>(0x3FE66666u);  // (1.8)
+constexpr double kWalkSpeedScale = 0.7;                         // (a double)
+constexpr float kSlowModeScale = std::bit_cast<float>(0x3F333333u);   // (0.7)
+constexpr float kIdleScale = std::bit_cast<float>(0x3E4CCCCDu);       // (0.2)
+constexpr float kOverkill = -5.0f;
 
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
@@ -276,7 +276,7 @@ double CUnit::TotalItemWeight() {
     for (CItem* item : armor) {
         if (item) total += ItemWeight(item);
     }
-    return total;   // unrounded (ST0)
+    return total;   // unrounded
 }
 EI_REWRITTEN(0x005307B0, CUnit::TotalItemWeight);
 
@@ -437,7 +437,7 @@ double CUnit::AnimationRatio() {
 }
 EI_REWRITTEN(0x00532E00, CUnit::AnimationRatio);
 
-double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded (ST0)
+double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded
 EI_REWRITTEN(0x005271C0, UnitParams::Period);
 
 // --- Map object state ------------------------------------------------------------------------

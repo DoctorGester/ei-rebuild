@@ -1,10 +1,9 @@
-// The item description panel (005EE6C0-005F2A80): what the camp, the multiplayer hero screen and
+// The item description panel: what the camp, the multiplayer hero screen and
 // the exchange window write about the item or statistic under the mouse. See ui_item_info.h and
 // docs/notes/ui.md ("Item descriptions").
-//
-// Each function draws text lines into the panel's surface 0 between Begin (005FDC00) and End
-// (005FDC60): Text (005FDE20, Rebirth-patched, called through its address) for single lines and
-// DrawWrappedText (005FDFA0) for the wrapped title and description. Values the original truncates
+// Each function draws text lines into the panel's surface 0 between Begin and End
+// Text (Rebirth-patched, called through its address) for single lines and
+// DrawWrappedText for the wrapped title and description. Values the original game truncates
 // with the game's _ftol are converted the same way; values of the statistics functions (UnitStats,
 // WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated as they come back in ST0: the ones the
 // original leaves unrounded are declared double there, so no rounding happens in between. Compiled
@@ -68,9 +67,9 @@ int MbsCmp(const char* a, const char* b) {
 // _ftol of a value as it is in ST0 (a statistic's result, kept unrounded).
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-constexpr float kPercentScale = 100.0f;   // 0073BAB0
-constexpr float kStatBase = 25.0f;        // 0073E124 (an attribute's neutral value)
-constexpr double kIntelligenceGrowth = 1.04;   // 0073E128
+constexpr float kPercentScale = 100.0f;
+constexpr float kStatBase = 25.0f;        // an attribute's neutral value
+constexpr double kIntelligenceGrowth = 1.04;
 
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the exponent a float minus `subtrahend`
 // (FSUB), the product with `scale`, all unrounded.
@@ -92,13 +91,13 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 
-// The text manager (007AF788; thiscall).
+// The text manager.
 struct Texts : CTextManager {
-    BOOL Open(const char* key);                          // 004DEFC0
-    BOOL NextLine();                                     // 004DF510
-    BOOL ReadLine(mfc::CString* out, BOOL advance);      // 004DF8D0
-    BOOL GetString(const char* name, mfc::CString* out); // 004E0020
-    BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
+    BOOL Open(const char* key);
+    BOOL NextLine();
+    BOOL ReadLine(mfc::CString* out, BOOL advance);
+    BOOL GetString(const char* name, mfc::CString* out);
+    BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);
 };
 BOOL Texts::Open(const char* key) { return CTextManager::Open(key); }
 BOOL Texts::NextLine() { return TextNextLine(this); }
@@ -109,10 +108,10 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-// Items and spells through their addresses (thiscall): the prototype record (006A0110), the
-// category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
-// (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
-// count (0068BA60, CSpell::GetModifierCount).
+// Items and spells through their addresses: the prototype record, the
+// category, a weapon's type (CItemWeapon::GetType) and damage weights
+// (CItemWeapon::GetDamageTypes); a spell's prototype and modifier
+// count (CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return item->GetPrototype();
 }
@@ -121,19 +120,19 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
 
-// The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
-// (PartyResetOriginal), filled by 00661DB0 (CParty::AddItem).
+// The panel's item list (+0x150) is a party object: emptied by
+// (PartyResetOriginal), filled by CParty::AddItem.
 
 } // namespace
 
-// --- 005F13A0 -----------------------------------------------------------------------------------------
+// --- ItemDamageLists --------------------------------------------------------------------------
 
 void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer) {
     Texts* texts = TextManager();
     out->SetSize(0, -1);
     mfc::CString value, above, below, key, text;
     float threshold = values[6];
-    // EI_Plugin's Fixes (005F1401): the jump over the integer format is always taken.
+    // EI_Plugin's Fixes: the jump over the integer format is always taken.
     if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
         value.Format("%d", FtolOf(threshold));
     else
@@ -213,7 +212,7 @@ public:
         Text(line);
         Down();
     }
-    // 005F13A0's lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
+    // The lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
     // "<infoitem_24> <those kinds>".
     void DamageLines(const float* values, int label) {
         CStringArray lists;
@@ -286,7 +285,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 } // namespace
 
-// --- 005EE760 ---------------------------------------------------------------------------------------
+// --- CItemInfoPanel::DescribeItem -----------------------------------------------------------
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
@@ -446,7 +445,7 @@ tail:
 }
 EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
-// --- 005EFD90: a material ------------------------------------------------------------------------
+// --- A material ------------------------------------------------------------------------
 
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
@@ -487,7 +486,7 @@ void CItemInfoPanel::DescribeMaterial() {
 }
 EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
-// --- 005F0370: a blueprint (a weapon, armour or quick item record) -----------------------------------
+// --- A blueprint (a weapon, armour or quick item record) -----------------------------------
 
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = Item();
@@ -564,7 +563,7 @@ void CItemInfoPanel::DescribeBlueprint() {
 }
 EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 
-// --- 005F0B90: a spell record ---------------------------------------------------------------------
+// --- A spell record ---------------------------------------------------------------------
 
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = Item();
@@ -610,7 +609,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
 }
 EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
 
-// --- 005F1130: a spell modifier record ------------------------------------------------------------
+// --- A spell modifier record ------------------------------------------------------------
 
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = Item();
@@ -629,7 +628,7 @@ void CItemInfoPanel::DescribeModifierRecord() {
 }
 EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
 
-// --- 005EF300: a quick item of category 8 (its spell's level and duration) ------------------------
+// --- A quick item of category 8 (its spell's level and duration) ------------------------
 
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = Item();
@@ -650,13 +649,13 @@ void CItemInfoPanel::DescribeQuickItem() {
 }
 EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
 
-// --- 005EF5D0: the spell an item carries (or a spell container) -----------------------------------
+// --- The spell an item carries (or a spell container) -----------------------------------
 
 void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     CSpell* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        surfaces_.data[0]->ReleaseDC();   // without a Begin, as the original
+        surfaces_.data[0]->ReleaseDC();   // without a Begin, as the original game does
         return;
     }
     Texts* texts = TextManager();
@@ -694,7 +693,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     if (spell->targetFlags_ & 0x10000000) {
         w.line.Format("%s %s", w.T(11).GetString(), w.T(22).GetString());
     } else {
-        // The area: pi * r * r in that order (FLD r; FLD pi; FMUL ST1; FMUL ST1).
+        // The area: pi * r * r in that order.
         double radius = D(spell->radius_);
         double area = D(3.1415927f /*007402C0*/) * radius * radius;
         w.line.Format("%s %.1f%s", w.T(11).GetString(), area, w.T(26).GetString());
@@ -737,7 +736,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
 }
 EI_REWRITTEN(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 
-// --- 005F1590: the statistic under the mouse ----------------------------------------------------------
+// --- The statistic under the mouse ----------------------------------------------------------
 
 namespace {
 
@@ -999,7 +998,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
-// --- 005F2910: a camp help topic ----------------------------------------------------------------------
+// --- A camp help topic ----------------------------------------------------------------------
 
 void CItemInfoPanel::ShowHelp(int topic) {
     reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
@@ -1021,10 +1020,10 @@ void CItemInfoPanel::ShowHelp(int topic) {
 }
 EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 
-// --- 005EE6C0: describe an item ---------------------------------------------------------------------
+// --- Describe an item ---------------------------------------------------------------------
 
 void CItemInfoPanel::Describe(CItem* item) {
-    // Nothing to do when the described item is the same (its virtual slot 14, IsSameAs).
+    // Nothing to do when the described item is the same (IsSameAs).
     if (itemCount_ && items_[0] && item) {
         if (items_[0]->IsSameAs(item)) return;
     }
@@ -1034,7 +1033,7 @@ void CItemInfoPanel::Describe(CItem* item) {
 }
 EI_REWRITTEN(0x005EE6C0, CItemInfoPanel::Describe);
 
-// --- Input side (window + 0x94): 005EE6B0 slot 1, 005EE640 key down, 005EE680 key up ------------------
+// --- Input side (window + 0x94): slot 1, key down, key up ------------------
 
 void CItemInfoPanel::OnKeyDown(int key, int, int flags) {
     // Not a repeat: bit 14 of the flags is the key's previous state.
@@ -1048,14 +1047,14 @@ void CItemInfoPanel::OnKeyUp(int key, int, int) {
 namespace {
 CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(static_cast<std::uint8_t*>(input) - 0x94); }
 
-// 005EE6B0 (input slot 1): redraws the description.
+// Redraws the description.
 void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
 } // namespace
 EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);
 EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
 EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
 
-// --- 005EE440: Build ------------------------------------------------------------------------------
+// --- Build ------------------------------------------------------------------------------
 
 CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {
     new (ItemParty()) CParty();

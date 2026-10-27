@@ -20,7 +20,7 @@ struct QuestBriefingRecord;   // quest_records.h
 
 namespace worlddata {
 
-// ---- CreateUnits (0058EF20) --------------------------------------------------------------------
+// ---- CreateUnits --------------------------------------------------------------------
 
 inline const char* StartZoneText() { return "zone1"; }
 inline const char* ScriptBeginText() { return "WorldScript("; }
@@ -51,19 +51,19 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
+// ---- UseQuickItem -------------------------------------------------------------------
 
 inline const char* QuickEffectPrototype() { return "st.tr.130"; }
 inline const char* QuickEffectModel() { return "unhuma"; }
 
-// ---- CreateObject (005927C0) -------------------------------------------------------------------
+// ---- CreateObject -------------------------------------------------------------------
 
 inline const char* CampfireText() { return "campfire"; }
 inline const char* NoWaveNameText() { return "Adding sound without wave name"; }
 inline float CampfireHeight() { return 0.7f /*0073C538*/; }   // 0.7
 inline float TorchLightScale() { return 10.0f /*0073BAAC*/; }  // the flame's radius factor (10)
 
-// ---- The client world's Setup (00561E50) --------------------------------------------------------
+// ---- The client world's Setup --------------------------------------------------------
 
 // The textures' folder under the text folder (TheTextFolder) and the lights table.
 inline const char* TexturesFolderText() { return "textures\\"; }
@@ -76,7 +76,7 @@ inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // sets its flag 0x200.
 inline int ShadowSetting() { return static_cast<const volatile int&>(options::TheOptions()->shadowQuality_); }
 
-// ---- The client world's zone load (00567AB0) ----------------------------------------------------
+// ---- The client world's zone load ----------------------------------------------------
 
 inline const char* DefaultAllodText() { return "gipat"; }
 // "Can't load terrain or map file "%s"." and a line end
@@ -88,7 +88,7 @@ inline const char* CaveText() { return "Cave"; }
 inline const char* IniSuffixText() { return ".ini"; }
 inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
-// Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
+// Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
 inline int AudioOption() { return static_cast<const volatile int&>(options::TheOptions()->audio_); }
@@ -99,29 +99,29 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
-// ---- CWorld::Create (0055EE40) -----------------------------------------------------------------
+// ---- CWorld::Create -----------------------------------------------------------------
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base
-// folder; game_singletons.h) are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their text
+// folder; game_singletons.h) are set from (their text
 // pointers).
 inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
 inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }
 
-// ---- The client's Segment (005641F0) ------------------------------------------------------------
+// ---- The client's Segment ------------------------------------------------------------
 
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
-// The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
-// 006B7A00; the last is the movies' volume, bink_video.cpp).
+// The volume settings the sound manager takes on the client's tenth tick (
+// The last is the movies' volume, bink_video.cpp).
 inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
 inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
 inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
 // The party's fight state the client world keeps (2: fighting; sound_music.cpp, world_client.cpp).
 int FightState();
-// The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
-// period (0078FF34) per tick and restarts at 0079BD24.
+// The light effects' grey levels: on when its setting is set; the countdown takes the world update
+// period per tick and restarts at its start value.
 inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
 // The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
 inline int g_updatePeriod = /*0078FF34*/ 55;
@@ -130,7 +130,7 @@ inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFre
 // The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
 // from (its distance to the sun), the origin; the picking returns it without a view matrix.
 CLight* SceneSun();
-// R16i: the scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
+// The scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
 // view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
 const Matrix4* SceneCamera();
 inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};
@@ -158,7 +158,7 @@ inline const char* MercHiredFormat() { return "amerc_%i"; }
 inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )"; }
 inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]
-// 004297A0: stlp::NamedSlot).
+// Stlp::NamedSlot).
 stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();   // database_globals.cpp
 // ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }

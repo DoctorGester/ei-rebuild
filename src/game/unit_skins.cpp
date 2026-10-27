@@ -160,7 +160,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16);
         mfc::CString name;
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
-        WeaponRecordModelName(&name, weapon, material);   // 006A0BF0
+        WeaponRecordModelName(&name, weapon, material);
         AppendName(model, name, buffer);
     }
     set.textures.SetAtGrow(set.textures.GetSize(), buffer);
@@ -178,7 +178,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     lib::InPlace<RecordList> listStorage;
     RecordList& list = *listStorage.Get();
-    list.ConstructEmpty();   // 0056F570
+    list.ConstructEmpty();
     lib::InPlace<SkinComposition> setStorage;
     SkinComposition& set = *setStorage.Get();
     set.layers.Construct();
@@ -224,8 +224,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     }
 
     set.textures.~CStringArray();
-    set.layers.FreeData();   // 0051E5B0
-    list.FreeStorage();   // 0056F590
+    set.layers.FreeData();
+    list.FreeStorage();
 }
 
 // --- The other units -----------------------------------------------------------------------------
@@ -258,13 +258,13 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     lib::InPlace<StringList> secondStorage;
     StringList& first = *firstStorage.Get();
     StringList& second = *secondStorage.Get();
-    first.ConstructEmpty();   // 0053BB80
+    first.ConstructEmpty();
     second.ConstructEmpty();
 
     const mfc::CString* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
         CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
-                               &second);   // 00535CB0
+                               &second);
     } else {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
@@ -287,9 +287,9 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     }
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
-    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);   // 0053BF40
+    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);
     for (stlp::string* s = first.Start(); s != first.Finish(); ++s) s->~string();   // 004DDC90 with 0
-    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);   // 0053BF40
+    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);
 }
 
 } // namespace
@@ -316,7 +316,7 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
     const TextureRecord empty = {0, kNone, kNone};
     const std::uint32_t* ids = items.Start();
     if (body) {
-        list->Resize<stlp::PlainElement<TextureRecord>>(8, empty);   // 0056F360
+        list->Resize<stlp::PlainElement<TextureRecord>>(8, empty);
         TextureRecord* out = list->Start();
         out[0].id = record->prototype;
         out[0].kind = kBody;

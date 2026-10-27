@@ -7,7 +7,6 @@
 // behaviour: every step follows STLport's (same comparisons in the same order, same moves). Every
 // scan the original leaves unguarded is unguarded here too: with a comparator that is not a strict
 // weak ordering they run off the array.
-//
 // Element copies follow STLport's too, for elements whose copies allocate (the save list's entries
 // copy CStringArrays) or whose comparison does (the objectives' quest lookups): every by-value
 // argument and local of STLport's helpers is a Held copy that lives exactly as long (a by-value
@@ -42,7 +41,7 @@ private:
     alignas(T) unsigned char storage_[sizeof(T)];
 };
 
-// copy_backward(first, last, result) (e.g. 00657D50): [first, last) assigned to the elements before
+// copy_backward(first, last, result): [first, last) assigned to the elements before
 // `result`, from the last; returns the first one written.
 template <typename T, typename Ops = ValueOps<T>>
 T* CopyBackward(T* first, T* last, T* result) {

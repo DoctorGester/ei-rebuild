@@ -1,4 +1,4 @@
-// The performance overlay (render_perf.cpp, R21): its text image (one channel: 0 the box, else the text's
+// The performance overlay (render_perf.cpp): its text image (one channel: 0 the box, else the text's
 // brightness) scaled up by whole pixels over the back buffer, the box translucent black.
 cbuffer vs_params : register(b0) {
     float4 rect;     // left, top, right, bottom (back buffer pixels)

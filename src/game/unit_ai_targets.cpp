@@ -1,6 +1,6 @@
-// The unit AI's target choice: scoring an attack option against a unit (005CF9A0), whether an
-// option may be used (005CF7F0), choosing the best target (005D0030), and the orders it checks
-// (00545F40, 005CF720, 005CF780), and whether the unit can get at a target (005CF3C0).
+// The unit AI's target choice: scoring an attack option against a unit, whether an
+// option may be used, choosing the best target, and the orders it checks
+// and whether the unit can get at a target.
 #include "sector_map.h"
 #include "unit_ai.h"
 #include "combat.h"
@@ -25,24 +25,24 @@
 #include <vector>
 
 namespace {
-constexpr float kCurrentBonus = 10.0f;          // 0073FF04
-constexpr float kGroupBase = 3.0f;              // 0073FF08
-constexpr float kDamageWeight = 1.0f;           // 0073FF0C
-constexpr float kGroupDamageWeight = 1.3f;      // 0073FF10 (0x3FA66666)
-constexpr float kHealFactor = 3.0f;             // 0073FF14
-constexpr float kDistanceWeight = 25.0f;        // 0073FF18
-constexpr float kHitWeight = 2.0f;              // 0073FF1C
-constexpr float kHealGroupBase = 2.0f;          // 0073CDB8
-constexpr float kOne = 1.0f;                    // 0073B84C
-constexpr float kZero = 0.0f;                   // 0073B858
-constexpr float kHalf = 0.5f;                   // 0073B86C
-constexpr float kAllyNear2 = 49.0f;             // 0073FF28: allies within 7 of an area target
-constexpr float kPathNear = 30.0f;              // 0073FEFC
+constexpr float kCurrentBonus = 10.0f;
+constexpr float kGroupBase = 3.0f;
+constexpr float kDamageWeight = 1.0f;
+constexpr float kGroupDamageWeight = 1.3f;      // (0x3FA66666)
+constexpr float kHealFactor = 3.0f;
+constexpr float kDistanceWeight = 25.0f;
+constexpr float kHitWeight = 2.0f;
+constexpr float kHealGroupBase = 2.0f;
+constexpr float kOne = 1.0f;
+constexpr float kZero = 0.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area target
+constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
-const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
-const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
+const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // -1e30
+const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // and the starting best: -1e20
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
@@ -115,7 +115,6 @@ void AIOrder::MakeCast(int spell, CMapObject* object) {
 }
 EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 
-// 005CF3C0
 bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
     ScopedPath local;
     CUnit* self = brain->owner->unit;

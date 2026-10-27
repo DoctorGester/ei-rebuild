@@ -1,7 +1,7 @@
 #pragma once
 
 // Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are
-// game records with their own copy constructor, operator= and destructor (S10a), and the
+// game records with their own copy constructor, operator= and destructor, and the
 // VectorAbi types record_vectors.cpp registers at the instantiations' addresses
 // (verify_record_vectors.cpp checked them until S21d). docs/notes/standalone.md, S10a.
 
@@ -157,7 +157,7 @@ struct UnitLevelElement : records::Memberwise<UnitLevelRecord, &UnitLevelRecord:
     static void Destroy(UnitLevelRecord* p) { p->name.~CString(); }
 };
 
-// The skill database: 005209D0's copies (00521C70) and 00520B20's (00521E20; +0x41..+0x43 are not
+// The skill database: 005209D0's copies and 00520B20's (00521E20; +0x41..+0x43 are not
 // copied); the destructors are S13's.
 struct SkillElement : records::Memberwise<SkillRecord, &SkillRecord::name, &SkillRecord::field1, &SkillRecord::field2,
                                           &SkillRecord::statNames> {
@@ -180,7 +180,7 @@ using SkillLevelVector = stlp::VectorAbi<SkillLevelRecord, SkillLevelElement>;
 // ---- A zone's unit looks (unit_looks.h; world_unit_set.cpp's 0055A400 / 0055A580) --------------
 
 // The figured units' records (0055D5A0's copies; +0x02 and +0x1D..+0x1F are not copied): the head,
-// then the texture names, CStrings declared as their data pointers. The destructor (00559B30):
+// then the texture names, CStrings declared as their data pointers. The destructor:
 // the names and their storage, then the weapon and armour ids' storage.
 struct FiguredUnitElement {
     using R = FiguredUnitRecord;
@@ -207,7 +207,7 @@ struct FiguredUnitElement {
     }
 };
 
-// The dressed units' records (0055D7F0's copies); the destructor (00559DE0): both id lists'
+// The dressed units' records (0055D7F0's copies); the destructor: both id lists'
 // storage, the last first.
 struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitRecord::prototype, &DressedUnitRecord::items,
                                                 &DressedUnitRecord::extraWeapons, &DressedUnitRecord::extraWeapon,
@@ -245,7 +245,7 @@ using Print2Vector = stlp::VectorAbi<PrintRecord2, PrintElement<PrintRecord2>>;
 
 // ---- acks.db's speech lists (acks_db.h; acks_db.cpp's 006E4560 / 006E47F0) ----------------------
 
-// A speech: memberwise (the chance left as it is by default); the destructor (006E3330) the
+// A speech: memberwise (the chance left as it is by default); the destructor the
 // strings from the last.
 struct SpeechElement : records::Memberwise<SpeechRecord, &SpeechRecord::chance, &SpeechRecord::sound,
                                            &SpeechRecord::text, &SpeechRecord::name> {
@@ -407,7 +407,7 @@ using ReplicatedVector = stlp::VectorAbi<net::Replicated, ReplicatedElement>;
 
 // ---- The client party's engine objects (net_client_party.cpp's 00428A20) -------------------------
 
-// Counted engine object pointers: a copy adds a reference (004298F0), the destructor releases a
+// Counted engine object pointers: a copy adds a reference, the destructor releases a
 // held object through its slot 4 (CEngineObject::Release). Only _M_insert_overflow is out of line.
 struct EngineObjectRefElement {
     static void Construct(CEngineObject** to, CEngineObject* const& from) {
@@ -480,7 +480,7 @@ using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotEl
 // ---- The UI's lists (ui.h, ui_camp.h, ui_screens.h) ---------------------------------------------
 
 // The save list's entries (ui_saveload.cpp's 006578F0 / 006579C0): the compiler's copy constructor
-// 00656640, operator= 006538E0 and destructor 00656720 (S13).
+// 00656640, operator= 006538E0 and destructor 00656720.
 struct SaveEntryElement {
     static void Construct(SaveEntry* to, const SaveEntry& from) { to->CopyConstruct(&from); }
     static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
@@ -511,7 +511,7 @@ struct OptionBindingElement : records::Memberwise<OptionBinding, &OptionBinding:
 using SaveEntryVector = stlp::VectorAbi<SaveEntry, SaveEntryElement>;
 using MpAddressVector = stlp::VectorAbi<MpAddressEntry, MpAddressElement>;
 using TradeRowVector = stlp::VectorAbi<TradeRow, TradeRowElement>;
-using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records (0062A0B0)
+using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records
 using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>;
 
 // ---- The game flow's zone table (world_game.cpp's 00587480) ------------------------------------

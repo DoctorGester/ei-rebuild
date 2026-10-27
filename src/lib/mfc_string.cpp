@@ -19,7 +19,7 @@ namespace mfc::impl {
 #ifndef EI_VECTORS_REPLAY
 namespace {
 
-// The shared empty string: _afxInitData {-1, 0, 0} (game.exe's 00796E50) and its characters right after it.
+// The shared empty string: _afxInitData {-1, 0, 0} and its characters right after it.
 struct NilString {
     CStringData data;
     char chars[4];
@@ -114,7 +114,7 @@ void CFixedAlloc::Free(void* block) {
 #ifndef EI_VECTORS_REPLAY
 // The string allocators, zero at the start: each built by its static initialiser in the list's order (a block's size is
 // the string's room, the header and the terminator, rounded up to 16 bytes) and destroyed by the exit function it
-// registers; both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// registers (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CFixedAlloc> g_stringAlloc512 = /*007C8B08*/ {};
 constinit lib::StaticObject<CFixedAlloc> g_stringAlloc256 = /*007C8B30*/ {};
@@ -123,23 +123,23 @@ constinit lib::StaticObject<CFixedAlloc> g_stringAlloc64 = /*007C8B80*/ {};
 
 namespace {
 constexpr unsigned kStringAllocBlock = 64;
-void __cdecl DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }     // 0070073D
-void __cdecl DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }   // 0070076F
-void __cdecl DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }   // 007007A1
-void __cdecl DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }   // 007007D3
-void __cdecl ConstructStringAlloc64() {                                  // 00700718
+void __cdecl DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }
+void __cdecl DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }
+void __cdecl DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }
+void __cdecl DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }
+void __cdecl ConstructStringAlloc64() {
     g_stringAlloc64->Construct(0x50, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc64);
 }
-void __cdecl ConstructStringAlloc128() {                                 // 00700747
+void __cdecl ConstructStringAlloc128() {
     g_stringAlloc128->Construct(0x90, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc128);
 }
-void __cdecl ConstructStringAlloc256() {                                 // 00700779
+void __cdecl ConstructStringAlloc256() {
     g_stringAlloc256->Construct(0x110, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc256);
 }
-void __cdecl ConstructStringAlloc512() {                                 // 007007AB
+void __cdecl ConstructStringAlloc512() {
     g_stringAlloc512->Construct(0x210, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc512);
 }
@@ -755,7 +755,6 @@ void __stdcall DestructStrings(CString* elements, int count) {
 }
 
 // ---- Registrations ------------------------------------------------------------------------------
-//
 // Constructors and the destructor are registered through shims (a member pointer cannot name them).
 
 CString* CString::ConstructText(const char* text) { return ::new (this) CString(text); }

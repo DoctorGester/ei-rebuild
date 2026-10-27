@@ -1,5 +1,5 @@
-// Destructors of the battle HUD's panels (00635CA0, 00635D00, 00635E00, 0063BC70, 0063CA70, 0063E460,
-// 0063F490), with the original's deleting destructors and the input sides' copies (SUB ECX,0x94; JMP). See ui.h
+// Destructors of the battle HUD's panels,
+// with the deleting destructors and the input sides' copies. See ui.h
 // and docs/notes/ui.md.
 #include "ui.h"
 
@@ -52,7 +52,7 @@ EI_REWRITTEN_SPECIAL(0x00635CA0, CHudMap::~CHudMap);
 EI_REWRITTEN_SPECIAL(0x00635C80, CHudMap::~CHudMap);   // deleting
 EI_REWRITTEN_SPECIAL(0x0064BD50, CHudMap::~CHudMap);   // the input side's
 
-// The two strings go after the body (strings_[1] first), as in the original.
+// The two strings go after the body (strings_[1] first).
 CHudUnitPanel::~CHudUnitPanel() {
     partLabels_.Destruct();
     texts_.Destruct();

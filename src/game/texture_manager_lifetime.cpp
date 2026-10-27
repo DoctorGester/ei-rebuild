@@ -72,7 +72,7 @@ int CTextureManager::Create() {
     BOOL opened = AddArchive((folder + "textures.res").c_str());
     opened = AddArchive((folder + "redress.res").c_str()) && opened ? 1 : 0;
     if (!AddArchive((folder + "menus.res").c_str()) || !opened) return 0;
-    // Rebirth's ResOverride (006915EF): when all three opened, the mod's texture archives follow.
+    // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path.c_str());
     }

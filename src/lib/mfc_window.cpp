@@ -29,14 +29,14 @@ bool IsStaticWindow(const CWnd* wnd) {
 CFixedAlloc& TempWndAlloc() { return *g_tempWndAlloc; }
 CFixedAlloc& TempMenuAlloc() { return *g_tempMenuAlloc; }
 
-// The DragList message's id (wincore.cpp's nMsgDragList): CWnd's message map entry for it (ON_REGISTERED_MESSAGE,
-// 00746C80) points at it.
+// The DragList message's id (wincore.cpp's nMsgDragList): CWnd's message map entry for it ON_REGISTERED_MESSAGE,
+// points at it.
 constinit unsigned g_dragListMessage = /*007CAA64*/ {};
 
-// 007043FA, a static initialiser (cdecl; the list holds a jump to its body 007043FF).
+// a static initialiser (cdecl; the list holds a jump to its body).
 void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
-// CTempWnd (game.exe's 00746EC4; 0: 0070D3C8, deleting destructor 0070D3A3): ~CWnd, the memory back to the fixed
+// CTempWnd (game.exe's): ~CWnd, the memory back to the fixed
 // allocator.
 class CTempWnd final : public CWnd {
 public:
@@ -45,10 +45,10 @@ public:
     static void operator delete(void* block) { TempWndAlloc().Free(block); }
 };
 
-// CTempMenu (game.exe's 00747214; 0: 0070DD05).
+// CTempMenu.
 class CTempMenu final : public CMenu {
 public:
-    // 0070DCBC (deleting): unported, as ~CMenu.
+    // Unported, as ~CMenu.
 #pragma warning(suppress : 4722)   // the unported body does not return
     ~CTempMenu() override { ei::UnportedSlot(0x0070DCBC); }
     const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempMenu; }
@@ -75,7 +75,7 @@ CCmdTarget::~CCmdTarget() {
 CWnd::CWnd(HWND handle) : window(handle) {}
 
 CWnd::~CWnd() {
-    // CWnd::DestroyWindow (007051A1) is not ported: the image makes MFC's four static windows only.
+    // CWnd::DestroyWindow is not here: the image makes MFC's four static windows only.
     if (window && !IsStaticWindow(this)) ei::UnportedSlot(0x007051A1);
     delete controlContainer;
     if (controlSite && controlSite->windowControl == this) controlSite->windowControl = nullptr;

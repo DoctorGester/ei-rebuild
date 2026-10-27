@@ -1,5 +1,4 @@
-// The options loader (0045B210) and writer (0045C560). See options.h.
-//
+// The options loader and writer. See options.h.
 // Every value is read through the game's registry key helper (006972A0-006988A0, not rewritten),
 // in the original's order; a value that is missing keeps the field's current value, which is
 // passed as the default.
@@ -39,13 +38,13 @@ int Text::FindChar(int c) const { return mfc::CString::Find(static_cast<char>(c)
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 
 constexpr std::uint32_t kCurrentUser = 0x80000001;   // HKEY_CURRENT_USER
-constexpr float kTimes255 = 255.0f;           // 0073C370
+constexpr float kTimes255 = 255.0f;
 constexpr float kOver255 = 1.0f / 255.0f;     // 0073C36C (0x3B808081)
 
 float FloatAt(const void* p) { return *static_cast<const float*>(p); }
 
 // _ftol(*value * *factor): the product rounded only by the FPU's precision, then truncated by the
-// game's _ftol (006E853C).
+// game's _ftol.
 int FtolProduct(const void* value, float factor) {
     return static_cast<int>(gamecrt::Ftol(static_cast<double>(FloatAt(value)) * factor));
 }
@@ -423,7 +422,7 @@ void GameOptions::SaveToRegistry(const char* path) {
     key.SetDWord(s.Key(&GameOptions::keyGame_), "Difficulty Level", static_cast<int>(s.Bits(field::kDifficulty + 4)));
     s.Write(kDefaultValues);
     s.Write(kFogValues);
-    // EI_Plugin's NewMaster NOPs these 42 bytes (0045D330): the Master Server Name is not saved.
+    // EI_Plugin's NewMaster NOPs these 42 bytes: the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         SetString(key, s.Key(&GameOptions::keyNetwork_), "Master Server Name", s.String(&StringOf<&GameOptions::masterServerName_>));
     key.Close();

@@ -29,7 +29,7 @@ struct ShapeCacheHash {
     std::size_t operator()(const ShapeCacheHandle& handle) const { return handle.key; }
 };
 
-// A real virtual class (C19): the compiler makes its one-slot table (game.exe's 0073FD58 is retired).
+// A real virtual class: the compiler makes its one-slot table (game.exe's 0073FD58 is retired).
 class UnitShapeCache {
 public:
     CRefObject* Get(void* handleIn);
@@ -54,14 +54,14 @@ public:
 static_assert(sizeof(UnitShapeCache::Map::Node) == 0x18);
 static_assert(offsetof(UnitShapeCache, shapes) == 8 && sizeof(UnitShapeCache) == 0x1C);
 
-// The map's pair, pair<const handle, RefPtr> (S13, ai_movement.cpp; compiler-written).
+// The map's pair, pair<const handle, RefPtr> (ai_movement.cpp; compiler-written).
 struct ShapePair : UnitShapeCache::Map::Pair {
-    // 005BE370 (RET 8): constructed from a handle (copied, its reference added) and a RefPtr
+    // Constructed from a handle (copied, its reference added) and a RefPtr
     // (shared: RefPtr::Share). Returns this.
     ShapePair* Construct(const ShapeCacheHandle* from, const RefPtr* shared);
 };
 static_assert(sizeof(ShapePair) == 0x14);
-// 005BE280: destroyed, the value released as its owner (RefPtr::Destroy), then the handle's
+// Destroyed, the value released as its owner (RefPtr::Destroy), then the handle's
 // reference dropped.
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 

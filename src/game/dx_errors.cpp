@@ -189,7 +189,7 @@ EI_REWRITTEN(0x00480B80, DirectXErrorText);
 
 namespace {
 
-// 00787EE4: "%s (0x%.8X) %s".
+// "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
 // The original's stack buffers (wvsprintf writes at most 1024 characters; the sprintf of 00480300

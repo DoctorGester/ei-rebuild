@@ -1,6 +1,6 @@
 // The Player mode's fighting and party code (party units, PlayerMode::Execute's helpers): choosing
-// whom to fight (005D4170), the party's targets (005D3F50), the party itself (005D4600) and
-// whether the unit's followers keep up (005D4860).
+// whom to fight, the party's targets, the party itself and
+// whether the unit's followers keep up.
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -24,8 +24,8 @@ constexpr int kAttackHow = 6;
 constexpr int kAttackFlags = 0x1C;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
 constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
-constexpr float kReachScale = std::bit_cast<float>(0x3F8CCCCDu);    // 0073BAC4 (1.1)
-constexpr float kOne = 1.0f;                                    // 0073B84C
+constexpr float kReachScale = std::bit_cast<float>(0x3F8CCCCDu);    // (1.1)
+constexpr float kOne = 1.0f;
 constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
@@ -63,7 +63,7 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     order.target = nullptr;
     order.Clear();
     if (clearTwice) {
-        // 005D4170's second attack builds the order by hand after a second Clear.
+        // 's second attack builds the order by hand after a second Clear.
         order.Clear();
         order.kind = 3;
         order.source = kAttackHow;

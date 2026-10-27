@@ -14,11 +14,11 @@ using BOOL = int;
 
 class CStream;
 
-// 00461360. Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
+// Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
 // h % 1000000000 + 1000000000. __fastcall (name in ECX).
 int __fastcall TextKeyFromName(const char* name);
 
-// 004613A0. Text keys are 1000000000..1999999999. __fastcall (id in ECX).
+// Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL __fastcall IsTextKey(int id);
 
 // One "#allod" entry of map.txt (0x2C bytes; constructed by 00460720).
@@ -92,7 +92,7 @@ struct MapRecord {
     mfc::CString map;       // +0x0C the .mpr map without extension ("" = none)
     mfc::CString figure;    // +0x10 the "#figure" line
     mfc::CString picture2;  // +0x14 the "#maps" second line's second word
-    mfc::CString picture;   // +0x18 its first word, the HUD map's texture (00641F20)
+    mfc::CString picture;   // +0x18 its first word, the HUD map's texture
     mfc::CString camera;    // +0x1C the "#camera" line
     int sizeX;              // +0x20 "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY;              // +0x24
@@ -119,9 +119,9 @@ static_assert(sizeof(MapRecord) == 0x5C);
 // The map database loaded from map.txt / map_LMP.txt (global at 0079BF00; constructor 0045E820,
 // loader 0045EA20).
 struct CMapDatabase {
-    // 0045E850. Map named `name` (_mbsicmp), or null.
+    // Map named `name` (_mbsicmp), or null.
     MapRecord* FindMap(const char* name);
-    // 0045E910. Allod named `name` (_mbsicmp), or null.
+    // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(const char* name);
     // 0045EA20 (map_database.cpp). Adds the allods and maps of a map.txt-style text file. Returns
     // false if the file is not found.
@@ -144,41 +144,41 @@ struct CMapDatabase {
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
 
-// The game's map database (0079BF00).
+// The game's map database.
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
 // STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are registered in
 // stlp_hash.cpp), nodes {next, key, value}, with the named-variable members the game adds.
 struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
-    // hash_map() (00581790): 100 buckets.
+    // hash_map(): 100 buckets.
     void ConstructDefault() { Construct(100, 0, 0, 0); }
-    // operator[] (004613C0): the value under `key`, a new zero one when absent.
+    // operator[]: the value under `key`, a new zero one when absent.
     float& operator[](const mfc::CString& key) {
         stlp::CStringFloat entry(key);
         return FindOrInsert(entry).mapped;
     }
 
-    // 00460AF0. Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name
+    // Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name
     // first, as the original does.
     float Get(const char* name);
-    // 00460BC0 (RET 8). Stores `value` under `name`; a zero value (or NaN: the original's FCOMP
+    // Stores `value` under `name`; a zero value (or NaN: the original's FCOMP
     // test) removes the entry instead. Nothing for an empty name.
     void Set(const char* name, float value);
-    // 00460DB0 (RET 4). Removes the entry stored under `name`.
+    // Removes the entry stored under `name`.
     void Remove(const char* name);
-    // 00460EE0 (RET 8). Empties `out`, then copies into it every entry whose name starts with
+    // Empties `out`, then copies into it every entry whose name starts with
     // `prefix` (strncmp over the prefix's length).
     void CopyPrefixed(const char* prefix, NamedFloatTable* out);
-    // 00460FE0 (RET 4). Empties the table, then reads {zero-terminated name, float} pairs from the
+    // Empties the table, then reads {zero-terminated name, float} pairs from the
     // stream up to an empty name (compared with the exe's empty string, 0079B298).
     void Load(CStream* stream);
-    // 00461260 (RET 4). Writes each entry (name with its zero, then the value), in bucket order,
+    // Writes each entry (name with its zero, then the value), in bucket order,
     // then an empty name.
     void Save(CStream* stream);
 };
 static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTable) == 0x14);
 
-// Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` (00461540) but keeps
+// Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` but keeps
 // its "gvar." entries, set again in the order addon's own container gives them.
 void ClearVariablesKeepingGlobals(NamedFloatTable* table);
 
@@ -197,6 +197,6 @@ static_assert(sizeof(UiKeyName) == 0x48);
 constexpr int kUiKeyNameCount = 88;
 extern UiKeyName g_keyNames[kUiKeyNameCount];
 
-// 00462F70. The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
+// The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
 // has `key` in g_keyActions, or null. __fastcall (key in ECX).
 void* __fastcall FindCommandByKey(int key);

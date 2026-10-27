@@ -36,6 +36,8 @@ rem One address, one registration per kind (replacement, recorder), read from th
 python "%~dp0tools\check_registrations.py" --dll "%OUT%\ei_hook.dll" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1
+rem Addresses and ticket ids in comments may only go down per file (docs/comment-guide.md, C22).
+python "%~dp0tools\comments.py" check || exit /b 1
 rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,
 rem the rest per file no more than config/data_seam.csv allows.
 python "%~dp0tools\data_seam.py" --check || exit /b 1

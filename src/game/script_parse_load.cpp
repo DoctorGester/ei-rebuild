@@ -1,7 +1,6 @@
 // Script loader, part 2: the parser. CScript::Load preprocesses the text (#define), tokenizes it
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
 // below build the SSCCmd trees. See script.h and docs/notes/script.md ("Loader and parser").
-//
 // Calls between loader functions go through the original addresses (Original below): Rebirth
 // patches LoadFunction, LoadCommands and the keyword lookups (they install only in the vanilla
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
@@ -54,7 +53,7 @@ namespace {
 // SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
 void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pairs->SetSize(size, growBy); }
 
-// 004CA260: the token list's destructor (gamelists::Tokens').
+// The token list's destructor (gamelists::Tokens').
 void TokensDestruct(ScriptTokenList* tokens) {
     gamelists::Tokens::Destruct<gameslots::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
 }
@@ -200,7 +199,7 @@ struct LocalDefinition {
         ScriptDefinition* d = Get();
         new (&d->name) mfc::CString;
         new (&d->params) mfc::CString;
-        d->ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();   // 004D5A30
+        d->ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         d->ifThen.data = nullptr;
         d->ifThen.size = 0;
         d->ifThen.maxSize = 0;
@@ -846,7 +845,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         }
     }
 
-    if (worldScript && runWorldScript) RunWorldScript(worldScript);   // 004BCC60
+    if (worldScript && runWorldScript) RunWorldScript(worldScript);
     LoadedFlag() = 1;
     ++FileCount();
     TokensDestruct(&tokens);

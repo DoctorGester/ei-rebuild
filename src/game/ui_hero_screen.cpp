@@ -1,5 +1,5 @@
-// The multiplayer hero screen's per-frame draw (006159E0) and update (00617820), its close
-// (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
+// The multiplayer hero screen's per-frame draw and update, its close
+// and the trade panel's experience figures it shows.
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "game_strings.h"
@@ -67,7 +67,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 } // namespace
 
-// --- 00625530 / 00625560: the trade panel's experience figures ------------------------------------
+// --- The trade panel's experience figures ------------------------------------
 
 int CTradePanel::Experience() const {
     const TradeRecord& record = Record();
@@ -81,7 +81,7 @@ int CTradePanel::PurchaseCost() {
 }
 EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 
-// --- 006159E0: Draw (slot 20) ------------------------------------------------------------------
+// --- Draw ------------------------------------------------------------------------------
 
 void CMpHeroScreen::DrawExperience() {
     CUiSurface* surface = surfaces_.data[2];
@@ -116,7 +116,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
     } else if (topic != 0) {
         if (descPanel_) descPanel_->ShowHelp(topic);
     } else {
-        // The original sets only the kind; the other fields stay as the stack had them (ours 0).
+        // Only the kind is set; the other fields stay as the stack had them (ours 0).
         ItemHoverInfo info = {};
         info.kind = -1;
         if (!tradePanel_->enabled_ || (tradePanel_->HoverInfo(x, y, &info), info.kind < 0)) {
@@ -141,7 +141,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x006159E0, CMpHeroScreen::Draw);
 
-// --- 00617820: Update (slot 24) ----------------------------------------------------------------
+// --- Update ----------------------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
     static_cast<CUiContainer*>(this)->UpdateBase();
@@ -166,7 +166,7 @@ void CMpHeroScreen::Update() {
     std::string name = nameEdit_->text_.GetString();
     const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
-    // FCOMP; TEST AH,0x40: equal.
+    // Equal.
     float target = NewHeroPoints();
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
@@ -179,7 +179,7 @@ void CMpHeroScreen::Update() {
 }
 EI_REWRITTEN(0x00617820, CMpHeroScreen::Update);
 
-// --- 00615850: Close (slot 26) -----------------------------------------------------------------
+// --- Close -----------------------------------------------------------------------------
 
 void CMpHeroScreen::Close() {
     MpHeroesObject()->SaveAll();
@@ -198,7 +198,7 @@ void CMpHeroScreen::Close() {
 }
 EI_REWRITTEN(0x00615850, CMpHeroScreen::Close);
 
-// --- 00615800: a voice entry's destructor -------------------------------------------------------
+// --- A voice entry's destructor -------------------------------------------------------
 
 void MpVoiceEntry::Destroy() {
     name.~CString();
@@ -209,7 +209,7 @@ void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
 } // namespace
 EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
-// --- 00634500 / 00634560: the caches' objects released ----------------------------------------------
+// --- The caches' objects released ----------------------------------------------------------
 
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
     for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
@@ -218,20 +218,20 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
 EI_REWRITTEN(0x00634500, ReleaseCachedObjects);
 EI_REWRITTEN(0x00634560, ReleaseCachedObjects);
 
-// --- 00633260: the destructor body -------------------------------------------------------------
+// --- The destructor body -------------------------------------------------------------
 
 namespace {
 void DestroyVoices(MpVoiceVector& voices) {
     for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
-    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));   // 006344C0
+    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));
 }
 void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
     for (mfc::CString* at = begin; at != end; ++at) at->~CString();
 }
 } // namespace
 
-// Built inline by the main menu's Multiplayer click (00632D70): the item screen, both caches
-// (00633F50 / 00633FF0), the name vectors, the text and the voice lists empty.
+// Built inline by the main menu's Multiplayer click: the item screen, both caches
+// the name vectors, the text and the voice lists empty.
 CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
     lib_trees::ConstructHeroItemCache(&models_);
     lib_trees::ConstructHeroItemCache(&textures_);
@@ -241,16 +241,16 @@ CMpHeroScreen::~CMpHeroScreen() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
     DestroyStrings(names_.begin(), names_.end());
-    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
+    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));
     DestroyStrings(defaults_.begin(), defaults_.end());
-    stlp::deallocate(defaults_.begin(),   // 00520F20
+    stlp::deallocate(defaults_.begin(),
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
 }
 EI_REWRITTEN_SPECIAL(0x00633260, CMpHeroScreen::~CMpHeroScreen);
 EI_REWRITTEN_SPECIAL(0x00633240, CMpHeroScreen::~CMpHeroScreen);   // deleting
 EI_REWRITTEN_SPECIAL(0x006345F0, CMpHeroScreen::~CMpHeroScreen);   // the input side's
 
-// --- 006167C0 / 00616560: the hero list and the voices drawn -----------------------------------------
+// --- The hero list and the voices drawn -----------------------------------------------------
 
 namespace {
 const char* const kVoicesKey = "lmp_voices";
@@ -325,7 +325,7 @@ void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); 
 } // namespace
 EI_REWRITTEN(0x00616560, HeroScreenDrawVoices);
 
-// --- 00616E20: the preview's unit -------------------------------------------------------------
+// --- The preview's unit -------------------------------------------------------------------
 
 namespace {
 const char* const kHeroName = "Hero";
@@ -369,7 +369,7 @@ void CMpHeroScreen::MakePreview(int flag) {
 }
 EI_REWRITTEN(0x00616E20, CMpHeroScreen::MakePreview);
 
-// --- 00616910: a hero shown -------------------------------------------------------------------
+// --- A hero shown -------------------------------------------------------------------------
 
 void CMpHeroScreen::ShowHero(int index) {
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};

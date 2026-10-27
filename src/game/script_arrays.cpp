@@ -59,7 +59,6 @@ ScriptNamedValues<T>* Construct(ScriptNamedValues<T>* vars, void* valuesVtable) 
 
 } // namespace
 
-// 004BC690 / 004BC740 / 004BC870 / 004BC950
 ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars) {
     return Construct(vars, mfc::impl::ScriptFloatValuesClass::Vtable());
 }
@@ -73,31 +72,26 @@ ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValu
     return Construct(vars, gamearrays::ScriptGroupValuesClass::Vtable());
 }
 
-// 004BC6C0
 void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars) {
     FreeStrings(&vars->names);
     FreePlain(&vars->values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
-// 004BC770
 void __fastcall ScriptStringsDestruct(ScriptNamedValues<mfc::CString>* vars) {
     FreeStrings(&vars->names);
     FreeStrings(&vars->values);
 }
 
-// 004BC8A0
 void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeStrings(&vars->names);
     FreeRefs(&vars->values);
 }
 
-// 004BC810
 void __fastcall ScriptNamesDestruct(mfc::CArray<mfc::CString>* names) { FreeStrings(names); }
 
-// 004BC9A0
 void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
 
-// 004BCA20: each group's references reset (004B5AE0) and its storage freed, then the array's.
+// Each group's references reset and its storage freed, then the array's.
 void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
     groups->vtable = gamearrays::GroupArrayClass::Vtable();
     if (!groups->data) return;
@@ -112,7 +106,7 @@ void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
     gamecrt::operator_delete(groups->data);
 }
 
-// 004BCAE0: the run's variables, members from the last to the first.
+// The run's variables, members from the last to the first.
 void __fastcall ScriptRunDestruct(ScriptRun* run) {
     ScriptVars& vars = run->vars;
     FreeStrings(&vars.groupNames);
@@ -133,7 +127,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreePlain(&vars.floats, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
-// 004C81B0: the names, then each group's references through the element destructor (004CE1E0) and
+// The names, then each group's references through the element destructor and
 // its storage, then the array's storage.
 void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
     FreeStrings(&vars->names);

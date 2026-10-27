@@ -9,7 +9,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 
 ## Setup
 
-- Ghidra (with game.exe analysed) is reachable through the `mcp__ghidra__*` tools, or directly at
+- Ghidra (with game.exe analysed), when the user has it running, answers at
   `http://127.0.0.1:8080` (`/decompile_function?address=0x...`, `/disassemble_function?address=0x...`,
   `/xrefs_to?address=0x...&limit=N`, `/get_function_by_address`, `/strings?filter=`, POST
   `/rename_function_by_address` with `function_address` and `new_name`).
@@ -29,8 +29,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 
 ## Where code goes
 
-- `src/game/<area>.h/.cpp`: rewritten game code. Provisional names; comment each function with its
-  original address. Classes are normal C++: real virtual functions, members of their real types, no
+- `src/game/<area>.h/.cpp`: rewritten game code. Provisional names; comments follow docs/comment-guide.md (no
+  addresses or ticket ids in comments). Classes are normal C++: real virtual functions, members of their real types, no
   hand-built vtables and no layout asserts. No game.exe code shares our objects, so nothing needs the
   original memory layout; goldens don't depend on it either. Keep game.exe's byte layout only where
   bytes leave the process (save files, network packets) or come from game.exe's data image (until

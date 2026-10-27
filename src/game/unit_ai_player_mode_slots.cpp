@@ -1,5 +1,5 @@
-// The player and tamed AI modes' lifetimes and own slots (00551E10-00552180, A-U6): clone, reset,
-// destructors, priority and type. The tamed mode (vtable 0073F0C4) is the player mode a taming
+// The player and tamed AI modes' lifetimes and own slots: clone, reset,
+// destructors, priority and type. The tamed mode is the player mode a taming
 // installs (combat_taming.cpp); its slots differ only in their constants.
 #include "unit_ai.h"
 

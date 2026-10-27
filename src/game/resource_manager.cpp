@@ -1,4 +1,4 @@
-// CResourceManager (00674D90-00675530, 005AA360). See resource_manager.h.
+// CResourceManager. See resource_manager.h.
 #include "resource_manager.h"
 
 #include "ei/hook.h"
@@ -52,7 +52,7 @@ void CResourceManager::Destroy() {
 // --- Archives -----------------------------------------------------------------------------------
 
 namespace {
-// CMappedResource's constructor (00671280) and CMMIOResource's (006721D0) on the archive's memory.
+// CMappedResource's constructor and CMMIOResource's on the archive's memory.
 CMappedResource* __fastcall ConstructMappedResource(void* memory) { return new (memory) CMappedResource(); }
 CMappedResource* __fastcall ConstructMmioResource(void* memory) { return new (memory) CMMIOResource(); }
 } // namespace

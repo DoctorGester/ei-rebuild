@@ -1,5 +1,5 @@
-// The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
-// 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+// The briefing / base screen's Create and per-frame Update
+// CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "app.h"
 #include "core_streams.h"
 #include "options.h"
@@ -73,8 +73,8 @@ constexpr int kStarting = 2;
 constexpr int kPhrases = 3;
 constexpr int kRewards = 4;
 
-constexpr float kMoverTimeout = 30.0f;      // 0073BAF0
-constexpr double kCloseEnough = 0.01;       // 0073CE20, squared distance
+constexpr float kMoverTimeout = 30.0f;
+constexpr double kCloseEnough = 0.01;       // squared distance
 constexpr int kEventOpenTopics = 1;
 constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
@@ -109,7 +109,7 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
     return out;
 }
 
-// 00609A40 inlined: the node unlinked and back to the pool.
+// inlined: the node unlinked and back to the pool.
 void EraseMover(BriefingMover* node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -177,7 +177,7 @@ bool VoiceEnded(int handle) {
 
 } // namespace
 
-// --- 006024B0: slot 25 --------------------------------------------------------------------------
+// --- CreateScreen --------------------------------------------------------------------------------
 
 void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
@@ -273,7 +273,7 @@ void CBriefingScreen::CreateScreen() {
 
 EI_REWRITTEN(0x006024B0, CBriefingScreen::CreateScreen);
 
-// --- 00604130: slot 24 --------------------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CBriefingScreen::Update() {
     markPhase_ = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + markPhase_);
@@ -331,7 +331,7 @@ void CBriefingScreen::Update() {
         if (state_ == kPhrases) StartPhrases();
         break;
     case kPhrases:
-        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {
@@ -343,7 +343,7 @@ void CBriefingScreen::Update() {
         }
         break;
     case kRewards:
-        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {

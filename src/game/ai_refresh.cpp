@@ -1,8 +1,8 @@
-// CAIMap::Refresh (005B8FA0): recomputes the passability of a rectangle of cells after the map
-// changed: per standing level the cell marks (005B8BA0) over the rectangle grown by 3 cells, packed
-// as nibbles into the cells, the level's special areas (005B89F0), the second pass (005B8710), the
+// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map
+// changed: per standing level the cell marks over the rectangle grown by 3 cells, packed
+// as nibbles into the cells, the level's special areas, the second pass, the
 // map border, and with the sector map on (+2) the objects around it are taken out and put back
-// around the region map's update (005AFEE0). See ai_map.h and docs/notes/ai.md.
+// around the region map's update. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "core_maths.h"
@@ -23,7 +23,7 @@ constexpr int kLevels = 8;
 // The occluders' damping scale, ln 0.6: zero at the start, set by its static initialiser (005B2FB0, the
 // x87 FLDLN2 / FYL2X of 0.6 stored as a float), ported on the name and registered at its address.
 float g_dampScale = /*007C2F8C*/ {};
-void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }   // 005B2FB0
+void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
 
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.

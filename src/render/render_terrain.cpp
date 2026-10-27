@@ -1,12 +1,11 @@
-// The terrain in the new renderer. The game's terrain passes (006C6230 ground pages, 006C6330 water
-// pages) call DrawSectorPage (006BFF40, src/game/terrain_draw.cpp) for every visible sector page;
+// The terrain in the new renderer. The game's terrain passes (ground pages, water
+// pages) call DrawSectorPage (src/game/terrain_draw.cpp) for every visible sector page;
 // it hands the page here. The page's tiles are turned into world-space triangles at the sector's
 // level of detail (the same tile entries and index patterns as the old path), with the vertex
 // colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
 // and the page's texture; the clip matrix is the one the old path transforms the same vertices with
 // (the pipeline's stack at +0x24). The GPU clips; no software clipping or projection here.
-//
-// The pages stay on the GPU (R16c, docs/notes/renderer.md section 13): each sector page at a level of
+// The pages stay on the GPU (docs/notes/renderer.md section 13): each sector page at a level of
 // detail and seam variant is built once into a pool of vertex and index buffers (positions and
 // texture coordinates in one stream, the lit colours in another) and built again only when what it
 // was built from changes (the sector's tile lists and records: SectorData::Build, render::
@@ -77,7 +76,7 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 // --- Game memory -------------------------------------------------------------------------------------
 
 // The landscape's page textures: Terrain::pageTextures (+0xD8), an array of CTexture*, indexed
-// page % (pages + 2) (006C6460 binds them so before each page).
+// page % (pages + 2) (they are bound so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     const char* owner = reinterpret_cast<const char*>(s->owner);
     if (!owner || s->pages + 2 <= 0) return nullptr;
@@ -95,9 +94,9 @@ struct SectorChanges {
 constexpr int kWaterRecords = 33 * 33;
 std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
-// --- Pages kept on the GPU (R16c) ----------------------------------------------------------------------
+// --- Pages kept on the GPU ----------------------------------------------------------------------
 
-// A page vertex's geometry; its colours (colour, specular) are a stream of their own. R16i: the record's
+// A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights
 // both layers.
 struct PageVertex {
@@ -145,7 +144,7 @@ std::uint32_t Byte(float v) {
     return static_cast<std::uint32_t>(c * 255.0f + 0.5f);
 }
 
-// The colour word a page vertex of record `index` is drawn with (R16i, lit on the GPU): the material
+// The colour word a page vertex of record `index` is drawn with (lit on the GPU): the material
 // colour ShadeSun starts from (on the ground the water's above it, else the record's own), alpha the
 // material byte (the water's opacity).
 std::uint32_t ColourWord(const SectorData* s, int index) {
@@ -317,7 +316,7 @@ void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
 bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::uint32_t to) {
     bool changed = false;
     for (std::uint32_t i = from; i < to; ++i) {
-        // The colour word (the material) is the one the page was built with (R16i); the game writes the
+        // The colour word (the material) is the one the page was built with; the game writes the
         // specular word (the edge fade; on the water its specular lights and wave crests).
         const SectorVertex& record = s->records.data[p.records[i]];
         std::uint32_t* kept = &p.colours[2 * static_cast<std::size_t>(i)];
@@ -387,9 +386,9 @@ sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
-// state the old path draws the page with. The ground pass (006C6230) runs under the terrain's state
-// block 007AEDDC with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw 00569E40), the
-// water pass (006C6330) under the scene's 007AEDD0; both with ALPHABLENDENABLE on (SRCALPHA /
+// state the old path draws the page with. The ground pass runs under the terrain's state
+// block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
+// water pass under the scene's; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
 sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
     int samples = PassSampleCount();
@@ -411,7 +410,7 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.layout.attrs[2].offset = 4;
     p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
     p.layout.attrs[3].offset = 12;
-    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;   // the normal (R16i)
+    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;   // the normal
     p.layout.attrs[4].offset = 20;
     p.layout.attrs[5].format = SG_VERTEXFORMAT_FLOAT;    // the light lost under the water
     p.layout.attrs[5].offset = 32;
@@ -583,10 +582,14 @@ bool CreateTerrainShader() {
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(Params);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
-    // The scene's light (R16i, shaders/scene_lighting.hlsli): register b1 of the fragment stage.
+    // The scene's light (shaders/scene_lighting.hlsli): register b1 of the fragment stage.
     s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[2].size = sizeof(LightParams);
     s.uniform_blocks[2].hlsl_register_b_n = 1;
+    // The point shadows (shaders/point_shadow.hlsli): register b2.
+    s.uniform_blocks[3].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.uniform_blocks[3].size = sizeof(PointShadowParams);
+    s.uniform_blocks[3].hlsl_register_b_n = 2;
     s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[0].texture.image_type = SG_IMAGETYPE_2D;
     s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -598,6 +601,7 @@ bool CreateTerrainShader() {
     s.texture_sampler_pairs[0].view_slot = 0;
     s.texture_sampler_pairs[0].sampler_slot = 0;
     DescribeShadowMap(s, 1, 1);
+    DescribePointShadows(s, 3, 3);
     s.label = "ei-terrain";
     g_shader = sg_make_shader(&s);
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
@@ -649,10 +653,11 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     }
 #endif
     BindShadowMap(b, 1, 1);
+    BindPointShadows(b, 3, 3);
     sg_apply_bindings(&b);
     CountBindings(b);
     Params params{};
-    // The ground receives the objects' shadows (R16j); the water does not (the ground under it does).
+    // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
     params.light = receives ? f.shadow.lights[0] : f.matrices[static_cast<std::size_t>(batch.matrix)];
     ShadowUniforms(f, receives, &params.shadow);
@@ -671,8 +676,12 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     LightUniforms(&light);
     sg_range lu{&light, sizeof(light)};
     sg_apply_uniforms(2, &lu);
+    PointShadowParams point;
+    PointShadowUniforms(f, &point);
+    sg_range pr{&point, sizeof(point)};
+    sg_apply_uniforms(3, &pr);
     // The pieces' triangles in their order; ranges that follow each other in the pool in one draw.
-    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light);
+    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light) + sizeof(point);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;
@@ -771,8 +780,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     Frame& f = CurrentFrame();
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack at +0x24 (renderer +8), which the
-    // old path's 004F29F0 transforms the sector's vertices with (the landscape's model matrix
-    // pushed by 006C6230 / 006C6330 on top of the view).
+    // old path's transform the sector's vertices with (the landscape's model matrix
+    // pushed by the terrain passes on top of the view).
     const char* pipeline = *reinterpret_cast<char* const*>(static_cast<const char*>(renderer) + 8);
     if (!pipeline) return;
     const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
@@ -805,7 +814,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         upload = true;
 #if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
-        moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before R16c
+        moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before
         upload = true;
 #endif
     } else if (!p.source.SameTiles(source)) {
@@ -874,7 +883,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
 
-// --- The ground's casters into the shadow map (R16i) ------------------------------------------------------
+// --- The ground's casters into the shadow map ------------------------------------------------------
 
 namespace {
 

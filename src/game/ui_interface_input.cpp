@@ -1,7 +1,7 @@
-// The interface's input dispatch (CInterface3D): the input dispatcher (00457970) closes the
-// windows when asked (005F5AB0), then hands each mouse message here (005F76A0-005F7880; on to the
+// The interface's input dispatch (CInterface3D): the input dispatcher closes the
+// windows when asked, then hands each mouse message here (on to the
 // input side that took the mouse or the top window's) and each typed character and key release
-// (005F7B40 / 005F7BE0; on to the console, the chat line or the top window). See ui.h and
+// (on to the console, the chat line or the top window). See ui.h and
 // docs/notes/ui.md ("Container input dispatch").
 #include "ui.h"
 
@@ -70,7 +70,7 @@ int CInterface3D::OnWheel(int flags, int delta, int x, int y) {
 }
 EI_REWRITTEN(0x005F7880, CInterface3D::OnWheel);
 
-// --- 005F7B40 / 005F7BE0: keys ------------------------------------------------------------------
+// --- Keys ------------------------------------------------------------------
 
 namespace {
 constexpr int kScanMask = 0x1FF;
@@ -115,7 +115,7 @@ void console::ConsoleWindow::OnKeyUp(int key, int, int) {
 }
 EI_REWRITTEN(0x005E47E0, console::ConsoleWindow::OnKeyUp);
 
-// --- 005F74F0 / 005F5AB0: every window closed --------------------------------------------------
+// --- Every window closed --------------------------------------------------
 
 void CInterface3D::CloseAll() {
     TheCursor()->SetShape(kCursorWait);

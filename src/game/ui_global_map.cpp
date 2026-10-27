@@ -1,8 +1,7 @@
-// The global map's Create (slot 25 of 00740B3C, 0062D350): the island model of the local player's
+// The global map's Create: the island model of the local player's
 // allod, its zones, the quests the player holds and the links to the zones the player may enter,
 // the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
 // screens").
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
 // as the original does.
@@ -80,21 +79,21 @@ MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
 bool NonEmpty(const mfc::CString& text) { return text.GetLength() != 0; }
 
-// --- Not rewritten ------------------------------------------------------------------------------
+// --- Called through the game ------------------------------------------------------------------------------
 
-// The links' and the quests' SetSize (00631E70 / 00631FF0, mfc::impl::GlobalMapPointRecords') and
-// their elements' assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
+// The links' and the quests' SetSize (mfc::impl::GlobalMapPointRecords') and
+// their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
 void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
     mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
 }
 
-// Drawing text on a surface (005FDE20 is Rebirth-patched).
+// Drawing text on a surface (is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
-// buckets, 00581790), freed the way the original's inlined destructor does.
+// buckets), freed afterwards.
 class VariableTable {
 public:
     VariableTable() { table_.ConstructDefault(); }
@@ -104,9 +103,6 @@ public:
 private:
     NamedFloatTable table_;
 };
-
-// The scene renderer (007AF060, what 00500960 returns).
-// 006570E0: saves the game into saves\<name> (ECX name, DL flag).
 
 // --- Sprite fields set directly -------------------------------------------------------------------
 
@@ -122,7 +118,7 @@ CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSpri
 
 } // namespace
 
-// --- Create (0062D350) ---------------------------------------------------------------------------
+// --- Create ---------------------------------------------------------------------------
 
 namespace {
 
@@ -482,7 +478,7 @@ void CGlobalMap::CreateScreen() {
     SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
-    TheMusicSystem()->Stop();   // 006B4F70
+    TheMusicSystem()->Stop();
     weather_ = new CGlobalMapClouds();
     weather_->Start();
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
@@ -503,17 +499,17 @@ void CGlobalMap::CreateScreen() {
 
 EI_REWRITTEN(0x0062D350, CGlobalMap::CreateScreen);
 
-// --- Update (0062F050) -----------------------------------------------------------------------------
+// --- Update -----------------------------------------------------------------------------
 
 namespace {
 
-// 006010E0 (not rewritten): the container's base update (its children).
+// The container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
+// fmod(a, *divisor) through the game's _CIfmod, stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
-// The product the original inlines (r = b * a in its operand order), each component stored.
+// The product (r = b * a in this operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
     float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
@@ -611,7 +607,7 @@ void CGlobalMap::Update() {
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
-    // (00691D80, ticket R8), drawn into directly (the original: between a Lock and an Unlock).
+    // drawn into directly (the original: between a Lock and an Unlock).
     if (objects_.size > 4) {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
         auto* lock = TheDeviceLock();
@@ -628,11 +624,11 @@ void CGlobalMap::Update() {
 
 EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
-// --- 005F67A0: the constructor --------------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
 namespace {
 
-// A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
+// A CArray's constructor body: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
 template <typename Array>
 void EmptyArray(Array* array, void* vtable) {
@@ -648,7 +644,7 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
     EmptyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
     EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     EmptyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
-    // The tree (005FA100: the header from the pool; 005FA0E0 empties it) keeps the first byte of
+    // The tree (the header from the pool; empties it) keeps the first byte of
     // the original's compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
     arrivals_.Count() = 0;
@@ -661,11 +657,11 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F67A0, CGlobalMap::CGlobalMap);
 
-// --- 005F6920: the destructor body ---------------------------------------------------------------
+// --- the destructor body -------------------------------------------------------------------------
 
 namespace {
 // A CArray's destructor: its vtable back, each entry's strings destroyed (title, then name:
-// 005FBDD0 / 005FBD80 the places', 005FBD30 the zones'), the storage freed.
+// the places', the zones'), the storage freed.
 template <typename Array>
 void DestroyArray(Array* array, void* vtable) {
     array->vtable = vtable;
@@ -680,9 +676,9 @@ void DestroyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap::~CGlobalMap() {
-    arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
+    arrivals_.Destroy();
     stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
-                                        sizeof(GlobalMapStep));   // 005FA7E0
+                                        sizeof(GlobalMapStep));
     DestroyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     DestroyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
@@ -691,7 +687,7 @@ EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
 EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);   // the input side's
 
-// --- 00631CC0: the zone array's SetAtGrow --------------------------------------------------------
+// --- the zone array's SetAtGrow ------------------------------------------------------------------
 
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));

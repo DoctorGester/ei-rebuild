@@ -1,5 +1,5 @@
 // The unit database's and the skill database's loads from their archive at startup (0053A200 /
-// 00520220) and the model and level tables' name lookups (0053D240 / 0053D650). A-U12.
+// 00520220) and the model and level tables' name lookups. A-U12.
 // Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
 // vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
 #include "chunk_archive.h"
@@ -147,7 +147,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
         if (ar.EnterChunk(kSkillLevelsChunk)) {
             int count;
             if (ar.loading_) {
-                recordvec::SkillLevelVector::Clear(&levels);   // 00520C20
+                recordvec::SkillLevelVector::Clear(&levels);
                 count = ar.CountChunks(kRecordChunk);
                 levels.ResizeDefault<recordvec::SkillLevelVector::Element>(static_cast<std::uint32_t>(count));
             } else {

@@ -1,8 +1,7 @@
 // The scalar deleting destructors the exe's vtables point at and the destructors they call, for the
-// instantiations whose elements need nothing of the game (mfc_slots.h, ticket S6a); the game-element
+// instantiations whose elements need nothing of the game (mfc_slots.h); the game-element
 // ones are in src/game/game_slots.cpp. Each deleting destructor calls its class's destructor directly
-// (the original calls it by address), the destructors are the S6 / S7 templates. Checked in game by
-// verify_mfc_slots.cpp until S21d.
+// (the original calls it by address), the destructors are templates.
 #include "mfc_slots.h"
 
 #include "crt.h"
@@ -135,107 +134,107 @@ EI_REWRITTEN(0x004CB630, ScalarDeleting<&ScriptAreas::Destruct<ScriptAreaArrayCl
 
 // Over the destructors of the arrays, lists and maps whose elements need nothing.
 
-EI_REWRITTEN(0x00405540, ScalarDeleting<&PtrList::Destruct<TempListClass>>::Delete);   // 00405130
-EI_REWRITTEN(0x0040C480, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C4A0
+EI_REWRITTEN(0x00405540, ScalarDeleting<&PtrList::Destruct<TempListClass>>::Delete);
+EI_REWRITTEN(0x0040C480, ScalarDeleting<&ExceptionDestruct>::Delete);
 EI_REWRITTEN(0x0040C4B0, ScalarDeleting<&ExceptionDestruct>::Delete);
-EI_REWRITTEN(0x0040C4E0, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C500
-EI_REWRITTEN(0x0041F740, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0041F760
-EI_REWRITTEN(0x00429180, ScalarDeleting<&PtrList::Destruct<ItemListClass>>::Delete);   // 00427830
-EI_REWRITTEN(0x00452850, ScalarDeleting<&ArrayHeader<Vector3ArrayClass>::Destruct>::Delete);   // 00452870
-EI_REWRITTEN(0x00452910, ScalarDeleting<&ArrayHeader<NodeItemsAClass>::Destruct>::Delete);   // 004509E0
-EI_REWRITTEN(0x00452930, ScalarDeleting<&ArrayHeader<NodeItemsBClass>::Destruct>::Delete);   // 00450B90
-EI_REWRITTEN(0x00452970, ScalarDeleting<&ArrayHeader<BoneLinkArrayClass>::Destruct>::Delete);   // 00452990
-EI_REWRITTEN(0x004529B0, ScalarDeleting<&ArrayHeader<NodeItemsCClass>::Destruct>::Delete);   // 004529D0
-EI_REWRITTEN(0x00452A10, ScalarDeleting<&ArrayHeader<TextureLinkArrayClass>::Destruct>::Delete);   // 00451830
-EI_REWRITTEN(0x00452A50, ScalarDeleting<&Map32::Destruct<FigureRegistryMapClass>>::Delete);   // 00451C40
-EI_REWRITTEN(0x00452A70, ScalarDeleting<&ArrayHeader<MeshCornerArrayClass>::Destruct>::Delete);   // 00451EC0
-EI_REWRITTEN(0x00452A90, ScalarDeleting<&Map32::Destruct<CornerMapAClass>>::Delete);   // 00452090
-EI_REWRITTEN(0x00452AB0, ScalarDeleting<&Map32::Destruct<CornerMapBClass>>::Delete);   // 00452330
-EI_REWRITTEN(0x00452AD0, ScalarDeleting<&Map32::Destruct<CornerMapCClass>>::Delete);   // 004525D0
-EI_REWRITTEN(0x0045E000, ScalarDeleting<&ArrayHeader<ArrayBaseClass>::Destruct>::Delete);   // 0045E020
-EI_REWRITTEN(0x0045E230, ScalarDeleting<&ArrayHeader<ArrayBaseClass>::Destruct>::Delete);   // 0045E250
-EI_REWRITTEN(0x004600B0, ScalarDeleting<&ArrayHeader<IntArrayClass>::Destruct>::Delete);   // 004600D0
-EI_REWRITTEN(0x00468F50, ScalarDeleting<&ArrayHeader<SpriteArrayClass>::Destruct>::Delete);   // 00468D80
-EI_REWRITTEN(0x0046E8F0, ScalarDeleting<&ArrayHeader<TrapCircleArrayClass>::Destruct>::Delete);   // 0046E910
-EI_REWRITTEN(0x0046E930, ScalarDeleting<&ArrayHeader<TrapPointArrayClass>::Destruct>::Delete);   // 0046E950
-EI_REWRITTEN(0x0046EF20, ScalarDeleting<&ArrayHeader<TrapCircleArrayClass>::Destruct>::Delete);   // 0046EF40
-EI_REWRITTEN(0x0046EF60, ScalarDeleting<&ArrayHeader<TrapPointArrayClass>::Destruct>::Delete);   // 0046EF80
-EI_REWRITTEN(0x00476C90, ScalarDeleting<&ArrayHeader<FilePointArrayClass>::Destruct>::Delete);   // 00474F30
-EI_REWRITTEN(0x00476CB0, ScalarDeleting<&ArrayHeader<FileUvArrayClass>::Destruct>::Delete);   // 00475110
-EI_REWRITTEN(0x00476CD0, ScalarDeleting<&ArrayHeader<FileFaceArrayClass>::Destruct>::Delete);   // 004752F0
-EI_REWRITTEN(0x00476CF0, ScalarDeleting<&ArrayHeader<RotKeyArrayClass>::Destruct>::Delete);   // 00475680
-EI_REWRITTEN(0x00476D10, ScalarDeleting<&ArrayHeader<PosKeyArrayClass>::Destruct>::Delete);   // 004759E0
-EI_REWRITTEN(0x00476D30, ScalarDeleting<&ArrayHeader<MorphHeadArrayClass>::Destruct>::Delete);   // 00475D40
-EI_REWRITTEN(0x00476D50, ScalarDeleting<&Map32::Destruct<DwordMapClass>>::Delete);   // 00476140
-EI_REWRITTEN(0x00476D90, ScalarDeleting<&ArrayHeader<IndexArrayClass>::Destruct>::Delete);   // 00476780
-EI_REWRITTEN(0x00476DB0, ScalarDeleting<&ArrayHeader<NormalArrayClass>::Destruct>::Delete);   // 00476AB0
-EI_REWRITTEN(0x00499020, ScalarDeleting<&PtrList::Destruct<ClientListClass>>::Delete);   // 00498CA0
-EI_REWRITTEN(0x004C1800, ScalarDeleting<&ArrayHeader<ScriptAreaClass>::Destruct>::Delete);   // 004C1820
-EI_REWRITTEN(0x004C1880, ScalarDeleting<&ArrayHeader<ScriptFloatsClass>::Destruct>::Delete);   // 004BC980
-EI_REWRITTEN(0x004C1A00, ScalarDeleting<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>::Delete);   // 004BE410
-EI_REWRITTEN(0x004CAF70, ScalarDeleting<&ArrayHeader<ScriptAreaClass>::Destruct>::Delete);   // 004CAF90
-EI_REWRITTEN(0x004CAFF0, ScalarDeleting<&ArrayHeader<ScriptFloatsClass>::Destruct>::Delete);   // 004C29C0
-EI_REWRITTEN(0x004CB030, ScalarDeleting<&ArrayHeader<FloatArrayClass>::Destruct>::Delete);   // 004CB050
-EI_REWRITTEN(0x004CB070, ScalarDeleting<&ArrayHeader<ArgObjectsBaseClass>::Destruct>::Delete);   // 004C4840
-EI_REWRITTEN(0x004CB090, ScalarDeleting<&ArrayHeader<ArgGroupsBaseClass>::Destruct>::Delete);   // 004C4B30
-EI_REWRITTEN(0x004CB0B0, ScalarDeleting<&ArrayHeader<BindingsBaseClass>::Destruct>::Delete);   // 004C4E20
-EI_REWRITTEN(0x004CB110, ScalarDeleting<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>::Delete);   // 004C5AF0
-EI_REWRITTEN(0x004CB6F0, ScalarDeleting<&ArrayHeader<PartySlotArrayClass>::Destruct>::Delete);   // 004CB710
-EI_REWRITTEN(0x004CB730, ScalarDeleting<&PtrList::Destruct<PtrListClass>>::Delete);   // 004C96F0
-EI_REWRITTEN(0x004CB750, ScalarDeleting<&ArrayHeader<AiLookArrayClass>::Destruct>::Delete);   // 004CB770
-EI_REWRITTEN(0x004CCED0, ScalarDeleting<&ArrayHeader<FloatArrayClass>::Destruct>::Delete);   // 004BF760
-EI_REWRITTEN(0x004CCEF0, ScalarDeleting<&ArrayHeader<ArgObjectsBaseClass>::Destruct>::Delete);   // 004BF780
-EI_REWRITTEN(0x004CCF10, ScalarDeleting<&ArrayHeader<ArgGroupsBaseClass>::Destruct>::Delete);   // 004BF7A0
-EI_REWRITTEN(0x004CCF30, ScalarDeleting<&ArrayHeader<BindingsBaseClass>::Destruct>::Delete);   // 004BF7C0
-EI_REWRITTEN(0x004CDF20, ScalarDeleting<&ArrayHeader<AiLookArrayClass>::Destruct>::Delete);   // 004CDF00
-EI_REWRITTEN(0x0050DFB0, ScalarDeleting<&PtrList::Destruct<BoneListClass>>::Delete);   // 0050DBC0
-EI_REWRITTEN(0x0050DFD0, ScalarDeleting<&PtrList::Destruct<AnimationStateListClass>>::Delete);   // 0050DE30
-EI_REWRITTEN(0x00510180, ScalarDeleting<&ArrayHeader<EffectArrayClass>::Destruct>::Delete);   // 0050FFB0
-EI_REWRITTEN(0x00512010, ScalarDeleting<&ArrayHeader<EffectSoundArrayClass>::Destruct>::Delete);   // 00511E00
-EI_REWRITTEN(0x00519D30, ScalarDeleting<&PtrList::Destruct<Object3DListClass>>::Delete);   // 00519870
-EI_REWRITTEN(0x00519D50, ScalarDeleting<&ArrayHeader<FrameArrayClass>::Destruct>::Delete);   // 00519B30
-EI_REWRITTEN(0x00532E30, ScalarDeleting<&ArrayHeader<MotionPointArrayClass>::Destruct>::Delete);   // 0052E240
-EI_REWRITTEN(0x00532E50, ScalarDeleting<&ArrayHeader<MotionWaypointBaseClass>::Destruct>::Delete);   // 0052E260
-EI_REWRITTEN(0x00533520, ScalarDeleting<&ArrayHeader<MotionPointArrayClass>::Destruct>::Delete);   // 00533540
-EI_REWRITTEN(0x00533560, ScalarDeleting<&ArrayHeader<MotionWaypointBaseClass>::Destruct>::Delete);   // 00533580
-EI_REWRITTEN(0x005335A0, ScalarDeleting<&ArrayHeader<CarriedArrayClass>::Destruct>::Delete);   // 005331C0
-EI_REWRITTEN(0x005335C0, ScalarDeleting<&ArrayHeader<IdArrayClass>::Destruct>::Delete);   // 00533370
-EI_REWRITTEN(0x00539870, ScalarDeleting<&PtrList::Destruct<CellListClass>>::Delete);   // 00539890
-EI_REWRITTEN(0x005398F0, ScalarDeleting<&ArrayHeader<SkinLayerArrayClass>::Destruct>::Delete);   // 005396C0
-EI_REWRITTEN(0x00556C00, ScalarDeleting<&ArrayHeader<AnimationStepsClass>::Destruct>::Delete);   // 00556C20
-EI_REWRITTEN(0x00558740, ScalarDeleting<&ArrayHeader<PointArrayClass>::Destruct>::Delete);   // 00557250
-EI_REWRITTEN(0x00558760, ScalarDeleting<&ArrayHeader<AttackOptionArrayClass>::Destruct>::Delete);   // 00557410
-EI_REWRITTEN(0x00558800, ScalarDeleting<&ArrayHeader<AnimationStepsClass>::Destruct>::Delete);   // 00557E70
-EI_REWRITTEN(0x00558880, ScalarDeleting<&PtrList::Destruct<LootListClass>>::Delete);   // 00558470
-EI_REWRITTEN(0x00560490, ScalarDeleting<&ArrayHeader<CountdownArrayClass>::Destruct>::Delete);   // 005604B0
-EI_REWRITTEN(0x00571E90, ScalarDeleting<&PtrList::Destruct<ClientObjectListClass>>::Delete);   // 00570510
-EI_REWRITTEN(0x00571EB0, ScalarDeleting<&PtrList::Destruct<ClientList2Class>>::Delete);   // 00570ED0
-EI_REWRITTEN(0x00571FA0, ScalarDeleting<&PtrList::Destruct<ClientList3Class>>::Delete);   // 00571600
-EI_REWRITTEN(0x0059B410, ScalarDeleting<&ArrayHeader<CellRowArrayClass>::Destruct>::Delete);   // 00599180
-EI_REWRITTEN(0x0059B450, ScalarDeleting<&PtrList::Destruct<NodeListClass>>::Delete);   // 005995E0
-EI_REWRITTEN(0x0059B470, ScalarDeleting<&ArrayHeader<AreaListClass>::Destruct>::Delete);   // 005997A0
-EI_REWRITTEN(0x0059B540, ScalarDeleting<&ArrayHeader<PartyUnitArrayClass>::Destruct>::Delete);   // 0059B0B0
-EI_REWRITTEN(0x0059B560, ScalarDeleting<&PtrList::Destruct<ExperienceListClass>>::Delete);   // 0059B260
-EI_REWRITTEN(0x0059E240, ScalarDeleting<&ArrayHeader<SectorOccluderArrayClass>::Destruct>::Delete);   // 0059E0A0
-EI_REWRITTEN(0x005C1C50, ScalarDeleting<&ArrayHeader<SpiralCellArrayClass>::Destruct>::Delete);   // 005C1A90
-EI_REWRITTEN(0x005C5870, ScalarDeleting<&ArrayHeader<SmoothEdgeArrayClass>::Destruct>::Delete);   // 005C5890
-EI_REWRITTEN(0x005C58B0, ScalarDeleting<&ArrayHeader<SmoothCopyArrayClass>::Destruct>::Delete);   // 005C58D0
-EI_REWRITTEN(0x005C58F0, ScalarDeleting<&ArrayHeader<SmoothStepArrayClass>::Destruct>::Delete);   // 005C5910
-EI_REWRITTEN(0x005CDD40, ScalarDeleting<&PtrList::Destruct<StaticListClass>>::Delete);   // 005CDBA0
-EI_REWRITTEN(0x005D9D20, ScalarDeleting<&PtrList::Destruct<AttentionListClass>>::Delete);   // 005D99E0
-EI_REWRITTEN(0x005EBD90, ScalarDeleting<&ArrayHeader<UnitPtrArrayClass>::Destruct>::Delete);   // 005EBBE0
-EI_REWRITTEN(0x0060ABC0, ScalarDeleting<&ArrayHeader<ObjectiveExitArrayClass>::Destruct>::Delete);   // 0060A870
-EI_REWRITTEN(0x00613A10, ScalarDeleting<&ArrayHeader<ItemStripArrayClass>::Destruct>::Delete);   // 00613A30
-EI_REWRITTEN(0x0064B630, ScalarDeleting<&ArrayHeader<QuickEntryArrayClass>::Destruct>::Delete);   // 0064B1C0
-EI_REWRITTEN(0x0065DFD0, ScalarDeleting<&ArrayHeader<TokenPtrArrayClass>::Destruct>::Delete);   // 0065DC70
-EI_REWRITTEN(0x0065DFF0, ScalarDeleting<&ArrayHeader<LinePtrArrayClass>::Destruct>::Delete);   // 0065DE20
-EI_REWRITTEN(0x00666170, ScalarDeleting<&PtrList::Destruct<PlayerListClass>>::Delete);   // 00665FF0
-EI_REWRITTEN(0x006942E0, ScalarDeleting<&PtrList::Destruct<TextureListClass>>::Delete);   // 00694160
-EI_REWRITTEN(0x006BD170, ScalarDeleting<&PtrList::Destruct<SoundListClass>>::Delete);   // 006BC570
-EI_REWRITTEN(0x006CDBD0, ScalarDeleting<&ArrayHeader<TerrainArrayAClass>::Destruct>::Delete);   // 006CD6D0
-EI_REWRITTEN(0x006CDBF0, ScalarDeleting<&ArrayHeader<TerrainArrayBClass>::Destruct>::Delete);   // 006CD880
-EI_REWRITTEN(0x006CDC10, ScalarDeleting<&ArrayHeader<TerrainArrayCClass>::Destruct>::Delete);   // 006CDA20
-EI_REWRITTEN(0x004CAFD0, ScalarDeleting<&Strings::Destruct<StringArrayClass>>::Delete);   // 004C26A0
+EI_REWRITTEN(0x0040C4E0, ScalarDeleting<&ExceptionDestruct>::Delete);
+EI_REWRITTEN(0x0041F740, ScalarDeleting<&ExceptionDestruct>::Delete);
+EI_REWRITTEN(0x00429180, ScalarDeleting<&PtrList::Destruct<ItemListClass>>::Delete);
+EI_REWRITTEN(0x00452850, ScalarDeleting<&ArrayHeader<Vector3ArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452910, ScalarDeleting<&ArrayHeader<NodeItemsAClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452930, ScalarDeleting<&ArrayHeader<NodeItemsBClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452970, ScalarDeleting<&ArrayHeader<BoneLinkArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004529B0, ScalarDeleting<&ArrayHeader<NodeItemsCClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452A10, ScalarDeleting<&ArrayHeader<TextureLinkArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452A50, ScalarDeleting<&Map32::Destruct<FigureRegistryMapClass>>::Delete);
+EI_REWRITTEN(0x00452A70, ScalarDeleting<&ArrayHeader<MeshCornerArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00452A90, ScalarDeleting<&Map32::Destruct<CornerMapAClass>>::Delete);
+EI_REWRITTEN(0x00452AB0, ScalarDeleting<&Map32::Destruct<CornerMapBClass>>::Delete);
+EI_REWRITTEN(0x00452AD0, ScalarDeleting<&Map32::Destruct<CornerMapCClass>>::Delete);
+EI_REWRITTEN(0x0045E000, ScalarDeleting<&ArrayHeader<ArrayBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0045E230, ScalarDeleting<&ArrayHeader<ArrayBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004600B0, ScalarDeleting<&ArrayHeader<IntArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00468F50, ScalarDeleting<&ArrayHeader<SpriteArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0046E8F0, ScalarDeleting<&ArrayHeader<TrapCircleArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0046E930, ScalarDeleting<&ArrayHeader<TrapPointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0046EF20, ScalarDeleting<&ArrayHeader<TrapCircleArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0046EF60, ScalarDeleting<&ArrayHeader<TrapPointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476C90, ScalarDeleting<&ArrayHeader<FilePointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476CB0, ScalarDeleting<&ArrayHeader<FileUvArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476CD0, ScalarDeleting<&ArrayHeader<FileFaceArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476CF0, ScalarDeleting<&ArrayHeader<RotKeyArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476D10, ScalarDeleting<&ArrayHeader<PosKeyArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476D30, ScalarDeleting<&ArrayHeader<MorphHeadArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476D50, ScalarDeleting<&Map32::Destruct<DwordMapClass>>::Delete);
+EI_REWRITTEN(0x00476D90, ScalarDeleting<&ArrayHeader<IndexArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00476DB0, ScalarDeleting<&ArrayHeader<NormalArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00499020, ScalarDeleting<&PtrList::Destruct<ClientListClass>>::Delete);
+EI_REWRITTEN(0x004C1800, ScalarDeleting<&ArrayHeader<ScriptAreaClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004C1880, ScalarDeleting<&ArrayHeader<ScriptFloatsClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004C1A00, ScalarDeleting<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CAF70, ScalarDeleting<&ArrayHeader<ScriptAreaClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CAFF0, ScalarDeleting<&ArrayHeader<ScriptFloatsClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB030, ScalarDeleting<&ArrayHeader<FloatArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB070, ScalarDeleting<&ArrayHeader<ArgObjectsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB090, ScalarDeleting<&ArrayHeader<ArgGroupsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB0B0, ScalarDeleting<&ArrayHeader<BindingsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB110, ScalarDeleting<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB6F0, ScalarDeleting<&ArrayHeader<PartySlotArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB730, ScalarDeleting<&PtrList::Destruct<PtrListClass>>::Delete);
+EI_REWRITTEN(0x004CB750, ScalarDeleting<&ArrayHeader<AiLookArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CCED0, ScalarDeleting<&ArrayHeader<FloatArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CCEF0, ScalarDeleting<&ArrayHeader<ArgObjectsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CCF10, ScalarDeleting<&ArrayHeader<ArgGroupsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CCF30, ScalarDeleting<&ArrayHeader<BindingsBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CDF20, ScalarDeleting<&ArrayHeader<AiLookArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0050DFB0, ScalarDeleting<&PtrList::Destruct<BoneListClass>>::Delete);
+EI_REWRITTEN(0x0050DFD0, ScalarDeleting<&PtrList::Destruct<AnimationStateListClass>>::Delete);
+EI_REWRITTEN(0x00510180, ScalarDeleting<&ArrayHeader<EffectArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00512010, ScalarDeleting<&ArrayHeader<EffectSoundArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00519D30, ScalarDeleting<&PtrList::Destruct<Object3DListClass>>::Delete);
+EI_REWRITTEN(0x00519D50, ScalarDeleting<&ArrayHeader<FrameArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00532E30, ScalarDeleting<&ArrayHeader<MotionPointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00532E50, ScalarDeleting<&ArrayHeader<MotionWaypointBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00533520, ScalarDeleting<&ArrayHeader<MotionPointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00533560, ScalarDeleting<&ArrayHeader<MotionWaypointBaseClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005335A0, ScalarDeleting<&ArrayHeader<CarriedArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005335C0, ScalarDeleting<&ArrayHeader<IdArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00539870, ScalarDeleting<&PtrList::Destruct<CellListClass>>::Delete);
+EI_REWRITTEN(0x005398F0, ScalarDeleting<&ArrayHeader<SkinLayerArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00556C00, ScalarDeleting<&ArrayHeader<AnimationStepsClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00558740, ScalarDeleting<&ArrayHeader<PointArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00558760, ScalarDeleting<&ArrayHeader<AttackOptionArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00558800, ScalarDeleting<&ArrayHeader<AnimationStepsClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00558880, ScalarDeleting<&PtrList::Destruct<LootListClass>>::Delete);
+EI_REWRITTEN(0x00560490, ScalarDeleting<&ArrayHeader<CountdownArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00571E90, ScalarDeleting<&PtrList::Destruct<ClientObjectListClass>>::Delete);
+EI_REWRITTEN(0x00571EB0, ScalarDeleting<&PtrList::Destruct<ClientList2Class>>::Delete);
+EI_REWRITTEN(0x00571FA0, ScalarDeleting<&PtrList::Destruct<ClientList3Class>>::Delete);
+EI_REWRITTEN(0x0059B410, ScalarDeleting<&ArrayHeader<CellRowArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0059B450, ScalarDeleting<&PtrList::Destruct<NodeListClass>>::Delete);
+EI_REWRITTEN(0x0059B470, ScalarDeleting<&ArrayHeader<AreaListClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0059B540, ScalarDeleting<&ArrayHeader<PartyUnitArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0059B560, ScalarDeleting<&PtrList::Destruct<ExperienceListClass>>::Delete);
+EI_REWRITTEN(0x0059E240, ScalarDeleting<&ArrayHeader<SectorOccluderArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005C1C50, ScalarDeleting<&ArrayHeader<SpiralCellArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005C5870, ScalarDeleting<&ArrayHeader<SmoothEdgeArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005C58B0, ScalarDeleting<&ArrayHeader<SmoothCopyArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005C58F0, ScalarDeleting<&ArrayHeader<SmoothStepArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005CDD40, ScalarDeleting<&PtrList::Destruct<StaticListClass>>::Delete);
+EI_REWRITTEN(0x005D9D20, ScalarDeleting<&PtrList::Destruct<AttentionListClass>>::Delete);
+EI_REWRITTEN(0x005EBD90, ScalarDeleting<&ArrayHeader<UnitPtrArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0060ABC0, ScalarDeleting<&ArrayHeader<ObjectiveExitArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00613A10, ScalarDeleting<&ArrayHeader<ItemStripArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0064B630, ScalarDeleting<&ArrayHeader<QuickEntryArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0065DFD0, ScalarDeleting<&ArrayHeader<TokenPtrArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x0065DFF0, ScalarDeleting<&ArrayHeader<LinePtrArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x00666170, ScalarDeleting<&PtrList::Destruct<PlayerListClass>>::Delete);
+EI_REWRITTEN(0x006942E0, ScalarDeleting<&PtrList::Destruct<TextureListClass>>::Delete);
+EI_REWRITTEN(0x006BD170, ScalarDeleting<&PtrList::Destruct<SoundListClass>>::Delete);
+EI_REWRITTEN(0x006CDBD0, ScalarDeleting<&ArrayHeader<TerrainArrayAClass>::Destruct>::Delete);
+EI_REWRITTEN(0x006CDBF0, ScalarDeleting<&ArrayHeader<TerrainArrayBClass>::Destruct>::Delete);
+EI_REWRITTEN(0x006CDC10, ScalarDeleting<&ArrayHeader<TerrainArrayCClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CAFD0, ScalarDeleting<&Strings::Destruct<StringArrayClass>>::Delete);
 
 // ---- Serialize (vtable slot 2) -------------------------------------------------------------------
 
@@ -320,7 +319,7 @@ EI_REWRITTEN(0x00452650, Map32::Serialize);   // CornerMapCClass
 EI_REWRITTEN(0x004761C0, Map32::Serialize);   // DwordMapClass
 
 // Arrays whose elements SetSize builds (zeroed, then their fields) and nothing destroys.
-EI_REWRITTEN(0x00451060, KeyFrames::Serialize);   // vtable 0073C12C
+EI_REWRITTEN(0x00451060, KeyFrames::Serialize);
 EI_REWRITTEN(0x004C9510, Placements::Serialize);   // PartySlotArrayClass
 EI_REWRITTEN(0x00511E20, SoundRecords::Serialize);   // EffectSoundArrayClass
 EI_REWRITTEN(0x005396E0, PathRecords::Serialize);   // SkinLayerArrayClass
@@ -335,12 +334,12 @@ EI_REWRITTEN(0x0045DC60, OwnedPatrols::Serialize);   // PatrolArrayClass
 EI_REWRITTEN(0x0045FCB0, OwnedAllods::Serialize);   // AllodArrayClass
 EI_REWRITTEN(0x004C88E0, ScriptAreas::Serialize);   // ScriptAreaArrayClass
 EI_REWRITTEN(0x006C4A40, ByteArrays::Serialize);   // TerrainByteArraysClass
-EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);   // vtable 0073FF74
+EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);
 EI_REWRITTEN(0x00450D40, AlignedAt4Records::Serialize);   // AlignedAt4ArrayClass
 EI_REWRITTEN(0x0050A210, AlignedAt8Records::Serialize);   // AlignedAt8ArrayClass
 EI_REWRITTEN(0x00450570, OwnedBoneLinkArrays::Serialize);   // FakeUnitBoneArraysClass
 EI_REWRITTEN(0x00476430, OwnedDwordMaps::Serialize);   // SceneObjectArrayClass
-EI_REWRITTEN(0x006C4C90, AlignedArrays::Serialize);   // vtable 007441B4
+EI_REWRITTEN(0x006C4C90, AlignedArrays::Serialize);
 EI_REWRITTEN(0x00451A70, NamedStrings::Serialize);   // TextureNameArrayClass
 
 // Records with CStrings.
@@ -357,7 +356,7 @@ EI_REWRITTEN(0x005B1A00, List8::Serialize);           // AiMapListClass
 EI_REWRITTEN(0x005CDC00, List30::Serialize);          // StaticListClass
 EI_REWRITTEN(0x005D9A40, AttentionList::Serialize);   // AttentionListClass
 
-// CArray<CString> (vtables 0073D2D4 / 0073D2F8) and its SerializeElements.
+// CArray<CString> and its SerializeElements.
 EI_REWRITTEN(0x004C2700, Strings::Serialize);
 EI_REWRITTEN(0x007085AF, SerializeStrings);
 

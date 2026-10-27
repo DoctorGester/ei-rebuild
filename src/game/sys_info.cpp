@@ -1,8 +1,8 @@
 // CSysInfo (004DDCB0-004DE8B0; A-S11, A-E2). The system information object is a global (007AB8F8;
 // an engine object, game.exe's vtable 0073D644, class id 0xD) holding five texts about the machine and what
 // Windows reported. A static initialiser (table entry 00783320: 004DDD30) constructs it and
-// registers its destructor with atexit; the constructor (004DDD6F) calls Create, which collects
-// everything (004DDF28). All of that runs before the hooks install, so the game never reaches the
+// registers its destructor with atexit; the constructor calls Create, which collects
+// everything. All of that runs before the hooks install, so the game never reaches the
 // rewrites of the initialisers, the constructor, the collector and its helpers; a start-up check
 // compared what they build with what the original built
 // (verify_static_initialisers.cpp until S21d). The destructor (at exit) and the virtual slots
@@ -64,7 +64,6 @@ void ReadProcessorInfo() {
 
 // ---- The collector and its helpers ---------------------------------------------------------------
 
-// 004DE687.
 MEMORYSTATUS* CSysInfo::QueryMemory() {
     std::memset(&memory_, 0, sizeof(memory_));
     memory_.dwLength = sizeof(memory_);
@@ -73,7 +72,6 @@ MEMORYSTATUS* CSysInfo::QueryMemory() {
 }
 EI_REWRITTEN(0x004DE687, CSysInfo::QueryMemory);
 
-// 004DE6C2.
 SYSTEM_INFO* CSysInfo::QuerySystem() {
     std::memset(&system_, 0, sizeof(system_));
     gameapi::GetSystemInfo(&system_);
@@ -81,7 +79,6 @@ SYSTEM_INFO* CSysInfo::QuerySystem() {
 }
 EI_REWRITTEN(0x004DE6C2, CSysInfo::QuerySystem);
 
-// 004DE6F3.
 OSVERSIONINFOA* CSysInfo::QueryVersion() {
     std::memset(&version_, 0, sizeof(version_));
     version_.dwOSVersionInfoSize = sizeof(version_);
@@ -96,7 +93,7 @@ OSVERSIONINFOA* CSysInfo::QueryVersion() {
 }
 EI_REWRITTEN(0x004DE6F3, CSysInfo::QueryVersion);
 
-// 004DE789. (The original also copies the report's twelve bytes as a string into a local nothing
+// (The original also copies the report's twelve bytes as a string into a local nothing
 // reads.) Without CPUID the globals keep what they held.
 void CSysInfo::QueryProcessor() {
     ReadProcessorInfo();
@@ -112,7 +109,7 @@ void CSysInfo::QueryProcessor() {
 }
 EI_REWRITTEN(0x004DE789, CSysInfo::QueryProcessor);
 
-// 004DDF28. (The original's two unused locals, a registry key holder that is never opened and an
+// (The original's two unused locals, a registry key holder that is never opened and an
 // empty string, are left out.) The report built at the end goes nowhere: it is a local.
 int CSysInfo::Collect() {
     QueryVersion();
@@ -177,7 +174,7 @@ EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
 
 CSysInfo::CSysInfo() {
     ClearFields();
-    Collect();   // Create (004DDF05), called directly
+    Collect();   // Create, called directly
 }
 EI_REWRITTEN_SPECIAL(0x004DDD6F, CSysInfo::CSysInfo);
 
@@ -224,11 +221,11 @@ EI_REPLACE(0x004DDCEE, SysInfoStaticQuarterPi);
 void __cdecl SysInfoStaticInversePi() { SysInfoInitInversePi(); }
 EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 
-// 004DDD3F: the global constructed. 004DDD4E: its destructor registered with atexit. 004DDD30: the
+// The global constructed. 004DDD4E: its destructor registered with atexit. 004DDD30: the
 // table's entry: both.
 void __cdecl SysInfoStaticConstruct() { g_sysInfo.Construct(); }
 EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
-void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }   // 004DDD60
+void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }
 EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
@@ -236,9 +233,9 @@ void __cdecl SysInfoStaticInit() {
 }
 EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 
-// 004DE87C: an empty destructor (004013D0, a bare RET) registered with atexit. 004DE855: the
+// An empty destructor (004013D0, a bare RET) registered with atexit. 004DE855: the
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
-void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }   // 004013D0
+void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }
 EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
     if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;

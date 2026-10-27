@@ -178,7 +178,7 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
     return *name == '\0' ? 1 : 0;
 }
 
-// Rebirth's ResOverride sends every call of 00674AC0 to addon.
+// Rebirth's ResOverride sends every call to addon.
 void CMappedResource::ListFiles(mfc::CStringArray* stringArray, const char* pattern) const {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         modfolders::ListFiles(this, stringArray, pattern);
@@ -211,17 +211,17 @@ void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char*
 
 // --- CMMIOResource -------------------------------------------------------------------------------
 
-// The mapped file is constructed as a member (CMappedFile's constructor, 006756B0).
+// The mapped file is constructed as a member (CMappedFile's constructor).
 CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
 
 CMMIOResource::~CMMIOResource() {
-    // CloseResource, inlined (00675720 is CMappedFile::Close's copy).
+    // CloseResource, inlined (is CMappedFile::Close's copy).
     file_.Close();
     entries_ = nullptr;
     names_ = nullptr;
     mappedImage_ = nullptr;
     header_ = ResHeader{};
-    // The CMappedFile destructor; CMappedResource's follows (an inline copy in the original).
+    // The CMappedFile destructor; CMappedResource's follows.
     file_.Close();
 }
 

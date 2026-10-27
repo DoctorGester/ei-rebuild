@@ -1,7 +1,6 @@
 #pragma once
 
-// Upper and lower case of UTF-8 text (EI_UTF8; docs/notes/standalone.md section 4, ticket U5).
-//
+// Upper and lower case of UTF-8 text (EI_UTF8; docs/notes/standalone.md section 4).
 // Without EI_UTF8 the game changes case through the C runtime's locale (LC_CTYPE from the "Font CharSet"
 // option, "english": code page 1252) and the multibyte table of the system's ANSI code page, one byte at a
 // time. On UTF-8 that corrupts text (tolower of the lead byte 0xD0 is 0xF0) and still misses Cyrillic.

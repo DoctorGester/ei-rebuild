@@ -1,8 +1,8 @@
 #pragma once
 
-// The standalone resource layer (S19b): Rebirth's mod-folder patches, which addon.dll v0.12.4.2 applies
+// The standalone resource layer: Rebirth's mod-folder patches, which addon.dll v0.12.4.2 applies
 // around the selected mod (HKCU\Software\Gipat.Ru\EI_Starter\Settings "AddonPath", a '\' added):
-// - Maps (10 sites): every maps-folder user names its file first; the maps folder (0055E990) is the
+// - Maps (10 sites): every maps-folder user names its file first; the maps folder is the
 //   mod's folder when the mod's Maps\ held that name at start, else the game's.
 // - ResOverride (25 sites): the mod's config.reg [Res] lists archives that come before (or, with '-',
 //   instead of) the game's twelve archives, plus extra figure and texture archives; every
@@ -66,7 +66,7 @@ enum class MapsSite : int {
 // zone table: when its top folder has a ".mq" file), else the game's. It stays until the next one.
 // Nothing without Active(Maps).
 void SelectMaps(const char* name, MapsSite site);
-// The folder MapsFolder (0055E990) starts from: the game's data folder (007AF460) or the mod's.
+// The folder MapsFolder starts from: the game's data folder or the mod's.
 const mfc::CString& MapsRoot(const mfc::CString& dataFolder);
 
 // ---- Camera, Stream, Movies ----

@@ -1,7 +1,7 @@
-// The figure loader's constructor (004F68C0, RET 8, returns this; the client world's setup news it
+// The figure loader's constructor (returns this; the client world's setup news it
 // with the device object and the game's folder). Rebirth patches it (its resource override, at the
 // first archive's name), so this is the vanilla body, installed in the vanilla launch only, and
-// callers go through its address. A-S12; see docs/notes/renderer.md (section 12).
+// callers go through its address. See docs/notes/renderer.md (section 12).
 #include "core_refcount.h"
 #include "model.h"
 #include "mod_folders.h"
@@ -39,7 +39,7 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const stlp::strin
     if (renderer) renderer->AddRef();
     cache_.Construct();
     pipeline_ = renderer_->pipeline_->transform_;
-    // Rebirth's ResOverride (004F6952): the mod's figure archives come first.
+    // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& modPath : modfolders::FigureArchives()) {
             const stlp::string path(modPath.c_str());

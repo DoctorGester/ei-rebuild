@@ -1,5 +1,5 @@
-// Drawing slots (20) of the camp's and the hero screen's panels: the quick strip 00622C10, the
-// repair grid 00627C90, the constructors' spell maker 006284A0 and item maker 00628F80. See docs/notes/ui.md, section 5. The trade grid's (00627390) is in
+// Drawing slots (20) of the camp's and the hero screen's panels: the quick strip, the
+// repair grid, the constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_grid_draw.cpp.
 #include "ui.h"
 #include "ui_camp.h"
@@ -31,8 +31,8 @@ constexpr std::uint32_t kCapsStencil = 0x4000;
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
 
-// 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws
-// an item's model in a cell (RET 8).
+// The item screen's draw (ui_item_view.cpp): the owner screen draws
+// an item's model in a cell.
 void DrawItem(CItemScreen* owner, int pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
 
 
@@ -54,7 +54,7 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 } // namespace
 
-// --- 00622C10: the quick strip ------------------------------------------------------------------
+// --- The quick strip ------------------------------------------------------------------
 
 BOOL CHeroQuickStrip::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -75,7 +75,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
 }
 EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 
-// --- 00627C90: the repair grid ------------------------------------------------------------------
+// --- The repair grid ------------------------------------------------------------------
 
 BOOL CRepairGrid::Draw(int pass) {
     CInterface3D* ui = interface_;
@@ -120,7 +120,7 @@ BOOL CRepairGrid::Draw(int pass) {
 }
 EI_REWRITTEN(0x00627C90, CRepairGrid::Draw);
 
-// --- 006284A0 / 00628F80: the constructors' second pages ----------------------------------------
+// --- The constructors' second pages ----------------------------------------
 
 namespace {
 

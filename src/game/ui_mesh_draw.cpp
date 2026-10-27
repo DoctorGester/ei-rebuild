@@ -1,5 +1,5 @@
-// An interface sprite (CUiMesh, ui.h): its Create (005E6C60, vtable slot 2), its draw (005E6D90,
-// called by the window base's draw 005FEB90 and the panels that draw single sprites), its
+// An interface sprite (CUiMesh, ui.h): its Create, its draw
+// (called by the window base's draw and the panels that draw single sprites), its
 // constructor, destructor and virtual slots.
 // docs/notes/ui.md, section 9.
 #include "ui.h"
@@ -22,12 +22,12 @@
 
 namespace {
 
-constexpr float kColourScale = 255.0f;   // 0073C370
+constexpr float kColourScale = 255.0f;
 constexpr std::uint32_t kOne = 0x3F800000;
 constexpr int kStackWorld = 1;           // the transform pipeline's stacks the sprite is pushed on
 constexpr int kStackView = 2;
 
-// The identity orientation (w 1, x y z 0; set by 005E6C30 at start): a sprite's first orientation,
+// The identity orientation (w 1, x y z 0: a sprite's first orientation,
 // and what the draw hands DrawFigure as its second argument (not read on that path).
 constexpr Quaternion kIdentityOrientation = /*007C7CD8*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 constexpr float kSpriteDepth = 10.0f;
@@ -43,8 +43,8 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
-// Place's layout scale (00740158, 0.48157), the half width / height (00740160, 400; 0073FA98, 300)
-// and 1 (0073B84C), read from the exe.
+// Place's layout scale (0.48157), the half width / height (400, 300)
+// and 1, read from the exe.
 
 } // namespace
 
@@ -55,7 +55,7 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
 }
 EI_REWRITTEN(0x005E7010, CUiMesh::GetPlacement);
 
-// 005E6FA0. The layout's 1 / 400 (0074015C) and 0.75 (0073C524) with the constants above. Rebirth's
+// The layout's 1 / 400 and 0.75 with the constants above. Rebirth's
 // WideScreen replaces it (addon's 10023151): x moved by the panel offset first (FIADD; 0 outside its
 // panel builders, ui_widescreen.h).
 void CUiMesh::PlaceBody(float x, float y, float depth) {
@@ -68,7 +68,7 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
 }
 EI_REWRITTEN(0x005E6FA0, CUiMesh::PlaceBody);
 
-// 005E6D90 (RET 4). Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
+// Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then
 // the scale matrix on both (the view stack's push inlined), draws the sprite as a figure in its
 // tint (slot 7; the renderer's colour put back after) with its material, and drops both pushes
@@ -99,7 +99,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const std::uint32_t blue = ColourByte(tint_[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     const float origin[3] = {0.0f, 0.0f, 0.0f};
-    render::SetInterfaceDraw(true);   // the new renderer streams interface sprites (R16d)
+    render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
     const int drawn = renderer->DrawFigure(this, &kIdentityOrientation, origin, material_, 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
@@ -141,7 +141,7 @@ int CUiMesh::CreateSprite() {
 }
 EI_REWRITTEN(0x005E6C60, CUiMesh::CreateSprite);
 
-// --- The class 0x43's lifetime and slots (C19) ---------------------------------------------------
+// --- The class 0x43's lifetime and slots ---------------------------------------------------
 
 CUiMesh::CUiMesh() {}
 CUiMesh::~CUiMesh() {}
@@ -153,7 +153,7 @@ void CUiMesh::Destroy() { DestroySprite(); }
 const char* CUiMesh::GetClassName() { return I3DFigureClassName(this); }
 int CUiMesh::GetClassId() { return I3DFigureClassId(this); }
 
-// --- The arrays' sizes (005EA210, 005EA600, 005EA4C0, 005EA380) ---------------------------------
+// --- The arrays' sizes ---------------------------------
 
 void CUiMesh::SetQuadCount(int count) {
     Quads().SetSize(count);

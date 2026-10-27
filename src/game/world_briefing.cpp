@@ -1,4 +1,4 @@
-// The briefing variables of the client (0057FC90, 0057FDE0, 0057FF40): which mercenary speaks a
+// The briefing variables of the client: which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "object_tables.h"
@@ -37,8 +37,8 @@ namespace {
 
 
 
-// The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
-// there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
+// The briefing texts: opening a section by name (0 when
+// there is none), finding the next line with a tag and splitting the
 // current line into words.
 
 bool IsEmpty(const mfc::CString& s) {
@@ -108,8 +108,8 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-// 004DEDD0 (RET 4). The briefing texts forget a loaded file.
-// 0040C720. STLport string destructor.
+// The briefing texts forget a loaded file.
+// STLport string destructor.
 
 using LoadedFiles = stlp::vector<stlp::string>;
 LoadedFiles& QuestFiles() { return g_questFiles; }
@@ -117,15 +117,15 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 } // namespace
 
 // The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
-// initialisers 00580980 and 00581050 leave them; the exit functions they register destroy them
+// initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit stlp::vector<stlp::string> g_questFiles = /*007AFDD0*/ {};
 constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
 using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }       // 005809C0
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }   // 00581090
+void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
+void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 } // namespace
 
 EI_REPLACE(0x005809C0, DestroyQuestFiles);
@@ -147,7 +147,7 @@ void UnloadQuestTexts() {
     files.clear();
 }
 
-// ---- The quest file of a zone (005809D0, A-W15) ---------------------------------------------------
+// ---- The quest file of a zone ---------------------------------------------------
 
 namespace {
 
@@ -167,7 +167,7 @@ bool ServerRuns() {
 void ShareQuestFile(const char* path, const char* name) {
     GrowingBuffer local;
     GameBuffer* data = &local;
-    BufferedFile source;   // the original's inlined constructor and destructor
+    BufferedFile source;   // constructed and destroyed in place
     source.Open(path, kReadBinary, kReadOnlyFlags);
     net::BufferUpdateHigh(&source);
     const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
@@ -268,12 +268,12 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         std::string base = folder;
         std::string path = base + game::briefingwords::QuestRegistry();
-        // (004DEFC0 in the original; the registry is binary, read as it is: CTextManager::OpenData.)
+        // (The registry is binary, read as it is: CTextManager::OpenData.)
         registered = texts->OpenData(path.c_str()) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    TheQuestDatabase().LoadRegistry(texts->cursor_);   // 006AE8E0 (its result not read)
+    TheQuestDatabase().LoadRegistry(texts->cursor_);   // (its result is not read)
     {
         std::string base = folder;
         std::string path = base + game::briefingwords::MapList();
@@ -285,7 +285,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         new (folders.Finish()) stlp::string(name);
         ++folders.Finish();
     } else {
-        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);   // 004DCE90
+        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);
     }
 }
 

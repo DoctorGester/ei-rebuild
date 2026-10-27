@@ -22,13 +22,12 @@ void EndWalk(ObjectListIterator& it) {
 
 } // namespace
 
-// 00497FC0 (slot 2).
 int CParticleManager::Create() {
     quietStart = 0;
     return CBaseManager::Create() != 0 ? 1 : 0;
 }
 
-// 00497FE0 (slot 3). The held sources are released walking the table (a null value ends the walk,
+// The held sources are released walking the table (a null value ends the walk,
 // as in the original's for_each); the table is cleared (count and highest id 0); every pooled
 // particle is deleted (RemoveHead, which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
@@ -41,7 +40,6 @@ void CParticleManager::Destroy() {
     quietStart = 0;
 }
 
-// 00498400.
 CParticleSource* CParticleManager::CreateSource(int type) {
     CEngineObject* object = CreateObject(type, -1);
     ++object->refCount_;
@@ -83,7 +81,7 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
 
 } // namespace
 
-// 00498480. With `paused` set only sources with flag 8 tick; a source whose tick returned 0 is
+// With `paused` set only sources with flag 8 tick; a source whose tick returned 0 is
 // released when held.
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {
@@ -93,7 +91,6 @@ int CParticleManager::TickSources(char paused) {
     return 0;
 }
 
-// 00498630.
 void CParticleManager::ReleaseUnheld() {
     ReleaseHeld(this, [](CEngineObject* object) { return object->refCount_ == 1; });
 }

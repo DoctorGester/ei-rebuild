@@ -1,14 +1,18 @@
-// The landscape's pages (render_terrain.cpp), lit here (R16i, scene_lighting.hlsli): the vertices carry the
+// The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the
 // normal, the material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0
 // or more; below 0 on the water layer, whose specular word the game keeps: its specular lights and crests).
 #include "shadow_receiver.hlsli"
+#define POINT_SHADOW_B b2
+#define POINT_SHADOW_T t3
+#define POINT_SHADOW_S s3
+#include "point_shadow.hlsli"
 #include "scene_lighting.hlsli"
 cbuffer params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 fog;     // rgb: the fog colour
     float4 flags;   // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels),
                     // y: fog on; zw: the half-pixel shift
-    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // to the shadow map (R16j)
+    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // to the shadow map
     float4 shadow_on;   // the shadow map (render_shadows.cpp, ShadowParams)
     float4 shadow_scale;
     float4 shadow_camera;
@@ -42,7 +46,7 @@ SamplerState smp : register(s0);
 Texture2D<float> shadow_map : register(t1);
 SamplerComparisonState shadow_smp : register(s1);
 Texture2D<float4> shadow_range : register(t2);
-SamplerState shadow_linear : register(s2);   // the range, filtered (R25)
+SamplerState shadow_linear : register(s2);   // the range, filtered
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
@@ -57,10 +61,11 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float3 spec, c;
     if (i.loss < 0.0) {   // the water: no shadow test in the game's lighting, its own specular word
-        float3 light = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, spec);
+        float3 light = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, false, 0.0, spec);
         c = saturate(t.rgb * light + i.spec.rgb);
     } else {
-        float3 light = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow_on.y, spec);
+        float3 light = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow_on.y, point_shadow_on.x > 0.5,
+                                    pixel_turn(i.pos.xy), spec);
         c = saturate(t.rgb * light + spec);
     }
     float a = flags.x > 0.5 ? i.col.a : t.a;

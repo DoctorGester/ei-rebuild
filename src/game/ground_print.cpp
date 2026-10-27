@@ -1,7 +1,6 @@
 // Ground prints: footprints, blood and scorch marks (006CECD0-006CFEA0) and the client world's
-// functions that add them (0056CE90, 0056D150, 0056D4C0). See ground_print.h and
+// functions that add them. See ground_print.h and
 // docs/notes/models.md ("Ground prints").
-//
 // A new print is built on the stack, copied into its list (the list instantiations' own insert:
 // node allocation and the records' compiler-generated copy constructor, which shares the empty
 // geometry arrays) and destroyed. Its table entry in prints.db (by the ground's surface class)
@@ -36,16 +35,16 @@ namespace {
 constexpr int kTextureKind = 6;                  // the texture manager's kind of the prints' textures
 constexpr int kMaxSpreadTicks = 0x2D;
 constexpr int kNameCapacity = 0x100;             // Load's name buffer
-constexpr float kHalf = 0.5f;                    // 0073B86C
-constexpr float kQuarter = 0.25f;                // 0073C3B0
-constexpr float kEighth = 0.125f;                // 0073C520
-constexpr float kSixteenth = 0.0625f;            // 0073D040
-constexpr float kOne = 1.0f;                     // 0073B84C
-constexpr float kAlphaRange = 255.0f;            // 0073C370
+constexpr float kHalf = 0.5f;
+constexpr float kQuarter = 0.25f;
+constexpr float kEighth = 0.125f;
+constexpr float kSixteenth = 0.0625f;
+constexpr float kOne = 1.0f;
+constexpr float kAlphaRange = 255.0f;
 constexpr float kLift = 0.01f;                   // 0073C548, the drawn quad above the ground
-constexpr float kMilli = 0.001f;                 // 0073CCF4
-constexpr float kAngleMilli = 1000.0f;           // 0073C34C
-constexpr float kSpinDegrees = 30.0f;            // 0073BAF0
+constexpr float kMilli = 0.001f;
+constexpr float kAngleMilli = 1000.0f;
+constexpr float kSpinDegrees = 30.0f;
 
 // Globals.
 // pi / 2 and 2 pi as floats (set by the static initialisers 006CEC90 / 006CEC80).

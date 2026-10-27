@@ -1,10 +1,9 @@
 #pragma once
 
 // A global of game.exe's whose constructor and destructor run where the original runs them: the constructor from its
-// static initialiser in the list's order (ported by hand on the name and registered at the initialiser's address),
-// the destructor from the exit function that initialiser registers with the game's atexit (ported the same way).
-// docs/notes/standalone.md, "The static initialisers' objects" (C18k).
-//
+// static initialiser in the list's order,
+// the destructor from the exit function that initialiser registers with the game's atexit.
+// docs/notes/standalone.md, "The static initialisers' objects".
 // The storage starts zero (constant initialisation: `constinit lib::StaticObject<T> g_x = /*address*/ {};`, compared
 // with game.exe's bytes by tools/named_data.py) and our own CRT neither constructs nor destroys it: T's constructor
 // may read game data the image sets up later, and its destructor must run in the game's exit order, on the game's
@@ -18,7 +17,7 @@ namespace lib {
 
 // The once-only guard (bit 0) that game.exe's compiler gave the function-local statics with an empty destructor: 175
 // static initialisers (the generated static_init.cpp's `d.Once(lib::g_emptyStaticGuard, 1)`) and CSysInfo's
-// (sys_info.cpp) set it and register the empty exit function 004013D0; nothing reads it but these tests.
+// (sys_info.cpp) set it and register the empty exit function; nothing reads it but these tests.
 inline constinit std::uint8_t g_emptyStaticGuard = /*007CAEE4*/ {};
 
 template <class T>

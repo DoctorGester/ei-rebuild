@@ -1,8 +1,7 @@
-// CInterface3D::CreateScreen (005F5BA0): the screens by id. See ui.h and docs/notes/ui.md.
-//
-// The original inlines the constructors of screens 1, 2, 3 and 7 (the container base 00600B20,
+// CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
+// The original inlines the constructors of screens 1, 2, 3 and 7 (the container base,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
-// through the original addresses.
+// through game.exe's addresses.
 #include "app.h"
 #include "bink_video.h"
 #include "options.h"
@@ -33,7 +32,7 @@
 namespace {
 
 // An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
-// node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
+// node pool, linked to itself (the list constructors).
 template <typename Node>
 Node* EmptyList() {
     auto* head = stlp::allocate_as<Node>();
@@ -48,18 +47,18 @@ Node* EmptyList() {
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
-    personTexts_.Construct();          // 005F8F30
-    clientParty_.Construct();          // 005F6080
-    itemUseKey_.ConstructItemUseKey();  // 005F5F90
+    personTexts_.Construct();
+    clientParty_.Construct();
+    itemUseKey_.ConstructItemUseKey();
 }
 
 CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     movers_ = EmptyList<BriefingMover>();
-    personTexts_.Construct();           // 005F8F30
+    personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
-    people_.ConstructEmpty();           // 005F8F10
-    speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
+    people_.ConstructEmpty();
+    speakers_ = nullptr;                // the speakers' vector: no storage
     speakersEnd_ = nullptr;
     speakersCapacity_ = nullptr;
 }
@@ -100,26 +99,22 @@ void CInterface3D::CreateScreen(int id) {
     Activate(screen);
 }
 
-// --- 005F7350: PushWindow --------------------------------------------------------------------------
+// --- PushWindow ----------------------------------------------------------------------------------
 
 namespace {
 
-CCursor* Cursor() { return TheCursor(); }   // 005E5200 SetShape (RET 4)
+CCursor* Cursor() { return TheCursor(); }   // SetShape
 
-// 00458220: the message pump.
-// 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
-// The game state's server flag (007AFEA4; 00578D00 reads it, 00578D10 sets it; neither reads ECX).
+// The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
-// 005FA9A0: the window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
-
-// IDirect3DDevice7::SetRenderState (COM, slot 20).
+// IDirect3DDevice7::SetRenderState (COM).
 void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
     device->SetRenderState(state, value);
     render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
 }
 
 // The end both PushWindow and Activate share: the window pushed on the stack, the render states
-// the interface draws with, the window created (slot 25), the messages pumped, the mouse released.
+// the interface draws with, the window created, the messages pumped, the mouse released.
 void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     if (ui->stackEnd_ != ui->stackCapacity_) {
         if (ui->stackEnd_) *ui->stackEnd_ = window;
@@ -173,7 +168,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     OpenOnTop(this, window);
 }
 
-// --- 005F71C0: Activate ----------------------------------------------------------------------------
+// --- Activate ------------------------------------------------------------------------------------
 
 namespace {
 void DeleteBackdrop(CUiSurface* surface) {
@@ -220,7 +215,7 @@ EI_REWRITTEN(0x005F7350, CInterface3D::PushWindow);
 
 EI_REWRITTEN(0x005F5BA0, CInterface3D::CreateScreen);
 
-// --- 005F8A80: the message window ------------------------------------------------------------------
+// --- the message window --------------------------------------------------------------------------
 
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
@@ -230,7 +225,7 @@ void CInterface3D::ShowMessage(int force) {
         Node* node = header->next;
         if (node == header) return;
         std::string text = node->data.GetString();
-        messages_.Erase(node);   // 005F8E50
+        messages_.Erase(node);
         messageText_ = text;
         messageFlag_ = 0;
     }
@@ -241,7 +236,7 @@ void CInterface3D::ShowMessage(int force) {
 
 EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 
-// --- 005F86F0: the help window -----------------------------------------------------------------------
+// --- the help window -----------------------------------------------------------------------------
 
 void CInterface3D::OpenHelp(int flag) {
     if (stackBegin_ == stackEnd_) return;
@@ -249,8 +244,8 @@ void CInterface3D::OpenHelp(int flag) {
     const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;
-    // The seen-topics map (find 005FAEA0; operator[], lower_bound 005FAF30 and an insert at that
-    // hint, inlined by the original).
+    // The seen-topics map (find; operator[], lower_bound an insert at that
+    // hint).
     decltype(helpTopics_)::Node* found;
     {
         std::string key = topic;
@@ -277,13 +272,13 @@ EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
 
 namespace {
 
-// Members (thiscall): screen 9's two maps are item caches (lib_trees::ItemCache: 005F9F80 with two
-// allocators, 005F98F0); screen 8's player at +0x1D8 (005DB340 / 005DB350).
+// Members: screen 9's two maps are item caches (lib_trees::ItemCache: with two
+// allocators); screen 8's player at +0x1D8.
 using ItemCache = lib_trees::ItemCache;
 
 } // namespace
 
-// 005F6F30. Screen 9's constructor.
+// Screen 9's constructor.
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
@@ -295,7 +290,7 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 
-// 005F6D50. Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
+// Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
 // the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.
 CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
     new (archive_.Get()) CMappedResource();
@@ -306,7 +301,7 @@ CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name
 }
 EI_REWRITTEN_SPECIAL(0x005F6D50, CCreditsScreen::CCreditsScreen);
 
-// 005F6E40. Screen 8's destructor body: its members, the list (each line's two CStrings, style
+// Screen 8's destructor body: its members, the list (each line's two CStrings, style
 // then text) back to the node allocator, then the container base.
 CCreditsScreen::~CCreditsScreen() {
     player_.Destruct();

@@ -1,9 +1,9 @@
 #pragma once
 
-// The remaining interface screens of 00600000-00660000 (see docs/notes/ui.md, "Camp, global map, hero
+// The remaining interface screens (see docs/notes/ui.md, "Camp, global map, hero
 // screens"): the battle screen's Create, the global map, the camp's pages and
 // the hero panels, the credits. Names provisional. The classes here describe only the fields
-// the rewritten code uses; the objects are created by original code (sizes asserted where known).
+// the code uses; the objects are created by original code (sizes asserted where known).
 
 #include "object_tables.h"
 #include "options.h"
@@ -41,10 +41,9 @@ inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen (CBattleScreen and PersonTextMap are in ui.h) ---------------------------
-//
 // The "pers <name>" texts read in (ui_person_texts.cpp): every text section "pers <name>" gives its
 // first line to the key of <name> (inserted, or replaced). The battle screen's setup does it
-// inline; the briefing screen in 00607720.
+// inline; the briefing screen.
 void LoadPersonTexts(PersonTextMap* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen
@@ -69,8 +68,7 @@ inline const char* const* AttributeNames() {
 }
 
 // --- Global map -----------------------------------------------------------------------------
-//
-// The island map shown between zones (CreateScreen id 4, vtables 00740B08 / 00740B3C, 0x294 bytes;
+// The island map shown between zones (CreateScreen id 4, vtables, 0x294 bytes;
 // ui_global_map.cpp). Regions: 0 / 1 turn the view, 2 the camp, 3.. the links between zones.
 
 // A zone of the allod on the map (0x10 bytes, CArray at +0x18C).
@@ -81,15 +79,15 @@ struct GlobalMapZone {
     mfc::CString title;              // +0x0C
 };
 static_assert(sizeof(GlobalMapZone) == 0x10 && offsetof(GlobalMapZone, name) == 0x08 && offsetof(GlobalMapZone, title) == 0x0C);
-// The zone array's ConstructElements (005FBF50: zero-filled, the two CStrings empty) and
-// DestructElements (005FBD30 per zone: title, then name), and the element assignment
-// CArray::SetAtGrow (00631CC0) does (ui_global_map.cpp).
+// The zone array's ConstructElements (zero-filled, the two CStrings empty) and
+// DestructElements (per zone: title, then name), and the element assignment
+// CArray::SetAtGrow does (ui_global_map.cpp).
 struct GlobalMapZoneElements {
     static void Construct(GlobalMapZone* zones, int count);
     static void Destruct(GlobalMapZone* zones, int count);
 };
 struct GlobalMapZoneTable : mfc::CArray<GlobalMapZone, GlobalMapZoneElements> {
-    // 00631CC0 (thiscall, RET 8). zones[index] = zone, growing the array (and constructing the new
+    // Zones[index] = zone, growing the array (and constructing the new
     // zones) when `index` is past its end; the strings are assigned as CStrings.
     void SetAtGrowZone(int index, const GlobalMapZone* zone);
 };
@@ -97,9 +95,9 @@ using GlobalMapZoneArray = GlobalMapZoneTable;
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
-    // 00632490 / 006324E0 (identical copies, the links' and the quests' arrays' one; RET 4;
+    // (identical copies, the links' and the quests' arrays' one;
     // ui_small_members.cpp). The element assignment: zone and position copied, the two strings
-    // assigned as CStrings (00700AA9). Returns this.
+    // assigned as CStrings. Returns this.
     GlobalMapPlace* Assign(const GlobalMapPlace& from);
     GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
 
@@ -119,16 +117,16 @@ struct GlobalMapStep {
 
 class CGlobalMap : public CUiContainer {
 public:
-    // 005F67A0 (called by CreateScreen 4; ui_global_map.cpp): the container base, empty strings and
-    // arrays (vtables 00740BFC / 00740BF0 / 00740BE4), the two STLport containers at +0x1D0 and
+    // The container base, empty strings and
+    // arrays, the two STLport containers at +0x1D0 and
     // +0x1E0, the identity turn.
     explicit CGlobalMap(CInterface3D* ui);
-    // 005F6920 (ui_global_map.cpp; deleting 005F6900, the input side's 005FC130): its strings, the
+    // Its strings, the
     // tree at +0x1E0, the vector at +0x1C8, the three arrays (entries destroyed), then the
     // container's.
     ~CGlobalMap() override;
-    // The slots of its own in game.exe's tables 00740B3C / 00740B08.
-    BOOL Draw(int pass) override;   // 20: 0062EFC0 (ui_alpha_draws.cpp): the container's, blended
+    // Virtuals of its own.
+    BOOL Draw(int pass) override;   // The container's, blended
     void CloseScreen() override { Close(); }                                                 // 26
     void MessageResult(int result) override { OnMessageResult(result); }                    // 27
     void Deactivate() override { OnDeactivate(); }                                           // 1
@@ -138,24 +136,24 @@ public:
     int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }          // 5
     int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }              // 6
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }              // 9
-    // 0062D330 (slot 40; ui_global_map_input.cpp). The screen's part of a save game: one zero dword.
+    // The screen's part of a save game: one zero dword.
     void SaveState() override;
-    // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
+    // Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
     void CreateScreen() override;
-    // 0062F050 (slot 24, every frame). While turning, turns the model and moves the markers and
+    // While turning, turns the model and moves the markers and
     // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
     // zone selection when asked, draws the weather into texture 4, sets the cursor.
     void Update() override;
 
-    // 00631110 / 00631030 / 00630F50 (RET 8; `this` is not read). The text "allod <name>",
+    // (`this` is not read). The text "allod <name>",
     // "zone <name>" or "quest <name>" (empty when there is none) constructed into `out`; returns
     // `out` (ui_global_map_places.cpp).
     mfc::CString* AllodTitle(mfc::CString* out, const char* allod);
     mfc::CString* ZoneTitle(mfc::CString* out, const char* zone);
     mfc::CString* QuestTitle(mfc::CString* out, const char* quest);
-    // 00630E00 / 00630CC0 (RET 8; `this` is not read). Where a zone or quest lies on the map model:
+    // (`this` is not read). Where a zone or quest lies on the map model:
     // the line after "#zone <name>"'s "#position" line, or after "#quest <name>", in map.txt
     // (three numbers, missing ones 0). Returns `out`; not found leaves `out` as it is (the
     // original writes its uninitialised locals there).
@@ -164,40 +162,40 @@ public:
     // The lookup behind them (`format` "#zone %s" or "#quest %s"; `positionLine` looks for
     // "#position" after it); false when map.txt has no such entry.
     static bool ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine);
-    // 00630860 (RET 8). Shows `index` as the selected zone (`isLink` false) or link (true): each
+    // Shows `index` as the selected zone (`isLink` false) or link (true): each
     // zone's marker gets texture 2 (state 0) or 0 and the tint 1 (state 1) or 0.5 (state 2), the
     // selected one the allod's colour +0x280 (halved for state 2); the links' markers the colour
     // or 1. On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
-    // 0062EE90. Applies weather entry +0x260: 0-3 the display's colour +0x14 from table entries
+    // Applies weather entry +0x260: 0-3 the display's colour +0x14 from table entries
     // 0-3, 4-7 / 8-11 / 12-15 the three layers' plain colours from entries 4-15 (each ARGB from
     // four ints, alpha last), 16 and up the weather object's ramp from entries 16 and 17.
     void SetWeather();
-    // 00630670 (called by Update while selectPending_ is set). Renders the pick picture: the zone
+    // Renders the pick picture: the zone
     // markers alone in plain colours 0xFF181818 + 0x101010 * i (flat shading, no dither, the
-    // display colour cleared, both surfaces hidden) through a frame step (00458010(0, 0)), copies
-    // the screen into the backdrop (005FD3D0), then shows everything again but the last two
-    // scene objects and the second surface, and selects nothing (00630860(-1, 0)). The click
-    // (0062F950) reads the zone back from the backdrop's pixel. Nothing without a backdrop.
+    // display colour cleared, both surfaces hidden) through a frame step ((0, 0)), copies
+    // the screen into the backdrop, then shows everything again but the last two
+    // scene objects and the second surface, and selects nothing ((-1, 0)). The click
+    // reads the zone back from the backdrop's pixel. Nothing without a backdrop.
     void RefreshSelection();
-    // 006312C0 (RET 4). The way search, recursive: for each exit of `from` whose zone exists,
+    // The way search, recursive: for each exit of `from` whose zone exists,
     // a zone named target_ records its arrival exit's time in arrivals_ (the first time, or a
     // smaller one) and, once, searches on beyond it; then, unless the zone is already on the way,
     // the way goes on through it when the player may pass ("z.<zone>" 2 for a game zone, not 1
     // for an edge, not 0 for a brief zone), pathTime_ growing by the exit's "#passtime".
     void FindPaths(MapRecord* from);
     // Input side (ui_global_map_input.cpp; `this` the window). The right button turns the map by
-    // dragging: 0062FF60 (slot 5, RET 0xC) starts the drag (dragging_, turning_ 0, the point
-    // in layout coordinates (005F7E00) and the angle kept, the mouse motion cleared, the cursor held
-    // in place); 0062FFC0 (slot 6, RET 0xC) and 0062FF10 (slot 1, plain RET) end it (dragging_
+    // dragging: starts the drag (dragging_, turning_ 0, the point
+    // in layout coordinates and the angle kept, the mouse motion cleared, the cursor held
+    // in place); end it (dragging_
     // cleared, the zone selection refreshed, the motion cleared, the cursor let go and put back at
     // the mouse position (SetCursorPos)).
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
-    // 00630010 (input slot 4, RET 0xC; Rebirth-patched; reproducing WideScreen, so hooked in both
-    // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (007C7C60, printed
-    // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
+    // (input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both
+    // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (printed
+    // to the stream) turns the map: angle_ += dx / 300 (layout units), taken mod
     // kGlobalMapFullTurn, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
     // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
     // off every region, the zone read from the backdrop's pixel at half the point, on gipat its
@@ -206,37 +204,37 @@ public:
     // it; a zone in state 0 or nothing hides the tip. A new name plays
     // "buttons\globalmap\zone.wav". Regions past the links do nothing.
     void OnMouseMove(int buttons, int x, int y);
-    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched; ui_global_map_paths.cpp, reproducing
+    // (input slot 2; Rebirth-patched; ui_global_map_paths.cpp, reproducing
     // WideScreen, so hooked in both launches: the pick picture's x without the margin). The left button pressed (nothing while
     // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
     // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
     // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions
     // 3..), or on gipat a zone that has one: "buttons\globalmap\ok.wav", the ways to the link's
     // zone searched from the local player's zone and, when there is one, the time of arrival
-    // exit 0 passed (00578700) and the zone asked for at entrance 0. Any other zone under the
+    // exit 0 passed and the zone asked for at entrance 0. Any other zone under the
     // mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
     // search, and the objectives window (built inline by the original) opened over the map with
     // the zone, the arrival times, two buttons and no zone list.
     void OnLeftDown(int buttons, int x, int y);
-    // 00630580 (slot 9, RET 0xC). The container's handler first; Esc opens the escape menu (built
-    // inline: 0x168 bytes, container constructor 00600B20, vtables 007412A4 / 00741270) and marks
+    // The container's handler first; Esc opens the escape menu (built
+    // inline: 0x168 bytes, container constructor, vtables) and marks
     // the key used; an unused key whose action (KeyActions) is '5' quick-saves ("saveq",
-    // 006570E0 with 0), '6' quick-loads it (006575B0).
+    // with 0), '6' quick-loads it.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0062EE30 (slot 27, RET 4; the result is not read). A window above closed: no turn, no drag,
+    // A window above closed: no turn, no drag,
     // the zone selection refreshed, and a mouse move (input slot 4) at the mouse position.
     void OnMessageResult(int result);
-    // 0062EE70 (slot 41; ui_small_members.cpp). The help topic: "global_map_nocamp" when noCamp_
+    // The help topic: "global_map_nocamp" when noCamp_
     // is 1, else "global_map".
     const char* HelpTopic() override;
-    // 0062FEF0 (input slot 3, RET 0xC; EAX 0; `this` the window). The left button released: a turn
+    // The left button released: a turn
     // by a turn button ends (turning_ 0) and the zone selection is refreshed on the next update.
     int OnLButtonUp(int buttons, int x, int y);
-    // 006316A0 (RET 4; the click 0062F950 asks it before each way out of the map). Always true
-    // (AL 1); neither the map nor the argument (the clicked region's +0x144) is read.
+    // Always true
+    // neither the map nor the argument (the clicked region's +0x144) is read.
     bool MayTravel(int unused);
-    // 0062EDD0 (slot 26). The map closes: the weather deleted (its slot 2 with 1), the backdrop
-    // surface released (005FD120) and deleted, the wind sound stopped (005F7E90).
+    // The map closes: the weather deleted (its slot 2 with 1), the backdrop
+    // surface released and deleted, the wind sound stopped.
     void Close();
     // The marker sprites: the scene objects after the arrow, the base and the island (zones,
     // then quests, then links, then the three layers).
@@ -256,7 +254,7 @@ public:
     GlobalMapZoneArray zones_;          // +0x18C
     mfc::CArray<GlobalMapPlace> links_; // +0x1A0
     mfc::CArray<GlobalMapPlace> quests_;   // +0x1B4
-    // The way search (006312C0) from the current zone to `target_`: the zones on the way so far,
+    // The way search from the current zone to `target_`: the zones on the way so far,
     // their summed "#passtime", and per exit of the target the party may arrive at the shortest
     // time found (-1 when the target is next to the current zone).
     stlp::vector<GlobalMapStep> path_;  // +0x1C8
@@ -271,7 +269,7 @@ public:
     float depth_;                    // +0x200 10
     float centreX_;                  // +0x204 400 (layout)
     float centreY_;                  // +0x208 280
-    int selectPending_;              // +0x20C 1: the zone selection is refreshed (00630670) on the next update
+    int selectPending_;              // +0x20C 1: the zone selection is refreshed on the next update
     CUiSurface* backdrop_;           // +0x210 a full-screen surface (not in the surface list)
     CGlobalMapClouds* weather_;      // +0x214 (global_map_clouds.h)
     int weatherTable_[18];           // +0x218 .. +0x25C
@@ -310,18 +308,17 @@ static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
 // --- Camp trade panel (the level-up page) ------------------------------------------------------
-//
-// The panel that sells skills for experience (vtable 007417A8; the camp's +0x1F4;
+// The panel that sells skills for experience (the camp's +0x1F4;
 // ui_trade_panel.cpp): the hero's six magic schools and science with
 // their levels, the perks the hero holds and the perks the hero may learn, each with its price.
 
 // A row of the panel's lists (0x18 bytes, STLport vectors at +0x15C .. +0x180).
 struct TradeRow {
-    // 00613CF0 (ui_trade_panel.cpp). Destructor: nextKey, key, name.
+    // Destructor: nextKey, key, name.
     void Destroy();
-    // 0062A7C0 (RET 4). Destroy, then operator delete when bit 0 of `flags` is set. Returns this.
+    // Destroy, then operator delete when bit 0 of `flags` is set. Returns this.
     TradeRow* DeleteThis(int flags);
-    // 0062A310 (RET 4; S16a, ui_trade_panel.cpp). Copy constructor: the texts (shared), then the
+    // Copy constructor: the texts (shared), then the
     // price, the level and the flag (the padding is not copied). Returns this.
     TradeRow* CopyConstruct(const TradeRow* from);
 
@@ -339,7 +336,7 @@ static_assert(sizeof(TradeRow) == 0x18 && offsetof(TradeRow, key) == 0x04 && off
 using TradeRows = stlp::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (0x3C bytes, STLport vector at
-// CTradePanel +0x190; filled by 00626F10 from the local player's unit record `index`).
+// CTradePanel +0x190; filled from the local player's unit record `index`).
 struct TradeRecord {
     std::uint8_t science;            // +0x00 stats +0x6C8
     std::uint8_t schools[6];         // +0x01 stats +0x6CB..
@@ -358,90 +355,90 @@ class CTradePanel : public CUiItemPanel {
 public:
     // The trade panel of `owner` (inlined by the screens' Creates): the vectors empty, the titles' array.
     CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
-    // 0060E3E0 (ui_camp.cpp; deleting 0060E3C0): its CStringArray (+0x1A4), the vectors at +0x190
+    // Its CStringArray (+0x1A4), the vectors at +0x190
     // (0x3C-byte entries) and +0x180, +0x174, +0x168, +0x15C (0x18-byte entries), then the window's.
     ~CTradePanel() override;
     void Update() override { UpdateHeld(); }                                        // 24
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // input 2
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }       // input 3
-    // 00624F10 (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
+    // (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
     // Lays the panel out at (200, 100, 600, 500): a surface, the regions (the four scroll arrows,
     // the title rows, 23 learnable rows from (415, 135), 10 held rows from (215, 330)), the arrows'
     // sprites, the three titles ("skills", "perks", "perks_av"), and one statistics record per
-    // party member (00626F10 with +0x150 the member's index); +0x19C = -1, +0x1A0 = 0.
+    // party member (with +0x150 the member's index); +0x19C = -1, +0x1A0 = 0.
     void Build() override;
-    // 00625880 (__fastcall). Rebuilds the lists for the owner's hero (its slot 51): the hero's
-    // statistics are reset (00524CD0) and refreshed (owner slot 47); the schools (00793BD4 names,
-    // levels at stats +0x6CB, science +0x6C8, prices 00527FF0), the held perks (a level byte per
+    // Rebuilds the lists for the owner's hero (its slot 51): the hero's
+    // statistics are reset and refreshed (owner slot 47); the schools (names,
+    // levels at stats +0x6CB, science +0x6C8, prices), the held perks (a level byte per
     // group of three skill records at stats +0x6D3) and every first-level perk the hero may learn
-    // (005260A0), named by the texts "perk <name>"; the experience left; then the scroll positions
-    // are clamped (00626D70) and the lists drawn.
+    // named by the texts "perk <name>"; the experience left; then the scroll positions
+    // are clamped and the lists drawn.
     void BuildLists();
-    // 006261A0 (__fastcall). Draws the lists into surface 0: the three titles, the schools (the
+    // Draws the lists into surface 0: the three titles, the schools (the
     // third one's row left empty) and science, ten held perks from perkTop_, 23 learnable perks
     // from learnableTop_, each price in grey when it is over the experience, with a coin sprite
     // per price (the scene objects past the first four are dropped first).
     void DrawLists();
-    // 00626090 (RET 8; `this` is not read; ui_trade_panel.cpp). A price as text into `out`:
+    // A price as text into `out`:
     // "%d" below 1000, "%.1fk" (price * 0.001f) below 10000, "%dk" below a million, "%.1fm"
     // (* 1e-6f) below ten million, "%dm" below 1e9, else "%.1fg" (* 1e-9f); a negative price
     // shows as 0x7FFFFFFF.
     void FormatPrice(int price, mfc::CString* out);
-    // 00625690 (RET 0xC). What the statistics under the screen point (x, y) are, for the
+    // What the statistics under the screen point (x, y) are, for the
     // description panel: nothing while the panel is hidden or off its rows; regions 4-9 the
     // schools (kind 1), 10 science (kind 2), 11-33 the learnable perks and 34 up the held ones
     // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
     // level); the hero's statistics with it.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
-    // 00625430 (ui_trade_panel.cpp). The records emptied, then one per party member filled from
+    // The records emptied, then one per party member filled from
     // it (SnapshotRecord through its address; recordIndex_ is left at the last).
     void ResetRecords();
-    // 00626F10 (__fastcall). Record recordIndex_ (when >= 0) from the party member's statistics:
+    // Record recordIndex_ (when >= 0) from the party member's statistics:
     // science, the six schools, 36 perk levels, the experience values; bought cleared.
     void SnapshotRecord();
-    // 00626FA0 (__fastcall). The reverse: record recordIndex_ (when >= 0) back into the party
-    // member's statistics, bought cleared; when the hit point maximum (00523E80) was and is above
-    // 1, the slots are healed (00525800) by what keeps the hit points (005259B0) in proportion.
+    // The reverse: record recordIndex_ (when >= 0) back into the party
+    // member's statistics, bought cleared; when the hit point maximum was and is above
+    // 1, the slots are healed by what keeps the hit points in proportion.
     void RestoreRecord();
-    // 006255A0 (RET 8; both flags read as bytes). With `all`, every bought record is kept
-    // (SnapshotRecord, with `keep`) or undone (00626FA0 puts the hero's statistics back), then
+    // With `all`, every bought record is kept
+    // (SnapshotRecord, with `keep`) or undone (puts the hero's statistics back), then
     // recordIndex_ is put back; otherwise only the current record when bought, then BuildLists.
     void Settle(int keep, int all);
-    // 00625860 (RET 4). Shows party member `index`: scroll positions 0, then BuildLists.
+    // Shows party member `index`: scroll positions 0, then BuildLists.
     void SelectHero(int index);
-    // 00625530 (ui_hero_screen.cpp). The experience the shown hero can spend, from its record:
+    // The experience the shown hero can spend, from its record:
     // pending plus earned minus spent, truncated.
     int Experience() const;
-    // 00625560. What the hero (owner's slot 51) has spent since its record was made (the cost of the
+    // What the hero (owner's slot 51) has spent since its record was made (the cost of the
     // perks bought on the panel), truncated.
     int PurchaseCost();
-    // 00626D70 (ui_trade_panel.cpp). Keeps perkTop_ in [0, held - 10] and learnableTop_ in
+    // Keeps perkTop_ in [0, held - 10] and learnableTop_ in
     // [0, learnable - 23], shows the four scroll arrows (scene objects 0-3) only where the list
-    // can scroll, then draws the lists (006261A0).
+    // can scroll, then draws the lists.
     void ClampScroll();
-    // 00626920 (input slot 2, RET 0xC). Regions 0 / 1 scroll the held perks up / down, 2 / 3 the
+    // Regions 0 / 1 scroll the held perks up / down, 2 / 3 the
     // learnable ones; from 4 the "perk" sound, then a purchase the experience covers: 4-9 a
     // school level and 10 science (below 100; then held: heldRegion_, holdTime_ -0.5, the mouse
     // captured), 11-33 a learnable perk, 34 up (and below 0) the next level of a held perk; the
     // spent experience grows by the price, the record is marked bought and the lists rebuilt.
     void OnLButtonDown(int buttons, int x, int y);
-    // 00626C30 (input slot 3, RET 0xC; EAX 0). Releases the mouse unconditionally and ends a
+    // Releases the mouse unconditionally and ends a
     // hold (heldRegion_ -1, holdTime_ 0).
     void OnLButtonUp(int buttons, int x, int y);
-    // 00626C50 (slot 24, ui_trade_panel_input.cpp). While a school or science row is held
+    // While a school or science row is held
     // (heldRegion_ >= 0) the hold time grows by the frame time; from 0.25 s on, every frame buys
     // the row's next level again while its level is below 100 and the experience covers the price
     // (the record is not marked bought), else the mouse is released and the hold ends. The hold
     // time is not reset after a purchase.
     void UpdateHeld();
-    // 00625510 (ui_small_members.cpp; the camp's action 00611930 reads it). Whether something was
+    // Whether something was
     // bought for the hero shown (its record's bought byte, in AL).
     std::uint8_t Bought() const;
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_[recordIndex_]; }
 
     // (CUiItemPanel's owner_ +0x14C: the camp or the hero screen; slot 51 the hero record.)
-    int recordIndex_;                // +0x150 the record 00626F10 fills
+    int recordIndex_;                // +0x150 the record fills
     int learnableTop_;               // +0x154 first learnable row shown
     int perkTop_;                    // +0x158 first held perk shown
     TradeRows learnable_;            // +0x15C
@@ -464,22 +461,21 @@ static_assert(offsetof(CTradePanel, records_) == 0x190);
 static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
-//
-// The camp (vtables 007408E8 / 0074091C, 0x260 bytes; Create 0060C870, which Rebirth patches): the
+// The camp (vtables, 0x260 bytes; Create, which Rebirth patches): the
 // party's equipment, trade, repair and the item and spell constructors, with three item strips;
-// also opened by the multiplayer hero screen (region 8) for a hero's inventory (ui_camp.cpp). Its child panels are created by Create (0060C870).
+// also opened by the multiplayer hero screen (region 8) for a hero's inventory (ui_camp.cpp). Its child panels are created by Create.
 // Pages: 0 equipment, 1 trade, 2 spell constructor, 3 its second page, 4 item constructor, 5 and 6
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    // 005F6240 (ui_camp.cpp; CreateScreen 5, and the hero screen's inventory with
-    // `fromHeroScreen`): the item screen, both item caches, the heroes array (vtable 007402AC),
+    // (ui_camp.cpp; CreateScreen 5, and the hero screen's inventory with
+    // `fromHeroScreen`): the item screen, both item caches, the heroes array,
     // the page titles' CStringArray.
     CCampPages(CInterface3D* ui, bool fromHeroScreen);
-    // 005F6620 (ui_item_screen.cpp; deleting 005F6600, the input side's 005FC100): the page titles,
+    // The page titles,
     // the heroes array, then the item screen's.
     ~CCampPages() override;
-    // The slots of its own in game.exe's tables 0074091C / 007408E8.
+    // Virtuals of its own.
     void CloseScreen() override { Close(); }                                               // 26
     void MessageResult(int result) override { OnMessageResult(result); }                  // 27
     void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }               // 42
@@ -489,12 +485,12 @@ public:
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }         // 3
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // 9
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }              // 11
-    // 00610020 (slot 45; ui_screens.cpp). Over the party's heroes, the best skill in spell school
+    // Over the party's heroes, the best skill in spell school
     // `school` (rounded to nearest) and the most mana units (maximum mana / period, truncated).
     void BestPartySkill(int school, int* skill, int* mana) override;
-    // 006110F0 (slot 44; ui_screens.cpp). Shows the strip tabs that go with camp page `page` (1-21).
+    // Shows the strip tabs that go with camp page `page` (1-21).
     void ShowPageTabs(int page, int unused);
-    // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
+    // (Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
     void CreateScreen() override;
@@ -508,119 +504,119 @@ public:
     // equipment, quick items, trade, and each offered constructor's strip and pages); the party's
     // heroes handed to the client world as units (records of class 0x32, ids raised by 100000000
     // meanwhile), each idling, armed from its record and wearing its armour; the first hero shown
-    // (slot 48); the page titles; the first page (4 item constructor, 2 spell constructor, else
+    // the page titles; the first page (4 item constructor, 2 spell constructor, else
     // 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
     // highest skill per spell school; the allod's constructor music; antialiasing (render state 2
     // = 2) when the device sorts independently.
     void BuildPages();
-    // 0060E9E0. Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
+    // Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
     // shows the page's ones, its title and the strip that goes with it; a constructor page the
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
     // items back, puts the constructed items into the strips and leaves the camp.
     void ShowPage(int page);
-    // 0060FA80 (virtual slot 64; ui_camp_stats.cpp). The local player's record of the hero shown
+    // The local player's record of the hero shown
     // (LocalPlayerData +0x30, 0x784 bytes each; not checked).
     PartyUnitRecord* HeroRecord() override;
-    // 006100E0 (virtual slot 43). Whether `item` may go where the strip with action `mode` puts
+    // Whether `item` may go where the strip with action `mode` puts
     // it on the current page: weapons and armour on the equipment page, spells the party can cast,
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
-    // eight modifiers, matching blueprints). Returns AL.
+    // eight modifiers, matching blueprints). Returns 0 or 1.
     bool CanEquip(CItem* item, int mode) override;
-    // 00611930 (every frame from the camp's draw, and on the hero arrows). Works out the page's
+    // Works out the page's
     // action (repair all, level up, trade, construct, take apart, repair), its cost against the
     // money (or experience on the trade page) and draws them on surface 0; shades the two action
     // buttons by whether they can be pressed.
     void UpdateAction();
-    // 00612290 / 00612600. Runs the spell (item) constructor over the page's slots and keeps
+    // Runs the spell (item) constructor over the page's slots and keeps
     // what it makes in spellMade_ (itemMade_, with a reference); true when it can be made (the
-    // party's skill and mana suffice for the spell). Return AL.
+    // party's skill and mana suffice for the spell). Returns 0 or 1.
     bool CanMakeSpell();
     bool CanMakeItem();
-    // 0060FAB0 (virtual slot 54). The price of `item` for deal `kind` (8: repair): the item's base
+    // The price of `item` for deal `kind` (8: repair): the item's base
     // price (its slot 16) times the camp's multiplier for the kind (+0x21C floats); weapons and
     // armour also lose the repair cost of their wear (1 - durability / maximum). A repair costs at
     // least 1, or 0 for an unworn item. Rebirth's FixRepairPrice clamps the wear to [0, 1] and adds
     // the repair cost instead of subtracting it when an item is taken apart (kind 7).
     int Price(CItem* item, int kind) override;
-    // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
+    // Finds what is under the mouse (a page button's help, an item of a
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
     BOOL Draw(int pass) override;
-    // 0060E6B0 (slot 26, leaving the camp). Clears the server flag (00578D10) and render state 2;
-    // hands the local player's unit records to 005789E0 with +0x1C raised by 100000000 for the
+    // Clears the server flag and render state 2;
+    // hands the local player's unit records with +0x1C raised by 100000000 for the
     // call; frees the heroes array, releases the constructed item and spell, empties both
     // description panels and deletes the constructors' part lists except the first of each.
     void Close();
-    // 0060FE40 (RET 4; from 0060FCA0 and 00610AD0). Takes `item` (a weapon 0x3004, armour 0x3005,
-    // 0x3006 or 0x3008) off the current hero (slot 51) into the player's items (00661DB0, whose
+    // Takes `item` (a weapon 0x3004, armour 0x3005,
+    // 0x3006 or 0x3008) off the current hero into the player's items (whose
     // result it returns; 0 for other kinds): a weapon also moves the hero's chosen-weapon index
-    // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
+    // (+0x774) back and redraws; armour also comes off the hero's unit and the stats'
     // outer layers are rebuilt. The stats panel is redrawn.
     CItem* TakeOff(CItem* item);
-    // 0060FCA0 (RET 4). Puts `item` on the current hero: a weapon (at most 4; the first becomes
+    // Puts `item` on the current hero: a weapon (at most 4; the first becomes
     // the chosen one; slot 46 redraws), armour (each piece of the same body part taken off first
     // through TakeOff, then worn by the hero's unit and the stats' outer layers rebuilt), a 0x3006
-    // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
+    // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it
     // and the stats panel is redrawn. Other kinds and full slots do nothing.
     void PutOn(CItem* item);
-    // 00610920 (RET 4; MoveItem's mode 1, a click on an item strip). Pages 0 / 1 put the item on
+    // Pages 0 / 1 put the item on
     // the hero (PutOn); the other pages move it from the player's items into the page's slots
     // (spellParts_[2], spellResults_, itemParts_[2], itemResults_ (with Shift and a kind-one item
     // the whole stack while slot 43 accepts it with mode 1), itemExtra_). Sound put_on.
     void PutOnFromStrip(CItem* item);
-    // 00610AD0 (virtual slot 42, RET 8; what an item strip or a panel calls with its action mode).
-    // Refused by CanEquip (slot 43): the cancel sound. 0 takes the item off the hero into the item
+    // (what an item strip or a panel calls with its action mode).
+    // Refused by CanEquip: the cancel sound. 0 takes the item off the hero into the item
     // strip, 1 PutOnFromStrip, 2 / 3 into the spell / item constructor's slots (put_on), 4 / 5 out
     // of a constructor's trade lists, 6 / 7 out of the makers' slots (a modifier, a container or a
     // kind-one item alone, with Shift all kind-one items and then the first container; anything
     // else empties them), 8 out of itemExtra_; made items (record +0x10) go back to the
     // constructor's parts and strip, the others to the player and the item strip (put_off).
     void MoveItem(CItem* item, int mode);
-    // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
-    // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
-    // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
+    // Re-arms the current hero's unit: its figure's weapon reset (-1), the
+    // four weapon slots cleared, the record's weapons given, the
+    // chosen weapon shown (figure slot 25 with +0x774); then slot 47.
     void RefreshWeapons() override;
-    // 0060F980 (slot 47). The current hero's unit (if any) takes the record's statistics
-    // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
+    // The current hero's unit (if any) takes the record's statistics
+    // (with record + 0x20) and its figure is updated; the stats panel redraws.
     void RefreshStats() override;
-    // 0060F6B0 (slot 24). The children's update, then the hero preview turns while a turn button
+    // The children's update, then the hero preview turns while a turn button
     // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 2 pi.
     void Update() override;
-    // 0060F710 / 0060F7A0 (slots 48 / 49). The next / previous hero of the party (wrapping; the
+    // (slots 48 / 49). The next / previous hero of the party (wrapping; the
     // first record whose prototype is of class 0x32; fatal after a full round without one); a
-    // different hero is shown (0060F830) and re-armed (slot 46).
+    // different hero is shown and re-armed.
     void NextHero() override;
     void PreviousHero() override;
-    // 0060F830. The current hero's name for the panels: the unit's own name, else the text of
-    // "pers <record name>" when the text table has it; to the stats panel (006232D0) and the trade
-    // panel (00625860).
+    // The current hero's name for the panels: the unit's own name, else the text of
+    // "pers <record name>" when the text table has it; to the stats panel and the trade
+    // panel.
     void ShowHero();
-    // Input side (ui_camp_input.cpp; `this` the window). 0060F470 (slot 2, RET 0xC): the
+    // Input side (ui_camp_input.cpp; `this` the window): the
     // container's handler first; region 0 / 1 work out the action (UpdateAction) and carry out
-    // the first (00611220, when actionEnabled_) or second (00611760, when actionShown_) button's
+    // the first (when actionEnabled_) or second (when actionShown_) button's
     // deal; on the equipment page regions 2 / 3 turn the hero (turning_ 1 / 2, the move sound,
     // the mouse taken); regions 4-11 show page region - 4 unless shown.
     void OnLButtonDown(int buttons, int x, int y);
-    // 0060F5B0 (slot 3, RET 0xC): the container's handler, the mouse let go when this took it,
+    // The container's handler, the mouse let go when this took it,
     // turning_ 0.
     void OnLButtonUp(int buttons, int x, int y);
-    // 0060F600 (slot 9, RET 0xC): Esc shows page 7 (leaves); on a network client Backspace and
+    // Esc shows page 7 (leaves); on a network client Backspace and
     // Enter go to the chat line; those mark the key used, other keys go to the container.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0060F690 (input slot 11, RET 0xC; ui_small_members.cpp): the container's key-up handler
-    // (006019A0) with the same arguments.
+    // The container's key-up handler
+    // with the same arguments.
     void OnKeyUp(int key, int repeat, int flags);
-    // 005F65F0 (slot 50, RET 4). Hero `index` of the party's heroes (heroes_[index], not checked).
+    // Hero `index` of the party's heroes (heroes_[index], not checked).
     CUnit* HeroAt(int index);
-    // 0060E900 (slot 27, RET 4). The answer 0x10001 takes the shown hero's first weapon back into
-    // the party's items (00661DB0 with 0, 1; the hero's entry removed, 00660A50), no weapon
-    // chosen (+0x774 -1), the item strip scrolled to it (00621570) and the hero re-armed (slot 46).
+    // The answer 0x10001 takes the shown hero's first weapon back into
+    // the party's items (with 0, 1; the hero's entry removed), no weapon
+    // chosen (+0x774 -1), the item strip scrolled to it and the hero re-armed.
     void OnMessageResult(int result);
-    // 0060E980 (slot 41). The help topic of the page: "camp_weapons", "camp_skills",
+    // The help topic of the page: "camp_weapons", "camp_skills",
     // "camp_spell_trade", "camp_spell_constr", "camp_item_trade", "camp_item_constr",
     // "camp_repair"; none for other pages.
     const char* HelpTopic() override;
-    // 00611220 (ui_camp_deals.cpp; the first action button). The buy sound, then by page: 0 (with the
+    // The buy sound, then by page: 0 (with the
     // item constructor offered and shown) every weapon and armour of the hero repaired; 1 the trade
     // settled (SettleTrade(1, 0); the money is left alone); 2 / 4 the spell / item constructor buys
     // what was put in its third list (each item repaired, its record added to the template's stock
@@ -629,23 +625,23 @@ public:
     // (or, while deconstructing_, DeconstructSpell / DeconstructItem); 6 the repairs' items repaired
     // and given back. Then the money goes down by cost_.
     void DoAction();
-    // 00611760 (the second action button). The cancel sound, then by page: 1 the trade settled with
+    // The cancel sound, then by page: 1 the trade settled with
     // (0, 0); 2 / 4 the constructor's lists given back (the second to the strip, the third to the
     // player); 3 / 5 every result moved back (made items to the constructor, the rest to the player);
     // 6 the repairs' items given back.
     void UndoAction();
-    // 00612500 (returns AL 1). The spell container in the results taken apart: a copy kept in
+    // The spell container in the results taken apart: a copy kept in
     // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
     // item per modifier go into the results; the copy released.
     bool DeconstructSpell();
-    // 006129C0 (ui_camp_deals.cpp). The item maker's result taken apart: a copy of the first result made
+    // The item maker's result taken apart: a copy of the first result made
     // (itemMade_ meanwhile) and the result removed; an "Instruction Weapon / Armor / Quick Item" with
     // its prototype index, a "material.<key>" per material its prototype needs (+0x4C), and for an
     // item with a spell a "spell container" (MakeItem 0x3008) holding a clone of it, each added to
     // the results. Returns true.
     bool DeconstructItem();
 
-    // 00612CF0 (slot 39; ui_camp_debug.cpp; only the vtable refers to it). A debug fill of the
+    // A debug fill of the
     // constructors' first lists: itemParts_[0] cleared (Clear(1, 0)) and given ten of each weapon,
     // armour (names without "prototype") and quick item (names with "wand") instruction, a weapon
     // and armour of each matching material (the material's +0x04 against the record's +0x10,
@@ -653,12 +649,12 @@ public:
     // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
     void DebugFill() override;
 
-    // The rewritten members above through their addresses, so their hooks and wrappers see the
-    // calls the original makes (ui_camp.cpp).
-    // The camp's virtual slots the pages call (the main vtable 0074091C) are CItemScreen's
+        // The members above through their addresses, so the harness sees the
+    // calls the game makes (ui_camp.cpp).
+    // The camp's virtual slots the pages call (the main) are CItemScreen's
     // Virtual* members: 43 CanEquip (AL), 45 the party's best skill and mana in a school
-    // (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51 the shown hero's record (HeroRecord),
-    // 54 Price (Rebirth-patched 0060FAB0).
+    // 46 / 47 RefreshWeapons / RefreshStats, 51 the shown hero's record (HeroRecord),
+    // 54 Price (Rebirth-patched).
 
     int page_;                       // +0x190
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
@@ -666,7 +662,7 @@ public:
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
     std::uint8_t unused_197;
     ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
-    // +0x19C the party's heroes (CArray, vtable 007402AC): a unit per party record, null for other
+    // +0x19C the party's heroes (CArray): a unit per party record, null for other
     // classes.
     mfc::CArray<CUnit*> heroes_;
     int hero_;                       // +0x1B0 the hero shown (HeroRecord)
@@ -676,19 +672,19 @@ public:
     CParty* itemExtra_;              // +0x1C4
     CParty* spellParts_[3];          // +0x1C8 (the constructor's +0xAC), +0x1CC, +0x1D0
     CParty* spellResults_;           // +0x1D4
-    CHeroStatsPanel* statsPanel_;    // +0x1D8 (vtable 00741ABC)
-    CItemInfoPanel* helpPanel_;      // +0x1DC (vtable 007404DC; camp help texts)
+    CHeroStatsPanel* statsPanel_;    // +0x1D8
+    CItemInfoPanel* helpPanel_;      // +0x1DC (camp help texts)
     CUiItemStrip* itemStrip_;        // +0x1E0
-    CHeroEquipPanel* equipment_;     // +0x1E4 (vtable 007418E0)
-    CHeroQuickStrip* equipment2_;    // +0x1E8 (vtable 00741844)
+    CHeroEquipPanel* equipment_;     // +0x1E4
+    CHeroQuickStrip* equipment2_;    // +0x1E8
     CUiItemStrip* spellStrip_;       // +0x1EC
     CUiItemStrip* partStrip_;        // +0x1F0
-    CTradePanel* trade_;             // +0x1F4 (vtable 007417A8)
-    CTradeGrid* spellConstructor1_;  // +0x1F8 (vtable 0074170C)
-    CSpellMakerPage* spellConstructor2_;   // +0x1FC (vtable 00741670)
-    CTradeGrid* itemConstructor1_;   // +0x200 (vtable 0074170C)
-    CConstructorPage* itemConstructor2_;   // +0x204 (vtable 007415D4)
-    CRepairGrid* itemConstructor3_;  // +0x208 (vtable 00741538)
+    CTradePanel* trade_;             // +0x1F4
+    CTradeGrid* spellConstructor1_;  // +0x1F8
+    CSpellMakerPage* spellConstructor2_;   // +0x1FC
+    CTradeGrid* itemConstructor1_;   // +0x200
+    CConstructorPage* itemConstructor2_;   // +0x204
+    CRepairGrid* itemConstructor3_;  // +0x208
     int cost_;                       // +0x20C what the action costs (negative: earns)
     bool actionEnabled_;             // +0x210 the action button can be pressed
     bool actionShown_;               // +0x211
@@ -700,7 +696,7 @@ public:
     mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unused_255[0x258 - 0x255];
-    std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
+    std::uint32_t heroTurn_;         // +0x258 passed to the hero preview
     int turning_;                    // +0x25C 1 / 2 while a turn button is held (Update turns the hero)
 };
 static_assert(offsetof(CCampPages, page_) == 0x190);
@@ -717,47 +713,46 @@ static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
 static_assert(sizeof(CCampPages) == 0x260);
 
 // --- Hero statistics panel ----------------------------------------------------------------------
-//
-// The statistics column shared by the camp and the multiplayer hero screen (vtables 00741ABC /
-// 00741A88, 0x17C bytes; ui_hero_panels.cpp). Its owner's slot 51 gives the hero record (stats at
+// The statistics column shared by the camp and the multiplayer hero screen (vtables /
+// 0x17C bytes; ui_hero_panels.cpp). Its owner's slot 51 gives the hero record (stats at
 // +0x20), slot 50 the hero's unit, slot 53 (hero screen) the equipment weight.
 class CHeroStatsPanel : public CUiItemPanel {
 public:
     // The statistics column of `owner` (inlined by the screens' Creates): the title and the texts' array.
     CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
-    // 0060E360 (ui_window_delete.cpp; deleting 0060E340): the texts, the title, then the window's.
+    // The texts, the title, then the window's.
     ~CHeroStatsPanel() override;
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // input 2
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }          // input 3
-    // 006233C0. Shows the statistics for page `page` of the owner: 0 the body parts and the
+    // Shows the statistics for page `page` of the owner: 0 the body parts and the
     // weapon, 10 the new hero's points with -/+ buttons, others the plain values; rebuilds the
     // rows' regions (two fixed ones kept) and draws (DrawStats).
     void ShowStats(int page);
-    // 00623880. Draws the statistics into surface 0.
+    // Draws the statistics into surface 0.
     void DrawStats();
-    // 00622DB0 (slot 18). Builds the panel: the hero arrows' regions, a surface, the arrow,
+    // Builds the panel: the hero arrows' regions, a surface, the arrow,
     // frame and -/+ button sprites, and the texts (CStringArray at +0x15C).
     void Build() override;
-    // 00624CB0 (RET 0xC). What the statistics under the screen point (x, y) are, for the
+    // What the statistics under the screen point (x, y) are, for the
     // description panel (the hero's statistics always set): rows 2 up the attributes (pages 1 and
     // 11; page 10 rows 2-4, row 14 the points left, row 5 the height); on page 0 rows 2-5 the body
     // parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9 encumbrance, 10
     // the magic skills.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
-    // 006232D0 (RET 8). Shows hero `heroIndex` of the owner (and `title` when not null): the
+    // Shows hero `heroIndex` of the owner (and `title` when not null): the
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
     void SetHero(int heroIndex, const char* title);
-    // 00624790 (input slot 2, RET 0xC; ui_stats_buttons.cpp). On the new hero's page (10) a -/+
+    // On the new hero's page (10) a -/+
     // button (regions 6-13) steps a point (StepPoint), plays "perk" and refreshes the owner (slot
     // 47); a button that stepped is held (holdTime_ -0.5, the mouse captured). Elsewhere region 0 /
     // 1 play "hero" and show the owner's previous / next hero (slots 49 / 48).
     void OnLButtonDown(int buttons, int x, int y);
-    // 00624A60 (slot 24). While a button is held on page 10: after a quarter of a second (holdTime_
+    // While a button is held on page 10: after a quarter of a second (holdTime_
     // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
-    // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
+    // capture cleared). The owner is refreshed on every repeat attempt.
     void Update() override;
-    // 00624A40 (input slot 3, RET 0xC; EAX 0; ui_small_members.cpp). The left button released: the
+    // The left button released: the
     // mouse let go (unconditionally) and the hold ended (heldRegion_ -1, holdTime_ 0).
     int OnLButtonUp(int buttons, int x, int y);
     // A -/+ button of page 10: regions 6-8 take a point from strength, dexterity, intelligence
@@ -765,11 +760,11 @@ public:
     // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it
     // changed something.
     bool StepPoint(int region);
-    // 006242E0 (RET 0x10; ui_stats_rows.cpp). A row on surface 0: the text of "perk <label>" (when
+    // A row on surface 0: the text of "perk <label>" (when
     // the texts have it, else `label` itself) on the left, `value` ("%d", or "%d/%d" with a
     // maximum >= 0) on the right.
     void DrawRow(RECT* rect, const char* label, int value, int maximum);
-    // 00624590 (RET 0xC). A body part's row: "     " plus the text of "hl_<name>" on the left, its
+    // A body part's row: "     " plus the text of "hl_<name>" on the left, its
     // armour ("%.1f") on the right.
     void DrawPart(RECT* rect, const char* name, int part);
     // The armour shown for body part `part`: per damage type the three layers' absorption summed
@@ -793,28 +788,27 @@ static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
 static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 
 // --- Hero equipment panel -----------------------------------------------------------------------
-//
-// The hero's equipment (vtables 007418E0 / 007418AC, 0x158 bytes; ui_hero_panels.cpp): the eight
+// The hero's equipment (vtables, 0x158 bytes; ui_hero_panels.cpp): the eight
 // quick slots along the top, and in the camp the body with its seven equipment slots.
 class CHeroEquipPanel : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(int pass) override;   // 20: 00622420 (RET 4; ui_container_draws.cpp)
+    BOOL Draw(int pass) override;   // 20: (ui_container_draws.cpp)
     int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }   // input 5
-    // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
+    // Builds the panel: eight slot regions and their frames along the strip, two
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
     // regions and the four body pictures (textures camp1..camp4).
     void Build(bool body);
-    // 006229E0 (RET 4; ui_equip_panels.cpp). The hero's shown weapon (+0x774) becomes `weapon`'s
+    // The hero's shown weapon (+0x774) becomes `weapon`'s
     // place in the hero's weapon list (+0x730), or -1.
     void ShowWeapon(CItem* weapon);
-    // 00622A30 (RET 4). selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
+    // selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
     void ShowArmour(CItem* item);
-    // 00622960 (input slot 5, RET 0xC). On the camp's body (body_) while enabled: a right click on
+    // On the camp's body (body_) while enabled: a right click on
     // one of the first four weapon slots the hero fills plays "change" and shows that weapon; the
     // owner's slot 46 (the weapons refreshed) on any region. The event is not marked used.
     void OnRightDown(int buttons, int x, int y);
-    // 00622860 (slot 25, RET 0xC). The item under (x, y) with its help topic: regions 0-3 the
+    // The item under (x, y) with its help topic: regions 0-3 the
     // weapons (topic 2), 4-7 the +0x740 list from its end (3), on the body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4); null elsewhere or while disabled (topic 0).
     CItem* ItemAt(int x, int y, int* topic) override;
@@ -827,29 +821,26 @@ static_assert(offsetof(CHeroEquipPanel, body_) == 0x150);
 static_assert(sizeof(CHeroEquipPanel) == 0x158);
 
 // --- Camp trade grid ----------------------------------------------------------------------------
-//
 // The item lists the grids show: a party's or trader's items (CParty +0x40, an engine aligned array).
 using UiItemList = lib::AlignedArray<CItem*>;
-//
-// The 4 x 4 grid of item cells on the constructors' first pages (vtables 0074170C / 007416D8,
+// The 4 x 4 grid of item cells on the constructors' first pages (vtables,
 // 0x164 bytes; ui_hero_panels.cpp).
 class CTradeGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
     BOOL Draw(int pass) override { return DrawGrid(pass); }   // 20
-    // 00627390 (slot 20, RET 4).
     int DrawGrid(int pass);
-    // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
+    // Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
     // (0/1 for the spell constructor, 4/5 for the item one).
     void Build(UiItemList* bought, UiItemList* sold, char spells, char flag);
-    // 00627920 (slot 25, RET 0xC; ui_hero_panels.cpp). The item under (x, y) with its help topic:
+    // The item under (x, y) with its help topic:
     // regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12); null elsewhere, past a
     // list's end or while disabled (topic 0 when off the cells or disabled).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    UiItemList* bought_;             // +0x150 an item list (+0x40 of a 00661050 list)
+    UiItemList* bought_;             // +0x150 an item list (+0x40 of a list)
     UiItemList* sold_;               // +0x154
     int buyKind_;                    // +0x158
     int sellKind_;                   // +0x15C
@@ -859,19 +850,19 @@ public:
 static_assert(offsetof(CTradeGrid, bought_) == 0x150);
 static_assert(sizeof(CTradeGrid) == 0x164);
 
-// The repair page's grid (vtables 00741538 / 00741504, 0x154 bytes): the same cells as the trade
+// The repair page's grid (vtables, 0x154 bytes): the same cells as the trade
 // grid with textures repair1..4.
 class CRepairGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    // 006279E0. Builds the grid for the item list `items`.
+    // Builds the grid for the item list `items`.
     void Build(UiItemList* items);
-    // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
+    // The depth buffer cleared to 0 over the screen
     // and to 1 over the grid; each item's model in its cell (depth 2^(3 - row) * 6), its
     // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the
     // window's sprites and models; the depth buffer cleared to 1 again. Returns 1.
     BOOL Draw(int pass) override;
-    // 00628060 (slot 25, RET 0xC; ui_hero_panels.cpp). The item in cell region (x, y) (topic 0x19
+    // The item in cell region (x, y) (topic 0x19
     // on the 16 cells), null past the list's end, elsewhere or while disabled (topic 0).
     CItem* ItemAt(int x, int y, int* topic) override;
 
@@ -880,21 +871,21 @@ public:
 static_assert(offsetof(CRepairGrid, items_) == 0x150);
 static_assert(sizeof(CRepairGrid) == 0x154);
 
-// The quick item strip of the hero panels (vtables 00741844 / 00741810, 0x158 bytes): eight
+// The quick item strip of the hero panels (vtables, 0x158 bytes): eight
 // cells along the top (camp) or the bottom of the screen.
 class CHeroQuickStrip : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
+    // Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
-    // 00622BC0 (RET 4; ui_equip_panels.cpp). selected_ becomes `item`'s place in the hero's +0x760
+    // selected_ becomes `item`'s place in the hero's +0x760
     // list, or -1.
     void ShowEntry(CItem* item);
-    // 00622D40 (slot 25, RET 0xC). The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or
+    // The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or
     // null (topic 0 off the cells or while disabled).
     CItem* ItemAt(int x, int y, int* topic) override;
-    // 00622C10 (slot 20, RET 4; ui_panel_draws.cpp). The highlight frame (scene object 0) on the
+    // The highlight frame (scene object 0) on the
     // selected cell when it holds one of the hero's spell list (+0x760) entries, else hidden; each
     // entry's model in its cell; then the window's sprites and models. Returns 1.
     BOOL Draw(int pass) override;
@@ -905,34 +896,34 @@ public:
 static_assert(offsetof(CHeroQuickStrip, y_) == 0x150);
 static_assert(sizeof(CHeroQuickStrip) == 0x158);
 
-// The constructors' second pages: the spell maker (vtables 00741670 / 0074163C, 0x16C bytes) and the
-// item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
+// The constructors' second pages: the spell maker (vtables, 0x16C bytes) and the
+// item maker (0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
 class CConstructorPage : public CUiItemPanel {
 public:
     // The item maker of `owner`.
     using CUiItemPanel::CUiItemPanel;
     BOOL Draw(int pass) override { return DrawItemMaker(pass); }                                      // 20
     CItem* ItemAt(int x, int y, int* topic) override { return ItemMakerItemAt(x, y, topic); }   // 25
-    // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
+    // The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(CParty* slots);
-    // 00628F80 (slot 20 of the item maker, RET 4). The window's sprites and models first; the
+    // The window's sprites and models first; the
     // blueprint (250, 300) and the part (350, 250) drawn between depth clears of their slots, a
     // spell container at (350, 350), the materials down the grid; then, without a blueprint or a
     // container, the pulsing highlight on the blueprint and part slots (no part), the grid cells
     // the part has room for beyond the materials, or the container slot (none left). Returns 1.
     BOOL DrawItemMaker(int pass);
-    // 00628B50 (slot 25 of the spell maker, RET 0xC; ui_constructor_slots.cpp). The slot item under
+    // The slot item under
     // (x, y) and its help topic (0 off the regions or while disabled): region 0 the first spell
     // container (0x13), 1 the first spell (0x14), 2-9 modifier region - 2 (0x15), 10 / 11 the cost
     // lines (0x1A / 0x1B, no item); null when there is none.
     CItem* SpellMakerItemAt(int x, int y, int* topic);
-    // 006298B0 (slot 25 of the item maker, RET 0xC). The same: region 0 the first item that can be
+    // The same: region 0 the first item that can be
     // taken apart (0xD), 1 the first part (0xE), 2 the first spell container (0x10), from 3 material
     // region - 3 (0xF).
     CItem* ItemMakerItemAt(int x, int y, int* topic);
 
-    CParty* slots_;                  // +0x150 (mode_ 6 spell maker, 7 item maker; owner_ the camp) an item list (0x70 bytes, 00661050)
+    CParty* slots_;                  // +0x150 (mode_ 6 spell maker, 7 item maker; owner_ the camp) an item list (0x70 bytes)
     float pulse_;                    // +0x154 the highlight's time (0 when built)
 };
 static_assert(offsetof(CConstructorPage, slots_) == 0x150);
@@ -942,14 +933,14 @@ class CSpellMakerPage : public CConstructorPage {
 public:
     // The spell maker of `owner` (inlined by the camp's Create): the cost texts' array.
     CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) { texts_.Construct(); }
-    // 0060E600 (ui_window_delete.cpp; deleting 0060E5E0): the texts, then the window's.
+    // The texts, then the window's.
     ~CSpellMakerPage() override;
     BOOL Draw(int pass) override { return DrawSpellMaker(pass); }                                      // 20
     CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }   // 25
-    // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
+    // The spell maker: the container and spell slots, the grid, the cost line's regions,
     // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
     void BuildSpellMaker(CParty* slots);
-    // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
+    // The slots' items (a spell
     // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
     // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
     // <most mana> (<the larger of the summed and the last spell's mana>)" with a spell, else the

@@ -22,7 +22,7 @@
 
 namespace {
 
-constexpr float kCellScale = 0.125f;   // 0073C520: 8 x 8 cells
+constexpr float kCellScale = 0.125f;   // 8 x 8 cells
 constexpr int kWheelTicks = 0x400;
 constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
@@ -50,8 +50,8 @@ EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 
 namespace {
 // The pool's static initialiser (0x400 nodes a block, 005CDAD0) and the exit function it registers.
-void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }   // 005C8FB0
-void __cdecl ConstructEventPool() {   // 005C8F90
+void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
+void __cdecl ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
     libcrt::AtExit(DestroyEventPool);
 }

@@ -2222,6 +2222,12 @@ size = 1
 model = "opus"
 note = "WB16 (2026-10-20): the Rebirth install's starter\\addon.log is 1.3 GB (1,305,260,835 bytes, last written 2026-10-20 15:55 while harness runs were going). Runs must never write into the game installs: send addon.dll's log writes (and any other write into an install) to the run's overlay, and add a check that a run wrote nothing in an install (log every CreateFile / MoveFile / DeleteFile for writing outside the run folder and fail the run). Don't delete or trim the existing log; that's the user's call."
 
+[[ticket]]
+id = "C18v"
+title = "Original suite: info.sav's save time follows the machine's current daylight saving"
+group = "harness"
+note = "Found by C18 (2026-10-27): the --no-hooks suite (fresh, harness headers changed) gives 96 golden differences, all info.sav's last dword (rest): 0x3ABF2130 in the run vs 0x3ABF1320 in the goldens, exactly 3600 s. The harness's FixedTime gives 2001-03-26 12:00 local; the conversion to a time_t in game.exe takes the current daylight bias (FileTimeToLocalFileTime / LocalFileTimeToFileTime use the bias in force now, not the date's), and the machine left summer time on 2026-10-25 (goldens recorded 2026-10-22). The image suite gives the golden value. Fix in the harness (fix the bias, e.g. patch GetTimeZoneInformation / the conversion slot in game.exe runs as FixedTime does) or make golden.py ignore the field; no re-record."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
@@ -2578,7 +2584,7 @@ id = "C18"
 title = "Named globals instead of game.exe's data bytes"
 group = "cleanup"
 model = "opus"
-note = "Remaining objects batch (2026-10-22): game data addresses 247 -> 130 on this branch (121 with C18q merged). World singletons' fields read as members (world_singletons.cpp; MatrixDevice = ScenePipeline), lone globals (update period 0078FF34, holders, window surface bytes, streamed script, lightning noise, menu rects, kOrigin), logic settings g_logicSettings 007C53F8 with its initialiser 005CDFB0, small single-owner globals, the send rates 00783E34/38 (NAMED_ADDON_SITES: SetDefaultRate disabled here), kDirectionSteps 00791978, function-local statics and constructed statics with their initialisers / exit functions ported (sprite arrays, region reach points, candidates, water patch, last resources, draw order, shape cache, AI event pool + free list, terrain outcodes), gen_static_init REVIEWED_SPLIT / RETIRED_STATICS, Winsock exit 0047C330 and spiral builder 005BF8E0 ported. image_kept rows 0078FF34 / 00783E34 / 00791978 / 00794E3C removed. Suites after the last main merge: image 144 ALL PASS, 121 goldens the same; original 126 ALL PASS, 114 the same. Left: console streams (C18s), MFC/CRT (C18r), singletons themselves, save/received streams (C19), render-owned 0079BC28 / 007AEDD0-DC, Rebirth floats, STLport free lists, 007C2F8C (ln 0.6)."
+note = "Remaining objects batch (2026-10-22): game data addresses 247 -> 130 on this branch (121 with C18q merged). World singletons' fields read as members (world_singletons.cpp; MatrixDevice = ScenePipeline), lone globals (update period 0078FF34, holders, window surface bytes, streamed script, lightning noise, menu rects, kOrigin), logic settings g_logicSettings 007C53F8 with its initialiser 005CDFB0, small single-owner globals, the send rates 00783E34/38 (NAMED_ADDON_SITES: SetDefaultRate disabled here), kDirectionSteps 00791978, function-local statics and constructed statics with their initialisers / exit functions ported (sprite arrays, region reach points, candidates, water patch, last resources, draw order, shape cache, AI event pool + free list, terrain outcodes), gen_static_init REVIEWED_SPLIT / RETIRED_STATICS, Winsock exit 0047C330 and spiral builder 005BF8E0 ported. image_kept rows 0078FF34 / 00783E34 / 00791978 / 00794E3C removed. Suites after the last main merge: image 144 ALL PASS, 121 goldens the same; original 126 ALL PASS, 114 the same. Left: console streams (C18s), MFC/CRT (C18r), singletons themselves, save/received streams (C19), render-owned 0079BC28 / 007AEDD0-DC, Rebirth floats, STLport free lists, 007C2F8C (ln 0.6). Batch 2026-10-27: the items left above are done in C18s / C18r / C18t / C18u (6 game data addresses were left). Named the empty string 0079B298 (game_strings.h kEmptyText char[1]; readers copy or compare its text, none compares the pointer); named_data.py --check lets a gen_image_cells UNREAD cell (zero in the image) point into a named range (the units' model folders 0078F7EC / 0078F824, read only by the dead 00532650). Removed the address-taking seams with no address caller: game::Text, GameFloat(uintptr_t) in camera.h / core_transform_math.cpp, FreeArray / ConstructList by vtable address, CArray::Construct(uintptr_t) (callers pass Class::Vtable(); 7 reinterpret_casts gone). Game data addresses 6 -> 5. Image suite ALL PASS, 121 same / 24 without; original suite (fresh: harness headers changed) 18 same / 96 differ, all info.sav's save-time dword off by exactly 3600 s from the daylight saving change on 2026-10-25, not this change (C18v). Left: the section bounds 0073B000 / 0073B820 / 00783000 / 007CD000 / 007D7000 in game_data.h / image_data.cpp, the address image's layout: they go only when the image stops keeping game.exe's sections at their addresses (generated static initialisers, image cells, import slots)."
 
 [[ticket]]
 id = "C19"
@@ -2730,7 +2736,7 @@ id = "C22"
 title = "Comments cleanup: describe what the code does, drop porting history"
 group = "cleanup"
 model = "sonnet"
-note = "User 2026-10-21: 'We should also eventually do a massive comments cleanup.' Measured on main: src/ has 980 files, 252k lines, ~51k comment lines (~20%), ~23k game.exe addresses inside comments, ~1,460 ticket ids (S18i, C11 ...) and ~1,660 mentions of 'the original'. Aim: comments say what the code does and why (behaviour the original relies on, x87 rounding points, layout constraints still real); porting history, ticket ids, 'was a shim / hook' notes and addresses nothing needs go. Addresses stay only where a registration or a harness name still needs them (after C20c) or as a single tag per function if the user wants traceability: decide the rule with the user first, write it in docs/cleanup-plan.md, add a comment-lines / addresses-in-comments count to progress.py and the dashboard, then sonnet batches by area after the C18/C19/C20 code churn settles. User 2026-10-21 on addresses in comments: 'Whatever helps further work. If those addresses are still needed for our work then keep them and tag them so they are greppable for mass removal, if not then don't keep them.' Rule: an address a tool or the remaining cleanup still needs (registrations, named-data tags, harness names, C19/C20 work) stays in one greppable tag form (pick one, e.g. /*@0040C440*/, document it in docs/cleanup-plan.md, add a check that no other comment address form remains); every other address in a comment goes."
+note = "Guide: docs/comment-guide.md (user 2026-10-27: prioritise C22, Sonnet medium workers). Rule decided: no game.exe address stays in a comment (registrations carry function addresses; named globals the data ones); the only address tags kept are the rdata literal tags /*0073B86C*/ that tools/rdata_literals.py reads, and generated files are untouched. Ticket ids only as TODO(ID) for open work. Mechanical pass done on main (tools/comments.py apply: addresses in comments 19,415 -> 11,206, ticket ids 1,033 -> 539, code tokens unchanged per comments.py samecode). Ratchet: comments.py check in build.cmd, config/comment_baseline.csv (coordinator runs --update after merges). Hand pass: batches C22a-C22f (config/comment_batches.txt, ~8k comment lines each, user 2026-10-27). Earlier measure: src/ 980 files, ~51k comment lines; user 2026-10-21 on addresses: keep only those our work still needs, tagged."
 
 [[ticket]]
 id = "C18k1"
@@ -3156,7 +3162,69 @@ group = "cleanup"
 model = "opus"
 note = "Two steps (2026-10-22): first only the compiler flags for the drawing/UI file list, code untouched (the casts are valid C++ and round the same under SSE2). Then a scripted rewrite on those files only, like C14: static_cast<float> of an int or float dropped where plain; static_cast<float>(static_cast<double>(a) / b * k) as float math; x87::fsin / fcos / fpatan -> std::sin / cos / atan2; x87::fistp -> std::lround (nearest, not truncation). Counts in src/: static_cast<float> 4,150 (about 2,500 in drawing/UI files), static_cast<double> 1,051, x87:: helpers about 550. Anything off-pattern left for hand review."
 
-# ---------------------------------------------------------------- standalone and UTF-8
+[[ticket]]
+id = "C22a"
+title = "Comment cleanup batch: 195 files, 8873 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22a]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22a (config/comment_batches.txt; 8873 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22b"
+title = "Comment cleanup batch: 153 files, 7594 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22b]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22b (config/comment_batches.txt; 7594 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22c"
+title = "Comment cleanup batch: 119 files, 7796 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22c]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22c (config/comment_batches.txt; 7796 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22d"
+title = "Comment cleanup batch: 167 files, 7798 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22d]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22d (config/comment_batches.txt; 7798 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22e"
+title = "Comment cleanup batch: 190 files, 7796 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22e]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22e (config/comment_batches.txt; 7796 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22f"
+title = "Comment cleanup batch: 199 files, 5154 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22f]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22f (config/comment_batches.txt; 5154 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+
+[[ticket]]
+id = "C22a2"
+title = "Comment cleanup batch C22a, second pass: the original / game.exe mentions, fragments, re-wrap"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22a"]
+note = "After C22a (addresses and ticket ids at 0). Left: 347 'the original / game.exe' mentions (keep the why, say it plainly), stray fragments from address removal (short continuation lines, leftover '(...)' stubs), re-wrap shortened blocks to ~110 columns. Files: comments.py list/stats --batch C22a. Read each file whole and rewrite in one pass; no regex rewrites."
+
+[[ticket]]
+id = "C22b2"
+title = "Comment cleanup batch C22b, second pass: slot numbers, +0x offsets, the original mentions, fragments"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22b"]
+note = "After C22b (addresses and ticket ids at 0). Left: ~60 'slot N' comments (world.h, lightning, UI, effects: name the virtual or drop), +0xNN offsets on named members (drop unless save/packet layout), 207 'the original / game.exe' mentions, 27 history words, fragments such as world.h ~223 and '// In the constructor).'. Files: --batch C22b. Read each file whole; no regex rewrites."
 
 [[ticket]]
 id = "S"

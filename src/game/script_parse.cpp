@@ -1,7 +1,6 @@
 // Script loader, part 1: tokens, the lexer (CScript::Tokenize), keyword lookup, #define handling
 // and name helpers. The parser proper is in script_parse_load.cpp. See script.h and
 // docs/notes/script.md ("Loader and parser").
-//
 // Rebirth patches the keyword lookups.
 #include "script.h"
 #include "game_strings.h"
@@ -34,8 +33,8 @@ StringOps* StringOps::InitN(const char* text, int length) {
     new (this) mfc::CString(text, length);
     return this;
 }
-char* StringOps::LockBuffer() { return reinterpret_cast<mfc::impl::CString*>(this)->LockBuffer(); }   // 00700E6A
-void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->UnlockBuffer(); }       // 00700E7C
+char* StringOps::LockBuffer() { return reinterpret_cast<mfc::impl::CString*>(this)->LockBuffer(); }
+void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->UnlockBuffer(); }
 
 } // namespace scriptparse
 

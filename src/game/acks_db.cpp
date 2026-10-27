@@ -12,7 +12,7 @@
 #include "world.h"
 
 #include "record_lifetime.h"
-#include "record_vectors.h"   // vector::resize of the speech lists (006E4560, 006E47F0)
+#include "record_vectors.h"   // vector::resize of the speech lists
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -290,7 +290,7 @@ void ExtraAcks::Serialize(ChunkArchive* ar) {
 EI_REWRITTEN(0x006E3780, UnitAcks::Serialize);
 EI_REWRITTEN(0x006E3FD0, ModelAcks::Serialize);
 EI_REWRITTEN(0x006E3DC0, ExtraAcks::Serialize);
-// ---- The records' destructors (S13) -------------------------------------------------------------
+// ---- The records' destructors -------------------------------------------------------------
 
 void AckRecordHead::Destruct() {
     speeches.Destroy();

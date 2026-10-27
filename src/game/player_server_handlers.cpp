@@ -52,11 +52,11 @@ constexpr int kOrderUse = 6;                          // AIOrder::kind
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
-// NPC record's floor (007C5494). Set at startup.
+// The shares a revived hero loses: of the party's money and of its experience above the
+// NPC record's floor. Set at startup.
 float MoneyPenalty() { return GameLogicSettings().lostMoney; }
 float ExperiencePenalty() { return GameLogicSettings().lostXp; }
-// The AI map's cell size factors (0074326C, 0073B86C): a half-cell coordinate times both is world units.
+// The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
@@ -77,20 +77,20 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 
 // The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
 // initialiser 0066C4D0 in the list's order and destroyed once (bit 0 of 007C83C8) by the exit function it registers
-// (0066C520); both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
 CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
 
 namespace {
 std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
-void __cdecl DestroyReceivedMessages() {   // 0066C520
+void __cdecl DestroyReceivedMessages() {
     std::uint8_t flags = g_receivedMessagesDestroyed;
     if (flags & 1) return;
     g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
     g_receivedMessages->~CMemoryStream();
 }
-void __cdecl ConstructReceivedMessages() {   // 0066C4D0
+void __cdecl ConstructReceivedMessages() {
     new (&*g_receivedMessages) CMemoryStream();
     libcrt::AtExit(DestroyReceivedMessages);
 }
@@ -286,7 +286,7 @@ int CPlayerServer::OnUseOrder() {
             units.RemoveAt(nearestIndex, 1);
         }
         if (!accepted) chosen = first;
-        if (order.target) order.target->Release();   // the counted reference's reset (0052B030)
+        if (order.target) order.target->Release();   // the counted reference's reset
         order.target = nullptr;
         path.Destruct();
     } else if (units.size == 1) {
@@ -342,11 +342,6 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
 template <typename T>
 void FreeArray(mfc::CArray<T>* array, void* vtable) {
     array->vtable = vtable;
-    if (array->data) gamecrt::operator_delete(array->data);
-}
-template <typename T>
-void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
-    array->vtable = ei::GamePointer<void>(vtableAddress);
     if (array->data) gamecrt::operator_delete(array->data);
 }
 
@@ -578,7 +573,7 @@ constexpr std::uint8_t kMessageError = 0x11;
 
 BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) {
     if constexpr (text::kUtf8) {
-        // EI_UTF8 (U5): by character, each a valid UTF-8 sequence of a printable code point, within
+        // EI_UTF8: by character, each a valid UTF-8 sequence of a printable code point, within
         // `maxLength` bytes; `minLength` counts characters. (The original's isprint of each signed byte
         // passed UTF-8's bytes only through the "english" locale's table and the bytes before it.)
         int characters = 0;
@@ -667,7 +662,7 @@ EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
 namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
-const char* const kResendingParty = "Resending party of player ";   // 00794F34
+const char* const kResendingParty = "Resending party of player ";
 libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 } // namespace
 

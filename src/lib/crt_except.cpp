@@ -1,4 +1,4 @@
-// The game CRT's C++ exception pieces (S4c, docs/notes/standalone.md): _CxxThrowException and MSVC 6's
+// The game CRT's C++ exception pieces (docs/notes/standalone.md): _CxxThrowException and MSVC 6's
 // std::exception (crt.h). Registered in both builds: they keep no state of their own (the thrown object's
 // text lives on the game's heap through gamecrt::operator_new / operator_delete).
 #include "crt.h"
@@ -14,14 +14,14 @@ namespace libcrt {
 
 namespace {
 
-// The exception record _CxxThrowException raises (the template at 00747260): the C++ exception code,
+// The exception record _CxxThrowException raises (the template): the C++ exception code,
 // not continuable, three parameters: the magic 0x19930520 (VC6's frame handler version), the object and
 // its throw information.
 constexpr unsigned long kCxxExceptionCode = 0xE06D7363;
 constexpr unsigned long kCxxMagic = 0x19930520;
 
-// std::exception's compiled table (C19) in place of game.exe's 00747290: 0 the scalar deleting destructor (006E7CE6),
-// 1 what (006E7DBE); and what()'s text without one ("Unknown exception", 00747298).
+// std::exception's compiled table in place: 0 the scalar deleting destructor,
+// 1 what; and what's text without one ("Unknown exception").
 struct ExceptionTable final : ei::CompiledDeleter<ExceptionTable, &Exception::DeletingDestruct> {
     virtual const char* What() { return ObjectAs<Exception>()->What(); }   // 1
 };

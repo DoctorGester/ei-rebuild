@@ -5,7 +5,6 @@
 // The order of operations in every expression follows the original instruction sequence. Doubling
 // is written as `* 2.0f`, which is exact and equal to the original's FADD ST0,ST0, so no named
 // temporary (which the compiler could spill and round) is needed.
-//
 // The vector operators are vecmath.h's: one operation per component, rounded when stored, the whole
 // result computed before `*out` is written (out may alias an input, as in the original).
 

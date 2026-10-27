@@ -1,25 +1,23 @@
 #pragma once
 
 // Message links over streams (00477E60-0047BC10): the endpoints a player's messages go through,
-// and the pump that keeps a driver link per remote player (00479E30 / 0047A080). Names are
+// and the pump that keeps a driver link per remote player. Names are
 // provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
-//
 // Class map (vtables):
 //   0073C8D8  FileStream (0x1C): a CStream over an MFC CFile at +0xC. Save files go through it
 //             (world_game.cpp, ui_saveload.cpp), and the links record their messages with it.
 //   0073C8A4  NetLink (0x28, abstract, on 0073BB58): the recording flags and the recording file.
-//   0073C8F8  LoopbackLink (0x30): two of them joined to each other (004782E0), the single-player
+//   0073C8F8  LoopbackLink (0x30): two of them joined to each other, the single-player
 //             link between the local client and the server. Send puts a copy of the stream on the
 //             peer's queue, Receive takes the front of its own.
 //   0073C92C  ReplayLink (0x44): plays back a recording (00478960 opens it) message by message.
 //   0073C9C8  FramedLink (0x50, abstract): the received bytes in a memory stream, each message a
 //             4-byte length and its bytes; Send frames the message and hands it to slot 13.
 //   0073C990  DriverLink (0x54): a FramedLink over a network connection's reliable streams.
-//   0073CA10 is another FramedLink whose constructors (0047CAA0, 0047CFA0) are dead code; its own
+//   0073CA10 is another FramedLink whose constructors are dead code; its own
 //             slots are listed in config/dead_code.csv.
-//
-// The links are real C++ classes (C28k), created with net::NewCounted.
+// The links are real C++ classes, created with net::NewCounted.
 
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -40,23 +38,23 @@ class CWorldHandle;   // world.h
 
 namespace netlink {
 
-// A CStream over a file (game.exe's vtable 0073C8D8). The CFile is raw storage (MFC, C28n): the
+// A CStream over a file (game.exe's vtable 0073C8D8). The CFile is raw storage (MFC): the
 // constructor and destructor build and tear it down explicitly.
 class FileStream : public CStream {
 public:
     // 00478470 (also inlined): a closed file.
     FileStream();
-    // 00479B10: a fresh stream; `other` is not read.
+    // A fresh stream; `other` is not read.
     FileStream(const FileStream& other);
     // 00477FB0 (also inlined; deleting: 00477F90): the CFile destroyed (closing an open file).
     ~FileStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 00477F00 (a short read clears ok_)
-    void Write(const void* buffer, std::uint32_t size) override;       // 2: 00477F30
+    void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // 3: 00477F50 (SeekFrom)
     std::uint32_t Size() override;                                     // 4: 00477F70 (the file's length)
-    std::uint32_t Position() override;                                 // 5: 00477F80
+    std::uint32_t Position() override;
     void Clear() override;                                             // 6: 00477EE0 (Restart)
-    // 7: CStream::CopyFrom (004A4D40)
+    // 7: CStream::CopyFrom
 
     // The body of slot 3: seeks from the start; returns the CFile's result.
     long SeekFrom(long position);
@@ -103,11 +101,11 @@ public:
     virtual bool Receive(CMemoryStream* stream);      // 9: 00478110 (records the stream: true)
     virtual void Pump() {}                      // 10: 00478010 (empty)
     virtual void Disconnect() = 0;              // 11
-    virtual int Unknown12() { return 0; }       // 12: 00478020
+    virtual int Unknown12() { return 0; }
 
-    // 004780B0. Starts recording into a new file `path`; the first message is dropped.
+    // Starts recording into a new file `path`; the first message is dropped.
     void OpenRecording(const char* path);
-    // 004780E0. Closes the file and stops recording.
+    // Closes the file and stops recording.
     void CloseRecording();
     // What slot 9 does with a message it took in while recording: the first after OpenRecording is
     // dropped, the others written to the file with their size.
@@ -139,14 +137,14 @@ public:
 
     // 10, 12: NetLink's.
     int OnShutdown() override;                  // 2: 00478610 (torn down and built again in place)
-    LoopbackLink* Clone() override;             // 3: 004784D0
+    LoopbackLink* Clone() override;
     bool Connected() override;                  // 4: 00478710 (the peer is there, not detached)
-    bool Alive() override;                      // 5: 00478730
-    bool HasIncoming() override;                // 6: 00478750
-    int IncomingCount() override;               // 7: 00478760
+    bool Alive() override;
+    bool HasIncoming() override;
+    int IncomingCount() override;
     bool Send(CStream* stream) override;        // 8: 00478220 (a copy on the peer's queue)
     bool Receive(CMemoryStream* stream) override;     // 9: 00478270 (the front of the queue)
-    void Disconnect() override;                 // 11: 00478140
+    void Disconnect() override;
 
     // 004782E0 (thiscall with an unused this, RET 4). Two links joined to each other; the first goes
     // to the player's link (+8), the second is returned.
@@ -171,11 +169,11 @@ public:
 
     // 7, 8, 10, 12: NetLink's.
     int OnShutdown() override;                  // 2: 00478B10 (destroyed and built again in place)
-    ReplayLink* Clone() override;               // 3: 00478A50
-    bool Connected() override { return false; } // 4: 00478C20
+    ReplayLink* Clone() override;
+    bool Connected() override { return false; }
     bool Alive() override;                      // 5: 00478C30 (the recording has more to read)
     bool HasIncoming() override;                // 6: 00478C50 (the same code)
-    bool Receive(CMemoryStream* stream) override;     // 9: 00478C70
+    bool Receive(CMemoryStream* stream) override;
     void Disconnect() override;                 // 11: 00478C90 (closes the recording)
 
     // 00478960 (thiscall with an unused this, RET 4). A replay link reading the recording `path`.
@@ -192,14 +190,14 @@ public:
 
     // 2-5, 11 pure; 10, 12 NetLink's.
     bool HasIncoming() override;                // 6: 0047B9F0 (a whole message in the inbox)
-    int IncomingCount() override;               // 7: 0047BA40
+    int IncomingCount() override;
     bool Send(CStream* stream) override;        // 8: 0047BAD0 (framed, then SendBytes)
     bool Receive(CMemoryStream* stream) override;     // 9: 0047BB70 (a memory stream)
     virtual bool SendBytes(const void* data, std::uint32_t size) = 0;   // 13
 
-    // 0047B980. `size` bytes appended at the end of the inbox.
+    // `size` bytes appended at the end of the inbox.
     void Append(const void* data, std::uint32_t size);
-    // 0047B9B0. `out` emptied, then given everything in the inbox, which is emptied.
+    // `out` emptied, then given everything in the inbox, which is emptied.
     void TakeAll(CStream* out);
 
     CMemoryStream inbox_;        // +0x28 received bytes: {uint32 length, bytes} per message
@@ -215,7 +213,7 @@ protected:
 // connection's reliable streams.
 class DriverLink final : public FramedLink {
 public:
-    // 0047A030: the base, an empty inbox, no player.
+    // The base, an empty inbox, no player.
     DriverLink();
     // Clone's copy: the framed link's, then the same player (counted).
     DriverLink(const DriverLink& other);
@@ -224,12 +222,12 @@ public:
 
     // 6-9 FramedLink's; 12 NetLink's.
     int OnShutdown() override;                  // 2: 00479C10 (destroyed and built again in place)
-    DriverLink* Clone() override;               // 3: 00479A30
+    DriverLink* Clone() override;
     bool Connected() override;                  // 4: 00479780 (the player is there, not detached)
-    bool Alive() override { return true; }      // 5: 00479D10
+    bool Alive() override { return true; }
     void Pump() override;                       // 10: 004797A0 (the incoming reliable bytes to the inbox)
     void Disconnect() override;                 // 11: 00479810 (the unread bytes given back)
-    bool SendBytes(const void* data, std::uint32_t size) override;   // 13: 004796B0
+    bool SendBytes(const void* data, std::uint32_t size) override;
 
     RefPtrTo<net::Connection> player_;   // +0x50 counted
 };
@@ -255,16 +253,16 @@ public:
 
     int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied, new sentinels)
     DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
-    bool Query() override { return true; }   // 4: 0047A220
+    bool Query() override { return true; }
     void TakeNew(JoinedLinks* joined) override;   // 6: 0047A230 (the live holders' links appended; player_sources.cpp)
 
     DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
     DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)
 
-    // 00479E30 (RET 4). A driver for every new connection of `session` (the game client or server)
+    // A driver for every new connection of `session` (the game client or server)
     // with something queued; then each driver pumped, and those whose player is gone erased.
     void PumpDrivers(net::SessionBase* session);
-    // 0047A080 (RET 4). Both lists emptied, then one driver for `player`, started and drained.
+    // Both lists emptied, then one driver for `player`, started and drained.
     DriverLink* Start(net::Connection* player);
 };
 

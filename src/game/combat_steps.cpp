@@ -24,13 +24,13 @@
 
 namespace {
 constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;                                        // 0073B84C
+constexpr float kOne = 1.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
-constexpr float kHundred = 100.0f;                                  // 0073BAB0
+constexpr float kHundred = 100.0f;
 constexpr float kLowerPart = std::bit_cast<float>(0x3ECCCCCDu);     // 0073B868 (0.4)
 constexpr float kUpperPart = std::bit_cast<float>(0x3F4CCCCDu);     // 0073CCA8 (0.8)
 constexpr float kEyeLevel = std::bit_cast<float>(0x3F333333u);      // 0073C538 (0.7)
-constexpr float kNearReach = 5.0f;                                  // 0073BF34
+constexpr float kNearReach = 5.0f;
 constexpr float kSteepUp = std::bit_cast<float>(0x3FDDB3D0u);       // 0073F0C0 (1.73205)
 constexpr float kSteepDown = std::bit_cast<float>(0xBFDDB3D0u);     // 0073F0BC (-1.73205)
 constexpr float kReachSlack = std::bit_cast<float>(0x3E19999Au);    // 0073CD18 (0.15)
@@ -108,7 +108,7 @@ namespace {
 } // namespace
 
 namespace {
-// _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
+// _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 

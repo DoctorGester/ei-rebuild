@@ -107,13 +107,13 @@ const Route kRoutes[] = {
     EI_UTF8_ROUTE(RegOpenKeyExA),     EI_UTF8_ROUTE(RegCreateKeyExA),       EI_UTF8_ROUTE(RegQueryValueExA),
     EI_UTF8_ROUTE(RegSetValueExA),    EI_UTF8_ROUTE(CreateWindowExA),       EI_UTF8_ROUTE(FindWindowA),
     EI_UTF8_ROUTE(MessageBoxA),       EI_UTF8_ROUTE(GetKeyNameTextA),       EI_UTF8_ROUTE(LoadStringA),
-    // The windows are Unicode ones (U4): their class registered wide, their messages taken, passed on and
+    // The windows are Unicode ones: their class registered wide, their messages taken, passed on and
     // handled wide, so WM_CHAR carries UTF-16.
     EI_UTF8_ROUTE(RegisterClassExA),  EI_UTF8_ROUTE(DefWindowProcA),        EI_UTF8_ROUTE(GetMessageA),
     EI_UTF8_ROUTE(PeekMessageA),      EI_UTF8_ROUTE(DispatchMessageA),
-    // The interface's text draw and extent and its fonts (U3): Unicode text drawn and measured as itself.
+    // The interface's text draw and extent and its fonts: Unicode text drawn and measured as itself.
     EI_UTF8_ROUTE(DrawTextA),         EI_UTF8_ROUTE(GetTextExtentPoint32A), EI_UTF8_ROUTE(CreateFontIndirectA),
-    // Case (U5): UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
+    // Case: UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
     EI_UTF8_ROUTE(CharUpperA),        EI_UTF8_ROUTE(CharLowerA),
 };
 #undef EI_UTF8_ROUTE
@@ -407,14 +407,14 @@ int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
     return CopyOut(std::wstring_view(resource, static_cast<std::size_t>(length)), buffer, size);
 }
 
-// ---- Text drawing and fonts (U3) -----------------------------------------------------------------------
+// ---- Text drawing and fonts -----------------------------------------------------------------------
 
 int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format) {
     if (!text) return ::DrawTextW(dc, nullptr, length, rect, format);
     std::wstring wide = Wide(length < 0 ? std::string_view(text) : std::string_view(text, static_cast<std::size_t>(length)));
     const int count = static_cast<int>(wide.size());
     // DT_MODIFYSTRING (with DT_END_ELLIPSIS: the server list's names) writes the shortened text back, up to
-    // four characters past the string's own (U5): room for them. The game reads none of it back, so the
+    // four characters past the string's own: room for them. The game reads none of it back, so the
     // UTF-8 text is left as it was.
     if (format & DT_MODIFYSTRING) wide.resize(wide.size() + 5, L'\0');
     return ::DrawTextW(dc, wide.data(), count, rect, format);
@@ -447,7 +447,7 @@ HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font) {
     return ::CreateFontIndirectW(&wide);
 }
 
-// ---- Case (U5) -------------------------------------------------------------------------------------------
+// ---- Case -------------------------------------------------------------------------------------------
 
 namespace {
 // CharUpperA / CharLowerA's two forms: a string changed in place (the pointer back), or one character in the

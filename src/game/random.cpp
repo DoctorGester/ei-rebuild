@@ -36,7 +36,7 @@ std::uint32_t IsaacRandom::Next() {
 EI_REPLACE_METHOD(0x004667F0, IsaacRandom::Next);
 
 namespace {
-// The 2^-32 scale of Range (0073C468); its last bit is set (sic).
+// The 2^-32 scale of Range; its last bit is set (sic).
 constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
 
 // A zero-extended dword loaded with FILD qword (exact).
@@ -92,7 +92,7 @@ EI_REPLACE_METHOD(0x0049EE70, IsaacRandom::Refill);
 
 namespace {
 
-// The search strings: the drive's files and the sub-directory suffix (0078B054).
+// The search strings: the drive's files and the sub-directory suffix.
 constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
 const char* SubdirectoryPattern() { return "\\*.*"; }
 

@@ -22,7 +22,7 @@ void ReleaseHeld(T** holder) {
     ObjectHolderRelease(reinterpret_cast<CEngineObject**>(holder));
 }
 
-// The armour spells' 12-byte records (00558100): an engine object, a dword and a byte the
+// The armour spells' 12-byte records: an engine object, a dword and a byte the
 // assignment copies (the three bytes after it are left).
 struct ArmourSpellRecord {
     CEngineObject* object;
@@ -49,7 +49,7 @@ inline void DestroySharedObject(SharedObject* p) {
         reinterpret_cast<gamearrays::ObjectPtrs::Array*>(&p->objects));
 }
 // The sound manager's wave records: the name an empty string with room for 8 bytes (006BE240, after
-// the zero fill); its buffer freed (006B90C0).
+// the zero fill); its buffer freed.
 inline stlp::string* WaveName(WaveRecord* p) { return &p->Name(); }
 inline void InitWave(WaveRecord* p) { stlp::StringElement::Default(WaveName(p)); }
 inline void DestroyWave(WaveRecord* p) { stlp::StringElement::Destroy(WaveName(p)); }

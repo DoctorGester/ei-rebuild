@@ -1,6 +1,6 @@
-// The help / message window (CHelpWindow, ui.h; vtables 00740E28 / 00740DF4): its Build (slot
-// 25, 00658E10), Close (26), the pulse (Update, 24) and the input side's button and key handlers.
-// The page itself is built by 00659420 (Rebirth-patched, through its address; its vanilla body is
+// The help / message window (CHelpWindow, ui.h): its Build, Close, the pulse (Update)
+// and the input side's button and key handlers.
+// The page itself is built by ShowPage (Rebirth-patched, through its address; its vanilla body is
 // in ui_help_page.cpp). See docs/notes/ui.md.
 #include "ui.h"
 #include "game_strings.h"
@@ -25,7 +25,7 @@ const char* SaveLoadTexture() { return "saveload"; }
 const char* TutorialSection() { return "tutorial "; }
 const char* ScreenLine() { return "#screen"; }
 const char* TutorSection() { return "tutor "; }
-const char* LineEnds() { return "\r\n"; }          // "\r\n"
+const char* LineEnds() { return "\r\n"; }          // the line end
 const char* NextSound() { return "buttons\\tutorial\\next.wav"; }
 const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
 
@@ -117,7 +117,7 @@ EI_REWRITTEN(0x0065A5E0, CHelpWindow::Update);
 void CHelpWindow::Finish() {
     interface_->PlaySound(OkSound(), 0);
     if (!message_)
-        interface_->helpTopics_.Subscript(text_) = page_;   // 0065A770
+        interface_->helpTopics_.Subscript(text_) = page_;
     else
         interface_->messageFlag_ = page_;
     interface_->SetPendingValue(0);

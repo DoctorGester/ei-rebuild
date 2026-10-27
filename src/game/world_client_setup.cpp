@@ -1,5 +1,5 @@
-// The client world's set-up at startup: SetUpGraphics (00563710) and the light colours by hour
-// from the lights table (LoadLights, 00563930; config\LightsGipat.ini). See world.h.
+// The client world's set-up at startup: SetUpGraphics and the light colours by hour
+// from the lights table (LoadLights; config\LightsGipat.ini). See world.h.
 #include "material.h"
 #include "options.h"
 #include "world.h"
@@ -26,7 +26,7 @@
 #include <string>
 
 namespace {
-const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
+const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 
 // The game's data folder (a CString global) and the strings the original passes by address.
 const char* ConfigFolder() { return "config\\"; }
@@ -41,8 +41,8 @@ const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::TheOptions()->resourcesPath_.GetString(); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
 
-// Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
-// figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
+// Through their addresses: the texture manager's device (not rewritten) and the
+// figure loader's constructor (returns this; Rebirth-patched, its vanilla body is
 // in link_loader_create.cpp).
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
@@ -86,7 +86,7 @@ int CWorldClient::LoadLights(const char* file) {
     console::CStringArray keys;
     mfc::CString hour;
     DwordArray values{};
-    CIniFile ini;   // the empty path (00695B80), freed at the end (00695BE0)
+    CIniFile ini;   // the empty path, freed at the end
     {
         std::string folder = (TheDataFolder() + ConfigFolder()).GetString();
         std::string path = folder + file;
@@ -126,7 +126,7 @@ void CWorldClient::SetUpGraphics(void* device) {
 }
 EI_REWRITTEN(0x00563710, CWorldClient::SetUpGraphics);
 
-// ---- The sky (00562F70) --------------------------------------------------------------------------
+// ---- The sky --------------------------------------------------------------------------
 
 namespace {
 constexpr int kSkyFigureClass = 0x44;

@@ -1,4 +1,4 @@
-// The base input side's double-click slots (005E2860 / 005E2880) and the event-by-number call the dispatchers use.
+// The base input side's double-click slots and the event-by-number call the dispatchers use.
 // See ui.h (UiInputSide) and docs/notes/ui.md, section 1.
 #include "ui.h"
 

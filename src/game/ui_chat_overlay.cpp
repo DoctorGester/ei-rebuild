@@ -1,4 +1,4 @@
-// The in-game chat overlay: its constructor, per-frame slots (vtable 007400DC: 24 update, 22
+// The in-game chat overlay: its constructor, per-frame update and
 // redraw), the chat line's opening and its keys. Its destructor is in ui_window_delete.cpp.
 // docs/notes/ui.md, section 3.
 #include "asset_text.h"
@@ -34,7 +34,7 @@ constexpr int kTypedFont = 1;
 // A chat message stays on the client's timers list for 60 s (the float's bits).
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -46,12 +46,12 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 void SendSay(const char* text) {
     auto* say = net::NewCounted<net::SayMessage>();
     // As the original: a failed allocation is not checked from here on.
-    say->text_.Assign(text);   // inlined by the original: overwrite, then cut or append
+    say->text_.Assign(text);   // overwrite, then cut or append
     net::GameClient()->AddTimed(say, kSayLifetime);
 }
 } // namespace
 
-// --- 005E2A30: a chat line added --------------------------------------------------------------------
+// --- a chat line added ---------------------------------------------------------------------------
 
 namespace {
 constexpr int kMaxLines = 12;
@@ -97,7 +97,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     std::string source = text;
     mfc::CString ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
-    // With EI_UTF8 a character is its whole UTF-8 sequence (U5), so a word wider than a line is broken
+    // With EI_UTF8 a character is its whole UTF-8 sequence, so a word wider than a line is broken
     // between characters and measured as text.
     for (const char* p = source.c_str(); CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
         console::Ops(ch).AssignChar(p[0]);
@@ -150,7 +150,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         formatted.SetAtGrow(formatted.GetSize(), lineFormatted + wordFormatted);
     }
 
-    // The oldest lines go (list::erase, 005E3AD0, inlined as Update does).
+    // The oldest lines go (list::erase, inlined as Update does).
     for (int i = 0; i < plain.GetSize() + before - kMaxLines; ++i) {
         Node* first = lines_.First();
         first->prev->next = first->next;
@@ -162,7 +162,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
     for (int i = 0; i < plain.GetSize(); ++i) {
-        // insert(end()) of an empty line (005E3A10).
+        // insert(end()) of an empty line.
         auto* node = stlp::allocate_as<Node>();
         new (&node->data.text) mfc::CString;
         new (&node->data.name) mfc::CString;
@@ -202,7 +202,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 }
 EI_REWRITTEN(0x005E2A30, CChatOverlay::AddLine);
 
-// --- 005E36C0 / 005E3930: opening the chat line, clearing the lines ----------------------------------
+// --- opening the chat line, clearing the lines ---------------------------------------------------
 
 void CChatOverlay::SetOpen(bool open) {
     chatOpen_ = open;
@@ -219,7 +219,7 @@ void CChatOverlay::ClearLines() {
 }
 EI_REWRITTEN(0x005E3930, CChatOverlay::ClearLines);
 
-// --- 005E3700: the typed line drawn (Rebirth-patched: WideScreen reproduced) ------------------------------
+// --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
 
 namespace {
 constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
@@ -246,7 +246,7 @@ void CChatOverlay::DrawTyped() {
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
-        // WideScreen (005E3839 / 005E386C: XOR ECX,ECX): without the margin.
+        // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
@@ -257,13 +257,13 @@ void CChatOverlay::DrawTyped() {
 }
 EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
-// --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
+// --- the chat line's keys (input slots 9 and 10) -------------------------------------------------
 
 void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;
     handled_ = true;
     switch (key) {
-    case VK_BACK: {   // by character (U4), as Delete and the caret's steps
+    case VK_BACK: {   // by character, as Delete and the caret's steps
         if (caret_ <= 0) break;
         const int previous = text::PreviousCharacter(typed_, caret_);
         typed_ = typed_.Left(previous) + typed_.Mid(caret_);
@@ -303,7 +303,7 @@ void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
     std::string line = (text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_)).GetString();
-    // The line also stays within kMaxTyped bytes (U5: what the original's 200 one-byte characters took).
+    // The line also stays within kMaxTyped bytes (what the original's 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.
     if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
@@ -316,9 +316,9 @@ void CChatOverlay::OnChar(int key, int, int) {
 EI_REWRITTEN(0x005E3230, CChatOverlay::OnKeyDown);
 EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 
-// --- 005E26F0: the constructor ---------------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
-// game.exe's tables 007400DC / 007400A8: its own redraw (22) and update (24); the input side's keys (9) and
+// game.exe's tables: its own redraw (22) and update (24); the input side's keys (9) and
 // characters (10).
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     using Node = stlp::list<ChatLine>::Node;
@@ -340,7 +340,7 @@ void CChatOverlay::Update() {
     for (Node* node = head->next; node != head;) {
         Node* next = node->next;
         if (static_cast<int>(now - node->data.time) > kLineLifetime) {
-            // list::erase (005E3AD0): unlinked, destroyed, the node back to the pool.
+            // list::erase: unlinked, destroyed, the node back to the pool.
             node->prev->next = next;
             next->prev = node->prev;
             node->data.Destroy();

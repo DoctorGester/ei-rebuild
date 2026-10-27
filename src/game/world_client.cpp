@@ -193,11 +193,11 @@ namespace {
 
 constexpr int kExitParticles = 0x2038;   // "ZoneExit" (particle_emitters.cpp EmitZoneExit)
 constexpr int kExitWarmUpTicks = 20;
-constexpr float kOneHalf = 0.5f;          // 0073B86C
+constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
-// 0056F1A0 (library: counted pointer assignment, ECX the slot): references `object`, then
+// Library: counted pointer assignment: references `object`, then
 // releases the slot's old one.
 template <class T>
 void AssignCounted(T** slot, T* object) {
@@ -210,7 +210,7 @@ void AssignCounted(T** slot, T* object) {
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
-    // The counted array's inlined RemoveAll (00573220 releases each element).
+    // The counted array's inlined RemoveAll (each element is released).
     if (countedA0_.data) {
         for (int i = 0; i < countedA0_.size; ++i) {
             if (countedA0_[i]) countedA0_[i]->Release();
@@ -332,11 +332,11 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     return flags | 0x2000;
 }
 
-// ---- Segment (005641F0) --------------------------------------------------------------------------
+// ---- Segment --------------------------------------------------------------------------
 
 namespace {
 
-// 00665A10 CPlayer::Disconnect on the local session.
+// CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 
 // FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
@@ -420,7 +420,7 @@ int CWorldClient::Segment() {
         CPlayerConnection* view = session->connection_;
         if (!paused_) static_cast<CPlayer*>(session)->Tick();
         if (view->Receive() == 0) {
-            // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
+            // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
             if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(Session());
             game::FatalError(worlddata::SegmentDisconnectedText());
@@ -441,7 +441,7 @@ int CWorldClient::Segment() {
             int key = object->id_;
             mfc::CList<CEngineObject*>::Node* position = nullptr;
             if (dynamicNodes_.Lookup(reinterpret_cast<const std::uint32_t*>(&key), &position)) {
-                dynamicObjects_.RemoveAt(position);   // 005704A0
+                dynamicObjects_.RemoveAt(position);
                 hash400::PositionsRemoveKey(dynamicNodes_, key);
             }
         }

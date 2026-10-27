@@ -1,5 +1,5 @@
-// The save game's difference coding between two streams (A-S4): CStream::WriteDiff (004A4DA0)
-// and CStream::ApplyDiff (004A50D0). The format is described in core_streams.h. Every stream
+// The save game's difference coding between two streams (A-S4): CStream::WriteDiff
+// and CStream::ApplyDiff. The format is described in core_streams.h. Every stream
 // access goes through the stream's virtual functions, in the original's order.
 #include "core_streams.h"
 

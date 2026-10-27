@@ -1,10 +1,9 @@
-// .mmp textures: creating a texture's Direct3D surfaces from the file data (00690430), the mip
-// offsets (006908E0) and the file's extra block (006928C0).
-//
+// .mmp textures: creating a texture's Direct3D surfaces from the file data, the mip
+// offsets and the file's extra block.
 // An .mmp texture has no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): the new
 // renderer decodes the levels the game would load from the file data (keyed by the holder,
 // render::TextureFromMmp) and the holder has no surface and no memory (NewDecodedTextureHolder,
-// dx_surface.cpp); no staging surface, fill (0068FA10), Load or priority. The byte size the texture
+// dx_surface.cpp); no staging surface, fill, Load or priority. The byte size the texture
 // cache counts is what the fill would have returned (MmpHeader::FilledBytes). A texture the new
 // renderer does not decode (a format it does not know, or the renderer off after a failure) keeps
 // its holder and shows nothing. See docs/notes/renderer.md (section 7).
@@ -128,7 +127,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     CDXSurface* previous = surface_;
     surface_ = decoded;
     ++decoded->refs_;
-    if (previous) previous->Release();   // 004E6BA0
+    if (previous) previous->Release();
     uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
     MarkLoaded(this, header);
     extra_.SetSize(static_cast<int>(header->extraSize));

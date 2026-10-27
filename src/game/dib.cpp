@@ -27,7 +27,7 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     return header->biHeight * rowDwords * 4;
 }
 
-// 006D49E0: the runtime class's CreateObject.
+// The runtime class's CreateObject.
 void* __stdcall CreateDib() { return new CDib(); }
 EI_REPLACE(0x006D49E0, CreateDib);
 
@@ -37,7 +37,7 @@ using mfc::impl::kClassCObject;
 // IMPLEMENT_SERIAL (schema 0): linked into the module state's class list by the static initialiser below.
 constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib, &kClassCObject, nullptr};
 
-// 006D4A70: the static initialiser that links the record in.
+// The static initialiser that links the record in.
 void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
 EI_REPLACE(0x006D4A70, LinkDibClass);
 

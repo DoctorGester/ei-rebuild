@@ -31,7 +31,7 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 }
 } // namespace
 
-// 004652A0: the destructor.
+// The destructor.
 void __fastcall RecordDestruct(LeverRecord* self) {
     self->text28.~CString();
     self->sound.~CString();
@@ -41,7 +41,7 @@ void __fastcall RecordDestruct(LeverRecord* self) {
 EI_REWRITTEN(0x004652A0, RecordDestruct);
 } // namespace app
 
-// 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
+// The record's fields 0 .. 7 (strings 0, 5, 6, 7).
 void LeverRecord::Archive(ChunkArchive* archive) {
     archive->CStringField(0, &name);
     archive->Field(1, spots, 0x10);
@@ -54,7 +54,7 @@ void LeverRecord::Archive(ChunkArchive* archive) {
 }
 EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
-// 004657E0: the deleting destructor.
+// The deleting destructor.
 LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
     app::RecordDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);

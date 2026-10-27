@@ -40,7 +40,7 @@ int SectorBound(float value, int count) {
 constexpr int kSectorAge = 240;
 
 void DeleteSector(SectorData* sector) {
-    sector->DestructBody();   // 006BF8A0
+    sector->DestructBody();
     gamecrt::operator_delete(sector);
 }
 
@@ -188,10 +188,10 @@ namespace {
 
 constexpr int kRow = 33;                  // vertices per sector row
 constexpr int kVertices = kRow * kRow;
-constexpr float kPi = 3.14159274f;        // 007441C8
-constexpr double kPiDouble = 3.141592653589793;   // 007441C0
-constexpr double kSineStep = 1.0 / 256;   // 007441F0
-constexpr float kWaveStepTurn = 0.500250161f;     // 007441F8
+constexpr float kPi = 3.14159274f;
+constexpr double kPiDouble = 3.141592653589793;
+constexpr double kSineStep = 1.0 / 256;
+constexpr float kWaveStepTurn = 0.500250161f;
 constexpr int kRipples = 40;
 
 // Static initialisers (006C52D0, 006C52F0, 006C5360..006C53A0): the zero position and identity
@@ -208,7 +208,7 @@ constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
 Terrain::Terrain() {
     ClearFields();
-    // Identity rotations (w first); the positions are not initialised (00453400).
+    // Identity rotations (w first); the positions are not initialised.
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     pageTextures.data = nullptr;
@@ -222,7 +222,7 @@ Terrain::Terrain() {
     // archive: a C++ member, constructed before this body (CMMIOResource())
     vertexTiles.Construct();
     mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
-    lights.Construct(100);   // 00571050: the light table, then the highest id 0
+    lights.Construct(100);   // the light table, then the highest id 0
     maxLightId = 0;
     wavePhases.Construct();
     visibleColumnFirst.Construct();
@@ -455,8 +455,8 @@ constexpr int kSectorCells = 32;
 constexpr int kExtraTextures = 16;      // the two extra pages' textures, after the map's own
 constexpr int kExtraClass = 0xF;
 constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
-constexpr float kMarginPixels = 8.0f;   // 0073CE50
-constexpr double kByteScale = 255.0;    // 0073C370
+constexpr float kMarginPixels = 8.0f;
+constexpr double kByteScale = 255.0;
 constexpr std::uint32_t kLowFlags = 0xFFFF;
 
 // The map file's extension.

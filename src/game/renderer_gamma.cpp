@@ -1,8 +1,7 @@
-// The display's gamma ramp (00504A60, virtual slot 22 of the renderer at 007AF060, thiscall, RET
-// 0xC): brightness, contrast and gamma from the options become the gamma ramp (the original's
+// The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (the original's
 // primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame
-// goes to the window: ticket R9c). Called by WinMain (00456440) at start-up and with zeros at exit,
-// and by the options screen (00650B6E, 00650CAB, 006510BA) when a value changes; no caller reads the
+// goes to the window). Called by WinMain at start-up and with zeros at exit,
+// and by the options screen when a value changes; no caller reads the
 // result. See docs/notes/renderer.md.
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CDXSurface
@@ -20,8 +19,8 @@
 
 namespace {
 
-const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255 (0073C36C)
-constexpr float kRampScale = 65280.0f;                         // 0073D9A8
+const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255
+constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 
 // The original's branchless minimum / maximum (FCOMP; FNSTSW; the C0 bit as a mask): `limit` when

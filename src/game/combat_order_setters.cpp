@@ -171,7 +171,7 @@ void CUnitServer::StopAction() {
     StandStill();              // inlined in the original
     action.Reset();
     action2.Reset();
-    // Idle (00555180), inlined: the current order is never of kind 0 here, the queued one is 9.
+    // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.
     if (action.kind != 0 && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
 }
 EI_REWRITTEN(0x00555840, CUnitServer::StopAction);

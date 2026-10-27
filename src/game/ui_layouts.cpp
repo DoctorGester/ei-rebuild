@@ -1,7 +1,6 @@
 // Layout builders of the windows opened from the Esc menu (their slot 25, "Create"): the regions,
 // sprites, surfaces, scroll bar and 3D model each window is made of. See docs/notes/ui.md.
-//
-// The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
+// The builders call the sprite placement functions and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "app_helpers.h"
 #include "asset_text.h"
@@ -101,7 +100,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 
 } // namespace
 
-// --- Save/load window (00653DD0) -------------------------------------------------------------
+// --- Save/load window -------------------------------------------------------------
 
 void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -172,7 +171,7 @@ void CSaveLoadWindow::CreateScreen() {
 }
 EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::CreateScreen);
 
-// --- Options window (006503C0) ------------------------------------------------------------------
+// --- Options window ------------------------------------------------------------------
 
 namespace {
 // The option groups' names.
@@ -242,9 +241,9 @@ void COptionsWindow::CreateScreen() {
 }
 EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 
-// --- Esc menu (0062AB20) ------------------------------------------------------------------------
+// --- Esc menu ------------------------------------------------------------------------
 
-// The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
+// The five regions' rectangles (menus.reg) the game keeps.
 
 void CEscMenu::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -257,7 +256,7 @@ void CEscMenu::CreateScreen() {
     std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
-    // original goes through 0062AC90 (SetRect with a RECT by value).
+    // original goes through SetRect with a RECT by value.
     const RECT* rects = g_menuRects + kMainMenuRects;
     for (const RECT* source = rects; source < rects + 5; ++source) {
         CUiRegion* region = AddRegion();
@@ -270,7 +269,7 @@ void CEscMenu::CreateScreen() {
 }
 EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
-// --- Esc menu clicks (0062AE90) -------------------------------------------------------------------
+// --- Esc menu clicks -------------------------------------------------------------------
 
 void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
@@ -312,18 +311,16 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 EI_REWRITTEN(0x0062AE90, CEscMenu::OnLButtonDown);
-
-// --- Main menu clicks (00632D70) ------------------------------------------------------------------
+// --- Main menu clicks ------------------------------------------------------------
 
 namespace {
-// The game glue (world_glue.h) gives the game's folder, the text table (004E0020 a key's text,
-// RET 8), the server flag and, before the titles, stops the sounds and the ambience. 005F75B0 (on
-// 007C7D50, RET 4) shows a status text. 005DB3F0 plays a movie (ECX path, EDX 0, five flags),
-// 00455F20 quits (exit code in ECX).
 
-// The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
-// 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
-// / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
+// The game glue (world_glue.h) gives the game's folder, the text table (a key's text),
+// the server flag and, before the titles, stops the sounds and the ambience. It also shows
+// a status text on the interface manager, plays a movie (path, five flags) and quits.
+
+// The titles window's members (a mapped resource, a vector, the music player) and the hero screen's
+// (the item screen base's caches, two lists and two vectors) are called through their addresses.
 
 // The vtables (main, input) of the windows the clicks build inline: the new game's difficulty question
 // (a message box), the titles, the item screens' base and the multiplayer hero screen.
@@ -372,7 +369,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     }
     case 5: {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up
-        // its second master server (its call at 006330A9, net_second_master.h).
+        // its second master server (net_second_master.h).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         GameClientTexts()->CTextManager::GetString("reserved_04", &text);
@@ -390,18 +387,18 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 
 EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 
-// --- Message box (00634790) -----------------------------------------------------------------------
+// --- Message box -----------------------------------------------------------------------
 
 namespace {
-// Not rewritten: the surface's DC (005FDC00 / 005FDC60), its text (005FDE20, Rebirth-patched;
-// returns the text's height), the interface's text extent (005F8340, Rebirth-patched; takes a
-// CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
-// interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
+// Not rewritten: the surface's DC, its text (Rebirth-patched;
+// returns the text's height), the interface's text extent (Rebirth-patched; takes a
+// CString by value, see ui_text.cpp) and the edit field: its constructor (the
+// interface and a RECT by value), its fonts and colours, its text.
 int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);   // 005FDE20
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -464,7 +461,7 @@ void CMessageBox::CreateScreen() {
 }
 EI_REWRITTEN(0x00634790, CMessageBox::CreateScreen);
 
-// --- Difficulty question (006337B0) ---------------------------------------------------------------
+// --- Difficulty question ---------------------------------------------------------------
 
 void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", 3, 0);
@@ -530,16 +527,16 @@ void CDifficultyBox::CreateScreen() {
 }
 EI_REWRITTEN(0x006337B0, CDifficultyBox::CreateScreen);
 
-// --- Titles (0062B7D0) ----------------------------------------------------------------------------
+// --- Titles ----------------------------------------------------------------------------
 
 namespace {
-// Not rewritten. 006B71C0 (the loading screen 007AF784, RET 4) steps it; 006B4F70 stops the music
-// (007AF760); 005E5270 (the renderer 007C7BD8, RET 4) shows or hides the cursor; 00458270 plays the
-// movies listed under a section (ECX; DL clears the screen first; then clear-after and two values
-// on the stack); 004461E0 (on a CString) drops its CRs (Remove 0x0D); 0065ED30 (RET 8: interface,
-// RECT*) constructs the scrolling text surface (0x58 bytes), 005FCDD0 (RET 0xC: interface, RECT*,
-// format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
-// movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
+// Not rewritten: the loading screen steps it; one call stops the music, another
+// shows or hides the cursor on the renderer; one plays the
+// movies listed under a section (a flag clears the screen first; then clear-after and two values
+// on the stack); one (on a CString) drops its CRs (Remove 0x0D); two construct the scrolling text surface
+// (0x58 bytes: interface, RECT*) and a plain one; one returns the display object; one (the player) starts a
+// movie. The tokenizer (start / next word; null at the end) splits a CString at
+// movie. The tokenizer (start / next word; null at the end) splits a CString at
 // a separator.
 CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
@@ -599,7 +596,7 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrNull();
             words.Next();
             record.text = words.WordOrNull();
-            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back (0062C090)
+            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back
             lines.Next();
         }
         currentLine_ = lines_.First();

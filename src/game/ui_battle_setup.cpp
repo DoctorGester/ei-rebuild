@@ -1,6 +1,5 @@
-// The battle screen's Create (slot 25 of 00740764, 00635250): the HUD panels as children, the
+// The battle screen's Create: the HUD panels as children, the
 // screen's saved state, the "pers" text table. See docs/notes/ui.md ("Battle screen").
-//
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
 #include "core_streams.h"
@@ -57,7 +56,7 @@ CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_
     }
 }
 
-// --- Create (00635250) ---------------------------------------------------------------------------
+// --- Create ---------------------------------------------------------------------------
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
@@ -106,7 +105,7 @@ void CBattleScreen::CreateScreen() {
 
     // The screen's own input handler (0x0C bytes).
     UiInputSide* input = new UiInertInput(interface_);
-    AddInput(input);   // 00600CC0
+    AddInput(input);
 
     CreateTexture(0x100, 0x100, 0x20);
     CreateTexture(0x100, 0x100, 0x20);
@@ -198,11 +197,9 @@ void CBattleScreen::CreateScreen() {
     clientParty_.camera = -1;
 }
 
-// --- Drawing (slot 20, 00636020) ---------------------------------------------------------------
+// --- Drawing ---------------------------------------------------------------
 
 namespace {
-
-// 00578910 on 007AFEA5 (the menu object), every frame before the battle screen draws.
 
 constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
 constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
@@ -211,7 +208,7 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 
 BOOL CBattleScreen::Draw(int pass) {
     GameRender();
-    if (boxSelecting_) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
+    if (boxSelecting_) {   // the selection box, a dark rectangle with an outline
         reinterpret_cast<CSceneRenderer*>(pass)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
@@ -225,10 +222,10 @@ BOOL CBattleScreen::Draw(int pass) {
     renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);
     render::ClearDepth(1.0f, nullptr, 0);
-    // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
+    // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    CUiContainer::Draw(pass);   // 00600EF0
+    CUiContainer::Draw(pass);
     return 1;
 }
 

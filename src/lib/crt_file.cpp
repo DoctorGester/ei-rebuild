@@ -1,4 +1,4 @@
-// The game CRT's file functions in the standalone image (S4b, docs/notes/standalone.md): VC6's _sopen
+// The game CRT's file functions in the standalone image (docs/notes/standalone.md): VC6's _sopen
 // and _openfile over the game's import slots, the host CRT's descriptors and streams underneath (crt.h).
 #include "crt.h"
 
@@ -61,7 +61,7 @@ bool DropTrailingCtrlZ(int fd) {
     return _lseek(fd, 0, SEEK_SET) != -1;
 }
 
-// _sopen (006EB373): the flags to CreateFileA's access, sharing, disposition and attributes as VC6
+// _sopen: the flags to CreateFileA's access, sharing, disposition and attributes as VC6
 // maps them; the handle becomes a host descriptor in the same translation mode.
 int Sopen(const char* path, int flags, int share, int permissions) {
     SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES), nullptr, (flags & _O_NOINHERIT) ? FALSE : TRUE};
@@ -126,7 +126,7 @@ int Sopen(const char* path, int flags, int share, int permissions) {
     return fd;
 }
 
-// FILETIME to a local time_t (__timet_from_ft 006EB9E7): -1 for a zero time or one out of range.
+// FILETIME to a local time_t (__timet_from_ft): -1 for a zero time or one out of range.
 std::int32_t LocalTime(const FILETIME& time) {
     if (time.dwLowDateTime == 0 && time.dwHighDateTime == 0) return -1;
     FILETIME local;
@@ -211,7 +211,7 @@ long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data) {
 }
 EI_REWRITTEN(0x006EB832, libcrt::Findfirst);
 
-// _openfile (006F2811): the first letter is required (r, w or a); the letters after it are read up to
+// _openfile: the first letter is required (r, w or a); the letters after it are read up to
 // one that is unknown or repeats its group, which ends the mode without failing it.
 gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode) {
     int flags;

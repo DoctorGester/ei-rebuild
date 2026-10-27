@@ -1,6 +1,5 @@
 // Quaternion helpers at 0049E790-0049EE50: rotation from an angle and an axis (two argument
 // orders), products with a conjugate, and spherical interpolation. Names are provisional.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "maths.h"
@@ -46,21 +45,21 @@ void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
 
 } // namespace
 
-// 0049E790. Arguments (angle, axis); returns this.
+// Arguments (angle, axis); returns this.
 Quaternion* Quaternion::SetAngleAxis(float angle, const Vector3& axis) {
     FromAngle(this, axis, angle);
     return this;
 }
 EI_REWRITTEN(0x0049E790, Quaternion::SetAngleAxis);
 
-// 0049E800. Arguments (axis, angle); returns this.
+// Arguments (axis, angle); returns this.
 Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
     FromAngle(this, axis, angle);
     return this;
 }
 EI_REWRITTEN(0x0049E800, Quaternion::SetAxisAngle);
 
-// 0049E870. *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through
+// *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through
 // float temporaries: the same values, negation is exact), and every component of *this is read
 // before the first store.
 void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
@@ -78,8 +77,8 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
 }
 EI_REWRITTEN(0x0049E870, Quaternion::PreMultiplyConjugate);
 
-// 0049E950. out = conj(b) * a (b copied first, its vector part negated through float
-// temporaries); a is read completely before out is written. Dead (SV5c): only MakeFrameRelative
+// Out = conj(b) * a (b copied first, its vector part negated through float
+// temporaries); a is read completely before out is written. Dead: only MakeFrameRelative
 // calls it, in the fake unit scene loader; its vector check was removed.
 Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
     Quaternion c = Conjugate(b);
@@ -97,7 +96,7 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
 }
 EI_REWRITTEN(0x0049E950, MultiplyByConjugate);
 
-// 0049ED20. *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is
+// *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is
 // negative); nearly equal rotations interpolate linearly. The weight of a is rounded to float, the
 // weight of b is not.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {

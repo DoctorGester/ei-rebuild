@@ -96,7 +96,7 @@ void CPlayerServer::SendGameTime() {
 int CPlayerServer::SendState02(CMemoryStream* zone) {
     Owner()->dirty_ &= ~0x1;
     WriteByte(&out_, 0x02);
-    out_.WriteStream(zone);   // 0047DA80
+    out_.WriteStream(zone);
     return 1;
 }
 
@@ -127,7 +127,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 
 void CPlayerServer::SendState73(const WaterTweens* source) {
     WriteByte(&out_, 0x73);
-    source->Save(&out_);   // 006D4570
+    source->Save(&out_);
     Owner()->dirty_ &= ~0x20;
 }
 
@@ -313,7 +313,7 @@ void CPlayerServer::ClearServerState() {
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
-    mfc::impl::ArrayAs<mfc::impl::Placements>(placements_).SetSize(0, -1);   // 0059C3D0
+    mfc::impl::ArrayAs<mfc::impl::Placements>(placements_).SetSize(0, -1);
     compressor_.Reset();
     decompressor_.Reset();
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);
@@ -380,8 +380,8 @@ CPlayerServer::~CPlayerServer() {
 EI_REWRITTEN_SPECIAL(0x0066C770, CPlayerServer::~CPlayerServer);
 EI_REWRITTEN_SPECIAL(0x0066C750, CPlayerServer::~CPlayerServer);
 
-const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }   // 0066C730
-int CPlayerServer::GetClassId() { return 0x3B; }                          // 0066C740
+const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }
+int CPlayerServer::GetClassId() { return 0x3B; }
 
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);

@@ -1,5 +1,5 @@
-// The battle screen panels' tooltips: the weapon bar's unit (0063C180), a quick item's tip
-// (0063CEE0) and the action column's unit (0063F800). See ui.h and docs/notes/ui.md ("Battle screen").
+// The battle screen panels' tooltips: the weapon bar's unit, a quick item's tip
+// and the action column's unit. See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 #include "game_strings.h"
 
@@ -25,21 +25,21 @@ namespace {
 
 
 
-// 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
-// 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
+// Makes the text `key` current; non-zero when found.
+// Rebirth-patched: the weapon bar's next slot (model `model`, picture
 // `image`), counted in +0x14C.
 
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
-// The spell's prototype record (0068BA20) of a spell's data block (an item's +0x44).
+// The spell's prototype record of a spell's data block (an item's +0x44).
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
     return spell->GetPrototype();
 }
 
 } // namespace
 
-// --- 0063C180: the weapon bar's unit -----------------------------------------------------------
+// --- The weapon bar's unit -----------------------------------------------------------
 
 void CHudWeaponBar::SetUnit(CUnit* unit) {
     mfc::CString tip;
@@ -56,8 +56,8 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
-            std::string image = weapon->FigureName().GetString();   // slot 19
-            std::string model = weapon->PictureName().GetString();  // slot 20
+            std::string image = weapon->FigureName().GetString();   // the figure's name
+            std::string model = weapon->PictureName().GetString();  // the picture's name
             AddWeapon(model.c_str(), image.c_str());
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
@@ -100,7 +100,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
 }
 EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
-// --- 0063CEE0: a quick item's tooltip ----------------------------------------------------------
+// --- A quick item's tooltip ----------------------------------------------------------
 
 void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
     CItem* object = unit_->GetQuickItem(index);
@@ -178,7 +178,7 @@ void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
 }
 EI_REWRITTEN(0x0063CEE0, CHudQuickItems::ItemTip);
 
-// --- 0063F800: the action column's unit --------------------------------------------------------
+// --- The action column's unit --------------------------------------------------------
 
 void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     unit_ = unit;

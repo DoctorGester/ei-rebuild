@@ -1,4 +1,4 @@
-// The game server's chat and system lines (0041A310, 0041A490): kept on +0x2594 for the clients,
+// The game server's chat and system lines: kept on +0x2594 for the clients,
 // at most 50. See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
@@ -19,12 +19,12 @@ constexpr std::uint32_t kMaxLines = 50;
 
 } // namespace
 
-// 0041A310: appends a line (the next line number, the text, the connection of `player`'s binding,
+// Appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
 void ServerSession::Announce(const char* text, CRefObject* player) {
     auto* line = NewCounted<LineMessage>();
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030
+    const RefPtr* value = RefPtrFromRaw(&ref, line);
     lines_.Insert(lines_.End(), *value);
 
     auto* added = lines_.Back();
@@ -52,7 +52,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     if (static_cast<std::uint32_t>(count) > kMaxLines) lines_.Erase(lines_.First());
 }
 
-// 0041A490: Announce with text `kind` of the text table formatted with `text`.
+// Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::uint32_t line = 0;   // CString
     mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);

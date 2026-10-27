@@ -1,5 +1,5 @@
 // The connection's owning lists and the clients' find (library_net_lists.h), registered at the exe's
-// addresses so the standalone image has them (S12e).
+// addresses so the standalone image has them.
 #include "library_net_lists.h"
 
 #include "ei/hook.h"

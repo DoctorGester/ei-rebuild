@@ -1,10 +1,9 @@
 #pragma once
 
-// MFC 4.2 classes statically linked into game.exe, used by rewritten code through the original
-// implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
+// MFC 4.2 classes statically linked into game.exe, used by our code through
+// the library implementations (config/library.csv). Layouts match MFC so objects can be shared with the game's code.
 
 #include "crt.h"
-#include "game/game_data.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -22,45 +21,45 @@ using BOOL = int;
 class CString {
 public:
     CString();                                    // inline in MFC: m_pchData = afxEmptyString
-    CString(const char* s);                       // 007009DE
-    CString(const char* s, int length);           // 006FD4DE (the first `length` characters)
-    CString(const CString& s);                    // 007006E5
-    // C14a's bridge while the game's text is half std::string (str.h): the same characters.
+    CString(const char* s);
+    CString(const char* s, int length);           // (the first `length` characters)
+    CString(const CString& s);
+    // A bridge while the game's text is half std::string (str.h): the same characters.
     CString(const std::string& s) : CString(s.c_str()) {}
-    ~CString();                                   // 00700970
-    const CString& operator=(const char* s);      // 00700AF9
-    const CString& operator=(const CString& s);   // 00700AA9
+    ~CString();
+    const CString& operator=(const char* s);
+    const CString& operator=(const CString& s);
 
-    // 006FDF5F. printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
+    // Printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
     void __cdecl Format(const char* format, ...);
-    void FormatV(const char* format, va_list arguments);   // 006FDC12
+    void FormatV(const char* format, va_list arguments);
 
-    void Empty();                                 // 007008FB
-    char* GetBufferSetLength(int length);         // 00700E17
-    char* GetBuffer(int minLength);               // 00700DA0
-    void ReleaseBuffer(int newLength);            // 00700DEF (-1: up to the terminator)
+    void Empty();
+    char* GetBufferSetLength(int length);
+    char* GetBuffer(int minLength);
+    void ReleaseBuffer(int newLength);            // (-1: up to the terminator)
     int GetLength() const { return reinterpret_cast<const int*>(data_)[-2]; }   // CStringData::nDataLength
-    void MakeLower();                             // 00700EFE (calls _mbslwr)
-    void AssignChar(char c);                      // 006FD559 operator=(TCHAR)
-    void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
-    void TrimRight();                             // 006FE11F (white space)
-    void TrimRight(char target);                  // 006FE0DD
-    void TrimLeft();                              // 006FE216 (white space)
-    void TrimLeft(char target);                   // 006FE1D3
-    const CString& operator+=(char c);            // 00700D73
-    const CString& operator+=(const CString& s);  // 00700D88
-    const CString& operator+=(const char* s);     // 00700D4C
-    CString Left(int count) const;                // 006FDAE9 (RET 8: result slot, count)
-    CString Right(int count) const;               // 006FDA6D Right(nCount) (RET 8: result slot, count; Mid(nFirst) is 006FD9B4)
-    CString Mid(int first) const;                 // 006FD9B4 Mid(nFirst) (RET 8: result slot, first)
-    CString Mid(int first, int count) const;      // 006FD9D7 Mid(nFirst, nCount) (RET 0xC)
-    int Remove(char ch);                          // 006FD963 Remove(chRemove) (RET 4; the count removed)
-    int FindOneOf(const char* set) const;         // 00700ECC
-    int ReverseFind(char ch) const;               // 006FDBB7 (RET 4; -1 when absent)
-    int Find(const char* sub) const;              // 006FDBD9 Find(LPCTSTR) (RET 4; -1 when absent)
-    int Find(const char* sub, int start) const;   // 006FDBE7 Find(LPCTSTR, nStart) (RET 8)
-    int Find(char c) const;                       // 00700E91 (-1 when absent)
-    int Find(char c, int start) const;            // 00700E9F
+    void MakeLower();                             // (calls _mbslwr)
+    void AssignChar(char c);                      // operator=(TCHAR)
+    void TrimRight(const char* targets);          // TrimRight(LPCTSTR)
+    void TrimRight();                             // (white space)
+    void TrimRight(char target);
+    void TrimLeft();                              // (white space)
+    void TrimLeft(char target);
+    const CString& operator+=(char c);
+    const CString& operator+=(const CString& s);
+    const CString& operator+=(const char* s);
+    CString Left(int count) const;
+    CString Right(int count) const;               // Right(nCount)
+    CString Mid(int first) const;                 // Mid(nFirst)
+    CString Mid(int first, int count) const;      // Mid(nFirst, nCount)
+    int Remove(char ch);                          // Remove(chRemove) (the count removed)
+    int FindOneOf(const char* set) const;
+    int ReverseFind(char ch) const;               // (-1 when absent)
+    int Find(const char* sub) const;              // Find(LPCTSTR) (-1 when absent)
+    int Find(const char* sub, int start) const;   // Find(LPCTSTR, nStart)
+    int Find(char c) const;                       // (-1 when absent)
+    int Find(char c, int start) const;
 
     operator const char*() const { return data_; }
     // The characters (LPCTSTR), for printf-style arguments and other places the conversion is not
@@ -84,13 +83,13 @@ class CFile {
 public:
     enum OpenFlags { modeRead = 0 };
 
-    CFile();                                                        // 00701036
-    ~CFile();                                                       // 0070112B
-    BOOL Open(const char* path, unsigned flags, void* error);       // 007011E8
-    unsigned GetLength();                                           // 007014E2
-    unsigned Read(void* buffer, unsigned count);                    // 00701305
-    void Write(const void* buffer, unsigned count);                 // 0070133F
-    void Close();                                                   // 00701403
+    CFile();
+    ~CFile();
+    BOOL Open(const char* path, unsigned flags, void* error);
+    unsigned GetLength();
+    unsigned Read(void* buffer, unsigned count);
+    void Write(const void* buffer, unsigned count);
+    void Close();
     // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
     void* Handle() const { return handle_; }
     // The file as code that calls through its vtable sees it (CFileVirtuals, below).
@@ -104,33 +103,33 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// The virtual slots of MFC 4.2's CFile (vtable 00745DF4) for callers that dispatch through a
+// The virtual slots of MFC 4.2's CFile for callers that dispatch through a
 // file's vtable (the original does; the verify build hands some loaders a proxy file). CFile above
 // calls the bodies directly. Declared only: a devirtualised call would not link. Slots declared
 // `void Name()` keep their place in the order only.
 class __declspec(novtable) CFileVirtuals {
 public:
-    virtual void GetRuntimeClass();                                    // 0: 0070BE58
-    virtual void* DeletingDestructor(unsigned flags);                  // 1: 00701050
+    virtual void GetRuntimeClass();
+    virtual void* DeletingDestructor(unsigned flags);
     virtual void Serialize();                                          // 2: CObject's (empty)
-    virtual unsigned long GetPosition() const;                         // 3: 007013B9
+    virtual unsigned long GetPosition() const;
     virtual void GetFileName();                                        // 4
     virtual void GetFileTitle();                                       // 5
     virtual void GetFilePath();                                        // 6
     virtual void SetFilePath();                                        // 7
-    virtual BOOL Open(const char* path, unsigned flags, void* error);  // 8: 007011E8
+    virtual BOOL Open(const char* path, unsigned flags, void* error);
     virtual void Duplicate();                                          // 9
-    virtual long Seek(long offset, unsigned from);                     // 10: 0070138A
+    virtual long Seek(long offset, unsigned from);
     virtual void SetLength(unsigned long length);                      // 11
-    virtual unsigned long GetLength() const;                           // 12: 007014E2
-    virtual unsigned Read(void* buffer, unsigned count);               // 13: 00701305
-    virtual void Write(const void* buffer, unsigned count);            // 14: 0070133F
+    virtual unsigned long GetLength() const;
+    virtual unsigned Read(void* buffer, unsigned count);
+    virtual void Write(const void* buffer, unsigned count);
     virtual void LockRange();                                          // 15
     virtual void UnlockRange();                                        // 16
     virtual void Abort();                                              // 17
     virtual void Flush();                                              // 18
-    virtual void Close();                                              // 19: 00701403
-    // 20: 0070150F (0: no buffer of its own; CArchive reads and writes through the file then).
+    virtual void Close();
+    // 20: (0: no buffer of its own; CArchive reads and writes through the file then).
     virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);
 };
 inline CFileVirtuals* CFile::Virtuals() { return reinterpret_cast<CFileVirtuals*>(this); }
@@ -148,34 +147,34 @@ public:
 // CFileFind (0x1C bytes).
 class CFileFind {
 public:
-    CFileFind();                                                    // 006E6370
-    ~CFileFind();                                                   // 006E63AD
-    BOOL FindFile(const char* pattern, unsigned long flags);       // 006E6433
-    unsigned long GetLength() const;                                // 006E68AA (the found file's size, low dword)
-    CString GetFilePath() const;                                    // 006E6722 (RET 4: the result slot)
-    CString GetFileName() const;                                    // 006E684B (RET 4: the result slot)
+    CFileFind();
+    ~CFileFind();
+    BOOL FindFile(const char* pattern, unsigned long flags);
+    unsigned long GetLength() const;                                // (the found file's size, low dword)
+    CString GetFilePath() const;
+    CString GetFileName() const;
     // FindNextFile / GetFileTitle (Windows' headers define both names as macros).
-    CString GetTitle() const;                                       // 006E67BA (RET 4: the result slot)
-    BOOL FindNext();                                                // 006E6653
-    BOOL IsDots() const;                                            // 006E661A
-    void Close();                                                   // 006E63E9
+    CString GetTitle() const;
+    BOOL FindNext();
+    BOOL IsDots() const;
+    void Close();
 
 private:
     std::uint8_t data_[0x1C - 0];
 };
 static_assert(sizeof(CFileFind) == 0x1C);
 
-// The virtual slots of MFC 4.2's CFileFind (vtable 00745EE8) for callers that dispatch through it
+// The virtual slots of MFC 4.2's CFileFind for callers that dispatch through it
 // as the original does; declared only. Slots declared `void Name()` keep their place only (8-13
 // are the six GetLast*Time / GetCreationTime overloads).
 class __declspec(novtable) CFileFindVirtuals {
 public:
-    virtual void GetRuntimeClass();                         // 0: 0070BE5E
-    virtual void DeletingDestructor();                      // 1: 006E6391
+    virtual void GetRuntimeClass();
+    virtual void DeletingDestructor();
     virtual void Serialize();                               // 2
-    virtual CString GetFileName() const;                    // 3: 006E684B
-    virtual CString GetFilePath() const;                    // 4: 006E6722
-    virtual CString GetFileTitle() const;                   // 5: 006E67BA
+    virtual CString GetFileName() const;
+    virtual CString GetFilePath() const;
+    virtual CString GetFileTitle() const;
     virtual void GetFileURL();                              // 6
     virtual void GetRoot();                                 // 7
     virtual void GetTime8();                                // 8
@@ -184,21 +183,21 @@ public:
     virtual void GetTime11();                               // 11
     virtual void GetTime12();                               // 12
     virtual void GetTime13();                               // 13
-    virtual BOOL MatchesMask(unsigned long mask) const;     // 14: 006E6513 (file attribute bits)
-    virtual BOOL IsDots() const;                            // 15: 006E661A
-    virtual BOOL FindFile(const char* pattern, unsigned long flags);   // 16: 006E6433
-    virtual BOOL FindNextFile();                            // 17: 006E6653
-    virtual BOOL CloseContext();                            // 18: 006E6429
+    virtual BOOL MatchesMask(unsigned long mask) const;     // 14: (file attribute bits)
+    virtual BOOL IsDots() const;
+    virtual BOOL FindFile(const char* pattern, unsigned long flags);
+    virtual BOOL FindNextFile();
+    virtual BOOL CloseContext();
 };
 
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
 public:
-    // 006FE3BB (RET 0x1C). CTime(year, month, day, hour, minute, second, dst) through mktime.
+    // CTime(year, month, day, hour, minute, second, dst) through mktime.
     // Returns this.
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
 
-    // 006FE795. strftime of the local time into at most 127 characters (empty when it does not fit).
+    // Strftime of the local time into at most 127 characters (empty when it does not fit).
     CString Format(const char* format) const;
 
     long time_;
@@ -211,8 +210,8 @@ struct CPlex {
     // followed by the block's elements
 };
 namespace impl {
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);   // 006FE8EF (mfc_list.cpp)
-int __fastcall FreePlexChain(CPlex* head);                                         // 006FE90F
+CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);   // (mfc_list.cpp)
+int __fastcall FreePlexChain(CPlex* head);
 } // namespace impl
 inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
     return impl::CreatePlex(head, count, elementSize);
@@ -220,13 +219,11 @@ inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
 inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
-//
 // The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in
 // the element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared
 // containers"). The vtable is a plain field: an object the original constructs keeps the one its
 // constructor wrote, and code that builds one itself passes the instantiation's vtable. The
 // templates have no constructors, so they can sit in layouts and be brace-initialised.
-//
 // The member functions are MFC 4.2's, written once: an instantiation the game calls out of line can
 // either be registered on these members or keep forwarding to its original address.
 
@@ -243,7 +240,7 @@ struct PlainElements {
 };
 
 // CString elements: MFC 4.2's afxtempl.h specialises ConstructElements / DestructElements for
-// CString (006FE268 / 006FE296): each new element the empty string, each removed one released.
+// CString: each new element the empty string, each removed one released.
 // CArray<CString> takes them by default.
 template <>
 struct PlainElements<CString> {
@@ -268,11 +265,11 @@ struct RawElements {
 class CArchive {
 public:
     bool IsLoading() const { return (mode_ & 1) != 0; }
-    unsigned Read(void* buffer, unsigned bytes);          // 00708832
-    void Write(const void* buffer, unsigned bytes);       // 00708941
-    unsigned long ReadCount();                            // 00708B3D
-    void WriteCount(unsigned long count);                 // 00708B0F
-    void Flush();                                         // 007089D1
+    unsigned Read(void* buffer, unsigned bytes);
+    void Write(const void* buffer, unsigned bytes);
+    unsigned long ReadCount();
+    void WriteCount(unsigned long count);
+    void Flush();
     CFile* File() const { return file_; }
 
 private:
@@ -294,17 +291,16 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
-    // The constructor body: the instantiation's vtable, empty (e.g. CByteArray's 006FF5EA).
-    CArray* Construct(std::uintptr_t vtableAddress) {
-        vtable = ei::GamePointer<void>(vtableAddress);
+    // The constructor body: the instantiation's vtable (named by its class's accessor, `Class::Vtable()`), empty (like
+    // CByteArray's).
+    CArray* Construct(const void* vtablePointer) {
+        vtable = const_cast<void*>(vtablePointer);
         data = nullptr;
         growBy = 0;
         maxSize = 0;
         size = 0;
         return this;
     }
-    // The same, from a vtable named by its class's accessor (`Class::Vtable()`).
-    CArray* Construct(const void* vtablePointer) { return Construct(reinterpret_cast<std::uintptr_t>(vtablePointer)); }
 
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
     // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the
@@ -368,10 +364,10 @@ struct CArray {
         return index;
     }
 
-    // ElementAt (RET 4): the element's address.
+    // ElementAt: the element's address.
     T& ElementAt(int index) { return data[index]; }
 
-    // GetAt(nIndex) returning the element by value (RET 8: the hidden result pointer first; returns it).
+    // GetAt(nIndex) returning the element by value (the result pointer first; returns it).
     T* GetAt(T* result, int index) const {
         *result = data[index];
         return result;
@@ -442,7 +438,6 @@ struct CList {
     int GetCount() const { return count; }
     bool IsEmpty() const { return count == 0; }
     // GetNext: the element at `position`, the position advanced (the game's out-of-line copies
-    // 00497D40, 005BD340, ...).
     T& GetNext(Node*& position) {
         Node* node = position;
         position = node->next;
@@ -608,7 +603,7 @@ struct CMap {
         return nullptr;
     }
 
-    // InitHashTable(nHashSize, bAllocNow) (RET 8): the old table deleted; a zeroed one of
+    // InitHashTable(nHashSize, bAllocNow): the old table deleted; a zeroed one of
     // `newHashSize` buckets when `allocNow`; the size kept either way.
     void InitHashTable(std::uint32_t newHashSize, int allocNow) {
         if (table) {
@@ -622,7 +617,7 @@ struct CMap {
         hashSize = newHashSize;
     }
 
-    // GetAssocAt(key, nHash&) (RET 8): the key's bucket (the key, its low dword for a 64-bit one,
+    // GetAssocAt(key, nHash&): the key's bucket (the key, its low dword for a 64-bit one,
     // shifted right by 4) into `hashOut`; its association, or null (also when there is no table).
     Assoc* GetAssocAt(const K& key, std::uint32_t& hashOut) const {
         hashOut = (static_cast<std::uint32_t>(key) >> 4) % hashSize;
@@ -632,7 +627,7 @@ struct CMap {
         return nullptr;
     }
 
-    // NewAssoc (plain RET): an association from the free list (a new block of `blockSize` when it is
+    // NewAssoc: an association from the free list (a new block of `blockSize` when it is
     // empty, its first association used first), the count raised, key and value zeroed. `next` and
     // `hash` are the caller's.
     Assoc* NewAssoc() {
@@ -652,7 +647,7 @@ struct CMap {
         return assoc;
     }
 
-    // operator[](key) (RET 4): the value of `key`, a new association (value zero) put at the head of
+    // operator[](key): the value of `key`, a new association (value zero) put at the head of
     // its bucket when missing (the table allocated first if there is none).
     V& ElementAt(const K& key) {
         std::uint32_t hash;
@@ -693,15 +688,15 @@ struct CStringArray {
     int maxSize;        // +0x0C
     int growBy;         // +0x10
 
-    void Construct();                                   // 006FE925
-    void Destruct();                                    // 006FE958
-    void SetSize(int newSize, int newGrowBy = -1);      // 006FE9B8
-    void SetAtGrow(int index, const CString& value);    // 006FEBFA
-    void SetAtGrow(int index, const char* text);        // 006FEBCE
-    void RemoveAt(int index, int count = 1);            // 006FED3C
-    void Copy(const CStringArray& source);              // 006FEB61
-    int Append(const CStringArray& source);             // 006FEB01: the old size
-    void InsertAt(int index, const CString& value, int count = 1);   // 006FED03
+    void Construct();
+    void Destruct();
+    void SetSize(int newSize, int newGrowBy = -1);
+    void SetAtGrow(int index, const CString& value);
+    void SetAtGrow(int index, const char* text);
+    void RemoveAt(int index, int count = 1);
+    void Copy(const CStringArray& source);
+    int Append(const CStringArray& source);             // the old size
+    void InsertAt(int index, const CString& value, int count = 1);
 
     int GetSize() const { return size; }
     CString& operator[](int index) { return data[index]; }
@@ -716,12 +711,12 @@ template <typename T>
 using CTypedPtrList = CList<T*>;
 
 
-CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
-CString __stdcall operator+(const char* a, const CString& b);   // 00700C79
-CString __stdcall operator+(const CString& a, const CString& b); // 00700B9F
-CString __stdcall operator+(const CString& a, char b);          // 006FD56E
-CString __stdcall operator+(char a, const CString& b);          // 006FD5D0
-// C14a's bridge: text joined with a std::string, as the std::string side's type.
+CString __stdcall operator+(const CString& a, const char* b);
+CString __stdcall operator+(const char* a, const CString& b);
+CString __stdcall operator+(const CString& a, const CString& b);
+CString __stdcall operator+(const CString& a, char b);
+CString __stdcall operator+(char a, const CString& b);
+// The same bridge: text joined with a std::string, as the std::string side's type.
 inline std::string operator+(const std::string& a, const CString& b) { return a + b.GetString(); }
 inline CString operator+(const CString& a, const std::string& b) { return a + b.c_str(); }
 

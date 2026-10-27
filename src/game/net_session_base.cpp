@@ -22,7 +22,7 @@ void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
 
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority) {
     if (v->end() != v->EndOfStorage()) {
-        ++v->Finish();   // the element's default constructor (00429030) does nothing
+        ++v->Finish();   // the element's default constructor does nothing
     } else {
         Replicated value{};   // the original passes an uninitialised local; it is overwritten below
         v->InsertOverflow<recordvec::ReplicatedElement>(v->end(), value, 1);

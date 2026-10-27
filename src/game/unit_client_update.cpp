@@ -30,7 +30,7 @@ constexpr std::uint32_t kKeyMovement = 0x38000;
 constexpr std::uint32_t kKeyMovementStill = 0x30000;
 constexpr std::uint32_t kKeyKind = 0x3C0000;
 constexpr std::uint32_t kKeyTransition = 0x240000;
-constexpr float kFadeStep = 0.06666667f;              // 0073DF6C, 1/15
+constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr int kSpeechAfterSpeech = 2;                 // ClientSpeech::kind values that wait
 constexpr int kSpeechAfterSpeech2 = 0x1C;
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
@@ -120,7 +120,7 @@ int CUnitClientSpecific::RunTick() {
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
-            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));   // 005392F0
+            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

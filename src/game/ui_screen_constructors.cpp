@@ -1,5 +1,5 @@
-// Constructors of interface windows: the message box (00634650), the objectives window
-// (0063B5D0) and the battle screen's portraits panel (0063FE70). Their Create / Build (slot 25)
+// Constructors of interface windows: the message box, the objectives window
+// and the battle screen's portraits panel. Their Create / Build (slot 25)
 // does the rest. See ui.h and docs/notes/ui.md.
 #include "ui.h"
 

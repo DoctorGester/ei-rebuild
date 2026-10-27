@@ -1,6 +1,6 @@
-// The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
-// its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
-// item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
+// The battle screen's every-frame update, its left button release,
+// its quest variable notice, the selection's refresh and the quick
+// item panel's unit. See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
 #include "item.h"
 #include "player_client.h"
@@ -39,7 +39,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
 
-// --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
+// --- the quick item panel's unit -----------------------------------------------------------------
 
 namespace {
 
@@ -56,7 +56,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    entries_.SetSize(0, -1);   // 0064B060 (zeroed new entries)
+    entries_.SetSize(0, -1);   // (zeroed new entries)
     if (!unit_) return;
 
     // The entry of the sprite just added.
@@ -90,8 +90,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            std::string image = item->FigureName().GetString();   // slot 19
-            std::string model = item->PictureName().GetString();  // slot 20
+            std::string image = item->FigureName().GetString();
+            std::string model = item->PictureName().GetString();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, true);
@@ -115,8 +115,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            std::string image = item->FigureName().GetString();   // slot 19
-            std::string model = item->PictureName().GetString();  // slot 20
+            std::string image = item->FigureName().GetString();
+            std::string model = item->PictureName().GetString();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, false);
@@ -129,13 +129,11 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 }
 EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
-// --- 00638280: the battle screen's update ------------------------------------------------------
+// --- the battle screen's update ------------------------------------------------------------------
 
 namespace {
 
-// The panels' units (thiscall): weapon bar 0063C180, quick items 0063D2B0 (through its address),
-// spells 0063E820 (RET 4), actions 0063F800 (RET 8).
-// 00530930 (__fastcall on a unit): its prototype record.
+// A unit's prototype record.
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
@@ -145,29 +143,16 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
-// The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
-// `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
-// vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
-// (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
-// 0064B750 (__fastcall) sort's introsort loop (RET 8) and final insertion sort, 0064AF30 assigns
-// (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
+// vector<int> of ids (the library instantiations).
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 
-// The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
-// 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-// 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
-// camera's player; the original pushes a dword whose low byte only is set).
-// 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
-// next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
-// message box's constructor.
+// The children's update (CUiContainer::UpdateBase).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
-// 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
+// STLport lists of ids and unit pointers.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CEngineObject*>;
@@ -177,10 +162,10 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
-        stlp::ConstructAt(ids->Finish(), value);   // 0064B620
+        stlp::ConstructAt(ids->Finish(), value);
         ++ids->Finish();
     } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
 // The same with the construction inlined (as the original's third case).
@@ -189,7 +174,7 @@ void PushIdInline(IdVector* ids, const int* value) {
         if (ids->Finish()) *ids->Finish() = *value;
         ++ids->Finish();
     } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
 
@@ -239,14 +224,14 @@ void RebuildClientParty(CBattleScreen* screen) {
             if (!unit) continue;
             if (unitId == ids.camera) {
                 TheClientWorld()->Select(unit);
-                // Insert at the front (the original's inlined InsertAt).
+                // Insert at the front (InsertAt).
                 int n = party->size;
                 if (n <= 0) {
                     party->SetSize(1, -1);
                 } else {
                     party->SetSize(n + 1, -1);
                     std::memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
-                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
+                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);
                 }
                 party->data[0] = unit;
                 cameraFirst = true;
@@ -259,7 +244,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();
         }
-        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
+        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);
         screen->clientParty_.camera = ids.camera;
         screen->clientParty_.without.AssignVector<stlp::PlainElement<int>>(ids.without);
     }
@@ -267,7 +252,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     ids.withUnit.FreeStorage();
 }
 
-// Frees a list's nodes (00404D70) and empties it (the header is freed by the caller).
+// Frees a list's nodes and empties it (the header is freed by the caller).
 template <typename L>
 void FreeListNodes(L* list) {
     auto* header = list->head;
@@ -283,7 +268,7 @@ void FreeListNodes(L* list) {
 } // namespace
 
 void CBattleScreen::Update() {
-    // The one selected party unit is dead (its slot 55, IsDead): the panels lose their unit and the
+    // The one selected party unit is dead (IsDead): the panels lose their unit and the
     // unit panel shows it.
     auto* party = &party_;
     CUnit* first = nullptr;
@@ -322,7 +307,7 @@ void CBattleScreen::Update() {
         mfc::CArray<PartyUnitRecord*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
-            records.SetAtGrow(records.size, &data->members_.data[i]);   // 0059D2E0
+            records.SetAtGrow(records.size, &data->members_.data[i]);
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);
@@ -338,14 +323,14 @@ void CBattleScreen::Update() {
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         UnitList units;
-        units.Construct();   // 00411850
+        units.Construct();
         TheClientWorld()->UnitsInBox(&selectionBox_.left, &units);
         List inside;
-        inside.Construct();   // 00404A70
+        inside.Construct();
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
             }
         }
         auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
@@ -390,7 +375,7 @@ void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
 EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
-// --- 006381E0: the party ids compared --------------------------------------------------------------
+// --- the party ids compared ----------------------------------------------------------------------
 
 namespace {
 bool SameIds(const IdVector& a, const IdVector& b) {
@@ -406,7 +391,7 @@ bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
 }
 EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
-// --- 00638B30: the battle screen's left button release -----------------------------------------
+// --- the battle screen's left button release -----------------------------------------------------
 
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
@@ -419,7 +404,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         POINT point = {x, y};
-        CUnit* unit = world->UnitAt(&point);   // 00565E40
+        CUnit* unit = world->UnitAt(&point);
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
         SelectUnit(unit, point.x, point.y);
         return;
@@ -429,15 +414,15 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     auto unitAt = [&](int i) { return party->data[i]; };
     int first = -1;
     UnitList units;
-    units.Construct();   // 00411850
+    units.Construct();
     world->UnitsInBox(&selectionBox_.left, &units);
     List inside;
-    inside.Construct();   // 00404A70
+    inside.Construct();
     if (units.head->next != units.head) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
                 if (first < 0) first = i;
             }
         }
@@ -468,7 +453,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 world->Select(unitAt(static_cast<int>(node->data)));
             }
             int id = unitAt(first)->id_;
-            Speech(id, 0, nullptr);   // slot 32 (+0x80)
+            Speech(id, 0, nullptr);
         }
     }
     RefreshSelection();
@@ -482,13 +467,9 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
-// --- 006369D0: a quest variable's notice -------------------------------------------------------
+// --- a quest variable's notice -------------------------------------------------------------------
 
 namespace {
-
-// 004E0020 (thiscall on the text manager, RET 8): the text of a key. 004DBE40 (__fastcall, RET 4): splits a text
-// at a separator.
-// 0065CF30 (thiscall on the message log, RET 4): adds a line.
 
 // FCOMP; TEST AH,0x40: equal.
 bool Equal(float a, float b) {
@@ -533,7 +514,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             const char* dot = ".";
             std::string variable = (parts[0] + dot + parts[1] + dot + parts[2]).GetString();
             double current = LocalPlayerVariable(variable.c_str());
-            // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
+            // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);
             if (current == static_cast<double>(0.0f /*0073B858*/)) return;
         }
@@ -581,12 +562,9 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 }
 EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
-// --- 00637DC0: the selection's refresh --------------------------------------------------------
+// --- the selection's refresh ---------------------------------------------------------------------
 
 namespace {
-
-// The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
-// 0063CD20, spell 0063E750, action 0063F730.
 
 } // namespace
 

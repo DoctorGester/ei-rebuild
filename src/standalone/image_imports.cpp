@@ -1,16 +1,14 @@
-// game.exe's imports in ei_hook.dll's storage (S18f; docs/notes/standalone.md, "Own data"). The image's import
+// game.exe's imports in ei_hook.dll's storage (docs/notes/standalone.md, "Own data"). The image's import
 // slots are a table of ours: every slot of game.exe's import address table (image_imports.inc, written by
 // tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here
 // into the storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so
 // everything that calls through a slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink,
 // Winsock, the static initialisers' Import; the harness's slot routes by address) reaches our table. The image's command-line import gets its wrapper in place of the export
-// (ImageRoute, hook/standalone.cpp); the resource and module imports take the host's module as it is (S18j).
-//
-// Nothing is at game.exe's own table, as at the rest of the old .rdata (S18h, S18k; image_data.cpp): the image runs none of
+// (ImageRoute, hook/standalone.cpp); the resource and module imports take the host's module as it is.
+// Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image runs none of
 // game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's import
 // and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
 // trap until the run ends (OnTrap; the launch-free check fails on it).
-//
 // Runs from image_data.cpp's mover, before every other static constructor of ei_hook.dll: the harness takes
 // import slots in its own. In game.exe (the original's runs) nothing happens: the loader filled its table.
 #include "ei/hook.h"

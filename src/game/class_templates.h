@@ -49,7 +49,7 @@ public:
     std::uint8_t unused_0E[2];
     float weights[9];               // +0x10..+0x30
     std::uint8_t weightsTail[4];        // +0x34 field 4's tenth dword (archived with weights)
-    std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
+    std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion
     std::uint8_t unused_39[3];
     // +0x3C / +0xAC the party objects (CParty, constructor 00661050; party_storage.h): ItemsParty /
     // SpellsParty.
@@ -73,17 +73,17 @@ static_assert(sizeof(ItemStock) == 0xB8);
 
 // STLport vector of counted pointers (start, finish, end of storage).
 struct TemplateTable : stlp::vector<ClassTemplate*> {
-    // 004A7630 (__thiscall, RET 4). Releases the templates, then builds new ones: four (classes 1, 3, 4,
+    // Releases the templates, then builds new ones: four (classes 1, 3, 4,
     // 5) when `fourClasses` (low byte) is set (004A88C0, called from 0057F280), else five (1 to 5, the
     // fifth with zero weights; 004A88A0).
     void Build(unsigned fourClasses);
-    // 004A74F0 (__thiscall, RET 4). The first template of class `type`, null if none.
+    // The first template of class `type`, null if none.
     ClassTemplate* Find(int type) const;
 };
 using ClassTemplateVector = TemplateTable;
 static_assert(sizeof(ClassTemplateVector) == 12);
 
-// 004A7080 (__thiscall). Adds to the template's lists every weapon, armor, quick item, fourth-kind
+// Adds to the template's lists every weapon, armor, quick item, fourth-kind
 // record, spell and modifier whose class mask has the template's bit (spells and modifiers to
 // both lists).
 void __fastcall ClassTemplateFill(ClassTemplate* t);
@@ -93,11 +93,11 @@ void __fastcall ClassTemplateFill(ClassTemplate* t);
 unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager);
 
 // class_template_stock.cpp (A-S4): the trader stock of a camp's constructor record.
-// 004A6DF0 (__thiscall). With flag +0x0C: the items party (+0x3C) is emptied and refilled from the
+// With flag +0x0C: the items party (+0x3C) is emptied and refilled from the
 // "allowed" stock (its class index type - 1; the "magic" stock's spells and modifiers, fresh
 // material units): 40-50 weapons, armors and quick items, 1-3 instructions of each, 20-50
 // materials, each added (count kept, merged) and released.
 void __fastcall ClassTemplateGenerateItems(ClassTemplate* t);
-// 004A6F60 (__thiscall). With flag +0x0D: the spells party (+0xAC) is emptied and refilled from the
+// With flag +0x0D: the spells party (+0xAC) is emptied and refilled from the
 // "magic" stock: 40-50 scrolls, 1-3 spell instructions, 20-50 modifier instructions.
 void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t);

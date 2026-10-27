@@ -1,5 +1,5 @@
 // The unit AI brain's behaviour (alarm) records: the zone file's records copied into the brain
-// (005D6D20) and one applied as the unit's modes (005D6630), and the record array's element code.
+// and one applied as the unit's modes, and the record array's element code.
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -21,8 +21,8 @@
 #include <cstring>
 
 namespace {
-constexpr float kOne = 1.0f;                // 0073B84C, 0073FEC8
-constexpr float kHalf = 0.5f;               // 0073B86C
+constexpr float kOne = 1.0f;
+constexpr float kHalf = 0.5f;
 constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
 
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
@@ -90,7 +90,7 @@ void AIAlarmRecordElements::Destruct(AIAlarmRecord* records, int count) {
 
 EI_REWRITTEN(0x005D9840, AIAlarmRecordArray::SetSize);
 void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
-    // 005D97E0 and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
+    // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
     float radius = std::bit_cast<float>(record->callRadius);
     callRadius = radius;

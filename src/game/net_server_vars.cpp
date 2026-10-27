@@ -29,13 +29,13 @@ RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const stlp
 
 } // namespace
 
-// 00419570: the variable named `name` (its list node), or the sentinel.
+// The variable named `name` (its list node), or the sentinel.
 RefNode** ServerSession::FindVariable(RefNode** out, const stlp::string* name) {
     *out = FindNode(variables_, name);
     return out;
 }
 
-// 004195D0: the variable named `name`, made (value 0) at the front of the list when missing.
+// The variable named `name`, made (value 0) at the front of the list when missing.
 RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) {
@@ -45,7 +45,7 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
 
     auto* variable = NewCounted<VariableMessage>();
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, variable);   // 00427FD0
+    const RefPtr* value = RefPtrFromRaw(&ref, variable);
     variables_.Insert(variables_.First(), *value);
     RefNode* first = variables_.First();
 
@@ -56,7 +56,7 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     return out;
 }
 
-// 00419730: sets the variable; a zero value removes it instead. A set bumps the version
+// Sets the variable; a zero value removes it instead. A set bumps the version
 // and takes the next serial.
 void ServerSession::SetVariable(const stlp::string* name, float value) {
     EI_NAN_AUDIT(value);
@@ -75,7 +75,7 @@ void ServerSession::SetVariable(const stlp::string* name, float value) {
     if (found != variables_.End()) variables_.Erase(found);
 }
 
-// 004197D0: raises the variable to `value` (the larger of the two; `value` when either is NaN),
+// Raises the variable to `value` (the larger of the two; `value` when either is NaN),
 // made when missing; a result of zero (or NaN) removes it.
 void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     RefNode* found;
@@ -100,13 +100,13 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     }
 }
 
-// 004198D0: removes the variable when it exists.
+// Removes the variable when it exists.
 void ServerSession::RemoveVariable(const stlp::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) variables_.Erase(node);
 }
 
-// 00419940: the variable's value, 0 when missing (returned unrounded in ST0).
+// The variable's value, 0 when missing (returned unrounded in ST0).
 double ServerSession::GetVariable(const stlp::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) return variables_.At(node)->value_;

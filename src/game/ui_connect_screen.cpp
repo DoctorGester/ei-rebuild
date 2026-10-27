@@ -1,8 +1,8 @@
-// The multiplayer connection screen (CMpConnectScreen, 0061C2E0-0061D470), its master server request
-// box (CMasterRequestBox, 0061E2F0 / 0061E4E0) and the address list's vector members (0061E5A0-
-// 0061EE80). See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
-// reaches the screen but ui_mp_host. Its Create (0061B2C0) reproduces addon's ExtendedServerName
-// sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
+// The multiplayer connection screen (CMpConnectScreen), its master server request
+// box (CMasterRequestBox) and the address list's vector members -
+// See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
+// reaches the screen but ui_mp_host. Its Create reproduces addon's ExtendedServerName
+// sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does its
 // patches.
 #include "net_classes.h"
 #include "options.h"
@@ -71,7 +71,7 @@ const char* RefusalKey(int refusal) {
 const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }
 constexpr int kMasterPort = 28004;
 
-// The switches' sprite frames: off (0.0, 0073B858), on (-0.08984375, 00741DA0); the selected game
+// The switches' sprite frames: off (0.0), on (-0.08984375); the selected game
 // type tab's frame is an immediate in the code.
 float FrameOff() { return 0.0f /*0073B858*/; }
 float FrameOn() { return (-0.08984375f /*00741DA0*/); }
@@ -95,7 +95,7 @@ constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxForma
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 constexpr std::uint32_t kPlainSprite = 0x100;
 
-// The original's inlined strcpy into a box's text buffer.
+// strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
 // A message box of `ui` on top (allocation failure: null pushed, as the original).
@@ -105,7 +105,7 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
 }
 
 // The queries Create reads from the address book: an empty vector, its replies and storage
-// released at the end (inline in the original; the node allocator's deallocate, 00404D70).
+// released at the end (the node allocator's deallocate).
 struct LocalQueries {
     LocalQueries() { queries.extra = 0; }
     ~LocalQueries() {
@@ -119,7 +119,7 @@ struct LocalQueries {
     net::ClientQueries queries;
 };
 
-// Create's layout (0061B2C0).
+// Create's layout.
 const char* SaveLoadTexture() { return "saveload"; }
 const char* ScrollbarTexture() { return "scrollbar"; }
 const char* MenuModel() { return "unmoco2"; }
@@ -135,7 +135,7 @@ float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 // The interface's text colour (the list draw changes it per row).
 std::uint32_t TextColour() { return g_connectTextColour; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
-// ExtendedServerName's values in Create (addon.dll: operands at 0061B5CE, 0061BB51, 0061BC09).
+// ExtendedServerName's values in Create (addon.dll: operands).
 constexpr float kExtendedSelectionRight = 381.5f;
 constexpr int kExtendedFieldRight = 680;
 constexpr int kExtendedNameLength = 50;
@@ -167,7 +167,7 @@ __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned si
 
 } // namespace
 
-// --- The list's vector members (0061E5A0-0061EE80) ------------------------------------------------
+// --- The list's vector members ------------------------------------------------
 
 MpAddressEntry* MpAddressEntry::CopyConstruct(const MpAddressEntry* other) {
     new (&name) mfc::CString(other->name);
@@ -260,7 +260,7 @@ MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last
 }
 EI_REWRITTEN(0x0061EA90, MpAddressList::Erase);
 
-// --- 0061C430: Update (slot 24) -------------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
@@ -314,7 +314,7 @@ void CMpConnectScreen::Update() {
 }
 EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
 
-// --- 0061C2E0: a box answered (slot 27) -----------------------------------------------------------
+// --- a box answered ------------------------------------------------------------------------------
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
@@ -335,7 +335,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
 }
 EI_REWRITTEN(0x0061C2E0, CMpConnectScreen::OnBoxResult);
 
-// --- 0061C700 / 0061CA30 / 0061CAD0: input --------------------------------------------------------
+// --- input ---------------------------------------------------------------------------------------
 
 void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
@@ -446,7 +446,7 @@ EI_REWRITTEN(0x0061C700, CMpConnectScreen::OnLButtonDown);
 EI_REWRITTEN(0x0061CA30, CMpConnectScreen::OnLButtonDouble);
 EI_REWRITTEN(0x0061CAD0, CMpConnectScreen::OnKeyDown);
 
-// --- 0061CC00: the selection kept in the list and in view -----------------------------------------
+// --- the selection kept in the list and in view --------------------------------------------------
 
 void CMpConnectScreen::SelectAndScroll() {
     if (selected_ < 0) selected_ = 0;
@@ -461,7 +461,7 @@ void CMpConnectScreen::SelectAndScroll() {
 }
 EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
-// --- 0061CCE0: connect or host --------------------------------------------------------------------
+// --- connect or host -----------------------------------------------------------------------------
 
 void CMpConnectScreen::Connect() {
     interface_->PlaySound(OkSound(), 0);
@@ -492,7 +492,7 @@ void CMpConnectScreen::Connect() {
 }
 EI_REWRITTEN(0x0061CCE0, CMpConnectScreen::Connect);
 
-// --- 0061CF50: add or forget an address -----------------------------------------------------------
+// --- add or forget an address --------------------------------------------------------------------
 
 void CMpConnectScreen::EditAddress() {
     int row = selected_;
@@ -512,12 +512,12 @@ void CMpConnectScreen::EditAddress() {
 }
 EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
-// --- 0061D0D0: ask the master server --------------------------------------------------------------
+// --- ask the master server -----------------------------------------------------------------------
 
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
     net::NetAddress master{};
-    // EI_Plugin's NewMaster (its call at 0061D138): with a second master set, the master is tried first.
+    // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
         net::second_master::ParseMaster(&master, MasterHost(), kMasterPort);
     else
@@ -529,7 +529,7 @@ void CMpConnectScreen::MasterRequest() {
 }
 EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
-// --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
+// --- config\addrbook.ini -------------------------------------------------------------------------
 
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
@@ -546,7 +546,7 @@ void CMpConnectScreen::SaveAddressBook() {
 }
 EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 
-// --- 0061D470: the list from the client's servers -------------------------------------------------
+// --- the list from the client's servers ----------------------------------------------------------
 
 void CMpConnectScreen::RebuildList() {
     entries_.Erase(entries_.begin(), entries_.end());
@@ -568,7 +568,7 @@ void CMpConnectScreen::RebuildList() {
         entry.password = server->password_ != 0;
     }
 
-    // std::sort(begin, end, key) as the original inlines it.
+    // std::sort(begin, end, key).
     MpAddressEntry* first = entries_.begin();
     MpAddressEntry* last = entries_.end();
     int key = sortKey_;
@@ -616,7 +616,7 @@ void CMpConnectScreen::RebuildList() {
 }
 EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
-// --- 0061B2C0: Create (the vanilla body) ----------------------------------------------------------
+// --- Create (the vanilla body) -------------------------------------------------------------------
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -662,7 +662,7 @@ void CMpConnectScreen::CreateScreen() {
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    // ExtendedServerName (0061B5CE): the selection's right edge 370 -> 381.5.
+    // ExtendedServerName: the selection's right edge 370 -> 381.5.
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
@@ -676,7 +676,7 @@ void CMpConnectScreen::CreateScreen() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    CTextManager* texts = GameClientTexts();   // 00578E20: the client's text table
+    CTextManager* texts = GameClientTexts();   // the client's text table
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);
@@ -706,8 +706,8 @@ void CMpConnectScreen::CreateScreen() {
         AddChild(scroll_);
     }
     {
-        // EI_Plugin's NPlayers (0061BAF7, 0061BB82): the slider's maximum is max(players, 7) - 1 and its
-        // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName (0061BB51) makes the
+        // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
+        // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName makes the
         // right edge of the layout rectangle, set after the construction, and of the name's field 680.
         const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
         const int players = ei::rebirth::PluginNPlayers();
@@ -724,7 +724,7 @@ void CMpConnectScreen::CreateScreen() {
     {
         nameEdit_ = new CUiEditField(interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
         AddChild(nameEdit_);
-        // ExtendedServerName (0061BC09, 0061BC0B, 0061BC0E): the classes 15, font 0, at most 50
+        // ExtendedServerName: the classes 15, font 0, at most 50
         // characters (the name taken from the hero below still stops at 10).
         if (extended)
             nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, TextColour(), kCaretColour);
@@ -788,10 +788,8 @@ void CMpConnectScreen::CreateScreen() {
     UiSurfaceReleaseDC(note);
 }
 EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
-// Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
-// 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
 
-// --- 0061E2F0 / 0061E4E0: the master request box --------------------------------------------------
+// --- the master request box ----------------------------------------------------------------------
 
 CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                                      const net::NetAddress* address, std::uint32_t extra)

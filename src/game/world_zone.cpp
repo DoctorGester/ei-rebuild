@@ -38,7 +38,7 @@ namespace {
 // ---- Game data --------------------------------------------------------------------------------
 
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
-constexpr const char* kNoExit = "none";   // 007846F0
+constexpr const char* kNoExit = "none";
 
 // The default orientation of new units, passed by value.
 Quaternion DefaultRotation() { return kNewUnitRotation; }
@@ -68,7 +68,7 @@ void CWorldServer::SetZoneExits(const ZoneExits* source) {
     ZoneExits* exits = &exits_;
     if (exits->data) {
         ZoneExit* exit = exits->data;
-        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(exit);   // 004608B0
+        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(exit);
         gamecrt::operator_delete(exits->data);
         exits->data = nullptr;
     }
@@ -115,7 +115,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     // The root chunk with its MFC CFile (the original's inlined constructor, game.exe's vtable
-    // 0073FAD4: RootChunk's slots).
+    // RootChunk's slots).
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = root->file_.Virtuals();
@@ -130,7 +130,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
-    return result;   // the CFile destroyed with the root (0042D270)
+    return result;   // the CFile destroyed with the root
 }
 
 int CWorldServer::LoadMobFile(const char* file) {
@@ -181,7 +181,7 @@ void CWorldServer::ClearMapObjects() {
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)
-        ObjectHolderRelease(&node->data);   // 0059DDB0
+        ObjectHolderRelease(&node->data);
     counted_.RemoveAll();
 
     countdowns_.RemoveAll();
@@ -209,7 +209,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
     out->Write(&end, 4u);
 }
 
-// ---- Loading movie (00595080) -------------------------------------------------------------------
+// ---- Loading movie -------------------------------------------------------------------
 
 namespace {
 bool SameName(const char* a, const char* b) {

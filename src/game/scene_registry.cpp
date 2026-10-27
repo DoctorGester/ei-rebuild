@@ -3,7 +3,7 @@
 // texture section (the helper's +0x8C name, matched case-insensitively against the file's
 // sections), its "Main Texture Name" and the texture's "Dimentions"; a mapping section (X, Y,
 // Width, Height) moves the group's texture coordinates into that rectangle of the texture (each
-// coordinate once per mesh). Then the material type of the mesh's last group name (0044A2A0) is
+// coordinate once per mesh). Then the material type of the mesh's last group name is
 // stored in the mesh (+0x184 / +0x188) and recorded, with the texture name, in the two caller
 // arrays. Names provisional; see docs/notes/objects.md ("Facts").
 #include "scene_loader.h"
@@ -34,12 +34,12 @@ namespace {
 // The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
 SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return unit->meshes.data[index]; }
 
-// The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
+// The figure's registry (registry.cpp); its integers are read with GetInt2.
 using Registry = CFileRegistry;
 
 
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
-// DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
+// DwordMap layout): its GetAssocAt, InitHashTable and NewAssoc.
 using SeenMap = DwordMap;
 void* SeenMapVtable() { return mfc::impl::FigureRegistryMapClass::Vtable(); }
 
@@ -111,7 +111,7 @@ void MapTexCoord(float* uv, const Mapping* mapping) {
     uv[1] = static_cast<float>(one - inner);
 }
 
-// FCOMP with -1.0 (0073B854), C3: equal (the values come from integers, never NaN).
+// FCOMP with -1.0, C3: equal (the values come from integers, never NaN).
 bool IsMinusOne(float v) {
     std::uint32_t bits;
     std::memcpy(&bits, &v, 4);
@@ -129,10 +129,10 @@ struct GroupStrings {
 
 void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
-    CMaterial* helperRecord = &unit->helpers.data[helper];   // ElementAt (00450750)
+    CMaterial* helperRecord = &unit->helpers.data[helper];   // ElementAt
     {
         mfc::CString found(mfc::CString::kUnset);
-        // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
+        // *out = the section of `sections` equal to `name` ignoring case, else `name`.
         FindListedName(&found, &sections, helperRecord->name2);
         s.section = found;
     }
@@ -178,7 +178,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
     }
 }
 
-// The material type of the mesh's last group name (0044A2A0) into the mesh (+0x188 type, +0x184
+// The material type of the mesh's last group name into the mesh (+0x188 type, +0x184
 // value) and, once each, into `links` (type, value) and `names` (type, texture name).
 void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& groupName, const mfc::CString& mapping,
                     TextureLinkArray* links, TextureNameArray* names) {

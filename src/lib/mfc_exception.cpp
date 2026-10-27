@@ -18,8 +18,8 @@ namespace {
 
 // The static exceptions MFC throws by pointer, never deleted (_simpleResourceException, _simpleNotSupportedException,
 // _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
-// initialiser in the list's order and destroyed by the exit function it registers (both ported on the name below and
-// registered at their addresses; docs/notes/standalone.md, "The static initialisers' objects").
+// initialiser in the list's order and destroyed by the exit function it registers (
+// docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CResourceException> g_simpleResourceException = /*007C8C58*/ {};
 constinit lib::StaticObject<CNotSupportedException> g_simpleNotSupportedException = /*007C8D50*/ {};
 constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8DE8*/ {};
@@ -233,18 +233,18 @@ EI_REWRITTEN(0x0070CF4C, CFileException::GetRuntimeClass);
 EI_REWRITTEN(0x0070CF46, CArchiveException::GetRuntimeClass);
 
 namespace {
-void __cdecl DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }           // 0070BF22
-void __cdecl DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }               // 0070C1DD
-void __cdecl DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }   // 0070C215
-void __cdecl ConstructSimpleResourceException() {   // 0070BEFA
+void __cdecl DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }
+void __cdecl DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }
+void __cdecl DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }
+void __cdecl ConstructSimpleResourceException() {
     g_simpleResourceException.Construct(FALSE, kIdsResourceException);
     libcrt::AtExit(DestroySimpleResourceException);
 }
-void __cdecl ConstructSimpleMemoryException() {     // 0070C1B5
+void __cdecl ConstructSimpleMemoryException() {
     g_simpleMemoryException.Construct(FALSE, kIdsMemoryException);
     libcrt::AtExit(DestroySimpleMemoryException);
 }
-void __cdecl ConstructSimpleNotSupportedException() {   // 0070C1ED
+void __cdecl ConstructSimpleNotSupportedException() {
     g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
     libcrt::AtExit(DestroySimpleNotSupportedException);
 }

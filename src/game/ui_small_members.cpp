@@ -142,17 +142,17 @@ CInterface3D* CInterface3D::Construct() {
 EI_REWRITTEN(0x005F46A0, CInterface3D::Construct);
 
 // The interface manager, zero at the start: built by the static initialiser 005F4680 in the list's order and destroyed by
-// the exit function it registers (005F4780); both ported on the name and registered at their addresses
+// the exit function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
 CInterface3D* TheInterface() { return &*g_interface; }
 
 namespace {
-void __cdecl ConstructInterface() {   // 005F4680
+void __cdecl ConstructInterface() {
     g_interface->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
 }
-void __cdecl DestroyInterface() { g_interface->DestroyBody(); }   // 005F4780
+void __cdecl DestroyInterface() { g_interface->DestroyBody(); }
 } // namespace
 
 EI_REPLACE(0x005F4680, ConstructInterface);

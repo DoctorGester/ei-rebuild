@@ -1,5 +1,4 @@
-// The unit AI's save-game helpers: the looks (005D9010 / 005D91B0) and the perception memory
-// (005CC1E0 / 005CC350). The brain's own Load / Save are in unit_ai_brain.cpp.
+// The unit AI's save-game helpers: the looks and the perception memory. The brain's own Load / Save are in unit_ai_brain.cpp.
 #include "core_streams.h"
 #include "unit_ai.h"
 
@@ -36,7 +35,7 @@ void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
 void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
-    looks->SetSize(count, -1);      // inlined by the original
+    looks->SetSize(count, -1);
     for (int i = 0; i < looks->size; ++i) {
         AILook& look = looks->data[i];
         stream->Read(&look.angle, 4);

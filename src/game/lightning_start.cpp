@@ -1,4 +1,4 @@
-// CLightning's initialiser (004680D0; called by the lightning client object's setter 0067A479).
+// CLightning's initialiser (called by the lightning client object's setter).
 // Plain float maths (rule 7); random words converted with x87::FromUnsigned. See
 // docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
@@ -20,7 +20,7 @@
 
 namespace {
 
-// 00500A00: releases the texture in `holder` and loads `name` (kind 6).
+// Releases the texture in `holder` and loads `name` (kind 6).
 
 float Absolute(float f) {
     std::uint32_t bits;
@@ -142,7 +142,7 @@ CLightning::CLightning() {
     CLightning::Destroy();
 }
 
-// The texture references are null after the reset (the original releases them again, a no-op).
+// The texture references are null after the reset (releasing them again is a no-op).
 CLightning::~CLightning() { CLightning::Destroy(); }
 EI_REWRITTEN_SPECIAL(0x00468810, CLightning::~CLightning);
 EI_REWRITTEN_SPECIAL(0x004687F0, CLightning::~CLightning);
@@ -152,7 +152,7 @@ EI_REWRITTEN(0x004687D0, CLightning::GetClassName);
 int CLightning::GetClassId() { return 0x1E; }
 EI_REWRITTEN(0x004687E0, CLightning::GetClassId);
 
-// 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt.
+// CLightningManager's object factory (`type` is not used): a new bolt.
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
 EI_REWRITTEN(0x00468680, CLightningManager::NewObject);
 

@@ -1,6 +1,5 @@
-// Destructors of the script runtime's structures (ticket S6): ScriptVars (004BE090), ScriptDefinition
-// (004BE9D0) and SSCCmd (004BF640). See script.h and docs/notes/script.md.
-//
+// Destructors of the script runtime's structures (ticket S6): ScriptVars, ScriptDefinition
+// and SSCCmd. See script.h and docs/notes/script.md.
 // The compiler inlined each array's destructor: the derived CArray destructor's vtable store is
 // dropped, so only the base vtable is written, then the elements are destroyed and the storage
 // freed. Data pointers, sizes and capacities are left as they were. The definition's destructor
@@ -27,13 +26,13 @@ namespace {
 
 // Base vtables the inlined destructors write.
 
-// DestructElements (__stdcall (first, count)): CString (006FE296), ScriptObjectRef (004CC7D0,
-// each released), ScriptGroup (004CC980).
+// DestructElements (__stdcall (first, count)): CString, ScriptObjectRef (004CC7D0,
+// each released), ScriptGroup.
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 // Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
-// Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
-// (004C2290), the ScriptVars floats (004C29C0).
+// Out-of-line CArray destructors (__thiscall): CString arrays, object references
+// the ScriptVars floats.
 void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
 inline void __fastcall RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 

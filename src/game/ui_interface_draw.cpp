@@ -1,5 +1,5 @@
-// The interface's per-frame draw (CInterface3D::Draw 005F5220, called by the main loop between the
-// scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw 005E69C0).
+// The interface's per-frame draw (CInterface3D::Draw, called by the main loop between the
+// scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw).
 // See docs/notes/ui.md, section 3, and docs/notes/renderer.md, section 2.
 #include "app.h"
 #include "ui.h"
@@ -29,13 +29,13 @@
 
 namespace {
 
-// The bars' share of the screen height (00740150; read from the exe's memory).
+// The bars' share of the screen height.
 float LetterboxShare() { return 0.217f /*00740150*/; }
 
-constexpr float kOpaque = 255.0f;     // 0073C370
+constexpr float kOpaque = 255.0f;
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
 
-// IDirect3DDevice7::SetRenderState, recorded for the frame capture as the other ported draws do.
+// IDirect3DDevice7::SetRenderState, recorded for the frame capture.
 void SetRenderState(void* device, std::uint32_t state, std::uint32_t value) {
     static_cast<UiD3DDevice*>(device)->SetRenderState(state, value);
     render::state::Render(state, value);
@@ -47,20 +47,20 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
     return screen;
 }
 
-// --- The overlays (005F5320) ---
+// --- The overlays ---
 
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
 int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }
 int SurfaceBytesAllocated() { return static_cast<int>(UiSurfaceBytes()); }
-// The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
+// The option byte: backdrops of a quarter of the layout, stretched over it.
 
 constexpr DWORD kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
 
 // A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
-// the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
-// and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
+// the full-size one the mode's size in pixels, unscaled (addon's operands
+// 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
     if (app::g_littleOtherMemory != 0) {
         ui->backdrop_ = new CUiSurface(ui, 0, 0, 400, 300, 6, 1);
@@ -138,7 +138,7 @@ void CInterface3D::DrawOverlays() {
         stackEnd_[-1]->Redraw();       // its surfaces blit themselves
         stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
     }
-    // (The original calls 005E6B80 on the fade here: an empty function.)
+    // (The original calls an empty function on the fade here.)
     if (statusSurface_) statusSurface_->Blit();
 
     if (backdropMode_ == 1) {
