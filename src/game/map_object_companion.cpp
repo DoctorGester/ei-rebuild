@@ -59,13 +59,13 @@ int CMapObjectServer::RunTick() {
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
             --owner->effectCount;
             bool scaleEffect = IsScaleEffect(type);
-            if (scaleEffect) ObjectSlots(owner)->RecomputeScale();
+            if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
-            ObjectSlots(owner)->ScaleEffectChanged(scaleEffect ? 1 : 0);
+            owner->ScaleEffectChanged(scaleEffect ? 1 : 0);
             --i;
-            ObjectSlots(owner)->EffectsChanged();
+            owner->EffectsChanged();
             if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))
-                ObjectSlots(owner)->SetStunned(0);
+                owner->SetStunned(0);
         }
         ++i;
     } while (i < owner->effectCount);

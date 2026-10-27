@@ -640,7 +640,7 @@ int CPlayerClient::OnNewObject() {
         to = nullptr;
     }
     attached->SetSkins(textureFrom, to);
-    if (isUnit) ObjectSlots(created)->SetScriptName(scriptName.c_str());
+    if (isUnit) created->SetScriptName(scriptName.c_str());
 
     // The player keeps it, counted.
     CPlayer* player = Owner();

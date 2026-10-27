@@ -762,8 +762,8 @@ struct ReleaseIdentified {
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CEngineObject*>::Node*, stlp::IntHash> {
-    int Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const;
+struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CMapObject*>::Node*, stlp::IntHash> {
+    int Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const;
 };
 using PendingMap = PendingIndex;
 template <std::size_t N>
@@ -828,9 +828,9 @@ static_assert(sizeof(ScreenHits) == 12);
 // (CollectParts) for the point.
 struct HitCollector {
     HitCollector* CollectBounds(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
-                                CBaseManager* manager);
+                                CMapObjectManager* manager);
     HitCollector* CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
-                               CBaseManager* manager);
+                               CMapObjectManager* manager);
     ScreenHits* hits;
 };
 
@@ -982,15 +982,15 @@ public:
     // classes 0x54 / 0x5D, its platform items added again where it now stands (as AddObject).
     void RefreshPlatforms(CMapObject* object);
     // Files `object` in dynamicObjects_ and dynamicNodes_ (as AddObject does) unless its id is there already.
-    bool QueueSynchronised(CEngineObject* object);
+    bool QueueSynchronised(CMapObject* object);
     // Every filed object whose kind has no shadows drops its shadow (after an options change).
     void DropShadows();
     // Takes `object` out of the selection list, its highlight off when it was on; with null every listed
     // object's highlight goes off and the list empties.
-    void Deselect(CEngineObject* object);
+    void Deselect(CMapObject* object);
     // Adds `object` (not null) to the selection list: its part bounds refreshed, the highlight on when it was off,
     // and its id appended unless it is listed already.
-    void Select(CEngineObject* object);
+    void Select(CMapObject* object);
     int DrawLineLists();
     // One more reference on every item and, when the item factory exists, on every spell.
     void ReferenceItemsAndSpells();
@@ -1107,7 +1107,7 @@ public:
     MapObjectList objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
     // in dynamicMaxId_ (Segment drops those whose update returns 0).
-    mfc::CList<CEngineObject*> dynamicObjects_;
+    mfc::CList<CMapObject*> dynamicObjects_;
     PendingMap dynamicNodes_;             // id -> its node in dynamicObjects_
     int dynamicMaxId_;
     stlp::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
@@ -1216,7 +1216,7 @@ static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C);
 // living objects are separated first.
 struct DepthLess {
     float* view;                          // the view matrix (row-major): row 2 the depth axis, its translation the offset
-    CBaseManager* manager;
+    CMapObjectManager* manager;
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // The draw lists' order (DrawPass): by the first part set's texture, then the figure, then the view

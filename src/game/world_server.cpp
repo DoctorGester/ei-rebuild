@@ -86,8 +86,8 @@ int CWorldServer::CountLivingMercs(int id) {
     int living = 0;
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         unsigned unitId = player->Party()->members_.data[i].unitId;
-        CEngineObject* unit = FindUnit(static_cast<int>(unitId));
-        if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
+        CUnit* unit = FindUnit(static_cast<int>(unitId));
+        if (unit && unit->IsDead() == 0) ++living;
     }
     return living - 1;
 }

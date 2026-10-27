@@ -89,17 +89,17 @@ EI_REWRITTEN(0x0050E9B0, CMapObject::TakePrototype);
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
     state->SetWriteMode(0);
-    ObjectSlots(this)->WriteNetState();
+    WriteNetState();
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
 EI_REWRITTEN(0x0050EA40, CMapObject::WriteFullState);
 
 void CMapObject::WriteChangedState() {
-    if (ChangedParts() & kVitalParts) ObjectSlots(this)->StatsChanged();
+    if (ChangedParts() & kVitalParts) StatsChanged();
     DeltaState* state = NetState();
     state->SetWriteMode(1);
-    ObjectSlots(this)->WriteNetState();
+    WriteNetState();
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
@@ -108,7 +108,7 @@ EI_REWRITTEN(0x0050EA70, CMapObject::WriteChangedState);
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     DeltaState* state = NetState();
     state->BeginRead(first, reader);
-    std::uint32_t result = ObjectSlots(this)->ReadNetState(first);
+    std::uint32_t result = ReadNetState(first);
     state->Finish();
     return result;
 }

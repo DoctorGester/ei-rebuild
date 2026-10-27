@@ -121,7 +121,7 @@ public:
 
     // When the spell may affect `unit` (no caster, or CSpell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
-    void HitUnit(DamageInfo* hit, CEngineObject* unit);
+    void HitUnit(DamageInfo* hit, CMapObject* unit);
 
     // Every unit within `radius` of `position` that IsSpellTarget accepts and the spell may affect.
     void HitUnitsInRadius();

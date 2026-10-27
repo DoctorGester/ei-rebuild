@@ -157,7 +157,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
         for (UnitList::Node* node = units.head; node;) {
             UnitList::Node* next = node->next;
             CUnit* unit = node->data;
-            if (ObjectSlots(unit)->IsDead()) {
+            if (unit->IsDead()) {
                 RemoveNode(units, node);
             } else if (unit == target) {
                 best = unit;

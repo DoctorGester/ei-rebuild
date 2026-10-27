@@ -196,7 +196,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         CUnit* unit = FindUnit(CreateObject(message));
         if (!unit) continue;
-        CMapObjectVirtuals* slots = ObjectSlots(unit);
+        CMapObjectVirtuals* slots = unit;
 
         // A player-controlled AI, standing on a free cell near the requested position.
         CUnitServer* controller = unit->ServerController();
@@ -324,7 +324,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->id);
     };
     auto allowed = [this](CMapObject* object) {
-        return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
+        return (object->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
     };
     auto refuse = [](CMapObject* object) {
         ++object->refCount_;
@@ -340,13 +340,13 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         ++object->refCount_;
         const char* prototype = spec->kind == 5 ? static_cast<UnitSpec*>(spec)->prototype.c_str()
                                                      : spec->primaryTexture.c_str();
-        ObjectSlots(object)->TakePrototype(prototype);
+        object->TakePrototype(prototype);
         object->WriteFullState();
     };
     auto place = [spec](CMapObject* object) {
         object->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
-        ObjectSlots(object)->ApplyBaseScale();
+        object->ApplyBaseScale();
         Copy(&object->localPosition_.x, &spec->position, 12);
         Copy(&object->localRotation_, &spec->rotation, 16);
     };
@@ -466,7 +466,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->SetSecondName(spec->model.c_str());
         companionTexts(companion);
         race(object);
-        ObjectSlots(object)->ScaleEffectChanged(0);
+        object->ScaleEffectChanged(0);
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = static_cast<UnitSpec*>(message);
@@ -517,7 +517,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
         object->SetUpAnimatedFigure(spec->texture.c_str());
-        ObjectSlots(object)->UpdateSizeClasses();
+        object->UpdateSizeClasses();
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);

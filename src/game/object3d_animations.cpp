@@ -14,7 +14,7 @@ constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 constexpr int kRandMax = 0x7FFF;
 
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
-    return ObjectSlots(object)->AcceptsAnimation(animation);
+    return object->AcceptsAnimation(animation);
 }
 
 // The candidate list: an aligned array of the database's entries (AlignedPtrArray's code).

@@ -402,8 +402,8 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
     IdArray heroes{mfc::impl::IntArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        CEngineObject* unit = node->value;
-        if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
+        CUnit* unit = node->value;
+        if (unit->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
         int index = heroes.size;
         heroes.SetSize(index + 1, -1);
@@ -524,7 +524,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
     for (int i = 0; i < list.size; ++i) {
         auto* record = list.data[i];
         CUnit* unit = FindUnit(static_cast<int>(record->unitId));
-        if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
+        if (!unit || unit->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
     }
     list.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
@@ -595,8 +595,8 @@ void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArra
             mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)
                 .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));
         }
-        if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
-        if (!ObjectSlots(unit)->IsDead()) RemoveObject(unit->id_);
+        if (!unit->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
+        if (!unit->IsDead()) RemoveObject(unit->id_);
         else unit->SetPlayer(nullptr);
     }
 }
@@ -614,7 +614,7 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
     // Records whose unit is gone (or dead, outside a network client game) are dropped.
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         CUnit* unit = FindUnit(static_cast<int>(MercRecord(player, i).unitId));
-        if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
+        if (unit && (!unit->IsDead() || IsMultiplayerClient())) continue;
         int following = player->Party()->members_.size - i - 1;
         MercRecord(player, i).Destruct();
         if (following)

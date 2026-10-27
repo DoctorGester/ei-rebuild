@@ -172,15 +172,15 @@ using HitTest = int (CObject3DSpecific::*)(const long* point);
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
 // object still exists and answers `test` go to `hits`.
 HitCollector* CollectHits(HitCollector* out, ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, LONG x,
-                          LONG y, CBaseManager* manager, HitTest test) {
+                          LONG y, CMapObjectManager* manager, HitTest test) {
     for (ScreenEntryNode* node = first; node != last; node = node->next) {
         const ScreenEntry* entry = &node->data;
         POINT pt = {x, y};
         if (!PtInRect(reinterpret_cast<const RECT*>(entry->rect), pt)) continue;
-        CEngineObject* object = manager->FindObject(entry->objectId);
+        CMapObject* object = manager->FindMapObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
-        CObject3DSpecific* half = ObjectSlots(object)->Object3D()->Specific();
+        CObject3DSpecific* half = object->Object3D()->Specific();
         if (!(half->*test)(point)) continue;
         hits->PushBack(entry);
     }
@@ -191,18 +191,18 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode* first, ScreenEntry
 } // namespace
 
 HitCollector* HitCollector::CollectBounds(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* found, LONG x,
-                                          LONG y, CBaseManager* manager) {
+                                          LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
 EI_REWRITTEN(0x00571800, HitCollector::CollectBounds);
 
 HitCollector* HitCollector::CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* found, LONG x,
-                                         LONG y, CBaseManager* manager) {
+                                         LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
 EI_REWRITTEN(0x005718B0, HitCollector::CollectParts);
 
-int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const {
+int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const {
     const Node* node = Find(*key);
     if (!node) return 0;
     *value = node->value;
@@ -233,8 +233,8 @@ struct CellOps {
     static constexpr auto Clear2 = HeldOps::Clear;
 };
 
-// The client's MFC CList<CEngineObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's RemoveAt.
-using DynamicList = mfc::CList<CEngineObject*>;
+// The client's MFC CList<CMapObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's RemoveAt.
+using DynamicList = mfc::CList<CMapObject*>;
 using DynamicNode = DynamicList::Node;
 
 void __fastcall SessionPlayerClear(CPlayer* session) { session->Clear(); }
@@ -336,7 +336,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     }
 }
 
-bool CWorldClient::QueueSynchronised(CEngineObject* object) {
+bool CWorldClient::QueueSynchronised(CMapObject* object) {
     if (dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_))) return false;
     DynamicList& kept = dynamicObjects_;
     DynamicNode* node = kept.NewNode(kept.tail, nullptr);
@@ -541,11 +541,11 @@ void CWorldClient::ClearMaps() {
 namespace {
 
 using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNode*, ScreenHits*, long, long,
-                                                CBaseManager*);
+                                                CMapObjectManager*);
 CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.Finish() = hits.Start();
-    CBaseManager* manager = client->MapObjectManager();
+    CMapObjectManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
     (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
@@ -553,7 +553,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level inlined.
     const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
-    CBaseManager* objects = client->MapObjectManager();
+    CMapObjectManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
     ScreenEntry* last = hits.end();
     if (first != last) {
@@ -609,9 +609,9 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 
 void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out) {
     for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
-        CEngineObject* object = manager40_->FindObject(node->data.objectId);
+        CMapObject* object = manager40_->FindMapObject(node->data.objectId);
         if (!object) continue;
-        if (!ObjectSlots(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
+        if (!object->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
         SectorList::Insert(out->End(), object);
     }
 }
@@ -662,7 +662,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         const char* skin = record->texts[4].c_str();
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         unit->WriteFullState();
-        CMapObjectVirtuals* slots = ObjectSlots(unit);
+        CMapObjectVirtuals* slots = unit;
         slots->SetStats(&record->stats);
         unit->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
@@ -952,22 +952,22 @@ void CWorldClient::ResetZoneObjects() {
 namespace {
 // The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
 // with 0 (its light goes off).
-void Unhighlight(CEngineObject* object) {
+void Unhighlight(CMapObject* object) {
     object->flags_ &= ~0x110u;
-    CObject3DSpecific* half = ObjectSlots(object)->attached;
+    CObject3DSpecific* half = object->attached;
     half->Unused25(0);
-    half = ObjectSlots(object)->attached;
+    half = object->attached;
     half->SetLit(0);
 }
 } // namespace
 
-void CWorldClient::Deselect(CEngineObject* object) {
+void CWorldClient::Deselect(CMapObject* object) {
     stlp::list<int>& selected = list7BC_;
     using Node = stlp::list<int>::Node;
     auto* objects = manager40_;
     if (!object) {
         for (Node* node = selected.head->next; node != selected.head; node = node->next) {
-            CEngineObject* found = objects->FindObject(static_cast<unsigned>(node->data));
+            CMapObject* found = objects->FindMapObject(static_cast<unsigned>(node->data));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
         EmptyList(selected, [](Node* node) { stlp::deallocate(node, 12); });
@@ -981,13 +981,13 @@ void CWorldClient::Deselect(CEngineObject* object) {
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
-void CWorldClient::Select(CEngineObject* object) {
+void CWorldClient::Select(CMapObject* object) {
     if (!object) return;
-    ObjectSlots(object)->Object3D()->UpdatePartBounds();
+    object->Object3D()->UpdatePartBounds();
     if (!(object->flags_ & 0x10)) {
-        if (!(object->flags_ & 0x100)) ObjectSlots(object)->attached->SetLit(1);
+        if (!(object->flags_ & 0x100)) object->attached->SetLit(1);
         object->flags_ |= 0x10;
-        ObjectSlots(object)->attached->Unused25(1);
+        object->attached->Unused25(1);
     }
     stlp::list<int>& selected = list7BC_;
     using Node = stlp::list<int>::Node;

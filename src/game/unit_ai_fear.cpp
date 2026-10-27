@@ -63,7 +63,7 @@ bool IsZero(double v) {
 
 bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
 
-const Vector3* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
+const Vector3* PositionOf(CMapObject* object) { return &object->localPosition_; }
 
 CAIMap* Map() { return TheServerWorld()->AIMap(); }
 
@@ -133,7 +133,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
     float grown = static_cast<float>(static_cast<double>(spread) + spread + kThree);
     spread = static_cast<float>(static_cast<double>(grown) * kThird);
-    if (CEngineObject* seen = brain->seen) {
+    if (CMapObject* seen = brain->seen) {
         const Vector3* at = PositionOf(seen);
         brain->memory.Notice(at, kNoticeLevel, kNoticeKind);
         const Vector3* me = PositionOf(brain->owner->unit);

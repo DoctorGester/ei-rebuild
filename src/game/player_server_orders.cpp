@@ -41,7 +41,7 @@ void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast
 CUnit* FindUnit(CPlayer* player, int id) {
     return player->WorldContext()->FindUnit(id);
 }
-bool Alive(CUnit* unit) { return ObjectSlots(unit)->IsDead() == 0; }
+bool Alive(CUnit* unit) { return unit->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).

@@ -772,9 +772,9 @@ public:
 
     // Stamps (remove = false) or clears (remove = true) the object's footprint in the
     // grid; false if it does not fit. Units go to the unit occupancy layers instead.
-    bool MarkFootprint(CEngineObject* object, bool remove);
+    bool MarkFootprint(CMapObject* object, bool remove);
     // The footprint of a non-unit object into `footprint` and `bridges` (parts flagged 0x400); true with a bridge.
-    bool CollectFootprint(CEngineObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
+    bool CollectFootprint(CMapObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
     // Applies a footprint to the occluder grid (stamp, undone if a cell fails) or clears it.
     bool ApplyFootprint(FootprintCellSet* set, bool remove);
     // Stamps a footprint and refreshes the passability around it; `tick` (the world's) becomes footprintTick.

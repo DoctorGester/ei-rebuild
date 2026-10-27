@@ -89,7 +89,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (unit->fightAtWill != kStandby) return;
 
     // The commanded target first, when it can be reached from here.
-    if (target && ObjectSlots(target)->IsDead() == 0) {
+    if (target && target->IsDead() == 0) {
         AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit
         if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);

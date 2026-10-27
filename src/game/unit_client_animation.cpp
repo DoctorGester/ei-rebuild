@@ -79,7 +79,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     }
     if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);
     lastTime = time;
-    if (ObjectSlots(unit)->InvisibleSlot()) unit->ClientSpecific()->InvisiblePulse(step);
+    if (unit->InvisibleSlot()) unit->ClientSpecific()->InvisiblePulse(step);
     if (unit->MapObject()->IsStunned()) unit->ClientSpecific()->StunnedPulse(step);
     if (unit->pathTimeShift == 0) PlaceOnPath(time, step);
     else unit->animationSpeed = 1.0f;

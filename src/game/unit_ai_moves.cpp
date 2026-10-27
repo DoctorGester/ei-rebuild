@@ -190,7 +190,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
 EI_REWRITTEN(0x005D7F80, AIBrain::FindStandPoint);
 
 void AIBrain::UpdateFollow() {
-    if (!target || ObjectSlots(target)->IsDead()) {
+    if (!target || target->IsDead()) {
         target.Assign(nullptr);
         action = kActionNone;
         return;
@@ -231,7 +231,7 @@ void AIBrain::UpdateFollow() {
     Vector3 goal = *PositionOf(self);
     owner->GetMovePoint(&goal.x);
     Vector3 soon;
-    ObjectSlots(leader)->PositionAt(&soon, now + kLeaderAhead);
+    leader->PositionAt(&soon, now + kLeaderAhead);
     double sx = self->localPosition_.x - soon.x;
     double sy = self->localPosition_.y - soon.y;
     double soonSq = LengthSquared2DUnrounded(sx, sy);
@@ -251,7 +251,7 @@ void AIBrain::UpdateFollow() {
     float best = static_cast<float>(soonSq);
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later;
-        ObjectSlots(leader)->PositionAt(&later, now + ahead);
+        leader->PositionAt(&later, now + ahead);
         double lx = self->localPosition_.x - later.x;
         double ly = self->localPosition_.y - later.y;
         double laterSq = LengthSquared2DUnrounded(lx, ly);
@@ -263,7 +263,7 @@ void AIBrain::UpdateFollow() {
     }
 
     Vector3 passing;
-    ObjectSlots(leader)->PositionAt(&passing, now + kLeaderSide);
+    leader->PositionAt(&passing, now + kLeaderSide);
     double along = passing.y - leader->localPosition_.y;
     float across = static_cast<float>(passing.x - leader->localPosition_.x);
     Vector3 side{static_cast<float>(-along), across, 0.0f};

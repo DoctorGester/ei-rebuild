@@ -96,7 +96,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     libcrt::AtExit(destructor);
 }
 
-const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }
+const float* PositionOf(CMapObject* object) { return &object->localPosition_.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
 // and the squared range stay on the FPU (dy^2 + dx^2, in that order).
@@ -119,7 +119,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
-            CEngineObject* object = node->value;
+            CMapObject* object = node->value;
             if (object->type_ == kTypeNoSync) continue;
             if (!OutOfView(PositionOf(object), state)) {
                 *out++ = object;
@@ -138,7 +138,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         }
     } else {
         for (auto* node = source.map.First(); node && node->value; node = source.map.After(node)) {
-            CEngineObject* object = node->value;
+            CMapObject* object = node->value;
             if (object->type_ != kTypeNoSync && !OutOfView(PositionOf(object), state)) *out++ = object;
         }
     }
@@ -168,7 +168,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
-        world->Sectors()->FindUnitsInRadius(&ObjectSlots(unit)->localPosition_, &heard, radius);
+        world->Sectors()->FindUnitsInRadius(&unit->localPosition_, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::impl::PtrListClass::Vtable();
         heard.RemoveAll();

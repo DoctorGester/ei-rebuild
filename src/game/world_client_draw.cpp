@@ -572,7 +572,7 @@ int CWorldClient::DrawPass() {
             int id = node->data;
             auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
             if (object) {
-                if (ObjectSlots(object)->IsDead() == 0) {
+                if (object->IsDead() == 0) {
                     Vector3 point;
                     std::memcpy(&point, &object->localPosition_, sizeof(point));
                     if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {

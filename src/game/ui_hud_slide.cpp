@@ -209,7 +209,7 @@ void CHudUnitPanel::UpdateVanilla() {
         else
             PlaceSling(sceneObjects_.data[2], -kHudQuarterTurn, LeftEdge(87.0f));
     }
-    if (hoverUnit_ && ObjectSlots(hoverUnit_)->IsDead() != 0) hoverUnit_ = nullptr;
+    if (hoverUnit_ && hoverUnit_->IsDead() != 0) hoverUnit_ = nullptr;
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
     interface_->hudBodyPart_ = bodyPart_;
 }

@@ -38,7 +38,7 @@ constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
 
-int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
+int IsGone(CMapObject* object) { return object->IsDead(); }
 
 // The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
 struct GameOstream : libcrt::Ostream {

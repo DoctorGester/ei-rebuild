@@ -89,7 +89,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     CTransformPipeline* pipeline = context->pipeline_;
     Vector3 at;
     std::memcpy(&at, &object->localPosition_, sizeof(at));
-    ObjectSlots(object)->LoadFigures();
+    object->LoadFigures();
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
         gameapi::SetRectEmpty(&drawnRect);

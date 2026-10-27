@@ -127,7 +127,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
     AIBrain* ai = &brain;
     for (auto* node = ai->memory.nearby.head; node; node = node->next) {
         auto* other = node->data;
-        if (!other || ObjectSlots(other)->IsDead() != 0) continue;
+        if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;
         if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&

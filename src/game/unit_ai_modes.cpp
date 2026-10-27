@@ -50,7 +50,7 @@ void ReleaseRef(AIRefTo<T>& ref) {
     }
 }
 
-int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
+int IsGone(CMapObject* object) { return object->IsDead(); }
 
 template <typename T>
 void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }

@@ -118,14 +118,13 @@ void ResetCellSet(FootprintCellSet* set) {
 }
 } // namespace
 
-bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
+bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
-    CMapObject* mapObject = ObjectSlots(object);
-    float* matrix = mapObject->worldMatrix.m;
-    mapObject->localRotation_.ToMatrix((float*)matrix);
-    std::memcpy(&matrix[11], &mapObject->localPosition_.z, 4);
-    std::memcpy(&matrix[3], &mapObject->localPosition_.x, 4);
-    std::memcpy(&matrix[7], &mapObject->localPosition_.y, 4);
+    float* matrix = object->worldMatrix.m;
+    object->localRotation_.ToMatrix((float*)matrix);
+    std::memcpy(&matrix[11], &object->localPosition_.z, 4);
+    std::memcpy(&matrix[3], &object->localPosition_.x, 4);
+    std::memcpy(&matrix[7], &object->localPosition_.y, 4);
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
@@ -133,24 +132,24 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
 
     // Part names: the server companion's string array if it has any, else the object's own (the AI map lives on
     // the server, so the companion is a CMapObjectServer).
-    auto* server = mapObject->ServerCompanion();
+    auto* server = object->ServerCompanion();
     const mfc::CStringArray* names = &server->strings;
-    if (names->size == 0) names = &mapObject->partNames;
+    if (names->size == 0) names = &object->partNames;
 
     bool hasBridge = false;
     for (int n = 0; n < names->size; ++n) {
         int index;
         {
             mfc::CString name(mfc::CString::kUnset);
-            index = mapObject->FindPartIndex(*StringArrayGetAt(names, &name, n));
+            index = object->FindPartIndex(*StringArrayGetAt(names, &name, n));
         }
         if (index < 0) {
-            const char* objectName = mapObject->name;
+            const char* objectName = object->name;
             mfc::CString name(mfc::CString::kUnset);
             game::FatalError(PartNotFoundFormat(), (*StringArrayGetAt(names, &name, n)).GetString(), objectName);
             continue;
         }
-        const FootprintPart* part = &mapObject->partBoxes[index];
+        const FootprintPart* part = &object->partBoxes[index];
         std::uint32_t flags = part->flags;
         if (flags & 0x800) continue;
         std::int8_t kind = static_cast<std::int8_t>((flags >> 3) & 7);
@@ -168,10 +167,10 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        std::memcpy(&position, &mapObject->localPosition_, sizeof(position));
+        std::memcpy(&position, &object->localPosition_, sizeof(position));
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(mapObject->localPosition_.x), cy = WorldToCell(mapObject->localPosition_.y);
+        int cx = WorldToCell(object->localPosition_.x), cy = WorldToCell(object->localPosition_.y);
         float ground;
         if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) {
             ground = 0.0f;
@@ -183,7 +182,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         position.z = ground + position.z;
 
         for (Vector3& p : corner) {
-            const FootprintPart* placed = &mapObject->partBoxes[index];
+            const FootprintPart* placed = &object->partBoxes[index];
             float y = placed->pivot.y + p.y;
             float z = placed->pivot.z + p.z;
             float x = p.x + placed->pivot.x + placed->offset.x;
@@ -256,9 +255,9 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
     if (!(dirtyMaxY > maxY)) dirtyMaxY = maxY;
 }
 
-bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
-    int cellX = WorldToCell(ObjectSlots(object)->localPosition_.x);
-    int cellY = WorldToCell(ObjectSlots(object)->localPosition_.y);
+bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
+    int cellX = WorldToCell(object->localPosition_.x);
+    int cellY = WorldToCell(object->localPosition_.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
@@ -284,7 +283,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     int maxY = a[3] > b[3] ? a[3] : b[3];
 
     std::uint8_t savedRefreshUnits = refreshUnits;
-    refreshUnits = savedRefreshUnits && ObjectSlots(object)->KeepsMapFlag();
+    refreshUnits = savedRefreshUnits && object->KeepsMapFlag();
     QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
     refreshUnits = savedRefreshUnits;
     return fits;

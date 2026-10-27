@@ -222,7 +222,7 @@ Next ApplyBuff(CSpellEffect* e) {
     record.power = static_cast<std::uint8_t>(
         PowerScaledToInt(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;
-    ObjectSlots(e->target)->AddEffect(&record);
+    e->target->AddEffect(&record);
     return Next::Done;
 }
 
@@ -296,8 +296,8 @@ Next StartHealing(CSpellEffect* e) {
 // 0x1B: link between two different units that are both free; otherwise the caster complains (0x18).
 Next StartLink(CSpellEffect* e) {
     if (!IsUnit(e->target) || !IsUnit(e->caster)) return Next::Done;
-    bool free = ObjectSlots(e->target)->IsLargeUnit() == 0 && ObjectSlots(e->caster)->IsLargeUnit() == 0 &&
-                ObjectSlots(e->target)->IsDead() == 0 && e->target != e->caster;
+    bool free = e->target->IsLargeUnit() == 0 && e->caster->IsLargeUnit() == 0 &&
+                e->target->IsDead() == 0 && e->target != e->caster;
     if (!free) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x18);
         return Next::Done;

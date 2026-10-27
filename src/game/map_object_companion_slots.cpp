@@ -52,7 +52,7 @@ EI_REPLACE_METHOD(0x005106F0, CMapObjectCompanion::HitNothing);
 // --- The client's and the server's ---------------------------------------------------------------------
 
 void CMapObjectClientSpecific::Hit(int damage, int kind) {
-    if (ObjectSlots(owner)->IsDead() != 0) return;
+    if (owner->IsDead() != 0) return;
     if (!(owner->flags_ & kShowsNumbers)) return;
     ClientWorld()->ShowNumber(owner->id_, damage, kind);
 }

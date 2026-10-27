@@ -81,7 +81,7 @@ bool CanTalk(CEngineObject* person) {
 }
 
 
-bool IsPerson(CEngineObject* object) { return object && ObjectSlots(object)->IsDead() == 0; }
+bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
 
 } // namespace
 
@@ -107,7 +107,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     switch (state_) {
     case 0: {
         POINT point = {x, y};
-        CEngineObject* object = TheClientWorld()->UnitAt2(&point);
+        CUnit* object = TheClientWorld()->UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
@@ -165,7 +165,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (interface_->rightDown_ || state_ != 0) return;
 
     POINT point = {x, y};
-    CEngineObject* object = TheClientWorld()->UnitAt2(&point);
+    CUnit* object = TheClientWorld()->UnitAt2(&point);
     if (IsPerson(object)) {
         int id = object->id_;
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
@@ -212,7 +212,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
         return;
     }
     POINT point = {x, y};
-    CEngineObject* object = TheClientWorld()->UnitAt2(&point);
+    CUnit* object = TheClientWorld()->UnitAt2(&point);
     if (IsPerson(object)) {
         for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
             if (mover->person->id_ == object->id_) return;
