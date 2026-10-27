@@ -137,7 +137,7 @@ using ::GetStartupInfoA;  // KERNEL32.dll
 inline auto& GetCommandLineA = ei::Imports().GetCommandLineA;  // KERNEL32.dll, through the slot
 using ::SetStdHandle;  // KERNEL32.dll
 inline auto& HeapReAlloc = ei::Imports().HeapReAlloc;  // KERNEL32.dll, through the slot
-using ::GetTimeZoneInformation;  // KERNEL32.dll
+inline auto& GetTimeZoneInformation = ei::Imports().GetTimeZoneInformation;  // KERNEL32.dll, through the slot
 inline auto& HeapSize = ei::Imports().HeapSize;  // KERNEL32.dll, through the slot
 using ::SetUnhandledExceptionFilter;  // KERNEL32.dll
 using ::UnhandledExceptionFilter;  // KERNEL32.dll
