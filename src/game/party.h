@@ -31,10 +31,6 @@ struct PartyUnitRecord;
 // aligned array of item pointers.
 using PartyItemArray = lib::AlignedArray<CItem*>;
 
-// A unit record's item list (its data pointer, then count, capacity and grow-by) as the aligned
-// pointer array it is.
-inline PartyItemArray& ItemList(CItem**& data) { return *reinterpret_cast<PartyItemArray*>(&data); }
-
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 

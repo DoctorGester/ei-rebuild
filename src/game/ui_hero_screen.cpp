@@ -390,7 +390,7 @@ void CMpHeroScreen::ShowHero(int index) {
     auto* hero = HeroRecord();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) unit->AddWeapon(hero->weapons[i]);
+    for (int i = 0; i < hero->weapons.size; ++i) unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

@@ -77,7 +77,7 @@ int CHeroEquipPanel::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
-    if (quick < hero->weaponCount) {
+    if (quick < static_cast<std::uint32_t>(hero->weapons.size)) {
         frame(0)->visible_ = 1;
         // The unsigned slot * 100 + 50 is converted through a 64-bit FILD.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
@@ -85,7 +85,7 @@ int CHeroEquipPanel::Draw(int pass) {
         frame(0)->visible_ = 0;
     }
     int selected = selected_;
-    if (selected >= 0 && selected < static_cast<int>(hero->quickItemCount)) {
+    if (selected >= 0 && selected < hero->quickItems.size) {
         frame(1)->visible_ = 1;
         frame(1)->Place(static_cast<float>(750 - selected * 100), 50.0f, 3.0f);
     } else {
@@ -93,12 +93,12 @@ int CHeroEquipPanel::Draw(int pass) {
     }
     DrawBase(pass);
     CItemScreen* owner = owner_;
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
+    for (int i = 0; i < hero->weapons.size; ++i) {
         ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
     }
-    for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
+    for (int i = 0; i < hero->quickItems.size; ++i) {
         ItemCell cell{hero->quickItems[i], static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
@@ -116,7 +116,7 @@ int CHeroEquipPanel::Draw(int pass) {
     }
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
+    for (int i = 0; i < hero->armor.size; ++i) {
         CItem* item = hero->armor[i];
         int type = AsArmor(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,

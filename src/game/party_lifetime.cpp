@@ -47,12 +47,11 @@ void SetDefaults(PartyUnitRecord& record) {
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
     for (std::string& text : texts) std::construct_at(&text);
-    for (CItem*** data : {&weapons, &quickItems, &armor, &spells}) {
-        PartyItemArray& list = ItemList(*data);
-        list.data = nullptr;
-        list.growBy = 0;
-        list.capacity = 0;
-        list.size = 0;
+    for (PartyItemArray* list : {&weapons, &quickItems, &armor, &spells}) {
+        list->data = nullptr;
+        list->growBy = 0;
+        list->capacity = 0;
+        list->size = 0;
     }
     scaleX = 0.8f;
     scaleY = 0.2f;
@@ -69,23 +68,23 @@ void PartyUnitRecord::Destruct() {
     ClearItems();
     SetDefaults(*this);
     fightAtWill = 1;
-    FreeStorage(ItemList(spells));
-    FreeStorage(ItemList(armor));
-    FreeStorage(ItemList(quickItems));
-    FreeStorage(ItemList(weapons));
+    FreeStorage(spells);
+    FreeStorage(armor);
+    FreeStorage(quickItems);
+    FreeStorage(weapons);
     for (int i = 6; i >= 0; --i) std::destroy_at(&texts[i]);
 }
 EI_REWRITTEN(0x0065F740, PartyUnitRecord::Destruct);
 
 void PartyUnitRecord::ClearItems() {
-    ReleaseAll(ItemList(weapons));
-    ReleaseAll(ItemList(quickItems));
-    ReleaseAll(ItemList(armor));
-    ReleaseAll(ItemList(spells));
-    ItemList(weapons).SetSize(0, -1);
-    ItemList(quickItems).SetSize(0, -1);
-    ItemList(armor).SetSize(0, -1);
-    ItemList(spells).SetSize(0, -1);
+    ReleaseAll(weapons);
+    ReleaseAll(quickItems);
+    ReleaseAll(armor);
+    ReleaseAll(spells);
+    weapons.SetSize(0, -1);
+    quickItems.SetSize(0, -1);
+    armor.SetSize(0, -1);
+    spells.SetSize(0, -1);
 }
 EI_REWRITTEN(0x0065F860, PartyUnitRecord::ClearItems);
 

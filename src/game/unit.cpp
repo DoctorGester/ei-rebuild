@@ -200,7 +200,7 @@ CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= record->weaponCount) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(record->weapons.size)) return nullptr;
         return AsWeapon(record->weapons[slot]);
     }
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
@@ -211,7 +211,7 @@ CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= record->quickItemCount) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(record->quickItems.size)) return nullptr;
         CItem* item = record->quickItems[slot];
         if (!item || static_cast<int>(item->count_) < 1) return nullptr;
         return item;
@@ -224,7 +224,7 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= record->spellCount) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(record->spells.size)) return nullptr;
         return record->spells[slot];
     }
     return slot < 8 ? spells[slot] : nullptr;
@@ -235,7 +235,7 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= record->spellCount) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(record->spells.size)) return nullptr;
         // No null check on the item here.
         return record->spells[slot]->spell_;
     }
@@ -250,7 +250,7 @@ bool CUnit::HasRangedWeapon() {
     if (IsPartyUnit(this)) {
         if (!player) return false;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= record->weaponCount) return false;
+        if (!record || slot >= static_cast<std::uint32_t>(record->weapons.size)) return false;
         weapon = AsWeapon(record->weapons[slot]);
     } else {
         if (slot >= 4) return false;

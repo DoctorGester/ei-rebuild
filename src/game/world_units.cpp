@@ -220,18 +220,18 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         // Equipment: weapons, then the controller's ShowWeapon(0), armour, quick items (two fields copied from the
         // record's), spells.
-        for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
+        for (int n = 0; n < record->weapons.size; ++n)
             unit->AddWeapon(MakeItem(this, record->weapons[n]));
         unit->Controller()->ShowWeapon(0);
-        for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
+        for (int n = 0; n < record->armor.size; ++n)
             unit->EquipArmour(MakeItem(this, record->armor[n]));
-        for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
+        for (int n = 0; n < record->quickItems.size; ++n) {
             CItem* item = MakeItem(this, record->quickItems[n]);
             item->count_ = record->quickItems[n]->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
             unit->AddQuickItem(item);
         }
-        for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
+        for (int n = 0; n < record->spells.size; ++n)
             unit->AddSpell(MakeItem(this, record->spells[n]));
 
         slots->UpdateSizeClasses();

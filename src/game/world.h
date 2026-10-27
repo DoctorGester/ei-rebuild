@@ -28,6 +28,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
+#include "model.h"          // HeldTexture
 #include "party_storage.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -848,7 +849,7 @@ struct ClientArrayManager : CBaseManager {
 
     int Draw(CSceneRenderer* renderer);
 
-    CEngineObject* current;               // counted
+    HeldTexture texture;                  // the fog texture (counted)
     mfc::CList<CEngineObject*> list;      // counted
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);

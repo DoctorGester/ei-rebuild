@@ -59,14 +59,14 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 BOOL CHeroQuickStrip::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto* frame = SceneMesh(0);
-    int count = static_cast<int>(hero->spellCount);
+    int count = hero->spells.size;
     if (selected_ >= 0 && selected_ < count) {
         frame->visible_ = 1;
         frame->Place(static_cast<float>(selected_ * 100 + 50), static_cast<float>(y_ + 50), 3.0f);
     } else {
         frame->visible_ = 0;
     }
-    for (int i = 0; i < static_cast<int>(hero->spellCount); ++i) {
+    for (int i = 0; i < hero->spells.size; ++i) {
         ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
                       static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
