@@ -217,7 +217,7 @@ int KeyedParts(const CObject3D* object) {
     for (int i = 0; i < object->parts.size; ++i) {
         const CFigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (part->bounds_.flags >> 10) & 1;
+        keyedParts |= (part->box_.bounds.flags >> 10) & 1;
     }
     return keyedParts;
 }
@@ -440,14 +440,14 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // The point the shadow falls from: the object's offset point through its matrix.
     // Each row of the world matrix times the bounds' centre: (y + z) + x, unrounded.
     const float* w = self->object->worldMatrix.m;
-    const Vector3& c = self->object->center;
+    const Vector3& c = self->object->bounds.center;
     auto product = [](float a, float b) { return static_cast<double>(a) * b; };
     double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
     float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    TheClientWorld()->ProjectDecal(&direction, &point, self->object->radius, &Quads().data,
+    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &Quads().data,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (self->vertices.size != 0) {

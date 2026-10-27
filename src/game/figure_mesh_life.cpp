@@ -39,8 +39,8 @@ void CFigureMesh::SetUpFigure() {
     offsets_.Construct();
     colorsA_.Construct();
     colorsB_.Construct();
-    std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
+    std::memset(&box_.bounds, 0, sizeof(box_.bounds));
+    std::memset(&box_.pivot, 0, sizeof(box_.pivot));
 }
 
 CFigureMesh::CFigureMesh() {
@@ -61,8 +61,8 @@ int CFigureMesh::CreateMesh() {
     spareDC_ = 0;
     flatColour_ = 0xFFFFFFFF;
     flatSpecular_ = 0xFFFFFFFF;
-    std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
+    std::memset(&box_.bounds, 0, sizeof(box_.bounds));
+    std::memset(&box_.pivot, 0, sizeof(box_.pivot));
     return 1;
 }
 EI_REWRITTEN(0x0059F210, CFigureMesh::CreateMesh);

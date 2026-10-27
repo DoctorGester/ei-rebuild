@@ -77,6 +77,11 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
+namespace impl { class CString; }
+// The implementation's view of `s` (the two share the layout; mfc.cpp), for the implementation's members that
+// take a string.
+impl::CString& ImplOf(CString& s);
+
 class CFileVirtuals;
 
 // CFile: vtable, OS handle, close-on-delete flag, file name. The game calls these methods non-virtually, so
@@ -355,8 +360,9 @@ struct CArray {
     void RemoveAll() { SetSize(0, -1); }
 
     // Serialize (CObject::Serialize is empty): the count (ReadCount then SetSize when loading), then the
-    // elements as raw bytes (MFC's default SerializeElements).
-    void Serialize(CArchive* ar) {
+    // elements as raw bytes (MFC's default SerializeElements). `Archive` is the facade's CArchive or mfc::impl's.
+    template <typename Archive>
+    void Serialize(Archive* ar) {
         if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(size));
         else SetSize(static_cast<int>(ar->ReadCount()), -1);
         unsigned bytes = static_cast<unsigned>(size) * static_cast<unsigned>(sizeof(T));

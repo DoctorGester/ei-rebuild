@@ -247,9 +247,16 @@ ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
 constexpr int kChannels = 3;          // handler channels: 0 created, 1 changed, 2 removed
 constexpr int kMessageTypes = 0x100;
 
-// A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage). Handlers are
-// `void __fastcall (SessionBase*, Message*)`.
-using HandlerVector = stlp::vector<void*>;
+// A message handler as the session keeps it: its session and the message. The handlers themselves take their
+// own session class and message class (net_handlers.h); AsHandler is the one place they become this.
+using MessageHandler = void(__fastcall*)(SessionBase*, CRefObject*);
+template <typename Session, typename MessageType>
+MessageHandler AsHandler(void(__fastcall* handler)(Session*, MessageType*)) {
+    return reinterpret_cast<MessageHandler>(handler);
+}
+
+// A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
+using HandlerVector = stlp::vector<MessageHandler>;
 static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry of a session.
@@ -342,15 +349,15 @@ void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priori
 // accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
 class SessionBase : public CRefCounted {
 public:
-    void RegisterTradeHandler(int channel, void* handler);
-    void RegisterAwardHandler(int channel, void* handler);
-    void RegisterChunkHandler(int channel, void* handler);
-    void RegisterFileHandler(int channel, void* handler);
-    void RegisterVariableHandler(int channel, void* handler);
-    void RegisterMapHandler(int channel, void* handler);
-    void RegisterMemberHandler(int channel, void* handler);
-    void RegisterPartyHandler(int channel, void* handler);
-    void RegisterRequestHandler(int channel, void* handler);
+    void RegisterTradeHandler(int channel, MessageHandler handler);
+    void RegisterAwardHandler(int channel, MessageHandler handler);
+    void RegisterChunkHandler(int channel, MessageHandler handler);
+    void RegisterFileHandler(int channel, MessageHandler handler);
+    void RegisterVariableHandler(int channel, MessageHandler handler);
+    void RegisterMapHandler(int channel, MessageHandler handler);
+    void RegisterMemberHandler(int channel, MessageHandler handler);
+    void RegisterPartyHandler(int channel, MessageHandler handler);
+    void RegisterRequestHandler(int channel, MessageHandler handler);
 
     // The count and the flags are the creator's.
     SessionBase();
@@ -374,16 +381,16 @@ public:
 
     // Appends `handler` to the handlers of message `type` (low byte) on `channel` (0..2;
     // other channels are ignored).
-    void AddHandler(int channel, std::uint32_t type, void* handler);
+    void AddHandler(int channel, std::uint32_t type, MessageHandler handler);
     // Clears the reliable flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
     // A handler registration as the session constructors do it: a prototype message T, held through a
     // counted reference while its type id is looked up by its class, then AddHandler.
     template <typename T>
-    void AddHandlerFor(int channel, void* handler) {
+    void AddHandlerFor(int channel, MessageHandler handler) {
         AddHandlerForPrototype(NewCounted<T>(), channel, handler);
     }
-    void AddHandlerForPrototype(Message* prototype, int channel, void* handler);
+    void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
     // The clients list node of the connection to `address` (the sentinel when none) into `*out`.
     ClientNode** FindClient(ClientNode** out, const NetAddress* address);

@@ -15,7 +15,7 @@ namespace net {
 
 namespace {
 
-void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__fastcall* factory)()) {
+void RegisterHandler(SessionBase* self, int channel, MessageHandler handler, Message* (__fastcall* factory)()) {
     RefPtr prototype;
     prototype.Share(factory());
     const std::uint32_t key = TypeRegistry::KeyOf(prototype.ptr);
@@ -27,32 +27,32 @@ void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__
 } // namespace
 
 // Server: the requests, the party descriptions, the party members.
-void SessionBase::RegisterRequestHandler(int channel, void* handler) {
+void SessionBase::RegisterRequestHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, FileRequestMessage::Create);
 }
-void SessionBase::RegisterPartyHandler(int channel, void* handler) {
+void SessionBase::RegisterPartyHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, PartyMessage::Create);
 }
-void SessionBase::RegisterMemberHandler(int channel, void* handler) {
+void SessionBase::RegisterMemberHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, PartyMemberMessage::Create);
 }
 // Client: the map, the variables, the files, the file chunks the awards, the trade.
-void SessionBase::RegisterMapHandler(int channel, void* handler) {
+void SessionBase::RegisterMapHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, MapMessage::Create);
 }
-void SessionBase::RegisterVariableHandler(int channel, void* handler) {
+void SessionBase::RegisterVariableHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, VariableMessage::Create);
 }
-void SessionBase::RegisterFileHandler(int channel, void* handler) {
+void SessionBase::RegisterFileHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, FileMessage::Create);
 }
-void SessionBase::RegisterChunkHandler(int channel, void* handler) {
+void SessionBase::RegisterChunkHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, FileChunkMessage::Create);
 }
-void SessionBase::RegisterAwardHandler(int channel, void* handler) {
+void SessionBase::RegisterAwardHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, AwardMessage::Create);
 }
-void SessionBase::RegisterTradeHandler(int channel, void* handler) {
+void SessionBase::RegisterTradeHandler(int channel, MessageHandler handler) {
     RegisterHandler(this, channel, handler, TradeMessage::Create);
 }
 

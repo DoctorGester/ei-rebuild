@@ -175,7 +175,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     }
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
-        float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
+        float loudness = static_cast<float>(static_cast<double>(stats.valuesE0[3].current) * kHitNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
@@ -402,7 +402,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (!looted) return;
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
         TheServerWorld()->RemoveObject(target->id_);
-        float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
+        float loudness = static_cast<float>(static_cast<double>(stats.valuesE0[3].current) * kSkillNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;
     }

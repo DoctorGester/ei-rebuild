@@ -257,7 +257,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         SetBits(stats->rateBase, kRate15);
         CopyDword(stats->speedBase, prototype->speed);
     }
-    CopyDword(stats->prototypeField12, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
@@ -316,7 +316,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
         SetBits(stats->rateBase, kRate15);
         SetBits(stats->rate, kRate15);
     }
-    CopyDword(stats->prototypeField12, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);

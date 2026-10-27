@@ -3,6 +3,7 @@
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "model.h"
+#include "texture.h"
 #include "ui.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
@@ -31,7 +32,8 @@ inline double D(float f) { return f; }
 
 } // namespace
 
-void ItemObjectCache::Construct(std::uint8_t compare) {
+template <typename Object>
+void ItemObjectCache<Object>::Construct(std::uint8_t compare) {
     map.Header() = stlp::allocate_as<Node>();
     map.Count() = 0;
     map.Compare() = compare;
@@ -42,11 +44,12 @@ void ItemObjectCache::Construct(std::uint8_t compare) {
 // While the cache holds more than its limit: the least recently used entry (used before now) has
 // its object released and is erased. Spins while every entry was
 // used at or after now.
-void __fastcall TrimItemCache(ItemObjectCache* cache) {
+template <typename Object>
+void __fastcall TrimItemCache(ItemObjectCache<Object>* cache) {
     while (cache->map.size() > cache->limit) {
         std::uint32_t oldestTime = gameapi::timeGetTime();
-        ItemObjectCache::Node* oldest = cache->map.end();
-        for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node)) {
+        typename ItemObjectCache<Object>::Node* oldest = cache->map.end();
+        for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node)) {
             if (node->second.lastUse < oldestTime) {
                 oldestTime = node->second.lastUse;
                 oldest = node;
@@ -58,8 +61,10 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
         }
     }
 }
-EI_REWRITTEN(0x005F2F20, TrimItemCache);
-EI_REWRITTEN(0x005F2F90, TrimItemCache);
+template struct ItemObjectCache<CUiMesh>;
+template struct ItemObjectCache<CTexture>;
+EI_REWRITTEN(0x005F2F20, TrimItemCache<CUiMesh>);
+EI_REWRITTEN(0x005F2F90, TrimItemCache<CTexture>);
 
 // --- The icon window's frame -------------------------------------------------------------
 
@@ -135,7 +140,8 @@ EI_REWRITTEN(0x005EDD80, CItemScreen::CreateBase);
 namespace {
 // A cache's objects released (Release), in key order, then its map destroyed: the nodes erased (a loop
 // over the left spine, or a call on the root), the header back to the pool.
-void DestroyCache(ItemObjectCache& cache) {
+template <typename Object>
+void DestroyCache(ItemObjectCache<Object>& cache) {
     ReleaseCachedObjects(&cache);
     cache.map.Destroy();
 }

@@ -61,18 +61,20 @@ struct HeroFaceCell {
 };
 static_assert(sizeof(HeroFaceCell) == 0x14);
 
-// A cached object and when it was last used (timeGetTime).
+// A cached object (counted) and when it was last used (timeGetTime).
+template <typename Object>
 struct ItemCacheEntry {
-    CEngineObject* object;   // a CUiMesh (models) or a CTexture (textures), counted
+    Object* object;
     std::uint32_t lastUse;
 };
 
 // A cache of the item screens (models_ and textures_): a map from a name to {object, time of last use}, and
-// how many entries it keeps (30; 20 when an option byte is set). The two trim functions release the least
-// recently used objects beyond that.
+// how many entries it keeps (30; 20 when an option byte is set). TrimItemCache releases the least recently
+// used objects beyond that.
+template <typename Object>
 struct ItemObjectCache {
-    using Map = stlp::map<stlp::string, ItemCacheEntry>;
-    using Node = Map::Node;
+    using Map = stlp::map<stlp::string, ItemCacheEntry<Object>>;
+    using Node = typename Map::Node;
 
     // The map's header from the pool, emptied with `compare` as its compare byte; the limit 50.
     void Construct(std::uint8_t compare);
@@ -80,11 +82,16 @@ struct ItemObjectCache {
     Map map;
     std::uint32_t limit;
 };
-static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) == 0x24);
+using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
+using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
+static_assert(sizeof(ItemModelCache) == 0x10 && sizeof(ItemModelCache::Node) == 0x24);
+static_assert(sizeof(ItemTextureCache) == 0x10 && sizeof(ItemTextureCache::Node) == 0x24);
 // Every cached object released, in key order (the hero screen's model and texture caches).
-void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
+template <typename Object>
+void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache);
 
-void __fastcall TrimItemCache(ItemObjectCache* cache);
+template <typename Object>
+void __fastcall TrimItemCache(ItemObjectCache<Object>* cache);
 
 // An item's turning state, a counted object in the item's link_: made by the item draw and the moves.
 class ItemTurn : public CRefObject {
@@ -169,8 +176,8 @@ public:
     CItemInfoPanel* descPanel_;
     CItem* hoveredItem_;             // the item under the mouse (turns)
     CItemIconWindow* iconWindow_;
-    ItemObjectCache models_;
-    ItemObjectCache textures_;
+    ItemModelCache models_;
+    ItemTextureCache textures_;
 
 protected:
     explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui), hoveredItem_(nullptr) {}

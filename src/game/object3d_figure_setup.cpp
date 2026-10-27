@@ -29,8 +29,8 @@ namespace {
 constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
 constexpr float kHeroHalfWidth = 0.5f;
 constexpr float kHalf = 0.5f;
-constexpr std::uint32_t kBoundsSphere = 1;       // boundsFlags: radius valid
-constexpr std::uint32_t kBoundsBox = 2;          // boundsFlags: box valid
+constexpr std::uint32_t kBoundsSphere = 1;       // bounds.flags: radius valid
+constexpr std::uint32_t kBoundsBox = 2;          // bounds.flags: box valid
 constexpr std::uint32_t kFlagFigureLoadedBits = 0x80;   // flags_: the figure is loaded
 
 // FootprintPart::flags set here.
@@ -113,28 +113,28 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             FigureBone* bone = node->data;
             node = node->next;
             FootprintPart* box = &partBoxes[index];
-            manager->LoadFigureBounds(reinterpret_cast<ClipBounds*>(box), figureModel, model, bone->GetName(),
+            manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(),
                                             std::bit_cast<std::uint32_t>(scale.x),
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
             box->pivot = {bone->position.x, bone->position.y, bone->position.z};
-            box->flags |= kBoxLoaded;
+            box->bounds.flags |= kBoxLoaded;
             partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
-            high.x = Higher(high.x, static_cast<float>(box->pivot.x + box->boxMax.x + box->offset.x));
-            high.y = Higher(high.y, static_cast<float>(box->pivot.y + box->boxMax.y + box->offset.y));
-            high.z = Higher(high.z, static_cast<float>(box->pivot.z + box->boxMax.z + box->offset.z));
-            low.x = Lower(low.x, static_cast<float>(box->pivot.x + box->boxMin.x + box->offset.x));
-            low.y = Lower(low.y, static_cast<float>(box->pivot.y + box->boxMin.y + box->offset.y));
-            low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->boxMin.z + box->offset.z));
+            high.x = Higher(high.x, static_cast<float>(box->pivot.x + box->bounds.boxMax.x + box->bounds.center.x));
+            high.y = Higher(high.y, static_cast<float>(box->pivot.y + box->bounds.boxMax.y + box->bounds.center.y));
+            high.z = Higher(high.z, static_cast<float>(box->pivot.z + box->bounds.boxMax.z + box->bounds.center.z));
+            low.x = Lower(low.x, static_cast<float>(box->pivot.x + box->bounds.boxMin.x + box->bounds.center.x));
+            low.y = Lower(low.y, static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y));
+            low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z));
 
             const char* partName = bone->GetName();
             const int* fold = gamecrt::CaseFoldTable();
-            if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) box->flags |= kBoxBase;
-            if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) box->flags |= kBoxCrown;
-            if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) box->flags |= kBoxEmpty;
+            if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) box->bounds.flags |= kBoxBase;
+            if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) box->bounds.flags |= kBoxCrown;
+            if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) box->bounds.flags |= kBoxEmpty;
         }
         animation->ReleaseBones();
     }
@@ -144,18 +144,18 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    center.x = static_cast<float>((low.x + high.x) * kHalf);
-    center.y = static_cast<float>((low.y + high.y) * kHalf);
-    center.z = static_cast<float>((low.z + high.z) * kHalf);
-    below.x = low.x - center.x;
-    below.y = low.y - center.y;
-    below.z = low.z - center.z;
-    above.x = high.x - center.x;
-    above.y = high.y - center.y;
-    above.z = high.z - center.z;
-    boundsFlags |= kBoundsBox;
-    radius = LengthXYZ(above);
-    boundsFlags |= kBoundsSphere;
+    bounds.center.x = static_cast<float>((low.x + high.x) * kHalf);
+    bounds.center.y = static_cast<float>((low.y + high.y) * kHalf);
+    bounds.center.z = static_cast<float>((low.z + high.z) * kHalf);
+    bounds.boxMin.x = low.x - bounds.center.x;
+    bounds.boxMin.y = low.y - bounds.center.y;
+    bounds.boxMin.z = low.z - bounds.center.z;
+    bounds.boxMax.x = high.x - bounds.center.x;
+    bounds.boxMax.y = high.y - bounds.center.y;
+    bounds.boxMax.z = high.z - bounds.center.z;
+    bounds.flags |= kBoundsBox;
+    bounds.radius = LengthXYZ(bounds.boxMax);
+    bounds.flags |= kBoundsSphere;
 }
 
 EI_REWRITTEN(0x005179E0, CObject3D::SetUpAnimatedFigure);
@@ -175,18 +175,18 @@ void CObject3D::UpdatePartBounds() {
     float centreX = static_cast<float>((highX + lowX) * kHalf);
     float centreY = static_cast<float>(static_cast<float>(highY + lowY) * kHalf);
     float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * kHalf);
-    above.x = highX - centreX;
-    above.y = highY - centreY;
-    above.z = highZ - centreZ;
-    below.x = lowX - centreX;
-    below.y = lowY - centreY;
-    below.z = lowZ - centreZ;
-    boundsFlags |= kBoundsBox;
-    boundsFlags |= kBoundsSphere;
-    radius = LengthZYX(below);
-    center.x = centreX - localPosition_.x;
-    center.y = centreY - localPosition_.y;
-    center.z = centreZ - localPosition_.z;
+    bounds.boxMax.x = highX - centreX;
+    bounds.boxMax.y = highY - centreY;
+    bounds.boxMax.z = highZ - centreZ;
+    bounds.boxMin.x = lowX - centreX;
+    bounds.boxMin.y = lowY - centreY;
+    bounds.boxMin.z = lowZ - centreZ;
+    bounds.flags |= kBoundsBox;
+    bounds.flags |= kBoundsSphere;
+    bounds.radius = LengthZYX(bounds.boxMin);
+    bounds.center.x = centreX - localPosition_.x;
+    bounds.center.y = centreY - localPosition_.y;
+    bounds.center.z = centreZ - localPosition_.z;
 }
 EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 
@@ -249,15 +249,15 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         const LinkPartHeader& piece = node->second;
         part->materialValue_ = piece.materialValue;
         part->meshType_ = piece.meshType;
-        // The box and the pivot (bounds_, boxPivot_) as one FootprintPart.
-        std::memcpy(&part->bounds_, &piece.bounds, sizeof(FootprintPart));
+        // The box and the pivot.
+        part->box_ = piece.box;
     }
     const int* fold = gamecrt::CaseFoldTable();
-    if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) part->bounds_.flags |= kBoxBase;
-    if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) part->bounds_.flags |= kBoxCrown;
+    if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) part->box_.bounds.flags |= kBoxBase;
+    if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) part->box_.bounds.flags |= kBoxCrown;
     if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) {
-        part->bounds_.flags |= kBoxEmptyMark;
-        part->bounds_.flags |= kBoxCrown;
+        part->box_.bounds.flags |= kBoxEmptyMark;
+        part->box_.bounds.flags |= kBoxCrown;
     }
     // AddPart, inlined (appending).
     bool present = false;
@@ -269,10 +269,10 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         if (animation) animation->AttachMesh(part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    part->boxPivot_.x = part->localPosition_.x;
-    part->boxPivot_.y = part->localPosition_.y;
-    part->bounds_.flags |= kBoxLoaded;
-    part->boxPivot_.z = part->localPosition_.z;
+    part->box_.pivot.x = part->localPosition_.x;
+    part->box_.pivot.y = part->localPosition_.y;
+    part->box_.bounds.flags |= kBoxLoaded;
+    part->box_.pivot.z = part->localPosition_.z;
     return part;
 }
 EI_REWRITTEN(0x00517240, CObject3D::LoadPart);

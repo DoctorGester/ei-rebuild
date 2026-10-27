@@ -76,11 +76,11 @@ SessionBase::SessionBase() {
 }
 EI_REWRITTEN_SPECIAL(0x00436770, SessionBase::SessionBase);
 
-void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
+void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
     if (channel < 0 || channel >= kChannels) return;
     HandlerVector& v = handlers_[channel][type & 0xFF];
     if (v.end() == v.EndOfStorage()) {
-        v.InsertOverflow<stlp::PlainElement<void*>>(v.end(), handler, 1);
+        v.InsertOverflow<stlp::PlainElement<MessageHandler>>(v.end(), handler, 1);
         return;
     }
     if (v.end()) *v.Finish() = handler;
@@ -88,7 +88,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
 }
 EI_REWRITTEN(0x004377D0, SessionBase::AddHandler);
 
-void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* handler) {
+void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
     RefPtr ref;
     ref.ShareReturn(prototype);
     const std::uint32_t key = TypeRegistry::KeyOf(ref.ptr);

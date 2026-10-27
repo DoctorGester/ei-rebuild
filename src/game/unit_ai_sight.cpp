@@ -75,7 +75,7 @@ void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
 void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
         eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
-    eye.z = static_cast<float>(static_cast<double>(self->above.z) * kEyeHeightFactor + self->eyeHeight + self->center.z + eye.z);
+    eye.z = static_cast<float>(static_cast<double>(self->bounds.boxMax.z) * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z);
     Vector3 axis = RotatedAxisY(self->localRotation_);
     ready = 1;
     facing = -axis;

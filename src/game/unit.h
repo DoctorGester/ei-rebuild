@@ -43,6 +43,17 @@ constexpr int kUnitTypeHero = 0x32;
 // items live in the player's inventory records.
 constexpr int kClassPartyController = 0x3D;
 
+// Eight damage or protection words (an AI attack option's damage, a combat controller's
+// protection): word 0 apart, words 1..7 per damage type.
+struct DamageWords {
+    std::uint16_t words[8];
+
+    // The sum over words 1..7 of what exceeds the matching protection word (a difference with its top bit set
+    // counts 0), as 16 bits.
+    std::uint32_t ExcessOver(const DamageWords* protection) const;
+};
+static_assert(sizeof(DamageWords) == 0x10);
+
 // A body slot as UnitParams keeps it (UnitStatSlot rounded).
 struct UnitParamsSlot {
     int type;
@@ -587,6 +598,8 @@ static_assert(sizeof(UnitVitals) == 0x58);
 
 // A creature's computed statistics (built from the unit's parameters, often as a stack copy).
 struct UnitStats {
+    // Indices of combat[].
+    enum CombatIndex { kReach, kAttack, kAttackSpread, kDefence, kSpeed };
     // The float results below are returned unrounded (declared double: the FPU runs above 24-bit precision
     // under Rebirth, see CItemWeapon::RollDamage). Period20: 25 / stat20.
     double Period20();
@@ -727,7 +740,7 @@ struct UnitStats {
     // Out[1..7]: each damage type's protection (vitals' current value) plus the body slot's layers that are
     // there (state >= 2; layers 2, 1, 0 for text-key units, else layer 0), rounded to nearest. out[0] is left
     // alone.
-    void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::int16_t* out);
+    void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out);
     // Attribute `index` for skill checks: the attribute byte for units without a text key; otherwise the
     // attribute with its stat bonus (stat - 25; 0 for other indices) plus the largest bonus of the unit's
     // quick items. Unrounded.
@@ -758,7 +771,7 @@ struct UnitStats {
     float loadFactor;               // LegsFactor when movementKind is 1, else 1
     float armsFactor;
     int movementKind;                   // the model's: 1 legs (load factor), 2 on the water (no size classes)
-    // The combat values (combat.h's CombatStats overlay names them too).
+    // The combat values.
     std::uint32_t modelField8;      // from the model (UnitModelRecord::field8)
     std::int16_t sizeClass;         // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
     std::int16_t unused_06A;
@@ -767,7 +780,7 @@ struct UnitStats {
     float combat[5];                // reach, attack, attack spread, defence, speed (the prototype's)
     float damage;
     float damageSpread;
-    std::uint32_t prototypeField12;      // from the prototype (UnitPrototypeRecord::field12)
+    float attackCategory;           // the natural attack's category (UnitPrototypeRecord::field12)
     float damageWeights[7];         // the natural attack's, per damage type
     int naturalWeapon;              // weapon type of the natural attack (0x10: none / spells only)
     UnitStatPair valuesB0[6];

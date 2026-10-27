@@ -130,12 +130,12 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(&object->localPosition_, Length<Sum3::XYZ>(object->center) + object->radius))
+            if (!builder.Touches(&object->localPosition_, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
                 continue;
             BuildNodeMatrix(object->localRotation_, object->localPosition_, object->worldMatrix);
-            Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->center) +
+            Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
                              object->localPosition_;
-            if (!builder.Touches(&centre, object->radius)) continue;
+            if (!builder.Touches(&centre, object->bounds.radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             CLinkMesh* figure = object->figure;
             if (figure) {
