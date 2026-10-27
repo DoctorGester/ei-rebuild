@@ -151,16 +151,16 @@ public:
     void IgnoreArgument(int);
 
     virtual int FiguresLoaded();                 // Client
-    // 14: client (the animations the unit names at +0x254 / +0x255 from frame `time`); base empty
+    // Client (the animations the unit names at +0x254 / +0x255 from frame `time`); base empty
     virtual void RestartAnimation(float) {}
     virtual void Unused15() {}                   // empty everywhere (base, client)
     virtual PathOrder* Path() = 0;               // server +0x3C, client +0x38
     virtual void Unused17() = 0;                 // empty (server, client)
     virtual void PlayerChanged(void*) {}         // client, base empty
-    // 19: server (1), base (0). CUnit's slot 33 (ScaleEffectChanged)
+    // Server (1), base (0). CUnit's slot 33 (ScaleEffectChanged)
     // passes its whole dword argument on; the bodies read the low byte.
     virtual int RefreshVitals(char withHitPoints);
-    // 20: server (CUnitServer::TakeHit), base (0); either unit may be null.
+    // Server (CUnitServer::TakeHit), base (0); either unit may be null.
     virtual int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
     virtual int Heal(float amount);              // server (1), base (0)
     virtual void RepackStats() {}                // server
@@ -170,15 +170,15 @@ public:
     virtual bool ArmourPutOn(std::uint32_t itemId) = 0;     // client, server
     virtual bool ArmourTakenOff(std::uint32_t slot) = 0;    // client, server
     virtual int ClearOuterArmourLayers() { return 0; }      // server
-    // 29: server; client (RefreshSkins): for a hero (type 0x32), the two textures
+    // Server; client (RefreshSkins): for a hero (type 0x32), the two textures
     // of its figure (+0x94's +0x20 / +0x24) are reloaded when names other ones (after its
     // items changed); returns 1. Base 0.
     virtual int RefreshEquipment() { return 0; }
     virtual int RefreshModel() { return 0; }     // after a weapon change (client)
     virtual int RefreshWounds() { return 0; }    // client (1), base 0; CUnit's slot 58 tail-jumps here
-    // 32: client (count capped at 7), base empty
+    // Client (count capped at 7), base empty
     virtual void SetArmourModels(const std::uint32_t*, int) {}
-    // 33: client (count capped at 4), base empty
+    // Client (count capped at 4), base empty
     virtual void SetWeaponModels(const std::uint32_t*, int) {}
     virtual bool WeaponAdded(std::uint32_t itemId);         // client (AddWeaponModel), base (false)
     virtual bool RemoveWeaponModel(std::uint32_t itemId);   // client, base (false)
@@ -187,34 +187,34 @@ public:
     virtual void HostileMaskChanged() {}         // server (the brain), base empty
     virtual int TamingStage() { return 0; }      // server (+0x908, the taming stage), base 0
     virtual void AdvanceTime(float) {}           // client
-    // 41: the unit's path was replaced; client places the unit on it at its +0x34 time
+    // The unit's path was replaced; client places the unit on it at its +0x34 time
     // (with (+0x34, 0)), base empty.
     virtual void MotionChanged() {}
-    // 42: server (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
+    // Server (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
     // brain and +0x1DC forget it); base and client empty.
     virtual void ObjectDeleted(CEngineObject*) {}
-    // 43: client (unit_client_models.h): the fade-in starts again (+0x78 and every part's
+    // Client (unit_client_models.h): the fade-in starts again (+0x78 and every part's
     // alpha 0); base empty. The client world's AddObject calls it for units joining a session.
     virtual int RestartFadeIn() { return 0; }
     virtual void Resettle() {}                   // server (combat.h)
     virtual void UpdateMoveFactors() {}          // server (combat.h)
-    // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
+    // A body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
     // (0..5); `flags` is the unit's Params->flags byte (bit 3 skips it). Client
     // (text and a particle effect), base empty.
     virtual void StatChanged(int, float, std::uint32_t) {}
-    // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client
+    // The hit took `lost` (a fraction of the hit points) with the wound flag; client
     // (the argument is not read), base empty
     virtual void Wound(float) {}
     virtual void Died() {}                       // client (death: the light goes out, blood), base empty
-    // 49: server (UpdateSpellBlockFlag), base empty; CUnit's slot 28
+    // Server (UpdateSpellBlockFlag), base empty; CUnit's slot 28
     // (EffectsChanged) tail-jumps here.
     virtual void EffectsChanged() {}
     virtual void GetAttackParams(struct AttackParams* out) = 0;   // server, client
-    // 51: client (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
+    // Client (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
     // base empty.
     virtual void Say(const SpeechRecord*, int) {}
     virtual void StopSpeech() {}                 // client, base empty
-    // 53 (0xD4): server, base empty. CUnit's slot 57
+    // Server, base empty. CUnit's slot 57
     // tail-jumps here.
     virtual void MoveFactorsChanged() {}
 
@@ -298,7 +298,7 @@ public:
     std::uintptr_t SetMoveModes(int mode, int mode2);
     // Clears (on) or sets (off) flags_ bit 0x40000000; marks part 5.
     std::uintptr_t SetFlag40000000Off(bool on);
-    // Virtual slot 46: sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
+    // Sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
 
     // Writes the item ids of the 4 weapons and then of the 7 armour pieces to
@@ -370,44 +370,44 @@ public:
     // 0x40000 skill; others 1). Animation steps divide the entry's frames by it.
     float ActionSpeed(const FigureAnimation* entry);
 
-    // Virtual slot 18: for hero units, whether the animation entry's flags have
+    // For hero units, whether the animation entry's flags have
     // the bits the controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
     bool AcceptsAnimation(const void* entry) override;
 
     // Ratio of the animation factors of the scale's and the base scale's z.
     double AnimationRatio();
 
-    // Slot 6, the per-tick update (another name, so it is no override): the controller's
+    // The per-tick update (another name, so it is no override): the controller's
     // update (its slot 6), then the map object's. Returns 1.
     int Tick();
-    // Slot 27: the map object's scale recomputation, then the controller's
+    // The map object's scale recomputation, then the controller's
     // slot 44. Returns what that leaves in EAX.
     std::uintptr_t RecomputeScale() override;
-    // Slot 28 (effects changed): the controller's slot 49.
+    // The controller's slot 49.
     std::uintptr_t EffectsChanged() override;
-    // Slot 30: the figures take the base scale again. Returns what
+    // The figures take the base scale again. Returns what
     // that leaves in EAX.
     std::uint32_t ApplyBaseScale() override;
-    // Slot 26: loads the figures (unless flags_ has 0x80) and tells the
+    // Loads the figures (unless flags_ has 0x80) and tells the
     // controller (its slot 13). Returns the loader's result, or 1.
     std::uintptr_t LoadFigures() override;
-    // Slot 19: a companion of type 0x48 becomes the controller (the old one is
+    // A companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     std::uintptr_t AttachObject(CEngineObject* object) override;
-    // Slot 32 (statistics changed): the map object's (packs the server
+    // The map object's (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged() override;
-    // Slot 33: the controller's slot 19 with `value` (0 without a controller).
+    // The controller's slot 19 with `value` (0 without a controller).
     std::uintptr_t ScaleEffectChanged(int value) override;
-    // Slot 35: a server controller (class 0x3E) copies `stats` in. Returns
+    // A server controller (class 0x3E) copies `stats` in. Returns
     // what is left in EAX (the controller's class id when it is not one).
     std::uintptr_t SetStats(const UnitStats* stats) override;
-    // Slot 37: the controller's slot 23.
+    // The controller's slot 23.
     std::uintptr_t UpdateSizeClasses() override;
-    // Slot 48 (another name, as CMapObject::GroundPoint): `out` = the position with z =
+    // `out` = the position with z =
     // the ground (or water surface) height plus the mode speed (ModeSpeed as a float). Returns `out`.
     float* StandPoint(float* out);
-    // Slot 51: stores `offset` and puts the unit on the ground (or, for
+    // Stores `offset` and puts the unit on the ground (or, for
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
     // Sets the parameter block, the hit point maximum and the hit points from `stats`.
@@ -442,7 +442,7 @@ public:
     // unit holds to `items` (weapons, armour, quick items, spells, the carried ones; empty slots
     // skipped) and each one's spell to `spells` when it has one.
     void CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells);
-    // Virtual slot 34 (the zone loader with the record's prototype name): fresh vitals and statistics (reset,
+    // Fresh vitals and statistics (reset,
     // then the owner's BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
     void TakePrototype(const char* prototype) override;
     // Sends the equipment ids to the controller (slot 32: the 7 armour ids, then
@@ -467,11 +467,11 @@ public:
     // a player keep everything.
     void DropBrokenEquipment();
 
-    // Virtual slot 9 (Load): the map object part, the controller, the unit's name,
+    // The map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
     // and from version 0x4D the prototype names (prototypeId_ / prototype23C).
     void LoadUnit(CStream* stream);
-    // Virtual slot 10 (Save): the same fields in the same order (the active weapon
+    // The same fields in the same order (the active weapon
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.
     void SaveUnit(CStream* stream);
 
@@ -488,7 +488,7 @@ public:
     // item, null when there is none (nothing changes then).
     CItem* TakeRandomItem();
 
-    // Virtual slot 2 (Create; a different name so it is no override): the map object's
+    // The map object's
     // Create, Reset, then 14 network fields (the DeltaState at +0x1C4, SetSize
     // inlined). Returns 1.
     int CreateUnit();
@@ -536,11 +536,11 @@ public:
     double DoubleHeight() const;
     // The armour piece worn in `slot` (armor[slot], unchecked).
     CItemArmor* WornItem(int slot) const;
-    // Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
+    // SetPlayer(null), the controller's slot 5, every
     // item slot released and emptied (quick items, weapons, spells, armour), the carried items
     // released (no null test) and their array freed (grow-by kept).
     void ReleaseUnit();
-    // Virtual slot 3 (Destroy; another name so it is no override): the object's slot 5,
+    // The object's slot 5,
     // the map object's Destroy, then Reset.
     void DestroyUnit();
 
@@ -1099,9 +1099,9 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
 
-    // Virtual slot 17: hit points rounded (FISTP) to a 16-bit value are <= 0.
+    // Hit points rounded (FISTP) to a 16-bit value are <= 0.
     BOOL IsDead() override;
-    // Virtual slot 18: hit points below -5 times the maximum.
+    // Hit points below -5 times the maximum.
     BOOL IsOverkilled() override;
 
     // (+0x1C is the map object it belongs to, map_object.h.) Virtual slot 6, the per-tick update: counts down
@@ -1109,15 +1109,15 @@ public:
     int RunTick() override;
     // Copies 0x58 bytes of `data` to +0x20 and marks the owner's part 0 changed.
     std::uintptr_t SetData(const void* data);
-    // Virtual slot 20 (the server's own): applies a hit to +0x20; a dead object
+    // Applies a hit to +0x20; a dead object
     // loses its effects and gets flags_ bit 1. Returns 1 (0 if refuses).
     virtual BOOL TakeHit(const void* hit);
 
-    // Virtual slots 9 / 10 (Load / Save): the vitals block, the two names and the string
+    // The vitals block, the two names and the string
     // array (a count, then each string with its terminator; Load appends to the array).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // Virtual slot 2 (Create): no map object, the vitals reset. Returns 1. Slot 3 (Destroy): the vitals
+    // No map object, the vitals reset. Returns 1. Slot 3 (Destroy): the vitals
     // reset, the string array emptied, no map object.
     int Create() override;
     void Destroy() override;
@@ -1184,20 +1184,20 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
 
-    // Virtual slot 17: the unit's hit points <= 0.
+    // The unit's hit points <= 0.
     BOOL IsDead() override;
-    // Virtual slot 18: the unit's hit points below -5 times its maximum.
+    // The unit's hit points below -5 times its maximum.
     BOOL IsOverkilled() override;
-    // Virtual slot 16: a hit of `damage` with the hit-kind bits `kind` on a
+    // A hit of `damage` with the hit-kind bits `kind` on a
     // living object flagged 0x400000 shows its number over it (the client world's).
     void Hit(int damage, int kind) override;
 
-    // Virtual slot 2 (Create): no light state (+0x20 /
+    // No light state (+0x20 /
     // +0x24), the particle array emptied, no end sound (+0x54 = -1), no map object.
     // Returns 1.
     int Create() override;
 
-    // Virtual slot 6, the client's per-tick update: effect
+    // The client's per-tick update: effect
     // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
     int RunTick() override;
 
@@ -1229,7 +1229,7 @@ public:
     // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
     // list; mode 2: a light is hidden, its id removed from the list and the light released.
     void SetLightMode(int mode) override;
-    // Virtual slot 3 (Destroy): +0x20 / +0x24 cleared, no particles, the light hidden,
+    // +0x20 / +0x24 cleared, no particles, the light hidden,
     // its id removed and released, no object.
     void Destroy() override;
 

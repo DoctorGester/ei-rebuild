@@ -278,7 +278,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     edge->texture_ = nullptr;
     edge->flags_ |= kPlainColour;
     edge->flatColour_ = 0xB4000000;
-    // 2: the sling button.
+    // The sling button.
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
@@ -470,7 +470,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* edge = AddSprite(nullptr);
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
-    // 5: the sling button.
+    // The sling button.
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;

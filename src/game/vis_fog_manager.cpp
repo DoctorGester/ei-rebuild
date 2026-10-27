@@ -41,7 +41,7 @@ HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<H
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
 EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
-// Slot 2 (Create): the texture, the tile table, then the manager's own Create (its
+// The texture, the tile table, then the manager's own Create (its
 // result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
     TextureHolder(self)->Load(kFogTextureKind, FogTextureName());
@@ -57,7 +57,7 @@ int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
 }
 EI_REWRITTEN(0x004E2990, VisFogManagerCreate);
 
-// Slot 3 (Destroy; the destructor calls it too): the texture dropped (null,
+// The texture dropped (null,
 // then released), every fog released, the list emptied.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
     CEngineObject* texture = self->current;
@@ -72,7 +72,7 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
 }
 EI_REWRITTEN(0x004E2850, VisFogManagerDestroy);
 
-// Slot 6 (the tick): every fog's tick; one that returns 0 (no cells left) leaves the list
+// Every fog's tick; one that returns 0 (no cells left) leaves the list
 // and is released. Returns 0.
 int __fastcall VisFogManagerTick(ClientArrayManager* self) {
     for (FogNode* node = self->list.head; node;) {

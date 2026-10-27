@@ -87,7 +87,7 @@ EI_REPLACE_METHOD(0x00533D60, CUnitController::IgnoreTwoArguments);
 void CUnitController::IgnoreThreeArguments(int, int, int) {}
 EI_REPLACE_METHOD(0x00533D20, CUnitController::IgnoreThreeArguments);
 
-// 0: slots 29 (RefreshEquipment), 30 (RefreshModel), 31 (RefreshWounds) and 39 (TamingStage; the
+// Slots 29 (RefreshEquipment), 30 (RefreshModel), 31 (RefreshWounds) and 39 (TamingStage; the
 // client's too).
 int __fastcall ControllerZero(CUnitController*) { return 0; }
 EI_REPLACE(0x00533C30, ControllerZero);

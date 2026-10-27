@@ -116,24 +116,24 @@ public:
     // emptied.
     ~CUnitClientSpecific() override;
 
-    // Virtual slot 2 (Create): no sources, times, animation or motion order (PathOrder::Reset
+    // No sources, times, animation or motion order (PathOrder::Reset
     // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
     // released. Returns 1.
     int Create() override;
-    // Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
+    // The three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void Destroy() override;
     // (slots 11 / 12): "CUnitClientSpecific", 0x3D.
     const char* GetClassName() override;
     int GetClassId() override;
-    // 16: the order part of the unit's path (ClientControllerPath, registered at its address).
+    // The order part of the unit's path (ClientControllerPath, registered at its address).
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
 
     // Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
-    // Virtual slot 50: the attack figures the interface shows for a party unit. A text-key unit with a weapon
+    // The attack figures the interface shows for a party unit. A text-key unit with a weapon
     // in hand (weaponIds[activeWeapon]) takes damage, type, damage type and speed from the weapon and attack
     // / defence from the weapon's +0x84 / +0x88 plus UnitParams::WeaponSkillBonus (truncated); otherwise they
     // come from the packed parameters (CUnit + 0x330), with the weapon's type and damage type, or type 8 and
@@ -142,14 +142,14 @@ public:
     // difficulty for units without a text key.
     void GetAttackParams(AttackParams* out) override;
 
-    // Virtual slot 26 (ArmourPutOn): the unit puts on armour piece `itemId` (packed: prototype index
+    // The unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not
     // already worn, each part of its group is replaced by "<part>.armor<number>" when the unit's
     // figure has it, or kept / restored to the plain part (the hair keeps "hr.<hair>"). False
     // (AL) for an invalid id, an armour slot beyond 6 or an unknown figure; true otherwise.
     bool ArmourPutOn(std::uint32_t itemId) override;
 
-    // Virtual slot 27 (ArmourTakenOff): the unit takes off the armour in armour slot `slot`. The slot is
+    // The unit takes off the armour in armour slot `slot`. The slot is
     // emptied; for a body armour, trousers or helmet each part of its group is put back plain
     // (the hair as "hr.<hair>", skipped without hair): the figure's parts of that name are
     // removed and the plain part added, unless it is the only one and already plain. False (AL)
@@ -157,7 +157,7 @@ public:
     // then too); true otherwise.
     bool ArmourTakenOff(std::uint32_t slot) override;
 
-    // Virtual slot 25 (ShowWeapon): the unit takes the weapon of weapon slot `slot` in hand. The
+    // The unit takes the weapon of weapon slot `slot` in hand. The
     // figure parts of the weapon in hand (weaponIds[unit->activeWeapon]) are removed by
     // name, the unit's active weapon becomes `slot` and the byte +0x74 is cleared; the
     // new weapon's parts (none for an empty slot or a slot beyond 3) are added from the unit's
@@ -197,16 +197,16 @@ public:
     // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
     // loaded face.
     bool LoadFaceTexture();
-    // Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
+    // The drawn parts take the fade-in as alpha.
     // Returns 1.
     int FiguresLoaded() override;
-    // Virtual slot 43: the fade-in starts again from 0 (the drawn parts take it). Returns
+    // The fade-in starts again from 0 (the drawn parts take it). Returns
     // 0 (a leftover register value).
     int RestartFadeIn() override;
-    // Virtual slot 24: the level from the packed experience (UnitParams +0x04, CUnit +0x334):
+    // The level from the packed experience (UnitParams +0x04, CUnit +0x334):
     // ln(experience /) / ln stored as a float and rounded to nearest.
     int Level() override;
-    // Virtual slot 31 (statistics changed): when the wounds texture is needed
+    // When the wounds texture is needed
     // the client half shows "mo<unit id>w", else none. Returns 1.
     int RefreshWounds() override;
     // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80;
@@ -219,14 +219,14 @@ public:
     // without the flag.
     void UpdateArrow();
 
-    // Virtual slot 40: the unit moves on to world time `time`. Before the last time (or
+    // The unit moves on to world time `time`. Before the last time (or
     // NaN) it is only put back on the ground (+0x320 above, the world's MoveObject); otherwise the
     // step (more than 500 becomes 500..600, one IsaacRandom draw) runs the invisible / stunned
     // pulses, places the unit on its path unless +0x260 (then the animation speed is
     // 1), and advances the animation by the step (times the animation speed when +0x25C is 2;
     // not when +0x25C is 1).
     void AdvanceTime(float time) override;
-    // Virtual slot 14: unless the unit is frozen (flags_ 0x10000000) the animation queue
+    // Unless the unit is frozen (flags_ 0x10000000) the animation queue
     // is emptied and the unit's animations start again: the special idle (StartIdleAnimation(1))
     // for +0x255 == -2, else the entries +0x254 (played) and +0x255 (queued behind it, or played
     // alone); then the animation is advanced to `time` + 1 - +0x258 when that is above 0 (+0x2C /
@@ -241,20 +241,20 @@ public:
     // StatChanged: a hit on body location `location` (0 head .. 5 right leg) of strength `amount`; the hit sound and blood
     // particles; see docs/notes/units.md, "StatChanged on the client".
     void StatChanged(int location, float amount, std::uint32_t flags) override;
-    // Virtual slot 47 (Wound; the argument is not read): sparks (particles 0x2043, 10 alpha)
+    // Sparks (particles 0x2043, 10 alpha)
     // attach to the unit, sized by its radius; the parts flash unless they are
     // already, and the flash lasts at least 4 more ticks.
     void Wound(float unused) override;
-    // Virtual slot 48 (death): the companion's light goes out; blood kinds
+    // The companion's light goes out; blood kinds
     // 1..4 leave a decal under the body part "bd" (or the unit, sized 0.75 x its smaller extent).
     void Died() override;
-    // Virtual slot 18 (PlayerChanged): with a player the companion shows the
+    // With a player the companion shows the
     // party light (colour, alpha 1, radius).
     void PlayerChanged(void* player) override;
     // The unit placed on its new path at the time it was last advanced to, without turning.
     void MotionChanged() override;
 
-    // Virtual slot 51: the unit says `speech` (nothing for null), a speech of `kind`.
+    // The unit says `speech` (nothing for null), a speech of `kind`.
     // Queued speeches the new kind replaces (SpeechReplaced) and finished ones (SpeechFinished)
     // leave the queue; unless the queue is empty or the kind is one of 0x1D-0x1F, 0x23-0x26, 0x2A
     // nothing more happens. The speech (delay 3; `talking` for kind 0x2B) joins the queue's end;
@@ -262,36 +262,36 @@ public:
     // 0x800000; kinds 2 / 0x1C only when the last waiting speech sound has ended, and their
     // sound becomes +0x90).
     void Say(const SpeechRecord* speech, int kind) override;
-    // Virtual slot 52: every queued speech's sound stops (talking ones clear the server
+    // Every queued speech's sound stops (talking ones clear the server
     // unit's flag 0x800000) and the queue is emptied.
     void StopSpeech() override;
     // Plays `speech`'s sound (2D, priority 1, volume 100, as speech) into its +0x0C and
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
-    // Virtual slot 36 (HasOtherArmour): 1 when a weapon model is held (any weapon id not -1). Slot 37
+    // 1 when a weapon model is held (any weapon id not -1). Slot 37
     // (HasMainArmour): 1 when one of the first three armour slots (body, trousers, helmet) holds a model.
     int HasOtherArmour() override;
     int HasMainArmour() override;
 
-    // Virtual slot 29 (RefreshEquipment): for heroes the composed skins are renewed:
+    // For heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
     // unchecked) and the simple one (ComposeSkin(0)) into the second's (+0x24, skipped when
     // missing). A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's
     // LoadTexture) when ComposeSkin returned non-zero or the name differs. Returns 1.
     int RefreshEquipment() override;
-    // Virtual slot 30 (RefreshModel, after a weapon change): the simple skin only. Returns 1.
+    // The simple skin only. Returns 1.
     int RefreshModel() override;
-    // Virtual slot 32: every armour slot taken off, the ids cleared, then the
+    // Every armour slot taken off, the ids cleared, then the
     // first min(count, 7) of `ids` put on.
     void SetArmourModels(const std::uint32_t* ids, int count) override;
-    // Virtual slot 33: the weapon ids cleared, then the first min(count, 4) of `ids`
+    // The weapon ids cleared, then the first min(count, 4) of `ids`
     // added.
     void SetWeaponModels(const std::uint32_t* ids, int count) override;
-    // Virtual slot 34 (WeaponAdded): `id` (packed; neither half 0xFFFF) goes to the first free weapon
+    // `id` (packed; neither half 0xFFFF) goes to the first free weapon
     // slot. False (AL) for an invalid id or no free slot.
     bool WeaponAdded(std::uint32_t id) override;
-    // Virtual slot 35: the weapon slot holding `id` is emptied. False (AL) when none does.
+    // The weapon slot holding `id` is emptied. False (AL) when none does.
     bool RemoveWeaponModel(std::uint32_t id) override;
 
     // The sounds of the animation playing between the last update's frame and now (attacks, deaths, skills, idles, hits,
