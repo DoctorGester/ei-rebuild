@@ -94,7 +94,7 @@ void __cdecl ConstructReceivedMessages() {
 } // namespace
 
 EI_REPLACE(0x0066C4D0, ConstructReceivedMessages);
-EI_REPLACE(0x0066C520, DestroyReceivedMessages);
+EI_REWRITTEN(0x0066C520, DestroyReceivedMessages);
 
 // --- The leader died ----------------------------------------------------------------------
 

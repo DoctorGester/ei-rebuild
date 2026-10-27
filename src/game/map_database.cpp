@@ -267,4 +267,4 @@ void __cdecl ConstructMapDatabase() {
 } // namespace
 
 EI_REPLACE(0x0045E6C0, ConstructMapDatabase);
-EI_REPLACE(0x0045E6E0, DestroyMapDatabase);
+EI_REWRITTEN(0x0045E6E0, DestroyMapDatabase);

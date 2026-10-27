@@ -33,21 +33,21 @@ void CMapObjectCompanion::Destroy() { owner = nullptr; }
 EI_REWRITTEN(0x00510760, CMapObjectCompanion::Destroy);
 
 int CMapObjectCompanion::UpdateCompanion() { return 0; }
-EI_REPLACE_METHOD(0x005106E0, CMapObjectCompanion::UpdateCompanion);
+EI_REWRITTEN(0x005106E0, CMapObjectCompanion::UpdateCompanion);
 // EffectsChanged (the server's too) and the visibility virtual: nothing.
 void CMapObjectCompanion::IgnoreArgument(int) {}
-EI_REPLACE_METHOD(0x005106D0, CMapObjectCompanion::IgnoreArgument);
-EI_REPLACE_METHOD(0x00510700, CMapObjectCompanion::IgnoreArgument);
+EI_REWRITTEN(0x005106D0, CMapObjectCompanion::IgnoreArgument);
+EI_REWRITTEN(0x00510700, CMapObjectCompanion::IgnoreArgument);
 // The unused virtual (the client's too) and the server's: nothing. One byte each (too short to hook).
 void __fastcall CompanionNothing(CMapObjectCompanion*) {}
-EI_REPLACE(0x005104B0, CompanionNothing);
-EI_REPLACE(0x00515810, CompanionNothing);
+EI_REWRITTEN(0x005104B0, CompanionNothing);
+EI_REWRITTEN(0x00515810, CompanionNothing);
 // Query (all three classes): 0.
 int CMapObjectCompanion::Query(int, int) { return 0; }
 EI_REWRITTEN(0x005104C0, CMapObjectCompanion::Query);
 // Hit (the server's too): nothing.
 void CMapObjectCompanion::HitNothing(int, int) {}
-EI_REPLACE_METHOD(0x005106F0, CMapObjectCompanion::HitNothing);
+EI_REWRITTEN(0x005106F0, CMapObjectCompanion::HitNothing);
 
 // --- The client's and the server's ---------------------------------------------------------------------
 

@@ -157,6 +157,6 @@ void __cdecl ConstructClientWorld() {
 } // namespace
 
 EI_REPLACE(0x00589BE0, ConstructServerWorld);
-EI_REPLACE(0x00589C00, DestroyServerWorld);
+EI_REWRITTEN(0x00589C00, DestroyServerWorld);
 EI_REPLACE(0x00560620, ConstructClientWorld);
-EI_REPLACE(0x00560640, DestroyClientWorld);
+EI_REWRITTEN(0x00560640, DestroyClientWorld);

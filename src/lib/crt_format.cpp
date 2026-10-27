@@ -922,7 +922,7 @@ int __cdecl Vsprintf(char* buffer, const char* format, va_list args) {
     *sink.next = '\0';
     return written;
 }
-EI_REPLACE(0x006ECC47, libcrt::Vsprintf);
+EI_REWRITTEN(0x006ECC47, libcrt::Vsprintf);
 
 int __cdecl Sprintf(char* buffer, const char* format, ...) {
     va_list args;
@@ -931,7 +931,7 @@ int __cdecl Sprintf(char* buffer, const char* format, ...) {
     va_end(args);
     return written;
 }
-EI_REPLACE(0x006E8715, libcrt::Sprintf);
+EI_REWRITTEN(0x006E8715, libcrt::Sprintf);
 
 int FormatInto(char* buffer, std::size_t room, const char* format, va_list args) {
     BoundedSink sink{buffer, room};

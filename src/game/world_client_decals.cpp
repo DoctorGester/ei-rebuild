@@ -154,4 +154,4 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     render::EndDecalTime(points->size * 4);
 }
 EI_REWRITTEN(0x0056C750, CWorldClient::ProjectDecal);
-EI_REPLACE(0x0056CE10, FreePartPoints);
+EI_REWRITTEN(0x0056CE10, FreePartPoints);

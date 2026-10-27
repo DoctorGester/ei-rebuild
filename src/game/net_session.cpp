@@ -89,10 +89,10 @@ EI_REWRITTEN(0x004122D0, Pump);
 } // namespace net
 
 EI_REPLACE(0x00412230, InitGameServerPointer);
-EI_REPLACE(0x00412250, ReleaseGameServer);
+EI_REWRITTEN(0x00412250, ReleaseGameServer);
 EI_REPLACE(0x00412280, InitGameClientPointer);
-EI_REPLACE(0x004122A0, ReleaseGameClient);
+EI_REWRITTEN(0x004122A0, ReleaseGameClient);
 EI_REPLACE(0x00432CA0, ConstructSendBuffer);
-EI_REPLACE(0x00432CC0, DestroySendBuffer);
+EI_REWRITTEN(0x00432CC0, DestroySendBuffer);
 EI_REPLACE(0x00432CE0, ConstructReceiveBuffer);
-EI_REPLACE(0x00432D00, DestroyReceiveBuffer);
+EI_REWRITTEN(0x00432D00, DestroyReceiveBuffer);

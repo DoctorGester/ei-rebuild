@@ -73,4 +73,4 @@ double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon
     }
     return 0.0;
 }
-EI_REPLACE_METHOD(0x00527850, UnitParams::WeaponSkillBonus);
+EI_REWRITTEN(0x00527850, UnitParams::WeaponSkillBonus);

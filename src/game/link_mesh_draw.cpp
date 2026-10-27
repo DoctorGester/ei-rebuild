@@ -283,5 +283,5 @@ int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, 
     return r.vertices.count << 2;
 }
 EI_REWRITTEN(0x004F4850, CLinkMesh::RasterisePart);
-EI_REPLACE(0x004F4B30, FreeTexturePixels);
+EI_REWRITTEN(0x004F4B30, FreeTexturePixels);
 EI_REPLACE(0x004F2B20, FreeMovedPackets);   // frees the moved packets at exit

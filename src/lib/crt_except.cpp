@@ -59,7 +59,7 @@ Exception* Exception::CopyConstruct(const Exception& source) {
     if (copy) std::memcpy(copy, source.text, size);
     return this;
 }
-EI_REPLACE_METHOD(0x006E7D3F, libcrt::Exception::CopyConstruct);
+EI_REWRITTEN(0x006E7D3F, libcrt::Exception::CopyConstruct);
 
 Exception* Exception::Assign(const Exception& source) {
     if (this != &source) {

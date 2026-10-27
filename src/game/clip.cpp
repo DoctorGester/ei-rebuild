@@ -163,4 +163,4 @@ EI_REWRITTEN(0x0042D910, ClipTriangle);
 } // namespace clip
 
 EI_REPLACE(0x0042D8E0, ConstructWorkWords);
-EI_REPLACE(0x0042D900, DestroyWorkWords);
+EI_REWRITTEN(0x0042D900, DestroyWorkWords);

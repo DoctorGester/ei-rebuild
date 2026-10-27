@@ -269,4 +269,4 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
 EI_REWRITTEN(0x00498940, CParticleManager::DrawAll);
 
 EI_REPLACE(0x00498910, ConstructDrawOrder);
-EI_REPLACE(0x00498930, DestroyDrawOrder);
+EI_REWRITTEN(0x00498930, DestroyDrawOrder);

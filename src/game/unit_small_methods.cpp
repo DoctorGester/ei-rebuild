@@ -17,7 +17,7 @@ EI_REWRITTEN(0x0052E290, UnitClassId);
 
 // The constructor of the motion's segment part (nothing to construct). Returns it.
 void* __fastcall MotionSegmentConstruct(void* self) { return self; }
-EI_REPLACE(0x0052E230, MotionSegmentConstruct);
+EI_REWRITTEN(0x0052E230, MotionSegmentConstruct);
 
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();

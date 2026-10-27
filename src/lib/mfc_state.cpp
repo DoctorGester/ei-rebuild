@@ -151,7 +151,7 @@ void __cdecl ConstructAfxData() {
 } // namespace
 
 EI_REPLACE(0x0070D12E, ConstructAfxData);
-EI_REPLACE(0x0070D14E, DestroyAfxData);
+EI_REWRITTEN(0x0070D14E, DestroyAfxData);
 
 } // namespace mfc::impl
 

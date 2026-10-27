@@ -351,4 +351,4 @@ EI_REWRITTEN(0x004E2440, CVisibilityFog::Destroy);
 EI_REWRITTEN(0x004E24A0, CVisibilityFog::GetClassName);
 EI_REWRITTEN(0x004E24B0, CVisibilityFog::GetClassId);
 
-EI_REPLACE(0x004E1C50, DestroyDeadCells);
+EI_REWRITTEN(0x004E1C50, DestroyDeadCells);

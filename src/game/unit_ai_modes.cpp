@@ -883,4 +883,4 @@ void PlayerMode::Save(CStream* stream) {
 }
 EI_REWRITTEN(0x005D4DB0, PlayerMode::Save);
 
-EI_REPLACE(0x005D2570, DestroyCandidates);
+EI_REWRITTEN(0x005D2570, DestroyCandidates);

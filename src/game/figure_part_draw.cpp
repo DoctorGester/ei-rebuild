@@ -312,4 +312,4 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     return 1;
 }
 EI_REWRITTEN(0x005A7A70, FigureMeshDrawer::DrawLit);
-EI_REPLACE(0x005A8AE0, FreeMovedPositions);
+EI_REWRITTEN(0x005A8AE0, FreeMovedPositions);

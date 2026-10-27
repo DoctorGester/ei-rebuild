@@ -116,13 +116,13 @@ int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
 // The empty destroy step the containers of plain elements call.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
-EI_REPLACE(0x0051AC80, SpecificBaseNothing);
+EI_REWRITTEN(0x0051AC80, SpecificBaseNothing);
 void __cdecl DestroyNothing() {}
-EI_REPLACE(0x0051E830, DestroyNothing);
+EI_REWRITTEN(0x0051E830, DestroyNothing);
 // Slots 25 / 26: nothing.
 void CObject3DSpecific::IgnoreArgument(int) {}
-EI_REPLACE_METHOD(0x0051ACC0, CObject3DSpecific::IgnoreArgument);
-EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
+EI_REWRITTEN(0x0051ACC0, CObject3DSpecific::IgnoreArgument);
+EI_REWRITTEN(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 

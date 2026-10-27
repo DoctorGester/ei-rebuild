@@ -379,11 +379,11 @@ int __cdecl Rand() {
     seed = seed * 214013u + 2531011u;
     return static_cast<int>((seed >> 16) & 0x7FFF);
 }
-EI_REPLACE(0x006E77F7, libcrt::Rand);
+EI_REWRITTEN(0x006E77F7, libcrt::Rand);
 
 void __cdecl Srand(unsigned seed) { RandSeed() = seed; }
 unsigned& RandState() { return RandSeed(); }
-EI_REPLACE(0x006E77EA, libcrt::Srand);
+EI_REWRITTEN(0x006E77EA, libcrt::Srand);
 
 // ---- Maths ----
 
@@ -482,7 +482,7 @@ void* __cdecl OperatorNew(std::size_t size) {
         if (!handler || !handler(size)) return nullptr;
     }
 }
-EI_REPLACE_STANDALONE(0x007005AF, libcrt::OperatorNew);
+EI_REWRITTEN(0x007005AF, libcrt::OperatorNew);
 
 void __cdecl OperatorDelete(void* p) { Free(p); }
 EI_REWRITTEN(0x007005D8, libcrt::OperatorDelete);

@@ -253,9 +253,9 @@ void __cdecl ConstructSimpleNotSupportedException() {
 EI_REPLACE(0x0070BEFA, ConstructSimpleResourceException);
 EI_REPLACE(0x0070C1B5, ConstructSimpleMemoryException);
 EI_REPLACE(0x0070C1ED, ConstructSimpleNotSupportedException);
-EI_REPLACE(0x0070BF22, DestroySimpleResourceException);
-EI_REPLACE(0x0070C1DD, DestroySimpleMemoryException);
-EI_REPLACE(0x0070C215, DestroySimpleNotSupportedException);
+EI_REWRITTEN(0x0070BF22, DestroySimpleResourceException);
+EI_REWRITTEN(0x0070C1DD, DestroySimpleMemoryException);
+EI_REWRITTEN(0x0070C215, DestroySimpleNotSupportedException);
 
 } // namespace mfc::impl
 

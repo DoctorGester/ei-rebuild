@@ -86,4 +86,4 @@ void __cdecl ConstructUnitShapes() {
 } // namespace
 
 EI_REPLACE(0x005B31C0, ConstructUnitShapes);
-EI_REPLACE(0x005B31E0, DestroyUnitShapes);
+EI_REWRITTEN(0x005B31E0, DestroyUnitShapes);

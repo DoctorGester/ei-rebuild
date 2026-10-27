@@ -284,7 +284,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     LearnNpcSkills(stats, npc);
     return 1;
 }
-EI_REPLACE_METHOD(0x005136D0, CMapObjectManager::BuildFromPrototype);
+EI_REWRITTEN(0x005136D0, CMapObjectManager::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);

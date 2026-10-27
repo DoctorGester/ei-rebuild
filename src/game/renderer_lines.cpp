@@ -152,4 +152,4 @@ void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
 EI_REPLACE(0x0049B490, FreeLineVertices);
 EI_REPLACE(0x0049B710, FreeLineProjected);
 EI_REPLACE(0x0049B6B0, ConstructLineOutcodes);
-EI_REPLACE(0x0049B6D0, DestroyLineOutcodes);
+EI_REWRITTEN(0x0049B6D0, DestroyLineOutcodes);

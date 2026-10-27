@@ -27,7 +27,7 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 }
 
 void* __stdcall CreateDib() { return new CDib(); }
-EI_REPLACE(0x006D49E0, CreateDib);
+EI_REWRITTEN(0x006D49E0, CreateDib);
 
 using mfc::impl::CRuntimeClass;
 using mfc::impl::kClassCObject;

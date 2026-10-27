@@ -306,7 +306,7 @@ done:
     path->flag6F = false;
     return found;
 }
-EI_REPLACE_METHOD(0x005BB350, CAIMap::FindPath);
+EI_REWRITTEN(0x005BB350, CAIMap::FindPath);
 
 bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
     bool wasReached = path->reached;

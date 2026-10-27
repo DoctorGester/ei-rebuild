@@ -223,7 +223,7 @@ FearMode::FearMode(std::uint8_t newFlag) {
 }
 
 FearMode* FearMode::Construct(std::uint8_t newFlag) { return new (this) FearMode(newFlag); }
-EI_REPLACE_METHOD(0x005D2850, FearMode::Construct);
+EI_REWRITTEN(0x005D2850, FearMode::Construct);
 
 void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
 EI_REWRITTEN(0x005D6480, AIBrain::AddFearMode);

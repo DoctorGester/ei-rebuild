@@ -170,7 +170,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         }
     }
 }
-EI_REPLACE_METHOD(0x005C46C0, PathSmoother::Smooth);
+EI_REWRITTEN(0x005C46C0, PathSmoother::Smooth);
 
 // ---- The transition tables ----------------------------------------------------------------------
 

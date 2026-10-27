@@ -12,22 +12,21 @@ readers, each a set of addresses:
                      (src/standalone/static_init.cpp, static_exit.cpp)
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
                      callbacks, src/hook's and src/standalone's own: WinMain for HasCode, ...)
-    named data       a function named in a named range's initialiser (config/named_data.csv, C18): named_data.py
-                     --check compares its registration's address with game.exe's pointer
-  the harness (verify build) and the vectors:
-    harness          the address written in tests/verify (GameCode<F> of harness steps, address tables)
-    vectors          the address written in tests/vectors (EI_RECORD recorders)
-  No reader: an EI_ORIGINAL(address) forwarder (tests/verify/harness_original.h; none in src/ since C29). It runs
-  only in game.exe (the harness's runs of the original, the vector recorders), where the address is the
-  original's own code and no registration of ours is installed.
+  the harness (verify build):
+    harness          the address in tests/verify that the image's side asks CodeAddress for (GameCode<F>, ei::Code<F>,
+                     CodeAddress, HasCode of the literal or of the constant it initialises: the harness steps that
+                     call the game's frame step, camera, world update, cursor lock)
     scenario / golden  a code address in a scenario's steps (comments left out) or a golden file
-  the generators and checks that need a registration's address:
-    short generator  a short game function (under five bytes) a rewrite registers: gen_short_functions.py would
-                     write an EI_REPLACE_SHORT for it
-    exit generator   an exit function game.exe registers with atexit that a rewrite registers (camera_object.cpp, ...):
-                     gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
-  tools that read every registration but need none of them: check_thunks, check_registrations (they check the
-  registration itself), standalone_gaps.py. The tools that need a function's original address (check_signatures, coverage.py, save_trace.py, ui_census_report.py, progress.py's rewritten
+  No reader (C20 batch 1), each needing only the function-to-original map (EI_REWRITTEN does as well):
+    - the rest of tests/verify (game.exe's side: OriginalCode / EI_ORIGINAL, patches and hook points by address,
+      address tables) and tests/vectors (EI_RECORD recorders): they run only in game.exe, on the original's own code,
+      where no registration of ours is installed; the vectors' replays call our functions by name
+    - named_data.py --check (a function named in a named range's initialiser: Targets maps EI_REWRITTEN too)
+    - gen_short_functions.py (ported_elsewhere counts EI_REWRITTEN as a rewrite: no generated short function)
+    - gen_static_init.py's exit functions (the same ported_elsewhere: no generated exit function for a rewrite). Our
+      ports register a function-local static's exit function by name (libcrt::AtExit(DestroyX), EnsureStatic);
+      an initialiser's exit function is static_init.cpp's d.AtExit(0x...), a static init reader
+    - check_thunks, check_registrations (they check the registration itself), standalone_gaps.py. The tools that need a function's original address (check_signatures, coverage.py, save_trace.py, ui_census_report.py, progress.py's rewritten
   count) read the function-to-original map: the registrations and the EI_REWRITTEN lines (C20d, include/ei/hook.h).
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,
@@ -46,7 +45,7 @@ usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
                matching an --exclude-name regex left alone; only --kinds, by default all but the generated
                EI_REPLACE_SHORT; with --only, only the registrations FILE lists as --list / --unread print them)
 """
-import argparse, collections, csv, os, re, struct, sys
+import argparse, collections, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -67,8 +66,11 @@ STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 # slots (data), the sites addon.dll patches in game.exe (the original's runs only).
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_cells.inc', 'src/standalone/image_imports.inc',
                'tests/verify/addon_sites.inc')
-ORDER = ['static init', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
-         'golden', 'short generator', 'exit generator']
+ORDER = ['static init', 'code literal', 'harness', 'scenario', 'golden']
+# The harness asks CodeAddress for an address in the image (tests/verify/harness_original.h's GameCode, ei/hook.h):
+# the call's argument, a literal or a constant (`constexpr std::uintptr_t kName = 0x...;`) of the file.
+HARNESS_ASKS = re.compile(r'\b(?:GameCode|Code)\s*<[^;\n]*?>\s*\(\s*(\w+)\s*\)|\b(?:CodeAddress|HasCode)\s*\(\s*(\w+)\s*\)')
+CONSTANT = re.compile(r'\b(k\w+)\s*=\s*0[xX]([0-9A-Fa-f]+)\b')
 
 
 def rel(path):
@@ -117,13 +119,29 @@ def registrations():
     return out
 
 
+def harness_readers():
+    """address -> {harness}: what the harness's image side asks CodeAddress for (HARNESS_ASKS)."""
+    out = collections.defaultdict(set)
+    for path in files('tests/verify'):
+        code = srcscan.blank_comments(open(path, encoding='utf-8', errors='replace').read())
+        constants = {m.group(1): int(m.group(2), 16) for m in CONSTANT.finditer(code)}
+        for m in HARNESS_ASKS.finditer(code):
+            arg = m.group(1) or m.group(2)
+            a = constants.get(arg)
+            if a is None and re.fullmatch(r'0[xX][0-9A-Fa-f]+', arg):
+                a = int(arg, 16)
+            if a is not None and TEXT_BEGIN <= a < TEXT_END:
+                out[a].add('harness')
+    return out
+
+
 def literal_readers(regs):
-    """address -> {reader} from the sources: static init, literals in src/ and tests/ (not a forwarder's)."""
+    """address -> {reader} from src/: static init, code literals (not a registration's or an EI_REWRITTEN's own)."""
     out = collections.defaultdict(set)
     spans = collections.defaultdict(list)
     for r in regs:
         spans[r.path].append((r.start, r.end))
-    for top in ('src', 'tests/verify', 'tests/vectors'):
+    for top in ('src',):
         for path in files(top):
             p = rel(path)
             if p in NOT_READERS:
@@ -136,12 +154,7 @@ def literal_readers(regs):
                     continue
                 if ORIGINAL.match(code, max(0, code.rfind('EI_ORIGINAL', max(0, m.start() - 20), m.start()))):
                     continue
-                if p in STATIC:
-                    out[a].add('static init')
-                elif top == 'src':
-                    out[a].add('code literal')
-                else:
-                    out[a].add(top.split('/')[1] if top != 'tests/verify' else 'harness')
+                out[a].add('static init' if p in STATIC else 'code literal')
     return out
 
 
@@ -162,50 +175,9 @@ def text_readers():
     return out
 
 
-def named_data_readers(regs):
-    """address -> {named data}: our functions a named range's initialiser names (named_data.py's pointer elements)."""
-    import named_data
-    by_name = collections.defaultdict(set)
-    for r in regs:
-        by_name[r.name.lstrip(':')].add(r.address)
-    out = collections.defaultdict(set)
-    for d in named_data.definitions():
-        for kind, v in named_data.tokens(d.body):
-            if kind == 'name' and v in by_name:
-                for a in by_name[v]:
-                    out[a].add('named data')
-    return out
-
-
-def short_generator_readers(regs):
-    """Short game functions (under five bytes) a rewrite registers: gen_short_functions would write them."""
-    import gen_short_functions as g
-    sizes = g.load_sizes()
-    game = g.game_functions()
-    out = collections.defaultdict(set)
-    for r in regs:
-        if r.kind != 'EI_REPLACE_SHORT' and r.address in game and sizes.get(r.address, 0) < g.SHORT:
-            out[r.address].add('short generator')
-    return out
-
-
-def exit_generator_readers():
-    """The exit functions game.exe registers with atexit (the initialisers' and the function-local statics'):
-    gen_static_init.py writes one into static_exit.cpp for each that no rewrite registers."""
-    import capstone
-    import exe_path
-    import gen_static_init as g
-    img = g.Image(exe_path.resolve(None))
-    decoded, _ = g.decode_all(img)
-    found = {fn for d in decoded for kind, fn in d[3] if kind == 'exit'}
-    found |= set(g.runtime_atexits(img, capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)))
-    return {a: {'exit generator'} for a in found}
-
-
 def measure():
     regs = registrations()
-    readers = [literal_readers(regs), named_data_readers(regs), text_readers(),
-               short_generator_readers(regs), exit_generator_readers()]
+    readers = [literal_readers(regs), harness_readers(), text_readers()]
     for r in regs:
         for table in readers:
             r.readers |= table.get(r.address, set())

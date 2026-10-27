@@ -322,7 +322,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     out.EndWrite();
     reader.End();
 }
-EI_REPLACE_METHOD(0x00430450, CoderState::Compress);
+EI_REWRITTEN(0x00430450, CoderState::Compress);
 
 
 namespace {
@@ -399,7 +399,7 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     out.EndWrite();
     reader.End();
 }
-EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
+EI_REWRITTEN(0x00430960, CoderState::Decompress);
 
 // --- The fixed view and the buffer base (BufferView, GameBuffer; net_coder.h) ----------------------------
 

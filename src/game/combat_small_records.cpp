@@ -31,7 +31,7 @@ static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) 
 } // namespace
 
 int __fastcall WorldTick(CWorld* world) { return world->tick_; }
-EI_REPLACE(0x0054B220, WorldTick);
+EI_REWRITTEN(0x0054B220, WorldTick);
 
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     CEngineObject* old = item;

@@ -164,5 +164,5 @@ int CLightning::Draw(CSceneRenderer* device) {
     return 1;
 }
 EI_REWRITTEN(0x00467AD0, CLightning::Draw);
-EI_REPLACE(0x004679F0, FreeGlowPoints);
-EI_REPLACE(0x00467A10, DestroySprites);
+EI_REWRITTEN(0x004679F0, FreeGlowPoints);
+EI_REWRITTEN(0x00467A10, DestroySprites);

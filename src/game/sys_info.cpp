@@ -196,7 +196,7 @@ EI_REWRITTEN(0x004DE8A0, CSysInfo::GetClassId);
 
 // The global's destructor (cdecl; registered with atexit by the static initialiser).
 void __cdecl SysInfoAtExit() { g_sysInfo.Destroy(); }
-EI_REPLACE(0x004DDD60, SysInfoAtExit);
+EI_REWRITTEN(0x004DDD60, SysInfoAtExit);
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------
 

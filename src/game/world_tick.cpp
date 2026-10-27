@@ -295,5 +295,5 @@ EI_REWRITTEN(0x0058D3D0, CWorldServer::WakeUnitsAround);
 EI_REWRITTEN(0x00593FC0, CWorldServer::InvokeAlarm);
 EI_REWRITTEN(0x0058DC90, CWorldServer::SetGameResult);
 EI_REWRITTEN(0x0058D670, CWorldServer::UpdateUnits);
-EI_REPLACE(0x0058DA20, FreeRemovedIds);
-EI_REPLACE(0x0058DA00, FreeSleepingIds);
+EI_REWRITTEN(0x0058DA20, FreeRemovedIds);
+EI_REWRITTEN(0x0058DA00, FreeSleepingIds);

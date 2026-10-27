@@ -116,4 +116,4 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     return 1;
 }
 EI_REWRITTEN(0x005A7640, FigureMeshDrawer::DrawPlain);
-EI_REPLACE(0x005A7A50, FreeMovedPositions);
+EI_REWRITTEN(0x005A7A50, FreeMovedPositions);

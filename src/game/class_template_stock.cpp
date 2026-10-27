@@ -80,7 +80,7 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
 }
 
 ClassTemplate* ClassTemplate::Construct() { return new (this) ClassTemplate(); }
-EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
+EI_REWRITTEN(0x004A6580, ClassTemplate::Construct);
 
 void ItemStock::Destruct() {
     context = nullptr;

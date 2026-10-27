@@ -62,7 +62,7 @@ PartyUnitRecord* PartyUnitRecord::Construct() {
     fightAtWill = 1;
     return this;
 }
-EI_REPLACE_METHOD(0x0065F5F0, PartyUnitRecord::Construct);
+EI_REWRITTEN(0x0065F5F0, PartyUnitRecord::Construct);
 
 void PartyUnitRecord::Destruct() {
     ClearItems();

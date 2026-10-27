@@ -162,7 +162,7 @@ void __cdecl ConstructSaveStream() {
 } // namespace
 
 EI_REPLACE(0x00578530, ConstructSaveStream);
-EI_REPLACE(0x00578550, DestroySaveStream);
+EI_REWRITTEN(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
     FileStream file;
@@ -1861,4 +1861,4 @@ EI_REWRITTEN(0x0057EB10, GameFlow::AfterServerStart);
 EI_REWRITTEN(0x005800C0, GameFlow::UpdateFromServer);
 EI_REWRITTEN(0x00662FB0, SavedParties::Reload);
 
-EI_REPLACE(0x0057E6A0, DestroyLastResources);
+EI_REWRITTEN(0x0057E6A0, DestroyLastResources);

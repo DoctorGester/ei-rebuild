@@ -33,7 +33,7 @@ std::uint32_t IsaacRandom::Next() {
     if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
     return value;
 }
-EI_REPLACE_METHOD(0x004667F0, IsaacRandom::Next);
+EI_REWRITTEN(0x004667F0, IsaacRandom::Next);
 
 namespace {
 // The 2^-32 scale of Range; its last bit is set (sic).
@@ -50,7 +50,7 @@ double Unsigned(std::uint32_t value) {
 float IsaacRandom::Range(float min, float max) {
     return static_cast<float>(Unsigned(Next()) * (max - min) * kRangeScale + min);
 }
-EI_REPLACE_METHOD(0x00488970, IsaacRandom::Range);
+EI_REWRITTEN(0x00488970, IsaacRandom::Range);
 
 void IsaacRandom::Refill() {
     // One ISAAC step: mix a, produce memory and result words. `ind` reads memory_ at the byte
@@ -88,7 +88,7 @@ void IsaacRandom::Refill() {
     b_ = b;
     a_ = a;
 }
-EI_REPLACE_METHOD(0x0049EE70, IsaacRandom::Refill);
+EI_REWRITTEN(0x0049EE70, IsaacRandom::Refill);
 
 namespace {
 
@@ -195,7 +195,7 @@ void IsaacRandom::Seed() {
         for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(gamecrt::rand());
     }
 }
-EI_REPLACE_METHOD(0x0049F660, IsaacRandom::Seed);
+EI_REWRITTEN(0x0049F660, IsaacRandom::Seed);
 
 namespace {
 

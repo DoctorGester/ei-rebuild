@@ -170,7 +170,7 @@ bool CSectorMap::Remove(CMapObject* object) {
     }
     return cleared;
 }
-EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
+EI_REWRITTEN(0x005C1010, CSectorMap::Remove);
 
 namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);

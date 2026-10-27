@@ -1654,16 +1654,30 @@ the `--no-hooks` suite) keeps the registry.
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
-  split by reader (code literals, static init, named data, harness, vectors, scenarios / goldens,
-  the short-function and exit-function generators; not an EI_ORIGINAL forwarder: those are tests/' only since C29 and
-  run only in game.exe, on the original's code, C29a), `--unread` / `--files` what nothing reads,
+  split by reader (static init, code literals, the harness's image side, scenarios / goldens, the exit-function
+  generator), `--unread` / `--files` what nothing reads,
   `--drop` writes `EI_REWRITTEN` in their place (with `--exclude` / `--exclude-name` for files another worker holds,
   `--only FILE` for a list `--list` printed). Code literals include static_init.cpp's six-digit ones (0x5C4210). A
   dropped function is called by name; one whose registration was the only instantiation of a template needs an
   explicit instantiation (AckTable<ExtraAcks>::RecordAt). Counts (progress.py's "EI_REPLACE registrations"): 9,347
   before C20c, 5,262 after it, 3,527 after C20d (1,735 that only check_fp_fold read became EI_REWRITTEN; 20 in
   CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
-  from the map (C20d1).
+  from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN).
+- **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
+  | reader | registrations | needs game.exe's code addresses? |
+  |---|---|---|
+  | code cells (gen_image_cells) | 0 (825 cells: static initialiser list 748, MFC message maps 35, CRT tables 35, ThrowInfo 7) | no: none was read at run time; retired, the bytes are zero |
+  | static init / exit (static_init.cpp's calls and d.AtExit, static_exit.cpp's calls; libcrt::OnExit's CodeAddress) | 178 | yes, until gen_static_init writes calls by name |
+  | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
+  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 129 | yes, until each calls or takes the function by name (C20f) |
+  | the harness's image side (GameCode<F> of FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, the cursor lock) | 5 | yes, until those become hook points or tests/verify/image calls |
+  | the harness's game.exe side (OriginalCode, JumpTo / RedirectCall, address tables), tests/vectors' recorders | 0 | no: they patch / record game.exe's own code; replays call by name |
+  | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |
+  | check_registrations, check_thunks, standalone_gaps | 0 | no: they check the registrations themselves; they shrink with them |
+  | EI_REPLACE_SHORT nothing reads | 210 (short_functions.cpp) | no: generated, C20e |
+  Left unread on purpose: 38 in the script / console / string / mfc_coll files C14a holds (2026-10-27), 11 hand-made
+  EI_REPLACE_SHORT of particle_create.cpp. The check that the drops change no generator: gen_static_init.py and
+  gen_short_functions.py rerun with the same functions (static_init.cpp / static_exit.cpp byte-identical).
 - **The function-to-original map** (C20d): the registrations plus `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h).
   EI_REWRITTEN registers nothing: it leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which nothing
   reads at run time, so the compiler checks the name and the function's own copy stays in the image as with a

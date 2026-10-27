@@ -33,7 +33,7 @@ int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
         if (level == record) return static_cast<int>(level - levels.begin());
     return -1;
 }
-EI_REPLACE_METHOD(0x0051FF00, SkillDatabase::IndexOfLevel);
+EI_REWRITTEN(0x0051FF00, SkillDatabase::IndexOfLevel);
 
 // What raising a school from level value `from` to `to` costs: the worths' difference, truncated.
 int __fastcall SchoolPrice(int from, int to) {
@@ -41,7 +41,7 @@ int __fastcall SchoolPrice(int from, int to) {
     const double lower = Worth(from);
     return static_cast<int>(upper - lower);
 }
-EI_REPLACE(0x00527FF0, SchoolPrice);
+EI_REWRITTEN(0x00527FF0, SchoolPrice);
 
 int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     int index = SkillDb()->IndexOfLevel(level);
@@ -74,4 +74,4 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     leading = price / power;
     return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);
 }
-EI_REPLACE_METHOD(0x00528050, UnitStats::SkillPrice);
+EI_REWRITTEN(0x00528050, UnitStats::SkillPrice);

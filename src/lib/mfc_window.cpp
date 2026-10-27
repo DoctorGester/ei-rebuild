@@ -91,10 +91,10 @@ void* __stdcall CreateCMenu() { return new CMenu(); }
 void* __stdcall CreateCTempMenu() { return new CTempMenu(); }
 
 EI_REWRITTEN_SPECIAL(0x00703EAE, CCmdTarget::CCmdTarget);
-EI_REPLACE(0x0070D32B, CreateCWnd);
-EI_REPLACE(0x0070D363, CreateCTempWnd);
-EI_REPLACE(0x0070DC80, CreateCMenu);
-EI_REPLACE(0x0070DCA0, CreateCTempMenu);
+EI_REWRITTEN(0x0070D32B, CreateCWnd);
+EI_REWRITTEN(0x0070D363, CreateCTempWnd);
+EI_REWRITTEN(0x0070DC80, CreateCMenu);
+EI_REWRITTEN(0x0070DCA0, CreateCTempMenu);
 EI_REWRITTEN_SPECIAL(0x00703EC8, CCmdTarget::~CCmdTarget);
 EI_REPLACE(0x007043FA, RegisterDragListMessage);
 EI_REPLACE_METHOD(0x00704546, CWnd::Construct);

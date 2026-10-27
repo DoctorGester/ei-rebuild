@@ -697,5 +697,5 @@ EI_REWRITTEN(0x006BFC80, SectorData::Project);
 
 EI_REPLACE(0x006BFA30, terrain::FreeProjectionInput);
 EI_REPLACE(0x006BFAC0, terrain::ConstructProjectionOutcodes);
-EI_REPLACE(0x006BFAE0, terrain::DestroyProjectionOutcodes);
+EI_REWRITTEN(0x006BFAE0, terrain::DestroyProjectionOutcodes);
 EI_REPLACE(0x006BFA90, terrain::FreeProjectionOutput);

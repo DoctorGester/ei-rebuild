@@ -80,7 +80,7 @@ void __cdecl ConstructClassRegistry() {
 } // namespace
 
 EI_REPLACE(0x00408D30, ConstructClassRegistry);
-EI_REPLACE(0x00408D50, DestroyClassRegistry);
+EI_REWRITTEN(0x00408D50, DestroyClassRegistry);
 
 void ChunkArchive::PopChunk() {
     Stack::Erase<RefElement>(stack_.End()->prev);
@@ -128,7 +128,7 @@ bool ChunkArchive::AppendChild(Ref* chunk, int id, const void* data, std::uint32
     chunk->size += static_cast<std::int32_t>(size);
     return true;
 }
-EI_REPLACE_METHOD(0x00409110, ChunkArchive::AppendChild);
+EI_REWRITTEN(0x00409110, ChunkArchive::AppendChild);
 
 // The callers inline this search in several places (Field, EnterChunk, the field readers).
 bool ChunkArchive::FindChild(const Ref* parent, int id, Ref* out, int occurrence) {
@@ -358,7 +358,7 @@ bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     out->Write(data, from->Size());
     return true;
 }
-EI_REPLACE(0x0040A3C0, WriteStreamChunk);
+EI_REWRITTEN(0x0040A3C0, WriteStreamChunk);
 
 void ChunkArchive::Open(CStream* stream, int loading, int version) {
     stack_.ClearWith([](Ref*) {});

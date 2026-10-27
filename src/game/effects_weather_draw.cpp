@@ -132,6 +132,6 @@ void CRainSnow::PrepareBuffers() {
     for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
 EI_REWRITTEN(0x004E3C20, CRainSnow::PrepareBuffers);
-EI_REPLACE(0x004E2260, FreePoints);
+EI_REWRITTEN(0x004E2260, FreePoints);
 
-EI_REPLACE(0x004E2280, DestroySprites);
+EI_REWRITTEN(0x004E2280, DestroySprites);

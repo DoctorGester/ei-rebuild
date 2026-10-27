@@ -172,9 +172,9 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
 }
 
 EI_REWRITTEN(0x0041ACF0, ServerSession::FindTrade);
-EI_REPLACE(0x0041B720, ServerOnObjectRemoved);
-EI_REPLACE(0x0041B7A0, ServerOnTradeOffer);
-EI_REPLACE(0x0041B970, ServerOnTradeUpdate);
-EI_REPLACE(0x0041BA30, ServerOnTradeCancel);
+EI_REWRITTEN(0x0041B720, ServerOnObjectRemoved);
+EI_REWRITTEN(0x0041B7A0, ServerOnTradeOffer);
+EI_REWRITTEN(0x0041B970, ServerOnTradeUpdate);
+EI_REWRITTEN(0x0041BA30, ServerOnTradeCancel);
 
 } // namespace net

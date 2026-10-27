@@ -107,11 +107,11 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
         return;
     }
 }
-EI_REPLACE(0x0041B1C0, ServerOnSay);
+EI_REWRITTEN(0x0041B1C0, ServerOnSay);
 
 // The handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's version
 // moves on, so the connections send it again.
 void __fastcall ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }
-EI_REPLACE(0x0041BA20, ServerOnMemberChanged);
+EI_REWRITTEN(0x0041BA20, ServerOnMemberChanged);
 
 } // namespace net

@@ -56,7 +56,7 @@ void __cdecl ConstructEventPool() {
 }
 } // namespace
 EI_REPLACE(0x005C8F90, ConstructEventPool);
-EI_REPLACE(0x005C8FB0, DestroyEventPool);
+EI_REWRITTEN(0x005C8FB0, DestroyEventPool);
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).

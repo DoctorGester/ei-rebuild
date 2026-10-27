@@ -37,4 +37,4 @@ int UnitStats::PickLocation(int location) {
     if (count == 0) return kFallback;
     return working[IsaacRandom::Global().Next() % count];   // the draw is inlined
 }
-EI_REPLACE_METHOD(0x00525B20, UnitStats::PickLocation);
+EI_REWRITTEN(0x00525B20, UnitStats::PickLocation);

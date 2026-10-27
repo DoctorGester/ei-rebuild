@@ -94,7 +94,7 @@ void __cdecl ConstructCamera() {
 } // namespace
 
 EI_REPLACE(0x0040C880, ConstructCamera);
-EI_REPLACE(0x0040C8A0, DestroyCamera);
+EI_REWRITTEN(0x0040C8A0, DestroyCamera);
 
 const char* CCamera::GetClassName() { return "CCamera"; }
 EI_REWRITTEN(0x0040CDF0, CCamera::GetClassName);

@@ -18,10 +18,10 @@ int CUnitServer::GetClassId() { return kClassServer; }
 EI_REWRITTEN(0x005460D0, CUnitServer::GetClassId);
 
 AIPath* CUnitServer::MotionSlot() { return MotionPath(); }
-EI_REPLACE_METHOD(0x00546090, CUnitServer::MotionSlot);
+EI_REWRITTEN(0x00546090, CUnitServer::MotionSlot);
 
 void CUnitServer::EmptySlot17() {}
-EI_REPLACE_METHOD(0x005460B0, CUnitServer::EmptySlot17);
+EI_REWRITTEN(0x005460B0, CUnitServer::EmptySlot17);
 
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 EI_REWRITTEN(0x00552F30, CUnitServer::MoveFactorsChanged);

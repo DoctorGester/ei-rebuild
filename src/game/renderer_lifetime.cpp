@@ -158,9 +158,9 @@ void __cdecl ConstructDeviceLock() {
 } // namespace
 
 EI_REPLACE(0x00500930, ConstructSceneRenderer);
-EI_REPLACE(0x00500950, DestroySceneRenderer);
+EI_REWRITTEN(0x00500950, DestroySceneRenderer);
 EI_REPLACE(0x004F0B10, ConstructDeviceLock);
-EI_REPLACE(0x004F0B30, DestroyDeviceLock);
+EI_REWRITTEN(0x004F0B30, DestroyDeviceLock);
 
 EI_REWRITTEN_SPECIAL(0x00500AA0, CSceneRenderer::~CSceneRenderer);   // deleting
 

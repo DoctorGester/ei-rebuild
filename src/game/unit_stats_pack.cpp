@@ -54,7 +54,7 @@ void UnitVitals::Reset() {
         pair.base = kZero;
     }
 }
-EI_REPLACE_METHOD(0x00523370, UnitVitals::Reset);
+EI_REWRITTEN(0x00523370, UnitVitals::Reset);
 
 void UnitVitals::Pack(UnitVitalsPacked* out) {
     out->hitPoints = static_cast<std::int16_t>(RoundStored(hitPoints));
@@ -178,7 +178,7 @@ int UnitStats::Reset() {
     flags = 0;
     return 0;
 }
-EI_REPLACE_METHOD(0x005233E0, UnitStats::Reset);
+EI_REWRITTEN(0x005233E0, UnitStats::Reset);
 
 int UnitStats::ClearOuterLayers() {
     for (UnitStatSlot& slot : slots) {

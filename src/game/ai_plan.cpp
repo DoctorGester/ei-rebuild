@@ -226,4 +226,4 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     return result;
 }
 
-EI_REPLACE_METHOD(0x005B9C90, CAIMap::PlanLongPath);
+EI_REWRITTEN(0x005B9C90, CAIMap::PlanLongPath);
