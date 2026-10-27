@@ -38,7 +38,7 @@ constexpr int kHurtEvery = 8;
 constexpr float kHurtRadius = 5.0f;
 constexpr int kMaxCatchUp = 30;                // particle ticks a new source makes up for
 
-// The hit every unit within kHurtRadius takes (the original builds it on the stack).
+// The hit every unit within kHurtRadius takes (built on the stack).
 DamageInfo TornadoHit() {
     DamageInfo hit{};
     hit.typeWeights[6] = 1.0f;
@@ -63,12 +63,12 @@ bool SnapshotReadToEnd() {
 CEffectTornado::CEffectTornado() {
     source_ = nullptr;
     sound_ = -1;
-    Reset();   // inline in the original
+    Reset();   // inline
 }
 
 CEffectTornado::~CEffectTornado() {
-    Reset();   // inline in the original
-    Reset();   // through slot 18
+    Reset();   // inline
+    Reset();   // the virtual
     if (source_ != nullptr) source_->Release();
 }
 
@@ -135,7 +135,7 @@ int CEffectTornado::Unpack(int update, DeltaField* field) {
     moving_ = effect::IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    Start(update);   // through slot 23
+    Start(update);   // through the virtual
     return 1;
 }
 

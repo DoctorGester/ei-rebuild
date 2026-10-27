@@ -28,7 +28,7 @@
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 
-// The game's data folder (a CString global) and the strings the original passes by address.
+// The game's data folder (a CString global) and the strings passed by address.
 const char* ConfigFolder() { return "config\\"; }
 const char* SunlightSection() { return "sunlight"; }
 const char* AmbientSection() { return "ambient"; }
@@ -40,10 +40,6 @@ constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of th
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::TheOptions()->resourcesPath_.GetString(); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
-
-// Through their addresses: the texture manager's device (not rewritten) and the
-// figure loader's constructor (returns this; Rebirth-patched, its vanilla body is
-// in link_loader_create.cpp).
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The

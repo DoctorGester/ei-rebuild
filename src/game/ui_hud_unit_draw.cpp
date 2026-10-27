@@ -6,7 +6,7 @@
 // addresses. The function drives
 // the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
 // made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
-// See ui.h (CHudUnitPanel) and docs/notes/items_spells.md ("A-H26").
+// See ui.h (CHudUnitPanel) and docs/notes/items_spells.md.
 #include "device.h"   // the old device's calls
 #include "ui.h"
 
@@ -33,7 +33,7 @@
 
 namespace {
 
-// The constants the original reads at run time.
+// The constants read at run time.
 float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 0.0025: 1 / 400, half the layout's width
 float One() { return 1.0f /*0073B84C*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
@@ -50,7 +50,7 @@ constexpr int kMoreMark = 9;
 constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and the effects' pictures
 constexpr int kDisplaysEnd = 32;
 constexpr int kInfoPage = 2;          // bodyPart_: the page of texts, without the model
-constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn with its +0xD4 / +0xD8 colours
+constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn with its highlight colours
 constexpr std::uint32_t kPreviewDraw = 0x800;      // the unit's flags_ while the interface draws it
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kStencilFormat = 0x4000;   // DDPF_STENCILBUFFER
@@ -60,9 +60,9 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 IDirect3DDevice7* D3DDevice(UiRenderer* renderer) { return reinterpret_cast<IDirect3DDevice7*>(renderer->device_); }
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
-// The quaternion product a * b as the original inlines it twice: w = a.w b.w - a.b (the dot's sum
-// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms
-// the other way round.
+// The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
+// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
+// other way round.
 Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
     const Vector3 av = {a.x, a.y, a.z};
     const Vector3 bv = {b.x, b.y, b.z};

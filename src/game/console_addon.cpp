@@ -40,10 +40,6 @@ namespace console {
 
 namespace {
 
-// Loads a script file in the script loader and runs what was loaded.
-// CUiWindow::SetEnabled(enabled, notify).
-
-// The saved / console script (the world's command script).
 int* const kSpectator = &options::TheOptions()->drawVisibleOnly_;
 
 // addon's state.

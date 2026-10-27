@@ -126,7 +126,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     {
         std::uint32_t now = gameapi::timeGetTime();
         float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f /*0073BB24*/) * D(15.0f /*0073C518*/));
-        model->AdvanceTime(time);   // slot 25
+        model->AdvanceTime(time);
     }
 
     // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
@@ -174,7 +174,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     device->result_ = device->device_->GetTextureStageState(0, kStageState, &savedStage);
     device->result_ = device->device_->SetTextureStageState(0, kStageState, 1);
     render::state::Stage(0, kStageState, 1);
-    model->DrawFigure(pass);   // slot 22
+    model->DrawFigure(pass);
     device->result_ = device->device_->SetTextureStageState(0, kStageState, savedStage);
     render::state::Stage(0, kStageState, savedStage);
     drawn = model->ClientSpecific();

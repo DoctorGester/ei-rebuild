@@ -9,7 +9,7 @@
 #include "game_data.h"
 
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
-    // The original hands the address of its x argument as the topic out-parameter.
+    // The address of the x argument is the topic out-parameter, like the original.
     int topic = x;
     if (CItem* item = ItemAt(x, y, &topic)) {
         OwnerTakeItem(item);

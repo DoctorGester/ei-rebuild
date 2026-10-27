@@ -16,8 +16,6 @@
 
 namespace {
 
-// The sound manager.
-
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 
 // The choosers: called with the previous index and the number of sounds
@@ -56,9 +54,9 @@ bool SnapshotReadToEnd() {
 
 } // namespace
 
-// An update moves the sequence through the single-sound call (SetSoundPosition with the sequence
-// id, as the original does). A new start lists the first name (when not empty) and the others,
-// and starts the sequence with the chooser for their count.
+// An update moves the sequence through the single-sound call (SetSoundPosition with the sequence id,
+// like the original). A new start lists the first name (when not empty) and the others, and starts the
+// sequence with the chooser for their count.
 void CEffectSoundSeq::Start(int update) {
     CSoundManager* sounds = TheSoundManager();
     if (update != 0) {
@@ -91,7 +89,7 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     mfc::CStringArray& others = names_;
     others.SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
-        mfc::CString read(mfc::CString::kUnset);   // the original reuses the name's stack slot
+        mfc::CString read(mfc::CString::kUnset);   // reuses the name's stack slot, like the original
         field->ReadString(&read);
         others[i] = read;
     }

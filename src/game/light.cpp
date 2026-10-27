@@ -1,5 +1,5 @@
-// Lights and the light manager (A-H23): CLight's lifetime and setters, CLightFactory
-// ("CLightManager") lifetime and object creation. See spell.h and docs/notes/items_spells.md.
+// Lights and the light manager: CLight's lifetime and setters, CLightFactory ("CLightManager")
+// lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "spell.h"
 
 #include "core_transform.h"
@@ -24,7 +24,7 @@ constexpr int kKindPoint = 1;
 constexpr int kKindDirectional = 3;
 constexpr std::uint32_t kFlagChanged = 0x08;
 constexpr std::uint32_t kFlagCreatedLight = 0x80;   // cleared by the manager's CreateObject
-constexpr std::uint32_t kFlagDestroyed = 0x20;      // cleared by slot 3
+constexpr std::uint32_t kFlagDestroyed = 0x20;   // cleared by Destroy
 
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 

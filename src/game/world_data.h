@@ -1,8 +1,7 @@
 #pragma once
 
-// Data of the exe that the world server's rewritten code reads by address (strings, float
-// constants read from memory as the original does (rewrite guide rule 9), vtables and globals).
-// world_units.cpp; names are provisional.
+// Constants the world server's code reads from memory (strings, float constants as the original does,
+// rewrite guide rule 9, vtables and globals). world_units.cpp; names are provisional.
 
 #include <cstdint>
 #include "options.h"
@@ -32,7 +31,7 @@ inline const char* ScriptEndText() { return ")"; }
 inline const char* HairFormat() { return "hr.%.2d"; }
 inline const char* HairPartText() { return "hr"; }
 
-// The figure parts of a hero ("hd", "bd", "hp", "hr", "lh1" ... "rl3"), in the original's order.
+// The figure parts of a hero ("hd", "bd", "hp", "hr", "lh1" ... "rl3"), in the game's order.
 constexpr int kHeroPartCount = 16;
 inline const char* HeroPartText(int index) {
     static constexpr const char* kParts[kHeroPartCount] = {"hd",  "bd",  "hp",  "hr",  "lh1", "lh2", "lh3", "rh1",
@@ -167,8 +166,8 @@ inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' percep
 inline float WakeMargin() { return 20.0f /*0073CCF8*/; }     // added to it when units wake others
 
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
-// References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr)
-// as the original does (one object per value; no Rebirth patch writes these cells).
+// References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr),
+// one object per value (no Rebirth patch writes these cells).
 template <float V>
 inline constexpr float kFloatConstant = V;
 inline const float& OneRef() { return kFloatConstant<1.0f /*0073B84C*/>; }   // 1.0
@@ -206,7 +205,7 @@ inline float LayoutX() { return 0.00125f /*00740164*/; }   // 2 / 1600
 inline float LayoutY() { return 0.0025f /*0074015C*/; }   // 1 / 400
 inline float ThreeQuarters() { return 0.75f /*0073C524*/; }   // 0.75
 inline float InterfaceView() { return 0.48157462f /*00740158*/; }   // 0.48157 (the interface camera's half view)
-// By reference, where the original copies the bits or passes the address on.
+// By reference, where the game copies the bits or passes the address on.
 inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f /*0073BB20*/>; }   // seconds between announcements to the master
 inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090*/>; }   // squared distance a blocking ally may be away
 // Tables of the AI (ai_refresh.cpp; the height of each of 8 levels is ai_map.h's kLevelHeights): per occluder type

@@ -45,8 +45,6 @@ bool ArgIs(const CStringArray* args, int i, const char* text) { return Mbscmp((*
 bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-// The interface manager.
-
 // The world's player `id`, or null.
 CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
 // The client world's local player (its local view's player).
@@ -305,7 +303,7 @@ void __fastcall Give(CStringArray* args) {
     }
     if (ArgIs(args, 1, "exp") && args->GetSize() > 2) {
         int count = player->Party()->members_.size;
-        // Rounded to float once, as the original stores it.
+        // Rounded to float once.
         float share = static_cast<float>(std::atof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             player->Party()->members_.data[i].stats.AddScaledExperience(share);

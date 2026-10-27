@@ -53,7 +53,7 @@ constexpr COLORREF kColourText = 0xA7D7E4;
 constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
-// Float constants read from the exe's memory as the original does (rule 9), all single precision.
+// Float constants read from the exe's memory (rule 9), all single precision.
 float ConstOne() { return 1.0f /*0073B84C*/; }        // 1.0
 float ConstFromStep() { return 50.0f /*0074023C*/; }   // 50.0: value = setting * 50
 float ConstToStep() { return 0.02f /*00742B80*/; }     // 0.02: setting = value * 0.02
@@ -147,9 +147,9 @@ void ShownName(mfc::CString* out, const char* prefix, const char* name) {
     if (!TheTextManager()->GetString(mfc::CString(prefix) + name, out)) *out = name;
 }
 
-// A blank binding row appended as the original's push_back of a temporary does: in place while
-// there is room, else through the instantiation's own _M_insert_overflow. (The original's
-// temporary leaves the action pointer unset; it is written right after.)
+// A blank binding row appended like the original's push_back of a temporary: in place while there is
+// room, else through the instantiation's own _M_insert_overflow. (The original's temporary leaves the
+// action pointer unset; it is written right after.)
 void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
     OptionBinding* at = bindings.Finish();
     if (at != bindings.EndOfStorage()) {
@@ -484,7 +484,7 @@ void COptionsWindow::Apply() {
 }
 EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
-// --- The slider's slot 26 ---------------------------------------------------------------
+// --- The slider's virtual ------------------------------------------------------------------
 
 namespace {
 // The slider's sprites lie along x: a quarter turn about z (pi / 2).
@@ -528,7 +528,7 @@ void CUiSlider::SetRect(const RECT* rect) {
     regions_.data[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
     regions_.data[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
 
-    // The position set again (one below first, so slot 25 sees a change).
+    // The position set again (one below first, so the change virtual sees a change).
     int position = position_;
     position_ = position - 1;
     SetPosition(position);

@@ -42,7 +42,7 @@ CEffectShowVisibility::CEffectShowVisibility() {
     seerId_ = -1;
 }
 
-// The destructor body resets twice (inline, then slot 18), frees the grid and destroys the base.
+// The destructor body resets twice (inline, then the virtual), frees the grid and destroys the base.
 CEffectShowVisibility::~CEffectShowVisibility() {
     Reset();
     Reset();

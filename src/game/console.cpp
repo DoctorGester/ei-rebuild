@@ -55,18 +55,12 @@ CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return map-
 
 namespace {
 
-// Game CRT.
-
 int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// The interface manager (ConsoleAddText hands a line to its console window, if any).
-
 // A network game is running (the server object is present and active).
 bool NetworkGame() { return IsMultiplayerClient(); }
-
-// Posts WM_QUIT (when the game window exists).
 
 } // namespace
 

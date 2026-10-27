@@ -9,12 +9,12 @@
 // its own swap chain on the game window, the surface holders and the texture
 // manager's textures have no DirectDraw surface (the CPU-written, shadow and .bmp ones only memory
 // the new renderer owns, SurfaceMemory; the .mmp ones only its decoded copy, TextureFromMmp), and
-// captures write the new frame. There is no DirectDraw fallback: when the new renderer cannot
-// start the game ends with an error. In the original game's own process (the harness and the vector recorders run in the
-// original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
-// "uiboth" / "uinative" (render_ui.h) and the harness build's "removable"; "new", "present" and
-// "cpuwindows" are accepted and change nothing.
+// captures write the new frame. There is no DirectDraw fallback: when the new renderer cannot start
+// the game ends with an error. In the original game's own process (the harness and the vector
+// recorders) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated list,
+// carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera",
+// SetSmoothCamera), the interface canvases' "uiboth" / "uinative" (render_ui.h) and the harness
+// build's "removable"; "new", "present" and "cpuwindows" are accepted and change nothing.
 
 #include "lib/vecmath.h"
 
@@ -369,10 +369,10 @@ struct MeshDraw {
     bool moveUv;
     const Matrix4* matrix;             // row-major, out = M * (x, y, z, 1)
     bool screenMatrix;                 // `matrix` gives screen pixels after the divide (the pipeline's
-                                       // +0x1C stack), else Direct3D clip space (+0x24)
+                                       // screen stack), else Direct3D clip space
     bool clipped;                      // the old path clips it (else only projects it: the depth is
                                        // not cut at the near and far planes)
-    bool distanceFog;                  // the old path fogs the vertices by distance (device +0x158)
+    bool distanceFog;                  // the old path fogs the vertices by distance
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
     // The normals (blocks of four as the positions; `normalCount` normals) and the words ((position,
@@ -564,7 +564,7 @@ void SetMeshSource(const MeshSource* source);
 // The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'
 // positions (an animation's per-vertex offsets, a part morphed again), its colours outside its draw
 // (Colours: the sky's lighting on the sky object; a link figure's part lit or filled, on the colour
-// array's data, which the original code also does outside the figure part draws), or its buffers
+// array's data, which the old code also does outside the figure part draws), or its buffers
 // (Rebuilt: loaded, cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);

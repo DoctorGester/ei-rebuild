@@ -67,7 +67,7 @@ void CInterface3D::Shutdown() {
 
     DeleteSurface(fpsSurface_);
     fpsSurface_ = nullptr;
-    // The queued window is deleted but its pointer kept (the original does not clear it).
+    // The queued window is deleted but its pointer kept (like the original).
     delete queuedWindow_;
     DeleteSurface(backdrop_);
     backdrop_ = nullptr;

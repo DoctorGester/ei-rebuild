@@ -36,8 +36,6 @@ constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = 0x840;
 constexpr int kClassArrowFigure = 0x5B;
 
-// The missile base's vtable, stored while the base part is built.
-
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
@@ -155,7 +153,7 @@ void CEffectArrow::Start(int update) {
     light_.SetVelocity(&drift);
     light_.lightFlags_ = kLightFlags;
     const char* name = soundName_;
-    std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, as the original
+    std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, like the original
     sound_.radius_ = kSoundRadius;
     sound_.looping_ = 1;
     particle_.Start(update);
@@ -246,14 +244,13 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&flag, 1);
 }
 
-// The base, then the three parts (their constructors inlined in the original) and the empty name;
-// Reset at the end.
+// The base, then the three parts (their constructors inlined) and the empty name; Reset at the end.
 CEffectArrow::CEffectArrow() { Reset(); }
 
-// Reset (slot 18); then the name, the sound, the light, the particle part and the base go.
+// Reset; then the name, the sound, the light, the particle part and the base go.
 CEffectArrow::~CEffectArrow() { Reset(); }
 
-// The abstract missile's slot 0 (no live object has its table).
+// The abstract missile's destructor (no live object has its table).
 CEffectMissile::~CEffectMissile() = default;
 
 // --- CEffectArrowFigure --------------------------------------------------------------------------
@@ -313,14 +310,14 @@ void CEffectArrowFigure::Start(int update) {
         figure_ = object;
     }
     // No null test (the original has none either). The figure the object holds is read before the
-    // figure is made, as the original does.
+    // figure is made, like the original.
     CObject3D* figure = figure_;
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     console::CStringArray parts;
     figure->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
-    figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
+    figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     figure->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(figure_);
@@ -394,7 +391,7 @@ CEffectArrowFigure::CEffectArrowFigure() {
 
 CEffectArrowFigure::~CEffectArrowFigure() {
     Reset();
-    Reset();   // again through slot 18
+    Reset();   // again, the virtual
     if (figure_ != nullptr) figure_->Release();
     figure_ = nullptr;
 }

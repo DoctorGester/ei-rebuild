@@ -52,7 +52,6 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
 int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }
 int SurfaceBytesAllocated() { return static_cast<int>(UiSurfaceBytes()); }
-// The option byte: backdrops of a quarter of the layout, stretched over it.
 
 constexpr DWORD kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -138,7 +137,7 @@ void CInterface3D::DrawOverlays() {
         stackEnd_[-1]->Redraw();       // its surfaces blit themselves
         stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
     }
-    // (The original calls an empty function on the fade here.)
+    // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface_) statusSurface_->Blit();
 
     if (backdropMode_ == 1) {
