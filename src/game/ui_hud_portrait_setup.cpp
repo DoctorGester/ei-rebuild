@@ -21,8 +21,10 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -69,7 +71,7 @@ void CHudPortraits::ShowFace(int index, int state) {
     case 3: u = 0x80; v = 0x80; break;
     default: u = state; v = state; break;   // a negative index (not reached)
     }
-    mfc::CString name(slots_[index].FaceName());
+    std::string name = slots_[index].FaceName().GetString();
     if (state == 1)
         name += "a";
     else if (state == 2)
@@ -77,7 +79,7 @@ void CHudPortraits::ShowFace(int index, int state) {
     else if (state == 3)
         name += "b";
     const int texture = index / 4 + 1;
-    if (static_cast<char>(CopyImage(objects_.data[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
+    if (static_cast<char>(CopyImage(objects_.data[texture], name.c_str(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
         CopyImage(objects_.data[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 }
 
@@ -179,10 +181,10 @@ void CHudPortraits::Rebuild(int wide) {
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
     count_ = 0;
 
-    mfc::CString build;     // "th", "me" or "fa"
+    std::string build;     // "th", "me" or "fa"
     mfc::CString sex;       // kept from one portrait to the next when the figure is neither
-    mfc::CString picture;
-    mfc::CString model;
+    std::string picture;
+    std::string model;
     mfc::CString tip;
     slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());   // 0064AD40
 
@@ -198,10 +200,10 @@ void CHudPortraits::Rebuild(int wide) {
         else if (figureBuild > Fat())
             build = "fa";
         const char* figure = unit->name;
-        model.Format("infa%s%s%dface", figure, build.GetString(),
+        model = str::Format("infa%s%s%dface", figure, build.c_str(),
                      unit->GetPrototype()->hair + 1);
-        picture.Format("face%s%02d", sex.GetString(), skin);
-        AddPortrait(model, picture, wide, 0);
+        picture = str::Format("face%s%02d", sex.GetString(), skin);
+        AddPortrait(model.c_str(), picture.c_str(), wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_.data[i * 5 + 4])->visible_ = 1;
@@ -243,9 +245,9 @@ void CHudPortraits::Rebuild(int wide) {
         }
         SexOf(figure->model, sex);
         build = "me";
-        model.Format("infa%s%s%dface", figure->model.GetString(), build.GetString(), prototype->hair + 1);
-        picture.Format("face%s%02d", sex.GetString(), prototype->skin);
-        AddPortrait(model, picture, wide, 1);
+        model = str::Format("infa%s%s%dface", figure->model.GetString(), build.c_str(), prototype->hair + 1);
+        picture = str::Format("face%s%02d", sex.GetString(), prototype->skin);
+        AddPortrait(model.c_str(), picture.c_str(), wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;

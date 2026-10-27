@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 
 #pragma comment(lib, "winmm.lib")   // mmioOpenW
 

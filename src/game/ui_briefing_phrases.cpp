@@ -28,8 +28,10 @@
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdlib>
+#include <string>
 #include <string_view>
 
 namespace {
@@ -107,7 +109,7 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 void CBriefingScreen::NextPhrase(bool skip) {
     console::CStringArray words;
     CTextManager* texts = TheTextManager();
-    mfc::CString speaker;
+    std::string speaker;
     mfc::CString phrase;
     bool last = true;       // no "#phrase" follows this one
     bool spoke = false;     // a phrase was found
@@ -161,7 +163,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             speaker = words[1];
         } else {
             speaker = unit->GetName();
-            if (speaker.GetLength() == 0) {
+            if (speaker.size() == 0) {
                 const PersonTextNode* node = personTexts_.find(unit->id_);
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
@@ -177,10 +179,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (!skip) {
             int number;
             if (words.GetSize() > 2 && (number = std::atoi(words[2])) > 0) {
-                mfc::CString file;
+                std::string file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
-                file.Format(VoiceFormat(), VoiceFolders()[folder], topic_.GetString(), number);
-                voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.GetString(), number);
+                voice_ = TheSoundManager()->Play2D(file.c_str(), kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(
                               std::string_view(phrase, static_cast<std::size_t>(phrase.GetLength())))) *
@@ -203,11 +205,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (record) {
             console::CStringArray parts;
             mfc::CString name;
-            mfc::CString line;
+            std::string line;
             mfc::CString label;
             auto add = [&] {
                 dialogueText_ += line;
-                if (!skip) text_->AddText(line);
+                if (!skip) text_->AddText(line.c_str());
             };
             auto addItems = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
@@ -215,7 +217,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
-                    line.Format(NameLine(), label.GetString(), name.GetString());
+                    line = str::Format(NameLine(), label.GetString(), name.GetString());
                     add();
                     item->Release();
                 }
@@ -226,18 +228,18 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);
-                    line.Format(NameLine(), label.GetString(), name.GetString());
+                    line = str::Format(NameLine(), label.GetString(), name.GetString());
                     add();
                 }
             };
             if (record->exp > 0.0f) {
                 texts->GetString(ExperienceLabel(), &label);
-                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->exp));
+                line = str::Format(NumberLine(), label.GetString(), static_cast<int>(record->exp));
                 add();
             }
             if (record->money > 0.0f) {
                 texts->GetString(GoldLabel(), &label);
-                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->money));
+                line = str::Format(NumberLine(), label.GetString(), static_cast<int>(record->money));
                 add();
             }
             texts->GetString(ItemLabel(), &label);
@@ -250,7 +252,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                         CItem* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
                         texts->FormatItemName(item, &name);
-                        line.Format(NameLine(), label.GetString(), name.GetString());
+                        line = str::Format(NameLine(), label.GetString(), name.GetString());
                         add();
                     }
                 }
@@ -263,7 +265,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (record->specials > 0) {
                 label.Format(SpecialsLabel(), record->specials);
                 texts->GetString(label, &label);
-                line.Format(TextLine(), label.GetString());
+                line = str::Format(TextLine(), label.GetString());
                 add();
             }
         }

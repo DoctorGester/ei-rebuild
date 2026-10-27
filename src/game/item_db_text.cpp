@@ -9,6 +9,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <string>
 
 using namespace itemdb;
 
@@ -74,8 +75,8 @@ BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
     }
     bool found;
     {
-        mfc::CString key = mfc::CString(kString) + name;
-        found = OpenText(this, key);
+        std::string key = (mfc::CString(kString) + name).GetString();
+        found = OpenText(this, key.c_str());
     }
     if (!found) {
         // `name` may be out's own buffer (callers pass a CString's text and the CString).
@@ -137,8 +138,8 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
             mfc::CString spellName(kUnknown);
             bool found;
             {
-                mfc::CString key = mfc::CString(kSpell) + spell->GetPrototype()->code;
-                found = OpenText(this, key);
+                std::string key = (mfc::CString(kSpell) + spell->GetPrototype()->code).GetString();
+                found = OpenText(this, key.c_str());
             }
             if (found) ReadLine(&spellName, 1);
             *name += kColon + spellName;

@@ -37,6 +37,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -485,7 +486,7 @@ int CPlayerServer::OnJoined() {
 }
 
 int CPlayerServer::OnLeaveToZone() {
-    mfc::CString zone;
+    std::string zone;
     {
         alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
         mfc::CString* read = ReceivedMessages().ReadString(text);
@@ -494,19 +495,19 @@ int CPlayerServer::OnLeaveToZone() {
     }
     int entrance = 0;
     ReceivedMessages().Read(&entrance, 4);
-    LeaveToZone(zone, entrance);
+    LeaveToZone(zone.c_str(), entrance);
     return 1;
 }
 
 int CPlayerServer::OnBriefingDone() {
-    mfc::CString name;
+    std::string name;
     {
         alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
         mfc::CString* read = ReceivedMessages().ReadString(text);
         name = *read;
         read->~CString();
     }
-    TheServerWorld()->CompleteBriefing(Owner()->playerId_, name);
+    TheServerWorld()->CompleteBriefing(Owner()->playerId_, name.c_str());
     return 1;
 }
 

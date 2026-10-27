@@ -11,9 +11,11 @@
 #include "game_data.h"
 #include "lib/mfc_string.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr int kFormatType = 1, kWordType = 2;
@@ -49,8 +51,8 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
     if (pos >= length) return -1;
     // GetBuffer(0) on the text, as the original (a shared text gets its own copy).
     char* buffer = const_cast<mfc::CString*>(text)->GetBuffer(0);
-    mfc::CString rest(buffer + pos);
-    const char* r = rest;
+    std::string rest = buffer + pos;
+    const char* r = rest.c_str();
     int count;
     if (r[0] == kEscape) {
         if (r[1] == 'F') {
@@ -61,15 +63,15 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
             game::FatalError("ScrollText::Incorrect special symbol '%c'", static_cast<int>(r[1]));
             // Should the error come back, the original takes the text's data pointer as the count.
             count = static_cast<int>(reinterpret_cast<std::intptr_t>(r));
-            if (count == -1) count = rest.GetLength();
+            if (count == -1) count = rest.size();
         }
     } else if (r[0] == '\n') {
         count = 1;
     } else {
-        count = rest.FindOneOf(" \t\a\n");
-        if (count == -1) count = rest.GetLength();
+        count = str::FindOneOf(rest, " \t\a\n");
+        if (count == -1) count = rest.size();
     }
-    *out = rest.Left(count);
+    *out = str::Left(rest, count);
     return pos + count;
 }
 EI_REWRITTEN(0x0065D970, CUiScrollText::NextToken);
@@ -162,7 +164,7 @@ void CUiScrollText::DrawLines(int scroll) {
     // The fonts' heights (the extent of the sample text in fonts 0-2).
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
-        mfc::CString sample(FontSampleText());
+        std::string sample = FontSampleText();
         heights[font] = TextExtent(interface_, sample, font).cy;
     }
 
@@ -337,7 +339,7 @@ void CUiScrollText::Layout() {
     int font = kDefaultFont;
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
-        mfc::CString sample(FontSampleText());
+        std::string sample = FontSampleText();
         heights[f] = TextExtent(interface_, sample, f).cy;
     }
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);

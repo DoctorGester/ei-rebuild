@@ -32,6 +32,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
 namespace {
 
@@ -131,8 +132,8 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     person_ = nullptr;
     third_ = nullptr;
     CTextManager* texts = TheTextManager();
-    mfc::CString key(BriefingSection());
-    if (!texts->Open(key + topic_)) {
+    std::string key = BriefingSection();
+    if (!texts->Open((key + topic_).c_str())) {
         state_ = 0;
         briefingStarted_ = false;
         return;

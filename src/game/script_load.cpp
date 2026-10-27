@@ -28,6 +28,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -434,7 +435,7 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
     for (int i = 0; i < count; ++i) {
         // The original builds a temporary element (effect 0, empty name, the rest unset), copies it
         // into the node and destroys it (releasing its effect, which is always null).
-        mfc::CString emptyName;
+        std::string emptyName;
         AppendNode<mfc::impl::FxSourceList>(list, [&](ScriptFxSource* source) {
             source->object = nullptr;
             source->id = 0;

@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -21,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
@@ -56,13 +58,13 @@ void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
         if (call.hostileMask == 0 && call.kind >= kind) RemoveCall(this, i--);
     }
     const Vector3 at = *point;
-    mfc::CString copy(text);
+    std::string copy = text;
     AppendCall(this, at, kind, 0, copy);
 }
 EI_REWRITTEN(0x005CCD40, AIHeardCalls::Hear);
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
-    mfc::CString copy;
+    std::string copy;
     copy = text;
     // The original leaves the point as its stack held it (saved as memory.callN.point); 0,0,0 is the
     // canonical value, which the harness gives the original too (harness_save_leftovers.cpp, S20d).
@@ -99,12 +101,12 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->localPosition_);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
-        mfc::CString text;
+        std::string text;
         if (console::g_filterMask & 1) {
             const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
-            text.Format(kHeardFormat, other->id_, unit->id_, between);
+            text = str::Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        brain->memory.calls.Hear(&unit->localPosition_, kind, text);
+        brain->memory.calls.Hear(&unit->localPosition_, kind, text.c_str());
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();

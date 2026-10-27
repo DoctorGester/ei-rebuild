@@ -27,9 +27,11 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -84,7 +86,7 @@ EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 void CMpHeroScreen::DrawExperience() {
     CUiSurface* surface = surfaces_.data[2];
     mfc::CString text;
-    mfc::CString line;
+    std::string line;
     UiSurfaceGetDC(surface);
     static_cast<CUiSurface*>(surface)->Clear();
     TheTextManager()->CTextManager::GetString(kLevelUpKey, &text);
@@ -94,9 +96,9 @@ void CMpHeroScreen::DrawExperience() {
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
     TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
-    line.Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
+    line = str::Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
-    surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(line.c_str(), &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 }
 
@@ -161,14 +163,14 @@ void CMpHeroScreen::Update() {
     }
     if (mode_ != kModeNewHero) return;
 
-    mfc::CString name(nameEdit_->text_);
+    std::string name = nameEdit_->text_.GetString();
     const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     // FCOMP; TEST AH,0x40: equal.
     float target = NewHeroPoints();
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
-    bool ready = equal && name.GetLength() != 0;
+    bool ready = equal && static_cast<int>(name.size()) != 0;
     float shade = ready ? 1.0f : 0.5f;
     auto* button = SceneMesh(kCreateButton);
     button->tint_[0] = shade;

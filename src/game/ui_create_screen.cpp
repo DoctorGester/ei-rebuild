@@ -28,6 +28,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -228,7 +229,7 @@ void CInterface3D::ShowMessage(int force) {
         Node* header = messages_.head;
         Node* node = header->next;
         if (node == header) return;
-        mfc::CString text(node->data);
+        std::string text = node->data.GetString();
         messages_.Erase(node);   // 005F8E50
         messageText_ = text;
         messageFlag_ = 0;
@@ -252,13 +253,13 @@ void CInterface3D::OpenHelp(int flag) {
     // hint, inlined by the original).
     decltype(helpTopics_)::Node* found;
     {
-        mfc::CString key(topic);
+        std::string key = topic;
         found = helpTopics_.find(key);
     }
     if (found != helpTopics_.end()) {
         seen = found->second;
     } else {
-        mfc::CString key(topic);
+        std::string key = topic;
         helpTopics_.Subscript(key) = 0;
     }
     bool forced = static_cast<std::uint8_t>(flag) != 0;

@@ -22,8 +22,10 @@
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdlib>
+#include <string>
 
 namespace console::commands {
 
@@ -207,7 +209,7 @@ void __fastcall ListVar(CStringArray* args) {
         player = GetPlayer(std::atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
 
-    mfc::CString line;
+    std::string line;
     CStdioFile file;
     mfc::BOOL writing = 0;
     if (args->GetSize() > 1) {
@@ -220,8 +222,8 @@ void __fastcall ListVar(CStringArray* args) {
         const char* name = node->value.key;
         EndLine((Out() << name << " = ").PutFloat(node->value.mapped));
         if (writing) {
-            line.Format("%s %g\n", name, static_cast<double>(node->value.mapped));
-            file.WriteString(line);
+            line = str::Format("%s %g\n", name, static_cast<double>(node->value.mapped));
+            file.WriteString(line.c_str());
         }
     }
     if (writing) file.Close();
@@ -286,8 +288,8 @@ EI_REWRITTEN(0x005DEF50, Exec);
 
 // 005DF0F0: give <player> money <n> | exp <n> (shared by the party) | assortment.
 void __fastcall Give(CStringArray* args) {
-    mfc::CString unused1;
-    mfc::CString unused2;
+    std::string unused1;
+    std::string unused2;
     if (args->GetSize() < 2) {
         PrintLine("IMPORTANT: use only from global map");
         PrintLine("give [NPlayer] money [NMoney]");
@@ -325,8 +327,8 @@ template <void (GameFlow::*Request)(const char*, CParty*)>
 void RequestWithParty(CStringArray* args, const char* extra) {
     CParty party;
     party.AddMember("F", "Human Hero", extra);
-    mfc::CString map((*args)[0]);
-    (TheGameFlow()->*Request)(map, &party);
+    std::string map = (*args)[0].GetString();
+    (TheGameFlow()->*Request)(map.c_str(), &party);
 }
 } // namespace
 
@@ -379,8 +381,8 @@ void __fastcall Net(CStringArray* args) {
         return PrintLine("net time 0/1   - show client time counting info");
     }
     if (Mbsicmp((*args)[0], "client") == 0) {
-        mfc::CString value((*args)[1]);
-        LocalPlayer()->logTraffic_ = std::atoi(value);
+        std::string value = (*args)[1].GetString();
+        LocalPlayer()->logTraffic_ = std::atoi(value.c_str());
     }
     if (Mbsicmp((*args)[0], "server") == 0) {
         if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = std::atoi((*args)[1]);
@@ -388,8 +390,8 @@ void __fastcall Net(CStringArray* args) {
     if (Mbsicmp((*args)[0], "time") == 0)
         app::g_showClientSpeed = std::atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
-        mfc::CString zone((*args)[1]);
-        Server()->SendCommand(0, zone);
+        std::string zone = (*args)[1].GetString();
+        Server()->SendCommand(0, zone.c_str());
     }
 }
 EI_REWRITTEN(0x005DF9B0, Net);
@@ -426,8 +428,8 @@ EI_REWRITTEN(0x005DFCE0, WriteEnvironmentSpeechLines);
 void __fastcall GenerateAcks(CStringArray*) {
     CStdioFile file;
     {
-        mfc::CString path = *GameDataPathString() + "scenack.txt";
-        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+        std::string path = (*GameDataPathString() + "scenack.txt").GetString();
+        if (!file.Open(path.c_str(), CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
     }
     CStdioFileVirtuals* out = file.Virtuals();
     acks::AckDatabase& database = acks::Database();
@@ -514,10 +516,10 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
         }
     }
     if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
-    mfc::CString name((*args)[0]);
-    const char* text = name;
-    if (text[0] == '"' && text[name.GetLength() - 1] == '"') name = Ops(name).Mid(1, name.GetLength() - 2);
-    if (ServerActive(Server())) Server()->SendCommand(command, name);
+    std::string name = (*args)[0].GetString();
+    const char* text = name.c_str();
+    if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = Ops(name).Mid(1, static_cast<int>(name.size()) - 2);
+    if (ServerActive(Server())) Server()->SendCommand(command, name.c_str());
 }
 } // namespace
 

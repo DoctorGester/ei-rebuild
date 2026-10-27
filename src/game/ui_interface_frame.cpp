@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "ui_cursor.h"
 #include "world.h"
 #include "world_glue.h"
@@ -139,9 +140,9 @@ int Compare(const mfc::CString& word, const char* text) {
 void CInterface3D::OnStringEvent(const char* event) {
     if (!event) return;
     console::CStringArray words;
-    mfc::CString unused;
-    mfc::CString text(event);
-    text::SplitWords(text, &words, ' ');
+    std::string unused;
+    std::string text = event;
+    text::SplitWords(text.c_str(), &words, ' ');
     words.data[0].MakeLower();
     // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and

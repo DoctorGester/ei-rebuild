@@ -11,10 +11,12 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "win_registry.h"
+#include "lib/str.h"
 
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace options {
 namespace {
@@ -352,7 +354,7 @@ private:
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
-    mfc::CString resolution;   // the original's local is constructed first, read later
+    std::string resolution;   // the original's local is constructed first, read later
     CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
@@ -365,9 +367,9 @@ void GameOptions::LoadFromRegistry(const char* path) {
         resolution = GetString(key, l.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
-            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(std::atoi(resolution.Left(x))));
+            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(std::atoi(str::Left(resolution, x).c_str())));
             l.SetBits(field::kResolutionY,
-                      static_cast<std::uint32_t>(std::atoi(Ops(resolution).Right(resolution.GetLength() - x - 1))));
+                      static_cast<std::uint32_t>(std::atoi(Ops(resolution).Right(static_cast<int>(resolution.size()) - x - 1))));
         }
     }
     l.Read(kVideoValues);
@@ -395,7 +397,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
 EI_REWRITTEN(0x0045B210, GameOptions::LoadFromRegistry);
 
 void GameOptions::SaveToRegistry(const char* path) {
-    mfc::CString resolution;
+    std::string resolution;
     CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
@@ -403,7 +405,7 @@ void GameOptions::SaveToRegistry(const char* path) {
 
     s.Write(kPathValues);
     s.Write(Value{kInt, &GameOptions::keyGeneral_, "DrawingTarget", 0x02C});
-    resolution.Format("%dx%d", static_cast<int>(s.Bits(field::kResolutionX)),
+    resolution = str::Format("%dx%d", static_cast<int>(s.Bits(field::kResolutionX)),
                       static_cast<int>(s.Bits(field::kResolutionY)));
     SetString(key, s.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
     s.Write(kVideoValues);

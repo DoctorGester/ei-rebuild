@@ -26,10 +26,12 @@
 #include "game_flow_data.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
 #include <bit>
+#include <string>
 
 namespace {
 
@@ -50,9 +52,9 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     CTextManager* texts = TheTextManager();
     bool missing;
     {
-        mfc::CString prefix(game::briefingwords::BriefingSection());
-        mfc::CString section = prefix + briefing;
-        missing = texts->CTextManager::Open(section) == 0;
+        std::string prefix = game::briefingwords::BriefingSection();
+        std::string section = prefix + briefing;
+        missing = texts->CTextManager::Open(section.c_str()) == 0;
     }
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
@@ -71,13 +73,13 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
     mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
     BriefingSpeakerInto(&speaker, briefing);
     if (!IsEmpty(speaker)) {
-        mfc::CString prefix(game::briefingwords::VariablePrefix());
-        mfc::CString withSpeaker = prefix + speaker;
-        mfc::CString withDot = withSpeaker + flowdata::kDot;
+        std::string prefix = game::briefingwords::VariablePrefix();
+        std::string withSpeaker = prefix + speaker;
+        std::string withDot = withSpeaker + flowdata::kDot;
         mfc::CString variable = withDot + briefing;
         speaker = variable;
     } else {
-        mfc::CString prefix(game::briefingwords::ElderPrefix());
+        std::string prefix = game::briefingwords::ElderPrefix();
         mfc::CString variable = prefix + briefing;
         speaker = variable;
     }
@@ -90,12 +92,12 @@ void GameFlow::MarkBriefing(const char* briefing) {
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
-        mfc::CString zone(briefing);
+        std::string zone = briefing;
         {
-            mfc::CString left = zone.Left(zone.GetLength() - 2);
+            std::string left = str::Left(zone, static_cast<int>(zone.size()) - 2);
             zone = left;
         }
-        LoadZoneQuests(zone);
+        LoadZoneQuests(zone.c_str());
     }
     mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
     BriefingVariableInto(&variable, briefing);
@@ -183,8 +185,8 @@ stlp::string MapFilePath(const mfc::CString& file) {
     mfc::CString folder;
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
-    mfc::CString full = folder + file;
-    return stlp::string(full.GetString());
+    std::string full = (folder + file).GetString();
+    return stlp::string(full.c_str());
 }
 
 } // namespace
@@ -192,19 +194,19 @@ stlp::string MapFilePath(const mfc::CString& file) {
 bool __stdcall LoadZoneQuests(const char* zone) {
     auto* texts = TheTextManager();
     if (!texts) return false;
-    mfc::CString file = mfc::CString(zone) + kQuestFileSuffix;
+    std::string file = (mfc::CString(zone) + kQuestFileSuffix).GetString();
     bool found;
     {
         mfc::CFileFind find;
         mfc::CString folder;
-        modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
+        modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
-        mfc::CString pattern = folder + file.GetString();
-        found = find.FindFile(pattern, 0) != 0;
+        std::string pattern = folder.GetString() + file;
+        found = find.FindFile(pattern.c_str(), 0) != 0;
     }
     if (!found) return false;
     stlp::string path = MapFilePath(file);
-    if (ServerRuns()) ShareQuestFile(path.data(), file);
+    if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
     LoadedFiles& files = QuestFiles();
     stlp::string* listed = files.begin();
@@ -225,8 +227,8 @@ void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node)
     const float value = record->value_;
     bool quest;
     {
-        mfc::CString prefix = name.Left(2);
-        quest = gamecrt::mbscmp(prefix.GetString(),
+        std::string prefix = name.Left(2).GetString();
+        quest = gamecrt::mbscmp(prefix.c_str(),
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
@@ -264,18 +266,18 @@ void GameFlow::RegisterQuests(const char* folder) {
         if (Equal(*s, folder)) return;
     bool registered;
     {
-        mfc::CString base(folder);
-        mfc::CString path = base + game::briefingwords::QuestRegistry();
+        std::string base = folder;
+        std::string path = base + game::briefingwords::QuestRegistry();
         // (004DEFC0 in the original; the registry is binary, read as it is: CTextManager::OpenData.)
-        registered = texts->OpenData(path) != 0;
+        registered = texts->OpenData(path.c_str()) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
     TheQuestDatabase().LoadRegistry(texts->cursor_);   // 006AE8E0 (its result not read)
     {
-        mfc::CString base(folder);
-        mfc::CString path = base + game::briefingwords::MapList();
-        TheMapDatabase()->Load(path);
+        std::string base = folder;
+        std::string path = base + game::briefingwords::MapList();
+        TheMapDatabase()->Load(path.c_str());
     }
     // push_back(folder)
     stlp::string name(folder);
@@ -302,9 +304,9 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     CTextManager* texts = TheTextManager();
     int found;
     {
-        mfc::CString prefix(game::briefingwords::QuestSection());
-        mfc::CString section = prefix + name;
-        found = texts->CTextManager::Open(section);
+        std::string prefix = game::briefingwords::QuestSection();
+        std::string section = prefix + name;
+        found = texts->CTextManager::Open(section.c_str());
     }
     if (found) texts->ReadLine(&name, 1);
     return new (out) mfc::CString(name);

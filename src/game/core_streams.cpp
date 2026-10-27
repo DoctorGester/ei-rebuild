@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -49,7 +50,7 @@ void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
 void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
 mfc::CString* CStream::ReadString(void* out) {
-    mfc::CString text;
+    std::string text;
     unsigned char byte;
     while (Read(&byte, 1) && byte) text = mfc::operator+(text, static_cast<char>(byte));
     return new (out) mfc::CString(text);

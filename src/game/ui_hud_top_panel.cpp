@@ -11,10 +11,12 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -90,7 +92,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     const char* key = static_cast<char>(crippled) ? "combat_crippled"
                                                   : "combat_picked_up";
     TheTextManager()->GetString(key, &kind);
-    mfc::CString line(kind);
+    std::string line = kind.GetString();
     line += " ";
     line += name;
     line += "\n";   // "\n"
@@ -102,18 +104,18 @@ EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
 void CHudTopPanel::AddMoney(int money) {
     if (money <= 0) return;
-    mfc::CString text;
+    std::string text;
     mfc::CString picked;
     mfc::CString format;
     TheTextManager()->GetString("combat_picked_up", &picked);
     TheTextManager()->GetString("format_money", &format);
-    text.Format(format, money);
-    mfc::CString line(picked);
+    text = str::Format(format, money);
+    std::string line = picked.GetString();
     line += " ";
     line += text;
     line += "\n";   // "\n"
     text = line;
     PageText(0) += text;
-    if (page_ == 0) owner_->MessageLog()->AddText(text);
+    if (page_ == 0) owner_->MessageLog()->AddText(text.c_str());
 }
 EI_REWRITTEN(0x0064A630, CHudTopPanel::AddMoney);

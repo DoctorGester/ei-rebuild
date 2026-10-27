@@ -15,6 +15,8 @@
 #include "ei/hook.h"
 #include "unit_ai.h"
 
+#include <string>
+
 namespace {
 
 using namespace scriptarray;
@@ -134,7 +136,7 @@ void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
 EI_REWRITTEN(0x004CE5F0, ScriptStrings::SetAtGrow);
 
 void ScriptStrings::CopyTo(int index, mfc::CString* out) const {
-    mfc::CString copy(data[index]);   // the by-value GetAt (004C2680)
+    std::string copy = data[index].GetString();   // the by-value GetAt (004C2680)
     *out = copy;
 }
 EI_REWRITTEN(0x004C2F80, ScriptStrings::CopyTo);

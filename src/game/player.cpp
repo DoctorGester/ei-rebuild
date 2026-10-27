@@ -14,6 +14,9 @@
 #include "game_data.h"
 #include "world.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace {
 
@@ -83,9 +86,9 @@ EI_REWRITTEN_SPECIAL(0x00664E00, CPlayer::~CPlayer);
 // curID=%x") with the previous and the current message type (their low bytes; the callers set
 // only DL) raises FatalError (00480080, patched by Rebirth: through its address); its result.
 int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
-    mfc::CString text;
-    text.Format(format, previous & 0xFF, type & 0xFF);
-    return game::FatalError(text);
+    std::string text;
+    text = str::Format(format, previous & 0xFF, type & 0xFF);
+    return game::FatalError(text.c_str());
 }
 EI_REWRITTEN(0x00664B70, PlayerMessageError);
 

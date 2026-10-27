@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include <string>
 #include <windows.h>
 
 namespace text {
@@ -61,6 +62,16 @@ void FromAssetText(mfc::CString* text, unsigned codepage) {
         const int length = static_cast<int>(converted.size());
         std::memcpy(text->GetBufferSetLength(length), converted.data(), converted.size());
         text->ReleaseBuffer(length);
+    } else {
+        (void)text;
+        (void)codepage;
+    }
+}
+
+void FromAssetText(std::string* text, unsigned codepage) {
+    if constexpr (kUtf8) {
+        if (IsAscii(*text)) return;
+        *text = FromAssetText(std::string_view(*text), codepage);
     } else {
         (void)text;
         (void)codepage;

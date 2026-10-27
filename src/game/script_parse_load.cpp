@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 #include <type_traits>
 
 using namespace scriptparse;
@@ -532,7 +533,7 @@ EI_REWRITTEN(0x004D1030, CScript::LoadScriptBody);
 BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
                                  const mfc::CString* name) {
     LocalToken unused;   // constructed and destroyed by the game, never read
-    mfc::CString unusedText;
+    std::string unusedText;
     cmd->Clear();
     BOOL ok;
     if (!*pos) {
@@ -652,10 +653,10 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
                 } else {
                     ScriptToken next;
                     next.CopyConstruct(NextToken(pos));
-                    mfc::CString nextText(next.text);
+                    std::string nextText = next.text.GetString();
                     int nextId;
-                    ClassifyToken(nextText, &nextId, nullptr);
-                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
+                    ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
                 }
                 if (!open) return 0;
                 ScriptDecl* body = NewCommandList();
@@ -757,9 +758,9 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     for (ScriptPos pos = tokens.head; pos;) {
         ScriptToken token;
         token.CopyConstruct(NextToken(&pos));
-        mfc::CString word(token.text);
+        std::string word = token.text.GetString();
         int id;
-        ClassifyToken(word, &id, nullptr);
+        ClassifyToken(word.c_str(), &id, nullptr);
         switch (id) {
         case kLexWorldScript: {
             BOOL ok;
@@ -768,10 +769,10 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
-                mfc::CString nextText(next.text);
+                std::string nextText = next.text.GetString();
                 int nextId;
-                ClassifyToken(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
+                ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
             }
             if (!ok) return fail(0);
             if (worldScript) return fail(Error(this, token.line, 14, "Only one WorldScript() per file allowed"));
@@ -814,7 +815,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (FindScript(decl->name) != -1)   // "Duplicate script %s"
-                return fail(Error(this, token.line, 15, "Duplicate script %s", word.GetString()));
+                return fail(Error(this, token.line, 15, "Duplicate script %s", word.c_str()));
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return fail(0);
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
             Scripts().Add(*decl);
@@ -828,10 +829,10 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
-                mfc::CString nextText(next.text);
+                std::string nextText = next.text.GetString();
                 int nextId;
-                ClassifyToken(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
+                ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
             }
             if (!ok) return fail(0);
             // Declared with qualified names, then added to the global variables.
@@ -841,7 +842,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             break;
         }
         default:   // "Unexpected '%s'"
-            return fail(Error(this, token.line, 3, "Unexpected '%s'", word.GetString()));
+            return fail(Error(this, token.line, 3, "Unexpected '%s'", word.c_str()));
         }
     }
 

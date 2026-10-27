@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -41,8 +42,8 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 void ReadTutorText(CTextManager* texts, const mfc::CString& key, mfc::CString* text) {
     BOOL found;
     {
-        mfc::CString section = mfc::CString(TutorSection()) + key;
-        found = texts->Open(section);
+        std::string section = (mfc::CString(TutorSection()) + key).GetString();
+        found = texts->Open(section.c_str());
     }
     if (!found) return;
     texts->ReadToHash(text, 1);
@@ -59,8 +60,8 @@ void CHelpWindow::CreateScreen() {
     CTextManager* texts = TheTextManager();
     BOOL found;
     {
-        mfc::CString section = mfc::CString(TutorialSection()) + text_;
-        found = texts->Open(section);
+        std::string section = (mfc::CString(TutorialSection()) + text_).GetString();
+        found = texts->Open(section.c_str());
     }
     if (!found) {
         interface_->SetPendingValue(0);

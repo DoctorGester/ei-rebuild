@@ -23,6 +23,7 @@
 
 #include <bit>
 #include <cstdlib>
+#include <string>
 
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
@@ -87,9 +88,9 @@ int CWorldClient::LoadLights(const char* file) {
     DwordArray values{};
     CIniFile ini;   // the empty path (00695B80), freed at the end (00695BE0)
     {
-        mfc::CString folder = TheDataFolder() + ConfigFolder();
-        mfc::CString path = folder + file;
-        ini.SetPath(path);
+        std::string folder = (TheDataFolder() + ConfigFolder()).GetString();
+        std::string path = folder + file;
+        ini.SetPath(path.c_str());
     }
     ReadTable(ini, keys, hour, values, SunlightSection(), sunlight_);
     ReadTable(ini, keys, hour, values, AmbientSection(), ambient_);

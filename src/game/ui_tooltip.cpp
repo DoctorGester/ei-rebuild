@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr int kFont = 0;
@@ -126,8 +127,8 @@ void CUiTooltip::DrawLines() {
     for (int i = 0; i < lines_.size; ++i) {
         COLORREF colour = i >= flag_ ? kTextColour : kTitleColour;
         if (i == 0 && keyName_) {
-            mfc::CString text = lines_[0] + KeyOpen() + keyName_ + KeyClose();
-            surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
+            std::string text = (lines_[0] + KeyOpen() + keyName_ + KeyClose()).GetString();
+            surface->DrawTextIn(text.c_str(), &row, kFont, colour, 0, 0);
         } else {
             surface->DrawTextIn(lines_[i], &row, kFont, colour, 0, 0);
         }

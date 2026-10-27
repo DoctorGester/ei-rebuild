@@ -37,6 +37,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <string>
 
 
 namespace {
@@ -201,7 +202,7 @@ void* CPlayerClient::ReadText(void* out) {
 }
 
 int CPlayerClient::OnSetVariable() {
-    mfc::CString name;
+    std::string name;
     {
         TextBuffer text;
         in_.ReadString(text.Get());
@@ -210,26 +211,26 @@ int CPlayerClient::OnSetVariable() {
     std::uint32_t value;
     in_.Read(&value, 4);
     NamedFloatTable& variables = Owner()->Party()->variables_;
-    variables.Get(name);
-    variables.Set(name, std::bit_cast<float>(value));
+    variables.Get(name.c_str());
+    variables.Set(name.c_str(), std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
-        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheInterface()->OnQuestVariable(name.c_str(), std::bit_cast<float>(value));
+        TheClientWorld()->OnQuestVariable(name.c_str(), std::bit_cast<float>(value));
     }
     return 1;
 }
 
 int CPlayerClient::OnDeleteVariable() {
-    mfc::CString name;
+    std::string name;
     {
         TextBuffer text;
         in_.ReadString(text.Get());
         name = *text.Get();
     }
-    Owner()->Party()->variables_.Remove(name);
+    Owner()->Party()->variables_.Remove(name.c_str());
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name, 0.0f);
-        TheClientWorld()->OnQuestVariable(name, 0.0f);
+        TheInterface()->OnQuestVariable(name.c_str(), 0.0f);
+        TheClientWorld()->OnQuestVariable(name.c_str(), 0.0f);
     }
     return 1;
 }
@@ -546,8 +547,8 @@ void RemovePartNamed(CObject3D* object, const char* name) {
 int CPlayerClient::OnNewObject() {
     app::DelayedProtectionCheck();   // 00455B50 (thiscall on the client, not read)
     console::CStringArray parts;
-    mfc::CString scriptName;
-    mfc::CString secondName;
+    std::string scriptName;
+    std::string secondName;
     NewObjectHeader header;
     in_.Read(&header, sizeof(header));
     Vector3 scale;
@@ -592,7 +593,7 @@ int CPlayerClient::OnNewObject() {
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
     object->ApplyBaseScale();
-    object->name2 = secondName.GetString();   // 0050F150
+    object->name2 = secondName.c_str();   // 0050F150
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
@@ -646,7 +647,7 @@ int CPlayerClient::OnNewObject() {
         to = nullptr;
     }
     attached->SetSkins(textureFrom, to);
-    if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
+    if (isUnit) ObjectSlots(created)->SetScriptName(scriptName.c_str());
 
     // The player keeps it, counted.
     CPlayer* player = Owner();

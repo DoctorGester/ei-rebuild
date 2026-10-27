@@ -18,6 +18,7 @@
 #include "lib/stlp_vector.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -116,7 +117,7 @@ void UnitSet::Add(CUnit* unit) {
             // The texts the server companion holds (CMapObjectServer's string array).
             const CMapObjectServer* server = unit->ServerCompanion();
             for (int i = 0; i < server->strings.size; ++i) {
-                mfc::CString name(server->strings[i].GetString());
+                std::string name = server->strings[i].GetString();
                 record.names.PushBack<NameElement>(name);
             }
         }

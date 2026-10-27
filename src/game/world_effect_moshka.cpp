@@ -25,6 +25,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <string>
 
 
 namespace {
@@ -235,8 +236,8 @@ void CEffectMoshka::Follow(int objectId) {
     followedId_ = objectId;
     CEngineObject* followed = TheClientWorld()->ObjectWithId(objectId);
     if (followed == nullptr) return;
-    mfc::CString model(game::MoshkaModelText());
-    mfc::CString texture(game::MoshkaTextureText());
+    std::string model = game::MoshkaModelText();
+    std::string texture = game::MoshkaTextureText();
     int id = NextClientObjectId()--;
     auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     bird_.Assign(object);
@@ -248,11 +249,11 @@ void CEffectMoshka::Follow(int objectId) {
     FindPerch(&perch, &PositionOf(followed));
     std::memcpy(&bird->localPosition_, &perch, sizeof(bird->localPosition_));
     console::CStringArray parts;
-    bird->MakeFigure(model, &parts, 1);
+    bird->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     bird->RestartPose();
-    attached->SetSkins(texture, game::EmptyText());
+    attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);
     attached->SetLit(1);   // slot 26
     if (FigureAnimation* first = bird->AnimationAt(0)) {

@@ -14,6 +14,8 @@
 #include "game_singletons.h"
 #include "game_data.h"
 
+#include <string>
+
 namespace {
 
 constexpr LONG kLargeSize = 0x20;
@@ -70,8 +72,8 @@ EI_REWRITTEN(0x005E60B0, CCursor::Init);
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
     if (auto* memory = gamecrt::operator_new_as<CursorImage>()) {
-        mfc::CString file = mfc::CString(name) + ".mmp";
-        image = memory->Construct(file.GetString(), hotX, hotY, flag);
+        std::string file = (mfc::CString(name) + ".mmp").GetString();
+        image = memory->Construct(file.c_str(), hotX, hotY, flag);
     }
     images_.Add(image);
 }

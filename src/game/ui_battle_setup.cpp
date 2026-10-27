@@ -26,6 +26,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include <string>
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -61,7 +62,7 @@ CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
     portraitMode_ = 0;
-    mfc::CString savedText;
+    std::string savedText;
     hasHero_ = false;
     pendingExit_ = -1;
     exitPending_ = 0;
@@ -165,7 +166,7 @@ void CBattleScreen::CreateScreen() {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
         auto* top = topPanel_;
         mfc::CString& panelText = top->pageTexts_[0];
-        const char* text = savedText;
+        const char* text = savedText.c_str();
         panelText += text;
         if (top->page_ == 0) {
             // The owner is this screen (a container; CBattleScreen declares it as a window).

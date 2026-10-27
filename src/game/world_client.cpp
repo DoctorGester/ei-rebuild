@@ -30,10 +30,12 @@
 #include "lib/nan_audit.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstring>
 #include <new>
+#include <string>
 
 
 
@@ -267,17 +269,17 @@ void CWorldClient::SummonBird() {
 
 void CWorldClient::OnQuestVariable(const char* variable, float value) {
     const char* dot = DotText();
-    mfc::CString name(variable);
-    const int length = name.GetLength();
-    const int second = name.Find(dot, name.Find(dot) + 1);
-    name = name.Right(length - second - 1);
+    std::string name = variable;
+    const int length = name.size();
+    const int second = str::Find(name, dot, str::Find(name, dot) + 1);
+    name = str::Right(name, length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (gamecrt::mbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+        if (gamecrt::mbscmp(name.c_str(), object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // FCOMP + TEST AH,0x40.
     EI_NAN_AUDIT(value);
-    if (value == 2.0f && name.Find(dot) < 0) SummonBird();
+    if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
 
 mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {

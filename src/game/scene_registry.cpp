@@ -20,10 +20,12 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "world.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace scene {
 int __fastcall ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/);
@@ -150,11 +152,11 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
         m.w = static_cast<float>(reg.GetInt2(s.mapping, "Width", -1));
         m.h = static_cast<float>(reg.GetInt2(s.mapping, "Height", -1));
         if (IsMinusOne(m.x) || IsMinusOne(m.y) || IsMinusOne(m.w) || IsMinusOne(m.h)) {
-            mfc::CString message;
-            message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
-            game::DebugLog(message);
+            std::string message;
+            message = str::Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
+            game::DebugLog(message.c_str());
             if (TheClientWorld()->flags_ & 0x10000) {
-                ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
+                ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message.c_str(), 0x30, 0);
             }
             m.h = 0.0f;
             m.w = 0.0f;
@@ -180,7 +182,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
 // value) and, once each, into `links` (type, value) and `names` (type, texture name).
 void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& groupName, const mfc::CString& mapping,
                     TextureLinkArray* links, TextureNameArray* names) {
-    mfc::CString texture;
+    std::string texture;
     int type;
     int value;
     if (ParseMaterial(groupName, &type, &value) != 1) {
@@ -210,7 +212,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
     for (; j < names->size; ++j) {
         const TextureNameRecord& n = (*names)[j];
         if (gamecrt::mbscmp(n.name.GetString(),
-                            texture.GetString()) == 0 &&
+                            texture.c_str()) == 0 &&
             n.id == textureId) {
             break;
         }

@@ -30,6 +30,7 @@
 #include "figure_manager.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -181,14 +182,14 @@ void CMainMenu::OnMessageResult(int result) {
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
-            mfc::CString path = *GameBasePathString() + kExitMovie;
-            PlayMovie(path, 0, 0, 0, 1, 1, 1);
+            std::string path = (*GameBasePathString() + kExitMovie).GetString();
+            PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
-            mfc::CString path = *GameBasePathString() + kIntroMovie;
-            PlayMovie(path, 0, 1, 1, 1, 1, 1);
+            std::string path = (*GameBasePathString() + kIntroMovie).GetString();
+            PlayMovie(path.c_str(), 0, 1, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
         TheGameFlow()->RequestState3();

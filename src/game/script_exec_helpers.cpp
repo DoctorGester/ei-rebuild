@@ -13,9 +13,11 @@
 #include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -245,47 +247,47 @@ private:
 void __fastcall ScriptQuestFinish(CScript* script) {
     mfc::CString text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
-        mfc::CString line;
-        line.Format("DeclareScript Su%i()\n", i);   // "DeclareScript Su%i()\n"
+        std::string line;
+        line = str::Format("DeclareScript Su%i()\n", i);   // "DeclareScript Su%i()\n"
         text += line;
     }
     for (int i = 0; i < QuestObjectiveCount(); ++i) {
-        mfc::CString head;
-        mfc::CString condition;
-        mfc::CString then;
-        mfc::CString tail;
+        std::string head;
+        std::string condition;
+        std::string then;
+        std::string tail;
         const char* quest = QuestName();
-        head.Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
-        then.Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
+        head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
+        then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
             tail = ")\n)\n";                                   // ")\n)\n"
         } else {
             quest = QuestName();
-            tail.Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
+            tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const QuestObjective& objective = QuestObjectives()[i];
         const char* argument = objective.text;
         switch (objective.type) {
         case 0xD7:   // QObjArea
-            condition.Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
+            condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
             break;
         case 0xD8:   // QObjSeeObject
-            condition.Format("any( i, Heroes, IsLess( DistanceUnitUnit( i, %s ), 7 ) )", argument);
+            condition = str::Format("any( i, Heroes, IsLess( DistanceUnitUnit( i, %s ), 7 ) )", argument);
             break;
         case 0xD9:   // QObjSeeUnit
-            condition.Format("IsUnitVisible( %s )", argument);
+            condition = str::Format("IsUnitVisible( %s )", argument);
             break;
         case 0xDA:   // QObjKillUnit
-            condition.Format("Not( IsAlive( %s ) )", argument);
+            condition = str::Format("Not( IsAlive( %s ) )", argument);
             break;
         case 0xDB:   // QObjKillGroup
-            condition.Format("Not( any( i, %s, IsAlive(i) ) )", argument);
+            condition = str::Format("Not( any( i, %s, IsAlive(i) ) )", argument);
             break;
         case 0xDC:   // QObjUse
-            condition.Format("IsEqual( GetLeverState(%s), %f )", argument, static_cast<double>(objective.value));
+            condition = str::Format("IsEqual( GetLeverState(%s), %f )", argument, static_cast<double>(objective.value));
             break;
         case 0xDD:   // QObjGetItem
-            condition.Format("HaveItem( 0, %f )", static_cast<double>(objective.value));
+            condition = str::Format("HaveItem( 0, %f )", static_cast<double>(objective.value));
             break;
         default:
             break;
@@ -296,9 +298,9 @@ void __fastcall ScriptQuestFinish(CScript* script) {
         text += *third.Get();
     }
     {
-        mfc::CString last;
+        std::string last;
         const char* quest = QuestName();
-        last.Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
+        last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"

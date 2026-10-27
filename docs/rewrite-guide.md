@@ -150,6 +150,9 @@ does not need a second pass:
   `EI_REWRITTEN`, the registrations, the forwarders and `EI_RECORD` keep their address;
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
+- new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find
+  with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings"), not a new
+  `mfc::CString`;
 - containers use the shared templates: `mfc::CArray<T>`, `mfc::CList<T>`, `mfc::CTypedPtrList<T>`
   (`src/lib/mfc.h`), `lib::AlignedArray<T>` (the engine's 32-byte aligned arrays,
   `src/lib/containers.h`) and `stlp::` (`src/lib/stlp.h`). Do not declare a container layout per

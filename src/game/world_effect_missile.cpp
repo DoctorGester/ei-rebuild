@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstring>
 #include <new>
+#include <string>
 
 
 namespace {
@@ -302,8 +303,8 @@ void CEffectArrowFigure::Start(int update) {
         MoveParts();
         return;
     }
-    mfc::CString model(game::ArrowFigureModelText());
-    mfc::CString texture(game::ArrowFigureTextureText());
+    std::string model = game::ArrowFigureModelText();
+    std::string texture = game::ArrowFigureTextureText();
     int id = NextClientObjectId()--;
     auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     if (object != figure_) {
@@ -317,11 +318,11 @@ void CEffectArrowFigure::Start(int update) {
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     console::CStringArray parts;
-    figure->MakeFigure(model, &parts, 1);
+    figure->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
-    attached->SetSkins(texture, game::EmptyText());
+    attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(figure_);
 }
 

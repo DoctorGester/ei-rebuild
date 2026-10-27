@@ -16,8 +16,10 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <string>
 
 // The light's distance test and position must round like the original.
 
@@ -122,13 +124,13 @@ int CMapObjectClientSpecific::RunTick() {
             std::uint32_t timer = sound->timer - 1;
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
-            mfc::CString name;
+            std::string name;
             std::uint32_t variant = IsaacRandom::Global().Next() % 3 + 1;
             if (sound->kind == kSoundStench) {
-                name.Format(kStenchSoundFormat, variant);
+                name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            TheSoundManager()->Play3D(name.c_str(), 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
             TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }

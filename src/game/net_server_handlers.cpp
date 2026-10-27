@@ -19,10 +19,12 @@
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace net {
 
@@ -103,9 +105,9 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;
         auto* player = binding->Player();
-        mfc::CString line;
-        line.Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
-        server->Announce(line, nullptr);
+        std::string line;
+        line = str::Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
+        server->Announce(line.c_str(), nullptr);
         return;
     }
 }

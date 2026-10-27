@@ -20,6 +20,7 @@
 #include "unit.h"
 
 #include <cmath>
+#include <string>
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -88,7 +89,7 @@ constexpr unsigned kFolderBufferSize = 0x400;
 void __cdecl StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
-    mfc::CString text(folder);
+    std::string text = folder;
     StartFolder() = (mfc::operator+(text, '\\')).GetString();
 }
 EI_REWRITTEN(0x0055EA10, StoreStartFolder);

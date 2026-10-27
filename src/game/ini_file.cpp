@@ -10,10 +10,12 @@
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "lib/mfc_string.h"
+#include "lib/str.h"
 
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -186,10 +188,10 @@ double CIniFile::GetFloat(const char* section, const char* key, float defaultVal
 EI_REWRITTEN(0x00695F60, CIniFile::GetFloat);
 
 double CIniFile::GetDouble(const char* section, const char* key, double defaultValue) {
-    mfc::CString text;
-    text.Format(kDoubleFormat, defaultValue);
-    mfc::CString value = ReadString(this, section, key, text);
-    volatile double result = std::atof(value);   // stored as a double, as the original does
+    std::string text;
+    text = str::Format(kDoubleFormat, defaultValue);
+    std::string value = ReadString(this, section, key, text.c_str()).GetString();
+    volatile double result = std::atof(value.c_str());   // stored as a double, as the original does
     return result;
 }
 EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);
@@ -282,39 +284,39 @@ BOOL CIniFile::WriteIntForward(const char* section, const char* key, int value) 
 EI_REWRITTEN(0x00696F30, CIniFile::WriteIntForward);
 
 BOOL CIniFile::WriteInt(const char* section, const char* key, int value) {
-    mfc::CString text;
-    text.Format(kIntFormat, value);
+    std::string text;
+    text = str::Format(kIntFormat, value);
     return WriteCopy(this, section, key, text);
 }
 EI_REWRITTEN(0x00696F50, CIniFile::WriteInt);
 
 BOOL CIniFile::WriteUInt(const char* section, const char* key, unsigned value) {
-    mfc::CString text;
-    text.Format(kUIntFormat, value);
+    std::string text;
+    text = str::Format(kUIntFormat, value);
     return WriteCopy(this, section, key, text);
 }
 EI_REWRITTEN(0x00696FE0, CIniFile::WriteUInt);
 
 BOOL CIniFile::WriteFloat(const char* section, const char* key, float value) {
-    mfc::CString text;
-    text.Format(kFloatFormat, static_cast<double>(value));
+    std::string text;
+    text = str::Format(kFloatFormat, static_cast<double>(value));
     return WriteCopy(this, section, key, text);
 }
 EI_REWRITTEN(0x00697070, CIniFile::WriteFloat);
 
 BOOL CIniFile::WriteDouble(const char* section, const char* key, double value) {
-    mfc::CString text;
-    text.Format(kLongFloatFormat, value);
+    std::string text;
+    text = str::Format(kLongFloatFormat, value);
     return WriteCopy(this, section, key, text);
 }
 EI_REWRITTEN(0x00697100, CIniFile::WriteDouble);
 
 BOOL CIniFile::WriteList(const char* section, const char* key, const console::CStringArray* items, char separator) {
-    mfc::CString text;
+    std::string text;
     if (items->GetSize() == 0) return 0;
     text = (*items)[0];
     for (int i = 1; i < items->GetSize(); ++i) {
-        mfc::CString part = mfc::operator+(separator, (*items)[i]);   // 006FD5D0
+        std::string part = (mfc::operator+(separator, (*items)[i])).GetString();   // 006FD5D0
         text += part;
     }
     return WriteCopy(this, section, key, text);

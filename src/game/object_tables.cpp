@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 int __fastcall TextKeyFromName(const char* name) {
     std::uint32_t h = 0;
@@ -44,7 +45,7 @@ float NamedFloatTable::Get(const char* name) {
     constexpr float kZero = 0.0f;   // 0073B858
     const Node* node;
     {
-        mfc::CString key(name);
+        std::string key = name;
         node = Find(key);
     }
     return node ? node->value.mapped : kZero;
@@ -53,7 +54,7 @@ EI_REWRITTEN(0x00460AF0, NamedFloatTable::Get);
 
 void NamedFloatTable::Set(const char* name, float value) {
     if (!*name) return;
-    mfc::CString key(name);
+    std::string key = name;
     EI_NAN_AUDIT(value);
     if (value == 0.0f) {
         EraseKey(key);
@@ -64,7 +65,7 @@ void NamedFloatTable::Set(const char* name, float value) {
 EI_REWRITTEN(0x00460BC0, NamedFloatTable::Set);
 
 void NamedFloatTable::Remove(const char* name) {
-    mfc::CString key(name);
+    std::string key = name;
     EraseKey(key);
 }
 EI_REWRITTEN(0x00460DB0, NamedFloatTable::Remove);
@@ -80,14 +81,14 @@ EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 void NamedFloatTable::Load(CStream* stream) {
     Clear();   // inlined in the original: each chain's nodes freed in order (004616A0), the count zeroed
     for (;;) {
-        mfc::CString key;
+        std::string key;
         {
             alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
             mfc::CString* read = stream->ReadString(raw);
             key = *read;
             read->~CString();
         }
-        if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
+        if (gamecrt::mbscmp(key.c_str(), game::EmptyText()) == 0) break;
         float value;
         stream->Read(&value, 4);
         (*this)[key] = value;
@@ -102,8 +103,8 @@ void NamedFloatTable::Save(CStream* stream) {
         float value = node->value.mapped;
         stream->Write(&value, 4);
     }
-    mfc::CString end;
-    stream->Write(end.GetString(), static_cast<std::uint32_t>(std::strlen(end) + 1));
+    std::string end;
+    stream->Write(end.c_str(), static_cast<std::uint32_t>(std::strlen(end.c_str()) + 1));
 }
 EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 

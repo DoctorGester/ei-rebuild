@@ -10,8 +10,10 @@
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -38,23 +40,23 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maximum) {
     CTextManager* texts = TheTextManager();
     mfc::CString name;
-    mfc::CString number;
+    std::string number;
     BOOL found;
     {
-        mfc::CString key = mfc::CString(kPerkPrefix) + label;
-        found = texts->CTextManager::Open(key);
+        std::string key = (mfc::CString(kPerkPrefix) + label).GetString();
+        found = texts->CTextManager::Open(key.c_str());
     }
     if (found)
         texts->ReadLine(&name, 1);
     else
         name = label;
     if (maximum >= 0)
-        number.Format(kRangeFormat, value, maximum);
+        number = str::Format(kRangeFormat, value, maximum);
     else
-        number.Format(kValueFormat, value);
+        number = str::Format(kValueFormat, value);
     CUiSurface* surface = surfaces_.data[0];
     surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
@@ -77,16 +79,16 @@ float CHeroStatsPanel::PartArmour(int part) {
 
 void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     mfc::CString label;
-    mfc::CString number;
-    mfc::CString unused;
+    std::string number;
+    std::string unused;
     {
-        mfc::CString key = mfc::CString(kPartPrefix) + name;
-        TheTextManager()->CTextManager::GetString(key, &label);
+        std::string key = (mfc::CString(kPartPrefix) + name).GetString();
+        TheTextManager()->CTextManager::GetString(key.c_str(), &label);
     }
     label = mfc::CString(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];
     surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
-    number.Format(kArmourFormat, static_cast<double>(PartArmour(part)));
-    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
+    number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
+    surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x00624590, CHeroStatsPanel::DrawPart);

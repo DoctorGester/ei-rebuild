@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -338,8 +339,8 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         if (!name) continue;
         bool named;
         {
-            mfc::CString copy(name);
-            named = gamecrt::mbsicmp(copy, kNoneText) != 0;
+            std::string copy = name;
+            named = gamecrt::mbsicmp(copy.c_str(), kNoneText) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];

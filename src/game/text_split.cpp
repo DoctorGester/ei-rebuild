@@ -4,6 +4,9 @@
 #include "game_strings.h"
 
 #include "ei/hook.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace text {
 
@@ -11,7 +14,7 @@ namespace {
 
 // The two splitters: the text plus a final separator, cut at each separator.
 int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool skipAdjacent) {
-    mfc::CString piece;
+    std::string piece;
     mfc::CString work(text);
     array->SetSize(0, -1);
     console::Ops(work).AppendChar(separator);
@@ -20,8 +23,8 @@ int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool ski
     while (at != -1) {
         if (!skipAdjacent || at != start) {
             piece = console::Ops(work).Mid(start, at - start);
-            piece.TrimLeft();
-            piece.TrimRight();
+            str::TrimLeft(piece);
+            str::TrimRight(piece);
             array->SetAtGrow(array->GetSize(), piece);
         }
         start = at + 1;

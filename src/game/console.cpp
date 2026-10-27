@@ -21,6 +21,7 @@
 #include "lib/mfc_string.h"
 
 #include <cstring>
+#include <string>
 
 namespace console {
 
@@ -153,7 +154,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
 void __fastcall Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
-        mfc::CString name(r.name);
+        std::string name = r.name;
         Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
     }
 
@@ -211,7 +212,7 @@ EI_REWRITTEN(0x005DC620, Execute);
 // 004DC200. States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.
 int __fastcall Tokenize(const char* text, CStringArray* out) {
-    mfc::CString token;
+    std::string token;
     mfc::CString character;
     int state = 0;
     out->SetSize(0, -1);
@@ -228,9 +229,9 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         if (c == ' ') {
             if (state == 1) {
                 state = 0;
-                if (token.GetLength() != 0) {
+                if (token.size() != 0) {
                     out->SetAtGrow(out->GetSize(), token);
-                    token.Empty();
+                    token.clear();
                 }
                 p = gamecrt::mbsinc(p);
                 continue;
@@ -253,9 +254,9 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         token += character;
         p = gamecrt::mbsinc(p);
     }
-    if (token.GetLength() != 0) {
+    if (token.size() != 0) {
         out->SetAtGrow(out->GetSize(), token);
-        token.Empty();
+        token.clear();
     }
     return 1;
 }
@@ -269,7 +270,7 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     line += *text;
     for (int i = 0; i < args->GetSize(); ++i) {
         Ops(line).AppendText(" ");
-        mfc::CString arg((*args)[i]);
+        std::string arg = (*args)[i].GetString();
         line += arg;
     }
     Ops(line).AppendText(suffix);

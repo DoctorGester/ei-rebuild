@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <utility>
 
 namespace {
@@ -145,8 +146,8 @@ void CInterface3D::Create(CTextureDevice* device) {
     console::CStdioFile file;
     bool opened;
     {
-        mfc::CString path = TheDataFolder() + game::TutorialIniText();
-        opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
+        std::string path = (TheDataFolder() + game::TutorialIniText()).GetString();
+        opened = file.Open(path.c_str(), console::CStdioFile::typeText, nullptr) != 0;
     }
     if (opened) {
         mfc::CString line;

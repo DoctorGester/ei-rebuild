@@ -13,20 +13,21 @@
 #include "lib/stlp.h"
 
 #include <cstdint>
+#include <string>
 
 int LeverRecordTable::Load(const char* folder) {
-    mfc::CString dir(folder);
+    std::string dir = folder;
     LocalResource resource;
     bool opened;
     {
-        mfc::CString path = dir + "database.res";
+        std::string path = dir + "database.res";
         // Through the vtable: slot 1 is 00671730.
-        opened = resource.Get()->OpenResource(path, 0) != 0;
+        opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
     }
     if (!opened) {
         // The message names "databases.res", not the file it tried: as the original.
-        mfc::CString path = dir + "databases.res";
-        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
+        std::string path = dir + "databases.res";
+        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     }
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("Levers.ldb", &size);

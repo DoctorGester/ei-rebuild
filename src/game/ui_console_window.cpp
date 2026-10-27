@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <string>
@@ -43,9 +44,9 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input.
 int PromptWidth(CDC* dc, const mfc::CString& input, int count) {
-    mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
+    std::string text = (mfc::CString(game::consoletexts::Prompt()) + Left(input, count)).GetString();
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
+    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide (system_text.h)
     return size.cx;
 }
 
@@ -133,14 +134,14 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_DELETE:
         if (anchor_ == caret_) {
             if (caret_ < input_.GetLength()) {
-                mfc::CString rest = Ops(input_).Mid(::text::NextCharacter(input_, caret_));
+                std::string rest = Ops(input_).Mid(::text::NextCharacter(input_, caret_)).GetString();
                 input_ = Left(input_, caret_) + rest;
                 DrawInput();
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
             int high = anchor_ > caret_ ? anchor_ : caret_;
-            mfc::CString rest = Ops(input_).Mid(high);
+            std::string rest = Ops(input_).Mid(high).GetString();
             input_ = Left(input_, low) + rest;
             caret_ = low;
             anchor_ = low;
@@ -236,14 +237,14 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            mfc::CString rest = MidOf(input_, last);
+            std::string rest = MidOf(input_, last).GetString();
             input_ = Left(input_, first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
             const int previous = ::text::PreviousCharacter(input_, caret_);
-            mfc::CString rest = MidOf(input_, caret_);
+            std::string rest = MidOf(input_, caret_).GetString();
             input_ = Left(input_, previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
@@ -288,21 +289,21 @@ void ConsoleWindow::OnChar(int key, int, int) {
             const char* text = input_;
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                mfc::CString rest = MidOf(input_, high);
-                mfc::CString head = Left(input_, low);
+                std::string rest = MidOf(input_, high).GetString();
+                std::string head = Left(input_, low).GetString();
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
                 DrawInput();
             }
         } else if (letter == 'v') {
-            mfc::CString clip(ClipboardText().c_str());
-            int cut = clip.FindOneOf("\r\n");
+            std::string clip = ClipboardText().c_str();
+            int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
-            mfc::CString rest = MidOf(input_, high);
-            mfc::CString head = Left(input_, low);
+            std::string rest = MidOf(input_, high).GetString();
+            std::string head = Left(input_, low).GetString();
             input_ = (head + clip) + rest;
-            int position = clip.GetLength() - (anchor_ != caret_ ? 1 : 0) + high;
+            int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
             position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
@@ -310,8 +311,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
         }
     }
     if (ctrl_) return;
-    mfc::CString rest = MidOf(input_, high);
-    mfc::CString head = Left(input_, low);
+    std::string rest = MidOf(input_, high).GetString();
+    std::string head = Left(input_, low).GetString();
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;
@@ -339,14 +340,14 @@ void ConsoleWindow::DrawLines() {
         dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
-        mfc::CString mark(game::consoletexts::More());
+        std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
-        dc->DrawText(mark, mark.GetLength(), &rect, kDrawMark);
+        dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);
     }
     if (scroll_ < lines_.GetSize() - visibleLines_) {
-        mfc::CString mark(game::consoletexts::More());
+        std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
-        dc->DrawText(mark, mark.GetLength(), &rect, kDrawMark);
+        dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);
     }
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
@@ -375,8 +376,8 @@ void ConsoleWindow::DrawInput() {
     dc->SetTextColor(kInputText);
     dc->SetBkMode(TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
-    mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + input_;
-    dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
+    std::string text = (mfc::CString(game::consoletexts::Prompt()) + input_).GetString();
+    dc->DrawText(text.c_str(), text.size(), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
         mfc::impl::CPen pen(PS_SOLID, 2, kInputText);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);

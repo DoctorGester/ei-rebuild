@@ -16,9 +16,11 @@
 #include "ui.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 // The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text (LoadKeyBindings
 // fills it).
@@ -98,7 +100,7 @@ EI_REWRITTEN(0x00462C10, LoadKeyBindings);
 // 00462DF0: one line per scan code with an action, when both the key and the action are known
 // (format 00787C18: key name, action name).
 void __cdecl SaveKeyBindings() {
-    mfc::CString line;
+    std::string line;
     console::CStdioFile file;
     if (!OpenFile(file, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite)) return;
     for (int scan = 0; scan < 0x200; ++scan) {
@@ -115,8 +117,8 @@ void __cdecl SaveKeyBindings() {
         for (int action = 0; action < kActionCount; ++action) {
             if (kActionDefinitions[action].id_ != id) continue;
             if (known) {
-                line.Format("%s %s\n", g_keyNames[key].file_, kActionDefinitions[action].name_);
-                file.WriteString(line);
+                line = str::Format("%s %s\n", g_keyNames[key].file_, kActionDefinitions[action].name_);
+                file.WriteString(line.c_str());
             }
             break;
         }

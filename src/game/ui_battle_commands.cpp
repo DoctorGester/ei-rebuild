@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -278,9 +279,9 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         const char* name = phrase->name.data();
         BOOL found;
         {
-            mfc::CString say("say ");
-            mfc::CString key = say + name;
-            found = texts->Open(key);
+            std::string say("say ");
+            std::string key = say + name;
+            found = texts->Open(key.c_str());
         }
         if (found) {
             texts->ReadToHash(&text, 1);

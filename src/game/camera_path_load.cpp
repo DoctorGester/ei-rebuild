@@ -13,6 +13,8 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 // The gap in the keys' time (0073BAB4) that ends the lead-in.
 constexpr float kLeadInGap = 500.0f;
@@ -22,13 +24,13 @@ int CCamera::LoadPath(const char* name, int settle) {
     mfc::CFile file;
     int opened;
     {
-        mfc::CString folder(TheDataFolder());
-        mfc::CString path = folder + "camera\\" + name;
+        std::string folder = TheDataFolder().GetString();
+        std::string path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
             // Rebirth's CameraPatch (0040ED42): the mod's Camera\ copy when there is one.
-            opened = file.Open(modfolders::CameraFile(path).c_str(), mfc::CFile::modeRead, nullptr);
+            opened = file.Open(modfolders::CameraFile(path.c_str()).c_str(), mfc::CFile::modeRead, nullptr);
         } else {
-            opened = file.Open(path, mfc::CFile::modeRead, nullptr);
+            opened = file.Open(path.c_str(), mfc::CFile::modeRead, nullptr);
         }
     }
     if (!opened) return 0;

@@ -8,6 +8,8 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 
 // The party manager's record list (007AA5A0 + 0x24).
@@ -18,14 +20,14 @@ const NamedPartyRecords* RecordList() { return &ThePartyManager()->records; }
 CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
     auto* player = static_cast<CPlayer*>(playerArg);
     if (!player) return nullptr;
-    mfc::CString owner;
+    std::string owner;
     int split = name->Find("::");
     if (split >= 0) {
         owner = console::Ops(*name).Mid(0, split);
         *name = console::Ops(*name).Mid(split + 2, name->GetLength() - split - 2);
     }
-    if (gamecrt::mbscmp(owner, RecordList()->text10) == 0) return player->Party();
-    return (RecordList())->Find(owner);
+    if (gamecrt::mbscmp(owner.c_str(), RecordList()->text10) == 0) return player->Party();
+    return (RecordList())->Find(owner.c_str());
 }
 EI_REWRITTEN(0x004BAEC0, PartyForScript);
 

@@ -10,9 +10,11 @@
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -53,8 +55,8 @@ private:
 void CBriefingScreen::FindTopics(int personId) {
     BriefingVariables variables(TopicPrefix());
     console::CStringArray parts;
-    mfc::CString name;
-    mfc::CString constructor;
+    std::string name;
+    std::string constructor;
     TopicList found;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         if (Bits(node->value.mapped) != kOneBits) continue;
@@ -63,15 +65,15 @@ void CBriefingScreen::FindTopics(int personId) {
         name = parts[2];
         bool isConstructor;
         {
-            mfc::CString start = name.Left(kConstructorPrefixLength);
-            isConstructor = gamecrt::mbsicmp(start.GetString(),
+            std::string start = str::Left(name, kConstructorPrefixLength);
+            isConstructor = gamecrt::mbsicmp(start.c_str(),
                                             ConstructorTopic()) == 0;
         }
         if (isConstructor) {
             constructor = name;
             continue;
         }
-        const char* text = name;
+        const char* text = name.c_str();
         found.Get().push_back(stlp::string(text, text + std::strlen(text)));
     }
     stlp::vector<stlp::string>& list = found.Get();
@@ -83,7 +85,7 @@ void CBriefingScreen::FindTopics(int personId) {
     }
     topics_.SetSize(0, -1);
     for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size, topic->data());
-    if (constructor.GetLength() != 0) topics_.SetAtGrow(topics_.size, constructor);
+    if (constructor.size() != 0) topics_.SetAtGrow(topics_.size, constructor);
 }
 EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 
@@ -91,18 +93,18 @@ EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 
 mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
     mfc::CString title;
-    mfc::CString key(topic);
-    key.MakeLower();
+    std::string key = topic;
+    str::MakeLower(key);
     bool isConstructor;
     {
-        mfc::CString start = key.Left(kConstructorPrefixLength);
-        isConstructor = gamecrt::mbscmp(start, ConstructorTopic()) == 0;
+        std::string start = str::Left(key, kConstructorPrefixLength);
+        isConstructor = gamecrt::mbscmp(start.c_str(), ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
     CTextManager* texts = TheTextManager();
-    mfc::CString section(BriefingSection());
+    std::string section = BriefingSection();
     section += key;
-    if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);
+    if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);
     return new (out) mfc::CString(title);
 }
 EI_REWRITTEN(0x006078C0, CBriefingScreen::TopicTitle);

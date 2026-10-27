@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 
 #include <new>
+#include <string>
 
 namespace {
 
@@ -30,7 +31,7 @@ mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
 EI_REWRITTEN(0x0055E990, MapsFolder);
 
 mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
-    mfc::CString path;
+    std::string path;
     if (name[1] == ':') {
         path = name;
     } else {
@@ -48,8 +49,8 @@ bool __stdcall MapFileExists(const char* name) {
     mfc::CString folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     MapsFolder(&folder);
-    mfc::CString path = folder + name;
-    return find.FindFile(path, 0) != 0;
+    std::string path = (folder + name).GetString();
+    return find.FindFile(path.c_str(), 0) != 0;
 }
 EI_REWRITTEN(0x005812F0, MapFileExists);
 
@@ -59,8 +60,8 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         MapsFolder(&folder);
-        mfc::CString path = folder + name;
-        file.Open(path, netlink::FileStream::kOpenWrite, 0);
+        std::string path = (folder + name).GetString();
+        file.Open(path.c_str(), netlink::FileStream::kOpenWrite, 0);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));

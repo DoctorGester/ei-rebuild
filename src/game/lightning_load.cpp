@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <string>
 
 // 00468A00 (cdecl, no arguments). Opens <text folder>gfx.res and reads lightning.dat into the noise
 // table, row by row through a memory stream (a short file leaves the rest zero-filled, as the
@@ -22,10 +23,10 @@ int __cdecl LoadLightningNoise() {
     CMemoryStream local;
     bool opened;
     {
-        mfc::CString folder(TheTextFolder());
-        mfc::CString path = folder + "gfx.res";
+        std::string folder = TheTextFolder().GetString();
+        std::string path = folder + "gfx.res";
         // Through the vtable: slot 1 is 00671730.
-        opened = resource.Get()->OpenResource(path, 0) != 0;
+        opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
     }
     if (!opened) return 0;
 

@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -55,9 +56,9 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         CItem* spell = unit_->GetSpell(i);
         if (!spell) continue;
         {
-            mfc::CString image = spell->FigureName();   // slot 19
-            mfc::CString model = spell->PictureName();  // slot 20
-            AddSpell(model, image);
+            std::string image = spell->FigureName().GetString();   // slot 19
+            std::string model = spell->PictureName().GetString();  // slot 20
+            AddSpell(model.c_str(), image.c_str());
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 

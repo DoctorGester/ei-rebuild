@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace mfc {
 
@@ -24,6 +25,8 @@ public:
     CString(const char* s);                       // 007009DE
     CString(const char* s, int length);           // 006FD4DE (the first `length` characters)
     CString(const CString& s);                    // 007006E5
+    // C14a's bridge while the game's text is half std::string (str.h): the same characters.
+    CString(const std::string& s) : CString(s.c_str()) {}
     ~CString();                                   // 00700970
     const CString& operator=(const char* s);      // 00700AF9
     const CString& operator=(const CString& s);   // 00700AA9
@@ -718,5 +721,8 @@ CString __stdcall operator+(const char* a, const CString& b);   // 00700C79
 CString __stdcall operator+(const CString& a, const CString& b); // 00700B9F
 CString __stdcall operator+(const CString& a, char b);          // 006FD56E
 CString __stdcall operator+(char a, const CString& b);          // 006FD5D0
+// C14a's bridge: text joined with a std::string, as the std::string side's type.
+inline std::string operator+(const std::string& a, const CString& b) { return a + b.GetString(); }
+inline CString operator+(const CString& a, const std::string& b) { return a + b.c_str(); }
 
 } // namespace mfc

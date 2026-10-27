@@ -13,12 +13,14 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "sector_map.h"
 #include "world.h"
+#include "lib/str.h"
 
 namespace mapspec {
 
@@ -58,7 +60,7 @@ void Spec::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 Spec::Spec() : Chunk(nullptr) {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    mfc::CString none("none");
+    std::string none("none");
     id = -1;
     spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
@@ -100,7 +102,7 @@ EI_REWRITTEN(0x00469F40, Spec::Move);
 
 ObjectSpec::ObjectSpec() {
     parts.Construct();
-    mfc::CString none("none");
+    std::string none("none");
     kind = 1;
     parentId = 0;
     model = game::EmptyText();
@@ -261,8 +263,8 @@ void ObjectSpec::Apply() {
 EI_REWRITTEN(0x0046AFB0, ObjectSpec::Apply);
 
 mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
-    mfc::CString text;
-    text.Format("%i", player);
+    std::string text;
+    text = str::Format("%i", player);
     new (out) mfc::CString(text);
     return out;
 }

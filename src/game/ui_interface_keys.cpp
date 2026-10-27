@@ -15,9 +15,11 @@
 #include "lib/mfc_file.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -64,12 +66,12 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         CDXSurface* capturer = TheRenderDevice()->renderTarget_;
         CDib* picture = CaptureSurface(capturer);
         if (!picture) return;
-        mfc::CString name;
-        name.Format("shot%.4d.bmp", g_shotCounter);
+        std::string name;
+        name = str::Format("shot%.4d.bmp", g_shotCounter);
         ++g_shotCounter;
         lib::InPlace<mfc::CFile> storage;
         auto* file = storage.Get();
-        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite
+        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name.c_str(), 0x1001);   // 0070108B: modeCreate | modeWrite
         picture->Write(file);
         file->Close();
         delete picture;

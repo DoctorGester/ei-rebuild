@@ -30,6 +30,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -65,9 +66,9 @@ void CBriefingScreen::StartPhrases() {
     voice_ = -1;
     TheMusicSystem()->FadeOut();
     // (The original also constructs and destroys an unused CStringArray here.)
-    mfc::CString key(BriefingSection());
+    std::string key = BriefingSection();
     key += topic_;
-    if (!TheTextManager()->CTextManager::Open(key)) {
+    if (!TheTextManager()->CTextManager::Open(key.c_str())) {
         state_ = 0;
         return;
     }

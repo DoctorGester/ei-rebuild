@@ -35,6 +35,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -999,11 +1000,11 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     exitPending_ = 0;
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
-        mfc::CString name(GameExitTarget(exit));
-        if (gamecrt::mbsicmp(name.GetString(),
+        std::string name = GameExitTarget(exit);
+        if (gamecrt::mbsicmp(name.c_str(),
                             game::NoneText()) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
-            double value = LocalPlayerVariable(name);
+            double value = LocalPlayerVariable(name.c_str());
             const float one = GameOne();
             // FCOMP; TEST AH,0x40; JNZ: equal skips.
             EI_NAN_AUDIT(value);

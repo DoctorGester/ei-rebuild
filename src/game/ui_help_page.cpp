@@ -121,8 +121,8 @@ void CHelpWindow::ShowPage() {
     console::CStringArray words;
     BOOL found;
     {
-        mfc::CString section = mfc::CString(kTutorialSection) + text_;
-        found = texts->Open(section);
+        std::string section = (mfc::CString(kTutorialSection) + text_).GetString();
+        found = texts->Open(section.c_str());
     }
     if (!found) {
         interface_->SetPendingValue(0);
@@ -241,8 +241,8 @@ void CHelpWindow::ShowPage() {
                     const int cellX = pictures / 4 * kPictureSize;
                     const int cellY = pictures % 4 * kPictureSize;
                     {
-                        mfc::CString name = mfc::CString(kPicturePrefix) + entry.picture.data();
-                        CopyImage(objects_.data[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
+                        std::string name = (mfc::CString(kPicturePrefix) + entry.picture.data()).GetString();
+                        CopyImage(objects_.data[1], name.c_str(), kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
                     CUiMesh* picture = AddSprite(nullptr);
@@ -265,8 +265,8 @@ void CHelpWindow::ShowPage() {
             text.Empty();
             BOOL open;
             {
-                mfc::CString section = mfc::CString(kTutorSection) + entry.key.data();
-                open = texts->Open(section);
+                std::string section = (mfc::CString(kTutorSection) + entry.key.data()).GetString();
+                open = texts->Open(section.c_str());
             }
             if (open) texts->ReadToHash(&text, 1);
             text.TrimRight(kLineEnds);

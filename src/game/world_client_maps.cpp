@@ -65,8 +65,10 @@
 #include "game/game_slots.h"
 #include "game/record_arrays.h"
 #include "system_text.h"
+#include "lib/str.h"
 
 #include <new>
+#include <string>
 #include <windows.h>
 
 #include <cmath>
@@ -672,7 +674,7 @@ bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
 // The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
 void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
-    mfc::CString hair;
+    std::string hair;
     for (int i = 0; i < party->size; ++i) {
         auto* record = party->data[i];
         console::CStringArray parts;
@@ -682,7 +684,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                 UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(record->texts[5].GetString()));
                 int number = prototype->hair;
                 if (number != -1) {
-                    hair.Format(worlddata::HairFormat(), number);
+                    hair = str::Format(worlddata::HairFormat(), number);
                     parts.SetAtGrow(parts.GetSize(), hair);
                 }
             } else {
@@ -1173,7 +1175,7 @@ EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 int CWorldClient::Create() {
     CWorld::Create();
     {
-        mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
+        std::string path = (TheDataFolder() + worlddata::TexturesFolderText()).GetString();   // operator+ (00700C05)
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
@@ -1218,12 +1220,12 @@ int CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        mfc::CString path = TheTextFolder() + worlddata::TextsFileText();   // operator+ (00700C05)
-        texts_->AddSource(path);
+        std::string path = (TheTextFolder() + worlddata::TextsFileText()).GetString();   // operator+ (00700C05)
+        texts_->AddSource(path.c_str());
     }
     {
-        mfc::CString path = TheTextFolder() + worlddata::TextsLmpFileText();   // operator+ (00700C05)
-        texts_->AddSource(path);
+        std::string path = (TheTextFolder() + worlddata::TextsLmpFileText()).GetString();   // operator+ (00700C05)
+        texts_->AddSource(path.c_str());
     }
 
     // The lightning manager.
@@ -1248,8 +1250,8 @@ int CWorldClient::Create() {
     else
         flags_ &= ~0x200u;
     {
-        mfc::CString path = TheDataFolder() + worlddata::CursorFileText();   // operator+ (00700C05)
-        cursor_ = text::sys::LoadCursorFromFileA(path);
+        std::string path = (TheDataFolder() + worlddata::CursorFileText()).GetString();   // operator+ (00700C05)
+        cursor_ = text::sys::LoadCursorFromFileA(path.c_str());
     }
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
@@ -1555,7 +1557,7 @@ int CWorldClient::LoadZone(CStream* block) {
             skyDome_->turns = 1;
         }
     }
-    mfc::CString lights(worlddata::LightsPrefixText());
+    std::string lights = worlddata::LightsPrefixText();
     const bool effects = worlddata::AudioOption() && worlddata::VolumeSettingA();
     if (cave_ == kCave) {
         lights += worlddata::CaveText();
@@ -1564,9 +1566,9 @@ int CWorldClient::LoadZone(CStream* block) {
         sounds_->reverb[0] = 0.0f;
     }
     {
-        mfc::CString table = lights + allod;
-        mfc::CString file = table + worlddata::IniSuffixText();
-        LoadLights(file);
+        std::string table = lights + allod;
+        std::string file = table + worlddata::IniSuffixText();
+        LoadLights(file.c_str());
     }
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;

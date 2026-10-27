@@ -13,6 +13,9 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace {
 constexpr int kCursorWait = 3;
@@ -49,15 +52,15 @@ void CInterface3D::Shutdown() {
     console::CStdioFile file;
     bool opened;
     {
-        mfc::CString path = TheDataFolder() + game::TutorialIniText();
-        opened = file.Open(path, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
+        std::string path = (TheDataFolder() + game::TutorialIniText()).GetString();
+        opened = file.Open(path.c_str(), console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
     }
     if (opened) {
-        mfc::CString line;
+        std::string line;
         using Topics = decltype(helpTopics_);
         for (Topics::Node* n = helpTopics_.begin(); n != helpTopics_.end(); n = Topics::Next(n)) {
-            line.Format(game::TutorialLineFormat(), n->first.GetString(), n->second);
-            file.WriteString(line);
+            line = str::Format(game::TutorialLineFormat(), n->first.GetString(), n->second);
+            file.WriteString(line.c_str());
         }
         file.Close();
     }

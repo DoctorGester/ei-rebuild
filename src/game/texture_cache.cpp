@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -33,15 +34,15 @@ const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 
 void __cdecl DeleteComposedTextures() {
     mfc::CFileFind find;
-    mfc::CString pattern = mfc::CString(TheDataFolder()) + ComposedTexturePattern();
-    if (!find.FindFile(pattern, 0)) return;
+    std::string pattern = (mfc::CString(TheDataFolder()) + ComposedTexturePattern()).GetString();
+    if (!find.FindFile(pattern.c_str(), 0)) return;
     int more;
     do {
         more = find.FindNext();
         BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());   // 006E6722, the path released after
         if (!deleted) {
-            const mfc::CString name = find.GetFileName();   // 006E684B
-            game::DebugLog(CantDeleteText(), name.GetString(), gameapi::GetLastError());
+            const std::string name = find.GetFileName().GetString();   // 006E684B
+            game::DebugLog(CantDeleteText(), name.c_str(), gameapi::GetLastError());
         }
     } while (more);
 }

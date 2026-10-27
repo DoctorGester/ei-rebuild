@@ -15,9 +15,11 @@
 #include "render/render.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -84,7 +86,7 @@ BOOL CRepairGrid::Draw(int pass) {
     RECT inside = grid;
     ClearDepth(ui->renderer_, &inside, 1.0f);
 
-    mfc::CString text;
+    std::string text;
     auto* surface = surfaces_.data[0];
     surface->GetDC();
     surface->Clear();
@@ -100,14 +102,14 @@ BOOL CRepairGrid::Draw(int pass) {
         DrawItem(owner_, pass, &cell);
         int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
-            text.Format(NumberFormat(), pieces);
+            text = str::Format(NumberFormat(), pieces);
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
-            surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
+            surface->DrawLine(text.c_str(), &r, 1, kTextColour, 2, 1);
         }
         int price = owner_->Price(item, 8);
-        text.Format(NumberFormat(), price);
+        text = str::Format(NumberFormat(), price);
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
+        surface->DrawLine(text.c_str(), &r, 1, kTextColour, 1, 1);
     }
     surface->ReleaseDC();
     DrawBase(pass);
@@ -207,15 +209,15 @@ BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
     surface->GetDC();
     surface->Clear();
     if (hasSpell) {
-        mfc::CString text;
-        text.Format(CostFormat(), texts_[0].GetString(), skill, needed);
+        std::string text;
+        text = str::Format(CostFormat(), texts_[0].GetString(), skill, needed);
         RECT first{10, 0, 200, 20};
-        surface->DrawLine(text, &first, 1, kTextColour, 0, 1);
+        surface->DrawLine(text.c_str(), &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
-        text.Format(CostFormat(), texts_[1].GetString(), mana, static_cast<int>(shown));
+        text = str::Format(CostFormat(), texts_[1].GetString(), mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
-        surface->DrawLine(text, &second, 1, kTextColour, 0, 1);
+        surface->DrawLine(text.c_str(), &second, 1, kTextColour, 0, 1);
     } else {
         RECT first{10, 0, 200, 20};
         surface->DrawLine(texts_[0], &first, 1, kTextColour, 0, 1);
