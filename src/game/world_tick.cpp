@@ -27,8 +27,6 @@
 
 namespace {
 
-// ---- Helpers ------------------------------------------------------------------------------------
-
 // WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard, destructor registered
 // with atexit).
 SpiralCache g_wakeCache = /*007AFF08*/ {};
@@ -96,8 +94,6 @@ private:
 
 } // namespace
 
-// ---- The tick ------------------------------------------------------------------------------------
-
 void CWorldServer::Tick(char force) {
     ++tick_;
     if ((tick_ & 0x3F) == 3) UpdateWeather();
@@ -122,7 +118,7 @@ void CWorldServer::Tick(char force) {
     finished.Clear();
 
     static_cast<AIEventTable*>(AIEvents())->Advance(tick_);
-    // Every countdown (+0x70) counted down; true while one still runs.
+    // Every countdown counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
@@ -206,8 +202,6 @@ void CWorldServer::SetGameResult(int result) {
     }
 }
 
-// ---- The units -----------------------------------------------------------------------
-
 namespace {
 // UpdateUnits' two function-local id lists (arrays of data, size, max, grow; the data block starts one dword
 // after its allocation), with their guard bits in g_updateListGuards.
@@ -250,8 +244,8 @@ void CWorldServer::UpdateUnits() {
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
-        // The units in the update map; a unit whose countdown runs out goes to sleep (leaves the
-        // map) unless its controller is busy (+0x174, +0x9B7, +0xB0C), which restarts the countdown.
+        // The units in the update map; a unit whose countdown runs out goes to sleep (leaves the map) unless its
+        // controller is busy, which restarts the countdown.
         auto& awake = updateMap_.map;
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
@@ -283,8 +277,8 @@ void CWorldServer::UpdateUnits() {
 
 void CWorldServer::TickSleepingEffects() {
     // Rebirth (a context hook): every map object that is referenced, not flagged for removal, has effects and a
-    // companion, and is asleep (+0x174 <= 0; its own update would count its effects down) gets one tick taken off
-    // each effect; when one runs out, the object goes back into the update map, whose update removes it.
+    // companion, and is asleep gets one tick taken off each effect; when one runs out, the object goes back into
+    // the update map, whose update removes it.
     mapObjects_.map.ForEach([this](auto* node) {
         CMapObject* object = node->value;
         if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;

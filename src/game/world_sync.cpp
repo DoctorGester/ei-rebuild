@@ -30,8 +30,6 @@ void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::Ali
 
 namespace {
 
-// ---- Data -------------------------------------------------------------------------------------
-
 // Distance limits, read from the exe's memory (rule 9).
 float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around the camera
 float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
@@ -81,11 +79,6 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
-// ---- Helpers ----------------------------------------------------------------------------------
-
-// The game's atexit.
-// The time of day and the time speed.
-// The player state's (CPlayerServer) messages and updates.
 // world_object_sets.cpp. Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and
 // `removed`.
 void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
@@ -119,8 +112,6 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 }
 
 } // namespace
-
-// ---- SyncPlayer -------------------------------------------------------------------------------
 
 namespace {
 
