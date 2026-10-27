@@ -22,8 +22,6 @@ void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 } // namespace
 
-// The server base's constructor is inlined into the game server's: the session base, the pending joins, the socket
-// bound to the game port.
 ServerBase::ServerBase() {
     joins_.Construct();
     socket_.Open(g_gamePort);

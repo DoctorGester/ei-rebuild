@@ -223,7 +223,6 @@ EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 
-// A non-blocking TCP socket connecting to `address` (state 1), or state 0.
 MasterLink::MasterLink(const void* address) {
     socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {

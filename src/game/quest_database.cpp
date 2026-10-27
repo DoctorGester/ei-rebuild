@@ -151,7 +151,6 @@ void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord*
 
 } // namespace
 
-// `image` is the quest's registry file in memory. Returns false when it is not a registry, true otherwise.
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
     Registry reg;

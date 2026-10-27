@@ -92,9 +92,9 @@ public:
     enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
 
     GrowingBuffer out;           // what is sent once connected
-    GrowingBuffer in;            // what was received
+    GrowingBuffer in;
     std::uint32_t socket;        // (-1: none)
-    std::int32_t state;          // State
+    std::int32_t state;
 };
 
 // The network log (g_netLog; null when logging is off).
@@ -185,7 +185,7 @@ public:
     float ping_;             // seconds; a constant when unknown
     std::uint8_t foreign_;   // the reply's echoed word differs from the magic
     std::uint8_t unused_21[3];
-    std::uint32_t state_;    // State
+    std::uint32_t state_;
 
 protected:
     ServerEntryBase();
@@ -282,7 +282,7 @@ static_assert(sizeof(TypeRegistry) == 0x28);
 // The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
     std::uint32_t socket;        // SOCKET (-1: none)
-    stlp::vector<NetAddress> addresses;   // broadcast addresses
+    stlp::vector<NetAddress> addresses;
 
     // Starts Winsock and notes the broadcast address of the host's first address.
     SocketDriver* Construct();
@@ -534,23 +534,23 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // the master server (port 28004)
     std::uint32_t nextLine_;            // the number of the next chat line
-    stlp::SharedRefListOf<PlayerMessage> players_; // player records
+    stlp::SharedRefListOf<PlayerMessage> players_;
     stlp::SharedRefListOf<LineMessage> lines_; // chat and system lines, at most 50
-    stlp::SharedRefListOf<FileMessage> files_; // shared files
+    stlp::SharedRefListOf<FileMessage> files_;
     stlp::CountedRefListOf<FileRequestMessage> fileRequests_; // the clients' requests (file requests, connections)
     // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
     RefPtrTo<HostMessage> hostInfo_;
     stlp::SharedRefListOf<BindingMessage> bindings_; // player <-> connection
     RefPtrTo<MapMessage> map_;          // the map message while a map is played
     stlp::SharedRefListOf<ZoneMessage> queuedMaps_; // map messages the host may pick next
-    stlp::SharedRefListOf<VariableMessage> variables_; // script variables
+    stlp::SharedRefListOf<VariableMessage> variables_;
     SharedTimedList awards_;            // {delay, award}
-    stlp::CountedRefListOf<PartyMessage> offers_; // the players' trade offers (party messages)
-    stlp::CountedRefListOf<TradeMessage> trades_; // trades
+    stlp::CountedRefListOf<PartyMessage> offers_; // the players' trade offers
+    stlp::CountedRefListOf<TradeMessage> trades_;
     CountedTimedList finishedTrades_;   // {delay, trade}: done trades, kept 60 s
-    stlp::list<NetAddress> banned_;     // banned IPv4 addresses
-    stlp::string name_;                    // the game's name
-    stlp::string mapName_;                 // the current map
+    stlp::list<NetAddress> banned_;
+    stlp::string name_;
+    stlp::string mapName_;
     std::uint32_t maxPlayers_;          // 8; set by the creator
     std::uint32_t kind_;                // the constructor's argument: the game kind
     char password_[0x14];               // the join password (empty: none)
@@ -612,12 +612,12 @@ public:
     NetAddress host_;                   // the host joined or being asked
     GrowingBuffer joinData_;            // sent with every join request
     std::uint32_t joinId_;              // rand() << 16 | tick count
-    std::uint32_t joinState_;           // JoinState
+    std::uint32_t joinState_;
     std::uint8_t refusal_;              // the reason the host gave
     std::uint8_t unused_259D[3];
     float retryTimer_;                  // seconds to the next join request
     float retryInterval_;               // doubles with every request (0.1 first)
-    stlp::SharedRefListOf<ServerEntry> servers_; // the servers found (ServerEntry)
+    stlp::SharedRefListOf<ServerEntry> servers_;
     ClientQueries queries_;             // servers asked directly
     stlp::list<NetAddress> waiting_;    // addresses waiting to be asked
     NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
@@ -671,22 +671,22 @@ public:
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);
 
-    stlp::CountedRefListOf<PlayerMessage> players_; // player records
-    stlp::CountedRefListOf<LineMessage> lines_; // chat lines
-    stlp::CountedRefListOf<FileMessage> files_; // shared files
-    stlp::CountedRefListOf<FileChunkMessage> chunks_; // file chunks
+    stlp::CountedRefListOf<PlayerMessage> players_;
+    stlp::CountedRefListOf<LineMessage> lines_;
+    stlp::CountedRefListOf<FileMessage> files_;
+    stlp::CountedRefListOf<FileChunkMessage> chunks_;
     stlp::SharedRefListOf<FileRequestMessage> fileRequests_; // file requests for the server
     HostMessage* info_;                 // the game's description, counted
     BindingMessage* binding_;           // our binding, counted
     MapMessage* map_;                   // the map message, counted
     stlp::CountedRefListOf<ZoneMessage> zones_; // map messages the host may pick
-    stlp::CountedRefListOf<VariableMessage> variables_; // script variables
+    stlp::CountedRefListOf<VariableMessage> variables_;
     RefPtrTo<LoginMessage> player_;     // the local player's login record
     SharedTimedList timers_;            // {seconds left, object}: objects kept for a while
     stlp::CountedRefListOf<AwardMessage> awards_; // awards received, applied by ApplyAwards
     RefPtrTo<PartyMessage> party_;      // our trade offer (party description)
     stlp::CountedRefListOf<PartyMessage> offers_; // the other players' trade offers
-    stlp::list<TradeRecord> tradeRecords_;   // the trades done
+    stlp::list<TradeRecord> tradeRecords_;
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
     PartyStorage parties_[2];           // ours, the partner's
@@ -705,12 +705,12 @@ static_assert(sizeof(ClientSession) == 0x2700);
 struct GameInfoRecord {
     stlp::string name;
     stlp::string description;
-    std::uint8_t players;        // number of players
-    std::uint8_t maxPlayers;     // the server's maxPlayers_
+    std::uint8_t players;
+    std::uint8_t maxPlayers;
     std::uint8_t kind;           // the server's kind_ (ServerEntry::kind_)
     std::uint8_t hasPassword;    // joining needs a password (ServerEntry::password_)
-    std::uint32_t masterKey;     // the server's masterKey_
-    std::uint32_t masterToken;   // the server's masterToken_
+    std::uint32_t masterKey;
+    std::uint32_t masterToken;
     std::uint32_t magic;         // kSessionMagic
 
     void Write(GameBuffer* buffer) const;

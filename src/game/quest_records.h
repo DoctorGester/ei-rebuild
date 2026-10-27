@@ -100,8 +100,8 @@ struct QuestDatabase {
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
     QuestDatabase* Construct();
-    // LoadRegistry (quest_database.cpp). The quests of a registry file in memory (`image`) filed
-    // into the database; false when it is not a registry.
+    // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
+    // registry.
     bool LoadRegistry(const void* image);
     // The destructor (database_destruct.cpp; run by the exit function). The members from the
     // last: each index's nodes and buckets, then its records and their storage.

@@ -172,9 +172,7 @@ RefPtr* RefPtr::CopyCounted(const RefPtr* from) { return FromRawCounted(from->pt
 EI_REWRITTEN(0x004A5D50, RefPtr::CopyCounted);
 EI_REWRITTEN(0x004ABE30, RefPtr::CopyCounted);
 
-// The owning pointer's constructor from a raw pointer (RefPtr::Share, which returns
-// nothing) as the instantiations emit it out of line: the same body, returning the holder.
-// 9 copies.
+// Share as the instantiations emit it out of line (9 copies), returning the holder.
 RefPtr* RefPtr::ShareReturn(CRefObject* object) {
     Share(object);
     return this;

@@ -107,8 +107,6 @@ namespace {
 constexpr float kNoScale = 1.0f;
 } // namespace
 
-// The base half's slot 18 (the server's): the server draws nothing, so the extra scale is
-// 1, 1, 1.
 void CObject3DSpecific::GetScale(float* x, float* y, float* z) {
     *x = kNoScale;
     *y = kNoScale;

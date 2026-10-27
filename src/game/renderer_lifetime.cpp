@@ -192,8 +192,7 @@ EI_REWRITTEN(0x00501A40, CSceneRenderer::ClearFrame);
 std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
 EI_REWRITTEN(0x00501AA0, CSceneRenderer::ZEnable);
 
-// The holder is stored; no device lock. The stage's texture is null on
-// the switch-over (no holder has a DirectDraw surface); the new renderer draws with the holder.
+// The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, void* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];
@@ -238,9 +237,7 @@ void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) 
 }
 EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
-// In full screen this sets the cooperative level and the display mode again in full screen, restores every
-// DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
-// to lose, nor a display mode to set again (a lost Direct3D 11 device is): true.
+// There are no DirectDraw surfaces to lose nor a display mode to set again.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 EI_REWRITTEN(0x00504780, CSceneRenderer::RestoreSurfaces);
 

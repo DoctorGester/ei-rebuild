@@ -131,8 +131,6 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
 }
 EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
-// The patrol array becomes a copy of `from` (each patrol copied through a temporary returned by value, as the
-// original does).
 void Patrols::CopyFrom(const Patrols& from) {
     int n = from.size;
     if (n == 0) {

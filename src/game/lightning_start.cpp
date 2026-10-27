@@ -150,7 +150,6 @@ EI_REWRITTEN(0x004687D0, CLightning::GetClassName);
 int CLightning::GetClassId() { return 0x1E; }
 EI_REWRITTEN(0x004687E0, CLightning::GetClassId);
 
-// CLightningManager's object factory (`type` is not used): a new bolt.
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
 EI_REWRITTEN(0x00468680, CLightningManager::NewObject);
 
