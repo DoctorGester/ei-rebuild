@@ -18,7 +18,7 @@ cbuffer light_params : register(b1) {
 // gave 0 or 1) and `strength` the map's darkening (render_shadows.cpp kStrength). Ambient and direct light
 // apart: in the sun max(material + facing x sun, ambient), in the shade ambient + material, as the game
 // lit them; but a shadow is never lighter than the sunlit light times 1 - strength (the old decals' and
-// the map's look before R16i: where the ambient light is nearly the sun's, as in the towns, the game's
+// the map's look before: where the ambient light is nearly the sun's, as in the towns, the game's
 // shade alone hardly shows), on faces turned to the map's light (by their facing to it: the map's sun,
 // at least 20 degrees high, is what casts; a face turned away keeps its light, its own object's shadow
 // there is no acne). The point lights (each material + its light, at most 1 per channel, by its falloff

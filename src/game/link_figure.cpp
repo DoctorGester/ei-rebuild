@@ -1,4 +1,4 @@
-// The 3D library's figure meshes and their part loaders (004F2650-004FBD80); see link_figure.h.
+// The 3D library's figure meshes and their part loaders; see link_figure.h.
 #include "link_figure.h"
 
 #include "library_trees.h"

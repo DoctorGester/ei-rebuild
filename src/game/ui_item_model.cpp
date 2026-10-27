@@ -1,4 +1,4 @@
-// An item's model for the item screens' model view (005EBFB0; ui_item_view.cpp caches it). See
+// An item's model for the item screens' model view (ui_item_view.cpp caches it). See
 // docs/notes/ui.md, section 9.
 #include "engine_object.h"
 #include "figure_manager.h"
@@ -18,7 +18,7 @@ constexpr int kTexels = 0x80;
 } // namespace
 
 // The model manager's object `name`, else a new interface sprite standing in
-// for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
+// for it; one reference taken for the caller. A failed sprite is not checked (not checked in the original either).
 CUiMesh* __fastcall ItemModel(const char* name) {
     CFigureManager* manager = TheFigureManager();
     // The interface's model manager makes class 0x43 objects: interface sprites.

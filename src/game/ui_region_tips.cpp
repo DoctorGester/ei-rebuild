@@ -1,4 +1,4 @@
-// A region's tooltip (CUiRegion, ui.h): made from a text id ("tip <id>" in the texts, 005FC730)
+// A region's tooltip (CUiRegion, ui.h): made from a text id ("tip <id>" in the texts)
 // or a string, its text changed, and the region's contents released
 //. Every screen and HUD panel builder gives its regions tooltips. See
 // docs/notes/ui.md ("Interface manager and window base").
@@ -23,7 +23,7 @@ CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra)
 
 } // namespace
 
-// --- 005FC730 / 005FC6B0: a new tooltip --------------------------------------------------------
+// --- A new tooltip --------------------------------------------------------
 
 void CUiRegion::SetTip(int textId, int flag, int extra) {
     if (textId == 0) {
@@ -46,14 +46,14 @@ void CUiRegion::SetTipString(const char* text, int flag, int extra) {
 }
 EI_REWRITTEN(0x005FC6B0, CUiRegion::SetTipString);
 
-// --- 005FC690: the tooltip's text --------------------------------------------------------------
+// --- The tooltip's text --------------------------------------------------------------
 
 void CUiRegion::SetTipText(const char* text) {
     if (tip_) tip_->SetText(text);
 }
 EI_REWRITTEN(0x005FC690, CUiRegion::SetTipText);
 
-// --- 005FC600: the destructor body --------------------------------------------------------------
+// --- The destructor body --------------------------------------------------------------
 
 void CUiRegion::ReleaseContents() {
     delete tip_;

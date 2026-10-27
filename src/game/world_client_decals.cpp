@@ -1,9 +1,7 @@
-// The client world's decal projector (object shadows 0051CE60, ground prints 006CEDE0).
-// The decal builder (ground_decal.h) is a function-local static of the original (007AF488, guard
-// bit 1 of 007AF504), as is the work array of transformed part points (007AF478, bit 2); both are
+// The client world's decal projector (object shadows, ground prints).
+// The decal builder (ground_decal.h) is a function-local static of the original game, as is the work array of transformed part points; both are
 // made on first use and freed at exit by the original's handlers. The builder's members are called
-// through their addresses (the verify wrappers' path until S21d; AddTriangle's rewrite was left out of
-// game.exe by disabled.txt until S21e, the image runs it). See docs/notes/models.md ("Ground prints").
+// through their addresses. See docs/notes/models.md ("Ground prints").
 #include "world.h"
 #include "at_exit_functions.h"
 
@@ -48,8 +46,8 @@ void BuildNodeMatrix(const Quaternion& rotation, const Vector3& position, Matrix
     m[15] = 1.0f;
 }
 
-// Pushes `m` onto the pipeline's decal stack as the original inlines it: the product through
-// 004D9880, whose terms sum in another order than PushMatrix's (X29).
+// Pushes `m` onto the pipeline's decal stack as the original inlines it: the product
+// goes through a library call whose terms sum in another order than PushMatrix's.
 void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
     MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
     if (stack.count == 0) {
@@ -111,7 +109,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     if (!(Guards() & 1)) {
         Guards() |= 1;
         builder.Construct();
-        libcrt::AtExit(ei::short_functions::Ret);   // 0056CE30 (the builder: nothing to destroy)
+        libcrt::AtExit(ei::short_functions::Ret);   // the builder: nothing to destroy
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;

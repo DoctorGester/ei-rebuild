@@ -23,8 +23,8 @@ namespace {
 
 
 
-// 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
-// 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
+// Makes the text `key` current; non-zero when found.
+// Rebirth-patched: the weapon bar's next slot (model `model`, picture
 // `image`), counted in +0x14C.
 
 // The original truncates through _ftol.
@@ -37,7 +37,7 @@ const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
 
 } // namespace
 
-// --- 0063C180: the weapon bar's unit -----------------------------------------------------------
+// --- The weapon bar's unit -----------------------------------------------------------
 
 void CHudWeaponBar::SetUnit(CUnit* unit) {
     mfc::CString tip;
@@ -54,8 +54,8 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
-            mfc::CString image = weapon->FigureName();   // slot 19
-            mfc::CString model = weapon->PictureName();  // slot 20
+            mfc::CString image = weapon->FigureName();   // the figure's name
+            mfc::CString model = weapon->PictureName();  // the picture's name
             AddWeapon(model, image);
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
@@ -98,7 +98,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
 }
 EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
-// --- 0063CEE0: a quick item's tooltip ----------------------------------------------------------
+// --- A quick item's tooltip ----------------------------------------------------------
 
 void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
     CItem* object = unit_->GetQuickItem(index);
@@ -176,7 +176,7 @@ void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
 }
 EI_REWRITTEN(0x0063CEE0, CHudQuickItems::ItemTip);
 
-// --- 0063F800: the action column's unit --------------------------------------------------------
+// --- The action column's unit --------------------------------------------------------
 
 void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     unit_ = unit;

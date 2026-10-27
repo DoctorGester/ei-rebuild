@@ -1,5 +1,5 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
-// game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
+// See docs/notes/console.md.
 #include "console.h"
 #include "app_helpers.h"
 #include "world.h"
@@ -62,11 +62,10 @@ int Mbscmp(const char* a, const char* b) {
 
 // The interface manager (ConsoleAddText hands a line to its console window, if any).
 
-// 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
-// 0079B5D8 present and active).
+// A network game is running (the server object is present and active).
 bool NetworkGame() { return IsMultiplayerClient(); }
 
-// Posts WM_QUIT (when the game window exists); the exit code in ECX.
+// Posts WM_QUIT (when the game window exists).
 
 } // namespace
 
@@ -161,7 +160,7 @@ void __fastcall Execute(const char* text) {
     command = args[0];
     args.RemoveAt(0, 1);
     bool local = !NetworkGame();
-    // Rebirth's AddNewConsoleCommands (context hook at 005DD565): addon's commands, registered
+    // Rebirth's AddNewConsoleCommands: addon's commands, registered
     // again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = command.GetString()[0];

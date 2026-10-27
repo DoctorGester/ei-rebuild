@@ -5,7 +5,7 @@
 //   the battle screen's drawing applies nogui's GUI visibility to its panels.
 // - AutoExec: the "Console AutoExec" lines (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a
 //   REG_MULTI_SZ, then the lines of 2utoexec.cfg) run before each of three console executions
-//   (0057ABE1, 0057BD30, 0057C9A3; the host functions are not rewritten yet).
+//   (three places in the console executions; the host functions are still the game's).
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
 #include "options.h"
@@ -39,7 +39,7 @@ namespace console {
 
 namespace {
 
-// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
+// Loads a script file in the script loader and runs what was loaded.
 // CUiWindow::SetEnabled(enabled, notify).
 
 // The saved / console script (the world's command script).
@@ -47,11 +47,11 @@ int* const kSpectator = &options::TheOptions()->drawVisibleOnly_;
 
 // addon's state.
 CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration
-int g_consoleLogLevel = 1;             // addon's messages to the console (100BA6F4)
-int g_addonLogLevel = 0;               // addon.log (100BD4A4)
-bool g_guiShown = true;                // nogui (100BA664)
-bool g_cursorShown = true;             // (100BA665)
-bool g_applyGui = false;               // the battle screen applies g_guiShown (100BD128)
+int g_consoleLogLevel = 1;             // addon's messages to the console
+int g_addonLogLevel = 0;               // addon.log
+bool g_guiShown = true;                // nogui
+bool g_cursorShown = true;
+bool g_applyGui = false;               // the battle screen applies g_guiShown
 
 // addon's console output: the text, "\n" (as a string), flush.
 void Say(const char* text) { (Out() << text << "\n").Apply(libcrt::FlushManipulator); }
@@ -85,7 +85,7 @@ std::string GroupText(const ScriptGroup& group) {
     return text;
 }
 
-// ---- The commands (ECX: the arguments, lower case) ----------------------------------------------
+// ---- The commands (the arguments, lower case) ----------------------------------------------
 
 void __fastcall Help(CStringArray* args) {
     g_gameHelp(args);
@@ -159,7 +159,7 @@ void __fastcall ListGlobals(CStringArray*) {
     }
 }
 
-// drawall n: 0079BE6C = (n == 0).
+// drawall n: the draw-all flag becomes (n == 0).
 void __fastcall DrawAll(CStringArray* args) {
     if (args->GetSize() < 1) return;
     *kSpectator = std::atoi((*args)[0]) == 0 ? 1 : 0;

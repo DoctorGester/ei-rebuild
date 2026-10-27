@@ -2,7 +2,7 @@
 // reach through their slot 0 (the scalar deleting destructors), the members destroyed last to
 // first after the class's own teardown. The containers are the library's (lib/mfc.h CArray /
 // CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked in game by
-// verify_world_destructors.cpp until S21d. docs/notes/standalone.md, S13a.
+// verify_world_destructors.cpp. See docs/notes/standalone.md.
 #include "effects.h"
 #include "game_arrays.h"
 #include "game_lists.h"
@@ -28,8 +28,8 @@ void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
 namespace {
 
-// The client's ground print lists: each print's destructor (the client's copies 0056D080,
-// 0056D400, 0056D680 of GroundPrint's).
+// The client's ground print lists: each print's destructor (the client's copies
+// of GroundPrint's).
 struct PrintElement {
     template <typename P>
     static void Destroy(P* print) {
@@ -44,8 +44,8 @@ void FreeGrid(SectorGrid& grid) {
     gamecrt::operator_delete(grid.rows_);
 }
 
-// The server's lists' element destructors (their RemoveAll rows 0059A370, 00429E50, 00599C70).
-// A shared object: its array of counted objects (the body 00594950: the base vtable, every object
+// The server's lists' element destructors (their RemoveAll rows).
+// A shared object: its array of counted objects (the base vtable, every object
 // released through slot 4, the data freed).
 struct SharedObjectElements {
     static void Construct(SharedObject*, int) {}
@@ -103,7 +103,7 @@ T* DeleteIf(T* self, unsigned flags) {
 
 } // namespace
 
-// 0058A140 (the server's second script inlines it, 0058AC5E..0058AD44): the reset, the error text,
+// (The server's second script inlines it): the reset, the error text,
 // then the containers last to first (the variables through ScriptVarsDestruct).
 void CScript::Destruct() {
     ScriptReset(this);

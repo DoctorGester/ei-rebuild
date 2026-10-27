@@ -1,6 +1,6 @@
 // The new renderer's vertex and index buffers: the streams a frame appends its vertices to
 // (StreamBuffer, GeometryStream) and the pools that keep terrain pages and meshes on the GPU across
-// frames (GpuPool, R16c / R16d; docs/notes/renderer.md section 13).
+// frames (GpuPool; docs/notes/renderer.md section 13).
 #include "render.h"
 #include "render_internal.h"
 

@@ -1,6 +1,6 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
-// Floating point follows the original's x87 code: values the original keeps on the FPU stack stay
+// Floating point follows the original's x87 code: values the original game keeps on the FPU stack stay
 // there (inline assembly where a value is stored and still used unrounded, or truncated with the
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
@@ -55,10 +55,10 @@ std::uint32_t PackColour(const float* rgb) {
 // The draw pass is the scene renderer.
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
-// 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
+// An item's model (counted) and its figure texture, or null.
 
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
-// 005F3730 / 005F3B50, operator[] 005F3000 / 005F3170), which then drops its least recently used
+// the cache's find / operator[]), which then drops its least recently used
 // entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.
 CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     ItemObjectCache::Node* node;
@@ -95,7 +95,7 @@ float RandomPhase(std::uint32_t random) {
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
 // school's colour (kSchoolGlow) into 0xFFrrggbb. The phase is stored as float
-// but the sine and the colour use the unrounded value, as the original.
+// but the sine and the colour use the unrounded value, as the original game.
 // The spell schools' glow colours (red, green, blue and an unused 1 each).
 constexpr float kSchoolGlow[8][4] = /*00740358*/ {
     {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f},
@@ -139,7 +139,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
     }
 }
 
-// The rotation about `axis` by pi (the float at 007402C0).
+// The rotation about `axis` by pi.
 Quaternion HalfTurn(float ax, float ay, float az) {
     const Vector3 axis = {ax, ay, az};
     Quaternion q;
@@ -147,7 +147,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
     return q;
 }
 
-// The two products the original inlines (a * b), each with its own order of the w sum.
+// The two products the original game inlines (a * b), each with its own order of the w sum.
 Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
     Quaternion r;
     r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
@@ -187,25 +187,25 @@ void SetShade(CUiMesh* sprite, float grey) {
     sprite->tint_[2] = grey;
 }
 
-// The renderer's Direct3D device (007AF080 +0x54): SetRenderState (slot 20).
+// The renderer's Direct3D device (+0x54): SetRenderState (slot 20).
 void SetSpecular(int on) {
     device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
 
 } // namespace
 
-// --- 005ECA10 -----------------------------------------------------------------------------------------
+// --- DrawItem -----------------------------------------------------------------------------------------
 
 void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        mfc::CString name = item->PictureName();   // slot 20
+        mfc::CString name = item->PictureName();   // picture name
         model = AsUiMesh(CachedObject(&models_, name, false));
     }
     CEngineObject* texture;
     {
-        mfc::CString name = item->FigureName();   // slot 19
+        mfc::CString name = item->FigureName();   // figure name
         texture = CachedObject(&textures_, name, true);
     }
     if (!model || !texture) return;
@@ -350,7 +350,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 }
 EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
-// --- 005EE5C0: the description panel's slot 20 --------------------------------------------------------
+// --- The description panel's draw -------------------------------------------------------------
 
 BOOL CItemInfoPanel::Draw(int pass) {
     if (itemCount_ && items_[0]) {
@@ -368,7 +368,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
 
 EI_REWRITTEN(0x005EE5C0, CItemInfoPanel::Draw);
 
-// --- 005ED7B0: a hero's face ------------------------------------------------------------------------
+// --- A hero's face -----------------------------------------------------------------------------
 
 Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
@@ -440,14 +440,14 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
 EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture in a Rebirth launch.
 
-// --- 005EC020: an item's figure texture -------------------------------------------------------------
+// --- An item's figure texture -------------------------------------------------------------
 
 namespace {
 
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // The texture's pixels for one fill: the texture manager's textures have only the new renderer's
-// memory (00691D80, ticket R8), written directly (DirectPixels; the original: a Lock with flags 0
+// memory, written directly (DirectPixels; the original: a Lock with flags 0
 // and the Unlock after). 0, or the error the original's report gets when there is no memory (none
 // is made without it).
 long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
@@ -478,7 +478,7 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
-        // The image decoded to 32-bit pixels (decoder slot 5: out, image data, count, PNT3).
+        // The image decoded to 32-bit pixels (decoder: out, image data, count, PNT3).
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
@@ -519,7 +519,7 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
 }
 EI_REWRITTEN(0x005EC020, ItemFigureTexture);
 
-// --- 005FFFB0: an image into part of a texture ------------------------------------------------------
+// --- An image into part of a texture -------------------------------------------------------
 
 int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
@@ -535,7 +535,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
-        // The device's decoder, slot 5: out, image data, count, PNT3.
+        // The device's decoder: out, image data, count, PNT3.
         interface_->renderer_->decoder_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());

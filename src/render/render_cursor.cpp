@@ -1,5 +1,5 @@
 // The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md,
-// section 9). The game's cursor thread (005E5690, every 41 ms) drew the cursor straight onto the
+// section 9). The game's cursor thread (every 41 ms) drew the cursor straight onto the
 // primary surface when it moved, so it kept moving while the main thread drew no frame (a long frame,
 // a blocking load). Without DirectDraw the cursor thread hands the move here instead
 // (render::CursorBetweenFrames): the last frame presented on the game window, which holds no cursor

@@ -56,8 +56,8 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
-// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera,
-// R18); "uiboth" / "uinative" the interface canvases (render_ui.h).
+// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera),
+// "uiboth" / "uinative" the interface canvases (render_ui.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
@@ -104,7 +104,7 @@ void EnsureConfigured() {
 
 HWND GameWindow() { return *game::Where().window; }
 
-// The renderer's clear colour (D3DCOLOR), as 00501A40 clears the frame with.
+// The renderer's clear colour (D3DCOLOR), as the frame is cleared with.
 std::uint32_t GameClearColour() { return game::Where().renderer->fogColour_; }
 
 sg_color FromD3DColour(std::uint32_t c) {
@@ -1177,7 +1177,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // (CopyFrameTo), and with the smooth option one pass per run of world and other commands (the
 // world's into the multisampled target). The interface canvases' queued drawing goes first (render_ui.cpp).
 bool DrawPending() {
-    perf::BeginGpuFrame();   // R21's GPU time (nothing unless the overlay is on)
+    perf::BeginGpuFrame();   // GPU time (nothing unless the overlay is on)
     RunCanvasCommands();
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
@@ -1301,7 +1301,7 @@ struct ChannelPack {
     std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
 };
 
-// Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key, 006570E0
+// Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key,
 // with DL 0): the target still holds the last frame, as the original's render target did. A
 // pass now would clear it to the clear colour first.
 bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }

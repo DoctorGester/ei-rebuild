@@ -1,8 +1,7 @@
-// Pixel format helpers of the renderer's device object (A-S11): a DDPIXELFORMAT split into
+// Pixel format helpers of the renderer's device object: a DDPIXELFORMAT split into
 // channels and the pixel conversions through it, and the device's
-// format lookups (004E7C40 / 004E7DA0 its texture formats). Pure: none of them touches DirectDraw;
-// the list they read is filled once at device creation. (The depth format lookup
-// 004E6BC0 went with its only caller, the depth buffer 004E6C30, in R11b: config/dead_code.csv.)
+// format lookups (its texture formats). Pure: none of them touches DirectDraw;
+// the list they read is filled once at device creation.
 #include "texture.h"
 
 #include "ei/hook.h"

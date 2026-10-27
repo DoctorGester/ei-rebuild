@@ -31,7 +31,7 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     shift_ = false;
     auto* font = new mfc::impl::CFont();   // null without memory
     font_ = font;
-    // As the original: a failed allocation still calls CreatePointFont on null.
+    // A failed allocation still calls CreatePointFont on null, as the original does.
     if (!font->CreatePointFont(kFontSize, kFontFace, nullptr)) {
         delete font_;
         font_ = nullptr;

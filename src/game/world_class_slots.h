@@ -17,16 +17,16 @@ class CParticleManager;
 class CTextureManager;
 
 // Slot 11 / 12 of the vtable named in the comment.
-const char* __fastcall I3DFigureClassName(CEngineObject*);           // 005AACC0 "CI3DFigure"
+const char* __fastcall I3DFigureClassName(CEngineObject*);           // "CI3DFigure"
 int __fastcall I3DFigureClassId(CEngineObject*);                     // 0x46
-const char* __fastcall FigureClientSpecificClassName(CEngineObject*);   // 005A7040 "CFigureClientSpecific"
+const char* __fastcall FigureClientSpecificClassName(CEngineObject*);   // "CFigureClientSpecific"
 int __fastcall FigureClientSpecificClassId(CEngineObject*);          // 0x36
-// The interface objects' base (vtable 0073F7F8; 53 window classes at 007400DC .. 00742F64 keep
+// The interface objects' base (53 window classes keep
 // these slots): slot 2 answers 1, the name is "Sorry, no other way.", the id 0x45.
 int __fastcall UiObjectCreate(CEngineObject*);
 const char* __fastcall UiObjectClassName(CEngineObject*);
 int __fastcall UiObjectClassId(CEngineObject*);
 
-// 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers is CBaseManager::Init
+// Slot 13 (Init) of the lightning and fog managers is CBaseManager::Init;
 // the particle, lightning and fog managers' class names and ids, the item manager's folder name
 // are their classes' overrides.

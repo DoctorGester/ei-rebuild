@@ -1,5 +1,5 @@
-// The terrain in the new renderer. The game's terrain passes (006C6230 ground pages, 006C6330 water
-// pages) call DrawSectorPage (006BFF40, src/game/terrain_draw.cpp) for every visible sector page;
+// The terrain in the new renderer. The game's terrain passes (ground pages, water
+// pages) call DrawSectorPage (src/game/terrain_draw.cpp) for every visible sector page;
 // it hands the page here. The page's tiles are turned into world-space triangles at the sector's
 // level of detail (the same tile entries and index patterns as the old path), with the vertex
 // colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
@@ -76,7 +76,7 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 // --- Game memory -------------------------------------------------------------------------------------
 
 // The landscape's page textures: Terrain::pageTextures (+0xD8), an array of CTexture*, indexed
-// page % (pages + 2) (006C6460 binds them so before each page).
+// page % (pages + 2) (they are bound so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     const char* owner = reinterpret_cast<const char*>(s->owner);
     if (!owner || s->pages + 2 <= 0) return nullptr;
@@ -96,7 +96,7 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // --- Pages kept on the GPU ----------------------------------------------------------------------
 
-// A page vertex's geometry; its colours (colour, specular) are a stream of their own. R16i: the record's
+// A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights
 // both layers.
 struct PageVertex {
@@ -387,8 +387,8 @@ std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::P
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
 // state the old path draws the page with. The ground pass runs under the terrain's state
-// block 007AEDDC with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw 00569E40), the
-// water pass under the scene's 007AEDD0; both with ALPHABLENDENABLE on (SRCALPHA /
+// block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
+// water pass under the scene's; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
 sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
     int samples = PassSampleCount();
@@ -780,8 +780,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     Frame& f = CurrentFrame();
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack at +0x24 (renderer +8), which the
-    // old path's 004F29F0 transforms the sector's vertices with (the landscape's model matrix
-    // pushed by 006C6230 / 006C6330 on top of the view).
+    // old path's transform the sector's vertices with (the landscape's model matrix
+    // pushed by the terrain passes on top of the view).
     const char* pipeline = *reinterpret_cast<char* const*>(static_cast<const char*>(renderer) + 8);
     if (!pipeline) return;
     const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
@@ -814,7 +814,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         upload = true;
 #if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
-        moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before R16c
+        moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before
         upload = true;
 #endif
     } else if (!p.source.SameTiles(source)) {

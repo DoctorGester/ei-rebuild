@@ -1,6 +1,6 @@
 // The shadow map's receivers' part (render_shadows.cpp; included in the terrain and mesh shaders): how
 // much of the sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, on.y,
-// or take the sun's light away by it: R16i). `s` is the pixel's position in the map's clip space, `dsx` /
+// or take the sun's light away by it). `s` is the pixel's position in the map's clip space, `dsx` /
 // `dsy` its screen derivatives (taken before any discard), `pixel` its screen position. Every comparison
 // follows the receiver's plane (its depth slope across the map, clamped). A receiver weighs it by its
 // facing to the sun, so a face turned away is not shadowed (its own object's shadow there would be acne):

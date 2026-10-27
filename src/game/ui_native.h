@@ -4,7 +4,7 @@
 // family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status so far) gets a
 // canvas for its holder when it is made (Adopt), and the surface functions record their drawing on it
 // beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
-// truth (a lost device brings canvases back black). The blit 005FDA80 draws the canvas when
+// truth (a lost device brings canvases back black). The blit draws the canvas when
 // render::ui::DrawsCanvas says so.
 // Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
 // greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
@@ -34,7 +34,7 @@ void FrameRect(const CUiSurface* surface, const RECT& rect, COLORREF colour);
 // GDI drew text clipped to `rect` (or anywhere on the surface, `clipped` false) into the memory: until
 // text is recorded (P2) that part of the memory is copied onto the canvas.
 void TextDrawn(const CUiSurface* surface, const RECT& rect, bool clipped);
-// 005FD3D0's copy of `source` of the screen and 005FE440's greying, on the canvas. Each returns whether
+// The copy of `source` of the screen and the greying, on the canvas. Each returns whether
 // the memory gets it too (the CPU code runs): false under uinative for the copy (the memory falls behind)
 // and for greying a memory that is behind.
 bool Capture(const CUiSurface* surface, const RECT& source);

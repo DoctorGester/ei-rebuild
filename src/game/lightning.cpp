@@ -1,5 +1,5 @@
 // Lightning bolts (lightning.h). Names are provisional.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "lightning.h"
 
@@ -36,7 +36,7 @@ constexpr int kNoiseRowLength = 400;
 float g_noiseSide[400] = /*0079C1F8*/ {};
 float g_noiseUp[400] = /*0079C838*/ {};
 
-// Branch sway frequencies: six pairs (side, up) at 00787C8C.
+// Branch sway frequencies: six pairs (side, up).
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
 constexpr double kNoiseScale = 0x1.0000000100000p-31;   // about 2 / 2^32
@@ -53,7 +53,7 @@ float FromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FromBits(T) = delete;
 
-// Randomize a key as the original does inline. The up-noise keys of SampleNoise multiply the
+// Randomize a key as the original game does inline. The up-noise keys of SampleNoise multiply the
 // normaliser by the amplitude before the weight; everything else multiplies the weight first.
 void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
@@ -429,7 +429,7 @@ EI_REWRITTEN(0x00467E10, CLightning::SetEndpoints);
 // --- CLightningManager --------------------------------------------------------------------------
 
 int CLightningManager::DrawAll(void* device) {
-    // The manager's object list (the bolts, in registration order).
+    // The manager's object list (the bolts, in creation order).
     ObjectList::Node* node = objectList_.head;
     while (node) {
         ObjectList::Node* current = node;

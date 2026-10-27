@@ -1,4 +1,4 @@
-// The interface's key-down handler (CInterface3D, 005F78C0). See ui.h and docs/notes/ui.md.
+// The interface's key-down handler (CInterface3D). See ui.h and docs/notes/ui.md.
 // The modifier flags it sets are +0x7C Ctrl (scan codes 0x1D, 0x11D), +0x7D Shift (0x2A, 0x36) and
 // +0x7E Alt (0x38, 0x138).
 #include "ui.h"
@@ -23,14 +23,14 @@ namespace {
 // The key bindings' action of a scan code (ui.h KeyActions), as a byte.
 std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(KeyActions()[scan]); }
 
-// The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
+// The screen capture (CallCaptureSurface); the picture (dib.h) is written with
 // CDib::Write and deleted.
 
 std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
 constexpr int kRepeat = 0x4000;
 
-// The input side's key-down handler (slot 9) of a window.
+// The input side's key-down handler of a window.
 void WindowKeyDown(CUiWindow* window, int key, int repeat, int flags) {
     window->Input()->Event(UiInputSide::kEventKeyDown, key, repeat, flags);
 }

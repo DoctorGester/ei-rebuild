@@ -1,6 +1,6 @@
-// The hero panels shared by the camp and the multiplayer hero screen: the statistics column
-//. See docs/notes/ui.md ("Camp, global map, hero screens").
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// The hero panels shared by the camp and the multiplayer hero screen: the statistics column.
+// See docs/notes/ui.md ("Camp, global map, hero screens").
+// Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "ui.h"
 #include "ui_camp.h"
@@ -48,7 +48,7 @@ constexpr std::uint32_t kGrey = 0x828282;
 
 } // namespace
 
-// --- 006233C0 ----------------------------------------------------------------------------------
+// --- Statistics page ----------------------------------------------------------------------------
 
 void CHeroStatsPanel::ShowStats(int page) {
     RECT rect = {0x14, 0xA5, 0xB4, 0xB4};
@@ -102,7 +102,7 @@ void CHeroStatsPanel::ShowStats(int page) {
 }
 EI_REWRITTEN(0x006233C0, CHeroStatsPanel::ShowStats);
 
-// --- 00623880 ----------------------------------------------------------------------------------
+// --- Statistics drawing ---------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawStats() {
     CUiSurface* draw = surfaces_.data[0];
@@ -256,11 +256,11 @@ void CHeroStatsPanel::DrawStats() {
 }
 EI_REWRITTEN(0x00623880, CHeroStatsPanel::DrawStats);
 
-// --- 00622000: the equipment panel's Build ---------------------------------------------------------
+// --- The equipment panel's Build ---------------------------------------------------------
 
 namespace {
 
-// Sprite builders (CUiMesh): 005E8450 a framed rectangle (not patched), 005E7680 a strip of
+// Sprite builders (CUiMesh): a framed rectangle (not patched), a strip of
 // `count` framed cells (Rebirth-patched; called through its address).
 struct SpriteBuild {
     void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
@@ -274,8 +274,8 @@ SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sp
 
 void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
-// The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids (006270A0,
-// 006279E0 inline it): a picture (textures 0-3 by quarter) and a frame per cell, a region per
+// The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
+// and a frame per cell, a region per
 // cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
 // pictures lie twice as deep as their frames, and half as deep as the row above.
 void BuildCellGrid(CUiWindow* window) {
@@ -354,7 +354,7 @@ void CHeroEquipPanel::Build(bool body) {
 }
 EI_REWRITTEN(0x00622000, CHeroEquipPanel::Build);
 
-// --- 00622DB0: the statistics panel's Build (slot 18) ---------------------------------------------
+// --- The statistics panel's Build ---------------------------------------------
 
 void CHeroStatsPanel::Build() {
     rect_ = RECT{0, 100, 200, 400};
@@ -386,7 +386,7 @@ void CHeroStatsPanel::Build() {
 }
 EI_REWRITTEN(0x00622DB0, CHeroStatsPanel::Build);
 
-// --- 006270A0: the trade grid's Build ----------------------------------------------------------------
+// --- The trade grid's Build ----------------------------------------------------------------
 
 void CTradeGrid::Build(UiItemList* bought, UiItemList* sold, char spells, char flag) {
     bought_ = bought;
@@ -403,7 +403,7 @@ void CTradeGrid::Build(UiItemList* bought, UiItemList* sold, char spells, char f
 }
 EI_REWRITTEN(0x006270A0, CTradeGrid::Build);
 
-// --- 00627920 / 00628060: the item under the mouse (slot 25) -----------------------------------------
+// --- The item under the mouse ---------------------------------------------------------------
 
 namespace {
 constexpr int kGridCellsPerList = 8;
@@ -441,7 +441,7 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
 }
 EI_REWRITTEN(0x00628060, CRepairGrid::ItemAt);
 
-// --- 006279E0: the repair grid's Build ---------------------------------------------------------------
+// --- The repair grid's Build ---------------------------------------------------------------
 
 void CRepairGrid::Build(UiItemList* items) {
     rect_ = RECT{200, 100, 600, 500};
@@ -455,7 +455,7 @@ void CRepairGrid::Build(UiItemList* items) {
 }
 EI_REWRITTEN(0x006279E0, CRepairGrid::Build);
 
-// --- 00622A80: the quick strip's Build -------------------------------------------------------------
+// --- The quick strip's Build -------------------------------------------------------------
 
 void CHeroQuickStrip::Build(bool top) {
     y_ = top ? 0 : 500;
@@ -474,7 +474,7 @@ void CHeroQuickStrip::Build(bool top) {
 }
 EI_REWRITTEN(0x00622A80, CHeroQuickStrip::Build);
 
-// --- 006280C0 / 00628CC0: the constructors' second pages ---------------------------------------------
+// --- The constructors' second pages ---------------------------------------------------------------
 
 namespace {
 // The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),

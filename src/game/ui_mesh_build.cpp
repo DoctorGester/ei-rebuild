@@ -1,4 +1,4 @@
-// The interface sprites' shape builders (005E8450 framed rectangle, 005E8C60 disc, 005E91F0 ring).
+// The interface sprites' shape builders (framed rectangle, disc, ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
 // Floating point: the rectangle's values are sums and products of floats and small integers kept in
 // the original's order (precise floating point; values the original stores as float are rounded
@@ -21,9 +21,9 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_; SetSize 0044F960),
-// the two colour arrays (colorsA_, colorsB_; 005A6E70) and the 16-bit indices (+0x200; SetSize
-// 0044FA90, SetAtGrow 00452FC0). All are lib::AlignedArray instantiations (aligned_arrays.cpp).
+// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_),
+// the two colour arrays (colorsA_, colorsB_) and the 16-bit indices (+0x200). All are
+// lib::AlignedArray instantiations (aligned_arrays.cpp).
 using IndexArray = lib::AlignedArray<std::uint16_t>;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
@@ -105,7 +105,7 @@ float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w,
     return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * factor / *divisor);
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
-// 1 - (sin * R + c) / 256 (the scale is the float at 0073EEB8, the one the float at 0073B84C).
+// 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const double angle = CircleAngle(j, n);
     const double scale = 0.00390625f /*0073EEB8*/;
@@ -115,7 +115,7 @@ float CircleTexel(int j, int n, bool sine, int radius, int centre) {
 
 } // namespace
 
-// --- 005E8450 -----------------------------------------------------------------------------------------
+// --- CUiMeshBuilder::Framed -------------------------------------------------------------------
 
 void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
                             int u0, int v0, int u1, int v1) {
@@ -202,7 +202,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
 }
 EI_REWRITTEN(0x005E8450, CUiMeshBuilder::Framed);
 
-// --- 005E8C60 -----------------------------------------------------------------------------------------
+// --- CUiMeshBuilder::Disc ---------------------------------------------------------------------
 
 void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
                           int uvRadius) {
@@ -235,7 +235,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
             reinterpret_cast<float*>(&block)[12 + i] = 1.0f;
         }
     }
-    // Placed by the sprite's own Place (Rebirth-patched), scaled through 005E7060.
+    // Placed by the sprite's own Place (Rebirth-patched), scaled through the sprite's scale.
     Place(x, y, depth);
     float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
     ei::Code<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
@@ -243,7 +243,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
 }
 EI_REWRITTEN(0x005E8C60, CUiMeshBuilder::Disc);
 
-// --- 005E91F0 -----------------------------------------------------------------------------------------
+// --- CUiMeshBuilder::Ring ---------------------------------------------------------------------
 
 void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
                           int v0, int u1, int v1) {
@@ -321,7 +321,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
 }
 EI_REWRITTEN(0x005E91F0, CUiMeshBuilder::Ring);
 
-// --- 005E9F30 -----------------------------------------------------------------------------------------
+// --- CUiMeshBuilder::ResetColours --------------------------------------------------------------------
 
 void CUiMeshBuilder::ResetColours() { ResetVertexColours(this); }
 namespace {

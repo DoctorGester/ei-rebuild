@@ -1,6 +1,6 @@
 // The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
-// these reproduce behind the flag (ticket W2). docs/notes/ui.md, section 9.
+// these reproduce behind the flag. docs/notes/ui.md, section 9.
 #include "ui.h"
 #include "ui_widescreen.h"
 
@@ -17,9 +17,9 @@
 namespace {
 
 
-// The layout: half a texel (0073CC90, 1 / 512) and a texel (0073EEB8, 1 / 256) of the 256-wide
+// The layout: half a texel (1 / 512) and a texel (1 / 256) of the 256-wide
 // interface textures; 1 / 800 and 1 / 400 of the layout's width; the view's
-// half width at depth 1 (00740158, 0.48157); 0.75, the layout's height over its width.
+// half width at depth 1 (0.48157); 0.75, the layout's height over its width.
 float Texel() { return 0.00390625f /*0073EEB8*/; }
 float HalfTexel() { return 0.001953125f /*0073CC90*/; }
 float One() { return 1.0f /*0073B84C*/; }
@@ -138,7 +138,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     quad.y[3] = halfHeight;
     // The centre in front of the interface camera, as Place puts a layout point.
     float y = ((top + bottom) * 0.00125f /*00740164*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
-    // WideScreen (005E75D1, addon's 100231E1): both edges moved.
+    // WideScreen (addon's handler): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
     float x = (sumX * 0.00125f /*00740164*/ - One()) * ViewHalfWidth() * depth;
@@ -194,7 +194,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
         ++point;
     }
     // The top left corner in front of the interface camera.
-    // WideScreen (005E7C8D, addon's 100231CA): the left edge moved.
+    // WideScreen (addon's handler): the left edge moved.
     const float gridLeft = widescreen::Active() ? MovedX(left) : left;
     localPosition_.x = (gridLeft * 0.0025f /*0074015C*/ - One()) * ViewHalfWidth() * depth;
     localPosition_.y = (top * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
@@ -245,7 +245,7 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     lower.y[2] = outerY;
     lower.x[3] = -innerX;
     lower.y[3] = innerY;
-    // WideScreen (005E835E, addon's 100231FA): both edges moved.
+    // WideScreen (addon's handler): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
     localPosition_.x = (sumX * 0.00125f /*00740164*/ - One()) * ViewHalfWidth() * depth;
@@ -287,7 +287,7 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     points.x[3] = 0.0f;
     points.y[3] = 0.0f;
     float y = (y0 * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
-    // WideScreen (005E9E77, addon's 100231B3): the first point moved.
+    // WideScreen (addon's handler): the first point moved.
     const float firstX = widescreen::Active() ? MovedX(x0) : x0;
     float x = (firstX * 0.0025f /*0074015C*/ - One()) * ViewHalfWidth() * depth;
     Vector3 first;

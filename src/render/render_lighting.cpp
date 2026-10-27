@@ -100,7 +100,7 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     p.on[0] = 1.0f;
     p.on[1] = l.crown ? 0.6f : 0.0f;
     if (l.sun) {
-        const Vector3 towards = toModel(-l.sunDirection);   // as 005A7A70's TransformSun (no translation)
+        const Vector3 towards = toModel(-l.sunDirection);   // as the figure part draw's TransformSun (no translation)
         p.sun[0] = towards.x;
         p.sun[1] = towards.y;
         p.sun[2] = towards.z;

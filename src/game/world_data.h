@@ -88,7 +88,7 @@ inline const char* CaveText() { return "Cave"; }
 inline const char* IniSuffixText() { return ".ini"; }
 inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
-// Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
+// Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
 inline int AudioOption() { return static_cast<const volatile int&>(options::TheOptions()->audio_); }
@@ -102,7 +102,7 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 // ---- CWorld::Create -----------------------------------------------------------------
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base
-// folder; game_singletons.h) are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their text
+// folder; game_singletons.h) are set from (their text
 // pointers).
 inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
 inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
@@ -113,15 +113,15 @@ inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPat
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
-// The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
+// The volume settings the sound manager takes on the client's tenth tick (
 // The last is the movies' volume, bink_video.cpp).
 inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
 inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
 inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
 // The party's fight state the client world keeps (2: fighting; sound_music.cpp, world_client.cpp).
 int FightState();
-// The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
-// period per tick and restarts at 0079BD24.
+// The light effects' grey levels: on when its setting is set; the countdown takes the world update
+// period per tick and restarts at its start value.
 inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
 // The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
 inline int g_updatePeriod = /*0078FF34*/ 55;
@@ -130,7 +130,7 @@ inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFre
 // The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
 // from (its distance to the sun), the origin; the picking returns it without a view matrix.
 CLight* SceneSun();
-// R16i: the scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
+// The scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
 // view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
 const Matrix4* SceneCamera();
 inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};

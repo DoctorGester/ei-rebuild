@@ -35,8 +35,8 @@ namespace {
 
 
 
-// The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
-// there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
+// The briefing texts: opening a section by name (0 when
+// there is none), finding the next line with a tag and splitting the
 // current line into words.
 
 bool IsEmpty(const mfc::CString& s) {
@@ -115,7 +115,7 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 } // namespace
 
 // The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
-// initialisers 00580980 and 00581050 leave them; the exit functions they register destroy them
+// initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit stlp::vector<stlp::string> g_questFiles = /*007AFDD0*/ {};
 constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
@@ -145,7 +145,7 @@ void UnloadQuestTexts() {
     files.clear();
 }
 
-// ---- The quest file of a zone (005809D0, A-W15) ---------------------------------------------------
+// ---- The quest file of a zone ---------------------------------------------------
 
 namespace {
 
@@ -165,7 +165,7 @@ bool ServerRuns() {
 void ShareQuestFile(const char* path, const char* name) {
     GrowingBuffer local;
     GameBuffer* data = &local;
-    BufferedFile source;   // the original's inlined constructor and destructor
+    BufferedFile source;   // constructed and destroyed in place
     source.Open(path, kReadBinary, kReadOnlyFlags);
     net::BufferUpdateHigh(&source);
     const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
@@ -266,12 +266,12 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::QuestRegistry();
-        // (004DEFC0 in the original; the registry is binary, read as it is: CTextManager::OpenData.)
+        // (The registry is binary, read as it is: CTextManager::OpenData.)
         registered = texts->OpenData(path) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    TheQuestDatabase().LoadRegistry(texts->cursor_);   // 006AE8E0 (its result not read)
+    TheQuestDatabase().LoadRegistry(texts->cursor_);   // (its result is not read)
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();

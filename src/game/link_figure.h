@@ -1,7 +1,7 @@
 #pragma once
 
-// The 3D library's figure meshes and their loading from .lnk link files (004F2650-004FBD80). A
-// CLinkFigureLoader (model.h; one per world view, 00563710) loads a figure by name: its .lnk file
+// The 3D library's figure meshes and their loading from .lnk link files. A
+// CLinkFigureLoader (model.h; one per world view) loads a figure by name: its .lnk file
 // lists the parts, each a FIG / FIG8 (or older headerless) record in figures.res / menus.res, morphed
 // by three coefficients and appended to one CLinkMesh. See docs/notes/models.md, "Link figures".
 // Names provisional.
@@ -21,52 +21,51 @@
 
 class CLight;        // spell.h
 
-// The figure mesh drawer's base (game.exe's 0073FB44, retired; slots 2, 3, 11 and 12 pure): an
-// engine object with the mesh it draws. No object of the base alone exists.
+// The figure mesh drawer's base (an engine object with the mesh it draws).
+// No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
     // The deleting destructors (slot 0) free into the game's heap.
 
     CFigureMesh* mesh_;         // +0x1C the mesh it draws
 
 protected:
-    // 005A7010's part: the engine object's fields (no references, id -1, no owner), no mesh.
+    // The engine object's fields (no references, id -1, no owner), no mesh.
     FigureDrawerBase();
-    // 005A70C0's work: no mesh, then the engine object's.
+    // No mesh, then the engine object's.
     ~FigureDrawerBase() override;
 };
 
-// The drawer of a figure mesh (CFigureMesh::drawer_; its draws 005A7A70 / 005A7640, 005A7160
-// advances its animation, 005A7290 finishes a draw). It is an engine object of class 0x36,
-// "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory 0042D700 makes one
+// The drawer of a figure mesh (CFigureMesh::drawer_). It is an engine object of class 0x36,
+// "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
-// class: the compiler makes its vtable (game.exe's 0073FB10 is retired). flags_ gets the bits
-// of 00790C0C when the mesh is animated.
+// class. flags_ gets the bits
+// of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    // 0x005A7640 (figure_part_draw_plain.cpp).
+    // figure_part_draw_plain.cpp.
     int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
-    // 0x005A7A70 (figure_part_draw.cpp).
+    // figure_part_draw.cpp.
     int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
-    // 0x005A7290 (figure_part_bounds.cpp).
+    // figure_part_bounds.cpp.
     void DrawBounds(CSceneRenderer* renderer);
 
-    // figure_drawer.cpp (A-W14). 005A7010: FigureDrawerBase's constructor (the class adds nothing).
+    // figure_drawer.cpp. FigureDrawerBase's constructor (the class adds nothing).
     FigureMeshDrawer();
-    // 005A7080's work: no flags, then the base's destructor.
+    // No flags, then the base's destructor.
     ~FigureMeshDrawer() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // 2: 005A70E0 CreateDrawer
-    void Destroy() override;               // 3: 005A7130 DestroyDrawer
-    const char* GetClassName() override;   // 11: 005A7040 "CFigureClientSpecific" (world_class_slots.cpp)
-    int GetClassId() override;             // 12: 005A7050 (0x36)
+    int Create() override;                 // CreateDrawer
+    void Destroy() override;               // DestroyDrawer
+    const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
+    int GetClassId() override;             // 0x36
 
     // No flags; +0x30 becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
     // No mesh, no flags.
     void DestroyDrawer();
 
-    // 005A7160 (RET 4; figure_drawer.cpp; the draws call it through its address for the animated
+    // figure_drawer.cpp; the draws call it through its address for the animated
     // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
     // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
@@ -80,8 +79,8 @@ static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshD
 
 class CTextureDevice;   // texture.h
 class CTexture;         // texture.h
-// The drawer's draws (the renderer's slots 13 / 14 call them): 005A7A70 lit, with two textures
-// (figure_part_draw.cpp), and 005A7640 plain (figure_part_draw_plain.cpp). Both return 1.
+// The drawer's draws (called by the renderer): lit, with two textures
+// (figure_part_draw.cpp), and plain (figure_part_draw_plain.cpp). Both return 1.
 
 struct CDXSurface;   // texture.h
 
@@ -120,38 +119,37 @@ using LinkHeaderMap = stlp::map<stlp::string, LinkPartHeader>;   // nodes 0x6C b
 using LinkRangeMap = stlp::map<stlp::string, LinkPartRanges>;    // nodes 0x4C bytes
 static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x6C && sizeof(LinkRangeMap::Node) == 0x4C);
 
-// A figure's mesh's base (game.exe's 0073D7CC, retired; slots 1-14 pure there; no object of the
-// base alone exists): the reference count, the name and the part headers. game.exe has a fieldless counted root
-// below it (0073C368: one slot); the class does without.
+// A figure's mesh's base (no object of the
+// base alone exists): the reference count, the name and the part headers.
 class CLinkMeshBase {
 public:
 
-    // 0: the deleting destructor (CLinkMesh's 004F2E20; the base's 004F2E00). Counted users delete
+    // Deleting destructor. Counted users delete
     // the mesh when its last reference goes.
     virtual ~CLinkMeshBase();
     // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
     virtual void UpdateScreenRect() = 0;
-    // 2: 004F3040 (RET 4, AL). Whether `name` is a part.
+    // Whether `name` is a part.
     virtual bool HasPart(const stlp::string* name) = 0;
     // Appends the part names, in map order, to `out`.
     virtual void CollectPartNames(stlp::vector<stlp::string>* out) = 0;
-    // 4: 004F30D0 (RET 4, AL). The loader loads part `name` into this mesh.
+    // The loader loads part `name` into this mesh.
     virtual bool LoadPart(const stlp::string* name) = 0;
-    // 5: 004F3530 (RET 4, AL). Removes part `name`: false when there is none. The later elements of
+    // Removes part `name`: false when there is none. The later elements of
     // each array move down over its elements; parts whose index range starts after the removed
     // one's get every start lowered by the removed part's starts (sic: not by its counts).
     virtual bool RemovePart(const stlp::string* name) = 0;
-    // 6: 004F3780 (RET 0x18, AL). Part `name`'s first vertex packet, corner and index and its vertex
+    // Part `name`'s first vertex packet, corner and index and its vertex
     // and index counts; false (nothing written) when there is no such part.
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount) = 0;
-    // 7-12 (link_mesh_draw.cpp, A-S12): a figure mesh's part `name` drawn through this figure
-    // (CObject3D::figure; 005A7A70): 7 fills a flat part's colours and speculars, 8
-    // lights it (both AL: false when there is no such part), 9-12 (004F3C60, 004F3FA0,
-    // 004F42D0, 004F4150) draw it (with the mesh's per-vertex offsets: 9 / 11; with two textures'
+    // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
+    // (CObject3D::figure): the first fills a flat part's colours and speculars, the second
+    // lights it (both: false when there is no such part), the next four
+    // draw it (with the mesh's per-vertex offsets: first / third; with two textures'
     // surfaces: 11 / 12). The draws return 2 when nothing was drawn. `u`, `v` are the mesh's
-    // +0xCC / +0xD0.
+    // +0xCC / +0xD0 members.
     virtual bool FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) = 0;
     virtual bool LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
@@ -168,7 +166,7 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
-    // 13 / 14: the shadow of part `name`: its points projected with
+    // The shadow of part `name`: its points projected with
     // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
     // projected points `pixels` rasterised into the shadow target. Both return the point count (0
     // when there is no such part).
@@ -184,24 +182,23 @@ public:
     LinkHeaderMap headers_;           // +0x14
 
 protected:
-    // 004F2C00's part: no references, the name copied, no headers.
+    // The part's reference count: none, the name copied, no headers.
     explicit CLinkMeshBase(const stlp::string* name);
 };
 
-// A figure's mesh (0xB0 bytes; constructor 004F2C00, destructor 004F2E40): the parts' elements
-// concatenated in the arrays. A real virtual class: the compiler makes its vtable (game.exe's
-// 0073D790 is retired). Slots 7-14 draw parts through the device
+// A figure's mesh (0xB0 bytes): the parts' elements
+// concatenated in the arrays. A real virtual class. The draws go through the device
 // (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
     // The base's part, the coefficients stored, the arrays and the ranges map empty, the
     // pipeline taken from the loader's renderer (+0xAC -> +0xC).
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
-    // 004F2E40's work: the ranges map, the arrays (indices first), then the base's destructor.
+    // The ranges map, the arrays (indices first), then the base's destructor.
     ~CLinkMesh() override;
 
-    // The vtable (game.exe's 0073D790): every slot of the base.
-    void UpdateScreenRect() override;   // 1: 004F45E0 (link_figure.cpp)
+    // Every slot of the base.
+    void UpdateScreenRect() override;   // link_figure.cpp
     bool HasPart(const stlp::string* name) override;
     void CollectPartNames(stlp::vector<stlp::string>* out) override;
     bool LoadPart(const stlp::string* name) override;
@@ -227,20 +224,20 @@ public:
                     Vector2* points, float* bounds) override;
     int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) override;
 
-    // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
+    // An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
     // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
     int MemoryBytes() const;
 
-    // 004F3800 (RET 0xC, AL; A-S8). Overwrites part `name`'s first min(its count, count) vertex
+    // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.
     bool SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count);
 
     // Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
-    // 004F7370 (RET 4, returns out; link_loader.cpp). Constructs a copy of the name in `out`.
+    // Constructs a copy of the name in `out` (link_loader.cpp).
     stlp::string* CopyName(stlp::string* out) const;
 
-    // 004F30F0 (RET 0x34, AL). Appends a part: false when `name` is already a part; otherwise each
+    // Appends a part: false when `name` is already a part; otherwise each
     // array grows by its count and gets the elements, and the part's ranges are recorded; true.
     bool AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount, const NormalPacket* normals,
                 int normalCount, const TexCoord* texCoords, int texCoordCount, const MeshCorner* corners,
@@ -276,11 +273,11 @@ static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
 
 // The record of a part in a resource archive (as the loaders read it; `cursor` moves past it):
-// 004F7F00 the FIG / FIG8 record, 004F87D0 the older one without a header.
+// The FIG / FIG8 record and the older one without a header.
 // Both are members of CLinkFigureLoader (model.h): LoadFigPart, LoadOldPart.
 
-// link_loader.cpp (A-S7). 004DB9C0 (__fastcall: ECX out, EDX cursor): a length-prefixed string of a
+// link_loader.cpp. A length-prefixed string of a
 // .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to
-// the first zero byte (copied through a static buffer, 007AA8D0) and keeps its old text for
+// the first zero byte (copied through a static buffer) and keeps its old text for
 // length 0. The cursor moves past the record.
 void __fastcall ReadLinkString(stlp::string* out, const char** cursor);

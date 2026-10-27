@@ -26,7 +26,7 @@ namespace {
 float Pi() { return 3.1415927f /*007423F8*/; }
 // A texel as a texture offset: 1 / 256.
 float TexelStep() { return 0.00390625f /*0073EEB8*/; }
-// The layout y the columns' bottom button sits at (00742948, 490).
+// The layout y the columns' bottom button sits at (490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
 
 
@@ -149,7 +149,7 @@ EI_REWRITTEN(0x0063C050, CHudWeaponBar::Highlight);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
-    // half. (The original leaves both unset for a count over 3, which SetUnit never reaches.)
+    // half. (Left unset, as in the original, for a count over 3, which SetUnit never reaches.)
     const int x = count_ >= 2 ? kWeaponWidth : 0;
     const int y = (count_ & 1) ? kWeaponHeight : 0;
     CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
@@ -166,7 +166,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     } else {
         sprite = AddSprite(nullptr);
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats
-        // written over 005FC9F4, 0063BF71 / 0063BF80).
+        // written over).
         float offset = static_cast<float>(count_ * kStep);
         const float shift = static_cast<float>(widescreen::EdgeShift());
         sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f /*00741F1C*/ - shift), 520.0f,
@@ -189,7 +189,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
     entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
     const int shift = widescreen::EdgeShift();
-    rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen: 0063C880 / 0063C894
+    rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 550, x + 50, 600);
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 500, x + 50, 550);
@@ -218,7 +218,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
         sprite->localRotation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
     } else {
         sprite = AddSprite(nullptr);
-        const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen: 0063CC13 / 0063CC07
+        const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen
         sprite->SetRectangle(20.0f, 20.0f, 680.0f + shift, 560.0f, 720.0f + shift, 600.0f, 0, 0, kIconSize, kIconSize);
     }
     SetOffsets(sprite, at.x, at.y + kIconSize);
@@ -232,7 +232,7 @@ EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
     const int shift = widescreen::EdgeShift();
-    rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen: 0063E306 / 0063E31A
+    rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen
     ClearSceneObjects();
     ClearRegions();
     count_ = 0;
@@ -278,7 +278,7 @@ EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
-    // WideScreen (addon's 10023416 at 0063F378, 0063F38E): the panel offset from here on, the
+    // WideScreen (addon's handler): the panel offset from here on, the
     // rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
@@ -305,7 +305,7 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     Quaternion turn;
     sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
     float y = ColumnBottom() - static_cast<float>(count_ * kStep);
-    sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen: 0063F633
+    sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen
     MakePlain(sprite);
     int place = actions_.size;
     actions_.SetSize(place + 1, -1);
