@@ -54,7 +54,7 @@ static_assert(sizeof(MapEffect) == 0x14);
 // The hit points, mana and protection rounded (0x18 bytes in CMapObject; written from the server companion's
 // UnitVitals, unit.h).
 struct UnitVitalsPacked {
-    // Zeroes it. Returns 0 (EAX).
+    // Zeroes it. Returns 0.
     int Reset();
 
     std::uint8_t spare00;           // +0x00 0 after Reset; nothing reads it

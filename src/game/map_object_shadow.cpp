@@ -316,7 +316,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Look from the light; the object turned to face it.
     Matrix4 view;
-    view::LightShearMatrix(view.m, &direction);   // (thiscall on the pipeline, not read)
+    view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
     // The point and pixel buffers grow without keeping their contents.
     Points().SetSizeDiscard(kPointBufferSize);

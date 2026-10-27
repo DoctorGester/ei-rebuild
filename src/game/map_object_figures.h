@@ -253,7 +253,7 @@ public:
     // Each bone's animator plays `animation`: the bone's manager is told and the animator's time cleared.
     static void AnimateBone(FigureBone* bone, const FigureAnimation* animation);
 
-    // map_object_animation_bones.cpp (A-U10).
+    // map_object_animation_bones.cpp.
     // Engine object fields, empty lists (blocks of 10), then Reset.
     CFigureAnimationState();
     // The destructor body: every bone released, Reset's fields, the lists emptied (their destructors), then the
@@ -506,7 +506,7 @@ public:
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
     void RemoveAllEffectSources();
 
-    // object3d_small_methods.cpp (A-U12).
+    // object3d_small_methods.cpp.
     // `half` (of any type, or null) replaces the attached half: the old one is
     // detached (+0x1C cleared) and released, the new one points back here and gains a reference.
     void SetSpecific(CObject3DSpecific* half);

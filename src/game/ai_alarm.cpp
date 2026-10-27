@@ -81,7 +81,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
 void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
 EI_REWRITTEN(0x005AEA80, AIAlarm::Step);
 
-// ---- The state's small members (A-W14) ----------------------------------------------------------
+// ---- The state's small members ----------------------------------------------------------
 
 void AIAlarm::Reset() {
     level = 0;

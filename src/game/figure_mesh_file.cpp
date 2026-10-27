@@ -15,7 +15,7 @@
 
 namespace {
 
-// The file's slots 14 (Write) and 13 (Read).
+// The file's write and read virtuals.
 void Write(mfc::CFileVirtuals* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
 void Read(mfc::CFileVirtuals* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 
@@ -89,7 +89,7 @@ void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
 
 namespace {
 
-// The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
+// The original's out-of-line Vector3 helpers (the out pointer first).
 
 float One() { return 1.0f /*0073B84C*/; }
 

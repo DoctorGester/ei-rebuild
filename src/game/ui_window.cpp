@@ -158,7 +158,7 @@ void CUiWindow::UpdateRegionTips(int) {
 }
 EI_REWRITTEN(0x005FEBF0, CUiWindow::UpdateRegionTips);
 
-// The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
+// The same per region, each tooltip then redrawn (the tooltip is re-read).
 void CUiWindow::RedrawRegionTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);

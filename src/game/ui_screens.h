@@ -261,13 +261,13 @@ public:
     void ClampHeroSelection();
     // The same for the voice list (eleven rows), then shows the voice's name.
     void ClampVoiceSelection();
-    // Virtual slot 53: the weight carried by the hero being made (weapon, armour, spell
+    // The weight carried by the hero being made (weapon, armour, spell
     // container and the quick items), left unrounded in ST0.
     double EquipmentWeight();
-    // Virtual slot 42 (what an item strip calls with its action mode): with mode 0,
+    // What an item strip calls with its action mode: with mode 0,
     // equips a weapon, armour or spell container; then refreshes.
     void OnItemChosen(CItem* item, int mode);
-    // Virtual slot 51: the local player's first hero (+0x30 of the player data).
+    // The local player's first hero (+0x30 of the player data).
     PartyUnitRecord* GetHero();
     // Whether the hero can take `item`; spell containers need the spell's skill and mana (the camp's own version
     // is not rewritten).
@@ -424,7 +424,7 @@ public:
     CHeroQuickStrip* spellPanel_;   // +0x1B8
     CUiItemStrip* figureStrips_[2]; // +0x1BC the figures of defaults_ (voices voiceLists_[0]), +0x1C0 of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;   // +0x1C4
-    MpStringVector defaults_;   // +0x1C8 the men's figures; its first entry goes to slot 52 for a new hero
+    MpStringVector defaults_;   // +0x1C8 the men's figures; its first entry goes to ChooseFigure for a new hero
     MpStringVector names_;      // +0x1D4 the women's figures
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
@@ -540,7 +540,7 @@ public:
     int LeftDouble(int b, int x, int y) override { return OnLButtonDouble(b, x, y), 0; }           // 7
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                    // 9
 
-    // The message box results (slot 27): the kinds the screen opens boxes with, ORed with 1 (OK)
+    // The message box results : the kinds the screen opens boxes with, ORed with 1 (OK)
     // or 2 (cancel) when they come back.
     enum BoxKind : std::uint32_t {
         kBoxNotice = 0x10000,         // a message (refusal, wrong protocol)
@@ -573,7 +573,7 @@ public:
     // drawn; then the scroll bar, the player slider (maxPlayers_ = its position + 1) and a changed
     // name redraw the list.
     void Update() override;
-    // Slot 26 does nothing and slot 41 returns 0: too short to hook.
+    // Two virtuals do nothing or return 0: too short to hook.
     // A box answered: an address (0x20001) is parsed (port 8888 unless
     // given) and asked when known, the address book written, the list drawn; the master request
     // ending (0x40002) draws the list; the new game's password (0x30001 / 0x30002) is kept and its
@@ -595,7 +595,7 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // The selection clamped to the list (an empty list gives -1 and reads the entry
     // before it, as the original), its address kept, the list scrolled to show it (the bar's
-    // slot 25, then its position read back) and drawn.
+    // the scroll call, then its position read back) and drawn.
     void SelectAndScroll();
     // The OK sound; row 0 hosts (GameFlow::StartServer: the name typed or the default, the player slider + 1,
     // gameType_, hostPassword_, unlisted_, the client's queries' extra word) after the address book is written;
@@ -710,7 +710,7 @@ public:
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     void OnMouseMove(int flags, int x, int y);
     void OnKeyDown(int key, int repeat, int flags);
-    // Virtual slot 27: a message box this menu opened was closed with `result`.
+    // A message box this menu opened was closed with `result`.
     void OnMessageResult(int result);
     // The menu's Create: the stone model and the five regions, whose rectangles come from menus.reg
     // (ui_layouts.cpp).
@@ -942,7 +942,7 @@ public:
     // - partyA's + partyC's, and the client goes back to the world.
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
     // The screen closes: the description panel describes nothing and the
-    // scratch party is deleted (its slot 0).
+    // scratch party is deleted (its deleting destructor).
     void Close();
     // A message box's answer: nothing.
     void OnMessageResult(int result);

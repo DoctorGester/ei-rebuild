@@ -77,7 +77,7 @@ public:
     // object3d_specific_slots.cpp. Class name and id: "CObject3DClientSpecific", 0x37.
     const char* GetClassName() override;
     int GetClassId() override;
-    // Slots 19 / 20: Draw and DrawShadow below (`context` is the scene renderer).
+    // Draw and DrawShadow below (`context` is the scene renderer).
     int DrawParts(void* context, int* dirty) override { return Draw(static_cast<CSceneRenderer*>(context), dirty); }
     int DrawPartsShadow(void* context) override { return DrawShadow(static_cast<CSceneRenderer*>(context)); }
     // PartRectsMeet below.

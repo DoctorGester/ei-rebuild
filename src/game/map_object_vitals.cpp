@@ -1,4 +1,4 @@
-// CMapObject: the server companion's vitals (A-U5). See map_object.h and docs/notes/map_objects.md.
+// CMapObject: the server companion's vitals. See map_object.h and docs/notes/map_objects.md.
 #include "map_object.h"
 
 #include "unit.h"

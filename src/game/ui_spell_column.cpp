@@ -54,8 +54,8 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         CItem* spell = unit_->GetSpell(i);
         if (!spell) continue;
         {
-            std::string image = spell->FigureName().GetString();   // slot 19
-            std::string model = spell->PictureName().GetString();  // slot 20
+            std::string image = spell->FigureName().GetString();
+            std::string model = spell->PictureName().GetString();
             AddSpell(model.c_str(), image.c_str());
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);

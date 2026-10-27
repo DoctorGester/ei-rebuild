@@ -58,7 +58,7 @@ struct OneUnit {
 
 } // namespace
 
-// --- CViewScreen (slots 25, 20, 26) -------------------------------------------------------------
+// --- CViewScreen -------------------------------------------------------------
 
 void CViewScreen::CreateScreen() {
     static_assert(sizeof(UiInputSide) == 0x0C);

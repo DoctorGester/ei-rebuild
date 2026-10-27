@@ -62,7 +62,7 @@ constexpr int kVisibleRows = 16;
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 // _Construct(p, x).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
-// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the original calls it.
+// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable as the original calls it.
 BOOL IsDirectory(const mfc::CFileFind& find) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
 }
@@ -489,7 +489,7 @@ void __fastcall QuickLoad(const char* slot) {
 }
 EI_REWRITTEN(0x006575B0, QuickLoad);
 
-// --- Entry titles, OK / Delete / load / delete (A-H14) ----------------------------------------------
+// --- Entry titles, OK / Delete / load / delete ----------------------------------------------
 
 namespace {
 

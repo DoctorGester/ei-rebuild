@@ -53,7 +53,7 @@ double Unsigned(std::uint32_t value) {
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // Releases the texture in `holder`, then finds (or creates) the texture resource `name`
-// of `kind` in the resource manager and keeps a reference in `holder`. __thiscall.
+// of `kind` in the resource manager and keeps a reference in `holder`.
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
@@ -919,7 +919,7 @@ int CParticleSource::GetClassId() { return 12; }
 EI_REWRITTEN(0x004982D0, CParticleSource::GetClassName);
 EI_REWRITTEN(0x004982E0, CParticleSource::GetClassId);
 
-// The element callbacks that do nothing (RET 4 each), one per type that stores one (Stench and the spheres,
+// The element callbacks that do nothing one per type that stores one (Stench and the spheres,
 // ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).
 void CParticleSource::TickNone(ParticleElement*) {}
 

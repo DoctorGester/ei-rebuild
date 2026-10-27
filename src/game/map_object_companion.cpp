@@ -40,7 +40,7 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// The sound system (a global); thiscall.
+// The sound system (a global).
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CLight* light) { return &light->localPosition_.x; }

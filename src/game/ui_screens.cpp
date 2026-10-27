@@ -53,7 +53,7 @@ const CItemLoot* LootOrNull(const CItem* item) {
 } // namespace
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
-// static __stdcall functions here (the same RET 4).
+// static __stdcall functions here.
 bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;

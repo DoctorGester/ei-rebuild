@@ -226,7 +226,7 @@ void CUiScrollText::DrawLines(int scroll) {
 }
 EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 
-// --- A-H20: construction, texts, layout ----------------------------------------------------------
+// --- Construction, texts, layout ----------------------------------------------------------
 
 namespace {
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held

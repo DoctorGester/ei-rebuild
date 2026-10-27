@@ -283,7 +283,7 @@ public:
     float AttackRange();
     // The active weapon's type, else the natural weapon type.
     int WeaponType();
-    // Is the active weapon a bow or crossbow (types 5, 6)? 0/1 in EAX.
+    // Is the active weapon a bow or crossbow (types 5, 6)? 0/1.
     BOOL HasRangedWeapon();
     // Does the unit attack from a distance: a ranged weapon, or (without a weapon) a
     // natural weapon other than 0x10 with a reach above 1? Callers test AL.
@@ -444,7 +444,7 @@ public:
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
 
-    // combat_order_setters.cpp (A-U5): the other setters, as the AI, scripts and the player's
+    // combat_order_setters.cpp: the other setters, as the AI, scripts and the player's
     // commands call them.
     // Would the unit fit its cell in movement mode `mode` (3 counts as 2)? True at once
     // for the current mode (+0x168); else the unit's mode (+0x264) becomes `mode` for the test (the
@@ -707,7 +707,7 @@ public:
     // (ReportPath).
     void PlanMove(const Vector3* point, int moving, int run, float range);
 
-    // combat_object_slots.cpp (A-U5).
+    // combat_object_slots.cpp.
     // `claimant` claims the players in `mask` are enemies of this unit: they join
     // claimedHostile and the AI memory hears a call of kind 0x1E carrying the mask, with the text
     // "Unit <claimant id> claims that player <n> are enemies! " for each player n in the mask.

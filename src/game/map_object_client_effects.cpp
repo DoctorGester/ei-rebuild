@@ -1,6 +1,6 @@
 // The client companion's effect visuals (CMapObjectClientSpecific, map_object.h / unit.h): the
 // particle sources and looping sounds that follow the object's effect list, and the reset of the
-// parts' alpha / tint when an invisibility or stun effect ends (A-U3).
+// parts' alpha / tint when an invisibility or stun effect ends.
 
 #include "effects.h"
 #include "map_object.h"

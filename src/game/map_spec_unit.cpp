@@ -409,7 +409,7 @@ void UnitSpec::OnChunk() {
 EI_REWRITTEN(0x0046D080, UnitSpec::OnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
-// The stream (CStream, core_streams.h) reads and writes through its vtable (slots 1 and 2).
+// The stream (CStream, core_streams.h) reads and writes through its read and write virtuals.
 
 namespace {
 void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }

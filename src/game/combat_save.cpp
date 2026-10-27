@@ -117,7 +117,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 }
 } // namespace
 
-// --- Step lists and the armour spell list (A-U7) ----------------------------------------------------
+// --- Step lists and the armour spell list ----------------------------------------------------
 
 namespace {
 // The item manager (the world server's), which resolves the armour spells' item ids.

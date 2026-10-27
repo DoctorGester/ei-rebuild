@@ -313,7 +313,7 @@ EI_REWRITTEN(0x006261A0, TradeDrawLists);
 
 namespace {
 // Vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); the record filler
-// (__fastcall) fills a record from the local player's unit records; LocalPlayerData: the local player's data
+// fills a record from the local player's unit records; LocalPlayerData: the local player's data
 // (its member holds the number of unit records).
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 

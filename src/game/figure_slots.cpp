@@ -1,5 +1,5 @@
 // Small members of the figure classes (CFigure, CFakeFigure) and their records around the
-// animation loaders: class names and ids (vtable slots), destructors, constructors that only
+// animation loaders: class names and ids (virtuals), destructors, constructors that only
 // clear. See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
 #include "lib/crt.h"

@@ -35,7 +35,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     if (!data) return 0;
     std::uint32_t magic;
     std::memcpy(&magic, data, 4);
-    // The bounds morphs (figure_mesh.cpp; thiscall on the manager, not read).
+    // The bounds morphs (figure_mesh.cpp; the manager argument is not read).
     if ((magic & 0xFFFFFF) == kFigMagic)
         MorphFigureBounds(out, reinterpret_cast<const float*>(data + 0x28), std::bit_cast<float>(s), std::bit_cast<float>(t),
                           std::bit_cast<float>(u), magic);

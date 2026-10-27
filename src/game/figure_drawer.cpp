@@ -47,7 +47,7 @@ void FigureMeshDrawer::Animate(float time) {
 }
 EI_REWRITTEN(0x005A7160, FigureMeshDrawer::Animate);
 
-// ---- Lifetime (A-W14) ---------------------------------------------------------------------------
+// ---- Lifetime ---------------------------------------------------------------------------
 
 FigureDrawerBase::FigureDrawerBase() {
     ClearFields();

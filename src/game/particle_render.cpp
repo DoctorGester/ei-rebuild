@@ -81,7 +81,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 // The list's GetNext (the list itself not read).
 EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
-// Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
+// Byte-identical copies (other CTypedPtrList iterators in the world range).
 EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REWRITTEN(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REWRITTEN(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
