@@ -7,6 +7,7 @@ cbuffer light_params : register(b1) {
     float4 light_counts;   // x: the point lights
     float4 map_sun;        // xyz: the direction the shadow map's light travels (unit)
     float4 point_lights[32];   // per light: position, 1 / range squared; colour, w: 1 specular
+    float4 point_slots[4];     // per light (4 a vector): its point shadow's map + 1, 0 none
 };
 
 // The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp: ShadeSun, then
@@ -24,9 +25,11 @@ cbuffer light_params : register(b1) {
 // and facing, dimmed under the water by the light's vertical part) take the largest per channel, darkened
 // by the same shade (the towns' lamps light the ground by day too: the units' shadows would vanish under
 // them; the point lights cast no shadow of their own), the specular ones (shaded alike) apart (`spec`,
-// added after the texture as the specular word was). The colour word's light is returned.
+// added after the texture as the specular word was). A light with a point shadow (`shadows`:
+// point_shadow.hlsli) adds only what reaches the point; the ground casts none, so the point is looked up
+// moved along its own normal. The colour word's light is returned.
 float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float hidden, float strength,
-                    out float3 spec) {
+                    bool shadows, float2 turn, out float3 spec) {
     float3 ambient = ambient_colour.rgb * saturate(1.0 - loss);
     float facing = -dot(sun_dir.xyz, n);
     float3 direct = facing > 0.0 ? min(1.0, m + facing * sun_colour.rgb) : m;
@@ -45,7 +48,10 @@ float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float h
         float c = dot(n, to);
         float turned = c <= 0.0 ? c + 1.0 : 1.0;
         float under = max(0.0, 1.0 - loss * to.z * to.z);
-        float3 v = min(1.0, mp + turned * falloff * under * colour.rgb);
+        float slot = point_slots[k >> 2][k & 3];
+        float seen = 1.0;
+        if (shadows && slot > 0.5) seen = point_seen((int)slot - 1, p, n, kNoPointFront, turn);
+        float3 v = min(1.0, mp + turned * falloff * under * seen * colour.rgb);
         if (colour.w > 0.5) spec = max(spec, v * shade);
         else lit = max(lit, v * shade);
     }

@@ -35,6 +35,11 @@ float2 shadow_disc(int k, int n, float2 turn) {
     float a = k * 2.39996323;   // the golden angle
     return mul(float2x2(turn.x, -turn.y, turn.y, turn.x), float2(cos(a), sin(a)) * r);
 }
+// The discs' turn at a screen pixel (interleaved gradient noise): cosine and sine.
+float2 pixel_turn(float2 pixel) {
+    float a = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+    return float2(cos(a), sin(a));
+}
 float shadow_filter(Texture2D<float> map, SamplerComparisonState smp, float2 uv, float z, float2 slope,
                     float radius, float2 turn, int n) {
     float lit = 0.0;
@@ -76,8 +81,7 @@ float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<
     float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
     if (around.x >= z + reach) return 0.0;
     float widest = clamp((z + reach - around.x) * soft.x, soft.z, soft.y);
-    float turn_angle = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
-    float2 turn = float2(cos(turn_angle), sin(turn_angle));
+    float2 turn = pixel_turn(pixel);
     if (around.y < z - reach) return 1.0;
     float radius = widest;
     float searched = saturate(widest * soft.w * 2.0 / kShadowCell - 1.0);   // 0 up to half a cell, 1 from a cell
