@@ -101,7 +101,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     void* picture;
     {
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
-        picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
+        picture = manager->GetFile(file.GetString(), nullptr);
     }
     CDXSurface* made = new CDXSurface(self->interface_->renderer_, picture, 0);
     CDXSurface* previous = self->holder_;

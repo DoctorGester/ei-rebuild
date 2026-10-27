@@ -41,7 +41,7 @@ void ResetLayerExceptUnknown20(UnitStatLayer& layer) {
 
 // --- UnitVitals ------------------------------------------------------------------------------
 
-void* UnitVitals::Reset() {
+void UnitVitals::Reset() {
     hitPoints = kZero;
     maxHitPoints = kZero;
     hitPointRegen = kZero;
@@ -53,17 +53,15 @@ void* UnitVitals::Reset() {
         pair.current = kZero;
         pair.base = kZero;
     }
-    return reinterpret_cast<char*>(this) + sizeof(UnitVitals);
 }
 EI_REPLACE_METHOD(0x00523370, UnitVitals::Reset);
 
-void* UnitVitals::Pack(UnitVitalsPacked* out) {
+void UnitVitals::Pack(UnitVitalsPacked* out) {
     out->hitPoints = static_cast<std::int16_t>(RoundStored(hitPoints));
     out->maxHitPoints = static_cast<std::int16_t>(RoundStored(maxHitPoints));
     out->mana = static_cast<std::int16_t>(RoundStored(mana));
     out->maxMana = static_cast<std::int16_t>(RoundStored(maxMana));
     for (int i = 0; i < 7; ++i) out->protection[i] = static_cast<std::int16_t>(RoundStored(protection[i].current));
-    return reinterpret_cast<char*>(out) + sizeof(UnitVitalsPacked);
 }
 EI_REWRITTEN(0x00522C50, UnitVitals::Pack);
 

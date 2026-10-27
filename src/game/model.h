@@ -500,7 +500,7 @@ CSceneRenderer* __cdecl SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);
+Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect);
 // Perspective projection; `fov` in radians (full angle).
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 

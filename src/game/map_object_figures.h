@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <string>
 
+#include <windows.h>   // RECT (dirtyRect)
+
 #undef GetClassName   // CEngineObject::GetClassName
 
 class CObject3D;
@@ -111,7 +113,7 @@ public:
     // The figure's extra scale (the base's: 1, 1, 1).
     virtual void GetScale(float* x, float* y, float* z);
     // The client draws the parts / their shadow; the base returns 0.
-    virtual int DrawParts(CSceneRenderer* context, int* dirty);
+    virtual int DrawParts(CSceneRenderer* context, tagRECT* dirty);
     virtual int DrawPartsShadow(CSceneRenderer* context);
     // After LoadFigures: the client gives the parts the world's materials, then the skin texture. The base does
     // nothing.
@@ -119,7 +121,7 @@ public:
     // Screen picking: whether the point (x, y) is in the object's dirtyRect (PickAt).
     virtual int BoundsContainPoint(const long* point);
     // Whether the screen rectangle (a RECT) meets a drawn part's rectangle.
-    virtual int PartsIntersectRect(const long* rect);
+    virtual int PartsIntersectRect(const tagRECT* rect);
     // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
     virtual void Unused25(int) {}                   // empty in the base and the client
@@ -448,8 +450,7 @@ public:
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
 
-    // dirtyRect as the RECT it is (windows.h).
-    tagRECT* DirtyRect() { return reinterpret_cast<tagRECT*>(dirtyRect); }
+    tagRECT* DirtyRect() { return &dirtyRect; }
 
     // The fields the constructor sets past the engine object's and the name, and the destructor's work but for the
     // name.
@@ -474,7 +475,7 @@ public:
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     CountedRef<CLinkMesh> figure;
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
-    int dirtyRect[4];               // RECT: the screen area the last DrawCollectDirty covered
+    tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     mfc::CStringArray partNames;    // the figure's part names, in the order of the part boxes
     std::uint32_t boundsFlags;      // 1 and 2: the bounds are valid
     Vector3 center;

@@ -649,7 +649,7 @@ public:
     AnimationSteps moveAnimation;   // the movement animation (NextAnimation)
     std::uint32_t idleKey;          // 0x666DEAD: none yet
     AnimationSteps idleAnimation;   // extra: its time
-    void* actionDone;               // run when state 3 ends; cleared by the reset
+    void(__fastcall* actionDone)(CUnit*);   // run when state 3 ends; cleared by the reset
     std::uint32_t claimedHostile;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm

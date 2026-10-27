@@ -252,8 +252,9 @@ void CWorldServer::UpdateUnits() {
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
-            auto* controller = reinterpret_cast<const std::uint8_t*>(unit->controller);
-            if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
+            const CUnitServer* controller = unit->ServerController();
+            if (controller->moveMode2.flag4 == 0 && controller->brain.alwaysUpdated == 0 &&
+                controller->brain.memory.seesEnemy == 0)
                 SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
             else
                 unit->updateCountdown = UpdateCountdownFor(object);

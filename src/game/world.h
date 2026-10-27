@@ -805,7 +805,7 @@ public:
 struct ScreenEntry {
     int classId;
     unsigned objectId;                    // the object, in the map object manager
-    std::int32_t rect[4];                 // RECT on the screen
+    tagRECT rect;                         // on the screen
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
@@ -1040,7 +1040,7 @@ public:
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect` is appended to `out`.
-    void UnitsInBox(const long* rect, stlp::list<CMapObject*>* out);
+    void UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.

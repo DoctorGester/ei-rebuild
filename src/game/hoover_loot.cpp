@@ -73,16 +73,11 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
     *gold = 0;
     if (prototype) {
         const CStringVector& itemNames = prototype->lootItems;
-        auto names = [&] { return reinterpret_cast<const char* const*>(itemNames.begin()); };
-        auto bytes = [&] { return reinterpret_cast<std::intptr_t>(itemNames.end()) - reinterpret_cast<std::intptr_t>(itemNames.begin()); };
-        auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
-        if (bytes() & ~std::intptr_t{3}) {
-            for (std::uint32_t i = 0; i < count(); ++i) {
-                CItem* item = manager->CreateItem(names()[i]);
-                if (!item) continue;
-                Append(drops, item);
-                AppendShared(items, item);
-            }
+        for (std::size_t i = 0; i < itemNames.size(); ++i) {   // the end is read again each time
+            CItem* item = manager->CreateItem(itemNames[i].GetString());
+            if (!item) continue;
+            Append(drops, item);
+            AppendShared(items, item);
         }
         const UnitPrototypeRecord* record = prototype;
         RollGold(record->gold, gold);

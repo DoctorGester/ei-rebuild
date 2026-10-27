@@ -176,7 +176,7 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode* first, ScreenEntry
     for (ScreenEntryNode* node = first; node != last; node = node->next) {
         const ScreenEntry* entry = &node->data;
         POINT pt = {x, y};
-        if (!PtInRect(reinterpret_cast<const RECT*>(entry->rect), pt)) continue;
+        if (!PtInRect(&entry->rect, pt)) continue;
         CMapObject* object = manager->FindMapObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
@@ -607,7 +607,7 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-void CWorldClient::UnitsInBox(const long* rect, stlp::list<CMapObject*>* out) {
+void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out) {
     for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
         CMapObject* object = manager40_->FindMapObject(node->data.objectId);
         if (!object) continue;

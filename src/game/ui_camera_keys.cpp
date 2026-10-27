@@ -23,10 +23,7 @@ namespace {
 inline double D(float f) { return f; }
 float GameFloat(const float& setting) { return static_cast<const volatile float&>(setting); }
 
-bool ModifierHeld(const CInterface3D* ui) {
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(ui);
-    return bytes[0x7C] != 0 || bytes[0x7E] != 0;   // Ctrl or Alt
-}
+bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;

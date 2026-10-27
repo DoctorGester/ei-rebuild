@@ -936,7 +936,7 @@ struct AIBrain {
 };
 static_assert(offsetof(AIBrain, move) == 0x08);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
-static_assert(offsetof(AIBrain, alertMode) == 0x3C);
+static_assert(offsetof(AIBrain, alwaysUpdated) == 0x37 && offsetof(AIBrain, alertMode) == 0x3C);
 static_assert(offsetof(AIBrain, decay) == 0x4C);
 static_assert(offsetof(AIBrain, previousPosition) == 0x50);
 static_assert(offsetof(AIBrain, position) == 0x5C);

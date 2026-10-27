@@ -60,9 +60,9 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
     // `context` is the scene renderer.
-    int DrawParts(CSceneRenderer* context, int* dirty) override { return Draw(context, dirty); }
+    int DrawParts(CSceneRenderer* context, tagRECT* dirty) override { return Draw(context, dirty); }
     int DrawPartsShadow(CSceneRenderer* context) override { return DrawShadow(context); }
-    int PartsIntersectRect(const long* rect) override { return PartRectsMeet(reinterpret_cast<const RECT*>(rect)); }
+    int PartsIntersectRect(const tagRECT* rect) override { return PartRectsMeet(rect); }
     // Draws the object's shadow when shadows are on for its kind and the object is shown: unless the shadow is
     // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground), the
     // figure's parts are rendered from there into the 64x64 shadow texture, and its square is projected onto
@@ -74,7 +74,7 @@ public:
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
     // becomes static (object flags 0x400, flags_ bit 8). Returns 1, or a fatal error's result.
-    int Draw(CSceneRenderer* context, void* dirty);
+    int Draw(CSceneRenderer* context, tagRECT* dirty);
 
     // Walk the materials: the first (cursor 0; with none the cursor is -1) / the next; null at the end.
     CMaterial* FirstMaterial();
