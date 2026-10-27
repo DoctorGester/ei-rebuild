@@ -1,7 +1,5 @@
 // Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a point, the
-// start of a planned action and the controller's reset. See combat.h, combat_plan.h and docs/notes/combat.md
-// ("Update"). Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
-// the idle animation (key +0x95C; its start time +0x974).
+// start of a planned action and the controller's reset. See docs/notes/combat.md ("Update").
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -158,8 +156,7 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
 
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
-// A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a CList of path
-// cells, blocks of 0x80), as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
+// A motion order on the stack, as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
 // uninitialised).
 struct LocalMotionOrder : PathOrder {
     LocalMotionOrder() {
@@ -175,11 +172,9 @@ struct LocalMotionOrder : PathOrder {
 };
 static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
-// A CList<CUnit*> as the controller fills them (vtable, head, tail, count, free list, blocks).
 using UnitList = mfc::CTypedPtrList<CUnit>;
 
-// A player's party (CPlayer::units_), walked like the original's hash_map iteration: stlp::hash_map::First /
-// After.
+// A player's party, walked like the original's hash_map iteration.
 using PartyMap = CPlayer::UnitMap;
 
 } // namespace
@@ -451,7 +446,7 @@ void CUnitServer::UpdateSneak() {
     int allowed = unit->player ? unit->player->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     EI_NAN_AUDIT(ServerVitals(unit).mana);
-    if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath (vitals +0x14)
+    if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath
     if (!world->AIMap()->StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
@@ -553,7 +548,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
-    Motion(this)->goal.z = range;   // : the range (Replan reads it back)
+    Motion(this)->goal.z = range;   // the range (Replan reads it back)
     sneakWait = 0;
     unit->RefreshMotion();
     if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
@@ -600,8 +595,8 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
     PlexFreeDataChain(list->blocks);
     list->blocks = nullptr;
     if (!player || player->sessionKind100_ != 1) return;
-    // Away from the point: the units near it that are not in the player's group (+0x510C of its
-    // messages object) are lifted off the sector map and stay in the list.
+    // Away from the point: the units near it that are not in the player's group are lifted off the sector map
+    // and stay in the list.
     float dx = point->x - unit->localPosition_.x;
     float dy = point->y - unit->localPosition_.y;
     float dz = point->z - unit->localPosition_.z;
@@ -682,8 +677,6 @@ EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 // --- Resync with the unit ---------------------------------------------------------------------
 
 namespace {
-// Does the queue hold `steps`.
-
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
     record->wasMode3 = 0;
@@ -835,8 +828,7 @@ void CUnitServer::ResetController() {
     IdleSteps(this).SetSize(0, -1);
     IdleSteps(this).extra = -1;
     boredTicks = 0;
-    // The armour spell list emptied: each element's item released (the instantiation's DestructElements), then
-    // count, free list, tail, head and blocks cleared.
+    // The armour spell list emptied, each element's item released.
     for (auto* node = armourSpells.head; node; node = node->next)
         if (node->data.item) node->data.item->Release();
     armourSpells.RemoveAll();
