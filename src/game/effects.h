@@ -1,13 +1,12 @@
 #pragma once
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
-// - CParticleSource ("CParticle"): one emitter. Its tick (particle_tick.cpp) runs the per-type callbacks the
-//   constructor stores at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update
-//   one element of the source's own array at +0x154). The callbacks are __thiscall on the source.
+// - CParticleSource ("CParticle"): one emitter. Its tick runs the per-type callbacks the
+//   constructor stores (emit one particle, update one particle: 0 kills it, update
+//   one element of the source's own array).
 // - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
 // - CVisibilityFog ("CVisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
-//   cell fades in while visible and out once not, and is dropped when nearly transparent.
-// Names are provisional. Layouts mirror the game's; unknown bytes are unknown_XXX.
+// cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
 #include "core_transform.h"
@@ -24,34 +23,34 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
-class CMemoryStream;   // core_streams.h
-class CSceneRenderer;  // model.h
-struct TLVertex;       // clip.h
-struct VertexPacket;   // figure_mesh.h
+class CMemoryStream;
+class CSceneRenderer;
+struct TLVertex;
+struct VertexPacket;
 
 // One particle (0x64 bytes, allocated by the source's pool). The source's tick saves the "prev" fields before
 // calling the update callback and restores them when it returns 0. The meaning of +0x20..+0x40 depends on the
 // source type; the comments name the types written here.
 struct Particle {
-    Vector3 pos;                // +0x00
-    float size;                 // +0x0C
-    Vector3 prevPos;            // +0x10
-    float prevSize;             // +0x1C
-    Vector3 velocity;           // +0x20 smoke: initial offset; spheres: orbit offset
-    float aux0;                 // +0x2C \ per-type scratch the emitter and update callbacks
-    float aux1;                 // +0x30 | share (angles, speeds, growth, steps)
-    float aux2;                 // +0x34 /
-    Vector3 drift;              // +0x38 smoke: rise in z; debris: speed; spheres: x = size factor
-    int frame;                  // +0x44 texture frame
-    int prevFrame;              // +0x48
-    int frameTimer;             // +0x4C ticks until the next frame
-    int life;                   // +0x50 ticks left
-    int state;                  // +0x54 debris: landed
-    std::uint32_t color;        // +0x58 ARGB
-    std::uint32_t prevColor;    // +0x5C
-    int dead;                   // +0x60 set by the tick when the update returned 0
+    Vector3 pos;
+    float size;
+    Vector3 prevPos;
+    float prevSize;
+    Vector3 velocity;           // smoke: initial offset; spheres: orbit offset
+    float aux0;                 // per-type scratch the emitter and update callbacks share (angles, speeds, growth, steps)
+    float aux1;
+    float aux2;
+    Vector3 drift;              // smoke: rise in z; debris: speed; spheres: x = size factor
+    int frame;                  // texture frame
+    int prevFrame;
+    int frameTimer;             // ticks until the next frame
+    int life;                   // ticks left
+    int state;                  // debris: landed
+    std::uint32_t color;        // ARGB
+    std::uint32_t prevColor;
+    int dead;                   // set by the tick when the update returned 0
 
     // The emitters' Vector4::FromPoint on the particle's first 16 bytes: the position
     // `at` and the size 1.
@@ -62,196 +61,196 @@ struct Particle {
 };
 static_assert(sizeof(Particle) == 0x64);
 
-// One element of a source's own array (+0x154, 0x38 bytes each, 32-byte aligned). What the slots
-// hold depends on the source type (the views below, by the callbacks of particle_callbacks.cpp and
-// particle_emitters.cpp that use them); code indexes element 0 and reads element 1 through it.
+// One element of a source's own array (0x38 bytes, 32-byte aligned). What the slots
+// hold depends on the source type (the views below); code indexes element 0 and reads element 1
+// through it.
 struct ParticleElement {
-    Vector3 pos;                // +0x00
+    Vector3 pos;
     union {
-        float value[10];        // +0x0C (value[3] = +0x18, value[5] = +0x20, ...)
+        float value[10];
         std::int32_t word[10];  // the same slots as dwords (the set-ups clear some the type never reads)
         // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground;
         // LightningBlast's heads (TickLightning) move by fork and remember their position in base.
         struct {
-            Vector3 fork;       // +0x0C
-            Vector3 base;       // +0x18 pos as placed
+            Vector3 fork;
+            Vector3 base;       // pos as placed
             std::uint8_t unused_24[0xC];
-            int emitted;        // +0x30 point 0: particles emitted along the bolt
+            int emitted;        // point 0: particles emitted along the bolt
         } bolt;
         // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
         struct {
-            Vector3 start;      // +0x0C pos as placed (TickModifier: the last position)
-            Vector3 offset;     // +0x18 from the emission point
+            Vector3 start;      // pos as placed (TickModifier: the last position)
+            Vector3 offset;     // from the emission point
         } ring;
         // The ground plane under the source (TickGroundPlane, PlatformSet::SurfacePlane).
         struct {
-            float height;       // +0x0C
+            float height;
             float unused_10[2];
-            Vector3 normal;     // +0x18 its z replaced by its reciprocal when not 0
+            Vector3 normal;     // its z replaced by its reciprocal when not 0
             std::uint8_t unused_24[0xC];
-            std::uint32_t color;    // +0x30 the ground dust's colour (0x203A / 0x203B)
+            std::uint32_t color;    // the ground dust's colour (0x203A / 0x203B)
         } plane;
         // FeetCloud (TickFeetCloud): a foot; ticks says which (nonzero: the left).
         struct {
             std::uint8_t unused_0C[0xC];
-            float radius;       // +0x18 the carrier's radius (AttachmentOffset)
+            float radius;       // the carrier's radius (AttachmentOffset)
             float unused_1C[5];
-            std::int32_t countdown;   // +0x30 reset every tick; the cloud starts at the foot while >= 0
+            std::int32_t countdown;   // reset every tick; the cloud starts at the foot while >= 0
         } foot;
         // Casting (0x2027-0x202A): element 0 the effect's state (pos.x 1 once set up, ticks the
         // countdown the alpha follows), elements 1.. the swirls.
         struct {
-            float growth;       // +0x0C the particles' growth per tick
+            float growth;       // the particles' growth per tick
             float unused_10[2];
-            float radius;       // +0x18
-            float size;         // +0x1C the particles' size
+            float radius;
+            float size;         // the particles' size
             float unused_20[4];
-            std::int32_t alpha; // +0x30
+            std::int32_t alpha;
         } cast;
         struct {
             std::uint8_t unused_0C[0xC];
-            Vector3 position;    // +0x18 drifting by velocity
-            Vector3 velocity;    // +0x24
+            Vector3 position;    // drifting by velocity
+            Vector3 velocity;
         } swirl;
         // Protection spheres and AntiMagic (0x2015-0x2017, 0x201A): element 0 (pos.z the height
         // above the carrier); element 1's pos is the carrier's smoothed motion.
         struct {
             std::uint8_t unused_0C[0xC];
-            float radius;       // +0x18 the sphere's
+            float radius;       // the sphere's
             float unused_1C;
-            float speed;        // +0x20 the carrier's (0 below 0.01)
+            float speed;        // the carrier's (0 below 0.01)
         } sphere;
         struct {
             std::uint8_t unused_0C[0xC];
-            float tiltCos;      // +0x18 element 1: the tilt's cosine and sine (0.01 radians)
-            float tiltSin;      // +0x1C
+            float tiltCos;      // element 1: the tilt's cosine and sine (0.01 radians)
+            float tiltSin;
         } sphereTilt;
         // Casting (0x200B) and Healing (0x2006): a ring of flames (pos its centre, relative to
         // the source; ticks its countdown).
         struct {
-            float radius;       // +0x0C
-            float angle;        // +0x10 of its leading flame
-            float rise;         // +0x14 per tick
-            Vector3 centre;      // +0x18 its starting centre
+            float radius;
+            float angle;        // of its leading flame
+            float rise;         // per tick
+            Vector3 centre;      // its starting centre
         } flames;
         // CastingIllusion ... Healing (0x202B-0x202E): an orbiting light (pos its world position).
         struct {
-            float turnCos;      // +0x0C the cosine and sine of its turn per tick
-            float turnSin;      // +0x10
-            float scale;        // +0x14 the carrier's radius (times -1 for 0x202C)
-            Vector3 relative;    // +0x18 its position relative to the source (element 0's x: the orbit)
-            Vector3 previous;    // +0x24 its last world position
+            float turnCos;      // the cosine and sine of its turn per tick
+            float turnSin;
+            float scale;        // the carrier's radius (times -1 for 0x202C)
+            Vector3 relative;    // its position relative to the source (element 0's x: the orbit)
+            Vector3 previous;    // its last world position
         } orbiter;
         // Link (0x2014): element 0 the beam's length and its inverse (ticks the alpha cap);
         // elements 1-3 the beam's frame (direction, side, their cross product).
         struct {
             std::uint8_t unused_0C[0xC];
-            float length;       // +0x18
-            float inverseLength;    // +0x1C
+            float length;
+            float inverseLength;
         } link;
         struct {
             std::uint8_t unused_0C[0xC];
-            Vector3 axis;        // +0x18 a unit vector
+            Vector3 axis;        // a unit vector
         } linkAxis;
         // FireBlast (0x2002): a fragment flying out (pos its position).
         struct {
-            Vector3 velocity;   // +0x0C
-            float radius;       // +0x18 the flame radius
-            float growth;       // +0x1C its growth per tick
-            float decay;        // +0x20 the growth's factor per tick
-            float frame;        // +0x24 a random frame (0..5)
-            float sizeFactor;   // +0x28 0 or 1
+            Vector3 velocity;
+            float radius;       // the flame radius
+            float growth;       // its growth per tick
+            float decay;        // the growth's factor per tick
+            float frame;        // a random frame (0..5)
+            float sizeFactor;   // 0 or 1
             float unused_2C;
-            std::int32_t age;   // +0x30 in ticks
+            std::int32_t age;   // in ticks
         } fragment;
         // Geyser / Fireworks (0x2009): a vent (pos the jet's angles and strength, ticks the
         // eruption's remaining ticks).
         struct {
             float unused_0C[9];
-            std::int32_t pause; // +0x30 before the next eruption
+            std::int32_t pause; // before the next eruption
         } vent;
         // Shower (0x200F, 0x2031-0x2033): a direction (pos); element 0's ticks is the texture frame.
         struct {
             float unused_0C[9];
-            std::int32_t age;   // +0x30 in ticks; element 0: negative until the directions are chosen
+            std::int32_t age;   // in ticks; element 0: negative until the directions are chosen
         } ray;
         // Bag (0x203C): a ball (pos its position, ticks its countdown).
         struct {
-            Vector3 step;        // +0x0C its last step
-            Vector3 velocity;   // +0x18
+            Vector3 step;        // its last step
+            Vector3 velocity;
             std::uint8_t unused_24[0xC];
-            std::int32_t age;   // +0x30 its kind, then its age (indexes the sizes)
+            std::int32_t age;   // its kind, then its age (indexes the sizes)
         } ball;
         // 0x202F: the ring around the carrier (ticks its age).
         struct {
             std::uint8_t unused_0C[0xC];
-            float radius;       // +0x18
+            float radius;
             float unused_1C;
-            float height;       // +0x20 the carrier's
+            float height;       // the carrier's
             float unused_24[2];
-            float foot;         // +0x2C the ring's offset below the carrier's centre
+            float foot;         // the ring's offset below the carrier's centre
         } column;
         // Mushroom and Transform (0x200E, 0x2052): pos.x the puffs' spread, pos.z the cap's height.
         struct {
             std::uint8_t unused_0C[0xC];
-            Vector3 stem;        // +0x18 the stem's foot
+            Vector3 stem;        // the stem's foot
         } mushroom;
         // BlueGas (0x2013): pos the carrier's figure offset.
         struct {
             std::uint8_t unused_0C[0xC];
-            float radius;       // +0x18 the gas radius
+            float radius;       // the gas radius
             float unused_1C;
-            float height;       // +0x20 the carrier's
+            float height;       // the carrier's
         } gas;
         // Tornado and CurseHolder (0x200A, 0x2050): a ring of the funnel (pos its centre); element 0
         // also holds the funnel's own values.
         struct {
             float unused_0C[6];
-            float height;       // +0x24 the funnel's
-            float bend;         // +0x28 0: the rings sway with the source's motion, else they lean
-            float damping;      // +0x2C the particles' spin damping
+            float height;       // the funnel's
+            float bend;         // 0: the rings sway with the source's motion, else they lean
+            float damping;      // the particles' spin damping
         } funnel;
         // Cylinder1 / Cylinder2 (0x203F, 0x2040): a star (pos relative to the source, ticks its
         // countdown).
         struct {
-            Vector3 step;        // +0x0C its last step
-            float rotation[2];  // +0x18 the cosine and sine of its turn per tick
+            Vector3 step;        // its last step
+            float rotation[2];  // the cosine and sine of its turn per tick
             float unused_20;
-            float inverseOrbit; // +0x24
-            float orbit;        // +0x28 the orbit radius
-            float rise;         // +0x2C per tick
+            float inverseOrbit;
+            float orbit;        // the orbit radius
+            float rise;         // per tick
         } star;
         // Banshee (0x200D): pos.z the ring's height, ticks the countdown.
         struct {
-            float radius;       // +0x0C easing towards 30 times the source's height
+            float radius;       // easing towards 30 times the source's height
         } banshee;
         // ClayRing (0x2018): a point on the ground (pos; ticks the countdown).
         struct {
-            Vector3 previous;    // +0x0C its previous position
-            Vector3 direction;   // +0x18 turning a little each tick
+            Vector3 previous;    // its previous position
+            Vector3 direction;   // turning a little each tick
         } clay;
         // Falling (0x2034-0x2037): a gust.
         struct {
-            float reach;        // +0x0C
-            float direction;    // +0x10 radians, truncated
+            float reach;
+            float direction;    // radians, truncated
             float unused_14[7];
-            std::int32_t age;   // +0x30
+            std::int32_t age;
         } wind;
         // StartTrans (0x2051): element 0 (ticks the countdown).
         struct {
             std::uint8_t unused_0C[0xC];
-            float scale;        // +0x18 the glow's size, growing with the source's
-            float count;        // +0x1C the emitted count, rising by 0.4 per tick
+            float scale;        // the glow's size, growing with the source's
+            float count;        // the emitted count, rising by 0.4 per tick
         } trans;
         // ShapeChange glow (0x2039): element 0.
         struct {
             std::uint8_t unused_0C[0xC];
-            Vector3 mark;        // +0x18 the last point glowed at
+            Vector3 mark;        // the last point glowed at
             std::uint8_t unused_24[0xC];
-            std::uint32_t color;    // +0x30 by the alpha field
+            std::uint32_t color;    // by the alpha field
         } glow;
     };
-    int ticks;                  // +0x34 (lightning point 0: bursts; modifier point 0: the fade step)
+    int ticks;                  // (lightning point 0: bursts; modifier point 0: the fade step)
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 static_assert(offsetof(ParticleElement, bolt.emitted) == 0x30 && offsetof(ParticleElement, ring.offset) == 0x18);
@@ -276,13 +275,13 @@ static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(Particle
 
 class CParticleSource;
 class CObject3D;
-class CTexture;   // texture.h
+class CTexture;
 
-// The particle manager (0xE8 bytes; the client world's +0x19C; a real virtual class; CParticleSource +0x14 points
+// The particle manager (a real virtual class; each CParticleSource points
 // to it): a CBaseManager whose objects are the sources (objectList_). It keeps a pool of free particles, an MFC
-// list at +0xB0 (taken from the head, returned to the tail), and holds one reference on every source made through
+// list (taken from the head, returned to the tail), and holds one reference on every source made through
 // CreateSource (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it
-// (ReleaseUnheld). particle_manager.cpp; the pool in particle_tick.cpp, DrawAll in particle_draw.cpp.
+// (ReleaseUnheld).
 // The particle manager's own part of its constructor (small_accessors.cpp; the client world's manager set-up calls
 // it after the base manager's): quietStart cleared.
 class CParticleManager;
@@ -293,12 +292,12 @@ public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
 
     // CBaseManager's constructor, an empty pool (blocks of 10), an empty held table (Construct(100)), maxHeldId_ 0, then
-    // quietStart cleared. Inlined in the client world's manager set-up (world_client_maps.cpp); world_destructors.cpp.
+    // quietStart cleared. Inlined in the client world's manager set-up.
     CParticleManager();
     // Destroy, the members last to first (`held_`'s nodes and buckets, the free
     // particles' list emptied), then CBaseManager's destructor.
     ~CParticleManager() override;
-    const char* GetClassName() override;           // "CParticleManager"
+    const char* GetClassName() override;
     int GetClassId() override;                     // class id 0x2C
     // A new source of `type` (particle_create.cpp, NewParticleSource).
     CEngineObject* NewObject(int type) override;
@@ -311,7 +310,7 @@ public:
 
     Particle* AcquireParticle();                    // from the pool, else new (0x64 bytes)
     void ReleaseParticle(Particle* p);              // back to the pool's tail
-    // particle_draw.cpp: draws every source back to front; 0 when a source failed to draw.
+    // Draws every source back to front; 0 when a source failed to draw.
     int DrawAll(void* renderer);
     // A new source of `type` (CreateObject(type, -1)), referenced and held under
     // its id; with quietStart set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
@@ -323,17 +322,17 @@ public:
     // `held_` (the client's zone load).
     void ReleaseUnheld();
 
-    mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
-    HeldMap held_;                                  // +0x0CC id -> source holding a reference
-    int maxHeldId_;                                 // +0x0E0 highest key of held_
-    int quietStart;                                 // +0x0E4 see CreateSource; never set non-zero in src
+    mfc::CTypedPtrList<Particle> freeParticles;
+    HeldMap held_;                                  // id -> source holding a reference
+    int maxHeldId_;                                 // highest key of held_
+    int quietStart;                                 // see CreateSource; never set non-zero in src
 };
 static_assert(offsetof(CParticleManager, freeParticles) == 0xB0);
 static_assert(offsetof(CParticleManager, held_) == 0xCC);
 static_assert(offsetof(CParticleManager, maxHeldId_) == 0xE0);
 static_assert(sizeof(CParticleManager) == 0xE8);
 
-// One entry of the draw order (particle_draw.cpp): the source's depth along the camera's view axis.
+// One entry of the draw order: the source's depth along the camera's view axis.
 struct ParticleDepth {
     float depth;
     CParticleSource* source;
@@ -342,8 +341,7 @@ struct ParticleDepth {
 // The draw order, an MFC CArray<ParticleDepth> (vtable, data, size, max, grow by).
 using ParticleDepthArray = mfc::CArray<ParticleDepth>;
 
-// The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first). All
-// __fastcall (first, last in registers).
+// The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first).
 void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
                                  int compare);
 void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);
@@ -359,8 +357,8 @@ struct SourceFrame {
 static_assert(sizeof(SourceFrame) == 16);
 
 // A particle source: a transform object (CTransformObject, whose vtable the factory stores on the
-// way): localPosition_ (+0x1C) is where it emits relative to what it is attached to, localRotation_
-// (+0x34) the identity after Reset.
+// way): localPosition_ is where it emits relative to what it is attached to, localRotation_
+// the identity after Reset.
 class CParticleSource final : public CTransformObject {
 public:
     // The construction (particle_create.cpp; NewParticleSource, the class factory's creator): the engine object and
@@ -369,36 +367,36 @@ public:
     explicit CParticleSource(int type);
     // Deleting destructor: Clear, the texture released, the frames, the particle list and the elements freed.
     ~CParticleSource() override;
-    // Sources start zeroed: nothing here or in Reset sets the emission point (origin, +0x98) and the first Tick takes the
+    // Sources start zeroed: nothing here or in Reset sets the emission point (origin) and the first Tick takes the
     // motion from it. The harness zeroes the game's sources alike.
     static void* operator new(std::size_t size) noexcept;
 
     int Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
     int RunTick() override;                         // 1 while the source stays alive
-    const char* GetClassName() override;            // "CParticle"
+    const char* GetClassName() override;
     int GetClassId() override;                      // class id 12
 
     // The particle manager that owns the source (owner_), the pool its particles come from.
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
-    // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
+    // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
     // nothing to draw or it is off screen.
     int Draw(void* renderer);
 
-    // --- set-up (particle_create.cpp) ---
+    // --- set-up ---
     void Reset();                                   // defaults, texture and elements dropped
     void Clear();                                   // particles back to the pool, detach, Reset
 
-    // --- per-frame tick (RunTick; particle_tick.cpp) ---
+    // --- per-frame tick ---
     void AddParticle(Particle* p);                  // prev = current, bounds, list tail
 
-    // The callbacks Create stores (+0x1E0 emit, +0x1E4 update, +0x1E8 element): __thiscall members below. Emit fills a
+    // The callbacks Create stores (emit, update, element): members below. Emit fills a
     // particle from the pool (0 returns it), update moves one (0 drops it).
     using EmitCallback = int (CParticleSource::*)(Particle* p, int index);
     using UpdateCallback = int (CParticleSource::*)(Particle* p);
     using ElementCallback = void (CParticleSource::*)(ParticleElement* e);
 
-    // --- per-particle callbacks (+0x1E4 update, +0x1E0 emit), __thiscall, return 0 to drop ---
+    // --- per-particle callbacks, return 0 to drop ---
     int UpdateFalling(Particle* p);                 // types 0x2034-0x2037
     int UpdateCloud(Particle* p);                   // PoisonFog and similar
     int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, 0x2010
@@ -406,7 +404,6 @@ public:
     int UpdateDebris(Particle* p);                  // Nuke
     int UpdateOrbit(Particle* p);                   // Antimagic, spheres, 0x2014
 
-    // particle_emitters.cpp
     int EmitLightning(Particle* p, int index);      // LightningBlast
     int EmitModifier(Particle* p, int index);       // Modifier1-12
     int EmitZoneExit(Particle* p, int index);       // ZoneExit
@@ -420,10 +417,9 @@ public:
     void TickPortal(ParticleElement* e);            // Portal
     void TickStartTrans(ParticleElement* e);        // StartTrans
 
-    // particle_draw.cpp: the emission point in the world (attachment point plus the local position).
+    // The emission point in the world (attachment point plus the local position).
     Vector3* WorldPosition(Vector3* out);
 
-    // particle_callbacks.cpp
     int EmitCasting(Particle* p, int index);        // 0x2027-0x202A
     int UpdateCasting(Particle* p);
     void TickCasting(ParticleElement* e);
@@ -517,15 +513,15 @@ public:
     int EmitStun(Particle* p, int index);           // Stun, 0x204D
     int UpdateStun(Particle* p);
 
-    // particle_attach.cpp. Offset (0, 0, the bounds centre's z) and radius of the object followed
+    // Offset (0, 0, the bounds centre's z) and radius of the object followed
     // (its bounds recomputed); (0, 0, 0) and 0.1 when there is none. Returns `out`.
     Vector3* AttachmentOffset(Vector3* out, float* radius);
 
-    // --- per-element callbacks (+0x1E8) ---
+    // --- per-element callbacks ---
     void TickNuke(ParticleElement* e);
     void TickTendril(ParticleElement* e);           // 0x2010
     void TickMushroom(ParticleElement* e);          // Mushroom, Transform
-    void TickNone(ParticleElement* e);              // does nothing; ten more callbacks are as empty (particle_create.cpp)
+    void TickNone(ParticleElement* e);              // does nothing; ten more callbacks are as empty
 
     // --- small setters the game calls on sources ---
     void ScaleSize(float factor);
@@ -533,7 +529,7 @@ public:
     void StartEmitting();                           // flags bits 0 and 2 on
     void Stop();                                    // bits 0 and 2 off, detach
 
-    // particle_attach.cpp. Follow `object` (a CObject3D, or null to let go): the old object
+    // Follow `object` (a CObject3D, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
     void Attach(CObject3D* object);
@@ -552,66 +548,65 @@ public:
     // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000.. (the effect names in
     // the type name table); owner_ the particle manager.
     std::uint8_t unused_054[0x94 - 0x54];
-    CObject3D* attachedTo;          // +0x094 the object followed, null: none
-    Vector3 origin;                 // +0x098 world emission point
-    Vector3 motion;                 // +0x0A4 movement since the last tick
-    Vector3 side;                   // +0x0B0 unit, motion x (0, 0, 1) (zero while still)
-    Vector3 up;                     // +0x0BC unit, motion x side
-    float distance;                 // +0x0C8 length of motion
-    int emitChance;                 // +0x0CC percent per try
-    int emitCount;                  // +0x0D0 tries per tick
-    float emitSpacing;              // +0x0D4
-    int maxParticles;               // +0x0D8
-    int frameCount;                 // +0x0DC
-    int frameColumns;               // +0x0E0 columns of the texture's frame grid
-    int frameDelay;                 // +0x0E4 (Tornado, CurseHolder: the particle colour)
-    int hiddenTicks;                // +0x0E8 draws skipped off screen (the tick idles past 0x38 with flag 0x20)
-    int lifetime;                   // +0x0EC
-    Vector3 spreadMin;              // +0x0F0
-    Vector3 spreadMax;              // +0x0FC
+    CObject3D* attachedTo;          // the object followed, null: none
+    Vector3 origin;                 // world emission point
+    Vector3 motion;                 // movement since the last tick
+    Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)
+    Vector3 up;                     // unit, motion x side
+    float distance;                 // length of motion
+    int emitChance;                 // percent per try
+    int emitCount;                  // tries per tick
+    float emitSpacing;
+    int maxParticles;
+    int frameCount;
+    int frameColumns;               // columns of the texture's frame grid
+    int frameDelay;                 // (Tornado, CurseHolder: the particle colour)
+    int hiddenTicks;                // draws skipped off screen (the tick idles past 0x38 with flag 0x20)
+    int lifetime;
+    Vector3 spreadMin;
+    Vector3 spreadMax;
     float unused_108;
-    float size;                     // +0x10C
-    float height;                   // +0x110
-    float growth;                   // +0x114
-    float alpha;                    // +0x118
-    float typeParam;                // +0x11C per type: rate, count or size (1.0 after Reset)
-    float turnCos;                  // +0x120 \ cos / sin of the emitter's turn (a zone exit's
-    float turnSin;                  // +0x124 / angle)
-    float baseSize;                 // +0x128
-    float emitState;                // +0x12C int bits: emitted count or a one-shot flag, per type
-    Vector3 extent;                 // +0x130
-    int attachPoint;                // +0x13C
-    Vector3 windDirection;          // +0x140 copied from the world every tick
-    float windStrength;             // +0x14C
-    float additiveBlend;            // +0x150 int bits: 1 draws with additive blending
-    ParticleElement* elements;      // +0x154
-    int elementCount;               // +0x158
-    int elementCapacity;            // +0x15C (elements is an MFC-style array: data, size, max, grow by)
-    int elementGrowBy;              // +0x160
-    Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
-    Vector3 boundsMax;              // +0x170
-    // +0x17C the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
+    float size;
+    float height;
+    float growth;
+    float alpha;
+    float typeParam;                // per type: rate, count or size (1.0 after Reset)
+    float turnCos;                  // \ cos / sin of the emitter's turn (a zone exit's
+    float turnSin;                  // / angle)
+    float baseSize;
+    float emitState;                // int bits: emitted count or a one-shot flag, per type
+    Vector3 extent;
+    int attachPoint;
+    Vector3 windDirection;          // copied from the world every tick
+    float windStrength;
+    float additiveBlend;            // int bits: 1 draws with additive blending
+    ParticleElement* elements;
+    int elementCount;
+    int elementCapacity;            // (elements is an MFC-style array: data, size, max, grow by)
+    int elementGrowBy;
+    Vector3 boundsMin;              // over the particles, rebuilt every tick
+    Vector3 boundsMax;
+    // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
     // boundsMax less the centre) relative to the centre; the radius is not written.
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
-    mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    // +0x1D0 the frame UV rectangles (32-byte aligned).
+    mfc::CTypedPtrList<Particle> particles;
+    // the frame UV rectangles (32-byte aligned).
     lib::AlignedArray<SourceFrame> frames;
-    EmitCallback emitFn;            // +0x1E0
-    UpdateCallback updateFn;        // +0x1E4
-    ElementCallback elementFn;      // +0x1E8
+    EmitCallback emitFn;
+    UpdateCallback updateFn;
+    ElementCallback elementFn;
     HeldTexture texture;            // texture holder
 };
 
-// The class factory's creator for particle sources (particle_create.cpp): a new source of
+// The class factory's creator for particle sources: a new source of
 // `type` (the register arguments are unused), or null.
 CParticleSource* __stdcall NewParticleSource(int type);
 
-// `out` = v / d, all three quotients computed before the first store. __fastcall (out in ECX, v in EDX, d on the
-// stack); returns out.
+// `out` = v / d, all three quotients computed before the first store; returns out.
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
 
-// The particle renderer's shared arrays (particle_render.cpp). One vertex (position and size,
+// The particle renderer's shared arrays. One vertex (position and size,
 // interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.
 struct ParticleVertex {
     float x, y, z, size;
@@ -629,15 +624,14 @@ using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
 // (The renderer's bind of a held texture is CSceneRenderer::BindHeldTexture, model.h.)
 
-// particle_emitters.cpp. Room for `count` elements, 32-byte aligned, the allocated block stored just below;
-// __fastcall.
+// Room for `count` elements, 32-byte aligned, the allocated block stored just below;
 ParticleElement* __fastcall AllocateElements(int count);
 
-// The world's rain/snow layer (CWorldClient + 0x6F4, CWorldClient::RainSnow(); an engine object). Only the fields its
+// The world's rain/snow layer (an engine object). Only the fields its
 // rewritten members use.
 class CRainSnow final : public CEngineObject {
 public:
-    // The client world's constructor builds it inline (world_construct.cpp): the engine object's
+    // The client world's constructor builds it inline: the engine object's
     // fields, no texture, empty work arrays, no world or sound, then Clear.
     CRainSnow();
     // Deleting destructor: Clear, the work arrays freed (last member first), the texture released.
@@ -647,7 +641,7 @@ public:
     const char* GetClassName() override;            // "CWeather" (nothing asks)
     int GetClassId() override;                      // class id 0x1D
 
-    // The rain or snow drawn (weather_draw.cpp).
+    // The rain or snow drawn.
     int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);
     void FinishFade();
@@ -661,7 +655,7 @@ public:
     // "nature\rain\circle.wav"; the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next
     // step). Called by the weather messages.
     void Start(int newMode, float duration);
-    // weather_particles.cpp: rain and snow; the layer's draw (weather_draw.cpp) calls the one of the mode. The particles
+    // Rain and snow; the layer's draw calls the one of the mode. The particles
     // of the 81 x 81 grid cells around the point the wind carries them to the camera from, each cell's place and time
     // hashed, `density` of 64 of them shown: a rain drop is a thin triangle along the wind, a snowflake a point swayed
     // by the five sway tables that becomes a small triangle on screen. Projected with the pipeline's stack 2 and drawn
@@ -675,34 +669,34 @@ public:
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
-    HeldTexture texture;            // +0x01C counted texture ("RainSnow")
-    class CWorldClient* world;      // +0x020 the client world (set after construction)
-    int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
+    HeldTexture texture;            // counted texture ("RainSnow")
+    class CWorldClient* world;      // the client world (set after construction)
+    int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
-    lib::AlignedArray<Vector4> projected;       // +0x028 the positions projected (four per packet)
-    lib::AlignedArray<VertexPacket> positions;  // +0x038 the particles' corners (w not written)
-    mfc::impl::CByteArray outcodes;             // +0x048 a clip outcode per position
-    mfc::impl::CByteArray frames;               // +0x05C a texture frame (0..3) per particle
-    lib::AlignedArray<TLVertex> vertices;       // +0x070 what is drawn (colours never written)
-    mfc::impl::CWordArray indices;              // +0x080 0, 1, 2, ... (filled elsewhere)
-    lib::AlignedArray<int> offsets;             // +0x094 the grid's 81 cell offsets (filled elsewhere)
-    int particleCount;              // +0x0A4 positions built by the last draw
-    Vector3 wind;                   // +0x0A8
-    int mode;                       // +0x0B4 0 off, 1 rain, 2 snow
-    int targetMode;                 // +0x0B8
-    int density;                    // +0x0BC 0..64
-    float fadeStart;                // +0x0C0 world time
-    float fadeDuration;             // +0x0C4 0: no fade running
+    lib::AlignedArray<Vector4> projected;       // the positions projected (four per packet)
+    lib::AlignedArray<VertexPacket> positions;  // the particles' corners (w not written)
+    mfc::impl::CByteArray outcodes;             // a clip outcode per position
+    mfc::impl::CByteArray frames;               // a texture frame (0..3) per particle
+    lib::AlignedArray<TLVertex> vertices;       // what is drawn (colours never written)
+    mfc::impl::CWordArray indices;              // 0, 1, 2, ... (filled elsewhere)
+    lib::AlignedArray<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
+    int particleCount;              // positions built by the last draw
+    Vector3 wind;
+    int mode;                       // 0 off, 1 rain, 2 snow
+    int targetMode;
+    int density;                    // 0..64
+    float fadeStart;                // world time
+    float fadeDuration;             // 0: no fade running
 };
 
 // A fog cell (the hash_map value; the key is (y << 16) + x of the map square).
 struct FogCell {
-    std::int16_t x;                 // +0x00 map square
-    std::int16_t y;                 // +0x02
-    Vector3 pos;                    // +0x04 jittered centre, z = ground + 0.5
-    float alpha;                    // +0x10
-    std::uint8_t visible;           // +0x14
-    std::int8_t frame;              // +0x15 0..14, picks the texture tile
+    std::int16_t x;                 // map square
+    std::int16_t y;
+    Vector3 pos;                    // jittered centre, z = ground + 0.5
+    float alpha;
+    std::uint8_t visible;
+    std::int8_t frame;              // 0..14, picks the texture tile
     std::uint8_t unused_16[2];
 };
 static_assert(sizeof(FogCell) == 0x18);
@@ -711,27 +705,27 @@ static_assert(sizeof(FogCell) == 0x18);
 // Create fills them, the fog's draw hands them to the renderer): a tile's u range, and its v range
 // counted down from 1 a row.
 struct FogTile {
-    float u0;   // +0x00 column / 4
-    float v1;   // +0x04 v0 + 1/4
-    float u1;   // +0x08 u0 + 1/4
-    float v0;   // +0x0C 1 - (row + 1) / 4
+    float u0;   // column / 4
+    float v1;   // v0 + 1/4
+    float u1;   // u0 + 1/4
+    float v0;   // 1 - (row + 1) / 4
 };
 inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
 
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {
-    // World-side members (ai_fog_grid.cpp).
+    // World-side members.
     void Clear();                         // no origin (0x7FFFFFFF), 1 x 1, zeroed
     // x0, y0, width, height (dwords), then the cells; reading makes the cells again when the size changed.
     void Read(CMemoryStream* stream);
     void Write(CMemoryStream* stream);
-    // CAIMap::MarkVisibleCells (ai_movement.cpp). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
+    // CAIMap::MarkVisibleCells. Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
     // call (x0 = 0x7FFFFFFF) sizes and clears it.
     void Grow(int x, int y, int n);
 
-    int x0;                         // +0x00 map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
-    int y0;                         // +0x04
-    SearchGrid<std::uint8_t> cells; // +0x08 width * height bytes and the row table (operator new)
+    int x0;                         // map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
+    int y0;
+    SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
 };
 static_assert(sizeof(FogGrid) == 0x18);
 
@@ -740,7 +734,7 @@ class CVisibilityFog final : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
 
-    // The construction (vis_fog_manager.cpp): the engine object's fields, everything up to the cell map zero, an empty
+    // The construction: the engine object's fields, everything up to the cell map zero, an empty
     // cell map (100 buckets asked).
     CVisibilityFog();
     // Deleting destructor: ClearCells, the table freed.
@@ -748,13 +742,13 @@ public:
     int Create() override;                          // ClearCells, 1
     void Destroy() override { ClearCells(); }
     int RunTick() override { return UpdateCells(); }
-    const char* GetClassName() override;            // "CVisibilityFog"
+    const char* GetClassName() override;
     int GetClassId() override;                      // class id 0x5F
 
     void ComputeBounds();
     int UpdateCells();
     void Reveal(const FogGrid* grid);
-    // (effects_weather.cpp). Every cell freed (nodes back to the pool), the bounds invalid: also the body of two of the
+    //. Every cell freed (nodes back to the pool), the bounds invalid: also the body of two of the
     // object's virtuals (one returns 1).
     void ClearCells();
     // The cells as sprites through the scene renderer (effects_weather_draw.cpp; its result); 1 without cells or when
@@ -763,10 +757,10 @@ public:
 
     CWorld* World();
 
-    ClipBounds bounds;              // +0x1C flags 3 once computed; the box relative to the centre
-    Vector3 boundsSpare;            // +0x48 zeroed with the bounds, never read
-    CellMap cells;                  // +0x54
-    std::uint8_t boundsValid;       // +0x68
+    ClipBounds bounds;              // flags 3 once computed; the box relative to the centre
+    Vector3 boundsSpare;            // zeroed with the bounds, never read
+    CellMap cells;
+    std::uint8_t boundsValid;
     std::uint8_t unused_69[3];
 };
 
