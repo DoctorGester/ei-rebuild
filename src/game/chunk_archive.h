@@ -79,9 +79,8 @@ public:
     using Factory = CRefObject*(__cdecl*)();
     struct ClassRegistry {
         using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
-        using FactoryMap = stlp::hash_map<std::uint32_t, Factory, stlp::IntHash>;
         ClassIdMap classIds;     // vtable -> class id
-        FactoryMap factories;    // class id -> factory
+        stlp::hash_map<std::uint32_t, Factory, stlp::IntHash> factories;    // class id -> factory
     };
     static ClassRegistry& Registry();
 

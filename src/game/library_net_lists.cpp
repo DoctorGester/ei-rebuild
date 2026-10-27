@@ -12,7 +12,7 @@ void PacketRecordElement::Copy(PacketRecord* to, const PacketRecord& from) {
     to->time = from.time;
     to->sequence = from.sequence;
     to->items.Construct();
-    SentItems::InsertRange<SentRecordElement>(to->items.head, from.items.First(), from.items.End());
+    stlp::list<SentRecord>::InsertRange<SentRecordElement>(to->items.head, from.items.First(), from.items.End());
     to->header = from.header;
     to->rolledBack = from.rolledBack;
 }

@@ -612,7 +612,6 @@ EI_REWRITTEN(0x004B56C0, SSCCmd::CalcObject);
 
 namespace {
 
-using TempGroupList = mfc::CList<ScriptGroup>;
 
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 

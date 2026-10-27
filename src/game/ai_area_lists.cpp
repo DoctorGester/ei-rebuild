@@ -11,7 +11,6 @@
 
 namespace {
 
-using PairArray = mfc::CArray<AreaOffset>;
 
 constexpr int kLevel0Table[12] = /*007912DC*/ {
     0, 0, 1, 0, -1, 0, 0, 1, 0, -1, 100, 100};
@@ -36,7 +35,7 @@ constexpr int kEnd = 100;
 
 void __fastcall FillAreaLists(CAIMap* map) {
     for (int i = 0; i < 6; ++i) {
-        PairArray* list = &map->areaLists[i];
+        mfc::CArray<AreaOffset>* list = &map->areaLists[i];
         list->SetSize(0, -1);
         for (const int* entry = kTables[i]; entry[0] != kEnd; entry += 2) {
             AreaOffset pair = {entry[0], entry[1]};

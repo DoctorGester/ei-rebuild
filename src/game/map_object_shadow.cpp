@@ -50,15 +50,12 @@ int ShadowSwitch(int classId) {
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
 // the ground quad (one block of four corners).
-using ShadowPoints = lib::AlignedArray<Vector2>;
-using ShadowPixels = lib::AlignedArray<RasterTriangle::Point>;
-using ShadowQuads = lib::AlignedArray<VertexPacket>;
 constinit lib::AlignedArray<Vector2> g_points = /*007AF1F8*/ {};
 constinit lib::AlignedArray<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
 constinit lib::AlignedArray<VertexPacket> g_quads = /*007AF208*/ {};
-ShadowPoints& Points() { return g_points; }
-ShadowPixels& Pixels() { return g_pixels; }
-ShadowQuads& Quads() { return g_quads; }
+lib::AlignedArray<Vector2>& Points() { return g_points; }
+lib::AlignedArray<RasterTriangle::Point>& Pixels() { return g_pixels; }
+lib::AlignedArray<VertexPacket>& Quads() { return g_quads; }
 
 // The exit functions their static initialisers register: each frees its array's block. The points' and the
 // pixels' are guarded by a guard bit each, so a second run frees nothing.

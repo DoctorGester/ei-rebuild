@@ -111,12 +111,10 @@ struct SpeakerElement {
     static void Construct(BriefingSpeaker* to, const BriefingSpeaker& from);
     static void Destroy(BriefingSpeaker* p) { std::destroy_at(&p->name); }
 };
-using Speakers = stlp::vector<BriefingSpeaker>;
 // _Construct(p, value): nothing for a null p.
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
 using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
 // The server's banned addresses (find_if compares the host, not the port).
-using AddressList = stlp::list<net::NetAddress>;
 
 } // namespace libcontainers
