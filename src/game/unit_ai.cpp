@@ -53,10 +53,11 @@ struct GameOstream : libcrt::Ostream {
 constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
 
-// DestructElements of counted references.
+// A counted reference destroyed (DestructElements of a counted list): released, the slot cleared.
 template <typename T>
-void DestructRefs(T** refs, int count) {
-    gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
+void DestructRef(T** ref) {
+    if (*ref) (*ref)->Release();
+    *ref = nullptr;
 }
 
 // The mode names of the "new motivation" message (passed by address).
@@ -191,7 +192,7 @@ void AIBrain::Think() {
     seen.Reset();
 
     // The corpses seen this tick are forgotten (RemoveAll with element destruction).
-    for (auto* node = memory.corpses.head; node; node = node->next) DestructRefs(&node->data, 1);
+    for (auto* node = memory.corpses.head; node; node = node->next) DestructRef(&node->data);
     memory.corpses.count = 0;
     memory.corpses.free = nullptr;
     memory.corpses.tail = nullptr;

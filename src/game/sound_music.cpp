@@ -71,7 +71,7 @@ void ThemesSetSize(void* themes, int size) {
     static_cast<recordarrays::Themes::Array*>(themes)->SetSize(size, -1);
 }
 
-// The theme being read, laid out as MusicTheme with constructed members.
+// The theme being read: MusicTheme's members with constructed arrays.
 struct LocalTheme {
     std::string name;
     std::int32_t dungeon = 0;
@@ -80,13 +80,18 @@ struct LocalTheme {
     console::CStringArray calm;
     console::CStringArray combat;
 };
-static_assert(sizeof(LocalTheme) == sizeof(MusicTheme));
 
 // Appends a copy of `theme` to the music system's themes.
 void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     int n = music->themeCount;
     ThemesSetSize(&music->themesVtable, n + 1);
-    music->themes[n].Assign(reinterpret_cast<const MusicTheme*>(&theme));
+    MusicTheme& to = music->themes[n];
+    to.name = theme.name;
+    to.dungeon = theme.dungeon;
+    to.briefing = theme.briefing;
+    to.constructor = theme.constructor;
+    to.calm.Copy(theme.calm);
+    to.combat.Copy(theme.combat);
 }
 
 const mfc::CString& TextPath() { return TheTextFolder(); }

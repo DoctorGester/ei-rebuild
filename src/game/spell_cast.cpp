@@ -31,9 +31,6 @@ constexpr int kClassSpellContainer = 0x3003;
 
 
 
-// STLport string reserve(n) on the container's code string (stlp::StringAbi's).
-void CodesReserve(char** codes, unsigned n) { static_cast<stlp::StringAbi*>(reinterpret_cast<stlp::string*>(codes))->Reserve(n); }
-
 // _ftol of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
 // FMUL dword, CALL _ftol).
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(gamecrt::Ftol(x87::FromUnsigned(value) * factor)); }
@@ -161,10 +158,7 @@ BOOL CSpellContainer::Build() {
     spell->skillNeeded_ = static_cast<std::uint32_t>(proto->skill);
     spell->prototypeId_ = static_cast<std::uint32_t>(index & 0xFF) << 16;
 
-    if (codes_ != codesEnd_) {
-        *codes_ = 0;
-        codesEnd_ = codes_;
-    }
+    if (!codes_.empty()) codes_.Assign("");
 
     for (SpellModifierNode* node = modifiers_.First(); node != modifiers_.End(); node = node->next) {
         const itemdb::SpellModifierRecord* modifier = node->data;
@@ -218,14 +212,7 @@ BOOL CSpellContainer::Build() {
         itemdb::SpellModifierTable& modifiers = itemdb::TheSpellDatabase().modifiers;
         int modifierIndex = modifiers.IndexOf(modifiers.FindByCode(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
-        // push_back on the STLport string: grow to size + max(size, 1) when full.
-        if (codesEnd_ + 1 == codesCapacity_) {
-            unsigned size = static_cast<unsigned>(codesEnd_ - codes_);
-            CodesReserve(&codes_, size + (size < 1 ? 1u : size));
-        }
-        codesEnd_[1] = 0;
-        *codesEnd_ = code;
-        ++codesEnd_;
+        codes_.Append(&code, &code + 1);   // push_back
     }
 
     float area = spell->radius_;
@@ -237,11 +224,13 @@ BOOL CSpellContainer::Build() {
     if (base >= spell->manaCost_) spell->manaCost_ = base;
 
     // std::sort of the codes (signed chars). Any correct sort gives the same bytes.
-    if (codes_ != codesEnd_) {
-        for (char* i = codes_ + 1; i != codesEnd_; ++i) {
+    if (!codes_.empty()) {
+        char* const first = codes_.data();
+        char* const last = first + codes_.size();
+        for (char* i = first + 1; i != last; ++i) {
             char value = *i;
             char* j = i;
-            while (j != codes_ && value < j[-1]) {
+            while (j != first && value < j[-1]) {
                 *j = j[-1];
                 --j;
             }
@@ -250,12 +239,10 @@ BOOL CSpellContainer::Build() {
     }
 
     std::memset(spell->modifiers_, 0, sizeof(spell->modifiers_));
-    if (codes_) {
-        for (int i = 0; i < 8; ++i) {
-            char c = codes_[i];
-            if (c == 0) break;
-            spell->modifiers_[i] = c;
-        }
+    for (int i = 0; i < 8; ++i) {
+        char c = codes_[i];
+        if (c == 0) break;
+        spell->modifiers_[i] = c;
     }
     return 1;
 }

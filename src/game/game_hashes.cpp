@@ -21,6 +21,14 @@ PartyInPlace* PartyTable::At(const int* key) {
     return result;
 }
 
+FiguredGroupPair* FiguredGroupPair::Construct(const std::uint32_t* from, const FiguredTable* table) {
+    key = *from;
+    mapped.CopyConstruct(*table);
+    return this;
+}
+
+} // namespace gamehash
+
 RefPtr* ShapeTable::At(const ShapeCacheHandle* handle) {
     RefPtr none{nullptr};
     lib::InPlace<ShapePair> storage;
@@ -31,16 +39,8 @@ RefPtr* ShapeTable::At(const ShapeCacheHandle* handle) {
     return result;
 }
 
-FiguredGroupPair* FiguredGroupPair::Construct(const std::uint32_t* from, const FiguredTable* table) {
-    key = *from;
-    mapped.CopyConstruct(*table);
-    return this;
-}
-
-} // namespace gamehash
-
 EI_REWRITTEN(0x005BCCB0, gamehash::InitShapeHandle);
-EI_REWRITTEN(0x005BE090, gamehash::ShapeTable::At);
+EI_REWRITTEN(0x005BE090, ShapeTable::At);
 EI_REWRITTEN(0x005BE320, gamehash::ShapeAbi::Find);
 EI_REWRITTEN(0x005BE730, gamehash::ShapeAbi::FindOrInsert);
 EI_REWRITTEN(0x004A91B0, gamehash::PartyTable::At);

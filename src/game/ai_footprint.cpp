@@ -190,7 +190,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             p.y = y + placed->bounds.center.y;
             p.z = z + placed->bounds.center.z;
             Vector3 world;
-            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &p);
+            object->worldMatrix.rows.Transform(&world, &p);
             std::memcpy(&p, &world, sizeof(p));
             p.x = position.x + p.x;
             p.y = position.y + p.y;
@@ -198,7 +198,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
         }
         for (Vector3& v : normal) {
             Vector3 world;
-            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &v);
+            object->worldMatrix.rows.Transform(&world, &v);
             std::memcpy(&v, &world, sizeof(v));
         }
 

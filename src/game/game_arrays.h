@@ -76,7 +76,7 @@ using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nu
 
 // The script's areas (each area's parts array: its base vtable back, the storage freed) and definitions.
 inline void DestroyArea(ScriptArea* p) {
-    mfc::impl::ArrayHeader<mfc::impl::ScriptAreaClass>::Destruct(reinterpret_cast<mfc::CArray<Bytes<1>>*>(&p->parts));
+    mfc::impl::ArrayAbi<ScriptAreaPart>::Destruct<mfc::impl::ScriptAreaClass>(&p->parts);
 }
 inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
 using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea>>;

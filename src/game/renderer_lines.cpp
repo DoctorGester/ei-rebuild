@@ -116,7 +116,7 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
     SetStageOps(device, kOpDisable);
     for (int i = 0; i < points->count; ++i) {
         LineVertex& v = buffer.data[i];
-        std::memcpy(&v.x, points->xyzw[i], 16);
+        std::memcpy(&v.x, &points->points[i], 16);
         v.colour = colour | 0xFF000000u;
         v.specular = 0xFF000000u;
     }

@@ -109,10 +109,8 @@ constexpr int kPathBuffer = 0x11C;
 // rand() % 512 as the game computes it (rand() is never negative).
 int RandomBelow512() { return gamecrt::rand() & 0x1FF; }
 
-// CFileFind::MatchesMask through the vtable, as the game calls it.
-BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) {
-    return reinterpret_cast<const mfc::CFileFindVirtuals*>(&finder)->MatchesMask(mask);
-}
+// CFileFind::MatchesMask.
+BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
 
 } // namespace
 

@@ -1298,22 +1298,30 @@ EI_REWRITTEN_SPECIAL(0x00561AE0, PlatformSet::~PlatformSet);
 
 // What LoadManagerObjects reads back: per object a 1, its id, type and a field, then its own Save; a 0
 // ends the list.
+void SaveListedObject(CEngineObject* object, CStream* stream) {
+    std::uint8_t more = 1;
+    stream->Write(&more, 1);
+    int id = object->id_;
+    stream->Write(&id, 4);
+    int type = object->type_;
+    stream->Write(&type, 4);
+    std::uint32_t extra = object->prototypeId_;
+    stream->Write(&extra, 4);
+    object->Save(stream);
+}
+
+void SaveListedObjectsEnd(CStream* stream) {
+    std::uint8_t more = 0;
+    stream->Write(&more, 1);
+}
+
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
     for (auto* node = list->head; node;) {
         CEngineObject* object = node->data;
         node = node->next;
-        std::uint8_t more = 1;
-        stream->Write(&more, 1);
-        int id = object->id_;
-        stream->Write(&id, 4);
-        int type = object->type_;
-        stream->Write(&type, 4);
-        std::uint32_t extra = object->prototypeId_;
-        stream->Write(&extra, 4);
-        object->Save(stream);
+        SaveListedObject(object, stream);
     }
-    std::uint8_t more = 0;
-    stream->Write(&more, 1);
+    SaveListedObjectsEnd(stream);
 }
 EI_REWRITTEN(0x0055E8A0, SaveListedObjects);
 
