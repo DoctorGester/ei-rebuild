@@ -50,9 +50,8 @@ struct ElementKind {
     RangeFn destroyTail;   // shrinking (null: nothing)
 };
 
-// float (004CC870 zeroes), CString, ScriptObjectRef (004CC800 /
-// 004CE1E0 each / 004CC7D0), ScriptGroup (004CC9B0 / 004CE210 each / 004CC980), SSCCmd (004CE920
-// / 004BF620 each), ScriptIfThen (004CD4A0, nothing to destroy), pointers (004CCA10 zeroes,
+// float (zeroes), CString, ScriptObjectRef (each released), ScriptGroup (each destroyed),
+// SSCCmd (each destroyed), ScriptIfThen (nothing to destroy), pointers (zeroes,
 // nothing to destroy).
 extern const ElementKind kFloats;
 extern const ElementKind kStrings;

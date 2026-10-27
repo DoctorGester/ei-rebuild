@@ -39,7 +39,7 @@ void DestroyGroupVariables(ScriptVars& vars) {
 
 } // namespace
 
-// 004BED90 (called after every removal of a world object): the runs', the instances' and the global
+// Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
 void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
@@ -91,7 +91,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     }
 }
 
-// 004BEB00 (when the party enters a zone): instances and runs dropped, the For depth and the
+// When the party enters a zone: instances and runs dropped, the For depth and the
 // temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
 void __fastcall ScriptResetZone(CScript* script) {

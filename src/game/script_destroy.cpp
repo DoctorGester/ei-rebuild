@@ -1,4 +1,4 @@
-// Destructors of the script runtime's structures (ticket S6): ScriptVars, ScriptDefinition
+// Destructors of the script runtime's structures: ScriptVars, ScriptDefinition
 // and SSCCmd. See script.h and docs/notes/script.md.
 // The compiler inlined each array's destructor: the derived CArray destructor's vtable store is
 // dropped, so only the base vtable is written, then the elements are destroyed and the storage
@@ -26,14 +26,11 @@ namespace {
 
 // Base vtables the inlined destructors write.
 
-// DestructElements (__stdcall (first, count)): CString, ScriptObjectRef (004CC7D0,
-// each released), ScriptGroup.
+// DestructElements (first, count): CString, ScriptObjectRef (each released), ScriptGroup.
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-// Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)
-// and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
-// Out-of-line CArray destructors (__thiscall): CString arrays, object references
-// the ScriptVars floats.
-void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
+// Element destructors (flags; 0 = in place): a group and a nested call (its command destroyed and deleted).
+// Out-of-line CArray destructors: CString arrays, object references and the ScriptVars floats.
+void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }
 inline void __fastcall RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 template <typename T>
@@ -114,8 +111,8 @@ void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
 }
 EI_REWRITTEN(0x004BF640, ScriptCmdDestruct);
 
-// ---- Element destructors (ticket S7) -------------------------------------------------------------
-// __thiscall (flags) RET 4, `this` returned in EAX; bit 0 of the flags also deletes the element.
+// ---- Element destructors ---------------------------------------------------------------------
+// Bit 0 of the flags also deletes the element; `this` is returned.
 
 namespace {
 void* Finish(void* self, int flags) {

@@ -77,7 +77,7 @@ EI_REWRITTEN(0x004D65E0, ScriptCommands::SetAtGrow);
 
 int ScriptDefinitions::Add(const ScriptDefinition& definition) {
     int index = Append(this, kDefinitions);
-    data[index].ScriptDefinitionAssign(&definition);   // inlined in the original
+    data[index].ScriptDefinitionAssign(&definition);
     return index;
 }
 EI_REWRITTEN(0x004D6100, ScriptDefinitions::Add);

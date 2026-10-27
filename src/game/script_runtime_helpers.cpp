@@ -1,7 +1,7 @@
-// Small pieces of the script runtime the rewritten script code still called through their
-// original addresses (A-S4; the party a script names, 004BAEC0, is party_script.cpp): the group / command block /
+// Small pieces of the script runtime that the rewritten script code reaches through
+// the game's code (the party a script names is party_script.cpp): the group / command block /
 // define list destructors, the AI map's sector map wrappers
-// (004BA090-004BA100) and the console's float output. Names are provisional.
+// and the console's float output. Names are provisional.
 #include "ai_map.h"
 #include "console.h"
 #include "script.h"

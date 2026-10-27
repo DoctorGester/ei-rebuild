@@ -86,10 +86,10 @@ EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 namespace {
-// 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
+// operator+(const CString&, const CString&): constructs the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
-// The type letters (0078BBD8 "f", 0078BBD4 "s", 0078BBD0 "o", 0078BBCC "g").
+// The type letters "f", "s", "o", "g".
 } // namespace
 
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
@@ -146,7 +146,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
         letter = "g";
         break;
     default:
-        // The original leaves the name argument in the result register: nonzero, and `params`
+        // The name argument is left in the result register: nonzero, and `params`
         // gets the empty letter appended.
         result = static_cast<BOOL>(reinterpret_cast<std::uintptr_t>(parameterName));
         break;

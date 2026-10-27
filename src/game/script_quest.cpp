@@ -1,5 +1,5 @@
 // The quest under construction: QStart names it and drops the old objectives, the QObj* commands
-// add objectives, QFinish (004BAAB0, script_exec_helpers.cpp) turns them into a script. See script.h
+// add objectives, QFinish (script_exec_helpers.cpp) turns them into a script. See script.h
 // and docs/notes/script.md.
 #include "quest_records.h"
 #include "script.h"
@@ -15,7 +15,7 @@
 // An objective's destructor (its text).
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { objective->text.~CString(); }
 
-// 004BAA40 (QStart; __fastcall with the name in ECX). The old objectives are destroyed and freed, the
+// QStart (the name comes in ECX). The old objectives are destroyed and freed, the
 // array emptied, and the quest named.
 void __fastcall ScriptQuestStart(const char* name) {
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
@@ -30,7 +30,7 @@ void __fastcall ScriptQuestStart(const char* name) {
     ScriptQuestName() = name;
 }
 
-// 004BAE10 (the QObj* commands; __fastcall (type, text) with the value on the stack). Appends
+// The QObj* commands (type, text, with the value on the stack). Appends
 // {type, text, value}; the text goes through a temporary copy.
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value) {
     std::string copy;

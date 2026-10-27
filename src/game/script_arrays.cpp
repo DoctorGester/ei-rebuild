@@ -123,7 +123,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     }
     FreeStrings(&vars.stringNames);
     FreeStrings(&vars.strings);
-    FreeStrings(&vars.floatNames);   // 004C26A0, the same body
+    FreeStrings(&vars.floatNames);
     FreePlain(&vars.floats, mfc::impl::ScriptFloatsClass::Vtable());
 }
 

@@ -52,7 +52,7 @@ int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* f
     return 0;
 }
 
-// 004CF470 (Rebirth patches it: vanilla only).
+// Rebirth patches it: vanilla only.
 int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -61,7 +61,7 @@ int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const 
     return result;
 }
 EI_REWRITTEN(0x004CF470, ScriptError);
-// AddNewScriptCommands hooks 004CF4A2 only to copy the error to addon.log (not reproduced).
+// Rebirth's AddNewScriptCommands also copies the error to addon.log (not reproduced).
 
 // ---- Keyword table ------------------------------------------------------------------------------
 
@@ -296,10 +296,8 @@ const ScriptKeyword kScriptKeywords[226] = /*0078BCA0*/ {
 };
 
 const ScriptKeyword* KeywordTable() {
-    // ClassifyToken loaded the table with MOV EBP,imm32 at 004CF69A; Rebirth's AddNewScriptCommands
-    // rewrote that immediate to point at its extended table (and the other references the same
-    // way). With the flag on, the extended table is ours (script_addon.cpp, built from this one);
-    // else this one.
+    // Rebirth's AddNewScriptCommands points the classifier at its extended table. With the flag on,
+    // the extended table is ours (script_addon.cpp, built from this one); else this one.
     if (scriptaddon::Enabled()) return scriptaddon::Table();
     return kScriptKeywords;
 }
@@ -347,8 +345,7 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
         if (length < best) continue;
         if (!gamecrt::SameIgnoringCase(fold, p, k->name, length)) continue;
         best = length;
-        // AddNewScriptCommands (hook at 004CF6F0, after the instructions that set the best
-        // length): an identifier-like match must end the identifier.
+        // Rebirth's AddNewScriptCommands: an identifier-like match must end the identifier.
         if (addon && scriptaddon::RejectsMatch(k->name, p[length])) continue;
         if (rest) *rest = static_cast<int>(std::strlen(p)) - length;
         if (id) *id = k->id;

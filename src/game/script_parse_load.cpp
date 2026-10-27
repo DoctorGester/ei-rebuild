@@ -1,7 +1,7 @@
 // Script loader, part 2: the parser. CScript::Load preprocesses the text (#define), tokenizes it
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
 // below build the SSCCmd trees. See script.h and docs/notes/script.md ("Loader and parser").
-// Calls between loader functions go through the original addresses (Original below): Rebirth
+// Calls between loader functions go through the game's code (Original below): Rebirth
 // patches LoadFunction, LoadCommands and the keyword lookups (they install only in the vanilla
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
@@ -33,7 +33,6 @@
 using namespace scriptparse;
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
-// 004CF470 (scriptparse::ScriptError).
 int __cdecl CScript::Error(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -47,10 +46,10 @@ void SSCCmd::Destruct() { ScriptCmdDestruct(this); }
 
 namespace {
 
-// CArray template members of the loader's arrays (MFC code, not rewritten; thiscall on the array).
-// 004D5B50 bindings' Add; 004D5CB0 sub-calls' Add (deep-copies the nested SSCCmd) and 004C4FD0
-// their SetSize (deletes the nested SSCCmds it drops); 004CD2B0 commands' SetSize, 004D65E0
-// SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
+// CArray template members of the loader's arrays (MFC code, not rewritten; thiscall on the array):
+// the bindings' Add; the sub-calls' Add (deep-copies the nested SSCCmd) and
+// their SetSize (deletes the nested SSCCmds it drops); the commands' SetSize,
+// SetAtGrow and Add (both copy the SSCCmd); the if-then pairs' SetSize.
 void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pairs->SetSize(size, growBy); }
 
 // The token list's destructor (gamelists::Tokens').
@@ -58,7 +57,7 @@ void TokensDestruct(ScriptTokenList* tokens) {
     gamelists::Tokens::Destruct<gameslots::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
 }
 
-// 006FE268 / 006FE296: ConstructElements / DestructElements for CString (the library's
+// ConstructElements / DestructElements for CString (the library's
 // mfc::impl::ConstructStrings / DestructStrings do exactly this).
 void ConstructStrings(mfc::CString* elements, int count) {
     for (; count--; ++elements) ::new (elements) mfc::CString;
@@ -69,7 +68,7 @@ void DestructStrings(mfc::CString* elements, int count) {
 
 // ---- Small helpers ------------------------------------------------------------------------------
 
-// Index of `name` in a variable name array (004D5A50/5A90/5AD0/5B10, identical copies).
+// Index of `name` in a variable name array (four identical copies).
 int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
         if (Mbscmp(names.data[i], name) == 0) return i;
@@ -290,7 +289,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         int tokenId;
         ClassifyToken(text, &tokenId, nullptr);
         if (!assignment) {
-            // AddNewScriptCommands (hook at 004D02CC): the signature's '?' and '+'.
+            // Rebirth's AddNewScriptCommands: the signature's '?' and '+'.
             if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
             if (tokenId == kLexClose) {
                 if (*signature) {
@@ -696,8 +695,8 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
-// AddNewScriptCommands also patches this function: the keyword table (sites #19, #20) and a hook
-// at 004D15D4 that would parse a body after commands whose record has flag 1 (no record has), so
+// Rebirth's AddNewScriptCommands also patches this function: the keyword table and a hook
+// that would parse a body after commands whose record has flag 1 (no record has), so
 // For and ForIf stay the only ones.
 
 // ---- Load ---------------------------------------------------------------------------------------
