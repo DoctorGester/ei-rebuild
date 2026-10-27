@@ -96,8 +96,19 @@ int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // CWorldServer::GetPlayer
 void* WorldShared5C();                          // the server world's shared5C_
 const char* ServerZoneName();                   // the server world's zone, may be null
-void* PickAt2(void* world, int x, int y);       // CWorldClient::PickAt2
-void* UnitAt(void* world, int x, int y);        // CWorldClient::UnitAt
+void* PickAt2(void* world, int x, int y);       // CWorldClient::PickAt2, as its CEngineObject
+void* UnitAt(void* world, int x, int y);        // CWorldClient::UnitAt, as its CEngineObject
+// The client world's rectangle of object `id` in this frame's screen list (screenEntries_; the last entry for it):
+// 1, 0 when it is not drawn, -1 without a list.
+int ScreenRect(void* world, int id, RECT* rect);
+int ObjectId(const void* object);               // a CEngineObject's id_ (what PickAt2 and UnitAt give)
+std::uint32_t ObjectFlags(const void* object);  // its flags_
+void* PlayerConnection(void* player);           // a CPlayer's connection_ (CPlayerServer / CPlayerClient)
+int ConnectionState(void* connection);          // its state_
+// The camp `camp` (the window on top, CCampPages): its page and its item strip's source items (null ones too) with
+// their types (CEngineObject::type_); false without a source.
+bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types);
+void CampTakeItem(void* camp, void* item, int mode);   // CCampPages::TakeItem (slot 42, MoveItem)
 void PickSurface(void* world, float* out, int x, int y);
 void LoadUnitFaces(void* world);
 void BlinkOpen(void* half);
@@ -121,6 +132,7 @@ void ChatKeyEnter();
 void CloseChat();
 bool HasClassTemplate(int id);
 const void* FindMap(const char* name);          // CMapDatabase::FindMap: the map.txt record, null for none
+int MapKind(const void* record);                // a map.txt record's kind (0 game, 1 edge, 2 brief)
 void LeaveToZone(void* connection, const char* name, int exit);
 // The device's surfaces restored after a minimise (the image's device holds no DirectDraw object: nothing to
 // restore); false without a device.

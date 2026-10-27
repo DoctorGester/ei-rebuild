@@ -3,27 +3,23 @@
 // including file defines UnitQuickItem, UnitSpell, UnitWeapon (the unit's slots, CUnit 00531920 / 005319A0 /
 // 005318B0) and WeaponType (CItemWeapon::GetType 006A07F0) for its side.
 //
-// Logs the pending action (+0x17C, +0x180), each party member's selection (flags_ 0x10) and quick items (slots 0-3),
-// and the quick item panel's (+0x198) unit, entries shown and region items, the spell column's (+0x19C) count and
-// highlight. With <minquick>, fails when the quick item panel shows fewer than that many of its unit's own quick items
+// Logs the pending action (pendingAction_, pendingSlot_, pendingItem_), each party member's selection (flags_ 0x10)
+// and quick items (slots 0-3), and the quick item panel's (quickItems_) unit, entries shown and region items, the spell
+// column's (spellColumn_) count and highlight. With <minquick>, fails when the quick item panel shows fewer than that many of its unit's own quick items
 // (regions 0-3).
 std::string HudStateOf(void* window, const std::string& argument) {
-    auto* screen = static_cast<std::uint8_t*>(window);
-    auto at = [](const void* base, int offset) {
-        return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(base) + offset);
-    };
-    auto* battle = reinterpret_cast<CBattleScreen*>(screen);
-    Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", screen, at(screen, 0x17C),
-        at(screen, 0x180), at(screen, 0x184), battle->party_.size);
+    auto* battle = static_cast<CBattleScreen*>(window);
+    Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window, battle->pendingAction_,
+        battle->pendingSlot_, battle->pendingItem_, battle->party_.size);
     for (int i = 0; i < battle->party_.size && i < 8; ++i) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];
         for (int s = 0; s < 4; ++s) quick[s] = UnitQuickItem(member, s);
         Log("harness: hudstate: member %d %p flags %08X, quick items %p %p %p %p", i, member,
-            at(member, 0x08), quick[0], quick[1], quick[2], quick[3]);
+            member->flags_, quick[0], quick[1], quick[2], quick[3]);
     }
-    auto* quickPanel = *reinterpret_cast<CHudQuickItems**>(screen + 0x198);
+    CHudQuickItems* quickPanel = battle->quickItems_;
     int own = 0;
     if (quickPanel) {
         for (int r = 0; r < 4; ++r) {
@@ -42,8 +38,8 @@ std::string HudStateOf(void* window, const std::string& argument) {
                     static_cast<CItemQuest*>(entry.item)->questItemId_, entry.id);
         }
     }
-    if (auto* spells = *reinterpret_cast<CHudSpellColumn**>(screen + 0x19C)) {
-        Log("harness: hudstate: spell column unit %p, %d spells, highlight %d", at(spells, 0x154), spells->count_,
+    if (CHudSpellColumn* spells = battle->spellColumn_) {
+        Log("harness: hudstate: spell column unit %p, %d spells, highlight %d", static_cast<void*>(spells->unit_), spells->count_,
             spells->selected_);
         // Each spell slot of the column's unit: the spell's prototype index and target flags.
         if (CUnit* unit = spells->unit_) {

@@ -746,9 +746,17 @@ struct CParty : CEngineObject {
 };
 static_assert(sizeof(CParty) == 0x70);
 
+// A player's connection, the base of its CPlayerServer or CPlayerClient (player_messages.h).
+struct CPlayerConnection : CEngineObject {
+    CPlayer* player_;                       // +0x1C
+    int state_;                             // +0x20 1 in the world, 3 leaving the zone
+};
+static_assert(sizeof(CPlayerConnection) == 0x24);
+
 // A player (player_messages.h).
 struct CPlayer : CEngineObject {
-    std::uint8_t unknown1C[0x8];
+    std::uint8_t unknown1C[0x4];
+    CPlayerConnection* connection_;         // +0x20 its connection (counted)
     int playerId_;                          // +0x24
     HashMap<int, CMapObject*> knownObjects_;// +0x28
     std::uint8_t unknown3C[0x4];
@@ -838,12 +846,22 @@ struct CWorldServer : CWorld {
 };
 static_assert(sizeof(CWorldServer) == 0x12E7C);
 
+// A window rectangle of the frame: the client world's screen list (world.h).
+struct ScreenEntry {
+    int classId;                            // +0x00
+    unsigned objectId;                      // +0x04
+    Rect rect;                              // +0x08
+};
+static_assert(sizeof(ScreenEntry) == 0x18);
+
 // The client world (world.h).
 struct CWorldClient : CWorld {
     std::uint8_t unknown84[0x34];
     StlpList<CMapObject*> objects_;         // +0xB8
     List<CEngineObject*> dynamicObjects_;   // +0xBC
-    std::uint8_t unknownD8[0xA8];
+    std::uint8_t unknownD8[0x18];
+    StlpList<ScreenEntry> screenEntries_;   // +0xF0 the window rectangles of the frame
+    std::uint8_t unknownF4[0x8C];
     Terrain* terrain_;                      // +0x180
     std::uint8_t unknown184[0x560];
     int partyDanger_;                       // +0x6E4
@@ -1169,11 +1187,20 @@ struct COptionsWindow {
 };
 static_assert(sizeof(COptionsWindow) == 0x418);
 
+struct CHudQuickItems;
+struct CHudSpellColumn;
+
 // The battle screen (ui.h).
 struct CBattleScreen {
     std::uint8_t unknown0[0x168];
     Array<CUnit*> party_;                   // +0x168
-    std::uint8_t unknown17C[0xB4];
+    int pendingAction_;                     // +0x17C
+    int pendingSlot_;                       // +0x180
+    int pendingItem_;                       // +0x184
+    std::uint8_t unknown188[0x10];
+    CHudQuickItems* quickItems_;            // +0x198
+    CHudSpellColumn* spellColumn_;          // +0x19C
+    std::uint8_t unknown1A0[0x90];
 };
 static_assert(sizeof(CBattleScreen) == 0x230);
 
@@ -1213,7 +1240,9 @@ struct CTextureDevice {
     std::uint8_t unknown0[0x8];
     int lastLoadResult_;                    // +0x08
     void* ddraw_;                           // +0x0C
-    std::uint8_t unknown10[0x16C];
+    std::uint8_t unknown10[0x8];
+    CDXSurface* renderTarget_;              // +0x18 the render target's holder
+    std::uint8_t unknown1C[0x160];
 };
 static_assert(sizeof(CTextureDevice) == 0x17C);
 
@@ -1230,6 +1259,37 @@ struct CSceneRenderer {
     std::uint8_t unknown24[0x38];
 };
 static_assert(sizeof(CSceneRenderer) == 0x5C);
+
+// An item strip (ui_screens.h).
+struct CUiItemStrip {
+    std::uint8_t unknown0[0x1AC];
+    AlignedArray<CItem*>* source_;          // +0x1AC all the items (a party's item list)
+    std::uint8_t unknown1B0[0x4];
+};
+static_assert(sizeof(CUiItemStrip) == 0x1B4);
+
+// The camp (ui_camp.h).
+struct CCampPages {
+    const void* const* vtable;              // +0x00
+    std::uint8_t unknown4[0x18C];
+    int page_;                              // +0x190
+    std::uint8_t unknown194[0x4C];
+    CUiItemStrip* itemStrip_;               // +0x1E0
+    std::uint8_t unknown1E4[0x7C];
+    // Slot 42 (TakeItem: MoveItem 00610AD0): `item` moved by action `mode` (1: put on the hero from the strip).
+    void TakeItem(CItem* item, int mode) {
+        reinterpret_cast<void(__thiscall*)(CCampPages*, CItem*, int)>(vtable[42])(this, item, mode);
+    }
+};
+static_assert(sizeof(CCampPages) == 0x260);
+
+// A map.txt record (object_tables.h).
+struct MapRecord {
+    std::uint8_t unknown0[0x28];
+    int kind;                               // +0x28 0 game, 1 edge, 2 brief
+    std::uint8_t unknown2C[0x30];
+};
+static_assert(sizeof(MapRecord) == 0x5C);
 
 namespace net {
 
