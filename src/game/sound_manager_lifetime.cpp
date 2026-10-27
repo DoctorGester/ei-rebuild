@@ -20,7 +20,7 @@
 #include <new>
 #include <string>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
 namespace {
 constexpr int kSoundManagerClassId = 0xE;
@@ -31,7 +31,7 @@ int CompareText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// The manager's MP3 stream part (+0x100, from streamState on): what the stream functions get as `this`.
+// The manager's MP3 stream part (from streamState on): what the stream functions get as `this`.
 void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
 CSoundManager* ManagerOf(void* stream) {
     return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
@@ -88,8 +88,8 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 }
 EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
-// Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body, hooked in the vanilla
-// launch only). From the unit database's sound counts, on the game's main thread.
+// Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
+// the game's main thread.
 void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
     out->SetSize(0, -1);
     mfc::CStringArray names;
@@ -278,7 +278,7 @@ void CSoundManager::ResetStream() {
     ConstructFader(musicFader);
 }
 
-// ResetStream runs on the manager's +0x100 (the MP3 stream part).
+// ResetStream runs on the MP3 stream part.
 void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
 
 EI_REWRITTEN(0x006BA9C0, SoundResetStream);
@@ -312,7 +312,7 @@ int SoundOption() { return options::TheOptions()->audio_; }
 // The address of the DirectSoundEnumerateA callback that appends each device's GUID pointer to an aligned array.
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 
-// DirectSound and Miles through game.exe's import table (all __stdcall).
+// DirectSound and Miles (all __stdcall).
 using EnumerateFn = long(__stdcall*)(void*, void*);
 using PreferenceFn = int(__stdcall*)(unsigned, int);
 using WaveOutOpenFn = int(__stdcall*)(void**, void*, int, const void*);
@@ -479,7 +479,7 @@ EI_REPLACE(0x006B68A0, AddSoundDevice);
 
 namespace {
 
-// The decoder's read callback, by its address (SoundStreamRead, hooked).
+// The decoder's read callback (SoundStreamRead).
 constexpr std::uintptr_t kStreamReadCallback = std::uintptr_t(0x006BA950);
 constexpr std::uint32_t kSwitchHoldMs = 4000;
 constexpr int kNoLoop = 0x7FFFFFFF;
@@ -635,7 +635,7 @@ void __stdcall SoundEndOfSample(void* sample) {
 }
 EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
-// Open's `this` is the manager's +0x100 (StreamOf); CSoundManager::OpenStream takes the manager.
+// Open's `this` is the MP3 stream part (StreamOf); CSoundManager::OpenStream takes the manager.
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
 EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
 EI_REWRITTEN(0x006BAC90, SoundCloseStream);
