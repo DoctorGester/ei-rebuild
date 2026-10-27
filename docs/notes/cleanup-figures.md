@@ -65,6 +65,6 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   figure_links.cpp and figure_models.cpp is a raw STLport string layout; the game's own string members build and free it through their
   addresses.
 - Duplicate layouts: `CFigureModelPart` (map_object_figures.h, map_object_animation_bones.cpp) duplicates `CMappedResource`;
-  `CageInterpolator` (map_object_cage.h) duplicates part of `FigureBone`; map_object_shadow.cpp has its own raster target.
+  map_object_shadow.cpp has its own raster target.
   `CFigureMesh::CopyFrom` still calls `TransformCopy` (00401490) through its address. figure_part_draw.cpp:681 casts `owner->figure` to the
   type it already has. Outside the F4 files: device_mesh.cpp (9 offset accesses), map_object_figures.cpp (1 VCall, 1 float pragma).
