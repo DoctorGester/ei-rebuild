@@ -15,6 +15,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CStream;
 class ChunkArchive;
@@ -25,16 +26,13 @@ using BOOL = int;
 namespace itemdb {
 
 // Record sizes.
-constexpr int kMaterialSize = 0x50;
 constexpr int kWeaponSize = 0xB4;
 constexpr int kArmorSize = 0xC8;
 constexpr int kQuickItemSize = 0x8C;    // also the spell containers (scrolls)
 constexpr int kQuestItemSize = 0x7C;
 constexpr int kLootSize = 0x78;
-constexpr int kSpellSize = 0x84;
-constexpr int kSpellModifierSize = 0x24;
 
-// A spell prototype (kSpellSize bytes): the fields the camp's spell maker reads.
+// A spell prototype: the fields the camp's spell maker reads.
 struct SpellRecord {
     // Fields 0-2 the strings, 3-15 +0x0C..+0x40 (not +0x14), 16 / 17 the id lists, 18 +0x60, 19 the school,
     // 20 the five bytes +0x78, 21 the skill, 22 +0x80, 23-27 +0x64..+0x74.
@@ -47,10 +45,10 @@ struct SpellRecord {
     // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;
+    std::string name;
     // the spell's code ( the trader stock's spell instructions, item_stock.cpp).
-    mfc::CString code;
-    mfc::CString text08;
+    std::string code;
+    std::string text08;
     float price;                        // a loot item's price when it stands for the spell (CItemLoot::GetPrice)
     int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;
@@ -78,19 +76,6 @@ struct SpellRecord {
     std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
-static_assert(offsetof(SpellRecord, code) == 0x04);
-static_assert(offsetof(SpellRecord, price) == 0x0C);
-static_assert(offsetof(SpellRecord, castType) == 0x10);
-static_assert(offsetof(SpellRecord, icon) == 0x60);
-static_assert(offsetof(SpellRecord, mana) == 0x18);
-static_assert(offsetof(SpellRecord, complexity) == 0x1C && offsetof(SpellRecord, damage) == 0x2C);
-static_assert(offsetof(SpellRecord, duration) == 0x38 && offsetof(SpellRecord, value3C) == 0x3C);
-static_assert(offsetof(SpellRecord, bytes78) == 0x78);
-static_assert(offsetof(SpellRecord, needsSight) == 0x40);
-static_assert(offsetof(SpellRecord, skill) == 0x44);
-static_assert(offsetof(SpellRecord, list48) == 0x48);
-static_assert(offsetof(SpellRecord, classMask) == 0x80);
-static_assert(sizeof(SpellRecord) == 0x84);
 
 // The spell database's three lists of 0x34-byte records (chunks 3-5 of spells.sdb): the spell recipes of
 // scrolls, armours and weapons (item_stock.h's SpellRecipe; ItemStock::FillSpellMaps reads them).
@@ -117,7 +102,7 @@ static_assert(offsetof(SpellListRecord, repeated) == 0x24);
 static_assert(offsetof(SpellListRecord, classMask) == 0x30);
 static_assert(sizeof(SpellListRecord) == 0x34);
 
-// A spell modifier prototype (kSpellModifierSize bytes).
+// A spell modifier prototype.
 struct SpellModifierRecord {
     // String 0, fields 1-6 the dwords +0x04..+0x18, string 7, field 8.
     void Serialize(ChunkArchive* ar);
@@ -127,7 +112,7 @@ struct SpellModifierRecord {
     // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;
+    std::string name;
     // the modifier's code inline; its first one or two letters are the kind the trader stock keys it
     // by (item_stock.cpp: a, d, e, m, r, t; fi, ii).
     char code[4];
@@ -136,15 +121,9 @@ struct SpellModifierRecord {
     float mana;                         // added to the spell's
     float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // added to the spell's
-    mfc::CString text1C;
+    std::string text1C;
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
-static_assert(offsetof(SpellModifierRecord, code) == 0x04);
-static_assert(offsetof(SpellModifierRecord, price) == 0x08);
-static_assert(offsetof(SpellModifierRecord, mana) == 0x10);
-static_assert(offsetof(SpellModifierRecord, strength) == 0x14);
-static_assert(offsetof(SpellModifierRecord, skill) == 0x18);
-static_assert(sizeof(SpellModifierRecord) == 0x24);
 
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items; the base has
 // a pure virtual). The values +0x34..+0x48 go to the item (CItem::InitFromRecord), with the item offset
@@ -367,11 +346,11 @@ R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int tag);
 template <typename R>
 R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
-// The start of a material record (kMaterialSize bytes).
+// A material record.
 struct MaterialRecordHead {
-    mfc::CString key;                   // (the camp's "material.<key>" loot items)
-    mfc::CString soundName;             // the material of hit sounds ("Metal", "Bone", ...)
-    mfc::CString name;
+    std::string key;                   // (the camp's "material.<key>" loot items)
+    std::string soundName;             // the material of hit sounds ("Metal", "Bone", ...)
+    std::string name;
     std::uint32_t number;               // its index (the packed item id's low half; loot kind 1)
     // the price per unit of the prototype's materialUnits; the trader stock's material draw
     //; a loot item of kind 1's price.
@@ -394,13 +373,6 @@ struct MaterialRecordHead {
     void ConstructDefault();
     void Destruct();
 };
-static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
-static_assert(offsetof(MaterialRecordHead, soundName) == 0x04 && offsetof(MaterialRecordHead, name) == 0x08);
-static_assert(offsetof(MaterialRecordHead, unitPrice) == 0x10);
-static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
-static_assert(offsetof(MaterialRecordHead, damageFactor) == 0x28);
-static_assert(offsetof(MaterialRecordHead, absorbFactors) == 0x2C);
-static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 
 // The two-letter type codes of weapons and armours, by type (the model and picture names).
 inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
@@ -511,7 +483,7 @@ struct ItemDatabase {
     // first as DestructBody destroys them, but through the library's containers; then Construct.
     void Reset();
 
-    MaterialTable materials;        // kMaterialSize records
+    MaterialTable materials;
     WeaponTable weapons;            // kWeaponSize
     ArmorTable armors;              // kArmorSize
     QuickItemTable quickItems;      // kQuickItemSize

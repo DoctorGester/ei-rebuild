@@ -323,7 +323,8 @@ to which template:
   keeps a member no rule carries by its name (`<member>` in excluded.json; `why.txt` says where and why). A member
   already declared std::string is counted, so its uses get the rules after a hand retype. Done: CUnit::scriptName,
   CMapObject::name2, CScript::errorText_, ScriptErrorInfo::text, PartyUnitRecord::texts[7], the unit database's
-  prototype / NPC / model / model slot / level record strings. Their classes (and the classes deriving from or
+  prototype / NPC / model / model slot / level record strings, the item database's spell, spell modifier and material
+  record strings (batch 4). Their classes (and the classes deriving from or
   holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
   bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
   `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::

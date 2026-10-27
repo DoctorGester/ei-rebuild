@@ -58,7 +58,7 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
     std::string name;
     if (prototype && material)
         name = str::Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
-                    material->name.GetString(), prototype->variant);
+                    material->name.c_str(), prototype->variant);
     return name;
 }
 
@@ -158,7 +158,7 @@ mfc::CString CItemQuick::FigureName() {
     if (prototype && gamecrt::mbsicmp(prototype->materialClass.GetString(),
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
-        const char* materialName = material ? material->name.GetString() : kUnknownMaterial;
+        const char* materialName = material ? material->name.c_str() : kUnknownMaterial;
         name = str::Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }

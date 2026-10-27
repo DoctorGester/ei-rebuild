@@ -41,16 +41,20 @@ void FileRecords(itemdb::NamedRecordTable<Record>& table, Key key) {
     }
 }
 
+// A record's code as text: a spell's string, a modifier's four letters.
+const char* CodeText(const std::string& code) { return code.c_str(); }
+const char* CodeText(const char* code) { return code; }
+
 // The same for the spell tables: every record filed under its code.
 template <typename Record>
 void FileByCode(itemdb::CodeIndexedTable<Record>& table) {
     for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
-        stlp::string text(static_cast<const char*>(record->code));
+        stlp::string text(CodeText(record->code));
         table.byCode[text] = record;
     }
 }
 
-const char* MaterialKey(const itemdb::MaterialRecordHead* record) { return record->key; }
+const char* MaterialKey(const itemdb::MaterialRecordHead* record) { return record->key.c_str(); }
 const char* ItemName(const itemdb::ItemRecordHead* record) { return record->text04; }
 
 } // namespace

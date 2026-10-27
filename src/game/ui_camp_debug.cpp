@@ -61,7 +61,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
         const char* wanted = record->materialClass;
-        const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName;
+        const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName.c_str();
         if (gamecrt::mbsicmp(name, wanted) != 0)
             continue;
         maker->SetManager(manager);

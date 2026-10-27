@@ -398,7 +398,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
-            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
+            return gamecrt::mbsicmp(part->materialClass, own->soundName.c_str()) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -754,7 +754,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
+    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName.c_str()) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {

@@ -104,14 +104,14 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     const char* kindKey = nullptr;
     switch (item->type_) {
     case kItemWeapon: {
-        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
+        KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         KeyName(recordName, WeaponAt(prototypeIndex)->text04.GetString());
         ReadItemText(this, (mfc::CString(kWeapon) + recordName + kSpace + materialName).GetString(), name, description);
         kindKey = "item_weapon";
         break;
     }
     case kItemArmor: {
-        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
+        KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
         KeyName(recordName, armor->text04.GetString());
         ReadItemText(this, (mfc::CString(kArmor) + recordName + kSpace + materialName).GetString(), name, description);
@@ -129,7 +129,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
             kindKey = "item_potion";
             break;
         }
-        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
+        KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         ReadItemText(this, (mfc::CString(kQuickItem) + recordName + kSpace + materialName).GetString(), name, description);
         // Only wands (category 5) get a kind; their name is followed by the spell's name.
         if (item->GetCategory() != 5) break;
@@ -153,7 +153,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
             ReadItemText(this, (mfc::CString(kLootItem) + recordName).GetString(), name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
-            KeyName(materialName, MaterialAt(loot->index_)->key.GetString());
+            KeyName(materialName, MaterialAt(loot->index_)->key.c_str());
             ReadItemText(this, (mfc::CString(kMaterial) + materialName).GetString(), name, description);
             kindKey = "item_material";
         } else if (loot->kind_ == 2) {

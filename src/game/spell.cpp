@@ -218,11 +218,11 @@ char* __stdcall SpellCodeByName(const char* name) {
     const SpellTable& spells = TheSpellDatabase().spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
         const SpellRecord* spell = spells.At(i);
-        const char* spellName = spell->name;
+        const char* spellName = spell->name.c_str();
         if (gamecrt::mbsicmp(spellName,
                             name) == 0) {
             // The code string's pointer.
-            const char* code = spells.At(i)->code;
+            const char* code = spells.At(i)->code.c_str();
             return const_cast<char*>(code);
         }
     }
@@ -234,7 +234,7 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
     const SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
         const SpellModifierRecord* modifier = modifiers.At(i);
-        const char* modifierName = modifier->name;
+        const char* modifierName = modifier->name.c_str();
         if (gamecrt::mbsicmp(modifierName,
                             name) == 0) {
             // Out of range gives address 4 (null record + 4).
