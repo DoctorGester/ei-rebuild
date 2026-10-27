@@ -36,7 +36,6 @@ struct Vector3 {
 
     // A second copy of Construct (scene loader); returns this.
     Vector3* ConstructScene(float x_, float y_, float z_);
-    // The three parts copied from `other`.
     void Assign(const Vector3* other);
 
     // The constructor Vector3(x, y, z): callers use the returned `this`.
@@ -179,8 +178,8 @@ __forceinline double Product(float first, Rest... rest) {
 }
 
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
-// template named Dot would make `&Dot`, the hooked, ambiguous); the named variants and the
-// templates whose names are free are global.
+// template named Dot would make `&Dot`, the registered function's address, ambiguous); the named
+// variants and the templates whose names are free are global.
 namespace vecmath {
 
 // The grouped sum x * x' + y * y' + z * z' of six float operands. Callers pass loaded floats, never
@@ -325,7 +324,6 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 // removing this pragma changes the code of 39 objects (the sums get rounded through memory).
 #pragma float_control(precise, off, push)
 
-// x * x + y * y.
 template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
 
@@ -338,7 +336,6 @@ __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     return dx * dx + dy * dy;
 }
 
-// x * x2 + y * y2.
 template <typename T>
 __forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 
