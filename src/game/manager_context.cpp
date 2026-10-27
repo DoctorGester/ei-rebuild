@@ -17,4 +17,4 @@ CItem* CManagerContext::MakeCopyOf(CItem* item) {
     item->CopyTo(copy, SpellManager());
     return copy;
 }
-EI_REPLACE_METHOD(0x0055E940, CManagerContext::MakeCopyOf);
+EI_REWRITTEN(0x0055E940, CManagerContext::MakeCopyOf);

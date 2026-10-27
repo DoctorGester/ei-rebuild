@@ -141,8 +141,8 @@ void AuxData::UpdateScrollMetrics() {
 }
 
 EI_REWRITTEN(0x0070AA54, AfxDeleteObject);
-EI_REPLACE_METHOD(0x0070D1AA, AuxData::Construct);
-EI_REPLACE_METHOD(0x0070E181, AuxData::Destruct);
+EI_REWRITTEN(0x0070D1AA, AuxData::Construct);
+EI_REWRITTEN(0x0070E181, AuxData::Destruct);
 EI_REWRITTEN(0x00703E12, AuxData::UpdateSysColors);
 EI_REWRITTEN(0x00703E56, AuxData::UpdateSysMetrics);
 EI_REWRITTEN(0x0070D158, UpdateAfxScrollMetricsMarked4);
