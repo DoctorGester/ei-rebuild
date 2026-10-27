@@ -38,13 +38,13 @@ public:
     int OnShutdown() override;              // Reset: the object let go, version and id cleared
     ReplicaEntry* Clone() override;
 
-    Message* Object() const { return static_cast<Message*>(object_.ptr); }
+    Message* Object() const { return object_.Get(); }
 
     std::uint32_t version_;    // the object's version last sent (1: removal sent)
     std::uint16_t id_;         // 0 until first sent
     std::uint8_t type_;        // message type of the object
     std::uint8_t flags_;       // bit 0 reliable; bits 1..7 priority (0..10)
-    RefPtr object_;            // the object (null once it is gone)
+    RefPtrTo<Message> object_;   // the object (null once it is gone)
 };
 
 // One item of a history entry: what a packet carried for one entry.

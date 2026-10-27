@@ -80,7 +80,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         auto* message = NewCounted<PartyMemberMessage>();
         RefPtr ref;
         ref.FromRawCounted(message);
-        CStream* stream = StreamOf(ref.ptr);
+        CStream* stream = &message->stream_;
         CItem* item = party->items_[i];
         stream->Clear();
         CSpell* spell = item->spell_;
@@ -96,7 +96,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         WriteDword(stream, &scratch, item->prototypeId_);
         item->Save(stream);
 
-        RefPtr* same = FindSameMessage(previous.begin(), previous.end(), static_cast<PartyMemberMessage*>(ref.ptr), scratch);
+        RefPtr* same = FindSameMessage(previous.begin(), previous.end(), message, scratch);
         PartyMessage* current = state();
         if (same != previous.end()) {
             PushBack(&current->members_, same);

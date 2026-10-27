@@ -73,7 +73,6 @@ void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObj
 }
 
 // A message's virtual Write and Read over a byte cursor.
-void WriteObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Write(cursor); }
 void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
 
 // records_.insert(hint, pair(key, Record())) as ReadRecord inlines it (the pair constructor, the
@@ -266,7 +265,7 @@ bool Connection::SendUpdate(int budget) {
                 *c.p = entry->type_;
                 ++c.p;
                 c.WriteBytes(&id, 2);
-                WriteObject(entry->object_.ptr, &c);
+                entry->Object()->Write(&c);
             } else {
                 alive = false;
                 if (entry->id_ == 0) {
