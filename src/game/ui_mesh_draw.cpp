@@ -43,7 +43,7 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
-// Place's layout scale (0.48157), the half width / height (00740160, 400; 0073FA98, 300)
+// Place's layout scale (0.48157), the half width / height (400, 300)
 // and 1, read from the exe.
 
 } // namespace

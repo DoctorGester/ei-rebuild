@@ -535,7 +535,7 @@ namespace {
 // on the stack); one (on a CString) drops its CRs (Remove 0x0D); two construct the scrolling text surface
 // (0x58 bytes: interface, RECT*) and a plain one; one returns the display object; one (the player) starts a
 // movie. The tokenizer (start / next word; null at the end) splits a CString at
-// movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
+// movie. The tokenizer (start / next word; null at the end) splits a CString at
 // a separator.
 CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 

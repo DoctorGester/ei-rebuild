@@ -19,7 +19,7 @@ namespace {
 // Moves a playing sound.
 // Stops a sound.
 // Moves / stops a sound sequence.
-// Starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
+// Starts / moves an ambient sound (a list of names); another stops it and
 // returns the handle to keep (-1).
 
 // What every Reset (slot 18) does to the base part first: position, field streams, start tick,

@@ -146,10 +146,10 @@ struct MeshBatch {
     float zScale;             // the depth is multiplied by it (1: unchanged)
     bool lines;               // a line list (else triangles)
     bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
-    bool flat = false;        // the flat geometry (004EA4A0: decals, markers), no corners
+    bool flat = false;        // the flat geometry (decals, markers), no corners
     const void* caster = nullptr;   // the object drawing it (render::BeginCaster), if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map (render_shadows.cpp)
-    // R16i2: a unit's mesh (render::BeginCaster's `figure`): its corners' box in model space (low xyz,
+    // A unit's mesh (render::BeginCaster's `figure`): its corners' box in model space (low xyz,
     // high xyz), and the nearest map depth of its object's boxes (PrepareShadows; above 1: none).
     bool figure = false;
     float box[6] = {};

@@ -207,7 +207,7 @@ public:
     // name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual const char* TexturePath() { return nullptr; }   // the client's "textures\" (+0x224)
     virtual int IsServer() { return 0; }                    // the server's 1
-    // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.
+    // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight, client 00563F70.
     virtual double GridHeightAt(float x, float y) = 0;
     // 28: the server's AI map height, client 00564070; in ST0 (RET 8).
     virtual double RawSurfaceHeightAt(float x, float y) = 0;
@@ -280,7 +280,7 @@ public:
     CSpellConstructor* manager50_;       // +0x50 (slot 17)
     CItemManager* itemManager_;          // +0x54 items (slot 18)
     CItemConstructor* manager58_;        // +0x58 (slot 16)
-    // +0x5C a counted helper (0xC bytes, vtable 0073F240) CWorld::Create shares in.
+    // +0x5C a counted helper (0xC bytes) CWorld::Create shares in.
     RefPtrTo<CWorldHandle> shared5C_;
     RefPtrTo<netlink::DriverSession> netSession_;   // +0x60 the network session (OpenSession)
     int tick_;                            // +0x64 game time in ticks
@@ -338,7 +338,7 @@ using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
 // An element of the world server's shared-object list (CWorldServer + 0x12E60, 0x20 bytes;
 // world_save.cpp): object id, player, a third dword and an MFC CArray of counted object pointers
-// (vtable 0073FAC8, base gamearrays::ObjectPtrArrayBaseClass; constructor 005985C0, destructor 0059A100 releases the objects
+// (base gamearrays::ObjectPtrArrayBaseClass; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data). The objects are items (the loot a unit left: AddSharedObject,
 // Load through the item manager).
 struct SharedObject {
@@ -359,13 +359,13 @@ struct SharedObject {
     void Load(WorldStream* stream);
 };
 static_assert(sizeof(SharedObject) == 0x20);
-// MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
+// MFC CList<SharedObject> (its NewNode constructs the element).
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The game rules side (game.exe's vtable 0073F928; a real class since C28g).
-// The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
-// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
-// SetAtGrow 0059D2E0: the plain CArray members).
+// The game rules side (a real class since C28g).
+// The unit / party records (0x784 bytes) handed around as MFC CArray<record*>:
+// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize,
+// SetAtGrow: the plain CArray members).
 struct PartyUnitRecord;   // unit.h
 using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 
@@ -501,7 +501,7 @@ public:
     // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
     void StorePlayerItems(CPlayer* player, class CParty* party);
     // 00591070 (RET 4; world_quests.cpp; `this` is not read). After a player's party was sent again
-    // (the multiplayer zone switch 0057EE10, ResendParty 0066F450): every item of the player's
+    // (the multiplayer zone switch 0057EE10, ResendParty): every item of the player's
     // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
     void ClearPlayerItems(CPlayer* player);
     // 00593FA0 (RET 0xC; world_small_calls.cpp; the script's SetWaterLevel). The water level `key`
@@ -573,10 +573,10 @@ public:
     mfc::CString* ZoneNameInto(mfc::CString* out);
 
     // world_map.cpp
-    // Loads map `map` (when it changed; CAIMap 005B43C0) and the AI layer
+    // Loads map `map` (when it changed; CAIMap) and the AI layer
     // state from `graph`, then the zone: the same .mob again starts it over (queues, diplomacy,
     // map objects, missiles and timed objects cleared), another one first empties the
-    // world (ResetZone 0058B250); every player is marked dirty; the .mob objects are loaded (fresh
+    // world (ResetZone); every player is marked dirty; the .mob objects are loaded (fresh
     // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
     // them). Returns 1, 0 when the map or the objects cannot be loaded.
     int LoadMap(const char* map, const char* mob, CStream* graph, char fromSave);
@@ -714,7 +714,7 @@ public:
                      mfc::CArray<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130"
     // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
-    // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
+    // flagged new (flags_ |= 0x180000). `item` is not used.
     void UseQuickItem(CItem* item, CUnit* unit);
 
     // world_sync.cpp
@@ -854,9 +854,9 @@ using PlatformNode = PlatformList::Node;
 static_assert(sizeof(PlatformNode) == 0x54);   // 00573000 carves nodes of 0x54 bytes
 
 // The client world's platform set (CWorldClient + 0x1D4, 0x38 bytes): the engine's CBridgeManager
-// (class 0x34; game.exe's vtable 0073F4FC; the client's Create calls its Create, Destroy its Destroy)
+// (class 0x34; the client's Create calls its Create, Destroy its Destroy)
 // with the CList of the platform faces at +0x1C (AddFace adds at the head; the list's own NewNode
-// 00573000, RemoveAt 0056FDD0, RemoveAll 0056FDA0).
+// 00573000, RemoveAt, RemoveAll).
 class PlatformSet final : public CEngineObject {
 public:
     // world_construct.cpp (inlined in the client's constructor): the engine object's fields and the
@@ -1111,7 +1111,7 @@ struct ClientArrayManager : CBaseManager {
     // CBaseManager's constructor, no texture, an empty list (005715D0, blocks of 10). Inlined in
     // the client world's Setup (world_client_maps.cpp, which also holds the destructor).
     ClientArrayManager();
-    // Destroy's body (004E2850: the object and every listed one released), the list's and
+    // Destroy's body (the object and every listed one released), the list's and
     // the pointer's own destructors, then CBaseManager's destructor.
     ~ClientArrayManager() override;
     int Create() override;
@@ -1126,7 +1126,7 @@ struct ClientArrayManager : CBaseManager {
     int Draw(CSceneRenderer* renderer);
 
     CEngineObject* current;               // +0xB0 counted
-    mfc::CList<CEngineObject*> list;      // +0xB4 counted (vtable 0073F73C)
+    mfc::CList<CEngineObject*> list;      // +0xB4 counted
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
 // vis_fog_manager.cpp: 004E2850 the manager's Clear (its object and every listed one released, the list emptied);
@@ -1135,7 +1135,7 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 // +0x19C: the particle manager, CParticleManager (effects.h).
 
-// The drawing side (game.exe's vtable 0073F41C; a real class since C28g).
+// The drawing side (a real class since C28g).
 class CWorldClient : public CWorld {
 public:
     // world_construct.cpp. 005612F0 (the static initialiser 00560620): the members' constructors in
@@ -1389,7 +1389,7 @@ public:
     // HasIncoming (slot 6, AL) / IncomingCount (slot 7); false / 0 without one.
     bool PumpHasIncoming();
     int PumpIncomingCount();
-    // 00566E00 (world_client_session.cpp; the console's disconnect through GameFlow 00581620).
+    // 00566E00 (world_client_session.cpp; the console's disconnect through GameFlow).
     // The local view's owner (session +0x20, the connection's player +0x1C) disconnects
     // (CPlayer::Disconnect). The original reads through null without a session, as this does.
     void DisconnectLocalPlayer();
@@ -1480,7 +1480,7 @@ public:
     // 00563710 (RET 4; world_client_setup.cpp; once at startup, 00456440, with the renderer).
     // The texture manager gets `device`; the platforms and sky; the digit
     // sprites (+0x1B4) with the "numbers" texture (kind 6; flag 0x40000); a new figure loader for
-    // the figures resource (the CString 0079BC94) in +0x34 (counted, the old one released); then
+    // the figures resource (the CString) in +0x34 (counted, the old one released); then
     // the unit database counts the sound files of +0x1CC.
     void SetUpGraphics(void* device);
     // 00562F70 (world_client_setup.cpp; SetUpGraphics). Once (+0x1AC null): a new CSky; the figure
@@ -1496,7 +1496,7 @@ public:
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
     ZoneExits exits_;                     // +0x08C
     // +0x0A0 the exits' particle markers, one per exit or null (MFC CArray of counted pointers; its
-    // own SetSize 00570000 releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
+    // own SetSize releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
     CountedPtrs<CParticleSource> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
     MapObjectList objects_;               // +0x0B8 every filed object (one reference each)
@@ -1546,7 +1546,7 @@ public:
     static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
                                              stlp::list<GroundPrint>::Node* pos);
     int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
-    RefPtrTo<CClientHandle> handle_;      // +0x1C8 the client's player source (vtable 0073F628)
+    RefPtrTo<CClientHandle> handle_;      // +0x1C8 the client's player source
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
     CTextManager* texts_;                 // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
@@ -1635,7 +1635,7 @@ static_assert(offsetof(CWorldClient, constant228_) == 0x228 && offsetof(CWorldCl
 static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C && offsetof(CWorldClient, constants7C4_) == 0x7C4);
 static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) == 0x7E4);
 
-// MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
+// MatrixRows (the first three rows of a 4x4 matrix; Transform) is in src/lib/vecmath.h.
 
 // Sorting predicates passed to STLport sort (operator() of empty or small functors).
 // Orders screen entries (their objects by objectId) by distance along the view's depth
@@ -1884,7 +1884,7 @@ struct SavedParties {
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
     // 006632B0 (party_file.cpp). With a folder name: the folder created and emptied,
-    // then every entry written into it (MpHeroRecord::WriteFile, 00662AC0).
+    // then every entry written into it (MpHeroRecord::WriteFile).
     void SaveAll();
     // 0065F2D0 (party_file.cpp, A-H17; the static destructor 0065F2C0 at exit). The party outside a
     // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
@@ -1911,7 +1911,7 @@ static_assert(sizeof(SavedParties) == 0x84);
 extern lib::StaticObject<SavedParties> g_savedParties;
 inline SavedParties& TheSavedParties() { return *g_savedParties; }
 
-// 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
+// 00581630 (RET 8; world_game.cpp). Sets and has the local view ask to go to `zone`
 // returns what that returns.
 int __stdcall RequestZone(const char* zone, int entrance);
 

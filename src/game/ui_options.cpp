@@ -1,5 +1,5 @@
-// The options window's settings and key bindings (00651350..006524A0) and its slider's layout
-//. See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
+// The options window's settings and key bindings and its slider's layout
+// (ui.h: COptionsWindow, CUiSlider; docs/notes/ui.md "Objectives, save/load, options").
 #include "record_vectors.h"
 #include "ui.h"
 
@@ -90,7 +90,7 @@ float& OptGamma14() { return options::TheOptions()->brightness_; }   // settings
 float& OptGamma15() { return options::TheOptions()->contrast_; }
 float& OptGamma16() { return options::TheOptions()->gamma_; }
 int& Opt17() { return options::TheOptions()->drawFlyingHp_; }
-// Setting 18: help windows (Rebirth's ForceShowTutorial patches its store at 00652663).
+// Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
 int& OptHelp18() { return options::TheOptions()->showTutorial_; }
 int& Opt19() { return options::TheOptions()->autosave_; }
 float& Opt20() { return options::TheOptions()->toolTipTime_; }        // setting 20
@@ -128,11 +128,11 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 };
 
 int& Opt24() { return options::TheOptions()->reverseStereo_; }
-int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty 0079BEC0)
+int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// A row text into the surface (005FDE20, Rebirth-patched: through its address).
+// A row text into the surface (Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
     surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
@@ -269,7 +269,7 @@ EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 // --- COptionsWindow::BuildSettings -------------------------------------------------------
 
 void COptionsWindow::BuildSettings() {
-    settings_.clear();   // 00652F80 copy and the 00653800 destructors, inlined by the original
+    settings_.clear();   // copy and destructors inlined
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         // The original's temporary has only its string constructed; its other fields are copied
         // as the stack left them and all written below for both kinds.
@@ -309,7 +309,7 @@ EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 // --- COptionsWindow::BuildBindings -------------------------------------------------------
 
 void COptionsWindow::BuildBindings() {
-    // clear(): 00652E30 copy and the 006537E0 destructors, inlined by the original.
+    // clear(): copy and destructors inlined.
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.Finish() = bindings_.Start();
 
@@ -320,7 +320,7 @@ void COptionsWindow::BuildBindings() {
         binding.action_ = action;
         ShownName(&binding.name_, TextActionPrefix(), action->name_);
 
-        // The first key name of a scan code bound to the action (00652E10 clears the list).
+        // The first key name of a scan code bound to the action (the list is cleared first).
         binding.keys_.clear();
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
             if (keyOfScan_[scan] != action->id_) continue;
@@ -370,9 +370,9 @@ void COptionsWindow::CommitBinding() {
     if (binding != other) {
         if (binding->keys_.size() != 0) {
             for (const UiKeyName* key : binding->keys_) keyOfScan_[key->scan_] = 0;
-            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): 00653150 copies nothing
+            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): copies nothing
         }
-        binding->keys_.push_back(pressedKey_);   // 006527A0 on overflow
+        binding->keys_.push_back(pressedKey_);   // on overflow
         RebuildKeysText(*binding);
         if (other) {
             for (const UiKeyName** key = other->keys_.begin(); key != other->keys_.end(); ++key) {

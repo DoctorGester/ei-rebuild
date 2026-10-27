@@ -37,7 +37,7 @@ namespace {
 
 // The width of the fade at the map's edges. The menu shows its world with 6.
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-// The main menu's six rectangles of menus.reg (loaded by 005ACE80).
+// The main menu's six rectangles of menus.reg.
 const RECT* MenuRects() { return g_menuRects; }
 // Interface options (bit 0: the menu's lightning).
 std::uint32_t InterfaceOptions() { return TheSceneRenderer()->flags_; }

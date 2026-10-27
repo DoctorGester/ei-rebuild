@@ -8,13 +8,13 @@
 // alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
 // and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli). The
 // game's decals are neither made nor drawn.
-// R20: objects the game does not draw (outside the view) whose shadow can reach the visible ground
+// Objects the game does not draw (outside the view) whose shadow can reach the visible ground
 // cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
 // of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
-// R16i: the map holds depth only (R22's caster ids are gone): the receivers lit on the GPU take the sun
+// The map holds depth only (R22's caster ids are gone): the receivers lit on the GPU take the sun
 // away by their normals' facing (a face turned away gets no sun to lose), the others are shadowed on their
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
-// R16i2: a unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
+// A unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
 // (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
 // The point lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, their
 // pass inside the shadow map's time (FrameStats::shadowMs, shadowDraws, the GPU's shadow map time).
@@ -896,7 +896,7 @@ ShadowInfo ShadowState() { return g_lastInfo; }
 
 namespace {
 
-// R16i2: a unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
+// A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.

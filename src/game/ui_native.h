@@ -34,7 +34,7 @@ void FrameRect(const CUiSurface* surface, const RECT& rect, COLORREF colour);
 // GDI drew text clipped to `rect` (or anywhere on the surface, `clipped` false) into the memory: until
 // text is recorded (P2) that part of the memory is copied onto the canvas.
 void TextDrawn(const CUiSurface* surface, const RECT& rect, bool clipped);
-// 005FD3D0's copy of `source` of the screen and 005FE440's greying, on the canvas. Each returns whether
+// The copy of `source` of the screen and the greying, on the canvas. Each returns whether
 // the memory gets it too (the CPU code runs): false under uinative for the copy (the memory falls behind)
 // and for greying a memory that is behind.
 bool Capture(const CUiSurface* surface, const RECT& source);
