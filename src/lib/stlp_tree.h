@@ -42,7 +42,7 @@ struct RbNodeBase {
 static_assert(sizeof(RbNodeBase) == 0x10);
 
 namespace rb {
-// _Rb_global<bool> (the node-only algorithms), with the original's calling conventions: the node
+// _Rb_global<bool> (the node-only algorithms), with their calling conventions: the node
 // in ECX, the root (a reference to the header's parent) in EDX.
 // _Rb_tree_base_iterator::_M_increment / _M_decrement on the iterator (one
 // node pointer) in ECX.

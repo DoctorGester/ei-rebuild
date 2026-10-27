@@ -39,7 +39,7 @@ constexpr std::uint32_t kAlphaRef = 0x18;
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
-// The original's IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all
+// IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all
 // of it), the result in the device object's +8: only the new renderer clears (the switch-over has no
 // depth buffer), the result 0.
 void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
@@ -95,7 +95,7 @@ int CHeroEquipPanel::Draw(int pass) {
     std::uint32_t quick = hero->weaponIndex;
     if (quick < hero->weaponCount) {
         frame(0)->visible_ = 1;
-        // The original converts the unsigned slot * 100 + 50 through a 64-bit FILD.
+        // The unsigned slot * 100 + 50 is converted through a 64-bit FILD.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
     } else {
         frame(0)->visible_ = 0;

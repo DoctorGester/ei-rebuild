@@ -6,7 +6,7 @@
 // fonts, the CDC slots the interface calls, docs/notes/standalone.md section 2). Registered at their
 // library addresses (mfc_gdi.cpp); real C++ classes over CObject since. The interface (ui_gdi.h) draws with
 // them directly.
-// The handle maps are MFC's module thread state: the hook build uses the original's (afxMapHDC
+// The handle maps are MFC's module thread state: the hook build uses game.exe's (afxMapHDC
 // afxMapHGDIOBJ, through their addresses), the image has its own per thread
 // (MapHDC / MapHGDIOBJ, registered image-only at those addresses).
 

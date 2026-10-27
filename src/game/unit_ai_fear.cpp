@@ -73,7 +73,7 @@ float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-// The original builds the move order's looks with the derived array constructor, then
+// The move order's looks are built with the derived array constructor, then
 // clears the order.
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
@@ -181,7 +181,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (flag) {
         // The nearest player unit in sight (2D).
         double best = kFar;
-        Vector3 nearest{};      // the original leaves it unset when there is none (then 1e30 is never inside)
+        Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
         for (auto* node = brain->memory.visible.head; node; node = node->next) {
             auto* other = node->data;
             if (!other->player) continue;

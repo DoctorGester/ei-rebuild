@@ -46,7 +46,7 @@ void AddCounted(CParty* list, CItem* item) {
     item->Release();
 }
 
-// An item named `name` from the list's item manager (not checked for null, as the original) with
+// An item named `name` from the list's item manager (not checked for null) with
 // record index `index` and count `count`, added.
 void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
     auto* item = AsLoot(list->ItemManager()->CreateItem(name));
@@ -57,7 +57,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 
 // One item of class `kind` for `record` in every material whose +0x04 names the record's material
 // (+0x10), made by the list's item constructor with `manager`. A material index out of the table
-// reads through null, as in the original.
+// reads through null.
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
@@ -116,7 +116,7 @@ void CCampPages::DebugFill() {
                 AddNamed(items, InstructionQuickItem(), static_cast<std::uint32_t>(i), kInstructionCount);
         }
 
-        // "Material.<name>" (CString + "." + name, as the original's two operator+), twenty each,
+        // "Material.<name>" (CString + "." + name, two operator+), twenty each,
         // the record index left as made.
         ItemDatabase()->ListMaterialNames(&names);
         for (int i = 0; i < names.size; ++i) {

@@ -126,7 +126,7 @@ const char* CantFindDriverText() { return "Can't find driver by index.\n"; }
 namespace {
 
 // A texture stage: the colour is `operation` of `argument` and the stage before, the alpha is
-// switched off. The original fills the new elements from an uninitialised local with only the two
+// switched off. The new elements are filled from an uninitialised local with only the two
 // flags cleared and then writes the fields below, so what a list does not set (stage 0's operations
 // everywhere, the alpha arguments of presets 5-7) is stack contents there and zero here
 // passes the alpha arguments on to Direct3D even so.
@@ -201,8 +201,8 @@ EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 // The first block sets the texture stages of the first `stages` states
 // (as many as the device has, or one) and switches the next stage off; each state from there on gets
 // a block of its own with its blend factors (an empty block without them). The check of a stage's
-// operations ands the operation's number with the device's capability bits, as the original does.
-// a stage that fails it ends the first block there. Returns the new preset.
+// operations ands the operation's number with the device's capability bits.
+// A stage that fails it ends the first block there. Returns the new preset.
 CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
     int stages;
@@ -271,7 +271,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
 
     auto* preset = new CRenderPreset(blocks, stages, index);
 
-    if (index < static_cast<int>(kPresetCount)) {   // signed, as the original compares
+    if (index < static_cast<int>(kPresetCount)) {   // signed compare
         if (presets_[index] == nullptr) presets_[index] = preset;
         else game::FatalError(AlreadyRegisteredText(), index);
     }
@@ -353,7 +353,7 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
 EI_REWRITTEN_SPECIAL(0x004FCA60, CRenderHelper::CRenderHelper);
 
 // The destructor body. Every record's preset goes through slot 3, which erases the record
-// the walk stands on: as in the original, the step to the next record then reads the freed node (its
+// the walk stands on: the step to the next record then reads the freed node (its
 // link is the node allocator's free list by then), so the walk can stray and leave records behind.
 // Those are destroyed with the table (their presets deleted, but not their state blocks).
 CRenderHelper::~CRenderHelper() {
@@ -449,7 +449,7 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 } // namespace
 
 // The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
-// folder's string, the stacks (from the last) and the base, and `new` frees the memory, as in the original.
+// folder's string, the stacks (from the last) and the base, and `new` frees the memory.
 CTransformPipeline::CTransformPipeline(const char* folder) {
     stlp::string path(folder);
     ReadProcessorInfo();

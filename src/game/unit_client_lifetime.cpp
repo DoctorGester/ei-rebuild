@@ -73,7 +73,7 @@ CUnitClientSpecific::~CUnitClientSpecific() {
         source->Release();
         source = nullptr;
     }
-    ReleaseFace(this);   // with null; the original's release test after it finds null
+    ReleaseFace(this);   // with null; the release test after it finds null
     blinks = 0;
     // The speech queue: every node, then the header, freed (no destructors).
     for (ClientSpeechNode* node = speech->next; node != speech;) {

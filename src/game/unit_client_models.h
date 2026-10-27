@@ -26,7 +26,7 @@ struct UnitPrototypeRecord;   // unit_db.h
 struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
 
-// unit_client_blink.cpp: blits rectangle `from` of `source`
+// Blits rectangle `from` of `source`
 // to `at` (x, y) of `target`, then the same halved on each next level of both mip chains until
 // either ends (DirectDraw surfaces; nothing without them).
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
@@ -109,7 +109,7 @@ struct AttackParams;   // combat.h
 
 class CUnitClientSpecific : public CUnitController {
 public:
-    // unit_client_lifetime.cpp: the list +0x58 (block size 0x80), an
+    // The list +0x58 (block size 0x80), an
     // empty speech queue (its header node allocated), no face texture, fully faded in.
     CUnitClientSpecific();
     // The three particle sources stop and are released, the face
@@ -125,7 +125,7 @@ public:
     // Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void Destroy() override;
-    // unit_controller_slots.cpp. (slots 11 / 12): "CUnitClientSpecific", 0x3D.
+    // (slots 11 / 12): "CUnitClientSpecific", 0x3D.
     const char* GetClassName() override;
     int GetClassId() override;
     // 16: the order part of the unit's path (ClientControllerPath, registered at its address).
@@ -134,8 +134,7 @@ public:
 
     // Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
-    // Virtual slot 50 (registered as a free
-    // function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
+    // Virtual slot 50: the attack figures the interface shows for a party unit. A
     // text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
     // and speed from the weapon and attack / defence from the weapon's +0x84 / +0x88 plus
     // UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
@@ -196,7 +195,7 @@ public:
     // the step sounds; the speech queue (+0x9C); for +0x255 == -2 with animation
     // state +0x50 below 3, (0). Returns 1.
     int RunTick() override;
-    // unit_client_blink.cpp: the blink. With a face texture
+    // The blink. With a face texture
     // (+0xCC) and a skin texture (the client half's material), unless the eyes already are so
     // (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
     // rectangle (the model's +0x158..+0x164 in 256ths of the skin, down the mip chain);
@@ -213,7 +212,7 @@ public:
     // Returns 1.
     int FiguresLoaded() override;
     // Virtual slot 43: the fade-in starts again from 0 (the drawn parts take it). Returns
-    // 0 (what the original leaves in its result register).
+    // 0 (a leftover register value).
     int RestartFadeIn() override;
     // Virtual slot 24: the level from the packed experience (UnitParams +0x04, CUnit +0x334):
     // ln(experience /) / ln stored as a float and rounded to nearest.
@@ -270,8 +269,7 @@ public:
     // Virtual slot 18 (PlayerChanged): with a player the companion shows the
     // party light (colour, alpha 1, radius).
     void PlayerChanged(void* player) override;
-    // unit_client_path.cpp: the unit placed on its new path at the
-    // time it was last advanced to, without turning.
+    // The unit placed on its new path at the time it was last advanced to, without turning.
     void MotionChanged() override;
 
     // Virtual slot 51: the unit says `speech` (nothing for null), a speech of `kind`.
@@ -289,9 +287,9 @@ public:
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
-    // object_small_slots.cpp, virtual slot 36 (HasOtherArmour): 1 when a weapon model
-    // is held (any weapon id not -1)., slot 37 (HasMainArmour): 1 when one of the first three
-    // armour slots (body, trousers, helmet) holds a model.
+    // Virtual slot 36 (HasOtherArmour): 1 when a weapon model is held (any weapon id not -1).
+    // Slot 37 (HasMainArmour): 1 when one of the first three armour slots (body, trousers, helmet)
+    // holds a model.
     int HasOtherArmour() override;
     int HasMainArmour() override;
 

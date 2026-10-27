@@ -90,7 +90,7 @@ bool MayTravelTo(CGlobalMap* map) {
 } // namespace
 
 void CGlobalMap::FindPaths(MapRecord* from) {
-    std::string variable;   // one string for every "z.<zone>" name, as in the original
+    std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < from->exits.size; ++i) {
         bool goesBeyond = false;
         MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target);
@@ -111,7 +111,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
             beyondTarget_ = true;
         }
         // A zone already on the way ends this branch (and leaves beyondTarget_ set when the
-        // branch had set it: kept from the original).
+        // branch had set it: kept).
         bool onWay = false;
         for (GlobalMapStep* step = path_.end(); step != path_.begin(); --step) {
             if (step[-1].zone == zone) {

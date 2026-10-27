@@ -83,7 +83,7 @@ public:
     // get_allocator: the allocator's tag byte, the low byte of the last word.
     std::uint8_t AllocatorTag() const { return static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(eos_)); }
 
-    // The three pointers by reference, for code that inlines the original's own vector operations
+    // The three pointers by reference, for code that inlines the vector operations
     // (reserve, push_back through the instantiation's _M_insert_overflow) on the same object.
     T*& Start() { return start_; }
     T*& Finish() { return finish_; }
@@ -102,7 +102,7 @@ public:
 
     // STLport's members as the game's instantiations compile them, each element copy, assignment
     // and destruction done by the element policy E (PlainElement for plain data). Blocks are taken
-    // and given back in the original's order (the new block before the old one is freed), so the
+    // and given back in the same order (the new block before the old one is freed), so the
     // pool hands out the same blocks.
 
     std::size_t Capacity() const { return static_cast<std::size_t>(eos_ - start_); }
@@ -433,13 +433,13 @@ struct VectorAbi : vector<T> {
     void Deallocate(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // The same compiled as a function of p and n.
     static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
-    // uninitialized_copy(first, last, result) (e.g: ECX first, EDX last; the tag
+    // uninitialized_copy(first, last, result) (ECX first, EDX last; the tag
     // argument is not read): the end of the copies.
     static T* __fastcall UninitializedCopy(const T* first, const T* last, T* result, const void*) {
         for (; first != last; ++first, ++result) E::Construct(result, *first);
         return result;
     }
-    // uninitialized_fill_n(first, n, x) (e.g: ECX first, EDX n): the end of the
+    // uninitialized_fill_n(first, n, x) (ECX first, EDX n): the end of the
     // copies.
     static T* __fastcall UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
         for (; n > 0; --n, ++first) E::Construct(first, *x);

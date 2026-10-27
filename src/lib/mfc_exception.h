@@ -26,7 +26,7 @@ public:
 
     virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
     // The error message in a message box, or the prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE)
-    // when there is none; the box's answer. The help context starts at 0 here (the original's is unset when slot 3
+    // when there is none; the box's answer. The help context starts at 0 here (unset in game.exe when slot 3
     // leaves it; the box ignores it).
     virtual int ReportError(unsigned type, unsigned error);
 
@@ -81,8 +81,8 @@ public:
     const CRuntimeClass* GetRuntimeClass() const override;
 };
 
-// CException::Delete (called as fastcall): an auto-delete exception is deleted. The original
-// reads the flag before testing the pointer.
+// CException::Delete (called as fastcall): an auto-delete exception is deleted. The flag
+// is read before the pointer is tested.
 void __fastcall DeleteException(CException* exception);
 
 // CFileException (0x14 bytes). The causes are MFC's CFileException::none ... endOfFile.
@@ -152,7 +152,7 @@ namespace mfc {
 ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);
 void __cdecl TryCleanup();
 // The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop
-// in MFC's thread state). The hook build shares the original's; the image has its own.
+// in MFC's thread state). The hook build shares game.exe's; the image has its own.
 ExceptionLink** __cdecl ExceptionLinkTop();
 
 } // namespace mfc

@@ -1,18 +1,18 @@
 // The software mouse cursor in the frame (thiscall on the cursor object; called
 // by the frame function after the scene and the interface, before the present, when the
-// display option's software cursor bit (the renderer's +4 bit 0) is set). The original copies the
+// display option's software cursor bit (the renderer's +4 bit 0) is set). The DirectDraw version copies the
 // cursor's screen rectangle (updated) from the render target into the background
 // surface, combines the cursor image (the part `from_` of it) with it in the composition surface
 // ((background & mask) | image) and copies that back to the render target; `drawn_`
 // keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
 // renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
 // ("Cursor") and docs/notes/renderer.md.
-// Also the cursor's draws straight to the primary surface in the original (ticket R6): the cursor
+// Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
 // thread (redraws the cursor on the primary every 41 ms between frames) and the background
 // save. The cursor's holders have no DirectDraw surface: the background saves,
 // the composition the holder blits are left out (the two
 // ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
-// presenting the last frame again (render::CursorBetweenFrames); as in the original,
+// presenting the last frame again (render::CursorBetweenFrames);
 // not while the image is hidden (the movie players and the loading screen hide it).
 #include "model.h"
 #include "ui_cursor.h"
@@ -37,7 +37,7 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // The cursor thread's step: under the cursor's lock, the position updated and,
 // when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
 // with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
-// frames come often enough); the drawn rectangle follows as the original's blits made it.
+// frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
 void MoveBetweenFrames(CCursor* self) {
     gameapi::EnterCriticalSection(&self->lock_);
     char moved = self->UpdatePosition();
@@ -51,7 +51,7 @@ void MoveBetweenFrames(CCursor* self) {
 
 } // namespace
 
-// (Without an image shown the original saves the background from the primary in mode 2:
+// (Without an image shown, DirectDraw saves the background from the primary in mode 2:
 // nothing here.)
 void __fastcall CursorDrawFrame(CCursor* self) {
     if (!SoftwareCursor()) return;
@@ -68,7 +68,7 @@ EI_REWRITTEN(0x005E54A0, CursorDrawFrame);
 
 // Takes the
 // cursor's place once, then until `stop_` is set: every 41 ms, with the software cursor on, one
-// MoveBetweenFrames (the original: when an image is shown and the cursor moved, its old place's
+// MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's
 // background restored, the new one's saved and the composed cursor blitted to the primary, after the
 // vertical blank). At the end the event `stopped_` is set.
 void __fastcall CursorThread(CCursor* self) {
@@ -100,7 +100,7 @@ unsigned __cdecl CursorThreadEntry(void* cursor) {
 }
 EI_REWRITTEN(0x005E52A0, CursorThreadEntry);
 
-// In the original the part of the drawn rectangle inside `bounds_` is
+// The part of the drawn rectangle inside `bounds_` is
 // copied from the primary (`fromPrimary`) or the render target into the background surface, as the
 // screen under the cursor changed (the movie players after their blits to the primary). Nothing
 // draws from the background here (the thread and the frame draw's blits are left out): nothing.

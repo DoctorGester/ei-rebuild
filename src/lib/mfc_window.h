@@ -93,7 +93,7 @@ public:
     CWnd* Construct(HWND handle) { return new (this) CWnd(handle); }
     // A window still attached destroyed (CWnd::DestroyWindow, unported), except for the
     // four static windows; the control container deleted; the control site let go of this window; then CCmdTarget's
-    // destructor. The original's unwind frame (CCmdTarget destroyed when DestroyWindow throws) is not kept: no game
+    // destructor. The unwind frame (CCmdTarget destroyed when DestroyWindow throws) is not kept: no game
     // window is a CWnd.
     ~CWnd() override;
 

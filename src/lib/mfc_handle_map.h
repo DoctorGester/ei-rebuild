@@ -7,7 +7,7 @@
 // the objects FromHandle made for the others (a CTempDC for a surface's DC, a CTempGdiObject for a
 // stock pen). The game has no CWinApp, so nothing ever empties the temporary maps (no OnIdle).
 // Every body is registered at its library address in both builds (mfc_handle_map.cpp); the maps
-// themselves live in MFC's module thread state, which the hook build keeps (the original's
+// themselves live in MFC's module thread state, which the hook build keeps (game.exe's
 // afxMapHDC / afxMapHGDIOBJ) and the image replaces with its own (mfc_gdi.cpp).
 
 #include "crt.h"
@@ -101,7 +101,7 @@ public:
     static void* operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // Every temporary object's handles cleared and the object deleted, then the temporary map emptied. The original also returns at once for a null map (MFC's `this == NULL` test); every
+    // Every temporary object's handles cleared and the object deleted, then the temporary map emptied. A null map also returns at once (MFC's `this == NULL` test); every
     // caller here has one.
     void DeleteTemp();
     // The object of `handle` (null for null): the permanent one, else the temporary one,

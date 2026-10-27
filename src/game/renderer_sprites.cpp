@@ -151,8 +151,8 @@ std::uint32_t ThroughFpu(std::uint32_t bits) {
     return nan ? bits | 0x00400000u : bits;
 }
 
-// The top of the pipeline's matrix stack at +0x24 (data) / +0x28 (count), transposed. The original
-// moves the lower triangle up as integers and the upper one down through the FPU.
+// The top of the pipeline's matrix stack at +0x24 (data) / +0x28 (count), transposed. The lower
+// triangle moves up as integers and the upper one down through the FPU.
 void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
     const Matrix4* top = pipeline->Top(CTransformPipeline::kClipStack);
     std::memcpy(m, top, sizeof(m));
@@ -275,7 +275,7 @@ bool DrawQuads(CSceneRenderer* renderer, int sprites) {
 }
 
 // The render target's size (the holder's render target's width / height) while there is a primary
-// surface; the original keeps both in stack slots it never initialises, so without a
+// surface; both are kept in stack slots that are never initialised, so without a
 // surface the previous batch's values (here 0 at first) are used.
 struct ScreenSize {
     std::uint32_t width = 0;

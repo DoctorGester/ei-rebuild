@@ -54,7 +54,7 @@ constexpr int kSparkAttach = 7;
 constexpr int kMinFlashTicks = 4;
 
 // The armour slots covering each hit location (four ints per location; columns 2, 0,
-// 1 are tried in that order, 7 none). Indexed as the original does, without a range check.
+// 1 are tried in that order, 7 none). Indexed without a range check.
 constexpr std::int32_t kHitArmourRows[6][4] = /*0073EC78*/ {{7, 7, 0, 7}, {3, 7, 1, 7}, {3, 6, 1, 7}, {3, 6, 1, 7}, {4, 5, 2, 7}, {4, 5, 2, 7}};
 constexpr int kArmourColumns[3] = {2, 0, 1};
 
@@ -104,7 +104,7 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
     return unit->GetPrototypeModel();
 }
 
-// The smaller of the unit's two horizontal extents (the original's select keeps +0x148 for NaN).
+// The smaller of the unit's two horizontal extents (the select keeps +0x148 for NaN).
 float SmallerExtent(const CUnit* unit) {
     float y = unit->above.y;
     float x = unit->above.x;

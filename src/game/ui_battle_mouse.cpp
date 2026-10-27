@@ -48,7 +48,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
         CUiContainer::MouseMove(buttons, x, y);
         if (handled_) return;
     }
-    // The original passes the address of its own (x, y) arguments and reads them back.
+    // The (x, y) pair is read back through its address.
     POINT point = {x, y};
     CUnit* unit = TheClientWorld()->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);

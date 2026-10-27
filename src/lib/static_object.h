@@ -1,6 +1,6 @@
 #pragma once
 
-// A global of game.exe's whose constructor and destructor run where the original runs them: the constructor from its
+// A global of game.exe's whose constructor and destructor run where game.exe runs them: the constructor from its
 // static initialiser in the list's order,
 // the destructor from the exit function that initialiser registers with the game's atexit.
 // docs/notes/standalone.md, "The static initialisers' objects".
@@ -45,7 +45,7 @@ private:
 };
 
 // A T inside its owner (a local or a member) whose constructor and destructor the owner calls
-// itself, where the original does (an archive on a loader's stack or in a window, built by its
+// itself, where game.exe does (an archive on a loader's stack or in a window, built by its
 // constructor's address and destroyed through Rebirth's patched destructor): a union member, so
 // the compiler runs neither.
 template <class T>

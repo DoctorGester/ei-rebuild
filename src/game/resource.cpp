@@ -181,7 +181,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
         }
     }
 
-    // Read failed. The original leaks file->data here.
+    // Read failed. file->data leaks here (kept).
     file->name.~string();
     gamecrt::operator_delete(file);
     return nullptr;
@@ -202,7 +202,7 @@ bool CMappedResource::CloseFile(void* data) {
     if (writable_) {
         if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) == -1 ||
             static_cast<std::uint32_t>(gamecrt::write(fd_, file->data, file->size)) != file->size) {
-            // The original formats the data pointer as the file name.
+            // The file name is the formatted data pointer.
             std::string name;
             name = static_cast<const char*>(data);
             game::FatalError(("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n").c_str());

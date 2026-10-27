@@ -111,7 +111,7 @@ const char* Next(const char* p) { return gamecrt::mbsinc(p); }
 constexpr unsigned kMaxFileName = 256;   // _MAX_FNAME, the name getters' buffer
 
 // While armed, destroys a string when the frame unwinds: a constructor that throws leaves the
-// members it had built destroyed, as the original's unwind does.
+// members it had built destroyed.
 class UnwindString {
 public:
     explicit UnwindString(CString* string) : string_(string) {}

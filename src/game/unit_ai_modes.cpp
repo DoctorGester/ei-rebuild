@@ -58,7 +58,7 @@ int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 template <typename T>
 void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
 
-// The original's Save functions copy each scalar into a stack slot before writing it.
+// Each scalar is copied into a stack slot before it is written.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     T copy = value;
@@ -234,7 +234,7 @@ void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
-    // "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
+    // "Unit %i has no patrol points, switching to guard" (passed by address).
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
@@ -302,7 +302,7 @@ void PatrolMode::Save(CStream* stream) {
         WriteCopy(stream, point.looks.size);
         for (int j = 0; j < point.looks.size; ++j) {
             const AILook& look = point.looks.data[j];
-            // Each float goes through a stack copy as a dword (integer moves in the original).
+            // Each float goes through a stack copy as a dword (integer moves).
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.wait));

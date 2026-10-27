@@ -69,7 +69,7 @@ float SortArrowX(int column) {
     case 2: return 270.0f;
     case 3: return 340.0f;
     }
-    return 0.0f;   // (not reached with keys 1-8; the original leaves a stack slot as it is)
+    return 0.0f;   // (not reached with keys 1-8)
 }
 
 void DrawLabel(CUiSurface* surface, const char* text, RECT* rect, int format) {

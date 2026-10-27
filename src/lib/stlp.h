@@ -4,7 +4,7 @@
 // The game's code and ours share these objects (for example the loaded-file maps inside
 // CMappedResource), so they must have STLport's exact layout, allocate from the game's own pooled
 // node allocator, and hash and order elements the way STLport does. Only what our code needs
-// is implemented; each member names the original routine it mirrors.
+// is implemented; each member names the STLport routine it mirrors.
 
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +22,7 @@
 namespace stlp {
 
 // allocate / deallocate: stlp_alloc.h.
-// deallocate(node, 12) as the original inlines it: the node back on the node allocator's free list of 12-byte nodes
+// deallocate(node, 12) inlined: the node back on the node allocator's free list of 12-byte nodes
 // (list nodes).
 template <class Node>
 void PushSmallNode(Node* node) {
@@ -138,7 +138,7 @@ const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, con
 // The members named after STLport's (Construct, InitializeBuckets, Resize, Find, FindOrInsert,
 // First, After, SkipToNext, Erase, EraseKey, Clear, Destroy, NewNode, DeleteNode) do what the
 // game's instantiations do (stlp_hash.h's hashtable, registered at their addresses), so code can
-// call them where the original calls an instantiation.
+// call them where game.exe calls an instantiation.
 template <typename Key, typename Value, typename Hash>
 class hash_map {
 public:
@@ -259,7 +259,7 @@ public:
         return next;
     }
     // iterator::operator++: the next node of the chain, else SkipToNext (so a
-    // rehash while iterating moves the walk the way the original's does).
+    // rehash while iterating moves the walk the way STLport does).
     Node* After(const Node* node) const { return node->next ? node->next : SkipToNext(node); }
 
     // erase(iterator): unlink and delete one node (nothing for null or a node that

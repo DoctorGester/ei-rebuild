@@ -24,19 +24,12 @@ constexpr const char* kOutroSuffix = "fout";
 constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
-// The movie flag (1: movies shown at their own size).
-// CBinkVideo's frame step (whether the movie still plays;
-// bink_video.cpp) and close.
-
-
 } // namespace
 
 // --- a window above the titles closed ------------------------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
-
-// --- the scrolling surface's load (ui_scrolling_surface.cpp), through its address ----------------
 
 // --- a script line's destructor ------------------------------------------------------------------
 

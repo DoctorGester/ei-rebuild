@@ -222,7 +222,7 @@ EI_REWRITTEN(0x00637500, CBattleScreen::UseOnUnit);
 void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return party->data[i]; };
-    // The original works on its argument slots, so the shift below stays for the later members.
+    // The shift below stays for the later members.
     Vector3 point = {x, y, z};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
@@ -258,7 +258,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));
     if (phrase) {
-        // The original keeps the phrase's text in its `extra` argument slot.
+        // The phrase's text.
         mfc::CString text;
         mfc::CString line;
         UnitName(unit, &line);
@@ -289,7 +289,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return party->data[i]; };
     if (event == 0x30) {
-        // The member's timed face (no null test, as the original).
+        // The member's timed face (no null test).
         for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
             HudPortraitSlot* slots = portraits_->slots_.begin();

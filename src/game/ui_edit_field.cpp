@@ -106,7 +106,7 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 
 // The class of typed character `key` that charClasses_ admits or not. With EI_UTF8 a character past ASCII
-// is a code point: a letter when Windows calls it one (the original's 8-bit characters went to the CRT).
+// is a code point: a letter when Windows calls it one (8-bit characters go to the CRT).
 std::uint32_t CharClass(int key) {
     if constexpr (text::kUtf8) {
         if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;

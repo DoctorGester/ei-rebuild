@@ -1,7 +1,7 @@
 #pragma once
 
 // Vector, quaternion and matrix types and their inline maths (tickets V1 / V2; the catalog, the
-// orders the original uses and the migration plan are in docs/notes/vector-math.md).
+// orders the game uses and the migration plan are in docs/notes/vector-math.md).
 // Types: the game's own layouts, aggregates without constructors (`{x, y, z}`
 // initialisation keeps working). The out-of-line originals that are members (Vector3::Length,
 // Quaternion::PreMultiply, ...) are declared here and defined, hooked, in src/game; the free ones
@@ -17,11 +17,11 @@
 // it), so the grouping written here is kept (no codegen change). Each
 // helper's float results are rounded to float when returned (as an FSTP to a float would round
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
-// float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
-// not the original's (code there stays written out, docs/notes/vector-math.md). Square roots use
+// float significand, so this gives the game's bits; on 53-bit threads it is plain float maths,
+// not the game's (code there stays written out, docs/notes/vector-math.md). Square roots use
 // std::sqrt (FSQRT at the precision control on this x87 target; cast a float argument to double first: std::sqrt(float) is sqrtf).
 // Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as `double`, like FPATAN and
-// the game's CRT; where the original stores the result to a float, round it with static_cast<float>
+// the game's CRT; where the game stores the result to a float, round it with static_cast<float>
 // (ticket X3: an unrounded angle flipped a quaternion's sign).
 
 #include "crt.h"
@@ -42,7 +42,7 @@ struct Vector3 {
     // The three parts copied from `other`.
     void Assign(const Vector3* other);
 
-    // The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
+    // The constructor Vector3(x, y, z): callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
     float Length() const;                           // (maths.cpp), XYZ, FSQRT
     const Vector3* AddInPlace(const Vector3& v);    // Returns &v
@@ -96,7 +96,7 @@ struct Matrix4 {
 
     // This = a * b (row-major: rows of `a` times columns of `b`). The
     // elements are written one after the other, each from the inputs as they are then, so `this` may be one of the
-    // inputs as in the original. Not the plain sum: each element adds its four terms in the original's order.
+    // inputs. Not the plain sum: each element adds its four terms in a fixed order.
     void Multiply(const float* a, const float* b);
 };
 static_assert(sizeof(Matrix4) == 64);
@@ -172,10 +172,10 @@ __forceinline float Lerp(float a, float b, float t) { return (b - a) * t + a; }
 __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
 __forceinline float LerpWeighted(float a, float b, float t) { return (1.0f - t) * a + t * b; }
 
-// A product of float operands left to right, ((a * b) * c) * ..., as the original's chain of FMULs:
+// A product of float operands left to right, ((a * b) * c) * ..., as a chain of FMULs:
 // /fp:fast regroups a product with a repeated factor (`a * b * d * d` became
 // `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
-// unrounded (ST0 after the last FMUL, as `double`): round it with static_cast<float> where the original
+// unrounded (ST0 after the last FMUL, as `double`): round it with static_cast<float> where the game
 // stores it; an intermediate store would also lose an underflowing product (a denormal factor).
 template <typename... Rest>
 __forceinline double Product(float first, Rest... rest) {
@@ -220,7 +220,7 @@ __forceinline Vector3 NormalisedReciprocal(const Vector3& v) { return v * (1.0f 
 
 // Row vector times matrix (v * M): component i is the grouped sum of x * m[i], y * m[4 + i],
 // z * m[8 + i], then + m[12 + i] for a point. The transforms take one grouping per component
-// (OX, OY, OZ; each defaults to the one before) where the original sums the rows differently.
+// (OX, OY, OZ; each defaults to the one before) where the game sums the rows differently.
 template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY>
 __forceinline Vector3 TransformRowNormal(const Matrix4& m, const Vector3& v) {
     const float* c = m.m;
@@ -299,8 +299,8 @@ __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.
 // doubling an addition (FADD ST0, ST0), each component rounded to float (they store it before
 // negating), nothing stored before that. Precise: /fp:fast had turned these ports' written-out
 // 2(yz + wx) into (2wx + yz) + yz (a second rounding)'s -2(yx - wz) into
-// (wz - yx) + (wz - yx) (+0 where the original's FCHS gives -0; V3c). No float locals: a precise
-// body rounds them through memory, which the originals do not (V3e).
+// (wz - yx) + (wz - yx) (+0 where FCHS gives -0; V3c). No float locals: a precise
+// body rounds them through memory, which the game does not (V3e).
 __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
     return {(q.y * q.x - q.w * q.z) * 2.0f, (q.w * q.w - ((q.x * q.x + q.z * q.z) + q.y * q.y)) + q.y * q.y * 2.0f,
             (q.y * q.z + q.w * q.x) * 2.0f};
@@ -311,7 +311,7 @@ __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
 // `(z * x + y * w) * 2` was regrouped into (2zx + yw) + yw. By reference: a precise inlined body
 // spills scalar arguments to memory.
 __forceinline Vector3 RotatedAxisX(const Quaternion& q) {
-    float xx = q.x * q.x;   // a float temporary in the original
+    float xx = q.x * q.x;   // a float temporary
     return {(q.w * q.w - ((q.z * q.z + q.y * q.y) + xx)) + xx * 2.0f, (q.y * q.x + q.w * q.z) * 2.0f,
             (q.x * q.z - q.y * q.w) * 2.0f};
 }
@@ -321,7 +321,7 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 }
 
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
-// The original keeps many 2D differences and sums on the FPU stack and compares or uses the
+// The game keeps many 2D differences and sums on the FPU stack and compares or uses the
 // unrounded ST0 value (AIDistance2 returns it). The precise helpers above round their result
 // through memory; these do not: compiled without precise semantics, an inlined body is the same
 // code as the expression written out in the caller (no FSTP / FLD of the differences or the sum).

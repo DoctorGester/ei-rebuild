@@ -65,7 +65,7 @@ void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) TheSoundManager()->StopSound(voice_);
     voice_ = -1;
     TheMusicSystem()->FadeOut();
-    // (The original also constructs and destroys an unused CStringArray here.)
+    // (An unused CStringArray is also constructed and destroyed here.)
     std::string key = BriefingSection();
     key += topic_;
     if (!TheTextManager()->CTextManager::Open(key.c_str())) {
@@ -82,7 +82,7 @@ void CBriefingScreen::StartPhrases() {
     double zz = q.z * q.z;
     double axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
     float axisY = static_cast<float>((q.y * q.z - q.x * q.w) * 2.0);
-    // The original doubles x and y before multiplying; here the compiler doubles z instead of x,
+    // x and y are doubled before multiplying; here the compiler doubles z instead of x,
     // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2.0 would regroup the sum.
     float axisX = static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w));
     lookAt_.x = static_cast<float>(savedCamera_.x + axisX);
@@ -100,7 +100,7 @@ EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 // --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
-    // (The original compares a CString copy of the name.)
+    // (The name is compared through a CString copy.)
     bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
@@ -126,7 +126,7 @@ EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 // SpeakerActionDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
-// briefing screen unchecked, as the original does; the count is read again after each call.
+// briefing screen unchecked; the count is read again after each call.
 void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(serverUnit->id_);
@@ -143,7 +143,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     float cosAngle = static_cast<float>(x87::fcos(angle));
     float sinAngle = static_cast<float>(x87::fsin(angle));
     Vector3 eye{};
-    double x;   // the facing, kept unrounded as the original does
+    double x;   // the facing, kept unrounded
     double y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
@@ -321,7 +321,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();
-            // (The original then looks for the person among the party's first members; the result
+            // (The person is then looked up among the party's first members; the result
             // is not used.)
         }
         // vector::erase (then the last entry's destructor).

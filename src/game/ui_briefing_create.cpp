@@ -240,7 +240,7 @@ void CBriefingScreen::CreateScreen() {
     AddInput(new CCameraInput(interface_));
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
-    // not checked for null, as the original), the alternate limits, no target.
+    // not checked for null), the alternate limits, no target.
     CCamera* camera = TheCamera();
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
@@ -262,7 +262,7 @@ void CBriefingScreen::CreateScreen() {
     }
 
     // The people of the base: the local player's objects whose ids are text keys. The walk ends
-    // at an empty entry, as the original's does.
+    // at an empty entry.
     const auto& objects = LocalViewPlayer()->knownObjects_;
     for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
         int id = node->value->id_;
@@ -362,7 +362,7 @@ void CBriefingScreen::Update() {
 void CBriefingScreen::MarkPeople() {
     BriefingVariables variables(TopicPrefix());
     console::CStringArray parts;
-    // The people with a topic open (the original sorts and dedups the list; only membership is
+    // The people with a topic open (the list is sorted and deduplicated; only membership is
     // used).
     stlp::vector<int> open;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {

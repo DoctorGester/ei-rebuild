@@ -515,7 +515,7 @@ struct HashtableAbi : hashtable<Traits> {
         return this;
     }
     // hash_map / hash_set: hashtable(100, ...) inlined; the functor bytes are
-    // an uninitialised stack byte in the original (0 here). Returns this.
+    // an uninitialised stack byte (0 here). Returns this.
     static Table* __fastcall ConstructDefault(Table* self) {
         self->Construct(100, 0, 0, 0);
         return self;
@@ -599,7 +599,7 @@ struct HashtableAbi : hashtable<Traits> {
         out->cur = node;
         return out;
     }
-    // erase(const_iterator) (e.g: the iterator by value).
+    // erase(const_iterator), the iterator passed by value.
     void EraseIterator(const Node* cur, const Table*) { Table::EraseNode(cur); }
     // clear.
     static void __fastcall Clear(Table* self) { self->Clear(); }

@@ -68,8 +68,8 @@ inline const char* const* AttributeNames() {
 }
 
 // --- Global map -----------------------------------------------------------------------------
-// The island map shown between zones (CreateScreen id 4, vtables, 0x294 bytes;
-// ui_global_map.cpp). Regions: 0 / 1 turn the view, 2 the camp, 3.. the links between zones.
+// The island map shown between zones (CreateScreen id 4, 0x294 bytes).
+// Regions: 0 / 1 turn the view, 2 the camp, 3.. the links between zones.
 
 // A zone of the allod on the map (0x10 bytes, CArray at +0x18C).
 struct GlobalMapZone {
@@ -95,8 +95,8 @@ using GlobalMapZoneArray = GlobalMapZoneTable;
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
-    // (identical copies, the links' and the quests' arrays' one;
-    // ui_small_members.cpp). The element assignment: zone and position copied, the two strings
+    // (identical copies, the links' and the quests' arrays' one).
+    // The element assignment: zone and position copied, the two strings
     // assigned as CStrings. Returns this.
     GlobalMapPlace* Assign(const GlobalMapPlace& from);
     GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
@@ -213,7 +213,7 @@ public:
     // zone searched from the local player's zone and, when there is one, the time of arrival
     // exit 0 passed and the zone asked for at entrance 0. Any other zone under the
     // mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
-    // search, and the objectives window (built inline by the original) opened over the map with
+    // search, and the objectives window (built inline) opened over the map with
     // the zone, the arrival times, two buttons and no zone list.
     void OnLeftDown(int buttons, int x, int y);
     // The container's handler first; Esc opens the escape menu (built
@@ -308,8 +308,8 @@ static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
 // --- Camp trade panel (the level-up page) ------------------------------------------------------
-// The panel that sells skills for experience (the camp's +0x1F4;
-// ui_trade_panel.cpp): the hero's six magic schools and science with
+// The panel that sells skills for experience (the camp's +0x1F4):
+// the hero's six magic schools and science with
 // their levels, the perks the hero holds and the perks the hero may learn, each with its price.
 
 // A row of the panel's lists (0x18 bytes, STLport vectors at +0x15C .. +0x180).
@@ -494,7 +494,7 @@ public:
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
     void CreateScreen() override;
-    // The original Create's body (not a function of the game). Builds the camp: the server flag
+    // Create's body. Builds the camp: the server flag
     // set; the constructor's class template from the player's "constr.current" (none found: back
     // to the world, nothing built)
     // with its flags, price weights and part lists; the player's "i.noconstr" / "i.off..." /
@@ -631,7 +631,7 @@ public:
     // 6 the repairs' items given back.
     void UndoAction();
     // The spell container in the results taken apart: a copy kept in
-    // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
+    // spellMade_ while the list is left; a "Prototype" item for its spell and a "Rune"
     // item per modifier go into the results; the copy released.
     bool DeconstructSpell();
     // The item maker's result taken apart: a copy of the first result made
@@ -649,12 +649,9 @@ public:
     // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
     void DebugFill() override;
 
-        // The members above through their addresses, so the harness sees the
-    // calls the game makes (ui_camp.cpp).
-    // The camp's virtual slots the pages call (the main) are CItemScreen's
-    // Virtual* members: 43 CanEquip (AL), 45 the party's best skill and mana in a school
-    // 46 / 47 RefreshWeapons / RefreshStats, 51 the shown hero's record (HeroRecord),
-    // 54 Price (Rebirth-patched).
+    // The camp's virtual slots the pages call are CItemScreen's Virtual* members: 43 CanEquip (AL),
+    // 45 the party's best skill and mana in a school, 46 / 47 RefreshWeapons / RefreshStats, 51 the
+    // shown hero's record (HeroRecord), 54 Price (Rebirth-patched).
 
     int page_;                       // +0x190
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)

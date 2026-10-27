@@ -2,9 +2,9 @@
 // allod, its zones, the quests the player holds and the links to the zones the player may enter,
 // the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
 // screens").
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Floating point follows the x87 code: `double` for values kept on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
-// as the original does.
+// like the code it replaces.
 #include "app.h"
 #include "options.h"
 #include "global_map_clouds.h"
@@ -106,7 +106,7 @@ private:
 
 // --- Sprite fields set directly -------------------------------------------------------------------
 
-// Float fields are written with their bits, as the original's immediate stores do.
+// Float fields are written with their bits (immediate stores).
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 void SetTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
 void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
@@ -260,7 +260,7 @@ void CGlobalMap::CreateScreen() {
     std::string variable;
     CStringArray parts;
     VariableTable vars;
-    // New elements are copied from these (the original's have uninitialised numbers; every
+    // New elements are copied from these (their numbers are uninitialised; every
     // number is overwritten right after).
     GlobalMapZone zoneTemplate{};
     GlobalMapPlace linkTemplate{};
@@ -607,7 +607,7 @@ void CGlobalMap::Update() {
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
-    // drawn into directly (the original: between a Lock and an Unlock).
+    // drawn into directly (DirectDraw: between a Lock and an Unlock).
     if (objects_.size > 4) {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
         auto* lock = TheDeviceLock();
@@ -645,7 +645,7 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
     EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     EmptyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     // The tree (the header from the pool; empties it) keeps the first byte of
-    // the original's compare object, the argument slot holding `ui`.
+    // the compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
     arrivals_.Count() = 0;
     arrivals_.Compare() = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(ui));

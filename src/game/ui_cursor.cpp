@@ -1,6 +1,6 @@
 // The cursor images' constructor (the cursor object, see docs/notes/ui.md,
 // "Cursor"), which builds each image's mask from its picture: the picture's holder has no DirectDraw
-// surface (ticket R7), and the mask is built from the new renderer's memory (DirectPixels). (The
+// surface, and the mask is built from the new renderer's memory (DirectPixels). (The
 // software cursor's blit, which combined image, mask and background through Locks of the
 // holders' surfaces, has no caller of ours since: the new renderer draws the cursor,
 // ui_cursor_frame.cpp.)
@@ -44,14 +44,14 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     frame = 0;
     CTextureManager* manager = TheTextureManager();
     void* picture = manager->GetFile(name, nullptr);
-    // (The original frees the holder's memory when throws and passes the exception on; that
+    // (A throw frees the holder's memory and passes the exception on; that
     // ends the game.)
     holder = new CDXSurface(TheRenderDevice(), picture, flag);
     if (holder) ++holder->refs_;
-    // (The original releases a holder kept before here; there is none: it was cleared above.)
+    // (A holder kept before here would be released; there is none: it was cleared above.)
     manager->CloseFile(picture);
 
-    // The picture's size and pixels: the new renderer's memory (the original: GetSurfaceDesc, then a
+    // The picture's size and pixels: the new renderer's memory (DirectDraw: GetSurfaceDesc, then a
     // Lock). gave the holder that memory or threw.
     SurfacePixels image;
     DirectPixels(holder, &image);

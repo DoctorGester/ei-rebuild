@@ -67,7 +67,7 @@ CItem* MoveBetween(CCampPages* camp, CItem* item, CParty* to, CParty* from, int 
 // (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
 
-// Takes the made items out of `results` (re-read every time, as the original does): a made item
+// Takes the made items out of `results` (re-read every time): a made item
 // goes to `owner` and into `strip`, the others to the local player and into the item strip.
 void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiItemStrip* strip) {
     for (CParty* list = results; list->items_.size != 0; list = results) {
@@ -234,7 +234,7 @@ bool IsKindOne(const CItem* item) { return UiItemKinds::IsKindOne(item); }
 bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
 // The database records of the camp's loot items (the record index at +0x54): spells, spell
-// modifiers and materials (null past the end; the original then reads through null).
+// modifiers and materials (null past the end, which is then read through).
 std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
 // The loot's record type (+0x50): the record table it indexes.
 std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
@@ -674,7 +674,7 @@ bool CCampPages::CanMakeSpell() {
     CItemManager* factory = spellResults_->ItemManager();
     CSpellManager* manager = spellResults_->SpellManager();
     const itemdb::SpellRecord* spell = nullptr;
-    // The original keeps the modifiers in an 8-entry stack array (more would overwrite its
+    // The modifiers are kept in an 8-entry stack array (more would overwrite its
     // frame; CanEquip allows at most eight).
     itemdb::SpellModifierRecord* modifiers[32];
     int modifierCount = 0;
@@ -727,7 +727,7 @@ bool CCampPages::CanMakeItem() {
     HeldObject<CSpell> spell{nullptr};   // a counted pointer, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
-    int type = 0;            // the original's is uninitialised until a part sets it
+    int type = 0;            // uninitialised until a part sets it
     auto fail = [&]() {
         ReleaseObject(spell);
         return false;
@@ -1146,7 +1146,7 @@ EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 // --- turning and choosing the hero ---------------------------------------------------------------
 
 namespace {
-// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, as the original
+// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which
 // computes it on the FPU.
 constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;   // a static initialiser: pi + pi
 float TurnedBy(double seconds, float turn, bool backwards) {
