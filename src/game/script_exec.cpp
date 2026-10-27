@@ -53,12 +53,10 @@
 
 namespace {
 
-// ---- x87 helpers --------------------------------------------------------------------------------
 
 // The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// Compare against the constant 0.0, the test every command uses for "flag argument is zero".
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -66,19 +64,13 @@ bool IsZero(float value) {
 
 int Round(float value) { return x87::fistp(value); }
 
-// ---- Helpers for the commands -------------------------------------------------------------------
-// The commands call the game's classes directly; what is left here are the container entry points
-// (MFC lists and arrays of script records).
 
 constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
 
-// Game texts.
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
-// 1 / 255, the background colour scale.
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
-// The configured world time speed (an int).
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
@@ -89,16 +81,10 @@ using InstanceList = mfc::CList<ScriptDefinition>;
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
-// The party records of `player` for a "party name" string.
-// Object id of a name.
-// Plays a movie file.
-// The renderer.
 void* __cdecl Renderer() { return SceneRenderer(); }
 
-// The world server.
 CWorldServer* TheWorld() { return TheServerWorld(); }
 
-// The world's AI map; its sector map is.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
 // The named party records (party_records.h): find (a party), add, remove.
@@ -108,60 +94,44 @@ NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
 
-// The multiplayer game server's variables, named by STLport strings.
 net::ServerSession* ServerPointer() { return net::GameServer(); }
-// The server exists and is not shutting down.
 bool ServerActive() {
     net::ServerSession* server = net::GameServer();
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-// The world's player list (CWorld::players_): the event dispatch.
 CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
 
-// The world's spell manager (CWorld::manager4C_).
 CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 
 
-// MFC containers the commands keep on the stack: the
-// units found (CPtrList), the items given to a player
-// and the party slots (CArray of
-// unit placements).
 using PtrList = mfc::CList<CUnit*>;
 using PartyArray = mfc::CArray<UnitPlacement>;
 using ObjectIterator = ObjectListIterator;
 
-// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo.
 
-// ---- Small accessors ---------------------------------------------------------------------------
 
-// The unit's server half (CUnit::controller).
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
-// The brain's patrol mode, null when it has none.
 PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
-// An object argument the command takes as a map object (a unit's leader or target).
 CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
 
-// The unit's server half when argument 0 is a unit that has one, else null.
 CUnitServer* UnitStateArg(const SSCCmd* cmd) {
     CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
     return unit ? UnitState(unit) : nullptr;
 }
 
-// Argument 0 when it is a lever (class id kClassLever), else null.
 Lever* LeverArg(const SSCCmd* cmd) {
     CEngineObject* object = Arg(cmd, 0);
     return object && object->GetClassId() == kClassLever ? static_cast<Lever*>(object) : nullptr;
 }
 
-// Finds the particle source with `id`.
 ScriptParticleSource* FindParticle(CScript* script, int id) {
     for (auto* node = script->particles_.head; node; node = node->next)
         if (node->data.id == id) return &node->data;
@@ -192,7 +162,6 @@ void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
     run->sleepStart = sleepStart;
 }
 
-// Copies group element `i` into the loop counter (a global object variable).
 void SetLoopCounter(const SSCCmd* cmd, int i) {
     ScriptObjectRef* element = &cmd->groupArgs.data[0]->data[i];
     ScriptObjectRef* counter = cmd->objectArgs.data[0];
@@ -202,7 +171,6 @@ void SetLoopCounter(const SSCCmd* cmd, int i) {
 
 int& ForDepth(CScript* script) { return script->forDepth_; }
 
-// The commands that need more than a few lines.
 
 void SetCP(const SSCCmd* cmd, bool fast) {
     CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
@@ -378,7 +346,6 @@ void UnitModes(const SSCCmd* cmd) {
 
 } // namespace
 
-// ---- ScriptRun::Execute -------------------------------------------------------------------------
 
 BOOL ScriptRun::Execute(CScript* script) {
     ++ticks;
@@ -495,7 +462,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Lights, particles, effects (CScript helpers) ---------------------------------------
         case 0x0B: script->CreatePointLight(cmd); break;
         case 0x0C: script->MovePointLight(cmd); break;
         case 0x0D: script->DeletePointLight(cmd); break;
@@ -797,7 +763,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Unit orders (the brain at the unit's +0x240 object +0x980) -------------------------
         case 0x02: {   // MoveToPoint(unit, x, y)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
@@ -897,7 +862,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Unit modes -------------------------------------------------------------------------
         case 0x24: {   // UMClear
             CUnitServer* state = UnitStateArg(cmd);
             if (state) BrainOf(state)->ClearModes();
@@ -1016,7 +980,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Players: variables, parties, items -------------------------------------------------
         case 0x7F: {   // GSSetVar(player, name, value)
             if (IsMultiplayerClient() && ServerActive()) {
                 GSSetVarMultiplayer(cmd);
