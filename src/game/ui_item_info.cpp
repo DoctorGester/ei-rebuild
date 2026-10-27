@@ -76,28 +76,14 @@ int SumFtolScaled(float a, float b, float scale) { return Ftol((static_cast<doub
 int ScaledFtol(float a, float scale) { return Ftol(static_cast<double>(a) * scale); }
 int DifferenceFtol(float a, float subtrahend) { return Ftol(static_cast<double>(a) - subtrahend); }
 // value * factor * scale in that order, stored as float.
-float ArmourValue(const void* value, const void* factor, float scale) {
-    return static_cast<float>(static_cast<double>(*static_cast<const float*>(value)) * *static_cast<const float*>(factor) * scale);
+float ArmourValue(float value, float factor, float scale) {
+    return static_cast<float>(static_cast<double>(value) * factor * scale);
 }
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 
-struct Texts : CTextManager {
-    BOOL Open(const char* key);
-    BOOL NextLine();
-    BOOL ReadLine(mfc::CString* out, BOOL advance);
-    BOOL GetString(const char* name, mfc::CString* out);
-    BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);
-};
-BOOL Texts::Open(const char* key) { return CTextManager::Open(key); }
-BOOL Texts::NextLine() { return TextNextLine(this); }
-BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return CTextManager::ReadLine(a0, a1); }
-BOOL Texts::GetString(const char* key, mfc::CString* out) { return CTextManager::GetString(key, out); }
-BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    return GetItemTexts(item, name, description, kind);
-}
-Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
+CTextManager* TextManager() { return TheTextManager(); }
 
 // The prototype record, the category, a weapon's type and damage weights, a spell's prototype and modifier
 // count.
@@ -112,7 +98,7 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 } // namespace
 
 void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer) {
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     out->SetSize(0, -1);
     mfc::CString value, above, below, key, text;
     float threshold = values[6];
@@ -295,14 +281,14 @@ void CItemInfoPanel::DescribeItem() {
         return;
     }
 
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
     material = itemdb::MaterialAt(MaterialIndex(PackedIdOf(item)))->key;
     text::ReplaceChar(&material, ' ', '_');
     material.MakeLower();
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
 
     Writer w(this);
     w.Draw()->GetDC();
@@ -414,11 +400,11 @@ EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(LootOf(item)->index_);
     if (!material) return;
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
@@ -452,7 +438,7 @@ EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = Item();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
     // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
     // faults reading the record like a missing one).
@@ -466,7 +452,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     default: break;
     }
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
@@ -514,7 +500,7 @@ void CItemInfoPanel::DescribeBlueprint() {
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
         float values[7];
-        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 10.0f /*0073BAAC*/);
+        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->FirstFactor(), 10.0f /*0073BAAC*/);
         w.DamageLines(values, 4);
     }
     w.Down();
@@ -525,10 +511,10 @@ EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = Item();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     const itemdb::SpellRecord* record = itemdb::SpellAt(LootOf(item)->index_);
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
@@ -568,9 +554,9 @@ EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
 
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = Item();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
     Writer w(this);
     w.Draw()->GetDC();
@@ -585,9 +571,9 @@ EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
 
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = Item();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     mfc::CString name, description, kindText;
-    texts->ItemTexts(item, &name, &description, &kindText);
+    texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
@@ -609,7 +595,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         surfaces_.data[0]->ReleaseDC();   // without a Begin, like the game
         return;
     }
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     mfc::CString title, description, kindText;
     {
         std::string key("spell ");
@@ -671,8 +657,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             std::string key("modifier ");
             key += modifier->code;
             if (texts->Open(key.c_str())) {
-                texts->NextLine();
-                texts->NextLine();
+                TextNextLine(texts);
+                TextNextLine(texts);
                 texts->ReadLine(&text, 1);
             }
             std::string entry = text.GetString();
@@ -720,7 +706,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
 }
 
 void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     std::string name = info->text.GetString();
     str::TrimRight(name, "0");
     name += "1";
@@ -825,7 +811,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     ItemParty()->Clear(1, 0);
     DescribeItem();
     if (info->kind < 0) return;
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     Writer w(this);
     w.Draw()->GetDC();
     mfc::CString text, title, description;
@@ -945,7 +931,7 @@ EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 void CItemInfoPanel::ShowHelp(int topic) {
     ItemParty()->Clear(1, 0);
     DescribeItem();
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     Writer w(this);
     w.Draw()->GetDC();
     mfc::CString title, description, key;
@@ -982,12 +968,7 @@ void CItemInfoPanel::OnKeyUp(int key, int, int) {
     if (key == VK_CONTROL && Item()) DescribeItem();
 }
 
-namespace {
-CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(static_cast<std::uint8_t*>(input) - 0x94); }
-
-void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
-} // namespace
-EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);
+EI_REWRITTEN(0x005EE6B0, CItemInfoPanel::DescribeItem);
 EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
 EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
 
@@ -1001,7 +982,7 @@ void CItemInfoPanel::Build(int x, int y) {
     x_ = x;
     y_ = y;
     AddSurface(new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1));
-    Texts* texts = TextManager();
+    CTextManager* texts = TextManager();
     mfc::CString text, key;
     mfc::CStringArray* itemTexts = &itemTexts_;
     for (int i = 0; i < 45; ++i) {

@@ -64,7 +64,7 @@ float RandomOffset() {
 
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
-void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size) {
+void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /*frame: not used*/, float size) {
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         SpriteArrayConstruct(&Sprites());
@@ -80,7 +80,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         libcrt::AtExit(FreeGlowPoints);
     }
     TextureHolderEnsureLoaded(&glowTexture_);
-    if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, glowTexture_)) return;
+    if (!device->SetTexture(0, glowTexture_)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
@@ -116,14 +116,14 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    static_cast<CSceneRenderer*>(device)->DrawSprites(0, &GlowPoints(), &Sprites());
+    device->DrawSprites(0, &GlowPoints(), &Sprites());
 }
 EI_REWRITTEN(0x00467590, CLightning::DrawGlow);
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
-int CLightning::Draw(void* device) {
+int CLightning::Draw(CSceneRenderer* device) {
     TextureHolderEnsureLoaded(&texture_);
-    auto* renderer = static_cast<CSceneRenderer*>(device);
+    CSceneRenderer* renderer = device;
     if (!renderer->SetTexture(0, texture_)) return 0;
     int visibility = renderer->pipeline_->ClipTest(&bounds_);
     if (visibility == 2) return 1;
