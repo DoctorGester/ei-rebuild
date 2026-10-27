@@ -28,7 +28,7 @@ public:
     void Save(CStream* stream) override;                      // SaveTorch
     const char* GetClassName() override;                   // "CTorchObject"
     int GetClassId() override;                             // 0x57
-    std::uintptr_t AttachObject(CEngineObject* object) override { return AttachTorchObject(object); }
+    void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return Slot29True(); }
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
@@ -47,10 +47,9 @@ public:
     void LoadTorch(CStream* stream);
     void SaveTorch(CStream* stream);
     // A type 0x4B object (its type_ read before any null test) becomes
-    // the spec (a reference taken, the old one released) and points back here; returns
-    // the new spec. Anything else goes to the map object's AttachObject, whose EAX it
-    // returns.
-    std::uintptr_t AttachTorchObject(CEngineObject* object);
+    // the spec (a reference taken, the old one released) and points back here. Anything else goes to the map
+    // object's AttachObject.
+    void AttachTorchObject(CEngineObject* object);
     // The map object's network state, then field 4: the spec's +0x20, +0x28,
     // +0x2C (through stack copies), +0x30 (16 bytes), the two colours and its name (both channels).
     void WriteTorchNetState();

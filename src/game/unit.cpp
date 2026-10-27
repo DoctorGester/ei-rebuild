@@ -63,37 +63,36 @@ int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
     return -1;
 }
 
-std::uintptr_t RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
-    if (slot >= 4) return slot;
+void RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
+    if (slot >= 4) return;
     CItem* item = slots[slot];
     slots[slot] = nullptr;
     if (item) item->Release();
-    return unit->MarkChanged(kPartEquipment);
+    unit->MarkChanged(kPartEquipment);
 }
 } // namespace
 
 // --- Sides -----------------------------------------------------------------------------------
 
-std::uintptr_t CUnit::AddHostileMask(std::uint32_t mask) {
+void CUnit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
-    if (relationsA == merged) return merged;
+    if (relationsA == merged) return;
     relationsA = merged;
     flags_ |= kFlagSideChanged;
-    return MarkChanged(kPartRelations);
+    MarkChanged(kPartRelations);
 }
 EI_REWRITTEN(0x0052E940, CUnit::AddHostileMask);
 
-std::uintptr_t CUnit::SetRelationsB(std::uint32_t mask) {
+void CUnit::SetRelationsB(std::uint32_t mask) {
     relationsB = mask;
-    return MarkChanged(kPartRelations);
+    MarkChanged(kPartRelations);
 }
 EI_REWRITTEN(0x00530180, CUnit::SetRelationsB);
 
-std::uintptr_t CUnit::SetSide(int value) {
+void CUnit::SetSide(int value) {
     side = value;
     flags_ |= kFlagSideChanged;
-    if (!controller) return 0;
-    return MarkChanged(kPartRelations);
+    if (controller) MarkChanged(kPartRelations);
 }
 EI_REWRITTEN(0x00530120, CUnit::SetSide);
 
@@ -104,49 +103,49 @@ EI_REWRITTEN(0x00530150, CUnit::IsHostileTo);
 
 // --- Simple state setters --------------------------------------------------------------------
 
-std::uintptr_t CUnit::SetUnknown438(int value) {
+void CUnit::SetUnknown438(int value) {
     fightAtWill = value;
-    return MarkChanged(13);
+    MarkChanged(13);
 }
 EI_REWRITTEN(0x0052E9B0, CUnit::SetUnknown438);
 
-std::uintptr_t CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
+void CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
     animationEntry = a;
     secondEntry = b;
     actionSound = d;
     animationStart = c;
-    return MarkChanged(8);
+    MarkChanged(8);
 }
 EI_REWRITTEN(0x0052EA90, CUnit::SetAnimationEntries);
 
-std::uintptr_t CUnit::SetMotionMode(int value) {
-    if (motionMode == value) return static_cast<std::uintptr_t>(value);
+void CUnit::SetMotionMode(int value) {
+    if (motionMode == value) return;
     motionMode = value;
-    return MarkChanged(7);
+    MarkChanged(7);
 }
 EI_REWRITTEN(0x0052EAD0, CUnit::SetMotionMode);
 
-std::uintptr_t CUnit::SetPathTimeShift(int value) {
-    if (pathTimeShift == value) return static_cast<std::uintptr_t>(value);
+void CUnit::SetPathTimeShift(int value) {
+    if (pathTimeShift == value) return;
     pathTimeShift = value;
-    return MarkChanged(7);
+    MarkChanged(7);
 }
 EI_REWRITTEN(0x0052EAF0, CUnit::SetPathTimeShift);
 
-std::uintptr_t CUnit::SetMoveModes(int mode, int mode2) {
+void CUnit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;
     moveMode2 = mode2;
-    return MarkChanged(6);
+    MarkChanged(6);
 }
 EI_REWRITTEN(0x0052EB10, CUnit::SetMoveModes);
 
-std::uintptr_t CUnit::SetFlag40000000Off(bool on) {
+void CUnit::SetFlag40000000Off(bool on) {
     if (on) {
         flags_ &= ~0x40000000u;
     } else {
         flags_ |= 0x40000000u;
     }
-    return MarkChanged(5);
+    MarkChanged(5);
 }
 EI_REWRITTEN(0x0052EBE0, CUnit::SetFlag40000000Off);
 
@@ -190,10 +189,10 @@ int CUnit::AddSpell(CItem* item) {
 }
 EI_REWRITTEN(0x00531820, CUnit::AddSpell);
 
-std::uintptr_t CUnit::RemoveWeapon(std::uint32_t slot) { return RemoveFromSlots(this, weapons, slot); }
+void CUnit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, slot); }
 EI_REWRITTEN(0x005310D0, CUnit::RemoveWeapon);
 
-std::uintptr_t CUnit::RemoveQuickItem(std::uint32_t slot) { return RemoveFromSlots(this, quickItems, slot); }
+void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
 EI_REWRITTEN(0x005311E0, CUnit::RemoveQuickItem);
 
 CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {

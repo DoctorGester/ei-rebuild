@@ -179,7 +179,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
 }
 EI_REWRITTEN(0x0052B650, Lever::ReadLeverNetState);
 
-std::uintptr_t Lever::SetUp(const LeverSetup* setup) {
+void Lever::SetUp(const LeverSetup* setup) {
     state = setup->state;
     stateCount = setup->stateCount;
     cycling = setup->cycling != 0 ? 1 : 0;
@@ -188,20 +188,20 @@ std::uintptr_t Lever::SetUp(const LeverSetup* setup) {
     keepsMapFlag = setup->keepsMapFlag;
     if (stateCount > 1) scale.y = static_cast<float>(static_cast<double>(state) / (stateCount - 1));
     else scale.y = 0.0f;
-    return MarkChanged(kPartScale);
+    MarkChanged(kPartScale);
 }
 EI_REWRITTEN(0x0052B3F0, Lever::SetUp);
 
-std::uintptr_t Lever::Enable(bool on) {
+void Lever::Enable(bool on) {
     if (on) flags_ &= ~kDisabled;
     else flags_ |= kDisabled;
-    return MarkChanged(kLeverField);
+    MarkChanged(kLeverField);
 }
 EI_REWRITTEN(0x0052BAD0, Lever::Enable);
 
-std::uintptr_t Lever::SetLock(const LockKey* key) {
+void Lever::SetLock(const LockKey* key) {
     lock = *key;
-    return MarkChanged(kLeverField);
+    MarkChanged(kLeverField);
 }
 EI_REWRITTEN(0x0052BB20, Lever::SetLock);
 

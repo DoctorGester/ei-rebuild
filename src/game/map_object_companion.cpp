@@ -73,9 +73,9 @@ int CMapObjectServer::RunTick() {
 }
 EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
 
-std::uintptr_t CMapObjectServer::SetData(const UnitVitals* data) {
+void CMapObjectServer::SetData(const UnitVitals* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
-    return owner->MarkChanged(0);
+    owner->MarkChanged(0);
 }
 EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 

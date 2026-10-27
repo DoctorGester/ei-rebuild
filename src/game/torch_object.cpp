@@ -61,15 +61,16 @@ EI_REWRITTEN(0x0052C2A0, CTorchObject::SaveTorch);
 void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
 void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
 
-std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
-    if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObject(object);
+void CTorchObject::AttachTorchObject(CEngineObject* object) {
+    if (object->type_ != kTypeTorchSpec) {
+        CMapObject::AttachObject(object);
+        return;
+    }
     CTorchObjectSpec* old = spec;
     spec = static_cast<CTorchObjectSpec*>(object);
     if (spec) ++spec->refCount_;
     if (old) old->Release();
-    if (!spec) return 0;
-    spec->torch_ = this;   // the spec's owner
-    return reinterpret_cast<std::uintptr_t>(spec);
+    if (spec) spec->torch_ = this;   // the spec's owner
 }
 EI_REWRITTEN(0x0052C2C0, CTorchObject::AttachTorchObject);
 

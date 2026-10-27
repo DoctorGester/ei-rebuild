@@ -115,12 +115,12 @@ public:
     std::uint32_t ReadLeverNetState(int first);
 
     // The zone loader's set-up: the record's state, count, cycling, lock and flags; the shown position
-    // is state / (count - 1) (0 for one state). Returns MarkChanged(1)'s result.
-    std::uintptr_t SetUp(const LeverSetup* setup);
+    // is state / (count - 1) (0 for one state).
+    void SetUp(const LeverSetup* setup);
     // The script's EnableLever: clears (on) or sets (off) the disabled bit.
-    std::uintptr_t Enable(bool on);
+    void Enable(bool on);
     // The script's SetScience.
-    std::uintptr_t SetLock(const LockKey* lock);
+    void SetLock(const LockKey* lock);
 
     bool Slot29True();
     int Flag260Slot();

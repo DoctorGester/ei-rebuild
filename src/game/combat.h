@@ -298,8 +298,8 @@ public:
     void EmptySlot17();
     void MoveFactorsChanged() override;
     AIPath* MotionPath() { return &motion; }
-    // Part 4 changed; the server companion's hit points and mana set to their maxima. Returns the companion.
-    std::uintptr_t SetStats(const UnitStats* stats);
+    // Part 4 changed; the server companion's hit points and mana set to their maxima.
+    void SetStats(const UnitStats* stats);
     // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a player.
     void Shout(std::uint32_t code);
     // The three size classes from the unit's load and size (times the model's factor; heroes capped at 1.89).
@@ -664,7 +664,7 @@ public:
     void SetBusy(std::uint8_t busy) { moveMode2.flag4 = busy; }
     std::uint8_t Busy() const { return moveMode2.flag4; }
 
-    std::uintptr_t AddHostileMask(std::uint32_t mask);
+    void AddHostileMask(std::uint32_t mask);
 };
 static_assert(offsetof(CUnitServer, unit) == 0x1C);
 static_assert(offsetof(CUnitServer, pendingHit) == 0x108);

@@ -138,12 +138,11 @@ int CUnit::RemoveCarried(int index) {
 }
 EI_REWRITTEN(0x005313B0, CUnit::RemoveCarried);
 
-std::uintptr_t CUnit::SendEquipment() {
+void CUnit::SendEquipment() {
     std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
     GetEquipmentIds(ids);
     Controller()->SetArmourModels(&ids[4], 7);
     Controller()->SetWeaponModels(&ids[0], 4);
-    return 0;
 }
 EI_REWRITTEN(0x00531110, CUnit::SendEquipment);
 
