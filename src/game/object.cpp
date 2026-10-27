@@ -27,7 +27,7 @@ EI_REWRITTEN(0x00461C50, CHoover::GetClassId);
 
 // --- Unit and figure getters --------------------------------------------------------------------
 
-const char* __fastcall UnitGetName(const CUnit* unit) { return unit->scriptName.GetString(); }
+const char* __fastcall UnitGetName(const CUnit* unit) { return unit->scriptName.c_str(); }
 EI_REWRITTEN(0x00446820, UnitGetName);
 
 int __fastcall UnitGetFlag278(const CUnit* unit) { return static_cast<int>(unit->obstacle); }

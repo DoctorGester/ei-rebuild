@@ -46,7 +46,7 @@ const UnitModelRecord* UnitModel(std::uint32_t index) {
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
     return itemdb::ArmorAt(index);
 }
-const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName; }
+const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName.c_str(); }
 
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 

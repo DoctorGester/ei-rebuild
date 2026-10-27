@@ -262,7 +262,7 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     }
     Ops(line).AppendText(suffix);
     if (!RunScriptText(&line, 1, &error))
-        EndLine(Out() << "Script error: " << error.text.GetString());
+        EndLine(Out() << "Script error: " << error.text.c_str());
 }
 EI_REWRITTEN(0x005DD800, RunScriptLine);
 

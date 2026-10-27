@@ -252,14 +252,14 @@ void CMpHeroScreen::CreateScreen() {
         };
         const UnitPrototypeRecord* prototype;
         {
-            stlp::string key(creature()->name.GetString());
+            stlp::string key(creature()->name.c_str());
             prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
             // operator[] inlined (a pair of the name and null through).
-            stlp::string key(prototype->modelName.GetString());
+            stlp::string key(prototype->modelName.c_str());
             figure = unitdb::ModelNamed(key);
         }
         figureModel = figure->figureName;

@@ -78,7 +78,7 @@ CScript* CScript::Construct() {
 EI_REWRITTEN(0x004BDE40, CScript::Construct);
 
 ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
-    std::construct_at(&out->text, errorText_);
+    out->text = errorText_;
     out->code = errorCode_;
     out->line = errorLine_;
     return out;

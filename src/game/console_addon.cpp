@@ -135,7 +135,7 @@ void __fastcall Execs(CStringArray* args) {
         ScriptTick(TheMissionScript());
         return;
     }
-    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_.GetString());
+    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_.c_str());
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).

@@ -320,7 +320,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? unit->GetPrototype()->name.GetString() : worlddata::HumanHeroText();
+            const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
             party->AddMember(v.merc, prototype, game::EmptyText());
         }
     }

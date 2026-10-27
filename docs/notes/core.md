@@ -319,6 +319,26 @@ to which template:
   byte array: CStream::ReadString, WriteCopy, HumanFigureName, MobFile::Load's scripts, the interface save's text),
   and a member those reach
   (mfc_slots.h's `StringsAt` offsets, `DestroyStringsAt`) must stay a CString until they are typed.
+- Scope `members` (batch 3): `--members Class::member ...` retypes those data members (an array member too) and
+  keeps a member no rule carries by its name (`<member>` in excluded.json; `why.txt` says where and why). A member
+  already declared std::string is counted, so its uses get the rules after a hand retype. Done: CUnit::scriptName,
+  CMapObject::name2, CScript::errorText_, ScriptErrorInfo::text, PartyUnitRecord::texts[7], the unit database's
+  prototype / NPC / model / model slot / level record strings. Their classes (and the classes deriving from or
+  holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
+  bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
+  `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::
+  CopyMember / AssignMember / DefaultMember for std::string.
+- Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
+  BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, global map points / zones,
+  lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector) members, and members of objects
+  the vector recorders read in game.exe through our headers (record_script*.cpp read CScript; its error goes through
+  tests/vectors/script_original.h, game.exe's layout at errorText_'s offset).
+- `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
+  holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
+  needs): bytes are fine for MSVC's std::string at _ITERATOR_DEBUG_LEVEL 0, but the /MTd build's level 2 keeps a
+  proxy pointing back at the string.
+- The harness digest reads our std::string members through `Text(const std::string&)` in
+  tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
 - A `const char*` given to a retyped parameter builds the std::string from it: CString took a null pointer as ""
   where std::string's constructor does not. No caller in the suite passes null; a crash there is the first place
   to look.

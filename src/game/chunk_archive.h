@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CRefObject;
 class ClassTemplate;
@@ -106,7 +107,9 @@ public:
     void LeaveChunk();
     int CountChunks(int id);
     void Field(int id, void* data, unsigned size);
-    void CStringField(int id, mfc::CString* s);       // written with its terminator
+    // A text field (mfc::CString or std::string), written with its terminator.
+    template <typename Text>
+    void CStringField(int id, Text* s);
     void StringField(int id, stlp::string* s);
     void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
     void SaveObjectRef(int id, CRefObject* object);   // object's number, object kept for Close

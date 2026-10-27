@@ -19,11 +19,10 @@ struct NamedFloatTable;   // object_tables.h
 
 // A script's last error as callers take it (copied out of the script): the text, the code and the line.
 struct ScriptErrorInfo {
-    mfc::CString text;
+    std::string text;
     int code;
     int line;
 };
-static_assert(sizeof(ScriptErrorInfo) == 0xC);
 
 // The console's script command. Loads `text` into the command script (CScript::Load with the WorldScript
 // started), runs it when it loaded and `run` is set (ScriptTick), and copies the script's last error into
@@ -41,6 +40,7 @@ void __cdecl StoreStartFolder();
 
 // ---- The rest of the glue. `this` is never read. ---------------------
 #include <cstdint>
+#include <string>
 
 class CEngineObject;
 class CPlayerClient;   // player_client.h

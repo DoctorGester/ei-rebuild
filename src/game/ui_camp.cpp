@@ -1185,7 +1185,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members_.data[i];
-        if (PrototypeObjectClass(record->texts[5]) == kHeroClass) break;
+        if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
     }
     return i;
 }

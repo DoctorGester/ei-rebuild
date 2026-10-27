@@ -109,8 +109,8 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return 0;
     std::uint32_t sound = animation->sounds[RandomBelow(count)];
-    std::string folder = model->soundFolder.GetString();   // a missing model's +0x124 is read (sic)
-    if (prototype->soundFolder.GetLength() != 0) folder = prototype->soundFolder;
+    std::string folder = model->soundFolder;   // a missing model's +0x124 is read (sic)
+    if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->key & kKeyKind) {
     case kKindIdle:

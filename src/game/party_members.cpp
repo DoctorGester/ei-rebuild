@@ -121,10 +121,10 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
 EI_REWRITTEN(0x006628D0, CParty::AddMember);
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
-    auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
+    auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
-    BuildNpcStats(&record->stats, record->texts[5]);
+    BuildNpcStats(&record->stats, record->texts[5].c_str());
     record->scaleY = prototype->scale.y;
     record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;
@@ -137,9 +137,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         ItemList(record->armor).SetAtGrow(static_cast<int>(record->armorCount), copy);
         Drop(item);
     }
-    for (const mfc::CString* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
-        if (!Named((*weapon).GetString())) continue;
-        CItem* item = MakeItem(this, *weapon);
+    for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
+        if (!Named((*weapon).c_str())) continue;
+        CItem* item = MakeItem(this, (*weapon).c_str());
         CItem* copy = CountedClone(item);
         ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);
         Drop(item);
@@ -168,7 +168,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
             list->RemoveRange(0, 1);
         }
     }
-    auto* npc = unitdb::NpcTable().byName[stlp::string(record->texts[5])];
+    auto* npc = unitdb::NpcTable().byName[stlp::string(record->texts[5].c_str())];
     if (!npc) return 0;
 
     const CStringVector& spellNames = npc->startSpells;

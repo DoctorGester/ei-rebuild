@@ -61,6 +61,10 @@ std::uint32_t MissileVtable(const CSpellEffect* e) {
 
 bool IsSpellEffect(const CSpellEffect* e) { return typeid(*e) == typeid(CSpellEffect); }
 
+// Our text members that are std::strings (game.exe's are CStrings, read as const char*).
+using digest::Text;
+const char* Text(const std::string& s) { return s.c_str(); }
+
 } // namespace
 
 #include "../harness_digest_read.inc"

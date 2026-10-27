@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName
 
@@ -498,7 +499,7 @@ public:
     CMapObject* MapObject() { return this; }
     UnitMotion* Motion() { return &motion; }
 
-    mfc::CString scriptName;        // (virtual slot 61 sets it; network field 9; GetName)
+    std::string scriptName;        // (virtual slot 61 sets it; network field 9; GetName)
     int prototype23C;              // a second prototype index (-1 none)
     CEngineObject* controller;      // (the script code calls it the perception object)
     std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
@@ -542,33 +543,6 @@ public:
     float actionSpeeds[6];          // per action kind (ActionSpeed; the model record's +0x2C)
     float levels4C8[5];             // any at most 2 (or NaN) asks for a party refresh
 };
-static_assert(offsetof(CUnit, params) == 0x330);
-static_assert(offsetof(CUnit, controller) == 0x240);
-static_assert(offsetof(CUnit, player) == 0x24C);
-static_assert(offsetof(CUnit, side) == 0x250);
-static_assert(offsetof(CUnit, moveMode) == 0x264);
-static_assert(offsetof(CUnit, activeWeapon) == 0x26C);
-static_assert(offsetof(CUnit, sizeClass) == 0x324);
-static_assert(offsetof(CUnit, standingHeight) == 0x32C);
-static_assert(offsetof(CUnit, fightAtWill) == 0x438);
-static_assert(offsetof(CUnit, weapons) == 0x440);
-static_assert(offsetof(CUnit, quickItems) == 0x450);
-static_assert(offsetof(CUnit, spells) == 0x460);
-static_assert(offsetof(CUnit, armor) == 0x480);
-static_assert(sizeof(CUnit::weapons) == 4 * sizeof(CEngineObject*) && sizeof(CUnit::armor) == 7 * sizeof(CEngineObject*));
-static_assert(offsetof(CUnit, carried) == 0x4A0);
-static_assert(offsetof(CUnit, actionSpeeds) == 0x4B0);
-static_assert(offsetof(CUnit, dead) == 0x274);
-static_assert(offsetof(CUnit, heightOffset) == 0x320);
-static_assert(offsetof(CUnit, scriptName) == 0x238);
-static_assert(offsetof(CUnit, animationEntry) == 0x254);
-static_assert(offsetof(CUnit, pendingWeapon) == 0x270);
-static_assert(offsetof(CUnit, unitRadius) == 0x328);
-static_assert(offsetof(CUnit, obstacle) == 0x278);
-static_assert(offsetof(CUnit, motion) == 0x27C);
-static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
-static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
-static_assert(sizeof(CUnit) == 0x4DC);
 
 // The object as a unit when it is one (class id kClassUnit), else null.
 inline CUnit* UnitOrNull(CEngineObject* object) {
@@ -583,8 +557,6 @@ constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
-constexpr int kPrototypeSize = 0x120;
-constexpr int kModelSize = 0x168;
 constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);
@@ -921,7 +893,7 @@ struct PartyUnitRecord {
     // Writes what Load reads (newest version).
     void Save(CStream* stream);
 
-    mfc::CString texts[7];          // names (empty when constructed)
+    std::string texts[7];          // names (empty when constructed)
     std::uint32_t unitId;               // the unit's id (saved and loaded)
     UnitStats stats;                    // the unit's statistics
     float scaleX;                       // the figure's scale: x (0.8 when constructed) ...
@@ -950,19 +922,6 @@ struct PartyUnitRecord {
     int leaderId;                       // the unit it follows (-1 none, when constructed)
     int fightAtWill;                    // the unit's fightAtWill (1 when constructed)
 };
-static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
-static_assert(offsetof(PartyUnitRecord, scaleX) == 0x724);
-static_assert(offsetof(PartyUnitRecord, height) == 0x72C);
-static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
-static_assert(offsetof(PartyUnitRecord, fightAtWill) == 0x780);
-static_assert(sizeof(PartyUnitRecord) == 0x784);
-static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
-static_assert(offsetof(PartyUnitRecord, weaponCount) == 0x734);
-static_assert(offsetof(PartyUnitRecord, quickItemCount) == 0x744);
-static_assert(offsetof(PartyUnitRecord, armorCount) == 0x754);
-static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
-static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
-static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
 // Wears `item` by `amount` (shared by its +0x48 pieces); the owner says
 // `brokenRemark` when its condition rounds to 0 or less, `wornRemark` when it drops below

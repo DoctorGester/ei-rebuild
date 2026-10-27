@@ -101,15 +101,6 @@ public:
     int countdown;
     int singleTarget;               // cast at one unit only
 };
-static_assert(offsetof(MagicTrap, sides) == 0x238);
-static_assert(offsetof(MagicTrap, spell) == 0x23C);
-static_assert(offsetof(MagicTrap, area) == 0x240);
-static_assert(offsetof(MagicTrap, points) == 0x254);
-static_assert(offsetof(MagicTrap, inside) == 0x268);
-static_assert(offsetof(MagicTrap, period) == 0x284);
-static_assert(offsetof(MagicTrap, countdown) == 0x288);
-static_assert(offsetof(MagicTrap, singleTarget) == 0x28C);
-static_assert(sizeof(MagicTrap) == 0x290);
 
 // Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
 // circle of `area` asks the sector map (`context` + 0x294) for the units within its

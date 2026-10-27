@@ -241,7 +241,7 @@ void CHudPortraits::Rebuild(int wide) {
         FigurePrototypeRecord* figure;
         {
             figure = reinterpret_cast<FigurePrototypeRecord*>(
-                unitdb::ModelNamed(stlp::string(prototype->modelName.GetString())));
+                unitdb::ModelNamed(stlp::string(prototype->modelName.c_str())));
         }
         SexOf(figure->model, sex);
         build = "me";
