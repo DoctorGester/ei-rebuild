@@ -369,7 +369,6 @@ Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
 }
 EI_REWRITTEN(0x006FC42F, libcrt::Ostream::Construct);
 
-// A manipulator at its address in game.exe's code (the flush / endl the callers name) runs as CodeAddress's code.
 Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
     ei::Code<Ostream*(__cdecl*)(Ostream*)>(reinterpret_cast<std::uintptr_t>(manipulator))(this);
     return this;

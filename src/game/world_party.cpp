@@ -278,7 +278,7 @@ CItem* CWorldServer::CreateSpellNamed(const char* name) {
 
 void CWorldServer::AddCounted(CEngineObject* item) {
     if (!item || counted_.Find(item)) return;
-    AddCountedTail(&counted_, item);   // the same AddTail, inlined
+    AddCountedTail(&counted_, item);
 }
 
 EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);

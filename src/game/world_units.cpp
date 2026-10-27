@@ -299,7 +299,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     std::memset(&message.position.z, 0, 4);
     int id = CreateObject(&message);
     CEngineObject* effect = ObjectWithId(id);
-    effect->flags_ |= kFlagsNewEffect;   // inlined
+    effect->flags_ |= kFlagsNewEffect;
 }
 
 // ---- CreateObject -------------------------------------------------------------------
@@ -560,7 +560,6 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (sound->sounds.size < 1) {
             mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
-            // strcpy, inlined (REP MOVS of the length with its terminator).
             const char* wave = sound->sounds.data[0];
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }

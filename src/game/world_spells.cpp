@@ -49,7 +49,6 @@ bool IsHostileType(int type) {
     }
 }
 
-// The list's inlined RemoveAt: unlink, give the node back, empty the list with the last one.
 void RemoveNode(UnitList& list, UnitList::Node* node) {
     if (node == list.head) list.head = node->next;
     else node->prev->next = node->next;

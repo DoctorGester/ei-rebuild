@@ -22,7 +22,6 @@ int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_)
 // The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GameBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
 
-// The buffer's high-water mark brought up to its cursor (inlined everywhere).
 void UpdateHigh(GameBuffer& b) {
     if (b.cur > b.high) b.high = b.cur;
 }
@@ -48,7 +47,6 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-// A coder on the stack whose cursor is ended on the way out (inlined).
 struct LocalCoder {
     CoderState state;
     LocalCoder() { state.Construct(); }

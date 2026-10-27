@@ -55,7 +55,6 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
     int loaded = script->Load(text, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
-        // (A copy of the script's error record, inlined here.)
         ScriptErrorInfo last{script->ErrorText(), script->ErrorCode(), script->ErrorLine()};
         error->text = last.text;
         error->code = last.code;

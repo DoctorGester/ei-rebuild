@@ -245,7 +245,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
-        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);   // the inlined SetSize
+        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
         collected.SetSize(static_cast<int>(end - Collected().data));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());

@@ -28,7 +28,6 @@ void InsertRange(DriverNode* position, DriverNode* first, DriverNode* last) {
     stlp::list<RefPtr>::InsertRange<Policy>(stlp::AsRefNode(position), stlp::AsRefNode(first), stlp::AsRefNode(last));
 }
 
-// An empty list's sentinel from the node pool (the lists' constructors, inlined).
 DriverNode* NewSentinel() {
     auto* node = stlp::allocate_as<DriverNode>();
     node->next = node;

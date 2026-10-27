@@ -284,7 +284,6 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
 
 } // namespace
 
-// A comparator at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
     compare = ei::Code<Compare>(reinterpret_cast<std::uintptr_t>(compare));
     constexpr std::size_t kShortSort = 8;
@@ -715,7 +714,6 @@ struct ArrayUnwind {
 };
 } // namespace
 
-// An element function at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 ElementFunction ElementCode(ElementFunction f) { return ei::Code<ElementFunction>(reinterpret_cast<std::uintptr_t>(f)); }
 
 void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,

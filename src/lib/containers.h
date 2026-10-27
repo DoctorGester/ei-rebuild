@@ -125,7 +125,6 @@ struct AlignedArray {
     // The copies that take the element by reference.
     void SetAtGrowRef(int index, const T* value) { SetAtGrow(index, *value); }
 
-    // Add (inlined at its call sites): SetSize(size + 1), then the new element; its index.
     int Add(T value) {
         int index = size;
         SetSize(index + 1);
@@ -148,7 +147,6 @@ struct AlignedArray {
         size -= count;
     }
 
-    // SetSize(0) inlined: frees the block and empties the array.
     void RemoveAll() {
         if (data) {
             Free(data);

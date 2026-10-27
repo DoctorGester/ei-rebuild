@@ -43,7 +43,6 @@ float* StackTop(CTransformPipeline* device, int index) {
 
 // Terrain::HeightAt declared double: the unrounded ST0 is added.
 
-// Also inlined: push_back.
 void PushBack(FrameQueue& v, CEngineObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
         if (v.Finish()) *v.Finish() = value;

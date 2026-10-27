@@ -98,7 +98,6 @@ struct ArrayAbi : CArray<T, E> {
     // (mfc.h), registered through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
     void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
-    // ConstructElements / DestructElements (__stdcall).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
 

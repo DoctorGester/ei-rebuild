@@ -205,7 +205,6 @@ using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
 
-// The ConstructElements helpers those NewNodes call (__stdcall).
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;

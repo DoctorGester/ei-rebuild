@@ -159,7 +159,6 @@ float Half() { return 0.5f /*0073B86C*/; }
 
 } // namespace
 
-// The client glue's thiscall member; ECX is not read.
 void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
     mfc::CString text;
