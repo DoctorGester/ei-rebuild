@@ -77,7 +77,7 @@ Vector3 Normalised(float x, float y, float z) {
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
     (void)z;   // the server unit's height is used instead
-    auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
+    auto* serverUnit = TheServerWorld()->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
@@ -143,7 +143,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         speakersEnd_[-1].name = name;
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_)) {
+        if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             serverUnit->ServerController()->actionDone = SpeakerActionDone();
         }

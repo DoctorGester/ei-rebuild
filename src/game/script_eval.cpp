@@ -568,7 +568,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             const PartyMemberArray& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
             if (index >= 0 && index < members.size)
-                o = static_cast<CWorld*>(TheServerWorld())->FindUnit(static_cast<int>(members.data[index].unitId));
+                o = TheServerWorld()->FindUnit(static_cast<int>(members.data[index].unitId));
         }
         Store(*result, o);
         return;
@@ -613,7 +613,7 @@ EI_REWRITTEN(0x004B56C0, SSCCmd::CalcObject);
 namespace {
 
 
-inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
+inline void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {

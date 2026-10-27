@@ -27,15 +27,6 @@ namespace {
 inline double D(float f) { return f; }
 
 
-// Sprite builders (Rebirth-patched): a rectangle, a strip of `count` framed cells.
-struct SpriteBuild {
-    void Rectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-                   int v1);
-    void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-               int v1, int count, int flag);
-};
-void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 
 
 } // namespace
@@ -73,29 +64,29 @@ EI_REWRITTEN(0x005F2F90, TrimItemCache);
 // --- The icon window's frame -------------------------------------------------------------
 
 void CItemIconWindow::Build() {
-    auto sprite = [this] { return reinterpret_cast<SpriteBuild*>(AddSprite(0)); };
-    sprite()->Cells(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
+    auto sprite = [this] { return AddSprite(0); };
+    sprite()->SetGridVanilla(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
     // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
     for (int x = 0; x < 800; x += 200) {
         float left = static_cast<float>(x);
-        sprite()->Cells(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(21.0f /*0074054C*/)), 500.0f, 0xFE, 0x4C, 0xE9,
+        sprite()->SetGridVanilla(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(21.0f /*0074054C*/)), 500.0f, 0xFE, 0x4C, 0xE9,
                         0xB0, 1, 4);
         float right = static_cast<float>(x + 200);
-        sprite()->Cells(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f /*00740548*/)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
+        sprite()->SetGridVanilla(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f /*00740548*/)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
                         0xB0, 1, 4);
         float middle = static_cast<float>(D(left) + D(100.0f /*0073BAB0*/));
-        sprite()->Rectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
-        sprite()->Rectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
+        sprite()->SetRectangleVanilla(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
+        sprite()->SetRectangleVanilla(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
         float half = static_cast<float>(x + 100);
-        sprite()->Rectangle(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
-        sprite()->Rectangle(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
+        sprite()->SetRectangleVanilla(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
+        sprite()->SetRectangleVanilla(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
     }
-    sprite()->Rectangle(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->Rectangle(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->Rectangle(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->Rectangle(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->Rectangle(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->Rectangle(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangleVanilla(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
 }
 EI_REWRITTEN(0x005F2A90, CItemIconWindow::Build);
 

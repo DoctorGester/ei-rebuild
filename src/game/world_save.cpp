@@ -209,7 +209,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
-        CUnit* unit = static_cast<CWorld*>(world)->FindUnit(stranded.data[i]);
+        CUnit* unit = world->FindUnit(stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             world->Sectors()->Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
@@ -222,7 +222,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             world->Sectors()->Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
-            static_cast<CWorldServer*>(world)->RemoveObject(stranded.data[i]);
+            world->RemoveObject(stranded.data[i]);
         }
     }
     stranded.vtable = mfc::impl::IntArrayClass::Vtable();
@@ -236,7 +236,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->Server();
         stream->Read(&player->partyId_, 4);
-        static_cast<CParty*>(player->Party())->LoadParty(stream, 1);
+        player->Party()->LoadParty(stream, 1);
         player->lastTick_ = world->tick_;
         stream->Read(&player->sessionKind100_, 4);
         CBaseManager* items = world->ItemFactory();
@@ -265,7 +265,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
             group.vtable = mfc::impl::ScriptGroupClass::Vtable();
             group.Load(stream);
-            static_cast<ScriptGroup*>((void*)&group)->DestructBody();
+            group.DestructBody();
         }
         state->SendParty();
         state->SetFlag70(1);
@@ -295,7 +295,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             scriptsActive_ = 1;
-            static_cast<CPlayer*>((void*)player)->Clear();
+            player->Clear();
         }
     }
     AIMap()->BeginRefresh();
@@ -366,7 +366,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id == -1) break;
                 CEngineObject* object = manager48_->FindObject(id);
                 ++object->refCount_;
-                static_cast<CEffect*>((void*)object)->MarkChanged();
+                static_cast<CEffect*>(object)->MarkChanged();
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
             }
 
@@ -389,8 +389,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 list.tail = node;
             }
 
-            static_cast<AIEventTable*>(AIEvents())->Load(stream);
-            static_cast<CScript*>(MainScript())->LoadState(stream);
+            AIEvents()->Load(stream);
+            MainScript()->LoadState(stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
@@ -590,8 +590,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
-    static_cast<AIEventTable*>(AIEvents())->Save(stream);
-    static_cast<CScript*>(MainScript())->SaveState(stream);
+    AIEvents()->Save(stream);
+    MainScript()->SaveState(stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);

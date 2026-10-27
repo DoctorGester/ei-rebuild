@@ -6,6 +6,8 @@
 #include "game_data.h"
 #include "lib/crt_iostream.h"
 
+class CPlayerServer;
+
 // The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use.
 struct GameOstream : libcrt::Ostream {
     GameOstream* Put(const char* text);
@@ -29,5 +31,5 @@ inline UnitVitals* ServerStatsOf(CUnit* unit) { return &unit->ServerCompanion()-
 
 // Defined in combat_actions.cpp.
 // Player messages (player + 0x20 points at it): message `code` about `unit`.
-void PlayerMessage(void* messages, CUnit* unit, int code);
+void PlayerMessage(CPlayerServer* messages, CUnit* unit, int code);
 

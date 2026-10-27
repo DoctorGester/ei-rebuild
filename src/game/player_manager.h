@@ -12,6 +12,8 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
+class CPlayer;
+
 class CPlayerManager : public CBaseManager {
 public:
     CPlayerManager();
@@ -29,7 +31,7 @@ public:
     // world's side-specific manager (type 0x49: a CPlayerServer or a CPlayerClient), one reference
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
-    CEngineObject* CreateSessionPlayer();
+    CPlayer* CreateSessionPlayer();
     // `player`'s Release; `this` is not used.
     void ReleasePlayer(CEngineObject* player);
     // Called for the client's message 0x00 and the server's player id. `object` is filed

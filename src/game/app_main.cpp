@@ -180,12 +180,12 @@ std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
 void* ClassRegistry() { return &ChunkArchive::Registry(); }
-void* QuestDatabaseObject() { return &TheQuestDatabase(); }
-void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
-void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
-void* LeverTableObject() { return &TheLeverTable(); }
-void* AckDatabaseObject() { return &acks::Database(); }
-void* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
+QuestDatabase* QuestDatabaseObject() { return &TheQuestDatabase(); }
+itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
+itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
+LeverRecordTable* LeverTableObject() { return &TheLeverTable(); }
+acks::AckDatabase* AckDatabaseObject() { return &acks::Database(); }
+PrintsDatabase* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
@@ -462,13 +462,13 @@ void LoadDatabases() {
     const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
     SkillDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    static_cast<QuestDatabase*>(QuestDatabaseObject())->Load(options->resourcesPath_.c_str());
+    QuestDatabaseObject()->Load(options->resourcesPath_.c_str());
     UnitDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(options->resourcesPath_.c_str(), archive);
-    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(options->resourcesPath_.c_str(), archive);
-    static_cast<LeverRecordTable*>(LeverTableObject())->Load(options->resourcesPath_.c_str());
-    static_cast<acks::AckDatabase*>(AckDatabaseObject())->Load(options->resourcesPath_.c_str());
-    static_cast<PrintsDatabase*>(PrintsDatabaseObject())->Load(options->resourcesPath_.c_str());
+    SpellTablesObject()->Load(options->resourcesPath_.c_str(), archive);
+    ItemDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
+    LeverTableObject()->Load(options->resourcesPath_.c_str());
+    AckDatabaseObject()->Load(options->resourcesPath_.c_str());
+    PrintsDatabaseObject()->Load(options->resourcesPath_.c_str());
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------

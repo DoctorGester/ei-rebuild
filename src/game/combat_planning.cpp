@@ -154,7 +154,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         for (int i = 0; i < spots.size; ++i) {
             spot = spots.data[i];
             path.Path()->Clear();
-            if (!static_cast<CAIMap*>(map)->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
+            if (!map->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;

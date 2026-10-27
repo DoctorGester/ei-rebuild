@@ -366,8 +366,8 @@ EI_REWRITTEN_SPECIAL(0x0066C540, CPlayerServer::CPlayerServer);
 // The stream is a member, destroyed after the body (the original frees it before the handler table).
 CPlayerServer::~CPlayerServer() {
     ClearServerState();
-    static_cast<ScriptGroup*>(&partyUnits_)->DestructBody();
-    static_cast<ScriptGroup*>(&group50F8_)->DestructBody();
+    partyUnits_.DestructBody();
+    group50F8_.DestructBody();
     sentTimed_.FreeData();
     sentObjects_.FreeData();
     decompressor_.out.End();

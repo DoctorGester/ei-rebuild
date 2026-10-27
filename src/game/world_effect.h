@@ -16,6 +16,8 @@
 #include <cstddef>
 #include <cstdint>
 
+struct ScriptGroup;
+
 // The common base (abstract). The world's timed objects (CWorld::timedObjects_) are reached through Reset,
 // Radius and Position.
 class CEffect : public CTransformObject {
@@ -31,7 +33,7 @@ public:
     // How far it reaches: a constant.
     virtual double Radius();
     // Its position as `group` sees it: the local position (the argument is ignored).
-    virtual Vector3* Position(void* group);
+    virtual Vector3* Position(const ScriptGroup* group);
     virtual int Unpack(int update, DeltaField* field) = 0;   // 0 when the field did not end where expected
     virtual void Pack(DeltaField* field) = 0;
     virtual void Start(int update) = 0;                      // 0 creates the sound / light / source, else moves it
@@ -163,7 +165,7 @@ public:
     CEffectParticle();
     ~CEffectParticle() override;
     void Reset() override;
-    Vector3* Position(void* group) override;
+    Vector3* Position(const ScriptGroup* group) override;
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Spawn();                                 // creates or moves the source

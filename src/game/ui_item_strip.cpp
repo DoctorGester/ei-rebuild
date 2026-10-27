@@ -3,7 +3,6 @@
 // (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
-#include "ui_mesh_build.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -88,7 +87,7 @@ void CUiItemStrip::Build(char top) {
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = AddSprite(0);
-    static_cast<CUiMeshBuilder*>((void*)frame)->Framed(scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
@@ -99,7 +98,7 @@ void CUiItemStrip::Build(char top) {
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = AddSprite(0);
         const float fx = static_cast<float>(x);
-        static_cast<CUiMeshBuilder*>((void*)cell)->Framed(scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
+        cell->Framed(scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
     tab_ = 5;
     SetTab(5);

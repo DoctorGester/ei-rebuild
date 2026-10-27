@@ -90,7 +90,7 @@ void CEffect::SetVelocity(const Vector3* velocity) {
     MarkChanged();
 }
 
-Vector3* CEffect::Position(void*) { return &localPosition_; }
+Vector3* CEffect::Position(const ScriptGroup*) { return &localPosition_; }
 
 double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 

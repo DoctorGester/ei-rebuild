@@ -59,10 +59,6 @@ inline float BelowOneOrOne(const float& value) {
 
 // --- Engine objects ------------------------------------------------------------------------------
 
-inline void* ManagerContext(const void* object) { return static_cast<const CEngineObject*>(object)->ManagerContext(); }
-inline void* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
-inline void* FindObject(void* manager, void*, int id) { return static_cast<CBaseManager*>(manager)->FindObject(id); }
-
 // The world an object belongs to (the effects' manager context is the world, too).
 inline CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldContext(); }

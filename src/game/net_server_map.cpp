@@ -59,7 +59,7 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     GameFlow* world = TheGameFlow();
     world->RegisterQuests(name->data());
-    static_cast<GameFlow*>(world)->SetNetworkZone(name->data());
+    world->SetNetworkZone(name->data());
     {
         mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
         const char* mapTitle = *SessionMapNameInto(&title);

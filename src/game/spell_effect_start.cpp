@@ -419,7 +419,7 @@ EI_REWRITTEN(0x0067F870, CSpellEffect::Start);
 
 void CSpellEffect::SetVisual(CEffect* object) {
     Assign(this, &visual, object);
-    static_cast<CWorldServer*>(world)->AddTimedObject(visual);
+    world->AddTimedObject(visual);
 }
 EI_REWRITTEN(0x0067EF40, CSpellEffect::SetVisual);
 
@@ -469,7 +469,7 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
         arrow->casterId_ = caster->id_;
     }
     Assign<CEffect>(this, &visual, arrow);
-    static_cast<CWorldServer*>(world)->AddTimedObject(visual);
+    world->AddTimedObject(visual);
 }
 EI_REWRITTEN(0x0067F170, CSpellEffect::CreateArrow);
 
@@ -485,9 +485,9 @@ CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const 
     if (attachTo) particle->SetAttachedTo(attachTo->id_);
     if (keep) {
         Assign<CEffect>(this, &visual, particle);
-        static_cast<CWorldServer*>(world)->AddTimedObject(visual);
+        world->AddTimedObject(visual);
     } else {
-        static_cast<CWorldServer*>(world)->AddTimedObject(particle);
+        world->AddTimedObject(particle);
     }
     return particle;
 }
@@ -504,7 +504,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
     bolt->SetObjects(source ? source->id_ : -1, boltTarget->id_);
     bolt->SetFlag(static_cast<unsigned char>(flag));
     Assign<CEffect>(this, &visual, bolt);
-    static_cast<CWorldServer*>(world)->AddTimedObject(visual);
+    world->AddTimedObject(visual);
 }
 EI_REWRITTEN(0x0067F410, CSpellEffect::CreateLightning);
 
@@ -519,7 +519,7 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     effect->SetVelocity(velocity);
     effect->looping_ = keep;
     if (keep) Assign<CEffect>(this, &sound, effect);
-    static_cast<CWorldServer*>(world)->AddTimedObject(effect);
+    world->AddTimedObject(effect);
 }
 EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
 
@@ -543,7 +543,7 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
         }
     }
     Assign<CEffect>(this, &sound, effect);
-    static_cast<CWorldServer*>(world)->AddTimedObject(effect);
+    world->AddTimedObject(effect);
 }
 EI_REWRITTEN(0x0067F660, CSpellEffect::CreateSoundSequence);
 
@@ -555,6 +555,6 @@ void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, flo
     effect->SetVelocity(velocity);
     effect->lightFlags_ = kPointLightFlags;
     Assign(this, &light, effect);
-    static_cast<CWorldServer*>(world)->AddTimedObject(effect);
+    world->AddTimedObject(effect);
 }
 EI_REWRITTEN(0x0067F7C0, CSpellEffect::CreatePointLight);

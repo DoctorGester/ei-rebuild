@@ -151,7 +151,7 @@ void CWorldServer::ResetZone() {
         auto* it = gamecrt::operator_new_as<PlayerIterator>();
         if (it) it->manager = nullptr;
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
-            static_cast<CPlayer*>((void*)player)->Clear();
+            player->Clear();
         if (it) {
             if (it->manager) {
                 --it->manager->refCount_;
@@ -189,7 +189,7 @@ void CWorldServer::TeardownZone() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
-        static_cast<CPlayer*>((void*)player)->Disconnect();
+        player->Disconnect();
         PlayerList()->ReleasePlayer(player);
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;
@@ -257,7 +257,7 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = static_cast<CPlayer*>(players_->CreateSessionPlayer());
+    CPlayer* temporary = players_->CreateSessionPlayer();
     CPlayerServer* state = temporary->Server();
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {

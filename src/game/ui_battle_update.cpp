@@ -73,9 +73,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
-            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            AsUiMesh(sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
-            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            AsUiMesh(sprite)->PlaceBody(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
@@ -143,14 +143,13 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
 // vector<int> of ids (the library instantiations).
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 
 // The children's update (CUiContainer::UpdateBase).
-void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
+void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>(a0)->UpdateBase(); }
 
 // STLport lists of ids and unit pointers.
 using List = stlp::list<std::uintptr_t>;
@@ -198,7 +197,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {
-            if (!FindUnit(TheClientWorld(), nullptr, *unitId)) {
+            if (!TheClientWorld()->FindUnit(*unitId)) {
                 PushId(&ids.without, playerId);
                 continue;
             }
@@ -219,7 +218,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
-            CUnit* unit = FindUnit(TheClientWorld(), nullptr, unitId);
+            CUnit* unit = TheClientWorld()->FindUnit(unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
                 TheClientWorld()->Select(unit);
@@ -238,7 +237,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 party->SetAtGrow(party->size, unit);
             }
         }
-        static_cast<CHudPortraits*>(screen->portraits_)->Rebuild(cameraFirst ? 1 : 0);
+        screen->portraits_->Rebuild(cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();

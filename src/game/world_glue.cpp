@@ -189,7 +189,7 @@ std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_
 EI_REWRITTEN(0x005788B0, GameCameraPathPlaying);
 
 // The client's draw is called through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
-int GameRender() { return static_cast<CWorldClient*>(TheClientWorld())->Render(); }
+int GameRender() { return TheClientWorld()->Render(); }
 EI_REWRITTEN(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }

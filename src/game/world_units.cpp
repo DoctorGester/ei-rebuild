@@ -194,7 +194,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
             PlaceInLine(message, position, rotation, i);
         }
 
-        CUnit* unit = static_cast<CWorld*>(this)->FindUnit(CreateObject(message));
+        CUnit* unit = FindUnit(CreateObject(message));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
@@ -255,14 +255,14 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = records->data[i];
-            CUnit* unit = static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
+            CUnit* unit = FindUnit(static_cast<int>(record->unitId));
             if (!unit) continue;
             CUnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
             PlayerMode* follow = brain->FindPlayerMode();
             if (!follow) continue;
-            follow->SetLeader(brain, static_cast<CWorld*>(this)->FindUnit(record->leaderId));
+            follow->SetLeader(brain, FindUnit(record->leaderId));
         }
     }
 

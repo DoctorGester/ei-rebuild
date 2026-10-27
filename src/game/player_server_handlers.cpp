@@ -63,7 +63,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list.
 using UnitArray = mfc::CArray<CUnit*>;
 
-CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
+CUnit* FindUnit(int id) { return TheServerWorld()->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).

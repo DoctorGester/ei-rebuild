@@ -541,7 +541,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x89:     // RemoveUnitFromServer(object)
         case 0x96: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) static_cast<CWorldServer*>(TheWorld())->RemoveObject(object->id_);   // Rebirth patches it
+            if (object) TheWorld()->RemoveObject(object->id_);   // Rebirth patches it
             break;
         }
         case 0xD2:   // RecalcMercBriefings
@@ -689,7 +689,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             damage.multiplier = 1.0f;
             damage.location = 1;
             // TakeHit(hit, attacker, source): three arguments.
-            static_cast<CUnitController*>(state)->TakeHit(&damage, nullptr, nullptr);
+            state->TakeHit(&damage, nullptr, nullptr);
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
@@ -733,7 +733,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!spell) break;
             unit->AddSpell(spell);
             CUnitServer* state = UnitState(unit);
-            static_cast<CUnitController*>(state)->RefreshEquipment();
+            state->RefreshEquipment();
             break;
         }
         case 0xCD:   // GiveSkill(unit, skill, value)

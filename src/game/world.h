@@ -59,6 +59,7 @@ class CMaterialManager;
 class Terrain;
 class CCamera;
 class CMaterial;
+struct LineBatch;
 class CSpell;
 class CSpellEffect;
 class CParticleManager;
@@ -1104,7 +1105,7 @@ public:
     ScreenHits hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
     std::uint8_t unused_104[0x108 - 0x104];
-    stlp::hash_map<unsigned, void*, stlp::IntHash> lineLists_;   // line lists by key (DrawLineLists)
+    stlp::hash_map<unsigned, LineBatch*, stlp::IntHash> lineLists_;   // line lists by key (DrawLineLists)
     int lastLineListKey_;                 // the last line list key handed out; 0 from the constructor
     SectorGrid objectGrid_;               // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;

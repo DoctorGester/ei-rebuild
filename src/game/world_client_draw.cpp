@@ -254,8 +254,8 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
-    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene2);
-    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene1);
+    device->PushMatrix(top, kStackScene2);
+    device->PushMatrix(top, kStackScene1);
     PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
     g_sceneCamera = *device->Top(kStackScene1);
     g_haveSceneCamera = true;
@@ -315,7 +315,7 @@ int CWorldClient::Render() {
         particles->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        static_cast<CLightningManager*>(listManager_)->DrawAll(TheSceneRenderer());
+        listManager_->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         RainSnow()->Draw(TheSceneRenderer());
@@ -343,7 +343,7 @@ EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
-        static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), TheRenderDevice());
+        node->value->Draw(ScenePipeline(), TheRenderDevice());
     return 1;
 }
 EI_REWRITTEN(0x00569D60, CWorldClient::DrawLineLists);
@@ -543,8 +543,8 @@ int CWorldClient::DrawPass() {
         matrix.m[7] = product;
         product = sun.z * scale;
         matrix.m[11] = product;
-        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene2);
-        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene1);
+        device->PushMatrix(matrix.m, kStackScene2);
+        device->PushMatrix(matrix.m, kStackScene1);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
