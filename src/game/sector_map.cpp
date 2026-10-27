@@ -296,7 +296,7 @@ EI_REWRITTEN(0x005BF8F0, BuildSectorSpiral);
 // The static initialiser that builds the spiral at its place in the list. The object it passes
 // has no fields and nothing reads it.
 void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
-EI_REPLACE(0x005BF8E0, BuildSectorSpiralStatic);
+EI_REWRITTEN(0x005BF8E0, BuildSectorSpiralStatic);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];

@@ -87,13 +87,14 @@ CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
 void __cdecl DestroyCamera() { g_camera.Destroy(); }
+} // namespace
+
 void __cdecl ConstructCamera() {
     g_camera.Construct();
     libcrt::AtExit(DestroyCamera);
 }
-} // namespace
 
-EI_REPLACE(0x0040C880, ConstructCamera);
+EI_REWRITTEN(0x0040C880, ConstructCamera);
 EI_REWRITTEN(0x0040C8A0, DestroyCamera);
 
 const char* CCamera::GetClassName() { return "CCamera"; }

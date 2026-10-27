@@ -53,11 +53,6 @@ int MovieVolume() { return options::TheOptions()->audioStreaming_; }          //
 CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
 std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
 
-void __cdecl ReleaseLoadingHolder() {
-    if (g_loadingHolderReleased & 1) return;
-    g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
-    if (g_loadingHolder) g_loadingHolder->Release();
-}
 // Cleared while a timed movie plays.
 void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
 
@@ -75,6 +70,12 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 unsigned SurfaceType() { return kBinkSurface32R; }
 
 } // namespace
+
+void __cdecl ReleaseLoadingHolder() {
+    if (g_loadingHolderReleased & 1) return;
+    g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
+    if (g_loadingHolder) g_loadingHolder->Release();
+}
 
 unsigned CBinkVideo::Frame(char toPrimary) {
     if (!MoviesMode()) return 0;   // movies off
@@ -323,7 +324,7 @@ void CloseLoadingMovie() {
     TheCursor()->ShowImage(1);
 }
 EI_REWRITTEN(0x005DA3C0, CloseLoadingMovie);
-EI_REPLACE(0x005DA380, ReleaseLoadingHolder);
+EI_REWRITTEN(0x005DA380, ReleaseLoadingHolder);
 
 CBinkVideo* CBinkVideo::Construct() {
     holder = nullptr;

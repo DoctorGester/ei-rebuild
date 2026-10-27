@@ -73,13 +73,14 @@ ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry;
 
 namespace {
 void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
+} // namespace
+
 void __cdecl ConstructClassRegistry() {
     hash400::ClassRegistryConstruct(&*g_classRegistry);
     libcrt::AtExit(DestroyClassRegistry);
 }
-} // namespace
 
-EI_REPLACE(0x00408D30, ConstructClassRegistry);
+EI_REWRITTEN(0x00408D30, ConstructClassRegistry);
 EI_REWRITTEN(0x00408D50, DestroyClassRegistry);
 
 void ChunkArchive::PopChunk() {

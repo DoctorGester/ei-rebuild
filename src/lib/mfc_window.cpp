@@ -33,9 +33,6 @@ CFixedAlloc& TempMenuAlloc() { return *g_tempMenuAlloc; }
 // points at it.
 constinit unsigned g_dragListMessage = /*007CAA64*/ {};
 
-// a static initialiser (cdecl; the list holds a jump to its body).
-void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
-
 // CTempWnd (game.exe's): ~CWnd, the memory back to the fixed allocator.
 class CTempWnd final : public CWnd {
 public:
@@ -56,6 +53,9 @@ public:
 };
 
 } // namespace
+
+// a static initialiser (cdecl; the list holds a jump to its body).
+void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
 const CRuntimeClass* CWnd::GetRuntimeClass() const { return &kClassCWnd; }
 const CRuntimeClass* CMenu::GetRuntimeClass() const { return &kClassCMenu; }
@@ -96,10 +96,10 @@ EI_REWRITTEN(0x0070D363, CreateCTempWnd);
 EI_REWRITTEN(0x0070DC80, CreateCMenu);
 EI_REWRITTEN(0x0070DCA0, CreateCTempMenu);
 EI_REWRITTEN_SPECIAL(0x00703EC8, CCmdTarget::~CCmdTarget);
-EI_REPLACE(0x007043FA, RegisterDragListMessage);
-EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
+EI_REWRITTEN(0x007043FA, RegisterDragListMessage);
+EI_REWRITTEN(0x00704546, CWnd::Construct);
 EI_REWRITTEN_SPECIAL(0x007068AA, CWnd::CWnd);
-EI_REPLACE(0x00704FE3, DestroyStaticWindow);
+EI_REWRITTEN(0x00704FE3, DestroyStaticWindow);
 EI_REWRITTEN_SPECIAL(0x0070452A, CWnd::~CWnd);   // deleting
 EI_REWRITTEN(0x0070D35D, CWnd::GetRuntimeClass);
 EI_REWRITTEN(0x0070DC9A, CMenu::GetRuntimeClass);

@@ -118,12 +118,13 @@ constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
 using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 } // namespace
 
-EI_REPLACE(0x005809C0, DestroyQuestFiles);
-EI_REPLACE(0x00581090, DestroyQuestFolders);
+void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
+void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
+
+EI_REWRITTEN(0x005809C0, DestroyQuestFiles);
+EI_REWRITTEN(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;

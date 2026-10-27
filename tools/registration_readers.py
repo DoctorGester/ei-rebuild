@@ -8,8 +8,9 @@ readers, each a set of addresses:
 
   run time (the image; ei_vectors for code literals; game.exe's data holds no code pointer the image reads since
   C20, tools/gen_image_cells.py):
-    static init      a call or store of the generated static initialisers / exit functions
-                     (src/standalone/static_init.cpp, static_exit.cpp)
+    static init      a call, atexit or store by address of the generated static initialisers / exit functions
+                     (src/standalone/static_init.cpp, static_exit.cpp; C20 batch 2: gen_static_init.py names every
+                     port it can, so what is left are functions in an anonymous namespace)
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
                      callbacks, src/hook's and src/standalone's own: WinMain for HasCode, ...)
   the harness (verify build):
@@ -62,6 +63,9 @@ REWRITTEN = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\s*\([^;]*\)\s*;')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX](?:00)?([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 WORD = re.compile(r'(?<![0-9A-Za-z_])00([4-7][0-9A-Fa-f]{5})(?![0-9A-Za-z_])')
 STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
+# static_init.cpp's d.Begin(0x...) names the initialiser a statement list belongs to (the Check visitor's label); it
+# reaches no code.
+LABEL = re.compile(r'\bd\.Begin\(\s*0[xX][0-9A-Fa-f]+\s*\)')
 # Generated tables of addresses that are no readers: every function's size, the image's data cells and import
 # slots (data), the sites addon.dll patches in game.exe (the original's runs only).
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_cells.inc', 'src/standalone/image_imports.inc',
@@ -147,7 +151,8 @@ def literal_readers(regs):
             if p in NOT_READERS:
                 continue
             code = srcscan.blank_comments(open(path, encoding='utf-8', errors='replace').read())
-            own = spans.get(p, []) + [(m.start(), m.end()) for m in REWRITTEN.finditer(code)]
+            own = spans.get(p, []) + [(m.start(), m.end()) for m in REWRITTEN.finditer(code)] + \
+                [(m.start(), m.end()) for m in LABEL.finditer(code)]
             for m in LITERAL.finditer(code):
                 a = int(m.group(1), 16)
                 if not TEXT_BEGIN <= a < TEXT_END or any(s <= m.start() < e for s, e in own):

@@ -614,10 +614,11 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 // registers: it frees the block.
 constinit lib::AlignedArray<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
 lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
-void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
 } // namespace
 
-EI_REPLACE(0x005A0CB0, FreeOffsetVertices);
+void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
+
+EI_REWRITTEN(0x005A0CB0, FreeOffsetVertices);
 
 void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);

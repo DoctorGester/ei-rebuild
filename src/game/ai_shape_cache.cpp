@@ -74,11 +74,12 @@ EI_REWRITTEN(0x005B31F0, UnitShapeCache::Destruct);
 
 namespace {
 void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }
+} // namespace
+
 void __cdecl ConstructUnitShapes() {
     g_unitShapes->Construct();
     libcrt::AtExit(DestroyUnitShapes);
 }
-} // namespace
 
-EI_REPLACE(0x005B31C0, ConstructUnitShapes);
+EI_REWRITTEN(0x005B31C0, ConstructUnitShapes);
 EI_REWRITTEN(0x005B31E0, DestroyUnitShapes);

@@ -60,18 +60,6 @@ lib::AlignedArray<VertexPacket>& Quads() { return g_quads; }
 // The exit functions their static initialisers register: each frees its array's block. The points' and the
 // pixels' are guarded by a guard bit each, so a second run frees nothing.
 constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
-void __cdecl FreeQuads() { g_quads.FreeData(); }
-void __cdecl FreePoints() {
-    if (g_freed & 1) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    g_points.FreeData();
-}
-void __cdecl FreePixels() {
-    if (g_freed & 2) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    g_pixels.FreeData();
-}
-
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: render the texture again
 constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
@@ -206,6 +194,18 @@ float CornerY(const float* m, float a, float b) {
     return static_cast<float>(static_cast<double>(a) * m[5] + static_cast<double>(m[4]) * b);
 }
 } // namespace
+
+void __cdecl FreeQuads() { g_quads.FreeData(); }
+void __cdecl FreePoints() {
+    if (g_freed & 1) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 1);
+    g_points.FreeData();
+}
+void __cdecl FreePixels() {
+    if (g_freed & 2) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 2);
+    g_pixels.FreeData();
+}
 
 // --- The shadow -------------------------------------------------------------------------------
 
@@ -521,6 +521,6 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     return 1;
 }
 EI_REWRITTEN(0x0051CE60, CObject3DClientSpecific::DrawShadow);
-EI_REPLACE(0x0051CC00, FreeQuads);
-EI_REPLACE(0x0051CDD0, FreePoints);
-EI_REPLACE(0x0051CE30, FreePixels);
+EI_REWRITTEN(0x0051CC00, FreeQuads);
+EI_REWRITTEN(0x0051CDD0, FreePoints);
+EI_REWRITTEN(0x0051CE30, FreePixels);

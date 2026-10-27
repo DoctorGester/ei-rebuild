@@ -44,11 +44,6 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_workWords = /*0079B668*/ {};
 mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
 void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }
-void __cdecl ConstructWorkWords() {
-    mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
-    libcrt::AtExit(DestroyWorkWords);
-}
-
 void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }
 
 template <std::size_t Axis>
@@ -85,6 +80,11 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 }
 
 } // namespace
+
+void __cdecl ConstructWorkWords() {
+    mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
+    libcrt::AtExit(DestroyWorkWords);
+}
 
 namespace clip {
 
@@ -162,5 +162,5 @@ EI_REWRITTEN(0x0042D910, ClipTriangle);
 
 } // namespace clip
 
-EI_REPLACE(0x0042D8E0, ConstructWorkWords);
+EI_REWRITTEN(0x0042D8E0, ConstructWorkWords);
 EI_REWRITTEN(0x0042D900, DestroyWorkWords);

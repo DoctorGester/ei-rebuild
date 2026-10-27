@@ -260,11 +260,12 @@ CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
 void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }
+} // namespace
+
 void __cdecl ConstructMapDatabase() {
     g_mapDatabase->Construct();
     libcrt::AtExit(DestroyMapDatabase);
 }
-} // namespace
 
-EI_REPLACE(0x0045E6C0, ConstructMapDatabase);
+EI_REWRITTEN(0x0045E6C0, ConstructMapDatabase);
 EI_REWRITTEN(0x0045E6E0, DestroyMapDatabase);

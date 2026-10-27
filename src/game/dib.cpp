@@ -35,10 +35,10 @@ using mfc::impl::kClassCObject;
 // IMPLEMENT_SERIAL (schema 0): linked into the module state's class list by the static initialiser below.
 constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib, &kClassCObject, nullptr};
 
-void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
-EI_REPLACE(0x006D4A70, LinkDibClass);
-
 } // namespace
+
+void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
+EI_REWRITTEN(0x006D4A70, LinkDibClass);
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 

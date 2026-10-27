@@ -509,7 +509,7 @@ kinds given.
     addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
     the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
-    name and registered at the list's address (`d.Cdecl(address)` in static_init.cpp). Do not run
+    name (`d.Call(LinkDibClass)` in static_init.cpp). Do not run
     gen_function_sizes.py for new rows: it rewrites every size from the Ghidra database, which has moved from the
     committed file; add the rows by hand in order.
     config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
@@ -628,9 +628,9 @@ kinds given.
         `constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};`, `constinit stlp::vector<stlp::string>
         g_questFiles = /*007AFDD0*/ {};` (named_data's TYPES names a template, `lib::AlignedArray` / `stlp::vector`;
         a pointer type it does not list is a pointer element: `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
-      - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
-        has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
-        and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
+      - The exit function: ported on the name with `EI_REWRITTEN` at its address, outside any anonymous namespace
+        (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
+        place in the list as `d.AtExit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
         (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
@@ -1633,9 +1633,22 @@ the `--no-hooks` suite) keeps the registry.
   interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
-  callee is inlined, everything else is called at its address. One template, `StaticInitialisers(Do&)`
-  (static_init.h), with visitors `Run` (the image; calls go to `ei::Code` of the address) and `Targets` (logs call
-  targets without code).
+  callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
+  (static_init.h), with visitors `Run` (the image) and `Targets` (logs the call targets by address without code).
+- **Calls by name** (C20 batch 2): a call or atexit of a function in the function-to-original map (a registration or
+  an EI_REWRITTEN line) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
+  Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
+  `name_calls`). Code::Call converts the decoded dwords to the declared parameters (`Argument`: a pointer from a
+  dword, a lib::StaticObject's T for a named object) and returns the result as a dword (`Returned`). The name is the
+  definition's (its namespaces from srcscan.Scopes); a header that declares it in the same namespace is included,
+  otherwise a `void __cdecl Fn()` initialiser or exit function is declared at the top of the generated file (the
+  linker catches a signature that differs: MSVC's names hold the return type and convention). A method is
+  `&Class::Method` of the class a header declares. A function in an anonymous namespace has no name another file can
+  reach: while it is registered the generator calls it by address and lists it ("still called by address"); with no
+  registration it stops. Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing
+  namespaces); the 29 left are in the files C14a held (console_streams, script_exec_helpers, string_map, mfc_string,
+  mfc_coll). The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
+  them unchanged; `d.Begin(0x...)` is a label (registration_readers skips it).
   When a helper gets registered later the output changes: rerun the generator (check_static_init, removed in
   C25d, re-decoded game.exe and compared).
 - **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns
@@ -1667,7 +1680,7 @@ the `--no-hooks` suite) keeps the registry.
   | reader | registrations | needs game.exe's code addresses? |
   |---|---|---|
   | code cells (gen_image_cells) | 0 (825 cells: static initialiser list 748, MFC message maps 35, CRT tables 35, ThrowInfo 7) | no: none was read at run time; retired, the bytes are zero |
-  | static init / exit (static_init.cpp's calls and d.AtExit, static_exit.cpp's calls; libcrt::OnExit's CodeAddress) | 178 | yes, until gen_static_init writes calls by name |
+  | static init / exit (static_init.cpp's calls and d.AtExit by address) | 178; 29 after batch 2 (the anonymous-namespace initialisers of the files C14a held) | yes, until those have a name too; batch 2's generator calls every other port by name |
   | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
   | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 129 | yes, until each calls or takes the function by name (C20f) |
   | the harness's image side (GameCode<F> of FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, the cursor lock) | 5 | yes, until those become hook points or tests/verify/image calls |

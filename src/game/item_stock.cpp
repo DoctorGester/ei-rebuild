@@ -747,16 +747,14 @@ constinit stlp::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
 constinit stlp::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
 } // namespace stock
 
-namespace {
 void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }
 void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
 void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
 void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }
 void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
-} // namespace
 
-EI_REPLACE(0x00698E90, FreeTakenPrototypes);
-EI_REPLACE(0x00698EE0, FreeTakenSpells);
-EI_REPLACE(0x00698F30, FreeTakenModifiers);
-EI_REPLACE(0x00698F80, FreeCandidates);
-EI_REPLACE(0x00698FD0, FreeTakenMaterials);
+EI_REWRITTEN(0x00698E90, FreeTakenPrototypes);
+EI_REWRITTEN(0x00698EE0, FreeTakenSpells);
+EI_REWRITTEN(0x00698F30, FreeTakenModifiers);
+EI_REWRITTEN(0x00698F80, FreeCandidates);
+EI_REWRITTEN(0x00698FD0, FreeTakenMaterials);

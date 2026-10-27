@@ -38,8 +38,6 @@ constexpr float kByteScale = 255.0f;
 // projection). Zero at the start; its exit function frees the block.
 constinit lib::AlignedArray<VertexPacket> g_movedPackets = /*007AEED0*/ {};
 lib::AlignedArray<VertexPacket>& MovedPackets() { return g_movedPackets; }
-void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }
-
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
 using PixelPair = RasterTriangle::Point;
 
@@ -161,6 +159,8 @@ int DrawPartCommon(CLinkMesh* mesh, const stlp::string* name, int flags, CDXSurf
 }
 
 } // namespace
+
+void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }
 
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 
@@ -284,4 +284,4 @@ int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, 
 }
 EI_REWRITTEN(0x004F4850, CLinkMesh::RasterisePart);
 EI_REWRITTEN(0x004F4B30, FreeTexturePixels);
-EI_REPLACE(0x004F2B20, FreeMovedPackets);   // frees the moved packets at exit
+EI_REWRITTEN(0x004F2B20, FreeMovedPackets);   // frees the moved packets at exit

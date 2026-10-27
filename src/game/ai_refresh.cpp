@@ -20,8 +20,6 @@ constexpr int kLevels = 8;
 
 // The occluders' damping scale, ln 0.6 as the x87 computes it, stored as a float by a static initialiser.
 float g_dampScale = /*007C2F8C*/ {};
-void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
-
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.
 int AreaList(int level) {
@@ -37,6 +35,8 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
 using ObjectList = mfc::CTypedPtrList<CUnit>;
 
 } // namespace
+
+void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
 
 void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
@@ -320,4 +320,4 @@ EI_REWRITTEN(0x005B8FA0, CAIMap::RefreshArea);
 EI_REWRITTEN(0x005B89F0, CAIMap::ClearUnmarkedArea);
 EI_REWRITTEN(0x005B8BA0, CAIMap::CellMark);
 EI_REWRITTEN(0x005B8710, CAIMap::LimitSteepCells);
-EI_REPLACE(0x005B2FB0, InitDampScale);
+EI_REWRITTEN(0x005B2FB0, InitDampScale);

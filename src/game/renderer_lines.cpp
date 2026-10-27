@@ -136,20 +136,21 @@ constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
 namespace {
+void __cdecl DestroyLineOutcodes() {   // (CByteArray's destructor)
+    mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
+}
+} // namespace
+
 void __cdecl FreeLineVertices() {
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
 void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }
-void __cdecl DestroyLineOutcodes() {   // (CByteArray's destructor)
-    mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
-}
 void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
     libcrt::AtExit(DestroyLineOutcodes);
 }
-} // namespace
 
-EI_REPLACE(0x0049B490, FreeLineVertices);
-EI_REPLACE(0x0049B710, FreeLineProjected);
-EI_REPLACE(0x0049B6B0, ConstructLineOutcodes);
+EI_REWRITTEN(0x0049B490, FreeLineVertices);
+EI_REWRITTEN(0x0049B710, FreeLineProjected);
+EI_REWRITTEN(0x0049B6B0, ConstructLineOutcodes);
 EI_REWRITTEN(0x0049B6D0, DestroyLineOutcodes);

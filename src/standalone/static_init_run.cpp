@@ -9,6 +9,7 @@
 
 namespace ei::static_init {
 
+void Run::AtExit(void(__cdecl* fn)()) { libcrt::AtExit(fn); }
 void Run::AtExit(std::uintptr_t fn) { libcrt::AtExit(reinterpret_cast<void(__cdecl*)()>(fn)); }
 
 void RunStaticInitialisers() {
@@ -32,17 +33,13 @@ int ReportMissingTargets() {
     };
     const int calls = missing(targets.calls, "call target");
     const int exits = missing(targets.exits, "exit function");
-    // What the generated exit functions call (library destructors).
-    Targets callees;
-    for (std::uintptr_t fn : targets.exits) ExitFunction(callees, fn);
-    const int exitCalls = missing(callees.calls, "exit function's callee");
     int imports = 0;
     for (const void* slot : targets.imports)
         if (!*static_cast<const void* const*>(slot)) ++imports;
-    Log("standalone: static initialisers: %zu call(s), %zu exit function(s), %zu import call(s); without code: %d call "
-        "target(s), %d exit function(s), %d import(s), %d exit function callee(s)",
-        targets.calls.size(), targets.exits.size(), targets.imports.size(), calls, exits, imports, exitCalls);
-    return calls + exits + imports + exitCalls;
+    Log("standalone: static initialisers: %zu call(s) and %zu exit function(s) by address, %zu import call(s); "
+        "without code: %d call target(s), %d exit function(s), %d import(s)",
+        targets.calls.size(), targets.exits.size(), targets.imports.size(), calls, exits, imports);
+    return calls + exits + imports;
 }
 
 } // namespace ei::static_init

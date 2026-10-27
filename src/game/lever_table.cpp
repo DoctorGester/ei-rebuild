@@ -19,12 +19,13 @@ EI_REWRITTEN_SPECIAL(0x00463120, LeverRecordTable::~LeverRecordTable);
 constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
 
 namespace {
+void __cdecl DestroyLeverTable() { g_leverTable.Destroy(); }
+} // namespace
+
 void __cdecl ConstructLeverTable() {
     g_leverTable.Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00463110));
 }
-void __cdecl DestroyLeverTable() { g_leverTable.Destroy(); }
-} // namespace
 
-EI_REPLACE(0x004630F0, ConstructLeverTable);
+EI_REWRITTEN(0x004630F0, ConstructLeverTable);
 EI_REPLACE(0x00463110, DestroyLeverTable);

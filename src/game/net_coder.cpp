@@ -175,7 +175,7 @@ void __cdecl InitCodeTables() {
         }
     }
 }
-EI_REPLACE(0x0042FAE0, InitCodeTables);
+EI_REWRITTEN(0x0042FAE0, InitCodeTables);
 
 
 void CoderState::EncodeMatch(std::int32_t at) {

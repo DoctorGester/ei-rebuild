@@ -1119,28 +1119,191 @@ def decode_exits(img, decoded):
     return out, bad
 
 
-def render_exits(exits):
+# ---- Calls by name (C20) --------------------------------------------------------------------------------------------
+#
+# A call, an atexit or an exit function's call of a function in the function-to-original map (a registration or an
+# EI_REWRITTEN line of src/) is written by the function's name: `d.Call(Fn, args...)`, `d.Call(&Class::Method, object,
+# args...)`, `d.AtExit(Fn)`; static_init.h's visitors convert the arguments to the declared parameters. The name is
+# the definition's (its namespaces from the source); a header that declares it in the same namespace is included,
+# otherwise an initialiser's or exit function's `void __cdecl Fn()` is declared at the top of the generated file. A
+# function defined in an anonymous namespace has no name another file can call: while it is registered the call
+# stays by address (CodeAddress), listed by the tool's summary; once its registration is gone the tool stops (move it
+# out of the anonymous namespace). Statements stay in address form until render, so the analyses above (unread
+# objects, stored values, named_data.py) read them unchanged.
+
+MAP_LINE = re.compile(r'^[ \t]*(EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN(?:_SPECIAL)?)\s*\(\s*'
+                      r'0[xX]([0-9A-Fa-f]+)\s*,\s*&?\s*([\w:~]+)\s*\)\s*;', re.M)
+SHORT_FUNCTIONS = os.path.join(ROOT, 'src', 'game', 'short_functions.cpp')
+RET = 'ei::short_functions::Ret'   # the exit functions that do nothing (static_exit.cpp's 'nothing')
+
+
+class Port:
+    def __init__(self, path, name, registered, offset):
+        self.path, self.name, self.registered, self.offset = path, name, registered, offset
+
+
+class Names:
+    """Address -> how the generated code calls it: (expression, header to include or None, declaration or None);
+    None for an address called by address (`by_address`, with why)."""
+
+    def __init__(self, exits=()):
+        import srcscan
+        self.srcscan = srcscan
+        self.sources = {}
+        self.ports = {}
+        for d, _, names in os.walk(os.path.join(ROOT, 'src')):
+            for n in sorted(names):
+                p = os.path.join(d, n)
+                if not n.endswith(('.cpp', '.h')) or os.path.abspath(p) in (OUT, OUT_EXIT, SHORT_FUNCTIONS):
+                    continue
+                code = self.code(p)
+                for m in MAP_LINE.finditer(code):
+                    if '#define' in code[code.rfind('\n', 0, m.start()) + 1:m.start()]:
+                        continue
+                    self.ports[int(m.group(2), 16)] = Port(p, m.group(3), m.group(1).startswith('EI_REPLACE'), m.start())
+        self.headers = {}   # last name -> [(header, namespaces)] of a declaration at namespace scope
+        self.classes = {}   # class name -> [(header, namespaces)]
+        for d, _, names in os.walk(os.path.join(ROOT, 'src')):
+            for n in sorted(names):
+                if not n.endswith('.h'):
+                    continue
+                p = os.path.join(d, n)
+                code, scopes = self.code(p), self.scopes(p)
+                for m in re.finditer(r'(?<![\w.>:~])([A-Za-z_]\w*)\s*\(', code):
+                    path = scopes.namespace_at(m.start())
+                    if path is not None:
+                        self.headers.setdefault(m.group(1), []).append((p, path))
+                for begin, _, kind, name in scopes.blocks:
+                    path = scopes.namespace_at(begin)
+                    if kind == 'class' and path is not None:
+                        self.classes.setdefault(name, []).append((p, path))
+        self.exits = {fn: name for fn, name, _, _, _ in exits}
+        self.resolved, self.by_address, self.problems = {}, {}, []
+
+    def code(self, path):
+        if path not in self.sources:
+            raw = open(path, encoding='utf-8', errors='replace').read()
+            code = self.srcscan.blank_comments(raw)
+            self.sources[path] = (code, self.srcscan.Scopes(code))
+        return self.sources[path][0]
+
+    def scopes(self, path):
+        self.code(path)
+        return self.sources[path][1]
+
+    def __call__(self, address):
+        if address not in self.resolved:
+            self.resolved[address] = self.resolve(address)
+        return self.resolved[address]
+
+    def resolve(self, a):
+        if a in self.exits:   # this tool's own exit functions (static_exit.cpp)
+            if self.exits[a] == 'nothing':
+                return RET, None, ('ei::short_functions', 'void Ret();')
+            return f'Exit{a:08X}', None, ('ei::static_init', f'void __cdecl Exit{a:08X}();')
+        port = self.ports.get(a)
+        if port is None:
+            self.by_address[a] = 'no port'
+            return None
+        rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
+        parts = port.name.split('::')
+        last, qual = parts[-1], parts[:-1]
+        scope = [x for x in self.scopes(port.path).namespace_at(port.offset) or [] if x]
+        # A method: Class::Method with the class declared in a header (the namespaces nearest the registration's).
+        if qual:
+            named = [(h, p) for h, p in self.classes.get(qual[-1], []) if (p + qual[-1:])[-len(qual):] == qual]
+            found = [(h, p) for h, p in named if len(qual) > 1 or p == scope[:len(p)]] or \
+                    (named if len({tuple(p) for _, p in named}) == 1 else [])
+            if found:
+                h, p = max(found, key=lambda x: len(x[1]))
+                return '&' + '::'.join(p + [qual[-1], last]), h, None
+        # A free function: its definition in the registration's file.
+        code, scopes = self.code(port.path), self.scopes(port.path)
+        defs = []
+        for m in re.finditer(r'(?<![\w.>~])((?:\w+::)*)' + re.escape(last) + r'\s*\(([^;{}()]*)\)\s*(?:noexcept\s*)?\{',
+                             code):
+            path = scopes.namespace_at(m.start())
+            if path is None:
+                continue
+            full = [x for x in path] + [x for x in m.group(1).split('::') if x]
+            if qual and [x for x in full if x][-len(qual):] != qual:
+                continue
+            head = code[max(code.rfind(c, 0, m.start()) for c in ';{}') + 1:m.start()].strip()
+            defs.append((full, head, m.group(2).strip()))
+        if len(defs) != 1:
+            self.problems.append(f'{rel}: {port.name} ({a:08X}): {len(defs)} definition(s) found')
+            return None
+        full, head, params = defs[0]
+        if '' in full:
+            if port.registered:
+                self.by_address[a] = f'{rel}: {port.name} is in an anonymous namespace'
+                return None
+            self.problems.append(f'{rel}: {port.name} ({a:08X}) is in an anonymous namespace and not registered: give '
+                                 'it a name (move it out of the namespace) or register it')
+            return None
+        expr = '::'.join(full + [last])
+        same = [h for h, p in self.headers.get(last, []) if p == full]
+        if same:
+            own = os.path.splitext(port.path)[0] + '.h'
+            return expr, own if own in same else sorted(same)[0], None
+        if re.match(r'static\b', head):
+            self.problems.append(f'{rel}: {port.name} ({a:08X}) is static: give it external linkage')
+            return None
+        if not re.fullmatch(r'void(?:\s+__cdecl)?', head) or params not in ('', 'void'):
+            self.problems.append(f'{rel}: {port.name} ({a:08X}) is `{head} {last}({params})`: declare it in a header')
+            return None
+        return expr, None, ('::'.join(full), f'void __cdecl {last}();')
+
+
+CALL_BY_ADDRESS = re.compile(r'\bd\.(Cdecl|Stdcall|Thiscall|AtExit)\((0x[0-9A-F]{8})\b')
+
+
+def name_calls(text, names, headers, declarations):
+    """`text` with each call and atexit of a function in the map written by its name (Names); adds the headers and
+    declarations it needs."""
+    def named(m):
+        found = names(int(m.group(2), 16))
+        if found is None:
+            return m.group(0)
+        expr, header, declaration = found
+        if header:
+            headers.add(os.path.relpath(header, os.path.join(ROOT, 'src')).replace(os.sep, '/'))
+        if declaration:
+            declarations.add(declaration)
+        return f'd.{"AtExit" if m.group(1) == "AtExit" else "Call"}({expr}'
+    return CALL_BY_ADDRESS.sub(named, text)
+
+
+def render_declarations(declarations):
+    """The declarations name_calls collected, by namespace."""
+    out = []
+    for ns in sorted({n for n, _ in declarations}):
+        lines = sorted(d for n, d in declarations if n == ns)
+        out += ([f'namespace {ns} {{'] if ns else []) + lines + ([f'}} // namespace {ns}'] if ns else []) + ['']
+    return '\n'.join(out)
+
+
+def render_exits(exits, names):
     kinds = collections.Counter(name for _, name, _, _, _ in exits)
-    cases, wrappers, regs = [], [], []
+    functions, nothing, rewritten = [], [], []
+    headers, declarations = set(), set()
     for fn, name, body, size, initialisers in exits:
         by = ', '.join(f'{a:08X}' for a in initialisers[:3]) + (f' and {len(initialisers) - 3} more' if len(initialisers) > 3 else '')
         how = 'atexit at' if initialisers[0] in RUNTIME_SITES else 'atexit by'
-        cases.append(f'    case {hexa(fn)}:   // {name}, {size} byte(s); {how} {by}')
-        if body:
-            cases.append(f'        {body}')
-        cases.append('        return true;')
-        if name == 'nothing':   # under five bytes: registered as a short function (EI_REPLACE_SHORT)
-            regs.append(f'EI_REPLACE_SHORT({hexa(fn)}, Ret);')
-        else:
-            wrappers.append(f'void __cdecl Exit{fn:08X}() {{ RunExitFunction({hexa(fn)}); }}')
-            regs.append(f'EI_REPLACE({hexa(fn)}, ei::static_init::Exit{fn:08X});')
+        note = f'// {name}, {size} byte(s); {how} {by}'
+        if name == 'nothing':   # the initialisers register ei::short_functions::Ret by name
+            nothing += [note, f'EI_REWRITTEN({hexa(fn)}, {RET});']
+            continue
+        body = name_calls(name_operands(body.replace('\n        ', '\n    '), headers), names, headers, declarations)
+        if re.search(r'\bd\.(?:Cdecl|Stdcall|Thiscall)\(0x', body):
+            names.problems.append(f'exit function {fn:08X}: {body.strip()} calls by address: give the callee a name')
+        functions += [note, f'void __cdecl Exit{fn:08X}() {{', '    Code d;', f'    {body}', '}', '']
+        rewritten.append(f'EI_REWRITTEN({hexa(fn)}, ei::static_init::Exit{fn:08X});')
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
-    headers = set()
-    cases = [name_operands(c, headers) for c in cases]
     return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary)
-            .replace('@INCLUDES@', includes(headers)) + '\n'.join(cases) +
-            EXIT_MIDDLE + '\n'.join(wrappers) + '\n\n} // namespace ei::static_init\n\nusing ei::short_functions::Ret;\n\n' +
-            '\n'.join(regs) + '\n')
+            .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
+            '\n'.join(functions) + '\n} // namespace ei::static_init\n\n' + '\n'.join(rewritten) + '\n\n' +
+            '\n'.join(nothing) + '\n')
 
 
 def load_sizes():
@@ -1165,7 +1328,9 @@ def write_sizes(exits):
         f.write(head + ''.join(f'{{0x{a:08X}, {n}}},\n' for a, n in sorted(sizes.items())))
 
 
-def render(decoded):
+
+
+def render(decoded, names):
     kinds = collections.Counter(k for _, k, _, _, _, _ in decoded)
     body = []
     for a, kind, lines, _, inlined, _ in decoded:
@@ -1176,10 +1341,11 @@ def render(decoded):
         body.append(f'    d.Begin({hexa(a)});')
         body.extend('    ' + line for line in lines)
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
-    headers = set()
-    body = [name_operands(line, headers) for line in body]
+    headers, declarations = set(), set()
+    body = [name_calls(name_operands(line, headers), names, headers, declarations) for line in body]
     return (HEADER.replace('@SUMMARY@', summary).replace('@COUNT@', str(len(decoded)))
-            .replace('@INCLUDES@', includes(headers)) + '\n'.join(body) + FOOTER)
+            .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
+            '\n'.join(body) + FOOTER)
 
 
 def main():
@@ -1191,16 +1357,25 @@ def main():
     if problems:
         print('\n'.join(problems))
         return 1
+    names = Names(exits)
+    text, text_exit = render(decoded, names), render_exits(exits, names)
+    if names.problems:
+        print('\n'.join(names.problems))
+        return 1
     with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(render(decoded))
+        f.write(text)
     with open(OUT_EXIT, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(render_exits(exits))
+        f.write(text_exit)
     with open(UNREAD_DATA, 'w', encoding='utf-8', newline='\n') as f:
         f.write(unread)
     write_sizes(exits)
     print(f'{len(decoded)} static initialiser(s) written to {os.path.relpath(OUT, ROOT)} ({sum(LEFT_OUT.values())} '
           f'statement(s) left out), {len(exits)} exit function(s) to {os.path.relpath(OUT_EXIT, ROOT)}, '
           f'{len(unread.splitlines()) - 1} unread object(s) to {os.path.relpath(UNREAD_DATA, ROOT)}')
+    if names.by_address:   # registered (CodeAddress) or not ported: registration_readers.py's static init readers
+        print(f'{len(names.by_address)} function(s) still called by address:')
+        for a, why in sorted(names.by_address.items()):
+            print(f'  {a:08X} {why}')
     return 0
 
 
@@ -1212,14 +1387,14 @@ HEADER = '''\
 // Stores, float folds and fills into game.exe's data that a named global of ours holds (config/named_data.csv: its
 // definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
 // out"; docs/notes/standalone.md, "Named data (C18)").
-// The standalone image runs them before WinMain (Run in static_init.h); the verify build compares the
-// stores and float folds with what the original's initialisers left in memory (Check). Calls go to the
-// callee's address in the image: our rewrite through its jump, or a library port.
+// The standalone image runs them before WinMain (Run in static_init.h). A call or atexit of a ported function names
+// it (d.Call, d.AtExit); one by address goes to CodeAddress's code for it (a registration, or the stub of a function
+// with no port yet).
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
 @INCLUDES@
-namespace ei::static_init {
+@DECLARATIONS@namespace ei::static_init {
 
 template <class Do>
 void StaticInitialisers(Do& d) {
@@ -1241,40 +1416,19 @@ EXIT_HEADER = '''\
 // The @COUNT@ exit functions game.exe registers with atexit that no rewrite ports, the static
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
-// Each is decoded from its instructions as a whole-function pattern; ExitFunction states its body over
-// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
-// A library type's destructor is called at its address in the image (a library
-// port, S4-S12; the standalone check logs the callees with no code yet).
+// Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
+// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are
+// ei::short_functions::Ret.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
 #include "ei/hook.h"
 @INCLUDES@
-namespace ei::short_functions {
+@DECLARATIONS@namespace ei::short_functions {
 void Ret();   // src/game/short_functions.cpp
 } // namespace ei::short_functions
 
 namespace ei::static_init {
-
-template <class Do>
-bool ExitFunction(Do& d, std::uintptr_t fn) {
-    switch (fn) {
-'''
-
-EXIT_MIDDLE = '''
-    }
-    return false;
-}
-
-template bool ExitFunction<Code>(Code&, std::uintptr_t);
-template bool ExitFunction<Targets>(Targets&, std::uintptr_t);
-
-namespace {
-void RunExitFunction(std::uintptr_t fn) {
-    Code d;
-    ExitFunction(d, fn);
-}
-} // namespace
 
 '''
 

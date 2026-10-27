@@ -87,13 +87,14 @@ void __cdecl DestroyReceivedMessages() {
     g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
     g_receivedMessages->~CMemoryStream();
 }
+} // namespace
+
 void __cdecl ConstructReceivedMessages() {
     new (&*g_receivedMessages) CMemoryStream();
     libcrt::AtExit(DestroyReceivedMessages);
 }
-} // namespace
 
-EI_REPLACE(0x0066C4D0, ConstructReceivedMessages);
+EI_REWRITTEN(0x0066C4D0, ConstructReceivedMessages);
 EI_REWRITTEN(0x0066C520, DestroyReceivedMessages);
 
 // --- The leader died ----------------------------------------------------------------------

@@ -33,6 +33,8 @@ void __cdecl DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
 
 using AtExitFunction = void(__cdecl*)();
 
+} // namespace
+
 void __cdecl ConstructRegistryRoot() {
     g_registryRoot.Construct();
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E780));
@@ -54,13 +56,11 @@ void __cdecl ConstructDiscFolder() {
     libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E880));
 }
 
-} // namespace
-
-EI_REPLACE(0x0055E760, ConstructRegistryRoot);
-EI_REPLACE(0x0055E7A0, ConstructStartFolder);
-EI_REPLACE(0x0055E7E0, ConstructDataFolder);
-EI_REPLACE(0x0055E820, ConstructTextFolder);
-EI_REPLACE(0x0055E860, ConstructDiscFolder);
+EI_REWRITTEN(0x0055E760, ConstructRegistryRoot);
+EI_REWRITTEN(0x0055E7A0, ConstructStartFolder);
+EI_REWRITTEN(0x0055E7E0, ConstructDataFolder);
+EI_REWRITTEN(0x0055E820, ConstructTextFolder);
+EI_REWRITTEN(0x0055E860, ConstructDiscFolder);
 EI_REPLACE(0x0055E780, DestroyRegistryRoot);
 EI_REPLACE(0x0055E7C0, DestroyStartFolder);
 EI_REPLACE(0x0055E800, DestroyDataFolder);

@@ -29,14 +29,15 @@ constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {}
 using spellfx::g_spellFootprint;
 
 namespace {
+void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
+} // namespace
+
 void __cdecl ConstructSpellFootprint() {
     g_spellFootprint->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
 }
-void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
-} // namespace
 
-EI_REPLACE(0x0067E4C0, ConstructSpellFootprint);
+EI_REWRITTEN(0x0067E4C0, ConstructSpellFootprint);
 EI_REPLACE(0x0067E500, FreeSpellFootprint);
 
 void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }

@@ -119,12 +119,13 @@ constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 
 namespace {
+void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
+} // namespace
+
 void __cdecl ConstructPartyManager() {
     g_partyManager->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
 }
-void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
-} // namespace
 
-EI_REPLACE(0x004A56D0, ConstructPartyManager);
+EI_REWRITTEN(0x004A56D0, ConstructPartyManager);
 EI_REPLACE(0x004A56F0, DestroyPartyManager);
