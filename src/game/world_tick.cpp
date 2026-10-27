@@ -29,15 +29,15 @@ namespace {
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-// WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard,
-// destructor 0058D5C0 registered with atexit).
+// WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard, destructor registered
+// with atexit).
 SpiralCache g_wakeCache = /*007AFF08*/ {};
 std::uint8_t g_wakeCacheGuard = /*007AFF10*/ {};
 SpiralCache& WakeCache() { return g_wakeCache; }
 std::uint8_t& WakeCacheGuard() { return g_wakeCacheGuard; }
 
-// 005C0930 (CSectorMap, inlined here: bounds check and address only). The unit list of sector
-// (x, y), or null outside the map.
+// CSectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
+// map.
 mfc::CTypedPtrList<CUnit>* SectorUnits(CSectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
@@ -68,7 +68,7 @@ public:
     IdList(const IdList&) = delete;
     IdList& operator=(const IdList&) = delete;
 
-    // insert(end(), value): 00404C90 creates the node, 00404A40 links it.
+    // insert(end(), value): create the node, then link it.
     void PushBack(unsigned value) {
         auto* node = stlp::allocate_as<Node>();
         node->value = value;
@@ -102,8 +102,8 @@ void CWorldServer::Tick(char force) {
     ++tick_;
     if ((tick_ & 0x3F) == 3) UpdateWeather();
 
-    // Timed objects: each one's slot 6 runs it; those that return 0 are released now and taken
-    // out of the map after the walk (the walk reads the node again after the release).
+    // Timed objects: each one's Update runs it; those that return 0 are released now and taken out of the map after
+    // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects_.map;
     auto* node = timed.First();
     CEngineObject* object = node ? node->value : nullptr;
@@ -202,17 +202,17 @@ void CWorldServer::SetGameResult(int result) {
     gameResult_ = result;
     if (result == 2 || result == 3) {
         OpenSession();
-        netSession_.Get()->Query();   // the new session's slot 4 (result unused)
+        netSession_.Get()->Query();   // the new session's Query (result unused)
     }
 }
 
 // ---- The units -----------------------------------------------------------------------
 
 namespace {
-// UpdateUnits' two function-local id lists (00453A50-style arrays: data, size, max, grow; the data
-// block starts one dword after its allocation), with their guard bits in g_updateListGuards.
+// UpdateUnits' two function-local id lists (arrays of data, size, max, grow; the data block starts one dword
+// after its allocation), with their guard bits in g_updateListGuards.
 using IdArray = lib::AlignedArray<unsigned>;
-// The instantiation's SetAtGrow(index, value) (RET 8).
+// The instantiation's SetAtGrow(index, value).
 
 constinit lib::AlignedArray<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
 constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
@@ -268,8 +268,8 @@ void CWorldServer::UpdateUnits() {
         }
     }
 
-    // The counted objects run too; those whose slot 6 returns 0 leave the list (its RemoveAt,
-    // 0059A050, also releases the reference).
+    // The counted objects run too; those whose Update returns 0 leave the list (its RemoveAt also releases the
+    // reference).
     for (auto* position = counted_.head; position;) {
         auto* current = position;
         position = position->next;
@@ -282,10 +282,9 @@ void CWorldServer::UpdateUnits() {
 }
 
 void CWorldServer::TickSleepingEffects() {
-    // Rebirth (addon.dll 1001813C, a context hook at 0058D82E): every map object that is referenced,
-    // not flagged for removal, has effects and a companion, and is asleep (+0x174 <= 0; its own
-    // update would count its effects down) gets one tick taken off each effect; when one runs
-    // out, the object goes back into the update map, whose update removes it.
+    // Rebirth (a context hook): every map object that is referenced, not flagged for removal, has effects and a
+    // companion, and is asleep (+0x174 <= 0; its own update would count its effects down) gets one tick taken off
+    // each effect; when one runs out, the object goes back into the update map, whose update removes it.
     mapObjects_.map.ForEach([this](auto* node) {
         CMapObject* object = node->value;
         if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;

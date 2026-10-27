@@ -17,7 +17,7 @@ using namespace itemdb;
 
 namespace {
 
-// Bytes [from, to) of `source` copied into `target` (the original's dword, word and byte moves).
+// Bytes [from, to) of `source` copied into `target` (dword, word and byte moves).
 template <typename R>
 void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
     std::memcpy(reinterpret_cast<char*>(target) + from, reinterpret_cast<const char*>(source) + from, to - from);
@@ -25,7 +25,7 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 
 } // namespace
 
-// The records' slot 0 (A-H25): the item kind each record makes.
+// The records' first virtual: the item kind each record makes.
 int WeaponRecord::Kind() { return 0x3004; }
 int ArmorRecord::Kind() { return 0x3005; }
 int QuickItemRecord::Kind() { return 0x3006; }
@@ -71,7 +71,7 @@ void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
 }
 
-// The other kinds' operator= (A-H25), as the weapon's.
+// The other kinds' operator=, as the weapon's.
 ArmorRecord* ArmorRecord::AssignArmor(const ArmorRecord* source) {
     Assign(source);
     CopyOwn(source);
@@ -122,7 +122,7 @@ void MaterialRecordHead::ConstructDefault() {
     new (&name) mfc::CString();
 }
 
-// ---- S13: the records' destructors (the compiler's) ----------------------------------------------
+// ---- The records' destructors ------------------------------------------------------------------
 
 ItemRecordHead::~ItemRecordHead() = default;
 EI_REWRITTEN_SPECIAL(0x006A8950, ItemRecordHead::~ItemRecordHead);   // weapons
@@ -168,7 +168,7 @@ void SpellListRecord::Destruct() {
 }
 EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
-// ---- S10a: the spell records as vector elements (record_vectors.h) -------------------------------
+// ---- The spell records as vector elements (record_vectors.h) -------------------------------------
 
 namespace {
 using IdElement = stlp::PlainElement<int>;
@@ -246,8 +246,8 @@ void SpellListRecord::ConstructDefault() {
     stlp::StringElement::Default(&repeated);
 }
 
-// 0056E400 / 0056E440: the material and weapon tables' At, as the unit skins and the client's
-// maps read them (the 0x50- / 0xB4-byte records of 007C86D8 / 007C86F8).
+// The material and weapon tables' At, as the unit skins and the client's maps read them (0x50- / 0xB4-byte
+// records).
 EI_REWRITTEN(0x0056E400, itemdb::MaterialTable::At);
 EI_REWRITTEN(0x0056E440, itemdb::WeaponTable::At);
 EI_REWRITTEN(0x006A5950, itemdb::ArmorTable::At);
@@ -297,13 +297,10 @@ LootItemRecord::LootItemRecord(const LootItemRecord& from) {
 
 namespace itemdb {
 
-// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
-// the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
-// the original's placement new. Both return the end of the destination.
 
-// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
-// the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
-// the original's placement new. Both return the end of the destination.
+// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall: the second stack argument
+// is STLport's unused type tag). Null destinations are skipped, as placement new does. Both return the end of the
+// destination.
 template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
     for (; first != last; ++first, ++dest) {

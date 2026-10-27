@@ -1,8 +1,8 @@
-// Spell construction: what a cast with modifiers runs before the spell exists. The script's
-// CastSpellUnit / CastSpellPoint ("healing{e2;e2}") and the spell constructor screen parse the text
-// (00689030, not rewritten) and then drive CSpellConstructor: SetManager, BeginConstruct (a new
-// CSpellContainer for the prototype), AddModifier per modifier (each rebuilds the container's
-// spell), EndConstruct, CSpell::Clone into a new spell object, SetManager(null).
+// Spell construction: what a cast with modifiers runs before the spell exists. The script's CastSpellUnit /
+// CastSpellPoint ("healing{e2;e2}") and the spell constructor screen parse the text and then drive
+// CSpellConstructor: SetManager, BeginConstruct (a new CSpellContainer for the prototype), AddModifier per
+// modifier (each rebuilds the container's spell), EndConstruct, CSpell::Clone into a new spell object,
+// SetManager(null).
 #include "item_db.h"
 #include "spell.h"
 
@@ -18,7 +18,7 @@
 #include <cstring>
 
 namespace {
-// The game's own messages (passed by address, as the original does).
+// The game's own messages (passed by address).
 const char* const kInvalidRune = "Invalid rune";
 const char* const kNoSpellManager = "CSpellConstructor::BeginConstructSpell.\n There is no valid spell manager.\n";
 const char* const kNoSpellPrototype = "No valid spell prototype\n";
@@ -41,15 +41,15 @@ int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(g
 // sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
 double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f /*00743A7C*/); }
 
-// field += strength * base, stored as a float, then kept only when above zero (the original's
-// branch-free select: 0 < value or NaN keeps it, anything else gives +0).
+// field += strength * base, stored as a float, then kept only when above zero (a branch-free select: 0 <
+// value or NaN keeps it, anything else gives +0).
 void AddScaledPositive(float& field, float strength, float base) {
     field = strength * base + field;
     if (field <= 0.0f) field = 0.0f;
 }
 
-// Returns every node of the list to the node allocator's free list and leaves it empty. The
-// sentinel is re-read on every step, as the original does.
+// Returns every node of the list to the node allocator's free list and leaves it empty. The sentinel is
+// re-read on every step.
 void FreeModifierNodes(SpellModifierList& list) {
     SpellModifierNode* node = list.head->next;
     if (node != list.head) {
@@ -233,8 +233,8 @@ BOOL CSpellContainer::Build() {
     float area = spell->radius_;
     if (area > 0.0f) spell->radius_ = static_cast<float>(AreaToRadius(area));
 
-    // mana = max(prototype's mana, mana): the original's select keeps the computed value when the
-    // prototype's is smaller or either is NaN.
+    // mana = max(prototype's mana, mana): the select keeps the computed value when the prototype's is
+    // smaller or either is NaN.
     float base = prototype_->mana;
     if (base >= spell->manaCost_) spell->manaCost_ = base;
 
@@ -339,7 +339,7 @@ BOOL CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     container_ = container;
     if (container) ++container->refCount_;
     if (previous) previous->Release();
-    container_->prototype_ = prototype;   // no null check, as in the original
+    container_->prototype_ = prototype;   // no null check
     return 1;
 }
 EI_REWRITTEN(0x006841E0, CSpellConstructor::BeginConstruct);

@@ -1,5 +1,5 @@
-// The fake unit's skin (SceneSkin, CFakeUnit + 0x4E0, 0x50 bytes; A-U12): its constructor,
-// destructor, Create and Clear. Layout: scene_loader.h; the bones: figure.h.
+// The fake unit's skin (SceneSkin, CFakeUnit + 0x4E0, 0x50 bytes): its constructor, destructor, Create and
+// Clear. Layout: scene_loader.h; the bones: figure.h.
 #include "scene_loader.h"
 
 #include "figure.h"

@@ -1,6 +1,5 @@
-// The item database's name-indexed tables read from an archive stream: quick items, quest items and
-// loot (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
-// (itemdb::NamedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
+// The item database's name-indexed tables read from an archive stream: quick items, quest items and loot. See
+// item_db.h (itemdb::NamedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
 #include "item_db.h"
 
 #include "chunk_archive.h"
@@ -24,10 +23,9 @@ void DestroyItemRecord(Record* record) { record->~Record(); }
 
 namespace {
 
-// The records read through an archive, then each filed in the name index under its name (the
-// index's find_or_insert of {name, null}: 00613B70 quick items, 006A7870 loot, 0069E2A0 quest
-// items). The chunk serialisers' names cross over: SerializeLoot reads the quest items,
-// SerializeQuestItems the loot.
+// The records read through an archive, then each filed in the name index under its name (the index's
+// find_or_insert of {name, null}). The chunk serialisers' names cross over: SerializeLoot reads the quest
+// items, SerializeQuestItems the loot.
 template <typename Record>
 void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int field) {
     ChunkArchive archive;
@@ -59,15 +57,14 @@ template void LootItemTable::Load(CStream*, int);
 
 } // namespace itemdb
 
-// --- A-H18: the tables' vector serialisers ----------------------------------------------------------
+// --- The tables' vector serialisers ----------------------------------------------------------
 
 namespace {
 
 using ResizeFn = void (*)(void* records, unsigned count);
 
 // Per record type: the record's destructor (plain RET), the vector's resize (RET 4: new records
-// default-constructed; 006A83F0, 006A85A0, 006A8790, 006A7F00, 006A8110, 006A8290) and the
-// record's Serialize (RET 4).
+// default-constructed) and the record's Serialize (RET 4).
 
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading
 // destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
@@ -135,7 +132,7 @@ EI_REWRITTEN(0x006A6E50, itemdb::QuickItemTable::Load);
 EI_REWRITTEN(0x006A7110, itemdb::QuestItemTable::Load);
 EI_REWRITTEN(0x006A73B0, itemdb::LootItemTable::Load);
 
-// --- A-H21: the spell database's vectors and records ---------------------------------------------
+// --- The spell database's vectors and records ----------------------------------------------
 
 namespace {
 
@@ -216,8 +213,8 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
     if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
-        // erase(begin, end) (the tail copy 00500040 is empty), then resize(count, 0): the vector is
-        // empty, so always the fill insert (the shrinking branch, 0055C2C0, is not reached).
+        // erase(begin, end) (the tail copy is empty), then resize(count, 0): the vector is empty, so always
+        // the fill insert (the shrinking branch is not reached).
         values->Finish() = values->Start();
         count = CountChunks(1);
         int zero = 0;
@@ -249,14 +246,12 @@ EI_REWRITTEN(0x00684EF0, ChunkArchive::SerializeSpells);
 EI_REWRITTEN(0x00684FE0, ChunkArchive::SerializeSpellModifiers);
 EI_REWRITTEN(0x00684C50, ChunkArchive::SerializeSpellLists);
 
-// --- A-H18: the database's destructor ---------------------------------------------------------------
+// --- The database's destructor ---------------------------------------------------------------
 
 namespace {
 
-// One table: the name index (its clear, then its buckets: 006A6D00 / 004AEDA0 the weapons, 006A6D70
-// / 004AEF50 the armors, 006A6DE0 / 004AF100 the quick items, 006A70A0 / 005843A0 the quest items,
-// 006A7340 / 00584450 the loot; the materials' destructor 006A6C20 as a whole), the records in
-// order, the vector's storage (STLport's deallocate of the capacity in whole records).
+// One table: the name index (its clear, then its buckets; the materials' as a whole), the records in order,
+// the vector's storage (STLport's deallocate of the capacity in whole records).
 template <typename Record, typename Destroy>
 void DestroyTable(itemdb::NamedRecordTable<Record>& table, Destroy destroy) {
     table.names.Destroy();

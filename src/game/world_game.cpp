@@ -1,5 +1,5 @@
-// The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
-// saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
+// The game flow object (the state machine runs on it, Rebirth patches that one): saving a game into
+// saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
 #include "at_exit_functions.h"
 #include "core_refcount.h"
@@ -98,15 +98,14 @@ using netlink::FileStream;
 // ---- Helpers ----------------------------------------------------------------------------------
 
 // The mouse cursor's busy shape (3 while saving, 0 after): TheCursor()->SetShape.
-// CWorldServer::GetPlayer (world_server.cpp), through its address.
-// The party takes the records from / gives them to a record builder (00661050 constructs one, 006611D0
-// destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
+// CWorldServer::GetPlayer (world_server.cpp).
+// The party takes the records from / gives them to a record builder (constructed and destroyed here):
+// PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
 // CMapDatabase::FindMap: the zone record named `name`, or null.
-// 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
+// Named float table Get (ST0) / Set.
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
-// The scenario.sav parts: the party, the input state (005F85C0 save), the
-// scripts (004A54D0 reset, 004A5250 save into a stream), the globals.
+// The scenario.sav parts: the party, the input state (save), the scripts (reset, save into a stream), the globals.
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 
 const mfc::CString& RecordName(MapRecord* record) { return record->name; }
@@ -168,9 +167,10 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
 
 } // namespace
 
-// The game's save stream (declared in core_streams.h), zero at the start: built by the static initialiser 00578530 in
-// the list's order and destroyed by the exit function it registers; both ported on the name and registered
-// at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// The game's save stream (declared in core_streams.h), zero at the start: built by a static initialiser in the
+// list's
+// order and destroyed by the exit function it registers (docs/notes/standalone.md, "The static initialisers'
+// objects").
 constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
 CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
@@ -262,13 +262,12 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 
-// Plays a movie file (ECX path, EDX 0, five flags).
+// Plays a movie file (path, 0, five flags).
 // Named float table Remove.
-// Reads a save file through the file stream into `out` (ECX), checking the
-// header (magic in EDX, version, minimum version); false when it is corrupt.
-// 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::WakeUnitsAround, Tick and SetZoneExits, through their
-// addresses (rewritten in world_tick / world_zone).
-// CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
+// Reads a save file through the file stream into `out`, checking the header (magic, version, minimum
+// version); false when it is corrupt.
+// CWorldServer::WakeUnitsAround, Tick and SetZoneExits, through their addresses (world_tick / world_zone).
+// CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: called through its address.
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
@@ -406,12 +405,12 @@ constexpr int kServerMessageZone = 8;
 
 int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
-// CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
-// The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
-// (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
-// destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
-// Counted pointer at server + 0x25A0: 00413270 release, 00418BE0 share; 00426A80
-// assigns a string from a range) and the message 0041A500(8, zone).
+// CArray<ZoneExit> constructor (empty).
+// The host announcement of a network game: gethostname (WS2_32), the address (built from the host and port,
+// formatted
+// into an STLport string, then destroyed), the server's host record (0x24 bytes: two strings, a vtable), the
+// counted
+// pointer at server + 0x25A0 (release, share), a string assigned from a range, and the message (8, zone).
 
 // A session or a replicated record is usable: there, and not detached by its owner.
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
@@ -527,16 +526,16 @@ mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
     return out;
 }
 
-// 0057A060's counterpart (__stdcall, RET 4; from the state machine): saves the current zone into
-// saves\current\<zone>.sav (SaveWorld, header 0x102) and records in the party's variables that
-// it was visited (zs.<zone> = 1) and when it was left (zt.<zone> = gtime). Returns 1, 0 when the
-// file cannot be written (after FatalError).
+// The counterpart of the zone load (called from the state machine): saves the current zone into
+// saves\current\<zone>.sav (SaveWorld, header 0x102) and records in the party's variables that it was
+// visited (zs.<zone> = 1) and when it was left (zt.<zone> = gtime). Returns 1, 0 when the file cannot be
+// written (after FatalError).
 int __stdcall LeaveZone(CParty* records) {
     FileStream file;
     std::string path;   // [0x04]
     mfc::CString zone(mfc::CString::kUnset);   // [0x08]
     TheServerWorld()->ZoneNameInto(&zone);
-    // `path` must be destroyed after `zone`, as the original does: it is declared first.
+    // `path` must be destroyed after `zone`: it is declared first.
 
     if (TheServerWorld()->sessionKind_ == 1) TheCamera()->SaveView(7);
     else if (TheServerWorld()->sessionKind_ == 3) TheCamera()->SaveView(6);
@@ -609,10 +608,9 @@ namespace {
 // The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
 // bz4mpg, anything else bz1mpg.
 
-// The party manager: 004A88C0 resets it (PartyManagerNewGameFour), 004A8890
-// begins a redeploy of a party.
+// The party manager: PartyManagerNewGameFour resets it, BeginRedeploy begins a redeploy of a party.
 
-// The party outside a game (007C82B0, the party records as CPlayer::Party has them).
+// The party outside a game (the party records as CPlayer::Party has them).
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
@@ -650,7 +648,7 @@ void GameFlow::BeginMultiplayerGame() {
 
 namespace {
 
-// Party::CopyFrom. 00662AC0 (RET 4): the party sends its map transfer.
+// Party::CopyFrom. The party sends its map transfer.
 
 constexpr int kCommandBriefing = 1;
 constexpr int kRequestDone = 3;   // the client's game state request: answered
@@ -683,7 +681,7 @@ void GameFlow::RequestBriefing(const char* briefing) {
 
 namespace {
 
-// The last reference deletes the session (slot 0, the deleting destructor, with 1).
+// The last reference deletes the session (the deleting destructor, with 1).
 void ReleaseSession(CRefCounted* session) {
     if (session && --session->refs_ == 0) delete session;
 }
@@ -830,7 +828,7 @@ constexpr std::uint32_t kScriptsChunk = 0xA000;          // the .mob file's scri
 constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script text, packed and XORed
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 
-// 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
+// A script command queue: reset, add a line.
 
 } // namespace
 
@@ -1016,7 +1014,7 @@ namespace {
 
 libcrt::Ostream* const kNetLog = &console::g_netLogOut;
 
-// The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
+// The player list makes a new player. CPlayer::Connect: the player takes a connection.
 
 } // namespace
 
@@ -1060,9 +1058,9 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
 
 namespace {
 
-// The zone table: a vector of 12-byte {first, second, id}, two CStrings and an int. Empty at the start, as the static
-// initialiser 0057F460 leaves it; the exit function it registers destroys it (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The zone table: a vector of 12-byte {first, second, id}, two CStrings and an int. Empty at the start; a
+// static initialiser's exit function destroys it (docs/notes/standalone.md, "The static initialisers'
+// objects").
 using ZoneEntry = recordvec::ZoneTableEntry;
 using ZoneTable = stlp::vector<ZoneEntry>;
 constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
@@ -1073,7 +1071,7 @@ bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
-// A list of entry pointers on the game's heap (the original keeps STLport lists of copies).
+// A list of entry pointers on the game's heap (the game keeps STLport lists of copies).
 struct EntryPicks {
     const ZoneEntry** items = nullptr;
     int count = 0;
@@ -1145,7 +1143,7 @@ int __stdcall LoadMission(CStream* file) {
     int version = static_cast<int>(mission.version_);
     if (version < kVersionGlobalsInMission) TheCamera()->Load(&mission);
     if (static_cast<int>(mission.version_) < kVersionInputInMission) {
-        // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
+        // Old saves: the input state, then the rest goes to the save stream.
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission);
         mission.ReadSized(GameSaveStream());
@@ -1198,7 +1196,7 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-// 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
+// The client world: the local player / its local view.
 inline CPlayerClient* ClientWorldLocalView(CWorldClient* client) { return client->LocalView(); }
 
 // `value` mod 24 through the game's _CIfmod, stored as float.
@@ -1259,8 +1257,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         int hour = now.wHour;
         TheServerWorld()->SetTime(static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
-        // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
-        // queue runs in the menu too.
+        // Rebirth's AllowScriptsInMainMenu: the first script command queue runs in the menu too.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) TheServerWorld()->scriptsActive_ = 1;
     } else if (mode == kModeEndOfGame) {
         result = kResultPlaying;
@@ -1290,12 +1287,12 @@ void GameFlow::StartZone(const char* zone, int mode) {
 
 namespace {
 
-// 005DC620 / 004A88A0 through their addresses: the console executor, the party manager's new game.
+// Through their addresses: the console executor, the party manager's new game.
 
 } // namespace
 
 void GameFlow::StartNewGame() {
-    // Rebirth's AutoExec #2 (the CALL at 0057BD30 redirected): addon's AutoExec lines first.
+    // Rebirth's AutoExec #2 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
     ToMainMenu() = 1;
@@ -1315,13 +1312,11 @@ namespace {
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
 
-// The client world: its tick, a zone check (00566D80, AL); the server's
-// update; the network pump.
-// The local view: autoplay on (00669710, name) / off; the local player takes the
-// flow's party copy (00665CC0, +8).
+// The client world: its tick, a zone check; the server's update; the network pump. The local view: autoplay
+// on (name) / off; the local player takes the flow's party copy (+8).
 
-// UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard), destroyed at exit
-// by 0057E6A0.
+// UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard),
+// destroyed at exit.
 constinit lib::StaticObject<mfc::CString> g_lastResources = /*007AFDEC*/ {};
 mfc::CString& LastResources() { return *g_lastResources; }
 void __cdecl DestroyLastResources() { g_lastResources.Destroy(); }
@@ -1330,8 +1325,8 @@ std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
-// The resource directory (the CString 0079BC94), the sound system and the spell tables /
-// item database globals the switch reloads.
+// The resource directory (a CString), the sound system and the spell tables / item database globals the
+// switch reloads.
 const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
@@ -1391,7 +1386,7 @@ void GameFlow::ProcessRequest() {
     }
     TheInterface()->CloseAll();   // its windows closed for the zone change
     TheServerWorld()->TeardownZone();
-    // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
+    // (The reload's body is inlined here; the databases' resource switch is out of line.)
     UseResources(Active(net::GameClient()));
 
     auto* clientWorld = TheClientWorld();
@@ -1421,8 +1416,7 @@ void GameFlow::ProcessRequest() {
         }
         break;
     case kStateNewGame:
-        // The same steps as 0057BD10 (inlined here in the original), Rebirth's AutoExec #3 (the
-        // CALL at 0057C9A3) included.
+        // The same steps as the matching start function (inlined here), Rebirth's AutoExec #3 included.
         StartNewGame();
         break;
     case kStateZone:
@@ -1465,16 +1459,15 @@ namespace {
 
 constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
 constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
-// The scenario.sav parts read back: the party, the input state (005F85C0's reader
-// 005F8420), the scripts (004A51C0, a stream method), the globals; the world from
-// mission.sav (00579E60, a flow method, from the file stream).
+// The scenario.sav parts read back: the party, the input state (its reader), the scripts (a stream method),
+// the globals; the world from mission.sav (a flow method, from the file stream).
 void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
 
 } // namespace
 
 int GameFlow::LoadGame(const char* slot) {
     if (GameMode() == 2 || GameMode() == 3) return 0;
-    // Rebirth's AutoExec #1 (the CALL at 0057ABE1 redirected): addon's AutoExec lines first.
+    // Rebirth's AutoExec #1 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
     TheCursor()->SetShape(3);
@@ -1592,9 +1585,8 @@ void GameFlow::Destruct() {
 }
 EI_REWRITTEN(0x005784D0, GameFlow::Destruct);
 
-// The flow, zero at the start: built by the static initialiser 00578440 in the list's order and destroyed by the exit
-// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
-// "The static initialisers' objects").
+// The flow, zero at the start: built by a static initialiser in the list's order and destroyed by the exit function
+// it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
 GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
@@ -1638,8 +1630,8 @@ EI_REWRITTEN(0x0057BC30, CurrentSaveSize);
 
 void GameFlow::AfterServerStart() {
     UseResources(true);
-    // The variables of the party outside a game (007C82B0 + 0x54) start empty. Rebirth's
-    // PersistentGlobalVars (the CALL at 0057EB25 redirected) keeps the "gvar." ones.
+    // The variables of the party outside a game (+0x54) start empty. Rebirth's PersistentGlobalVars (the
+    // call redirected) keeps the "gvar." ones.
     NamedFloatTable* variables = &GlobalParty()->variables_;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
@@ -1669,21 +1661,21 @@ unsigned& ServerStamp() { return g_serverStamp; }   // the newest variable stamp
 unsigned g_appliedStamp = /*007AFED4*/ {};
 unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 
-// The quest text files (007AFDD0, a vector of strings) and the briefing texts.
-// 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
+// The quest text files (a vector of strings) and the briefing texts.
+// The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
 // The client's STLport lists of counted messages (ClientSession::zones_, variables_).
 using VariableNode = net::RefNode;
 using ZoneNode = net::RefNode;
-// The vector of changed variables (STLport vector<node*>): its allocator tag constructor
-// insert overflow (00587700: position, value, count) and storage release (00584A90:
-// ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
-// dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
+// The vector of changed variables (STLport vector<node*>): its allocator tag constructor, insert overflow
+// (position,
+// value, count) and storage release (storage, capacity); the stamp sort (introsort with first, last, then a dummy,
+// the depth limit and the comparator; the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<VariableNode*>;
 
-// A local NamedFloatTable (00581790 an empty one of 100 buckets, 00580900 a copy), released the way
-// the original's inlined destructor does.
+// A local NamedFloatTable (an empty one of 100 buckets, and a copy), released the way the inlined
+// destructor does.
 struct LocalVariables {
     NamedFloatTable table;
     ~LocalVariables() { table.Destroy(); }
@@ -1693,7 +1685,7 @@ struct LocalVariables {
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
 net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
-// The value's bits, moved as the dword the original pushes (no FPU load).
+// The value's bits, moved as the dword that is pushed (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
     std::memcpy(&bits, &record->value_, 4);
@@ -1714,8 +1706,8 @@ void GameFlow::UpdateFromServer() {
     LocalVariables unusedEmpty;
     unusedEmpty.table.ConstructDefault();
     NamedFloatTable* variables = &player->Party()->variables_;
-    // The local player's variables are replaced by the server's; "constr.current" survives.
-    // Rebirth's PersistentGlobalVars (the CALL at 00580177 redirected) keeps the "gvar." ones.
+    // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
+    // PersistentGlobalVars (the call redirected) keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
     LocalVariables unusedCopy;
     unusedCopy.table.CopyConstruct(*variables);
@@ -1827,9 +1819,8 @@ void GameFlow::UpdateFromServer() {
 namespace {
 
 // An entry is a multiplayer hero record (ui_screens.h): the vector's element copy loop is
-// MpHeroRecord::CopyRange, its element destructor DeletingDestruct (00664AE0, flag 0);
-// the records' copy constructor and the insert overflow.
-// 00662FB0 inlines the entry's destructor: the file name, then the party's.
+// MpHeroRecord::CopyRange, its element destructor DeletingDestruct (flag 0); the records' copy constructor
+// and the insert overflow. The entry's destructor is inlined here: the file name, then the party's.
 void DestroyPartyEntry(MpHeroRecord* entry) {
     entry->file.~CString();
     entry->Party()->~CParty();
@@ -1861,8 +1852,7 @@ void SavedParties::Reload() {
         if (entry->ReadFile(folder_)) {
             NamedFloatTable* variables = &entry->Party()->variables_;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
-                // Rebirth's PersistentGlobalVars: the JNE at 00663083 skips the inlined clear and
-                // the hook at 00663170 (whose instruction, count = 0, is dropped) clears the table
+                // Rebirth's PersistentGlobalVars: the inlined clear is skipped and the table is cleared
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {
@@ -1887,7 +1877,7 @@ void SavedParties::Reload() {
     gameapi::FindClose(search);
 }
 
-// ---- BuildZoneTable (0057F560, A-W14) -----------------------------------------------------------
+// ---- BuildZoneTable -----------------------------------------------------------
 
 namespace {
 
@@ -1909,7 +1899,7 @@ int AllodOfMap(const char* map) {
     return NameInList(kAllodMaps[kSuslanger], map) ? kSuslanger : 3;
 }
 
-// push_back of an entry with two empty names (its id is not set, as in the original).
+// push_back of an entry with two empty names (its id is not set).
 void AppendEmptyEntry(ZoneTable& table) {
     if (table.Finish() != table.EndOfStorage()) {
         if (table.Finish()) {

@@ -1,7 +1,7 @@
-// Item construction: CItemConstructor (vtable 00744020) and the CItem methods it drives.
-// The item manager's CreateItem paths run BeginCreateItem (the manager creates the empty item
-// object), SetPrototype / SetMaterial / SetSpellObject, then EndCreateItem, whose Build fills the
-// item from a temporary database record: the prototype's values combined with the material's.
+// Item construction: CItemConstructor and the CItem methods it drives. The item manager's CreateItem paths run
+// BeginCreateItem (the manager creates the empty item object), SetPrototype / SetMaterial / SetSpellObject, then
+// EndCreateItem, whose Build fills the item from a temporary database record: the prototype's values combined with
+// the material's.
 #include "item.h"
 #include "spell.h"
 
@@ -43,9 +43,9 @@ const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
-// Build creates a record of the item's kind (item_db.h), fills only the fields the item's slot 13
-// reads, and destroys it again. The prototype and material records are read without a null check
-// where the original reads them without one (a missing record faults there, as in the original).
+// Build creates a record of the item's kind (item_db.h), fills only the fields the item's InitFromRecord reads, and
+// destroys it again. The prototype and material records are read without a null check where the game reads them
+// without one (a missing record faults there).
 
 // A dword copied as a dword (mov), so float bit patterns pass unchanged.
 template <typename T> void CopyBits(T& to, const T& from) {
@@ -67,9 +67,8 @@ ItemRecordHead* NewRecord(int classId) {
     }
 }
 
-// Destroys what every record has (the extra members of the quick, quest and loot records are
-// not destroyed: the original leaks them, though they hold nothing here; the head's destructor is
-// not virtual) and frees it.
+// Destroys what every record has (the extra members of the quick, quest and loot records are not destroyed: the
+// game leaks them, though they hold nothing here; the head's destructor is not virtual) and frees it.
 void DeleteRecord(ItemRecordHead* record) {
     record->~ItemRecordHead();
     ItemRecordHead::operator delete(record);
@@ -86,8 +85,8 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
 // --- CItem ---------------------------------------------------------------------------------------
 
 void CItem::InitFromRecord(const ItemRecordHead* head) {
-    // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
-    // quiets a signalling NaN; the other fields are copied as dwords.
+    // The condition and the charge pass through the FPU (FLD, FST, FSTP), which quiets a signalling NaN; the other
+    // fields are copied as dwords.
     std::memcpy(&conditionMax_, &head->condition, sizeof(float));
     std::memcpy(&condition_, &head->condition, sizeof(float));
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
@@ -359,23 +358,21 @@ const char* const kMaterialType = "material";
 const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
 const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
-// CString members used here (MFC; the original implementations).
+// CString members used here (MFC).
 struct ItemText : mfc::CString {
     int Find(char c) const;
-    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // 006FE216 TrimLeft() (moves the text, memmove)
-    void TrimSpaceRight() { mfc::CString::TrimRight(); }   // 006FE11F TrimRight()
+    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // TrimLeft() (moves the text, memmove)
+    void TrimSpaceRight() { mfc::CString::TrimRight(); }   // TrimRight()
 };
 int ItemText::Find(char c) const { return mfc::CString::Find(c); }
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 
-// 006E80D8 atoi.
+// atoi.
 
-// 004DBE40 (ECX text, EDX array, separator on the stack). Splits `text` at `separator`.
+// Splits `text` at `separator` (text in ECX, the array in EDX, the separator on the stack).
 
-// Prototype lookups by name: weapons 004AB720, armors 004AB820, quick items
-// 00613820, the class-0x14 table 006AD580, the class-0x15 table 0069D380
-// materials 0069D290. Each returns the record or null.
-// (NamedRecordTable::Named.)
+// Prototype lookups by name (NamedRecordTable::Named): weapons, armors, quick items, the class-0x14 table, the
+// class-0x15 table, materials. Each returns the record or null.
 
 // The string-keyed maps the loot item's table index comes from: operator[] of the weapon
 // armor, quick item and spell
@@ -453,7 +450,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (!prototype) prototype = items.questItems.Named(prototypeName);
     if (!prototype) prototype = items.loot.Named(prototypeName);
     if (!prototype) {
-        // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
+        // Rebirth's FixCreateItem logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
             game::FatalError(kNoPrototype, parts.data[0].GetString());
         return nullptr;
@@ -475,8 +472,9 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
     CItem* item = constructor->EndCreateItem();
     if (!item) {
-        // Rebirth's FixCreateItem (context hook at 006ACCD0): logged, and no item. The original
-        // reports the error and goes on with the null item (and crashes).
+        // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
+        // with the null
+        // item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
         game::FatalError(kCantCreate, name);
     }
@@ -490,7 +488,7 @@ CItem* CItemManager::CreateItem(const char* name) {
 }
 EI_REWRITTEN(0x006AC970, CItemManager::CreateItem);
 
-// --- The item manager's MakeItem (006AD000, A-H20) -------------------------------------------------
+// --- The item manager's MakeItem ----------------------------------------------------------------
 
 CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key) {
     CItemConstructor* constructor = context_->ItemConstructor();
@@ -529,7 +527,7 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
 }
 EI_REWRITTEN(0x006AD000, CItemManager::MakeItem);
 
-// --- A-H25: the scroll of a spell text, the name lists, the constructor's magic capacity ----------
+// --- The scroll of a spell text, the name lists, the constructor's magic capacity ----------------
 
 // The "spell container" record is looked up by name each time; without one the index is that of a
 // null record (kept: MakeItem then finds no prototype).

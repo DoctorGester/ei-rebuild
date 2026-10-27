@@ -1,5 +1,5 @@
-// CUnit::TakePrototype (0052EB70, virtual slot 34): a unit's packed vitals and parameters as
-// its prototype gives them (the zone loader, 005927C0, before the object is placed). See unit.h.
+// CUnit::TakePrototype: a unit's packed vitals and parameters as its prototype gives them (the zone loader,
+// before the object is placed). See unit.h.
 #include "unit.h"
 
 #include "map_object.h"
@@ -8,8 +8,8 @@
 #include "ei/hook.h"
 
 void CUnit::TakePrototype(const char* prototype) {
-    // The original's stack copies start uninitialised; the resets and the builder (its defaults
-    // too, for an unknown prototype) write every field the packers read.
+    // The stack copies start uninitialised; the resets and the builder (its defaults too, for an unknown
+    // prototype) write every field the packers read.
     UnitVitals vitals{};
     UnitStats stats{};
     vitals.Reset();

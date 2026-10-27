@@ -15,10 +15,9 @@
 #include <bit>
 #include <cstring>
 
-// The particle callbacks run for every live particle every frame. The order of operations in each
-// expression follows the original instruction sequence; values the original rounds through a float
-// temporary are rounded with static_cast<float>, values it keeps on the FPU stack are written
-// inline.
+// The particle callbacks run for every live particle every frame. The order of operations in each expression is
+// fixed (the goldens depend on it): values that are rounded through a float temporary are rounded with
+// static_cast<float>, values kept on the FPU stack are written inline.
 
 namespace {
 
@@ -30,21 +29,21 @@ constexpr double kHalfDouble = 0.5;
 constexpr double kRandomScale = std::bit_cast<double>(0x3DF0000000100000ull);
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);
 constexpr float kCloudAlpha = 4.5f;
-constexpr float kSmokeGrowth = std::bit_cast<float>(0x3F87AE14u);      // 0073CE38 (1.06)
-constexpr float kSmokeDrift = std::bit_cast<float>(0x3E19999Au);       // 0073CD18 (0.15)
-constexpr float kDebrisDamping = std::bit_cast<float>(0x3F59999Au);    // 0073CB1C (0.85)
-constexpr float kDebrisGravity = std::bit_cast<float>(0x3D6147AEu);    // 0073CB20 (0.055)
+constexpr float kSmokeGrowth = std::bit_cast<float>(0x3F87AE14u);      // 1.06
+constexpr float kSmokeDrift = std::bit_cast<float>(0x3E19999Au);       // 0.15
+constexpr float kDebrisDamping = std::bit_cast<float>(0x3F59999Au);    // 0.85
+constexpr float kDebrisGravity = std::bit_cast<float>(0x3D6147AEu);    // 0.055
 constexpr float kDebrisFadeIn = 4.0f;
-constexpr float kDebrisGrowth = std::bit_cast<float>(0x3F90A3D7u);     // 0073CCF0 (1.13)
-constexpr float kTendrilDensity = std::bit_cast<float>(0x41649249u);   // 0073CE3C (14.285714)
+constexpr float kDebrisGrowth = std::bit_cast<float>(0x3F90A3D7u);     // 1.13
+constexpr float kTendrilDensity = std::bit_cast<float>(0x41649249u);   // 14.285714
 constexpr double kMushroomWidth = 0.2;
-constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0073CCC0 (0.12)
+constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0.12
 constexpr double kOrbitMinRadius = 0.01;
-constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC80 (1.6)
+constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 1.6
 
 
-// Reads a float back from memory, as the original does after storing it (the compiler would
-// otherwise reuse the unrounded register value).
+// Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register
+// value).
 float ReadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 // A zero-extended dword loaded with FILD qword (exact).
@@ -53,7 +52,7 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// The camera's shake around a point (the camera object is 0079B2A8).
+// The camera's shake around a point.
 // Arguments: camera, unused EDX, point, strength, range, duration.
 
 constexpr int kTypeFire = 0x2003;
@@ -127,8 +126,8 @@ int CParticleSource::UpdateFalling(Particle* p) {
 }
 EI_REWRITTEN(0x0048F670, CParticleSource::UpdateFalling);
 
-// Clouds: cycle the texture frames; once the source stops emitting, raise the alpha byte (it wraps:
-// the original's arithmetic) until it is at most 9, then drop the particle.
+// Clouds: cycle the texture frames; once the source stops emitting, raise the alpha byte (it wraps) until it is at
+// most 9, then drop the particle.
 int CParticleSource::UpdateCloud(Particle* p) {
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) p->frame = 0;

@@ -45,9 +45,8 @@ Quaternion DefaultRotation() { return kNewUnitRotation; }
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
-// The unit record AddUnitToServer builds on its stack: a CParty (party.h; constructor 00661050,
-// destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
-// member's 0x784-byte record.
+// The unit record AddUnitToServer builds on its stack: a CParty (party.h) given one member; CreateUnits takes a
+// pointer to the member's 0x784-byte record.
 struct UnitRecordBuilder {
     PartyStorage storage;
 
@@ -114,8 +113,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 // ---- .mob object files ------------------------------------------------------------------------
 
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
-    // The root chunk with its MFC CFile (the original's inlined constructor, game.exe's vtable
-    // RootChunk's slots).
+    // The root chunk with its MFC CFile (inlined constructor).
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = root->file_.Virtuals();
@@ -187,7 +185,7 @@ void CWorldServer::ClearMapObjects() {
     countdowns_.RemoveAll();
 
     pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    pending.RemoveAll();   // 00570470 (the list destructor's body)
+    pending.RemoveAll();   // the list destructor's body
 }
 
 void CWorldServer::SaveMapObjects(CStream* out) {

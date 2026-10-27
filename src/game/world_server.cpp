@@ -44,7 +44,7 @@ int SharedListPlayer(int playerId) {
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
-// find + erase(iterator), as the original inlines it for each map.
+// find + erase(iterator), inlined for each map.
 template <typename Map>
 void EraseId(Map& map, unsigned id) {
     if (auto* node = map.map.Find(id)) map.map.Erase(node);
@@ -157,7 +157,7 @@ void CWorldServer::AddTimedObject(CEngineObject* object) {
     auto* effect = static_cast<CEffect*>(object);
     effect->startTick_ = tick_;
     ++object->refCount_;
-    effect->MarkChanged();   // flags_ |= 2, stamped with 007AFFC8
+    effect->MarkChanged();   // flags_ |= 2, stamped with the server time
     unsigned id = static_cast<unsigned>(object->id_);
     timedObjects_.Set(id, object);
 }
@@ -186,8 +186,9 @@ void CWorldServer::AddToUpdateMap(CMapObject* unit) {
 void CWorldServer::RemoveObject(unsigned id) {
     auto* found = objects_.map.Find(id);
     CMapObject* const* slot = found ? &found->value : nullptr;
-    // Rebirth's FixRemoveMapObject (context hook at 00593615): an unknown id is logged and ignored.
-    // The original reads through the null pointer (and crashes).
+    // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
+    // pointer (and
+    // crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
@@ -203,7 +204,7 @@ void CWorldServer::RemoveObject(unsigned id) {
         if (otherMapObjects_.map.Find(id)) EraseId(otherMapObjects_, id);
     }
 
-    object->ClearState();   // slot 5: it leaves the server
+    object->ClearState();   // it leaves the server
     CUnit* unit = UnitOrNull(object);
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
@@ -234,7 +235,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 void CWorldServer::RemoveAllUnits() {
     auto* node = objects_.map.First();
     if (!node) return;
-    // The next object is read before the current one is removed, as the original does.
+    // The next object is read before the current one is removed.
     CEngineObject* object = node->value;
     do {
         unsigned id = static_cast<unsigned>(object->id_);

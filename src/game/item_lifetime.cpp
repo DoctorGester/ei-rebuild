@@ -25,7 +25,7 @@ void SetMinusOne(T& field) {
 // The item's link (+0x1C): a CRefCounted with a 16-bit count.
 CRefCounted* Link(void* value) { return static_cast<CRefCounted*>(value); }
 
-// The spell let go through its slot 4 (Release) after the pointer is cleared.
+// The spell let go (a virtual Release) after the pointer is cleared.
 void DropSpell(CSpell*& spell) {
     CSpell* old = spell;
     spell = nullptr;
@@ -143,7 +143,7 @@ EI_REWRITTEN(0x006A49D0, CItemLoot::GetClassId);
 EI_REWRITTEN(0x006A5700, CItemSpell::GetClassName);
 EI_REWRITTEN(0x006A5710, CItemSpell::GetClassId);
 
-// --- The item manager's Create and factory (A-H25) -------------------------------------------------
+// --- The item manager's Create and factory -------------------------------------------------
 
 int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 

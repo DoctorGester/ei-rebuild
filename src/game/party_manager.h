@@ -1,9 +1,9 @@
 #pragma once
 
-// The party manager (the object at 007AA5A0): the parties stored by key (the players' parties
-// between zones), a list of entries, the named party records and the class templates, saved with
-// the game through a chunk archive and loaded back. Names provisional; see
-// docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and class templates").
+// The party manager: the parties stored by key (the players' parties between zones), a list of entries, the
+// named party records and the class templates, saved with the game through a chunk archive and loaded back.
+// Names provisional; see docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and
+// class templates").
 
 #include "class_templates.h"
 #include "party_records.h"
@@ -20,14 +20,14 @@
 class CMemoryStream;
 class CParty;
 
-// An entry of the manager's list (0x14 bytes): two texts and a list of ids. Its copy, assignment
-// and destructor are compiler-made (004AD500, 004AE2D0; library).
+// An entry of the manager's list (0x14 bytes): two texts and a list of ids. Its copy, assignment and
+// destructor are compiler-made (library).
 struct PartyManagerEntry {
     mfc::CString name;              // +0x00 chunk field 1
     mfc::CString text;              // +0x04 chunk field 2
     stlp::vector<int> ids;          // +0x08 chunk 3
 
-    // What 004AE2D0 does: frees the ids' storage, then destroys the texts.
+    // What the destructor does: frees the ids' storage, then destroys the texts.
     void Destruct();
 };
 static_assert(sizeof(PartyManagerEntry) == 0x14);
@@ -38,16 +38,16 @@ using PartyInPlace = PartyStorage;
 namespace gamehash {
 
 // hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by
-// CParty's copy constructor (006613C0; it reads its source non-const) and destroyed by its
-// destructor body (game_hashes.cpp).
+// CParty's copy constructor (it reads its source non-const) and destroyed by its destructor body
+// (game_hashes.cpp).
 struct PartyElement {
     static void Construct(PartyInPlace* to, const PartyInPlace& from);
     static void Destroy(PartyInPlace* p);
 };
 using PartyTraits = stlp::DwordObjectTraits<PartyInPlace, PartyElement>;
-// 004A91B0 (RET 4; game_hashes.cpp). hash_map<int, CParty>::operator[]: a party constructed on the
-// stack, a pair of the key and a copy of it, find_or_insert of the pair (a new node copies it
-// again), then the pair's party and the stack party destroyed. The node's party.
+// Hash_map<int, CParty>::operator[]: a party constructed on the stack, a pair of the key and a copy of it,
+// find_or_insert of the pair (a new node copies it again), then the pair's party and the stack party
+// destroyed. The node's party.
 struct PartyTable : stlp::hashtable<PartyTraits> {
     PartyInPlace* At(const int* key);
 };
@@ -58,7 +58,7 @@ struct PartyTable : stlp::hashtable<PartyTraits> {
 using PartyMap = gamehash::PartyTable;
 
 struct PartyManager {
-    PartyMap parties;                           // +0x00 (004A8790 / 004A8800 load and store)
+    PartyMap parties;                           // +0x00 (LoadParty / StoreParty)
     stlp::vector<PartyManagerEntry> entries;    // +0x14
     int field3;                         // +0x20 field 3 of the archive (nothing reads it)
     NamedPartyRecords records;                  // +0x24
@@ -70,25 +70,23 @@ struct PartyManager {
     // Writes the same archive into a memory stream (version `to`'s) and appends
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
-    // 004A5700 (A-E1; app_lifetime.cpp). The destructor the C runtime runs at exit: the templates
-    // and the records released and their vectors freed, the records' two strings, the entries, then
-    // every party of the map (the map's own node deleter) and the bucket array.
+    // The destructor the C runtime runs at exit: the templates and the records released and their vectors
+    // freed, the records' two strings, the entries, then every party of the map (the map's own node
+    // deleter) and the bucket array.
     void Destruct();
-    // 004A5870 (A-E1; app_lifetime.cpp). The constructor: an empty party map of 193 buckets (the
-    // prime after 100), no entries, no records with two empty strings, no templates; field3 is
-    // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
-    // before the hooks are installed, so the hook on it never fires. Returns this.
+    // The constructor: an empty party map of 193 buckets (the prime after 100), no entries, no records with
+    // two empty strings, no templates; field3 is left as it is. It runs from a static initialiser. Returns
+    // this.
     PartyManager* Construct();
-    // 004A8890 / 004A8880 (party_records.cpp, RET 4): the records' BeginRedeploy / EndRedeploy
-    // the script's redeploy.
+    // The records' BeginRedeploy / EndRedeploy the script's redeploy.
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);
-    // 004A8790 (RET 0x10, four stack arguments; the login's name and password are not read): key 0
-    // resets `target` (00661700(1, 0)); else the party stored under the key is copied into it
-    //. False when the key is not stored. Sets AL only.
+    // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
+    // the key is
+    // not stored. The login's name and password are not read.
     bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
-    // Copies `source` into the party stored under the key (operator[] 004A91B0 creates
-    // it when missing; the copy reads `source` non-const). True.
+    // Copies `source` into the party stored under the key (operator[] creates it when missing; the copy
+    // reads `source` non-const). True.
     bool StoreParty(const int* key, CParty* source);
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);

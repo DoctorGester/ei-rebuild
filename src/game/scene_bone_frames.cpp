@@ -1,8 +1,8 @@
-// The fake unit skeleton's frames made relative (0044EB60, called by 00449240 for the root bone of
-// each frame and recursively for every child, children first): a bone's translation and rotation
-// keys of frame `frame` become relative to its parent's, its rest offset and rotation too (frame 0
-// only), and each rotation key is turned into an axis-angle step from the previous frame. Plain
-// float maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").
+// The fake unit skeleton's frames made relative (called for the root bone of each frame and recursively for
+// every child, children first): a bone's translation and rotation keys of frame `frame` become relative to
+// its parent's, its rest offset and rotation too (frame 0 only), and each rotation key is turned into an
+// axis-angle step from the previous frame. Plain float maths (rule 7). Names provisional; see
+// docs/notes/objects.md ("Rewritten").
 #include "figure.h"
 #include "maths.h"
 
@@ -60,8 +60,8 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
         key.rotation = AxisAngle(key.axis, -key.angle);
     } else {
         if (frame == 0) {
-            // The rest offset in the parent's frame (the parent's rotation as a matrix, -2 from
-            // 0073C168) and the rest rotation relative to the parent's.
+            // The rest offset in the parent's frame (the parent's rotation as a matrix, -2) and the rest
+            // rotation relative to the parent's.
             const Vector3& from = bone->restPosition_;
             const Vector3& origin = parent->restPosition_;
             Vector3 d{from.x - origin.x, from.y - origin.y, from.z - origin.z};

@@ -196,7 +196,7 @@ EI_REWRITTEN(0x00661300, CParty::Assign);
 CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
 EI_REWRITTEN_SPECIAL(0x006613C0, CParty::CParty);
 
-// --- 006617F0 (A-H25): the party as a stream field of an archive --------------------------------------
+// --- The party as a stream field of an archive --------------------------------------
 
 void CParty::ArchiveParty(ChunkArchive* ar) {
     constexpr int kStreamField = 1;

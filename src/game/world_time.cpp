@@ -1,4 +1,4 @@
-// The world's time of day, time speed and wind (0055FB30-0055FCB0, the server's 0058EE20-0058EEE0).
+// The world's time of day, time speed and wind (the base world's and the server's versions).
 #include "world.h"
 
 #include "ei/hook.h"
@@ -8,7 +8,7 @@
 
 namespace {
 constexpr double kHoursPerDay = 24.0;
-constexpr double kHoursPerSecond = 1.0 / 15.0;  // 0073F3C8 (as the game counts its speed)
+constexpr double kHoursPerSecond = 1.0 / 15.0;  // as the game counts its speed
 
 // Game kinds whose players keep their own time (UpdatePlayerTimes before a change).
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }

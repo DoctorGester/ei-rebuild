@@ -1,8 +1,7 @@
 #pragma once
 
-// The STLport hashtable instantiations whose values are game objects (ticket S11a): lib/stlp_hash.h's
-// hashtable over traits of the game's ported types, registered in game_hashes.cpp at the
-// instantiations' addresses; checked in game by verify_stlp_hash.cpp until S21d.
+// The STLport hashtable instantiations whose values are game objects: lib/stlp_hash.h's hashtable over traits of
+// the game's types, registered in game_hashes.cpp.
 
 #include "ai_shape_cache.h"
 #include "party.h"
@@ -23,8 +22,8 @@ namespace gamehash {
 using PartyAbi = stlp::HashtableAbi<PartyTraits>;
 
 // A zone's unit looks (UnitSet, world.h): the figured records by key in a map per prototype (0x44-byte
-// nodes; ~hashtable 0055AD10), those maps by prototype (0x1C-byte nodes), the dressed records by
-// prototype (0x2C-byte nodes). The records' policies are record_vectors.h's.
+// nodes), those maps by prototype (0x1C-byte nodes), the dressed records by prototype (0x2C-byte nodes).
+// The records' policies are record_vectors.h's.
 using FiguredTable = UnitSet::FiguredTable;
 struct FiguredTableElement {
     static void Construct(FiguredTable* to, const FiguredTable& from) { to->CopyConstruct(from); }
@@ -44,10 +43,10 @@ struct FiguredGroupPair : FiguredGroupsTable::Value {
     FiguredGroupPair* Construct(const std::uint32_t* from, const FiguredTable* table);
 };
 
-// The unit shapes' cache (UnitShapeCache::Map, ai_shape_cache.h): pair<const handle, RefPtr>,
-// 0x18-byte nodes. A key lands in bucket handle.key % count; two handles are equal when their
-// heights compare equal or unordered (FCOMP, then TEST AH, 0x40). The pair is copied and destroyed
-// by its compiler-written members (005BE370 / 005BE280, ai_movement.cpp).
+// The unit shapes' cache (UnitShapeCache::Map, ai_shape_cache.h): pair<const handle, RefPtr>, 0x18-byte
+// nodes. A key lands in bucket handle.key % count; two handles are equal when their heights compare equal
+// or unordered (FCOMP, then TEST AH, 0x40). The pair is copied and destroyed by its compiler-written
+// members (ai_movement.cpp).
 using ::ShapePair;
 struct ShapeTraits {
     using Value = ShapePair;
@@ -68,8 +67,7 @@ struct ShapeTable : stlp::hashtable<ShapeTraits> {
 };
 using ShapeAbi = stlp::HashtableAbi<ShapeTraits>;
 
-// 005BCCB0 (returns this): a handle that has resolved nothing: no reference, no cache, key -1 (the
-// height is left as it is).
+// A handle that has resolved nothing: no reference, no cache, key -1 (the height is left as it is).
 inline ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
     self->ref = nullptr;
     self->cache = nullptr;

@@ -1,7 +1,7 @@
-// Small functions of the unit statistics and databases (A-U12): the packed vitals' and parameters'
-// network fields, the attack parameters' difficulty scale and the databases' record lookups. The
-// stat ratios are in unit_stats.cpp and the school's price in unit_skill_price.cpp (ei_vectors
-// links those). Plain C++ float maths (rule 7).
+// Small functions of the unit statistics and databases: the packed vitals' and parameters' network fields,
+// the attack parameters' difficulty scale and the databases' record lookups. The stat ratios are in
+// unit_stats.cpp and the school's price in unit_skill_price.cpp (ei_vectors links those). Plain C++ float
+// maths (rule 7).
 #include "combat.h"
 #include "options.h"
 #include "net_delta.h"
@@ -17,8 +17,8 @@ namespace {
 // The game's settings (globals read at the time of the call).
 int Difficulty() { return options::TheOptions()->difficulty_; }
 
-// Element `index` of the records between `begin` and `end`, or null past the end (the count is a
-// signed division, the comparison unsigned, as the original's).
+// Element `index` of the records between `begin` and `end`, or null past the end (the count is a signed
+// division, the comparison unsigned).
 template <typename T>
 T* RecordAt(T* begin, T* end, std::uint32_t index) {
     return index < static_cast<std::uint32_t>(end - begin) ? begin + index : nullptr;
@@ -44,7 +44,7 @@ EI_REWRITTEN(0x00524FA0, SkillDatabase::LevelAt);
 UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return RecordAt(begin, end, index); }
 EI_REWRITTEN(0x00539280, UnitModelTable::At);
 
-// 0053AD30 (thiscall on the prototype table, RET 4): prototype `index`, or null.
+// Prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {
     return RecordAt(begin, end, index);
 }

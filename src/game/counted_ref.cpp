@@ -1,8 +1,7 @@
 // A counted reference to an engine object (AIRefTo<T>, unit_ai.h; the map objects, the AI, the traps,
-// the effects and the unit controller keep these): reset 0052B030 (0052B050 is an identical
-// instantiation), assign 0052A8F0, load 0050E220 and save 0050E290 by object id (A-U6). The bodies
-// are one template, instantiated below for the classes the fields hold; AIRef's (CEngineObject) are
-// the registered ones.
+// the effects and the unit controller keep these): reset, assign, and load / save by object id.
+// The bodies are one template, instantiated below for the classes the fields hold; AIRef's
+// (CEngineObject) are the registered ones.
 #include "unit_ai.h"
 
 #include "base_manager.h"
@@ -68,9 +67,8 @@ EI_REWRITTEN(0x0052A8F0, AIRef::Assign);
 EI_REWRITTEN(0x0050E220, AIRef::Load);
 EI_REWRITTEN(0x0050E290, AIRef::Save);
 
-// 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
-// counted references added at the tail of the list, each loaded in `context` (the trap's units,
-// the brain's lists).
+// Reads a count, then that many counted references added at the tail of the list, each loaded in
+// `context` (the trap's units, the brain's lists).
 void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
     int count;
     stream->Read(&count, 4);

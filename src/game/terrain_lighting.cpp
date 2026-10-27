@@ -1,9 +1,8 @@
-// Terrain vertex lighting (006C31C0-006C3C7F): SectorData::Light runs over a rectangle of a sector's
-// vertices with the FPU switched to chop rounding (_controlfp(0x300, 0x300)), so every operation
-// below, including the FISTPs of the colour channels, rounds towards zero there.
-// Per vertex: ShadeSun sets the lit colour (+0x37) from the ambient light and the sun, and
-// LightVertex adds the point lights registered with the vertex, packing the colour and
-// specular words the terrain draw sends to the device. On the ground layer both dim light under
+// Terrain vertex lighting: SectorData::Light runs over a rectangle of a sector's vertices with the FPU
+// switched to chop rounding (_controlfp(0x300, 0x300)), so every operation below, including the FISTPs of
+// the colour channels, rounds towards zero there. Per vertex: ShadeSun sets the lit colour (+0x37) from the
+// ambient light and the sun, and LightVertex adds the point lights registered with the vertex, packing the
+// colour and specular words the terrain draw sends to the device. On the ground layer both dim light under
 // water by 1 - absorption * depth^2 * falloff (times the light's vertical component squared).
 #include "terrain.h"
 #include "terrain_sector.h"
@@ -25,16 +24,15 @@ namespace {
 constexpr int kVertices = 33 * 33;     // per layer
 constexpr int kRow = 33;
 
-// 1 / the water depth scale (007C8908, set by a static initialiser from 0074417C).
+// 1 / the water depth scale (set by a static initialiser).
 constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initialiser: 1 / 15
 
-// The light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddDirectional (0068D310,
-// the sun: its direction +0xD4) or AddPoint (0068D5A0, a point light at `distance` along the unit
-// `direction`). Both clamp each channel to 1 and copy the alpha through.
+// The light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddDirectional (the sun: its
+// direction +0xD4) or AddPoint (a point light at `distance` along the unit `direction`). Both clamp each
+// channel to 1 and copy the alpha through.
 
 
-// The original's select idioms (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or
-// unordered", picks b).
+// Select idiom (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or unordered", picks b).
 float Max(float a, float b) { return a >= b ? a : b; }
 float AtMostOne(float v) { return v <= 1.0f ? v : 1.0f; }
 float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
@@ -48,14 +46,14 @@ bool SignClear(float v) {
 // Channel bytes: the value times 255 stored as a float, then FISTP (here: chop).
 std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v * 255.0f))); }
 
-// R16i: whether the sun's ray march (Terrain::SunReaches) from vertex (column, row) of `sector` can change
+// Whether the sun's ray march (Terrain::SunReaches) from vertex (column, row) of `sector` can change
 // nothing of the game's. Its answer feeds only the vertex colours, which the GPU lighting does not read;
 // but each sector it steps into is looked up with SectorAt (loaded when missing, its use and the cache's
 // order refreshed), which feeds the sector cache (and through its builds the global ISAAC draws). Those
-// lookups change nothing when every sector the ray can step into is cached and was used this frame
-// already: then the march is left out. Bounds as SunReaches steps: the directions as it turns them, at
-// most `length` steps, each moving at most one vertex along x and one along y, a sector crossed when the
-// column (row) passes 32 going up or 0 going down.
+// lookups change nothing when every sector the ray can step into is cached and was used this frame already:
+// then the march is left out. Bounds as SunReaches steps: the directions as it turns them, at most `length`
+// steps, each moving at most one vertex along x and one along y, a sector crossed when the column (row)
+// passes 32 going up or 0 going down.
 bool SunMarchTouchesNothing(const Terrain* terrain, const SectorData* sector, int column, int row) {
     int stepX = terrain->sunStepX, stepY = terrain->sunStepY;
     float slopeX = terrain->sunSlopeX, slopeY = terrain->sunSlopeY;
@@ -116,7 +114,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         record->lit.z = AtMostOne(static_cast<float>(ambient.z + colour.z));
         return;
     }
-    // The fourth component is an uninitialised stack slot in the original; only copied through.
+    // The fourth component is an uninitialised stack slot; only copied through.
     Vector4 shaded;
     Vector4 source = {colour.x, colour.y, colour.z, 0.0f};
     sun->AddDirectional(&shaded, attenuation, &source, &record->normal);
@@ -177,10 +175,10 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     }
 }
 
-// R16i: LightVertex's specular word alone, for the water layer when the GPU lights the colours: the harness
-// digest's "water" reads that word (the edge fade, then the specular lights; Animate writes the crests
-// over its colour bytes). The same operations as LightVertex for the lights with flag 0x40; the others
-// only fed the colour word (AddPoint changes nothing).
+// LightVertex's specular word alone, for the water layer when the GPU lights the colours: the harness
+// digest's "water" reads that word (the edge fade, then the specular lights; Animate writes the crests over
+// its colour bytes). The same operations as LightVertex for the lights with flag 0x40; the others only fed
+// the colour word (AddPoint changes nothing).
 void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* terrain, int layer) {
     Vector3 specular = {0.0f, 0.0f, 0.0f};
     Vector3 at = *position;
@@ -230,10 +228,10 @@ void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y
     unsigned control = libcrt::Controlfp(0, 0);
     libcrt::Controlfp(0x300, 0x300);
     terrain->lightingSector = this;
-    // R16i: with the new renderer the GPU lights both layers (render::GpuTerrainLighting). The water layer
-    // keeps its specular word (LightSpecular: the harness digest reads it); the ground layer gets only the
-    // edge fade (the fog factor of its specular word), and the sun's ray march runs only where it could
-    // change the sector cache (SunMarchTouchesNothing).
+    // With the new renderer the GPU lights both layers (render::GpuTerrainLighting). The water layer keeps
+    // its specular word (LightSpecular: the harness digest reads it); the ground layer gets only the edge
+    // fade (the fog factor of its specular word), and the sun's ray march runs only where it could change
+    // the sector cache (SunMarchTouchesNothing).
     const bool gpu = render::GpuTerrainLighting();
     if (hasWater) {
         for (int y = y0; y <= y1; ++y) {

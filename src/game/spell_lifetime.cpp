@@ -14,8 +14,8 @@
 
 namespace {
 
-// A counted pointer's destructor and the counted pointer assignment of null: the old
-// object loses a reference (slot 4).
+// A counted pointer's destructor and the counted pointer assignment of null: the old object loses a
+// reference.
 template <class T>
 void Drop(T*& field) {
     T* old = field;
@@ -99,7 +99,7 @@ CSpellEffect::~CSpellEffect() {
 EI_REWRITTEN_SPECIAL(0x0067E5D0, CSpellEffect::~CSpellEffect);
 EI_REWRITTEN_SPECIAL(0x0067E5B0, CSpellEffect::~CSpellEffect);   // deleting
 
-// --- A-H25: the cast's start values and the object it forgets ------------------------------------
+// --- The cast's start values and the object it forgets ------------------------------------
 
 // The caster and the target are counted references (AIRefTo::Assign: nothing when it holds the
 // object already; else the held one released, the new one counted).
@@ -127,7 +127,7 @@ BOOL CSpellEffect::Forget(CEngineObject* object) {
 }
 EI_REWRITTEN(0x0067EF00, CSpellEffect::Forget);
 
-// --- 00688530 (A-H25): an effect's tick --------------------------------------------------------------
+// --- An effect's tick --------------------------------------------------------------
 
 int MapEffect::Tick() {
     --ticksLeft;

@@ -16,7 +16,7 @@ using namespace itemdb;
 
 namespace {
 
-// The keys' prefixes and the kind texts (0078DD04..0078DE70).
+// The keys' prefixes and the kind texts.
 constexpr const char kString[] = "string ";
 constexpr const char kWeapon[] = "weapon ";
 constexpr const char kArmor[] = "armor ";
@@ -33,12 +33,12 @@ constexpr const char kUnknown[] = "Unknown";
 constexpr const char kColon[] = ": ";
 constexpr const char kLineEnd[] = "\r\n";
 
-// Clears the current text, looks up `key` and makes it current. True when it was found and is
-// not empty (the original inlines CTextManager::Open, 004DEFC0).
+// Clears the current text, looks up `key` and makes it current. True when it was found and is not empty
+// (CTextManager::Open inlined).
 bool OpenText(CTextManager* self, const char* key) { return self->Open(key) != 0; }
 
-// The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a
-// database record that may be null (the original then faults reading it).
+// The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
+// that may be null (reading it then faults).
 void KeyName(mfc::CString& out, const mfc::CString& name) {
     out = name;
     text::ReplaceChar(&out, ' ', '_');
@@ -96,7 +96,7 @@ EI_REWRITTEN(0x004E0020, CTextManager::GetString);
 BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
-    mfc::CString recordName;   // ESP+0x10 in the original
+    mfc::CString recordName;
     mfc::CString materialName; // ESP+0x14
     name->Empty();
     description->Empty();
@@ -243,7 +243,7 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     prev->next = next;
     next->prev = prev;
     pos->data.name.~string();   // the storage freed
-    if (pos) libcrt::NodeDeallocate(pos, 0x18);   // the original checks only here, after using the node (always true)
+    if (pos) libcrt::NodeDeallocate(pos, 0x18);   // checked only here, after using the node (always true)
     *out = next;
     return out;
 }
@@ -276,7 +276,7 @@ EI_REWRITTEN(0x005F97D0, TextSourceIterator::CopyTo);
 EI_REWRITTEN(0x00609A30, TextSourceIterator::CopyTo);
 EI_REWRITTEN(0x00609A70, TextSourceIterator::CopyTo);
 EI_REWRITTEN(0x0062C080, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x00539210, TextSourceIterator::CopyTo);   // A-U11
+EI_REWRITTEN(0x00539210, TextSourceIterator::CopyTo);
 EI_REWRITTEN(0x00560050, TextSourceIterator::CopyTo);   // A-W12
 EI_REWRITTEN(0x0056DEC0, TextSourceIterator::CopyTo);
 EI_REWRITTEN(0x0056DFA0, TextSourceIterator::CopyTo);

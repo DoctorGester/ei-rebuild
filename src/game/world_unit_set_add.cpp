@@ -1,9 +1,8 @@
-// The unit set's builder (005593D0, UnitSet::Add; world.h), called for each unit by the server's
-// SendZone (world_sync.cpp), and the STLport helpers it was compiled with. The set's maps are
-// game_hashes.h's tables: the figured groups (hash_map<prototype, FiguredTable>), each group a
-// hash_multimap of figured records by their scale key, and the dressed records, a hash_multimap by
-// prototype. The temporaries are made, copied and destroyed in the original's order: the game reads
-// the heap's address order (docs/notes/standalone-verification.md).
+// The unit set's builder (UnitSet::Add; world.h), called for each unit by the server's SendZone
+// (world_sync.cpp), and the STLport helpers it was compiled with. The set's maps are game_hashes.h's tables:
+// the figured groups (hash_map<prototype, FiguredTable>), each group a hash_multimap of figured records by
+// their scale key, and the dressed records, a hash_multimap by prototype. The temporaries are made, copied and
+// destroyed in the game's order: it reads the heap's address order (docs/notes/standalone-verification.md).
 #include "world.h"
 
 #include "game_hashes.h"
@@ -59,10 +58,9 @@ bool SameIds(const UnitIdList& a, const UnitIdList& b) {
     return true;
 }
 
-// The group of `prototype` (made when missing) as the original reaches it: an empty table
-// (hash_map(), 0055AC40), a pair of the key and a copy of it, find_or_insert
-// of the pair (0055BA10: a new node copies the pair again), then the pair's table and the empty one
-// destroyed.
+// The group of `prototype` (made when missing) as the game reaches it: an empty table, a pair of the key and a
+// copy of it, find_or_insert of the pair (a new node copies the pair again), then the pair's table and the
+// empty one destroyed.
 FiguredTable* GroupFor(FiguredGroupsTable& groups, std::uint32_t prototype) {
     FiguredTable empty;
     empty.Construct(100, 0, 0, 0);
@@ -151,12 +149,12 @@ void UnitSet::Add(CUnit* unit) {
     DressedUnitElement::Construct(&entry.mapped, record);
     dressedRecords.Resize(dressedRecords.Count() + 1);
     dressedRecords.InsertEqualNoresize(entry);
-    DressedUnitElement::Destroy(&entry.mapped);                      // 004FE420 twice
+    DressedUnitElement::Destroy(&entry.mapped);                      // called twice
     FiguredUnitElement::Destroy(&record);
 }
 EI_REWRITTEN(0x005593D0, UnitSet::Add);
 
-// ---- The helpers 005593D0 was compiled with -------------------------------------------------------
+// ---- The helpers UnitSet::Add was compiled with ---------------------------------------------------
 
 namespace unitset {
 

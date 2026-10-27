@@ -24,11 +24,10 @@
 
 namespace {
 
-// The object's world [00455950]; the sector map's units in a radius [005C0BD0: position, list,
-// radius], Remove [005C1010], Add [005C0DF0]; the AI map's refresh [005B8B30 / 005B8B80], cell
-// tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
-// animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
-// [00554450, on +0x240].
+// The object's world; the sector map's units in a radius (position, list, radius), Remove, Add; the AI map's
+// refresh,
+// cell tests (CanLeaveCell, FindFreeCellNear (unit, from, out)); the figure's animation (model name); MarkChanged
+// (part); the unit's controller resync (on +0x240).
 
 } // namespace
 
@@ -36,7 +35,7 @@ void Lever::SetState(int wanted, float duration) {
     // FCOMP + TEST AH,1: a negative duration takes the model's default.
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
-        // The model's record by name: the table's operator[] (00464750; an unknown name gets a null entry).
+        // The model's record by name: the table's operator[] (an unknown name gets a null entry).
         const LeverRecord* record = TheLeverTable().Named(name);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
@@ -54,7 +53,7 @@ void Lever::SetState(int wanted, float duration) {
         current = chosen <= 0 ? 0 : chosen;
     }
 
-    // Only on the server (the world's slot 26).
+    // Only on the server.
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
     mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack

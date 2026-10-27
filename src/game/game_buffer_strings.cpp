@@ -1,6 +1,5 @@
-// The byte buffer's length-prefixed strings (A-S4): GameBuffer::ReadString and
-// WriteString. The format is in net_coder.h; the buffer's other members are
-// game_buffer.cpp.
+// The byte buffer's length-prefixed strings: GameBuffer::ReadString and WriteString. The format is in net_coder.h;
+// the buffer's other members are game_buffer.cpp.
 #include "net_classes.h"
 #include "net_coder.h"
 
@@ -10,8 +9,8 @@
 
 namespace {
 
-// `size` bytes from the cursor as the reader inlines it: past `high` through ReadPastEnd, past
-// `end` through slot 3, else copied in place.
+// `size` bytes from the cursor as the reader inlines it: past `high` through ReadPastEnd, past `end` through the
+// buffer's refill virtual, else copied in place.
 void ReadInline(GameBuffer* buffer, void* to, std::uint32_t size) {
     if (buffer->cur + size > buffer->high) {
         buffer->ReadPastEnd(to, size);
@@ -23,7 +22,8 @@ void ReadInline(GameBuffer* buffer, void* to, std::uint32_t size) {
     }
 }
 
-// The writer's inline store: in place (flags bit 0) when it fits before `end`, else slot 4.
+// The writer's inline store: in place (flags bit 0) when it fits before `end`, else through the buffer's grow
+// virtual.
 void WriteInline(GameBuffer* buffer, const void* from, std::uint32_t size) {
     if (buffer->cur + size <= buffer->end) {
         buffer->flags |= 1;

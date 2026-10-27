@@ -1,10 +1,11 @@
-// Lifetime of the unit databases (docs/notes/units.md): the unit database at 007AF358 (constructor
-// 00539A10, destructor 0053A050), its prototype / NPC / model tables alone (00539B20, 00539CE0,
-// 00539E70), the record destructors and the skill database at
-// 007AF268. All are thiscall (or fastcall) with no arguments; the destructors run at exit
-// (0053A050 and 0051FB50 from the dynamic atexit functions 0053A040 / 0051FB40) and when the
-// database file changes (0057DEE0 destroys each table, constructs the database again and loads it);
-// the record destructors also from the tables' erase / reallocation code.
+// Lifetime of the unit databases (docs/notes/units.md): the unit database (constructor, destructor), its
+// prototype /
+// NPC / model tables alone, the record destructors and the skill database. All are thiscall (or fastcall) with no
+// arguments; the destructors run at exit (from the dynamic atexit functions) and when the database file
+// changes (the
+// resource reload destroys each table, constructs the database again and loads it); the record destructors
+// also from
+// the tables' erase / reallocation code.
 #include "unit_db.h"
 
 
@@ -33,8 +34,9 @@ constexpr std::size_t kNameBuckets = 100;   // the bucket count each name map as
 
 void DestroyString(mfc::CString* s) { s->~CString(); }
 
-// The inline ~vector<CString> of the records: _Destroy, then the storage (00520EB0 /
-// The node pool's deallocate of the capacity in whole elements).
+// The inline ~vector<CString> of the records: _Destroy, then the storage (the node pool's deallocate of the
+// capacity
+// in whole elements).
 void DestroyStringVector(CStringVector* v) {
     DestroyStringRange(v->begin(), v->end());
     v->FreeStorage();
@@ -42,21 +44,21 @@ void DestroyStringVector(CStringVector* v) {
 
 } // namespace
 
-// A table's record storage back to the node pool: the capacity in whole records (the original's
-// signed division of the byte span by the record size), when there is any.
+// A table's record storage back to the node pool: the capacity in whole records (a signed division of the
+// byte span by the record size), when there is any.
 template <typename Record>
 void FreeRecords(Record* begin, Record* endOfStorage) {
     if (begin) stlp::deallocate(begin, static_cast<std::size_t>(endOfStorage - begin) * sizeof(Record));
 }
 
-// The tables are destroyed last to first; in each the name map is cleared (each node's
-// string freed, then the node; 0053C5E0, 0053C430, 0053C280, 0053C0D0) and its buckets freed
-// (0053BF00 ...), then every record is destroyed (the end read once) and the storage freed.
+// The tables are destroyed last to first; in each the name map is cleared (each node's string freed, then
+// the node) and its buckets freed, then every record is destroyed (the end read once) and the storage
+// freed.
 void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     UnitLevelTable& levels = self->levels;
     levels.byName.Destroy();
     for (UnitLevelRecord *p = levels.begin, *end = levels.end; p != end; ++p) p->DeleteScalar(0);
-    FreeRecords(levels.begin, levels.endOfStorage);   // deallocate(p, n), 0053BEB0
+    FreeRecords(levels.begin, levels.endOfStorage);   // deallocate(p, n)
 
     UnitModelTable& models = self->models;
     models.byName.Destroy();
@@ -74,10 +76,10 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     FreeRecords(prototypes.begin, prototypes.endOfStorage);
 }
 
-// The NPC table: the name map's clear inlined (each chain's values destroyed and nodes
-// freed, each bucket emptied, the bucket count read again every pass; then the count 0), the
-// buckets freed, then each record (0x60 bytes, UnitNpcRecord) destroyed in reverse member order
-// and the storage freed. The original leaves junk in EAX; nothing reads it.
+// The NPC table: the name map's clear inlined (each chain's values destroyed and nodes freed, each bucket
+// emptied, the bucket count read again every pass; then the count 0), the buckets freed, then each record
+// (0x60 bytes, UnitNpcRecord) destroyed in reverse member order and the storage freed. Junk is left in EAX;
+// nothing reads it.
 void __fastcall DestroyNpcTable(NpcPrototypeTable* self) {
     self->byName.Destroy();
     for (UnitNpcRecord *record = self->begin, *end = self->end; record != end; ++record) {
@@ -90,9 +92,9 @@ void __fastcall DestroyNpcTable(NpcPrototypeTable* self) {
     FreeRecords(self->begin, self->endOfStorage);
 }
 
-// The skill level records (0x44 bytes at +0x0C; their CStrings in reverse order), their
-// storage, then the skills (0x18 bytes at +0x00: the string vector, then the two CStrings) and
-// their storage (the node pool's deallocate inlined; the same code as 00404D70).
+// The skill level records (0x44 bytes at +0x0C; their CStrings in reverse order), their storage, then the
+// skills (0x18 bytes at +0x00: the string vector, then the two CStrings) and their storage (the node pool's
+// deallocate inlined).
 void __fastcall DestroySkillDatabase(SkillDatabase* self) {
     for (SkillLevelRecord *record = self->levels.begin(), *end = self->levels.end(); record != end; ++record) {
         DestroyString(&record->requiredSkillName);
@@ -173,10 +175,9 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
     DestroyString(&record->name);
 }
 
-// 00539B20 / 00539E70. The prototype / model table as 0057DEE0 destroys it before a reload (the
-// same steps as DestroyNpcTable): the name map cleared and its buckets freed, every record
-// destroyed (the record destructors inlined; the same calls), the storage freed. The original
-// leaves junk in EAX; nothing reads it.
+// The prototype / model table as the reload destroys it (the same steps as DestroyNpcTable): the name map
+// cleared and its buckets freed, every record destroyed (the record destructors inlined; the same calls),
+// the storage freed. Junk is left in EAX; nothing reads it.
 void __fastcall DestroyPrototypeTable(UnitPrototypeTable* self) {
     self->byName.Destroy();
     for (UnitPrototypeRecord *p = self->begin, *end = self->end; p != end; ++p) DestroyPrototypeRecord(p);
@@ -189,7 +190,7 @@ void __fastcall DestroyModelTable(UnitModelTable* self) {
 }
 
 namespace {
-// A table as 00539A10 builds it: no records (0053B440 ...), a name map with 100 buckets asked for.
+// A table as the database constructor builds it: no records, a name map with 100 buckets asked for.
 template <typename Table>
 void ConstructTable(Table& table) {
     table.begin = nullptr;
@@ -199,10 +200,9 @@ void ConstructTable(Table& table) {
 }
 } // namespace
 
-// 00539A10 (the dynamic initialiser of 007AF358 and 0057DEE0's reload). The four tables in order:
-// each record vector empty (0053B440 ...), each name map with 100 buckets asked for (hashtable(n,
-// hash, equal, allocator): 0053B4B0 ...; the functor bytes, never read, are 0 here). Returns the
-// database.
+// The database constructor (the dynamic initialiser and the reload). The four tables in order: each record
+// vector empty, each name map with 100 buckets asked for (hashtable(n, hash, equal, allocator); the functor
+// bytes, never read, are 0 here). Returns the database.
 UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
     ConstructTable(self->prototypes);
     ConstructTable(self->npcs);
@@ -230,9 +230,8 @@ EI_REWRITTEN(0x005214B0, unitdb::DestroyStringRange);
 
 // ---- The unit and skill databases (unit_db.h, unit_db_globals.cpp) --------------------------------------------------
 
-// Built empty by the static initialisers 005399F0 and 0051FAF0 in the list's order and destroyed by the exit functions
-// those register; ported on the names and registered at their addresses (docs/notes/standalone.md,
-// "The static initialisers' objects").
+// Built empty by static initialisers in the list's order and destroyed by the exit functions those register
+// (docs/notes/standalone.md, "The static initialisers' objects").
 namespace unitdb {
 
 namespace {

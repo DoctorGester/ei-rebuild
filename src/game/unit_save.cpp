@@ -1,5 +1,4 @@
-// CUnit's Load and Save slots (vtable 0073EA8C slots 9 and 10). See unit.h and
-// docs/notes/units.md ("Creation, databases, save").
+// CUnit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
 #include "base_manager.h"
 #include "unit.h"
 
@@ -34,7 +33,7 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
     return record ? static_cast<int>(record - unitdb::PrototypeTable().begin) : -1;
 }
 
-// Writes `value` from a stack copy, as the original does for most scalars.
+// Writes `value` from a stack copy, as for most scalars.
 template <typename T>
 void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
@@ -49,7 +48,7 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
-// Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
+// Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(CStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(storage);
@@ -57,8 +56,8 @@ void ReadStringInto(CStream* stream, mfc::CString& target) {
     read->~CString();
 }
 
-// The prototype record named `name` through the name map (an unknown name is added to it;
-// 005335E0, hash_map<string, record*>::operator[], inlined by the original).
+// The prototype record named `name` through the name map (an unknown name is added to it; hash_map<string,
+// record*>::operator[], inlined).
 UnitPrototypeRecord* PrototypeByName(const char* name) {
     stlp::string key(name);
     return unitdb::PrototypeTable().byName.Subscript(key);
@@ -91,7 +90,7 @@ void ZeroSlots(CItem** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = nullptr;
 }
 
-// CArray::SetSize of the carried items as the original inlines it.
+// CArray::SetSize of the carried items, inlined.
 void SetCarriedSize(CUnit* unit, int size) {
     if (size == 0) {
         if (unit->carried) {
@@ -175,7 +174,7 @@ void CUnit::LoadUnit(CStream* stream) {
     ReadItems(this, stream, armor, 7);
     stream->Read(levels4C8, sizeof(levels4C8));
     StatsChanged();
-    SetPlayer(newPlayer);   // inlined by the original
+    SetPlayer(newPlayer);   // inlined
 
     stream->Read(&relationsB, 4);
     int count;
@@ -237,8 +236,8 @@ void CUnit::SaveUnit(CStream* stream) {
     WriteCopy(stream, standingHeight);
     stream->Write(&fightAtWill, 4);
 
-    // The prototype's name (the record's first field is a CString; a record out of range is
-    // copied from address 0, as the original does), then the second prototype's or "".
+    // The prototype's name (the record's first field is a CString; a record out of range is copied from
+    // address 0), then the second prototype's or "".
     std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name.GetString();
     WriteString(stream, prototypeName.c_str());
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));

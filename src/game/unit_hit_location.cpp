@@ -24,7 +24,7 @@ constexpr signed char kNeighbours[kSlots][kSlots] = {
 } // namespace
 
 int UnitStats::PickLocation(int location) {
-    // The original indexes the slots with any location (only the neighbour table is guarded).
+    // The slots are indexed with any location (only the neighbour table is guarded).
     if (slots[location].kind == kWorking) return location;
     if (static_cast<unsigned>(location) < kSlots) {
         for (const signed char* n = kNeighbours[location]; *n >= 0; ++n)
@@ -35,6 +35,6 @@ int UnitStats::PickLocation(int location) {
     for (int i = 0; i < kSlots; ++i)
         if (slots[i].kind == kWorking) working[count++] = i;
     if (count == 0) return kFallback;
-    return working[IsaacRandom::Global().Next() % count];   // the draw is inlined in the original
+    return working[IsaacRandom::Global().Next() % count];   // the draw is inlined
 }
 EI_REPLACE_METHOD(0x00525B20, UnitStats::PickLocation);

@@ -1,9 +1,9 @@
-// The fake unit scene's vertex normals (0044DCF0, Ghidra: PrepareMeshes) and packed positions
-// both called by LoadFakeUnitScene. Normals: for every mesh, each face's normal, each position's normal as the
-// normalised sum of the normals of the faces using it (the zero vector 0079B9B0 when the sum is
-// within the weld distance of zero), the faces' position indices refreshed, and the normals packed
-// four at a time into 64-byte blocks (x[4], y[4], z[4], w[4]; unused lanes repeat the last
-// normal, w is 1). Plain float maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").
+// The fake unit scene's vertex normals (PrepareMeshes) and packed positions (PlaceMeshes), both called by
+// LoadFakeUnitScene. Normals: for every mesh, each face's normal, each position's normal as the normalised
+// sum of the normals of the faces using it (the zero vector when the sum is within the weld distance of
+// zero), the faces' position indices refreshed, and the normals packed four at a time into 64-byte blocks
+// (x[4], y[4], z[4], w[4]; unused lanes repeat the last normal, w is 1). Plain float maths (rule 7). Names
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/crt.h"
@@ -107,9 +107,9 @@ void __fastcall ComputeMeshNormals(MeshArray* meshes) {
 }
 EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 
-// 0044E3B0 (Ghidra: PlaceMeshes; `unit` is the fake unit, meshes at +0x544): every mesh's
-// positions packed four at a time into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every
-// lane starts as the first position, so the unused lanes of the last block keep it.
+// PlaceMeshes (`unit` is the fake unit, meshes at +0x544): every mesh's positions packed four at a time
+// into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every lane starts as the first position, so
+// the unused lanes of the last block keep it.
 void __fastcall PackMeshPositions(FakeUnitScene* unit) {
     MeshArray& meshes = unit->meshes;
     for (int m = 0; m < meshes.size; ++m) {
@@ -143,14 +143,13 @@ void __fastcall PackMeshPositions(FakeUnitScene* unit) {
 EI_REWRITTEN(0x0044E3B0, PackMeshPositions);
 
 namespace {
-// The original's branchless select after FCOMP: `b` when a < b or unordered, else `a`.
+// The branchless select after FCOMP: `b` when a < b or unordered, else `a`.
 float SelectBelow(float a, float b) { return a >= b ? a : b; }
 } // namespace
 
-// 0044E8A0 (Ghidra: PrepareMesh; ECX: the mesh): the bounding box of the positions (+0x168 min,
-// +0x174 max, both made relative to the centre), its centre (+0x15C, half the sum, 0073B86C) and
-// the radius (+0x180, half the box's diagonal). The running maximum of x starts at 0073C1A8
-// (-FLT_MAX), the others at +/-FLT_MAX. Plain float maths (rule 7).
+// Bounds of a mesh: the bounding box of the positions (+0x168 min, +0x174 max, both made relative to the
+// centre), its centre (+0x15C, half the sum) and the radius (+0x180, half the box's diagonal). The running
+// maximum of x starts at -FLT_MAX, the others at +/-FLT_MAX. Plain float maths (rule 7).
 void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     const PointBuffer& positions = mesh->positions;
     float maxX = (-3.4028235e38f /*0073C1A8*/);

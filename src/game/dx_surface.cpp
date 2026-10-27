@@ -1,17 +1,14 @@
-// The off-screen surface holder (CDXSurface, texture.h; 0x20 bytes, vtable 0073D774): its
-// constructor for a system-memory surface of the screen's pixel format (004EF7B0, thiscall: device
-// object, width, height; RET 0xC), its constructor from an .mmp picture with the picture
-// loader it calls and its destructor body. Used for the interface windows'
-// surfaces, the software cursor's and its images
-// (005E4EB0 -> 004EFC60), and the movies'.
-// No holder has a DirectDraw surface (CDXSurface::surface stays null; R7): the pixels
-// live in memory the new renderer owns (render::NewSurfaceMemory, a DIB section), the game code works
-// on it directly (DirectPixels; GDI through a memory DC, ui_surface_dc.cpp) and the new renderer
-// reads it. Picture surfaces get the same memory; every texture the texture manager makes
-// for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
-// (NewMemoryTextureHolder), an .mmp texture one with none (NewDecodedTextureHolder). When that memory
-// cannot be made the original's "Can't create DDSurface" error is thrown, as when DirectDraw refused
-// the surface. See docs/notes/renderer.md (sections 6, 7).
+// The off-screen surface holder (CDXSurface, texture.h; 0x20 bytes): its constructor for a system-memory surface of
+// the screen's pixel format (thiscall: device object, width, height), its constructor from an .mmp picture with
+// the picture loader it calls and its destructor body. Used for the interface windows' surfaces, the software
+// cursor's and its images, and the movies'.
+// No holder has a DirectDraw surface (CDXSurface::surface stays null): the pixels live in memory the new renderer
+// owns (render::NewSurfaceMemory, a DIB section), the game code works on it directly (DirectPixels; GDI through a
+// memory DC, ui_surface_dc.cpp) and the new renderer reads it. Picture surfaces get the same memory; every texture
+// the texture manager makes for the CPU (texture_blank.cpp) gets a holder with only such memory
+// (NewMemoryTextureHolder), an .mmp texture one with none (NewDecodedTextureHolder). When that memory cannot be
+// made the "Can't create DDSurface" error is thrown, as when DirectDraw refused the surface. See
+// docs/notes/renderer.md (sections 6, 7).
 #include "app.h"
 #include "dx_surface.h"
 #include "dx_errors.h"
@@ -59,8 +56,8 @@ PixelFormat FormatOf(const std::uint32_t* pixelFormat) {
     return format;
 }
 
-// What DirectDraw's CreateSurface answered for a surface it refused (DDERR_UNSUPPORTED, the
-// stand-in's answer before R11b): the device's result when a holder's memory cannot be made.
+// What DirectDraw's CreateSurface answered for a surface it refused (DDERR_UNSUPPORTED): the device's result when a
+// holder's memory cannot be made.
 constexpr long kSurfaceRefused = static_cast<long>(0x80004001);
 
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
@@ -79,9 +76,8 @@ bool ReadDisplayModeFormat(CTextureDevice* device, PixelFormat* format) {
     return true;
 }
 
-// The screen's pixel format into `format`: the display mode's (ticket R8: the original reads the
-// primary surface's, which is in the display mode's format; the switch-over always answers with an RGB
-// one). Otherwise the original's report (`format` stays as it was).
+// The screen's pixel format into `format`: the display mode's (the primary surface's format is the display mode's;
+// the switch-over always answers with an RGB one). Otherwise the failure report (`format` stays as it was).
 void ReadScreenFormat(CTextureDevice* device, PixelFormat* format) {
     if (ReadDisplayModeFormat(device, format)) return;
     app::FatalErrorCode(kSurfaceRefused, "Can't get pixel format from surface.\n");   // "Can't get pixel format from surface"
@@ -172,16 +168,15 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
 
 CDXSurface::CDXSurface(CTextureDevice* deviceIn) : device(deviceIn) {}
 
-// When the surface cannot be made a C++ exception is thrown (as the original: an error object
-// by pointer). The holder gets the new renderer's memory and no DirectDraw surface; without that memory
-// the error ends the game.
+// When the surface cannot be made a C++ exception is thrown (an error object by pointer). The holder gets the new
+// renderer's memory and no DirectDraw surface; without that memory the error ends the game.
 CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
     PixelFormat format = {};
     ReadScreenFormat(deviceIn, &format);
 
     if (!this->device) {
-        // "... Can't create DDSurface - no DXDD." (a report that says go on: the original reads the
-        // missing surface's description and fails there; every caller passes the device object)
+        // "... Can't create DDSurface - no DXDD." (a report that says go on: the code reads the missing surface's
+        // description and fails there; every caller passes the device object)
         game::FatalError("CDXDirectDrawSurface::CreateDDSurface.\n Can't create DDSurface - no DXDD.\n");
         ThrowCreateFailed(widthIn, heightIn);
     }
@@ -204,10 +199,9 @@ const std::uint8_t* PicturePixels(const MmpHeader* picture) {
     return reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->extraSize;
 }
 
-// The picture's pixels into the holder's memory `pixels`. The device's pixel converter (2DintMMX's
-// graphics processor): slot 1 takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another)
-// and its alpha, red, green and blue masks; slot 2 converts one row of 8888 pixels (out, in,
-// format, count).
+// The picture's pixels into the holder's memory `pixels`. The device's pixel converter (2DintMMX's graphics
+// processor): slot 1 takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another) and its alpha, red, green
+// and blue masks; slot 2 converts one row of 8888 pixels (out, in, format, count).
 void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixels& pixels) {
     const std::uint8_t* source = PicturePixels(picture);
     std::uint8_t* out = pixels.bits;
@@ -243,38 +237,35 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
         }
     } else if (bits == 24) {
         game::FatalError("Can't load picture to 24bit surface! Only 32bit and 16bit supported\n");   // "Can't load picture to 24bit surface! ..."
-        // (The surface cleared as if it had no row padding, as the original.)
+        // (The surface is cleared as if it had no row padding.)
         std::memset(out, 0, (bits >> 3) * static_cast<std::uint32_t>(pixels.height * pixels.width));
     }
 }
 
 } // namespace
 
-// 004F0060 (thiscall on the holder, RET 8): makes the holder's surface (when it has none yet) of
-// the size of an 8888 .mmp picture, in system memory, or in video memory when the low byte of
-// `flag` is set, with the screen's pixel format, and loads the picture into it: copied to a 32-bit
-// surface, converted row by row through the device's converter to a 16-bit one. 1 when done;
+// Makes the holder's surface (when it has none yet) of the size of an 8888 .mmp picture, in system memory, or in
+// video memory when the low byte of `flag` is set, with the screen's pixel format, and loads the picture into it:
+// copied to a 32-bit surface, converted row by row through the device's converter to a 16-bit one. 1 when done;
 // otherwise the result of the fatal error report (nonzero when the player goes on).
-// The surface is the new renderer's memory (as 004EF7B0; also for a video-memory request: ticket
-// R9a2): no DirectDraw surface, and the picture is written straight into the memory, no Lock /
-// Unlock, its size and pixel format from that memory (DirectPixels). No memory: the original's
-// report for a surface that could not be made.
-// Original details kept: a holder that already has its pixels (only the dead loaders 004EFF30 /
-// 004EFFF0 pass one) must have the picture's width in both +0x14 and +0x18; a 24-bit surface is
-// reported, then cleared.
+// The surface is the new renderer's memory (also for a video-memory request): no DirectDraw surface, and the
+// picture is written straight into the memory, no Lock / Unlock, its size and pixel format from that memory
+// (DirectPixels). No memory: the report for a surface that could not be made.
+// Kept details: a holder that already has its pixels must have the picture's width in both +0x14 and +0x18; a
+// 24-bit surface is reported, then cleared.
 int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     const auto* picture = static_cast<const MmpHeader*>(data);
     if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");                  // "Can't load picture from NULL pointer."
     if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");   // "... from non-8888 format."
     if (!render::SurfaceMemoryOf(this)) {
-        // The screen's pixel format. Without a owner the original reads through a null pointer
-        // here; 004EFC60 always passes one. (The low byte of the flag asked for video memory.)
+        // The screen's pixel format. Without an owner the game reads through a null pointer here; the callers always pass
+        // one. (The low byte of the flag asked for video memory.)
         PixelFormat format = {};
         gameapi::EnterCriticalSection(TheDeviceLock());
         ReadScreenFormat(this->device, &format);
         gameapi::LeaveCriticalSection(TheDeviceLock());
-        // (The original's "no DXDD" report for a this without a owner is unreachable after the
-        // read above, as is its release of an earlier surface: there is none on this path.)
+        // (The "no DXDD" report for a this without an owner is unreachable after the read above, as is its release of an
+        // earlier surface: there is none on this path.)
         const int pictureWidth = static_cast<int>(picture->width), pictureHeight = static_cast<int>(picture->height);
         if (!AttachClientMemory(this, pictureWidth, pictureHeight, format)) {
             this->device->lastLoadResult_ = kSurfaceRefused;
@@ -301,10 +292,9 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
 EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
 
 
-// 004EFC60 (thiscall, RET 0xC): a holder whose surface shows an .mmp picture (the software cursor's
-// images 005E4EB0, windows made from a picture 005FCF80). The new renderer keeps the picture's
-// pixels from the file data (render::PictureFromMmp) instead of reading the surface back. Throws
-// the game's error object when the picture cannot be loaded.
+// A holder whose surface shows an .mmp picture (the software cursor's images, windows made from a picture). The new
+// renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the surface
+// back. Throws the game's error object when the picture cannot be loaded.
 CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) : device(deviceIn) {
     if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");   // "Can't load picture to surface"
     render::PictureFromMmp(this, picture);
@@ -312,7 +302,7 @@ CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) 
 }
 EI_REWRITTEN_SPECIAL(0x004EFC60, CDXSurface::CDXSurface);
 
-// Releases the new renderer's memory (the original: the surface).
+// Releases the new renderer's memory (the surface, in the game).
 CDXSurface::~CDXSurface() {
     render::HolderGone(this);   // its memory, and a picture kept for it
     device = nullptr;

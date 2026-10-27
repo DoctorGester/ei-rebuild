@@ -31,8 +31,8 @@ namespace {
 // The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 // CRefObject::Release (the missiles).
 
-// The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
-// walk stops at the first empty entry).
+// The timed objects are ended (ClearState) and released, then the map is emptied (the walk stops at the
+// first empty entry).
 void EndTimedObjects(CWorldServer* world) {
     auto& map = world->timedObjects_.map;
     for (auto* node = map.First(); node && node->value; node = map.After(node)) {
@@ -125,8 +125,8 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
 namespace {
 
-// 0059DD90 (RET 4) with flags 0: a missile's counted pointer released in place (RefPtrRelease).
-// Releases a range of counted object pointers (slot 4).
+// A missile's counted pointer released in place (RefPtrRelease). Releases a range of counted object
+// pointers.
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {
@@ -212,7 +212,7 @@ void CWorldServer::TeardownZone() {
     diplomacy_.Reset();
     ClearMapObjects();
 
-    // The missiles' counted pointers, released inline (16-bit count, slot 0 deletes).
+    // The missiles' counted pointers, released inline (16-bit count, deleted at zero).
     auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
         CSpellEffect* missile = node->data;
@@ -230,7 +230,7 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-// 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
+// The player state: objects added / the zone header stream.
 
 } // namespace
 
@@ -246,7 +246,7 @@ void CWorldServer::SendFreshObjects() {
     CStream* header = &zoneHeader_;
     header->Clear();
 
-    // The map objects that are not part of the map itself (slot 29): also kept in sentObjects_.
+    // The map objects that are not part of the map itself: also kept in sentObjects_.
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
         CMapObject* object = node->value;
         unsigned id = static_cast<unsigned>(object->id_);
@@ -315,7 +315,7 @@ EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
     if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
-    NewZone(map, mob, nullptr);   // patched by Rebirth: stays the original
+    NewZone(map, mob, nullptr);   // patched by Rebirth: called through its address
     TeardownZone();
 }
 EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);

@@ -1,6 +1,6 @@
 #pragma once
 
-// WinMain (00456440, app_main.cpp) and the application helpers around it: the window procedure,
+// WinMain (app_main.cpp) and the application helpers around it: the window procedure,
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
@@ -50,37 +50,35 @@ extern const char* g_loadingMovieName;
 
 // The game window's procedure (also called directly by the pump and the dispatcher).
 LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
-// 00457970 (__fastcall: message, wParam; lParam on the stack). Sends keyboard and mouse messages
-// to the interface and returns 1; anything else goes to WindowProc.
+// Sends keyboard and mouse messages to the interface and returns 1; anything else goes to
+// WindowProc.
 LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam);
 // Removes every waiting message and passes it to WindowProc (no DispatchMessage).
 void __cdecl PumpMessages();
-// Without a map on the command line (0079BA14 empty) opens the main menu; otherwise
-// loads the map into the world server and runs the command line's script file. Returns 1, or
-// FatalError's result.
+// Without a map on the command line opens the main menu; otherwise loads the map into the
+// world server and runs the command line's script file. Returns 1, or FatalError's result.
 int __cdecl StartFirstMap();
-// 00458010 (CL draw, DL cursor; app_frame.cpp). One frame: the interface drawn and the scene presented, nothing
-// while the application is inactive.
+// One frame (app_frame.cpp): the interface drawn and the scene presented, nothing while the
+// application is inactive.
 void __fastcall FrameStep(bool draw, bool cursor);
-// 00458270 (ECX section, DL clear first; app_frame.cpp): plays the movies listed under `section`, clearing the
-// screen before and, with `clearAfter`, after each.
+// Plays the movies listed under `section` (app_frame.cpp), clearing the screen before and, with
+// `clearAfter`, after each.
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b);
-// 004560D0 (ECX text, EDX MessageBox flags; A-E2). The game's message box over the main window,
-// under the window's title: in full screen (the device object's flag 1) DirectDraw first flips to
-// the GDI surface (a failure is reported through FatalErrorCode: "Can't flip to GDI surface.");
-// the cursor that was set is put back afterwards. Returns MessageBoxA's answer.
+// The game's message box over the main window, under the window's title: in full screen (the
+// device object's flag 1) DirectDraw first flips to the GDI surface (a failure is reported
+// through FatalErrorCode: "Can't flip to GDI surface."); the cursor that was set is put back
+// afterwards. Returns MessageBoxA's answer.
 int __fastcall ShowMessageBox(const char* text, int flags);
-// 00455A30 (cdecl; A-E2). The operator new handler WinMain installs (_set_new_handler; the previous
-// one is put back when the game ends): "Memory depleted" in the game's message box with the stop
-// icon. Returns 0, so the allocation fails. Ghidra has no function there: only WinMain refers to
-// it, by address (config/extra_function_sizes.csv).
+// The operator new handler WinMain installs (_set_new_handler; the previous one is put back when
+// the game ends): "Memory depleted" in the game's message box with the stop icon. Returns 0, so
+// the allocation fails. Only WinMain refers to it, by address (config/extra_function_sizes.csv).
 int __cdecl OutOfMemory(std::size_t size);
-// 00456440 (stdcall; A-E2; app_main.cpp). WinMain: the application's start-up, main loop and
-// shutdown. Rebirth patches it (NivalRegistry), so the rewrite runs in the vanilla launch only.
+// WinMain (app_main.cpp): the application's start-up, main loop and shutdown. Rebirth patches
+// it (NivalRegistry), so the rewrite runs in the vanilla launch only.
 int __stdcall GameMain(HINSTANCE instance, HINSTANCE previous, char* commandLine, int show);
-// 004800E0 (cdecl, printf style, plain RET; A-S9). A DirectX failure: the formatted text (1 KB),
-// then "%s (0x%.8X) %s" with the result and its DirectXErrorText in a message box and to the error
-// hook; the error counter is raised and the game exits (exit(-1)). Not patched by Rebirth. Returns 0.
+// A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its
+// DirectXErrorText in a message box and to the error hook; the error counter is raised and the
+// game exits (exit(-1)). Not patched by Rebirth. Returns 0.
 int __cdecl FatalErrorCode(long result, const char* format, ...);
 // The same with the arguments as a va_list (the verify wrapper's entry).
 int FatalErrorCodeV(long result, const char* format, va_list args);

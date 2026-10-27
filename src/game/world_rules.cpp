@@ -22,7 +22,7 @@
 
 namespace {
 
-// The local player record through the client's local view (no null checks, as the original).
+// The local player record through the client's local view (no null checks).
 CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
 // A player's named float variable (its party's variables_).
@@ -44,8 +44,8 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
     const CMapObject* q = ObjectSlots(second);
     float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->localPosition_, normal) + offset);
     float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->localPosition_, normal) + offset);
-    // Living objects come before dead ones; within each kind, by depth. The original asks each
-    // object again at every step, so the calls are repeated here in the same order.
+    // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
+    // every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||
         (ObjectSlots(first)->IsDead() != 0 && ObjectSlots(second)->IsDead() != 0)) {
         EI_NAN_AUDIT(da, db);

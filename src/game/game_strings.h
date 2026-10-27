@@ -17,7 +17,7 @@ inline const char* CantFindTextureFormatText() { return "Can't find texture form
 
 // The window surfaces' FatalDirectX.
 inline const char* CantGetSurfaceDescriptionText() { return "Can't get surface description.\n"; }
-// 005FCF80's picture file name.
+// The picture file name of a window made from a picture.
 inline const char* MmpExtensionText() { return ".mmp"; }
 
 // The battle screen's (ui_hud.cpp): the sound of a portrait's unit clicked, the console line of a
@@ -57,8 +57,8 @@ inline const char* PrototypeText() { return "prototype"; }
 inline const char* RuneText() { return "rune"; }
 inline const char* SpellContainerText() { return "spell container"; }
 
-// The interface's help topics file (CInterface3D, Create 005F4990 / Shutdown 005F4F90): the name
-// (after the data path) and the line format (a topic and its count).
+// The interface's help topics file (CInterface3D, Create / Shutdown): the name (after the data path) and the line
+// format (a topic and its count).
 inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
 inline const char* TutorialLineFormat() { return "%s %d\n"; }
 
