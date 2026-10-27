@@ -339,6 +339,9 @@ to which template:
   record_stats.cpp reads game.exe's difficulty at its original options +0x250.
   world.h: GameFlow's requestTarget_ / zone7C_, CWorldServer's zoneName_ / mobName_ / mapName_, CWorldClient's
   zoneName_ / texturePath_ and window names, MpHeroRecord::file, SavedParties::folder_.
+  map_spec.h: the zone records' Spec::name / comment, ObjectSpec's model / texture / primaryTexture / parentIname /
+  skinTexture, FlameSpec::sound, UnitSpec::prototype, MagicTrapRecord::spell (the spec readers' ReadInto take
+  std::string&).
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
   BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, global map points / zones,
   lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector) members, and members of objects

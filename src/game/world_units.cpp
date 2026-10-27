@@ -341,8 +341,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->kind == 5 ? static_cast<UnitSpec*>(spec)->prototype.GetString()
-                                                     : spec->primaryTexture.GetString();
+        const char* prototype = spec->kind == 5 ? static_cast<UnitSpec*>(spec)->prototype.c_str()
+                                                     : spec->primaryTexture.c_str();
         ObjectSlots(object)->TakePrototype(prototype);
         object->WriteFullState();
     };
@@ -402,14 +402,14 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
                                  std::bit_cast<float>(kOne)};
         float radius = flame->volume * worlddata::TorchLightScale();
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
-        torch->SetNameSlot(flame->sound);
+        torch->SetNameSlot(flame->sound.c_str());
         place(object);
         object->MarkChanged(2);
         object->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         objectManager->GiveDefaults(object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
-        object->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture.c_str());
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -456,7 +456,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         else
             object = created(std::type_identity<CMapObject>{});
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(spec->model.GetString(),
+        if (gamecrt::mbscmp(spec->model.c_str(),
                             game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);
@@ -466,7 +466,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         base.object = object;
         auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
-        object->SetSecondName(spec->model);
+        object->SetSecondName(spec->model.c_str());
         companionTexts(companion);
         race(object);
         ObjectSlots(object)->ScaleEffectChanged(0);
@@ -476,8 +476,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
-            objectManager->ApplyPrototype(object, unitSpec->prototype);
-            objectManager->GiveStartingEquipment(unit, unitSpec->prototype);
+            objectManager->ApplyPrototype(object, unitSpec->prototype.c_str());
+            objectManager->GiveStartingEquipment(unit, unitSpec->prototype.c_str());
             const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
@@ -485,7 +485,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             }
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.
-            const char* prototypeName = unitSpec->prototype;
+            const char* prototypeName = unitSpec->prototype.c_str();
             UnitPrototypeRecord* prototype;
             {
                 stlp::string key(prototypeName);
@@ -520,7 +520,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(7);
         object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
-        object->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture.c_str());
         ObjectSlots(object)->UpdateSizeClasses();
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);

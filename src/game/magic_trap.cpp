@@ -198,7 +198,7 @@ void ClearVictims(MagicTrap* trap) {
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    const char* text = record->spell;
+    const char* text = record->spell.c_str();
     CSpellManager* manager = SpellManagerOf(WorldContext());
     CSpell* made = manager->CreateSpellFromText(text);
     CSpell* old = spell;

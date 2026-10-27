@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CStream;
 class CEngineObject;
@@ -48,16 +49,13 @@ static_assert(sizeof(TrapPoints) == 0x14);
 struct MagicTrapRecord {
     std::uint32_t sides;        // (-1); the zone loader makes it the players the
                                 // owner is hostile to (relation 2), one bit each
-    mfc::CString spell;         // the spell's text
+    std::string spell;         // the spell's text
     Vector3 position;           // the position when the zone loaded
     TrapArea area;
     TrapPoints points;
     std::int32_t period;
     std::uint8_t singleTarget;
 };
-static_assert(offsetof(MagicTrapRecord, area) == 0x14);
-static_assert(offsetof(MagicTrapRecord, period) == 0x3C);
-static_assert(sizeof(MagicTrapRecord) == 0x44);
 
 // The lever part of a zone object record (mapspec::LeverSpec::lever), what Lever::SetUp reads.
 struct LeverSetup {
@@ -155,8 +153,8 @@ public:
     CEngineObject* object;       // the world object made from the record (null: none)
     Vector3 position;
     Quaternion rotation;         // (1, 0, 0, 0)
-    mfc::CString name;
-    mfc::CString comment;
+    std::string name;
+    std::string comment;
     std::int32_t spareId;        // (-1) only set and copied (ObjectSpec::Assign)
     std::int32_t kind;           // which record this is: 0 the base, 1 an object, 2 a light, 3 a sound,
                                  // 4 a particle source, 5 a unit, 6 a flame, 7 a magic trap, 8 a lever
@@ -186,18 +184,18 @@ public:
     CMapObject* MapObject() const;
     CUnit* Unit() const;
 
-    mfc::CString model;          // (empty)
+    std::string model;          // (empty)
     std::int32_t parentId;
-    mfc::CString texture;
-    mfc::CString primaryTexture;
+    std::string texture;
+    std::string primaryTexture;
     std::int32_t player;         // (-1); the type name formats it
     Vector3 scale;               // (0.5 each; read and written y, x, z)
     std::uint8_t shadow;
     std::uint8_t visible;
     std::uint8_t side;           // the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
     std::uint8_t unused_6F;
-    mfc::CString parentIname;
-    mfc::CString skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
+    std::string parentIname;
+    std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
     mfc::CStringArray parts;
 };
 
@@ -213,7 +211,7 @@ public:
 
     float volume;                // (0.7)
     Vector3 offset;
-    mfc::CString sound;          // ("nature\fire\small.wav")
+    std::string sound;          // ("nature\fire\small.wav")
 };
 
 // A magic trap (chunk BBAB0000).
@@ -343,7 +341,7 @@ public:
 
     std::int32_t behaviours;     // records read so far
     Behaviour behaviour[5];
-    mfc::CString prototype;      // ("none")
+    std::string prototype;      // ("none")
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
