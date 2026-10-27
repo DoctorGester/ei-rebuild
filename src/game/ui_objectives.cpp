@@ -1,6 +1,6 @@
-// The objectives window (CObjectivesWindow, ui.h): its Create, the zone page and the selected quest's description and
-// places. TAB in a zone opens it for the current zone; opened with `listZones_` it lists the zones of the zone's
-// allod in which the player has quests and shows one of them. See docs/notes/ui.md.
+// The objectives window (CObjectivesWindow): its Create, the zone page and the selected quest's description
+// and places. TAB in a zone opens it for the current zone; opened with `listZones_` it lists the zones of the
+// zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "stl_sorts.h"
@@ -425,7 +425,7 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = str::Format("%s %d\n ", costExp.GetString(), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
+            part = str::Format("%s %d\n ", costExp.GetString(), static_cast<int>(gamecrt::Ftol(D(experience))));
             text += part;
         }
         float money = record->money;
@@ -440,7 +440,7 @@ void CObjectivesWindow::ShowQuest() {
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
         variable = str::Format("q.%s.%s.%s", shownZone_.GetString(), ((*quests)[selectedQuest_]).GetString(),
-                        fields[1].GetString());   // "q.%s.%s.%s"
+                        fields[1].GetString());
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);

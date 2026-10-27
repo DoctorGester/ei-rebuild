@@ -49,14 +49,13 @@ constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // (1e30)
 constexpr float kDistanceWeight = 30.0f;
 constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // (1 / 31)
 constexpr float kSpreadScale = 2.5f;
-constexpr float kMinDistance = 3.0f;                                // pushed as 0x40400000
-constexpr float kNoWander = -1.0f;                                  // pushed as 0xBF800000
-constexpr float kMoveTime = 1000000.0f;                             // pushed as 0x49742400
+constexpr float kMinDistance = 3.0f;
+constexpr float kNoWander = -1.0f;
+constexpr float kMoveTime = 1000000.0f;
 constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
 constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 1 / 2^32
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                   // -1313: no shelter
 
-// FCOMP 0; TEST AH,0x40; JNZ: equal to zero.
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
     return v == 0.0;
@@ -68,7 +67,7 @@ const Vector3* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->
 
 CAIMap* Map() { return TheServerWorld()->AIMap(); }
 
-// The prototype's +0x24 (units below 0.5 count as small).
+// The prototype's height (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }

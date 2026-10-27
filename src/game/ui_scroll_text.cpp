@@ -23,7 +23,6 @@ constexpr COLORREF kConstructedColour = 0x1C8DC;     // the format token constru
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -132,7 +131,7 @@ constexpr int kAlignLeft = 1;
 const char* FontSampleText() { return "W"; }   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
-// A word of a line (the surface's text call, Rebirth-patched: through its address).
+// A word of a line (the surface's text call, Rebirth-patched).
 void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour) {
     surface->DrawTextIn(text, rect, font, colour, 0, 1);
 }
@@ -238,7 +237,6 @@ constexpr int kScrollbarSprites = 4;
 // stack slots (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
 
-// The tokeniser and the layout through their addresses (their verify wrappers run).
 void TokenizeText(CUiScrollText* self, const char* text) {
     mfc::CString copy(text);
     self->Tokenize(&copy);
@@ -246,7 +244,7 @@ void TokenizeText(CUiScrollText* self, const char* text) {
 void LayOut(CUiScrollText* self) { self->Layout(); }
 } // namespace
 
-// The scroll bar's tables with its own drawing (20) and layout (26).
+// The scroll bar's tables with its own drawing and layout.
 CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth)
     : CUiScrollbar(ui, rect, depth, 0, kScrollSpeed) {
     tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
@@ -288,7 +286,7 @@ CUiScrollText::~CUiScrollText() {
 }
 EI_REWRITTEN_SPECIAL(0x0065CE20, CUiScrollText::~CUiScrollText);
 EI_REWRITTEN_SPECIAL(0x0065CE00, CUiScrollText::~CUiScrollText);   // the deleting destructor
-EI_REWRITTEN_SPECIAL(0x0065E2B0, CUiScrollText::~CUiScrollText);   // the input side's (SUB ECX,0x94; JMP)
+EI_REWRITTEN_SPECIAL(0x0065E2B0, CUiScrollText::~CUiScrollText);   // the input side's
 
 void CUiScrollText::AddText(const char* text) {
     SetPosition(maxPosition_);

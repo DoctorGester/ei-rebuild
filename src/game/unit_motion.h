@@ -1,9 +1,9 @@
 #pragma once
 
-// A unit's trajectory (UnitMotion, CUnit + 0x27C) and its parts: the points, the waypoints and the
-// cubic segments, sampled every tick for the unit's position, facing and speed. The order it follows
-// (MotionOrder / PathOrder) is in ai_map.h; ai_motion.h has the rest of the motion code. Kept apart
-// so unit.h can hold the motion as a member (ai_map.h includes unit.h). Names provisional.
+// A unit's trajectory (UnitMotion, CUnit::motion) and its parts: the points, the waypoints and the cubic
+// segments, sampled every tick for the unit's position, facing and speed. The order it follows (MotionOrder /
+// PathOrder) is in ai_map.h; ai_motion.h has the rest of the motion code. Kept apart so unit.h can hold the
+// motion as a member (ai_map.h includes unit.h).
 
 #include "lib/mfc.h"
 
@@ -40,9 +40,9 @@ struct MotionCubic {
 
     // Hermite fit: value p0 / slope d0 at u = 0, value p1 / slope d1 at u = length.
     void Fit(float p0, float d0, float p1, float d1, float length);
-    // The value at u, unrounded (ST0).
+    // The value at u, unrounded.
     double Value(float u);
-    // The slope at u, unrounded (ST0).
+    // The slope at u, unrounded.
     double Slope(float u);
 };
 static_assert(sizeof(MotionCubic) == 0x10);
