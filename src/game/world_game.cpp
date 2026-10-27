@@ -350,7 +350,7 @@ int __stdcall EnterZone(CParty* records) {
             bool loaded;
             {
                 std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
-                loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map.c_str(), mob.c_str(), zoneRecord->name) != 0;
+                loaded = TheServerWorld()->NewZone(map.c_str(), mob.c_str(), zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
@@ -433,7 +433,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         {
             std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
             std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
-            loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map.c_str(), mob.c_str(), zone) != 0;
+            loaded = TheServerWorld()->NewZone(map.c_str(), mob.c_str(), zone) != 0;
         }
         if (!loaded) return 0;
         TheServerWorld()->SetTime(std::bit_cast<float>(kStartTime));
@@ -902,7 +902,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
-    static_cast<net::NetAddress*>(&address)->Parse(kLocalHost, net::g_gamePort);
+    address.Parse(kLocalHost, net::g_gamePort);
     {
         GrowingBuffer hello;
         char secret[kPasswordSize] = {};
@@ -962,7 +962,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
-        CPlayer* player = static_cast<CPlayer*>(players_->CreateSessionPlayer());
+        CPlayer* player = players_->CreateSessionPlayer();
         player->Connect(connection);
         player->dirty_ = 0xFFFFFFFFu;
         player->sessionKind100_ = sessionKind_;
@@ -1164,7 +1164,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheServerWorld()->SetTimeSpeed(static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
-        static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(kMenuMap, kMenuMob, nullptr);
+        TheServerWorld()->NewZone(kMenuMap, kMenuMob, nullptr);
         // The menu shows the local time of day.
         SYSTEMTIME now;
         gameapi::GetLocalTime(&now);
@@ -1248,9 +1248,9 @@ void __fastcall SwitchResourceDatabases(const char* name) {
     SkillDb()->Reset();
     SkillDb()->Load(ResourcesPath(), name);
     SpellTablesObject()->Reset();
-    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(ResourcesPath(), name);
+    SpellTablesObject()->Load(ResourcesPath(), name);
     ItemDatabaseObject()->Reset();
-    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(ResourcesPath(), name);
+    ItemDatabaseObject()->Load(ResourcesPath(), name);
 }
 EI_REWRITTEN(0x0057CB50, SwitchResourceDatabases);
 
@@ -1398,7 +1398,7 @@ int GameFlow::LoadGame(const char* slot) {
         StartZone(kMainMenu, 2);
         return 0;
     }
-    static_cast<PartyManager*>(ThePartyManager())->Load(&scenario);
+    ThePartyManager()->Load(&scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(GameSaveStream());

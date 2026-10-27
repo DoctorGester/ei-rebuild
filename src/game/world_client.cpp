@@ -135,7 +135,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     float best = 1e38f;
     CUnit* nearest = nullptr;
     for (int i = 0; i < view->partyUnitIds_.size; ++i) {
-        CUnit* found = static_cast<CWorld*>(this)->FindUnit(view->partyUnitIds_[i]);
+        CUnit* found = FindUnit(view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (ObjectSlots(found)->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
@@ -241,7 +241,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     for (int i = 0; i < records->size; ++i) {
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
-            static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
+            FindUnit(static_cast<int>(record->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
@@ -334,7 +334,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 namespace {
 
-void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
+void __fastcall SessionDisconnect(CPlayer* session) { session->Disconnect(); }
 
 // `ifLess` when a < b or unordered, else `otherwise`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -396,7 +396,7 @@ int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};
     int frames = ++ticksRun_;
     if (frames == 10) {
-        static_cast<CInterface3D*>(TheInterface())->OnStringEvent(worlddata::AutosaveEventText());
+        TheInterface()->OnStringEvent(worlddata::AutosaveEventText());
         sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
         sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
         sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());
@@ -414,7 +414,7 @@ int CWorldClient::Segment() {
     if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
     if (CPlayer* session = Session()) {
         CPlayerConnection* view = session->connection_;
-        if (!paused_) static_cast<CPlayer*>(session)->Tick();
+        if (!paused_) session->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.

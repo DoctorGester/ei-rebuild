@@ -54,7 +54,7 @@ int NextPlayerNumber(CPlayer* self, int id) {
 }
 } // namespace
 
-CEngineObject* CPlayerManager::CreateSessionPlayer() {
+CPlayer* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObject(kPlayerType, -1));
     if (!player) return nullptr;
     CBaseManager* specific = ContextAsWorld()->SpecificManager();

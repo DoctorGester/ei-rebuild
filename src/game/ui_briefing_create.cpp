@@ -94,7 +94,7 @@ CPlayer* LocalViewPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-CUnit* ServerUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
+CUnit* ServerUnit(int id) { return TheServerWorld()->FindUnit(id); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -374,7 +374,7 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (int* id = people_.begin(); id != people_.end(); ++id) {
-        if (!static_cast<CWorld*>(TheClientWorld())->FindUnit(*id)) continue;
+        if (!TheClientWorld()->FindUnit(*id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player && player->Server())

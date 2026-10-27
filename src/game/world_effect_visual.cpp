@@ -235,7 +235,7 @@ double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(wor
 void CEffectParticle::Reset() {
     ClearBase(this);
     if (source_ != nullptr) {
-        static_cast<CParticleSource*>(source_)->Stop();
+        source_->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();
@@ -249,11 +249,11 @@ void CEffectParticle::Reset() {
     unitId_ = -1;
 }
 
-Vector3* CEffectParticle::Position(void* group) {
+Vector3* CEffectParticle::Position(const ScriptGroup* group) {
     if (attachedTo_ == -1) return &localPosition_;
     CMapObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
-    if (static_cast<const ScriptGroup*>(group)->Contains(object) == 0) {
+    if (group->Contains(object) == 0) {
         // Not in the group: far away.
         worldPosition_.x = FromBits(0xC9742400u);   // -1e6
         worldPosition_.y = FromBits(0xC9742400u);
@@ -272,7 +272,7 @@ Vector3* CEffectParticle::Position(void* group) {
 
 void CEffectParticle::Start(int update) {
     if (update == 0 && source_ != nullptr) {
-        static_cast<CParticleSource*>(source_)->Stop();
+        source_->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();
@@ -296,10 +296,10 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
-        void* unit = FindUnit(ObjectWorld(this), nullptr, unitId_);
+        CUnit* unit = ObjectWorld(this)->FindUnit(unitId_);
         if (unit != nullptr) {
             Vector3 point;
-            std::memcpy(&position, static_cast<CUnit*>(unit)->EffectPoint(&point), sizeof(Vector3));
+            std::memcpy(&position, unit->EffectPoint(&point), sizeof(Vector3));
         }
     }
     localPosition_ = position;
@@ -325,7 +325,7 @@ void CEffectParticle::Spawn() {
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
     source_->ScaleSize(static_cast<float>(size_ / baseSize));
-    static_cast<CParticleSource*>(source_)->Attach(nullptr);
+    source_->Attach(nullptr);
     std::memcpy(&source_->alpha, &alpha_, sizeof(float));
     std::memcpy(&source_->typeParam, &param164_, sizeof(float));
     Attach();
@@ -402,10 +402,10 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    void* object = FindObject(TheObjectManager(), nullptr, attachedTo_);
+    CEngineObject* object = TheObjectManager()->FindObject(static_cast<unsigned>(attachedTo_));
     Vector3 saved;
     std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
-    static_cast<CParticleSource*>(source_)->Attach(static_cast<CObject3D*>(object));
+    source_->Attach(static_cast<CObject3D*>(object));
     if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
 }
 
@@ -477,7 +477,7 @@ void CEffectWall::Reset() {
     moving_ = 0;
     changeStamp_ = -1;
     if (source_ != nullptr) {
-        static_cast<CParticleSource*>(source_)->Stop();
+        source_->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();

@@ -1129,7 +1129,7 @@ int CWorldClient::Create() {
     ++manager->refCount_;
     manager->Init(this);
 
-    session_ = static_cast<CPlayer*>(players_->CreateSessionPlayer());
+    session_ = players_->CreateSessionPlayer();
 
     CRefObject* created = new CClientHandle();
     if (created != handle_.ptr) {

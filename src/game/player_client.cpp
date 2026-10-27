@@ -249,7 +249,7 @@ int CPlayerClient::OnJingle() {
 int CPlayerClient::OnZone() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    static_cast<CPlayer*>(Owner())->Clear();
+    Owner()->Clear();
     TheClientWorld()->LoadZone(&block);
     return 1;
 }
@@ -298,7 +298,7 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(id);
+    auto* unit = TheClientWorld()->FindUnit(id);
     if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
@@ -450,7 +450,7 @@ int CPlayerClient::OnPathMarker() {
         auto* marker = TheParticleManager()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
-        CUnit* unit = static_cast<CWorld*>(owner->ManagerContext())->FindUnit(unitId);
+        CUnit* unit = owner->WorldContext()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     return 1;
@@ -459,7 +459,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
     ReadText(text.Get());
-    static_cast<CInterface3D*>(TheInterface())->OnStringEvent(*text.Get());
+    TheInterface()->OnStringEvent(*text.Get());
     return 1;
 }
 
@@ -803,7 +803,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < partyUnitIds_.size; ++i) {
         bool inserted;
         PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CEngineObject* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(partyUnitIds_.data[i]);
+        CEngineObject* unit = player->WorldContext()->FindUnit(partyUnitIds_.data[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 
@@ -817,7 +817,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
         partyUnitIds_.data[i] = id;
-        auto* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(id);
+        auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&

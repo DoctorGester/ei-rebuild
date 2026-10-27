@@ -331,7 +331,7 @@ CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
 void UnitSpec::Apply() {
     if (!object) {
-        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
+        TheServerWorld()->CreateObject(this);
         return;
     }
     CUnit* unit = Unit();
