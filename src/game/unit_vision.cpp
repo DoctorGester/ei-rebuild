@@ -1,5 +1,5 @@
-// A unit's sight on the client (its range by daylight, marked on the client world as time moves
-// on), a weapon prototype's skill bonus and the map object's visibility level (A-U3).
+// A unit's sight on the client (its range by daylight, marked on the client world as time moves on), a
+// weapon prototype's skill bonus and the map object's visibility level.
 #include "unit.h"
 
 #include "item_db.h"
@@ -22,13 +22,13 @@ constexpr float kOne = 1.0f;
 
 } // namespace
 
-// The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B
-// for weapon types 0-4 and 8, +0x7C for 5 and 6; ST0. An unknown prototype reads its type from
-// address 0x0C (the original faults), other types index 0x7FFFFFFF bytes on (kept).
+// The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B for weapon types 0-4 and 8, +0x7C for
+// 5 and 6; ST0. An unknown prototype reads its type from address 0x0C (it faults), other types index
+// 0x7FFFFFFF bytes on (kept).
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     const auto* weapon =
         itemdb::WeaponAt(itemId >> 16);
-    int type = weapon ? weapon->type : *reinterpret_cast<const volatile int*>(std::uintptr_t{0x0C});   // faults like the original
+    int type = weapon ? weapon->type : *reinterpret_cast<const volatile int*>(std::uintptr_t{0x0C});   // faults like the game
     int skill = 0x7FFFFFFF;
     if (type < 5 || type == 8) skill = 0;
     else if (type == 5 || type == 6) skill = 1;

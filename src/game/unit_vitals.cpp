@@ -18,22 +18,21 @@
 #include <bit>
 #include <cstring>
 
-// The formulas must keep the original's order of operations (see unit_stats.cpp). Values the
-// original keeps on the FPU stack are double locals; values it stores to a float are float
-// locals.
+// The formulas must keep the x87 order of operations (see unit_stats.cpp). Values kept on the FPU stack are
+// double locals; values stored to a float are float locals.
 
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
-constexpr float kPercentB = std::bit_cast<float>(0x3C23D70Au);      // 0073D09C (0.01, a second copy)
-constexpr float kHitPointEffect = std::bit_cast<float>(0x3BA3D70Au);  // 0073E130 (0.005)
-constexpr float kDamageEffect = std::bit_cast<float>(0x3B449BA6u);  // 0073E134 (0.003)
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
+constexpr float kPercentB = std::bit_cast<float>(0x3C23D70Au);      // 0.01, a second copy
+constexpr float kHitPointEffect = std::bit_cast<float>(0x3BA3D70Au);  // 0.005
+constexpr float kDamageEffect = std::bit_cast<float>(0x3B449BA6u);  // 0.003
 constexpr float kTwelve = 12.0f;
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073BAD4 (0.2)
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
 constexpr float kTen = 10.0f;
-constexpr float kRevived = std::bit_cast<float>(0x3A83126Fu);       // 0073CCF4 (0.001)
-constexpr double kMinHeal = 0.001;                                  // 0073BA88 (a double)
+constexpr float kRevived = std::bit_cast<float>(0x3A83126Fu);       // 0.001
+constexpr double kMinHeal = 0.001;                                  // 0.001 (a double)
 constexpr std::uint32_t kNoCapacity = 0x49742400u;                  // 1000000.0f
 constexpr std::uint32_t kKeyedUnknown044 = 0xC0000000u;             // -2.0f
 constexpr float kUnkeyedRateBase = 15.0f;                           // 0x41700000
@@ -61,20 +60,20 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// base ^ (ln(experience / divisor) / ln(logBase)) exactly as the original computes it: FYL2X with
-// FLDLN2 for both logarithms and the CRT's _CIpow (006E81A0, ST1 ^ ST0). Returned unrounded.
+// base ^ (ln(experience / divisor) / ln(logBase)), computed as: FYL2X with FLDLN2 for both logarithms and
+// the CRT's _CIpow (ST1 ^ ST0). Returned unrounded.
 double ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
     return libcrt::CiPow(*base, x87::flog(static_cast<double>(*experience) / *divisor) / x87::flog(*logBase));
 }
 
-// 1.04 (the double at 0073E128) ^ (intelligence - 25) through _CIpow, unrounded.
+// 1.04 (a double) ^ (intelligence - 25) through _CIpow, unrounded.
 double IntelligenceFactor(const float* intelligence) {
     return libcrt::CiPow(1.04 /*0073E128*/,
                          static_cast<double>(*intelligence) - 25.0f /*0073E124*/);
 }
 
-// The level value of skill `skill` (0 without a level or a record): the record's +0x34, loaded
-// like the original's FILD of a zero-extended qword (exact).
+// The level value of skill `skill` (0 without a level or a record): the record's +0x34, loaded like FILD of
+// a zero-extended qword (exact).
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
@@ -86,7 +85,7 @@ double LevelValueOf(const UnitStats* stats, int skill) {
 // The same for a level record pointer from UnitStats::SkillLevelRecord.
 double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
-// The original's branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
+// Branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
 float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }
 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
@@ -183,8 +182,8 @@ EI_REWRITTEN(0x00523740, UnitVitals::Regenerate);
 
 bool UnitStats::HealSlots(float scale, float amount) {
     float magnitude = std::bit_cast<float>(std::bit_cast<std::uint32_t>(amount) & 0x7FFFFFFFu);
-    // Kept as the original's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's
-    // heal (the default NaN) while a new unit's stats are being set up (C16f's NaN audit).
+    // Kept as the game's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's heal (the
+    // default NaN) while a new unit's stats are being set up (the NaN audit).
     if (!(magnitude > kMinHeal)) return true;
     double total = kZero;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
@@ -260,7 +259,7 @@ void* UnitStats::RefillSlots() {
         if (slot.kind >= 2) std::memcpy(&slot.current, &slot.maximum, sizeof(float));   // dword copy
     }
     UnitStatSlot* end = slots + 6;
-    return &end->maximum;   // where the original's loop pointer stops
+    return &end->maximum;   // where the loop pointer stops
 }
 EI_REWRITTEN(0x00525AF0, UnitStats::RefillSlots);
 
@@ -272,7 +271,7 @@ void* UnitStats::RestoreSlots() {
         }
     }
     UnitStatSlot* end = slots + 6;
-    return &end->kind;   // where the original's loop pointer stops
+    return &end->kind;   // where the loop pointer stops
 }
 EI_REWRITTEN(0x00523C80, UnitStats::RestoreSlots);
 
@@ -370,7 +369,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     // The strongest effect of each type.
     float strongest[kEffectTypes] = {};
     for (int i = 0; i < unit->effectCount; ++i) {
-        MapEffect effect = EffectAt(unit, i);   // the original copies the whole record
+        MapEffect effect = EffectAt(unit, i);   // copies the whole record
         std::uint32_t type = effect.type;
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
         float value = EffectValueField(effect);
@@ -429,7 +428,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         std::memcpy(&capacity, &kNoCapacity, sizeof(float));
     }
     load = static_cast<float>(unit->TotalItemWeight());
-    int unusedArg = keyed ? 1 : 0;   // the original passes the text-key byte (upper bytes garbage)
+    int unusedArg = keyed ? 1 : 0;   // the text-key byte is passed (upper bytes garbage)
     loadFactor = movementKind == 1 ? LegsFactor(unusedArg) : kOne;
     speed = speedBase * loadFactor;
     float arms = ArmsFactor(unusedArg);
@@ -486,8 +485,8 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
     vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
 }
 
-// 1.61 (the double at 0073E140) ^ (level / 007C5480) * 007C547C through _CIpow, unrounded: the
-// experience a skill or attribute level is worth.
+// 1.61 (a double) ^ (level / divisor) * factor through _CIpow, unrounded: the experience a skill or
+// attribute level is worth.
 double LevelWorth(int level) {
     return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / GameLogicSettings().skillVal[1]) *
            GameLogicSettings().skillVal[0];

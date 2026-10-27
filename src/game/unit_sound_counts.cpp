@@ -1,7 +1,6 @@
-// UnitDatabase::CountSoundFiles: how many sound files each unit model's sound names
-// have, counted once the sound system is up (client world creation 00563710, 0057CB50, and the
-// database rebuild 0057DEE0). The client picks a random file of the counted ones (ActionSound,
-// unit_client_sounds.cpp). See unit_db.h.
+// UnitDatabase::CountSoundFiles: how many sound files each unit model's sound names have, counted once the
+// sound system is up (client world creation, the resource switch and the database rebuild). The client
+// picks a random file of the counted ones (ActionSound, unit_client_sounds.cpp). See unit_db.h.
 #include "sound.h"
 #include "unit_db.h"
 
@@ -16,8 +15,8 @@
 namespace {
 constexpr const char* kSoundPattern = "*.wav";
 
-// STLport vector<int>::resize(count, value) (004FE0C0, inlined here): fewer elements are dropped,
-// more are appended; a full vector grows to size + max(size, added).
+// STLport vector<int>::resize(count, value) (inlined here): fewer elements are dropped, more are appended;
+// a full vector grows to size + max(size, added).
 void ResizeCounts(UnitModelRecord* model, std::size_t count, std::uint32_t value) {
     stlp::vector<std::uint32_t>& counts = model->soundCounts;
     std::uint32_t*& begin = counts.Start();
@@ -45,8 +44,8 @@ void ResizeCounts(UnitModelRecord* model, std::size_t count, std::uint32_t value
     endOfStorage = fresh + length;
 }
 
-// The original's three-way compare of the file name cut to the sound name's length
-// with the sound name is 0: the file name starts with the sound name.
+// The three-way compare of the file name cut to the sound name's length with the sound name is 0: the file
+// name starts with the sound name.
 bool StartsWith(const char* file, const char* name) {
     std::size_t fileLength = std::strlen(file);
     std::size_t nameLength = std::strlen(name);

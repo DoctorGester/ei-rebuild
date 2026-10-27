@@ -1,6 +1,6 @@
-// CUnit's own virtual slots (vtable 0073EA8C, shared by CFakeUnit 0073BFE8): the per-tick update
-// and the slots that pass map object events on to the unit's controller (CUnit + 0x240), plus
-// standing on the ground. See unit.h and docs/notes/units.md.
+// CUnit's own virtual slots (shared by CFakeUnit): the per-tick update and the slots that pass map object
+// events on to the unit's controller (CUnit + 0x240), plus standing on the ground. See unit.h and
+// docs/notes/units.md.
 #include "combat.h"
 #include "unit.h"
 
@@ -27,8 +27,8 @@ constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 CWorld* WorldOf(CUnit* unit) { return unit->World(); }
 } // namespace
 
-// The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots
-// run are rewritten and called directly.
+// The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots run are
+// called directly.
 
 int CUnit::Tick() {
     controller->RunTick();
@@ -102,7 +102,7 @@ EI_REWRITTEN(0x00530A50, CUnit::UpdateSizeClasses);
 float* CUnit::StandPoint(float* out) {
     float x = localPosition_.x;
     float y = localPosition_.y;
-    float lift = static_cast<float>(ModeSpeed());   // the original inlines it
+    float lift = static_cast<float>(ModeSpeed());   // inlined
     CWorld* world = WorldOf(this);
     double height;
     if (params.movementKind == kMovesOnWater) {
@@ -155,7 +155,7 @@ int CUnit::Level() {
 }
 EI_REWRITTEN(0x00532D40, CUnit::Level);
 
-// --- The virtual slots (vtable 0073EA8C) for the compiler's table ---------------------------
+// --- The virtuals -------------------------------------------------------------
 
 int CUnit::Create() { return CreateUnit(); }
 void CUnit::Destroy() { DestroyUnit(); }

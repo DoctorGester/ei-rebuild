@@ -1,5 +1,4 @@
-// The game glue's small functions (game.exe 0x00578000-0x00578E30). See world_glue.h and
-// docs/notes/world.md.
+// The game glue's small functions. See world_glue.h and docs/notes/world.md.
 #include "world_glue.h"
 #include "options.h"
 
@@ -56,7 +55,7 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
     int loaded = script->Load(text, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
-        // (00456360, inlined here: a copy of the script's error record.)
+        // (A copy of the script's error record, inlined here.)
         ScriptErrorInfo last{script->ErrorText(), script->ErrorCode(), script->ErrorLine()};
         error->text = last.text;
         error->code = last.code;
@@ -99,8 +98,8 @@ EI_REWRITTEN(0x0055EA10, StoreStartFolder);
 namespace {
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
-// The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
-// input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
+// The interface's close-all flag (CInterface3D +0x44): every window closes before the next input message or
+// by the next pass (CloseAllPending, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.GetString(); }
@@ -191,7 +190,7 @@ EI_REWRITTEN(0x00578880, GameShowCameraPath);
 std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_ & CCamera::kPlaying; }
 EI_REWRITTEN(0x005788B0, GameCameraPathPlaying);
 
-// 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
+// The client's draw is called through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
 int GameRender() { return static_cast<CWorldClient*>(TheClientWorld())->Render(); }
 EI_REWRITTEN(0x00578910, GameRender);
 
