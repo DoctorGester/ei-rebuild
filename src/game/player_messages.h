@@ -68,11 +68,11 @@ public:
     virtual void UnitChanged(CUnit*) {}     // Virtual 14: client (the unit's controller); server empty
     virtual void ResetState() {}            // Virtual 15: server and client versions
     virtual void Leave() {}                 // Virtual 16: server (state 3, flushed); client empty
-    // Virtual 17: server (CPlayerServer::SendItemsGiven); client empty.
+    // Server (CPlayerServer::SendItemsGiven); client empty.
     virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>*, int) {}
     virtual void ItemsTaken() {}            // Virtual 18: server (message 0x17); client empty
     virtual void ItemTaken(CEngineObject*) {}   // Virtual 19: server (message 0x0A); client empty
-    // Virtual 20: server (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
+    // Server (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
     // the dying unit is the player's leader); client empty.
     virtual void LeaderDied() {}
     virtual void TickDone() {}              // Virtual 21: server; client empty

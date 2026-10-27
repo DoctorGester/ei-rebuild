@@ -70,21 +70,21 @@ public:
     // The depth range (the options' fog start and far clip distances).
     virtual void SetDepthRange(float first, float second);
     virtual void Unknown6();
-    // 7: fits `bounds` around `count` vertex packets.
+    // Fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
     // `count` points (16 bytes each: x, y, z and one more) projected with `matrix` into
     // `projected` (x, y, z, w), a flag byte per point set when it is off screen; 2 when every point
     // is, else 0 or 1 (the ribbon draw).
     virtual int ProjectPointsClipped(const Matrix4* matrix, const void* points, void* projected, std::uint8_t* flags,
                                      int count);
-    // 9: projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
+    // Projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
     // clip outcodes; the result is the caller's (on screen / crossing / outside).
     virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
                                int blocks);
     virtual void Unknown10();
     virtual void Unknown11();
     virtual void Unknown12();
-    // 13: the same without clipping (the ribbon draw's mode 0).
+    // The same without clipping (the ribbon draw's mode 0).
     virtual void ProjectPoints(const Matrix4* matrix, const void* points, void* projected, int count);
     // The same without clipping (every block on screen); the result as the clipping one's (the device's
     // mesh draws test it, CTransformPipeline::ProjectBlocks does not).
@@ -92,7 +92,7 @@ public:
     virtual void Unknown15();
     virtual void Unknown16();
     virtual void Unknown17();
-    // 18 / 19: the same for the terrain's vertices.
+    // The same for the terrain's vertices.
     virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
                                       int count);
     virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
@@ -117,25 +117,25 @@ public:
                              float* bounds);
     virtual void Unknown30();
     virtual void Unknown31();
-    // 32: `count` projected vertices (x, y, z, w in the first 16 bytes) to the screen: 1 / w kept as
+    // `count` projected vertices (x, y, z, w in the first 16 bytes) to the screen: 1 / w kept as
     // rhw, x and y scaled to the viewport, z divided (the rain and snow draws).
     virtual void ToScreen(TLVertex* vertices, int count);
     virtual void Unknown33();
-    // 34: the vertices the clipper (37) left, projected to the screen as ToScreen does (the mesh,
+    // The vertices the clipper (37) left, projected to the screen as ToScreen does (the mesh,
     // flat and strip draws after clipping).
     virtual void ToScreenClipped(TLVertex* vertices, int count);
-    // 35: the distance fog of `count` screen vertices: the specular's alpha lowered to the fog
+    // The distance fog of `count` screen vertices: the specular's alpha lowered to the fog
     // factor of the depth (the device object's draws when its distanceFog_ is set).
     virtual void FogVertices(TLVertex* vertices, int count);
     virtual void Unknown36();
-    // 37: clips the triangles `indices` (`*indexCount` indices) of the `*vertexCount` vertices with
+    // Clips the triangles `indices` (`*indexCount` indices) of the `*vertexCount` vertices with
     // their `outcodes` against the screen: the vertices it adds are appended (the callers make room
     // for ten times the input), the triangles left written to `clippedIndices`, both counts updated.
     virtual int ClipTriangles(TLVertex* vertices, std::uint8_t* outcodes, const std::uint16_t* indices,
                               std::uint16_t* clippedIndices, int* vertexCount, int* indexCount);
     virtual void Unknown38();
     virtual void Unknown39();
-    // 40: lights a figure mesh: its vertex packets and normals, the colours written (one
+    // Lights a figure mesh: its vertex packets and normals, the colours written (one
     // per normal), its words, the lights (their localPosition_, colours set for the material) and
     // the material's light vector.
     virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,

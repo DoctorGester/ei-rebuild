@@ -58,7 +58,7 @@ public:
     int Create() override;
     // Empties the deque.
     void Destroy() override;
-    // 7: the name's text (short_functions.cpp)
+    // The name's text (short_functions.cpp)
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
     int GetClassId() override;
@@ -91,7 +91,7 @@ public:
     int GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 
-    // 2: Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
+    // Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails); the archive "materials.res" of the text folder added;
     // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
     // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the

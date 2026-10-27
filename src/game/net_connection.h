@@ -46,7 +46,7 @@ public:
     ReplicaEntry(const ReplicaEntry& other);
     // The object released (the deleting destructor).
     ~ReplicaEntry() override;
-    // 1: Serialize (empty).
+    // Serialize (empty).
     int OnShutdown() override;              // Reset: the object let go, version and id cleared
     ReplicaEntry* Clone() override;         // A copy sharing the object
 
@@ -173,7 +173,7 @@ public:
     // The deleting destructor (net_connection_life.cpp).
     ~Connection() override;
 
-    // 1: Serialize (empty).
+    // Serialize (empty).
     // (net_connection_life.cpp). Torn down and built again with id 0; returns this.
     int OnShutdown() override;
     // (net_connection_life.cpp). A copy of the connection.

@@ -117,7 +117,7 @@ public:
     virtual int OnPartRemoved(CFigureMesh* part) = 0;      // server: 0
     virtual CFigureMesh* FindPart(const char* name) = 0;   // a part by name (client); server: null
     virtual CFigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
-    // 18: the figure's extra scale: client +0xF0..+0xF8, base 1, 1, 1.
+    // The figure's extra scale: client +0xF0..+0xF8, base 1, 1, 1.
     virtual void GetScale(float* x, float* y, float* z);
     // Draw / DrawShadow: the client's (CObject3DClientSpecific::Draw, DrawShadow); the base returns 0.
     virtual int DrawParts(void* context, int* dirty);
@@ -131,7 +131,7 @@ public:
     virtual int BoundsContainPoint(const long* point);
     // Whether the screen rectangle (a RECT) meets a drawn part's rectangle.
     virtual int PartsIntersectRect(const long* rect);
-    // 24: whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
+    // Whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
     virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(int) {}                     // the object's light is on / off (client); base: nothing
@@ -225,7 +225,7 @@ public:
     virtual void Unknown2();
     virtual void Unknown3();
     virtual void Unknown4();
-    // 5: the data of entry `name` (its size to *size when not null), or null.
+    // The data of entry `name` (its size to *size when not null), or null.
     virtual void* ReadEntry(const char* name, int* size);
 };
 

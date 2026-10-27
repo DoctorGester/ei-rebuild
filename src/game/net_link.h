@@ -92,7 +92,7 @@ public:
     // The deleting destructor: the record stream destroyed.
     ~NetLink() override;
 
-    // 1: Serialize (empty); 2 / 3 pure.
+    // Serialize (empty); 2 / 3 pure.
     virtual bool Connected() = 0;
     virtual bool Alive() = 0;                   // 5: something to read, or connected
     virtual bool HasIncoming() = 0;
