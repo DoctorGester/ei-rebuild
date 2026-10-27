@@ -1,24 +1,19 @@
 // Meshes kept on the GPU (docs/notes/renderer.md section 13, item 4). The figure part draws
-// (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
-// (render::SetMeshSource); the mesh's corners are kept for that figure mesh: their positions and texture
-// coordinates in model space, their colours and the triangles, in a pool on the GPU (GpuPool: the
-// geometry and the colours in streams of their own). A frame hands over the mesh as kept; what is
-// built and uploaded again is what the game says changed:
-// - the colours, when the draw wrote the colour arrays (lit, flat colours, the device's colour) or the
-//   game lit the mesh outside its draw (MeshChanged Colours: the sky, CSkyObject::Light; a link
-//   figure's LightPart / FlatColours on the colour array, called by the original code too) or a draw
-//   that wrote them was not kept (NoteMeshDraw): read and compared with the kept ones, the changed
-//   range uploaded;
-// - the positions, when the game moved them (render::MeshChanged Positions: the animation's per-vertex
-//   offsets, CFigureMesh::SetOffsets; a link figure's part morphed again, CLinkMesh::SetPartVertices):
-//   read and compared, the changed range uploaded;
-// - all of it, when the mesh's buffers changed (MeshChanged Rebuilt: loaded, cleared, mirrored, parts
-//   added or removed, destroyed) or the draw hands over other arrays or counts than it was built from.
-// Interface sprites (render::SetInterfaceDraw: the interface rewrites their quads in place) and a mesh
-// drawn again in the same frame with other data go into the frame's stream as before.
-// The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the shader. The
-// harness build compares every kept mesh with a fresh build every 16th frame (a change the game did not
-// tell of: `meshcache check`); `meshcache off` builds every mesh into the frame's stream as before.
+// (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws (render::SetMeshSource); the mesh's
+// corners are kept for that figure mesh (positions and texture coordinates in model space, colours and
+// triangles) in a pool on the GPU (GpuPool: geometry and colours in streams of their own). A frame hands over
+// the mesh as kept; what is built and uploaded again is what the game says changed:
+// - the colours, when the draw wrote the colour arrays or the game lit the mesh outside its draw (MeshChanged
+//   Colours: the sky; a link figure's LightPart / FlatColours) or a draw that wrote them was not kept
+//   (NoteMeshDraw): read and compared with the kept ones, the changed range uploaded;
+// - the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, CFigureMesh::SetOffsets;
+//   a link figure's part morphed again): read and compared, the changed range uploaded;
+// - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or
+//   counts than it was built from.
+// Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame with other data go into
+// the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the
+// shader. The harness build compares every kept mesh with a fresh build every 16th frame (`meshcache check`);
+// `meshcache off` builds every mesh into the frame's stream.
 #include "render.h"
 #include "render_internal.h"
 
@@ -41,7 +36,6 @@ struct MeshVertex {
 };
 static_assert(sizeof(MeshVertex) == kCachedVertexBytes);
 
-// How often the game changed an object (a figure mesh or a link figure) in place (MeshChanged).
 struct MeshChanges {
     std::uint32_t positions = 0, colours = 0, rebuilt = 0;
 };
@@ -99,26 +93,26 @@ namespace detail {
 struct CachedMesh {
     MeshFrom from;
     bool valid = false;                  // built (a corner out of range: not)
-    std::vector<MeshVertex> vertices;    // per corner
-    std::vector<std::uint32_t> colours;  // colour, specular per corner
-    std::vector<std::uint32_t> indices;  // the valid triangles, relative to the first corner
+    std::vector<MeshVertex> vertices;
+    std::vector<std::uint32_t> colours;
+    std::vector<std::uint32_t> indices;
     PoolPlace place;
     bool dirty = true;                               // all of it to upload
-    std::uint32_t vertexFrom = 0, vertexTo = 0;      // corners whose positions to upload
-    std::uint32_t colourFrom = 0, colourTo = 0;      // corners whose colours to upload
-    bool pending = false;                            // in g_pending
-    bool drawn = false;                              // handed over in a frame yet
+    std::uint32_t vertexFrom = 0, vertexTo = 0;
+    std::uint32_t colourFrom = 0, colourTo = 0;
+    bool pending = false;
+    bool drawn = false;
     bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
-    std::uint32_t lastUsed = 0;                      // FrameNumber() of its last hand-over
-    std::uint32_t mark = 0;                          // Restart's
+    std::uint32_t lastUsed = 0;
+    std::uint32_t mark = 0;
 };
 
 } // namespace detail
 
 namespace {
 
-std::unordered_map<const void*, CachedMesh> g_meshes;   // by figure mesh
-std::vector<CachedMesh*> g_pending;                     // meshes with something to upload
+std::unordered_map<const void*, CachedMesh> g_meshes;
+std::vector<CachedMesh*> g_pending;
 GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
 // A mesh not drawn for this many frames is dropped (its pool room comes back at the next Restart).
 constexpr std::uint32_t kMeshLife = 600;
@@ -181,7 +175,6 @@ bool Build(const MeshDraw& m, CachedMesh& out) {
     return true;
 }
 
-// Corner `i` into the range [from, to) of corners to upload.
 void Mark(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
     if (to <= from) {
         from = i;
@@ -192,7 +185,6 @@ void Mark(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
     }
 }
 
-// The corners' positions (and texture coordinates) read again; the changed ones marked. True when any.
 bool ReadPositions(const MeshDraw& m, CachedMesh& e) {
     bool changed = false;
     for (int i = 0; i < m.cornerCount; ++i) {
@@ -206,7 +198,6 @@ bool ReadPositions(const MeshDraw& m, CachedMesh& e) {
     return changed;
 }
 
-// The corners' colours read again; the changed ones marked. True when any.
 bool ReadColours(const MeshDraw& m, CachedMesh& e) {
     bool changed = false;
     for (int i = 0; i < m.cornerCount; ++i) {
@@ -259,7 +250,6 @@ void Check(const MeshDraw& m, CachedMesh& e) {
 }
 #endif
 
-// Room for `e` in the pool (all of it to upload when placed anew). False when the pool is full.
 bool Place(CachedMesh& e) {
     bool anew = false;
     if (!g_pool.Place(e.place, static_cast<std::uint32_t>(e.vertices.size()), static_cast<std::uint32_t>(e.indices.size()),
@@ -294,7 +284,6 @@ void Restart(const Frame& f) {
     }
 }
 
-// The mesh's changes into its room in the pool: all of it, or the corners that changed.
 void Write(CachedMesh& e) {
     FrameStats& stats = Stats();
     if (e.dirty) {

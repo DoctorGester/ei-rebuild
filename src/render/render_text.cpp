@@ -307,39 +307,8 @@ std::u32string DecodeCp1251(const char* text, int count) {
 }
 
 // ---- Layout -------------------------------------------------------------------------------------------
-// The rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts; the synthetic
-// cases in tools/text_check check each of them):
-// - Lines end at CR or LF; CR LF and LF CR count as one break. A break at the very end still makes an
-//   (empty) last line; an empty text draws nothing and returns 1.
-// - With DT_WORDBREAK the text is cut into words: each space or tab is a word of its own, any other
-//   run of characters up to a space, tab, CR or LF is one word. Words are added while the width from
-//   the line start to the word's end is at most the rectangle's width. The first word that does not
-//   fit ends the line before it; when it is the line's first word, the line is that word alone
-//   (clipped, never broken inside).
-//   - Left and centred text then skip one space or tab at the start of the next line; right-aligned
-//     text does not (so a right-aligned wrap can leave a line holding only spaces).
-//   - Centred and right-aligned lines that end at such a wrap lose one trailing space or tab, for
-//     drawing and for DT_CALCRECT alike. Left-aligned lines keep it (DT_CALCRECT counts it).
-// - Widths: advances summed plus the font's pair kerning (DrawText on Windows 10 goes through
-//   Uniscribe, which kerns; GetTextExtentPoint32, and so TextExtent, does not). There is no kerning
-//   pair across a tab, nor between a Latin and a Cyrillic run (a space after "в" is Cyrillic, so
-//   "в W" does not kern the space with the W). '&' (unless DT_NOPREFIX) is dropped and makes the next character the prefix
-//   character; "&&" draws one '&' and a trailing '&' draws nothing.
-// - Tabs: with DT_EXPANDTABS a tab moves to the next multiple of 8 average widths from the line's
-//   start; without it a tab has no width and no ink.
-// - x: left, right - width, or left + (rect width - width) / 2 rounded down. Lines are the font's
-//   height apart from the rectangle's top; DT_VCENTER without DT_SINGLELINE changes nothing.
-// - Drawing stops after the first line whose bottom is below the rectangle (unless DT_NOCLIP); the
-//   return value is the height of the lines drawn (one line more when it stopped early and the
-//   text ends with a line break). DT_CALCRECT lays out every line, returns their height and sets right = left +
-//   widest line, bottom = top + height; with DT_WORDBREAK and a widest line wider than the
-//   rectangle it lays the text out again at that width.
-// - The last prefix character of each tab segment is underlined: one pixel at ascent + 1 below the
-//   line's top, from the character's position to the next character's (its advance at the end).
-//   A prefixed expanded tab is underlined from the pen to its stop one pixel higher; a prefixed
-//   tab that is not expanded takes the segment's underline away.
-// - Not modelled (synthetic cases only; the game's texts have no '&'): a wrapped first word that
-//   holds a prefix and ends in '&' sometimes keeps the following space on its line in DrawText.
+// DrawText-compatible layout rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts;
+// tools/text_check checks each): docs/notes/ui-native.md, "DrawText layout rules".
 
 namespace {
 

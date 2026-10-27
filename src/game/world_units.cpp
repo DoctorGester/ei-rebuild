@@ -61,8 +61,6 @@ constexpr int kGameResultLost = 2;
 using Placement = UnitPlacement;
 using PlacementArray = mfc::CArray<Placement>;
 
-// ---- The creation message ---------------------------------------------------------------------
-
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
     UnitPrototypeRecord* prototype;
@@ -127,7 +125,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     z = static_cast<float>(static_cast<double>(z) + dz);
 }
 
-// An item from an item record, with its counted record (+0x1C) holding the item record's id.
+// An item from an item record, with its counted record holding the item record's id.
 CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
     CItem* item = world->DuplicateItem(itemRecord);
     auto* record = new CItemLink();
@@ -174,7 +172,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         message->parts.SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
-        message->parentId = type;   // +0x50: the object's type
+        message->parentId = type;   // : the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
         int id = static_cast<int>(record->unitId);
@@ -221,9 +219,8 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         slots->SetStats(&record->stats);
         unit->ReleaseAllItems();
 
-        // Equipment: weapons, then the controller's ShowWeapon(0), armour (UnitEquipArmourOriginal), quick
-        // items (two
-        // fields copied from the record's), spells.
+        // Equipment: weapons, then the controller's ShowWeapon(0), armour, quick items (two fields copied from the
+        // record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
             unit->AddWeapon(MakeItem(this, record->weapons[n]));
         unit->Controller()->ShowWeapon(0);
@@ -275,8 +272,6 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     if (player) MainScript()->Load(&script, 1);
 }
 
-// ---- UseQuickItem -------------------------------------------------------------------------------
-
 namespace {
 
 constexpr int kQuickEffectType = 9;
@@ -299,10 +294,8 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     std::memset(&message.position.z, 0, 4);
     int id = CreateObject(&message);
     CEngineObject* effect = ObjectWithId(id);
-    effect->flags_ |= kFlagsNewEffect;   // inlined
+    effect->flags_ |= kFlagsNewEffect;
 }
-
-// ---- CreateObject -------------------------------------------------------------------
 
 namespace {
 
@@ -318,7 +311,7 @@ int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCo
 // Copies dwords (REP MOVSD / dword moves; floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
-// The map object's CString name (+0xA4) as the string it is.
+// The map object's CString name as the string it is.
 mfc::CString* NameString(CMapObject* object) { return &object->name; }
 
 } // namespace
@@ -491,7 +484,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
                 unit->AddQuickItem(ItemFactory()->CreateItem(name));
             }
             unitSpec->record.ApplyTo(unit);
-            // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
+            // The model's six values (UnitModelRecord) go to the unit.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;
             {
@@ -560,7 +553,6 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (sound->sounds.size < 1) {
             mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
-            // strcpy, inlined (REP MOVS of the length with its terminator).
             const char* wave = sound->sounds.data[0];
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }

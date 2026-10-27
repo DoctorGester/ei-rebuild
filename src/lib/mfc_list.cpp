@@ -11,7 +11,6 @@
 
 namespace mfc::impl {
 
-// ---- CPlex ----------------------------------------------------------------------------------------
 
 CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize) {
     auto* block = gamecrt::operator_new_bytes_as<CPlex>(sizeof(CPlex) + count * elementSize);

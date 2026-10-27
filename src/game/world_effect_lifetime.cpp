@@ -110,7 +110,6 @@ int CEffectTornado::GetClassId() { return 0x65; }
 EI_REWRITTEN(0x0067D7C0, CEffectTornado::GetClassName);
 EI_REWRITTEN(0x0067D7D0, CEffectTornado::GetClassId);
 
-// --- CEffectSound --------------------------------------------------------------------------------
 
 CEffectSound::CEffectSound() {
     sound_ = -1;
@@ -125,7 +124,6 @@ CEffectSound::~CEffectSound() {
 EI_REWRITTEN_SPECIAL(0x006760A0, CEffectSound::~CEffectSound);
 EI_REWRITTEN_SPECIAL(0x00676080, CEffectSound::~CEffectSound);
 
-// --- CEffectSoundSeq -----------------------------------------------------------------------------
 
 CEffectSoundSeq::CEffectSoundSeq() {
     names_.Construct();
@@ -142,7 +140,6 @@ CEffectSoundSeq::~CEffectSoundSeq() {
 EI_REWRITTEN_SPECIAL(0x00676980, CEffectSoundSeq::~CEffectSoundSeq);
 EI_REWRITTEN_SPECIAL(0x00676960, CEffectSoundSeq::~CEffectSoundSeq);
 
-// --- CEffectAmbientSound -------------------------------------------------------------------------
 
 CEffectAmbientSound::CEffectAmbientSound() {
     names_.Construct();
@@ -159,7 +156,6 @@ CEffectAmbientSound::~CEffectAmbientSound() {
 EI_REWRITTEN_SPECIAL(0x006776E0, CEffectAmbientSound::~CEffectAmbientSound);
 EI_REWRITTEN_SPECIAL(0x006776C0, CEffectAmbientSound::~CEffectAmbientSound);
 
-// --- CEffectPointLight ---------------------------------------------------------------------------
 
 CEffectPointLight::CEffectPointLight() {
     light_ = nullptr;
@@ -198,7 +194,6 @@ CEffectWall::~CEffectWall() { Reset(); }
 EI_REWRITTEN_SPECIAL(0x006799E0, CEffectWall::~CEffectWall);
 EI_REWRITTEN_SPECIAL(0x006799C0, CEffectWall::~CEffectWall);
 
-// --- CEffectLightning ----------------------------------------------------------------------------
 
 // No Reset: only the bolt, the width and the flag.
 CEffectLightning::CEffectLightning() {

@@ -1,8 +1,7 @@
 #pragma once
 
-// STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md,
-// section 2). stlp.h's older hash_map view keeps serving the game code that uses it; this is the
-// library body the instantiations' own addresses are registered to (stlp_hash.cpp).
+// STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2);
+// the library body the instantiations' own addresses are registered to (stlp_hash.cpp).
 // Layout (0x14 bytes): the hasher, key_equal and key extractor (empty, one byte each, then a pad
 // byte), the bucket vector (vector<Node*>, stlp_vector.h) and the element count, which STLport
 // keeps in the node allocator's proxy. A node is the next pointer followed by the value; its size
@@ -28,9 +27,8 @@ namespace stlp {
 
 std::size_t NextPrime(std::size_t n);
 
-// A value whose first dword is the key, hashed as itself (hash<int>, hash<unsigned>, hash of a
-// pointer). Bytes is the whole value's size: 4 for a hash_set of dwords, 8 for a map of dword to
-// dword.
+// A value whose first dword is the key, hashed as itself (hash<int>, hash<unsigned>, hash of a pointer).
+// Bytes is the whole value's size: 4 for a hash_set of dwords, 8 for a map of dword to dword.
 template <std::size_t Bytes>
 struct DwordKeyed {
     std::uint32_t key;
@@ -41,7 +39,6 @@ struct DwordKeyed<4> {
     std::uint32_t key;
 };
 
-// The traits of a hashtable over plain data keyed by its first dword.
 template <std::size_t Bytes>
 struct DwordKeyTraits {
     using Value = DwordKeyed<Bytes>;
@@ -65,8 +62,8 @@ inline std::uint32_t HashChars(const char* s) {
     return h;
 }
 
-// pair<const string, T> with T plain data of MappedBytes (a pointer, a number). A temporary built
-// from a key holds a copy of it and zeroes, as value_type(key, T()) does.
+// pair<const string, T> with T plain data of MappedBytes. A temporary built from a key holds a copy of it
+// and zeroes, as value_type(key, T()) does.
 template <std::size_t MappedBytes>
 struct StringKeyed {
     string key;
@@ -75,9 +72,8 @@ struct StringKeyed {
     explicit StringKeyed(const string& k) : key(k), mapped{} {}
 };
 
-// The traits of a hashtable keyed by a string (hash<string>: HashChars over its bytes; equal when
-// the sizes and bytes are). The node copies the string with string(first, last) and the mapped
-// bytes; deleting it frees the string's block.
+// The traits of a hashtable keyed by a string (HashChars over its bytes; equal when the sizes and bytes
+// are). The node copies the string and the mapped bytes; deleting it frees the string's block.
 template <std::size_t MappedBytes>
 struct StringKeyTraits {
     using Value = StringKeyed<MappedBytes>;
@@ -113,10 +109,9 @@ struct DwordObjectTraits {
     static void Destroy(Value* p) { E::Destroy(&p->mapped); }
 };
 
-// pair<const CString, float> (the party's named variables): hashed by the text up to its zero
-// (HashChars), equal when _mbscmp says so (the node's key first). The node copies the CString
-// (a shared reference) and the float's bits; deleting it releases the CString. A temporary built
-// from a key holds a copy of it and zero.
+// pair<const CString, float> (the party's named variables): hashed by the text up to its zero (HashChars),
+// equal when _mbscmp says so. The node copies the CString (a shared reference) and the float's bits; deleting
+// it releases the CString. A temporary built from a key holds a copy of it and zero.
 struct CStringFloat {
     mfc::CString key;
     float mapped;
@@ -138,9 +133,8 @@ struct CStringFloatTraits {
     static void Destroy(Value* p) { p->key.~CString(); }
 };
 
-// pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as
-// StringKeyTraits. The node copies the string, then the list (its sentinel, then each element in
-// order); deleting it frees the list's nodes, its sentinel, then the string.
+// pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as StringKeyTraits.
+// The node copies the string, then the list; deleting it frees the list's nodes, its sentinel, then the string.
 struct StringListTraits {
     using Value = StringListPair;
     using Key = string;
@@ -158,8 +152,6 @@ struct StringListTraits {
     }
 };
 
-// hashtable<Value, Key, HashFcn, ExtractKey, EqualKey, Alloc> over Traits (Value, Key, KeyOf, Hash,
-// Equal, Construct, Destroy).
 template <typename Traits>
 class hashtable {
 public:
@@ -346,7 +338,6 @@ public:
         return node;
     }
 
-    // begin: the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
             if (buckets_[b]) return buckets_[b];
@@ -361,7 +352,6 @@ public:
         while (!next && ++b < BucketCount()) next = buckets_[b];
         return next;
     }
-    // iterator::operator++: the next node of the chain, else SkipToNext.
     Node* Next(const Node* cur) const { return cur->next ? cur->next : SkipToNext(cur); }
 
     // erase(const_iterator): `p` unlinked from its bucket's chain and deleted when
@@ -479,14 +469,12 @@ public:
         CopyFrom(ht);
     }
 
-    // _M_new_node(obj): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Value& obj) {
         Node* n = allocate_as<Node>();
         n->next = nullptr;
         Traits::Construct(&n->value, obj);
         return n;
     }
-    // _M_delete_node(n): the value destroyed, the node back to the pool.
     static void DeleteNode(Node* n) {
         Traits::Destroy(&n->value);
         deallocate(n, sizeof(Node));
@@ -498,8 +486,8 @@ private:
     std::size_t count_;
 };
 
-// The game's instantiations are __thiscall members, declared as __fastcall functions with the
-// unused EDX second. Iterators are returned through a hidden first argument.
+// The game's instantiations are __thiscall members, declared as __fastcall functions with an unused second
+// argument. Iterators are returned through a hidden first argument.
 template <typename Traits>
 struct HashtableAbi : hashtable<Traits> {
     using Table = hashtable<Traits>;
@@ -520,26 +508,20 @@ struct HashtableAbi : hashtable<Traits> {
         self->Construct(100, 0, 0, 0);
         return self;
     }
-    // _M_initialize_buckets(n), resize(hint), erase(key)
-    // (e.g: the number erased) and _M_copy_from(ht) are
-    // hashtable's own members, registered through this type.
-    // find(key): the iterator into *out; returns out.
+    // _M_initialize_buckets(n), resize(hint), erase(key) and _M_copy_from(ht) are hashtable's own members,
+    // registered through this type.
     Iterator* Find(Iterator* out, const Key& key) {
         out->cur = Table::Find(key);
         out->table = this;
         return out;
     }
-    // begin.
     Iterator* Begin(Iterator* out) {
         out->cur = Table::First();
         out->table = this;
         return out;
     }
-    // _M_next_size(n) (__stl_next_prime inlined).
     std::size_t NextSize(std::size_t n) const { return NextPrime(n); }
-    // _M_bkt_num_key(key).
     std::size_t BucketOfKey(const Key& key) const { return Table::BucketOf(key); }
-    // find_or_insert(obj): the stored value.
     Value* FindOrInsert(const Value& obj) { return &Table::FindOrInsert(obj); }
     // hash_map::operator[](key): find_or_insert of {key, zeroes}; the
     // address of the mapped part (after the key dword).
@@ -554,12 +536,10 @@ struct HashtableAbi : hashtable<Traits> {
         Value obj(key);
         return &Table::FindOrInsert(obj).mapped;
     }
-    // hashtable(const hashtable&): returns this.
     Table* CopyConstruct(const Table& source) {
         Table::CopyConstruct(source);
         return this;
     }
-    // operator=: returns this.
     Table* Assign(const Table& source) {
         Table::Assign(source);
         return this;
@@ -599,26 +579,18 @@ struct HashtableAbi : hashtable<Traits> {
         out->cur = node;
         return out;
     }
-    // erase(const_iterator), the iterator passed by value.
     void EraseIterator(const Node* cur, const Table*) { Table::EraseNode(cur); }
-    // clear.
     static void __fastcall Clear(Table* self) { self->Clear(); }
-    // ~hashtable.
     static void __fastcall Destroy(Table* self) { self->Destroy(); }
-    // _M_new_node(obj): the node.
     Node* NewNode(const Value& obj) { return Table::NewNode(obj); }
-    // _M_delete_node(n): nothing for null.
     void DeleteNode(Node* n) {
         if (n) Table::DeleteNode(n);
     }
-    // _Ht_iterator::_M_skip_to_next: the node.
     static Node* __fastcall SkipToNext(const Iterator* self) { return self->table->SkipToNext(self->cur); }
-    // _Ht_iterator::operator++(): returns this.
     static Iterator* __fastcall Increment(Iterator* self) {
         self->cur = self->table->Next(self->cur);
         return self;
     }
-    // The iterator's members at the instantiation's addresses.
     struct IteratorAbi : Iterator {
         // _Ht_iterator::operator++(int): the old iterator into *out; returns out.
         Iterator* PostIncrement(Iterator* out, int) {
@@ -636,7 +608,6 @@ struct HashtableAbi : hashtable<Traits> {
     };
 };
 
-// __stl_hash_string of a string (ECX the string).
 std::uint32_t __fastcall HashString(const string* s);
 
 // hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.

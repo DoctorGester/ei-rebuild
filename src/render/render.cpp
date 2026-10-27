@@ -20,11 +20,11 @@
 #include <d3d12.h>
 #endif
 
-#include "../game/device_switchover.h"   // device::SwitchOverRenderState
-#include "../game/texture.h"   // CTextureDevice, CDXSurface
-#include "../game/app.h"       // app::g_mainWindow
+#include "../game/device_switchover.h"
+#include "../game/texture.h"
+#include "../game/app.h"
 #include "../game/game_singletons.h"
-#include "../game/model.h"     // CSceneRenderer
+#include "../game/model.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -54,10 +54,9 @@ bool g_removable = false;   // "removable" (harness build only): the device is m
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
-// The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
-// and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
-// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera),
-// "uiboth" / "uinative" the interface canvases (render_ui.h).
+// The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all and the
+// scenarios) change nothing: the image always draws with the new renderer. "smooth", "smoothcamera" and
+// "uiboth" / "uinative" (render_ui.h) set the options.
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
@@ -104,7 +103,6 @@ void EnsureConfigured() {
 
 HWND GameWindow() { return *game::Where().window; }
 
-// The renderer's clear colour (D3DCOLOR), as the frame is cleared with.
 std::uint32_t GameClearColour() { return game::Where().renderer->fogColour_; }
 
 sg_color FromD3DColour(std::uint32_t c) {
@@ -112,7 +110,6 @@ sg_color FromD3DColour(std::uint32_t c) {
                     static_cast<float>(c & 0xFF) / 255.0f, 1.0f};
 }
 
-// --- Device ----------------------------------------------------------------------------------------
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -136,10 +133,9 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
 #if defined(EI_RENDER_VALIDATION)
 // --- A device the harness can remove --------------------------------------------------------------
 // With "removable" in EI_RENDER (harness build only) the Direct3D 11 device is made through
-// D3D11On12CreateDevice on a Direct3D 12 device of the default adapter, so that
-// ID3D12Device5::RemoveDevice (render::RemoveDevice) can remove it for real: the swap chain's
-// Present and GetDeviceRemovedReason report DXGI_ERROR_DEVICE_REMOVED as after a driver reset, in
-// this process only (no driver reset; other processes keep their devices).
+// D3D11On12CreateDevice on a Direct3D 12 device of the default adapter, so that ID3D12Device5::RemoveDevice
+// (render::RemoveDevice) can remove it for real: Present and GetDeviceRemovedReason report
+// DXGI_ERROR_DEVICE_REMOVED as after a driver reset, in this process only.
 
 ID3D12Device* g_d3d12 = nullptr;
 ID3D12CommandQueue* g_queue = nullptr;
@@ -220,7 +216,6 @@ DWORD WINAPI PrepareDeviceThread(void*) {
     return 0;
 }
 
-// The prepared device, waited for; false when none was being made.
 bool TakePreparedDevice(HRESULT* result, D3D_FEATURE_LEVEL* got) {
     if (!g_prepared.thread) return false;
     WaitForSingleObject(g_prepared.thread, INFINITE);
@@ -252,8 +247,7 @@ bool CreateDevice() {
     desc.environment.d3d11.device = g_device;
     desc.environment.d3d11.device_context = g_context;
     desc.logger.func = &SokolLog;
-    // The game's textures (terrain pages, every model's, the interface's, one shadow texture per
-    // object), window surfaces and the images replaced within a frame: far more than sokol's
+    // The game's textures, window surfaces and the images replaced within a frame are far more than sokol's
     // default pools (128 images, 256 views); a full pool made sg_make_image fail.
     desc.image_pool_size = 16384;
     desc.view_pool_size = 16384;
@@ -321,8 +315,7 @@ void DestroyTarget() {
     g_haveFrame = false;
 }
 
-// The multisampled colour and depth of `samples` (the frame target made): false when the device
-// refused them.
+// The multisampled colour and depth of `samples`; false when the device refused them.
 bool MakeMultisampled(int width, int height, int samples) {
     sg_image_desc colour{};
     colour.usage.color_attachment = true;
@@ -446,14 +439,13 @@ bool g_simulationTaken = false;   // the loss being reported is LoseDevice's
 int g_losses = 0, g_recoveries = 0;
 long g_lastLossResult = 0, g_lastLossReason = 0;   // what reported the last loss, GetDeviceRemovedReason then
 bool g_lastLossSimulated = false;
-ID3D11Texture2D* g_staging = nullptr;   // the frame's readback copy (MapTarget, below)
+ID3D11Texture2D* g_staging = nullptr;
 UINT g_stagingWidth = 0, g_stagingHeight = 0;
 
-// Everything made on the lost device is released (sokol's resources through each module, then
-// sg_shutdown), the device and context with them; a new device gets sokol again and the pipelines.
-// The frame target, the window's swap chain, window surfaces and textures are made again as the
-// next frames ask for them: from the game's memory, or (the switch-over's .mmp textures) from the
-// file levels kept for them. False when no new device could be made: the new renderer is off.
+// Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
+// the device and context with them; a new device gets sokol again and the pipelines. The frame target, the
+// window's swap chain, window surfaces and textures are made again as the next frames ask for them: from the
+// game's memory, or from the file levels kept for them. False when no new device could be made.
 bool RecreateDevice() {
     FpuGuard fpu;
     ++g_losses;
@@ -564,9 +556,8 @@ void RemoveIfAsked() {
     ID3D12Device5* device5 = nullptr;
     if (FAILED(g_d3d12->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5)))) return;
     FpuGuard fpu;
-    // The GPU finishes what it was given first. Removed with work in flight, the old device's
-    // teardown (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver (a null fence in
-    // d3d11on12.dll, an access violation in the driver's user-mode part), also in a small program that
+    // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown
+    // (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver, also in a small program that
     // presented on its own window; with the GPU idle it never did (renderer.md).
     int waited = 0;
     D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
@@ -616,10 +607,9 @@ void CheckDevice() {
 
 namespace detail {
 
-// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU
-// precision"); drivers are not expected to change it, but the control word is put back after every
-// call into them anyway. The FPU's word as it holds it (every bit __control87_2 kept), loaded only when
-// it changed.
+// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
+// drivers are not expected to change it, but the control word is put back after every call into them anyway
+// (loaded only when it changed).
 FpuGuard::FpuGuard() : saved_(x87::ControlWord()) {}
 FpuGuard::~FpuGuard() {
     if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
@@ -630,7 +620,6 @@ std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
 
-// For the game window's swap chain (render_window.cpp).
 ID3D11Device* D3DDevice() { return g_device; }
 ID3D11DeviceContext* D3DContext() { return g_context; }
 sg_image FrameImage() { return g_colour; }
@@ -643,8 +632,7 @@ bool FrameSize(int* width, int* height) {
 
 CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
 
-// The size of the game's render target (in the switch-over a holder without a surface that still
-// has the screen's size).
+// The size of the game's render target (in the switch-over a holder without a surface that has the screen's size).
 bool GameTargetSize(int* width, int* height) {
     CTextureDevice* device = DeviceObject();
     const CDXSurface* target = device ? device->renderTarget_ : nullptr;
@@ -661,8 +649,7 @@ int AddMatrix(const Matrix4& m) {
     return static_cast<int>(g_frame.matrices.size()) - 1;
 }
 
-// The switch-over device's states (device_switchover.h): what the game last set, Direct3D 7's defaults
-// before that.
+// The switch-over device's states: what the game last set, Direct3D 7's defaults before that.
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
     for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
 }
@@ -696,7 +683,6 @@ bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || c
 } // namespace detail
 #endif
 
-// The step's words, then EI_RENDER's.
 void Configure(const char* spec) {
     std::string combined = spec ? spec : "";
     std::string environment = EnvironmentSpec();
@@ -716,10 +702,9 @@ void PrepareDevice() {
 bool Active() { return !g_failed; }
 
 namespace {
-bool g_meshCornersFull = false;   // the harness's "meshcorners full"
+bool g_meshCornersFull = false;
 #if defined(EI_RENDER_VALIDATION)
-// The timer of the device mesh draw running (at most one: they do not nest), made in place so that
-// no static destructor or heap block comes with it.
+// The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
 alignas(detail::StatsTimer) unsigned char g_deviceMeshTimer[sizeof(detail::StatsTimer)];
 bool g_deviceMeshTiming = false;
 #endif
@@ -740,7 +725,6 @@ void EndDeviceMeshTime() {
 }
 namespace {
 #if defined(EI_RENDER_VALIDATION)
-// A timer of the given kind made in place (they do not nest with their own kind).
 struct GameTimer {
     alignas(detail::StatsTimer) unsigned char storage[sizeof(detail::StatsTimer)];
     bool running = false;
@@ -885,7 +869,6 @@ FrameStats g_stats;         // the frame being built
 FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
 std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
 #if defined(EI_RENDER_VALIDATION)
-// The times and the reuse counts are the harness build's (the product counts only).
 StatsTimer* g_innerTimer = nullptr;
 // CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
 // colours, this frame's and the last; this frame's mesh geometry hashes.
@@ -895,7 +878,6 @@ struct VertexHashes {
 std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
 std::unordered_set<std::uint64_t> g_frameGeometry;
 
-// FNV-1a over 32-bit words (every field hashed is one or more of them).
 std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
     const auto* p = static_cast<const std::uint8_t*>(data);
     for (std::size_t i = 0; i + 4 <= bytes; i += 4) {
@@ -914,7 +896,6 @@ long long Ticks() {
 }
 #endif
 
-// The frame's counts into the sums; a new frame's counts begin.
 void AddFrameStats() {
     g_stats.matrices = g_frame.matrices.size();
     if (g_width > 0) {
@@ -1061,14 +1042,12 @@ int g_passSamples = 1;             // the sample count of the pass being drawn (
 enum class Holder : std::uint8_t { None, Frame, Multisampled };
 Holder g_holder = Holder::None;
 
-// The smooth option's counts for this frame and the last presented one (render::SmoothState).
 SmoothInfo g_counts, g_lastCounts;
 
 #if defined(EI_RENDER_VALIDATION)
-SmoothOrder g_smoothOrder = SmoothOrder::Game;   // render::SetSmoothOrder (harness build only)
+SmoothOrder g_smoothOrder = SmoothOrder::Game;
 #endif
 
-// Command `k` belongs to the world view (render::BeginWorld .. EndWorld).
 bool InWorld(std::size_t k) {
     for (const Frame::Range& r : g_frame.worldRanges)
         if (k >= r.first && k < r.end) return true;
@@ -1147,7 +1126,6 @@ void EmptyFramePass() {
 }
 #endif
 
-// Commands [from, to) into the pass begun.
 void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     for (std::size_t k = from; k < to; ++k) {
         const Command& c = g_frame.commands[k];
@@ -1157,9 +1135,8 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
         case Command::Mesh: {
             const MeshBatch& batch = g_frame.meshBatches[i];
-            // The smooth option: the world's models (figures, map objects, the sky, shadows) sampled
-            // anisotropically; the interface's sprites and previews and the pre-transformed draws as
-            // the stage says.
+            // The smooth option: the world's models sampled anisotropically; the interface's sprites and
+            // previews and the pre-transformed draws as the stage says.
             bool anisotropic = g_smooth && batch.model && InWorld(k);
             if (batch.model) ++(anisotropic ? g_counts.anisotropicModels : g_counts.plainModels);
             DrawMeshBatch(g_frame, batch, anisotropic);
@@ -1172,12 +1149,11 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     }
 }
 
-// Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first
-// clearing it. A frame is drawn in more than one pass when a copy of it is taken in its middle
-// (CopyFrameTo), and with the smooth option one pass per run of world and other commands (the
-// world's into the multisampled target). The interface canvases' queued drawing goes first (render_ui.cpp).
+// Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first clearing
+// it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
+// the smooth option one pass per run of world and other commands. The interface canvases' queued drawing goes first.
 bool DrawPending() {
-    perf::BeginGpuFrame();   // GPU time (nothing unless the overlay is on)
+    perf::BeginGpuFrame();
     RunCanvasCommands();
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
@@ -1192,9 +1168,8 @@ bool DrawPending() {
         DrawShadowMap(g_frame);
         perf::Stamp(perf::Mark::ShadowEnd);
     }
-    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
-    // the 3D draws move their positions by half a pixel (Frame::pixelShift). (A viewport moved by
-    // half a pixel would do the same, but sokol takes whole pixels.)
+    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further: the 3D
+    // draws move their positions by half a pixel (Frame::pixelShift); sokol takes whole pixels only.
     g_frame.pixelShift[0] = 1.0f / static_cast<float>(width);
     g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
     std::size_t k = g_drawnCommands, end = g_frame.commands.size();
@@ -1229,9 +1204,9 @@ bool DrawPending() {
     return true;
 }
 
-// DrawPending for a draw in the middle of the frame (a copy of it, CopyFrameTo). With the new renderer's own
-// present the cursor thread draws the frame target itself, so it takes none of it while a pass is in
-// progress: the lock of the present, and no cursor presents until the frame's own present.
+// DrawPending for a draw in the middle of the frame (CopyFrameTo). The cursor thread draws the frame target
+// itself, so it takes none of it while a pass is in progress: the present's lock, no cursor presents until
+// the frame's own present.
 bool DrawPendingAlone() {
     if (!g_presentsItself) return DrawPending();
     BeginWindowPresent();
@@ -1240,9 +1215,8 @@ bool DrawPendingAlone() {
     return drawn;
 }
 
-// A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
-// UnmapTarget. The staging texture (g_staging) is kept (the full frame is read every frame with
-// "present").
+// A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until UnmapTarget.
+// The staging texture (g_staging) is kept.
 
 bool MapTarget(const D3D11_BOX& box, const std::uint8_t** rows, UINT* pitch) {
     sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
@@ -1281,7 +1255,6 @@ void UnmapTarget() {
     sg_reset_state_cache();
 }
 
-// One 8-bit channel into a mask's bits: shift down to its width, then up to its place.
 struct ChannelPack {
     int down = 8, up = 0;
     std::uint32_t mask = 0;
@@ -1301,9 +1274,8 @@ struct ChannelPack {
     std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
 };
 
-// Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key,
-// with DL 0): the target still holds the last frame, as the original's render target did. A
-// pass now would clear it to the clear colour first.
+// Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key): the target still
+// holds the last frame, as the original's render target did. A pass now would clear it first.
 bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
 
 } // namespace
@@ -1328,7 +1300,6 @@ void RunCanvasesNow() {
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
     if (!holder || !Active() || !EnsureStarted()) return false;
-    // The holders the screen copies write have only memory of the renderer's.
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
     if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;
@@ -1384,9 +1355,8 @@ void EndFrame() {
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
-    // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
-    // turn with the cursor thread's presents (render_cursor.cpp), which draw the frame as it is (the
-    // frame target never holds the cursor: the present draws it over the frame).
+    // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in turn with
+    // the cursor thread's presents, which draw the frame as it is (the present draws the cursor over the frame).
     bool toWindow = false;
     if (g_presentsItself) {
         BeginWindowPresent();
@@ -1499,7 +1469,7 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
         for (UINT y = 0; y < desc.Height; ++y) {
             const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
             std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * desc.Width * 3;
-            for (UINT x = 0; x < desc.Width; ++x) {   // RGBA8 -> B, G, R
+            for (UINT x = 0; x < desc.Width; ++x) {
                 out[x * 3 + 0] = row[x * 4 + 2];
                 out[x * 3 + 1] = row[x * 4 + 1];
                 out[x * 3 + 2] = row[x * 4 + 0];

@@ -26,10 +26,10 @@
 
 namespace ei {
 
-void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
-void ReportImageFailure(const char* what);                                // hook/standalone.cpp
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
+void ReportImageFailure(const char* what);
 // The wrapper the image takes in place of `dll`!`function`'s export, or nullptr.
-const void* ImageRoute(const char* dll, const char* function);   // hook/standalone_main.cpp
+const void* ImageRoute(const char* dll, const char* function);
 
 namespace {
 

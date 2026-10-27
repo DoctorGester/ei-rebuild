@@ -24,11 +24,11 @@ struct RbNodeBase {
     static constexpr std::uint8_t kRed = 0;
     static constexpr std::uint8_t kBlack = 1;
 
-    std::uint8_t color;          // +0x00
+    std::uint8_t color;
     std::uint8_t unused_01[3];
-    RbNodeBase* parent;          // +0x04
-    RbNodeBase* left;            // +0x08
-    RbNodeBase* right;           // +0x0C
+    RbNodeBase* parent;
+    RbNodeBase* left;
+    RbNodeBase* right;
 
     static RbNodeBase* Minimum(RbNodeBase* x) {
         while (x->left) x = x->left;
@@ -92,12 +92,12 @@ template <typename K, typename V, typename L = TreeLess<K>>
 class map {
 public:
     struct Node {
-        std::uint8_t color;      // +0x00
+        std::uint8_t color;
         std::uint8_t unused_01[3];
-        Node* parent;            // +0x04
-        Node* left;              // +0x08
-        Node* right;             // +0x0C
-        K first;                 // +0x10
+        Node* parent;
+        Node* left;
+        Node* right;
+        K first;
         V second;
 
         RbNodeBase* Base() { return reinterpret_cast<RbNodeBase*>(this); }
@@ -124,7 +124,6 @@ public:
     Node*& Leftmost() { return header_->left; }
     Node*& Rightmost() { return header_->right; }
 
-    // lower_bound: the first node whose key is not less than `key`, or end.
     Node* lower_bound(const K& key) const {
         Node* result = header_;
         for (Node* n = header_->parent; n;) {
@@ -137,7 +136,6 @@ public:
         }
         return result;
     }
-    // find: the node holding `key`, or end.
     Node* find(const K& key) const {
         Node* n = lower_bound(key);
         return n == header_ || KeyLess(key, n->first) ? header_ : n;
@@ -156,37 +154,29 @@ public:
         }
         return result;
     }
-    // _M_empty_initialize: the header red, no root, its left / right linked to
-    // itself (in that order).
     void EmptyInitialize() {
         header_->color = RbNodeBase::kRed;
         header_->parent = nullptr;
         header_->left = header_;
         header_->right = header_;
     }
-    // clear()'s end, once the nodes are freed: the header links to itself, no root, no elements.
     void ResetToEmpty() {
         header_->left = header_;
         header_->parent = nullptr;
         header_->right = header_;
         count_ = 0;
     }
-    // The constructor: a header node from the node pool,
-    // _M_empty_initialize, no elements.
     void Construct() {
         header_ = allocate_as<Node>();
         EmptyInitialize();
         count_ = 0;
     }
-    // clear: every node destroyed (_M_erase) and the tree emptied; nothing
-    // happens when there are no elements.
     template <typename E = Element>
     void Clear() {
         if (count_ == 0) return;
         EraseSubtree<E>(header_->parent);
         ResetToEmpty();
     }
-    // The destructor: clear, then the header node back to the pool.
     template <typename E = Element>
     void Destroy() {
         Clear<E>();
@@ -203,7 +193,6 @@ public:
             n = left;
         }
     }
-    // _M_create_node: a node from the pool, the value copied into it.
     template <typename E = Element>
     static Node* CreateNode(const Value& v) {
         Node* z = allocate_as<Node>();
@@ -216,7 +205,6 @@ public:
         deallocate(n, sizeof(Node));
     }
 
-    // _M_clone_node: a node with a copy of x's value and colour, no children.
     template <typename E = Element>
     static Node* CloneNode(const Node* x) {
         Node* z = CreateNode<E>(*reinterpret_cast<const Value*>(&x->first));
@@ -327,7 +315,6 @@ public:
         }
         return InsertUnique<E>(v).first;
     }
-    // insert_equal(v): down from the root (equal keys go right), then _M_insert.
     template <typename E = Element>
     Node* InsertEqual(const Value& v) {
         Node* y = header_;
@@ -338,10 +325,7 @@ public:
         }
         return Insert<E>(x, y, v);
     }
-    // equal_range(key): lower_bound, then upper_bound.
     std::pair<Node*, Node*> equal_range(const K& key) const { return {lower_bound(key), upper_bound(key)}; }
-    // erase(position): unlinked by _Rebalance_for_erase, the node destroyed and
-    // freed, counted down.
     template <typename E = Element>
     void Erase(Node* position) {
         RbNodeBase* h = header_->Base();
@@ -349,7 +333,6 @@ public:
         DestroyNode<E>(y);
         --count_;
     }
-    // erase(first, last): clear() for the whole tree, else one node at a time.
     template <typename E = Element>
     void Erase(Node* first, Node* last) {
         if (first == header_->left && last == header_) {
@@ -362,8 +345,6 @@ public:
             first = next;
         }
     }
-    // erase(key): the equal range (upper_bound, then lower_bound), its length
-    // counted, then erased; returns the length.
     template <typename E = Element>
     std::size_t EraseKey(const K& key) {
         Node* last = upper_bound(key);
@@ -373,8 +354,6 @@ public:
         Erase<E>(first, last);
         return n;
     }
-    // operator[]: lower_bound, and when the key is not there a value-initialised
-    // element inserted at that hint; returns the mapped value.
     template <typename E = Element>
     V& Subscript(const K& key) {
         Node* i = lower_bound(key);

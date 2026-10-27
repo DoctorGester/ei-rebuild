@@ -26,11 +26,9 @@
 
 void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
                                lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
-                               lib::AlignedArray<CEngineObject*>* same);   // world_object_sets.cpp
+                               lib::AlignedArray<CEngineObject*>* same);
 
 namespace {
-
-// ---- Data -------------------------------------------------------------------------------------
 
 // Distance limits, read from the exe's memory (rule 9).
 float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around the camera
@@ -81,11 +79,6 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
-// ---- Helpers ----------------------------------------------------------------------------------
-
-// The game's atexit.
-// The time of day and the time speed.
-// The player state's (CPlayerServer) messages and updates.
 // world_object_sets.cpp. Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and
 // `removed`.
 void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
@@ -119,8 +112,6 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 }
 
 } // namespace
-
-// ---- SyncPlayer -------------------------------------------------------------------------------
 
 namespace {
 
@@ -245,7 +236,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
-        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);   // the inlined SetSize
+        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
         collected.SetSize(static_cast<int>(end - Collected().data));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
@@ -276,7 +267,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     return state->Flush();
 }
 
-// ---- SendZone ---------------------------------------------------------------------------------
 
 int CWorldServer::SendZone(CPlayer* player) {
     CMemoryStream message;

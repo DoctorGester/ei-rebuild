@@ -1,9 +1,8 @@
 // CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and
 // ObjectsDrawRadius behind their flags. See world.h and docs/notes/world.md.
 // Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7,
-// lastLoadResult_ the last state block result) and to the scene pipeline's matrix stacks
-// (ScenePipeline()) with the same calls in the same order as the original. Callees are reached through
-// their registered addresses (the verify build's wrappers see the calls).
+// lastLoadResult_ the last state block result) and to the scene pipeline's matrix stacks (ScenePipeline()) with
+// the same calls in the same order as the original.
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -112,8 +111,6 @@ float LandscapeDrawRadius() {
     return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
 }
 
-// DrawPass's callees.
-// clear() and the erase's copy of vector<CEngineObject*>.
 void VectorClear(stlp::vector<CEngineObject*>* v) { v->EraseRange<stlp::PlainElement<CEngineObject*>>(v->begin(), v->end()); }
 CEngineObject** VectorCopyBack(CEngineObject** first, CEngineObject** last, CEngineObject** out) {
     return stlp::CopyElements<CEngineObject*>(first, last, out);
@@ -247,7 +244,6 @@ int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* 
 }
 EI_REWRITTEN(0x0056A370, QueueScreenEntry);
 
-// ---- Render --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (multisampled, models sampled
@@ -418,7 +414,6 @@ void CWorldClient::HideWorldData() {
 }
 EI_REWRITTEN(0x00569B20, CWorldClient::HideWorldData);
 
-// ---- DrawPass ------------------------------------------------------------------------
 
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;

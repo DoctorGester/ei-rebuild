@@ -75,8 +75,8 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 
 // --- Game memory -------------------------------------------------------------------------------------
 
-// The landscape's page textures: Terrain::pageTextures (+0xD8), an array of CTexture*, indexed
-// page % (pages + 2) (they are bound so before each page).
+// The landscape's page textures: Terrain::pageTextures, an array of CTexture*, indexed page % (pages + 2)
+// (they are bound so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     const char* owner = reinterpret_cast<const char*>(s->owner);
     if (!owner || s->pages + 2 <= 0) return nullptr;
@@ -90,7 +90,6 @@ const void* PageTexture(const SectorData* s, int page) {
 struct SectorChanges {
     std::uint32_t rebuilt = 0, moved = 0, waterMoved = 0;
 };
-// The records of a sector's water layer start here (33 x 33 per layer).
 constexpr int kWaterRecords = 33 * 33;
 std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
@@ -121,7 +120,6 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
     return &water;
 }
 
-// The vertex of record `index` with the texture coordinates of tile entry `e`.
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
     const SectorVertex& record = s->records.data[index];
     PageVertex v{s->vertices.data[index], e.u, e.v, record.normal, -1.0f};
@@ -138,7 +136,6 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
     return v;
 }
 
-// A channel 0..1 as a byte, rounded.
 std::uint32_t Byte(float v) {
     float c = v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
     return static_cast<std::uint32_t>(c * 255.0f + 0.5f);
@@ -214,19 +211,19 @@ namespace detail {
 struct CachedPage {
     PageSource source;
     std::vector<PageVertex> vertices;
-    std::vector<std::uint32_t> colours;    // colour, specular per vertex
+    std::vector<std::uint32_t> colours;
     std::vector<std::uint16_t> records;    // the record each vertex reads its position and colours from
-    std::vector<const TileVertex*> entries;   // the tile entry each vertex reads its texture coordinates from
-    std::vector<std::uint32_t> indices;    // relative to the page's first vertex
-    bool readsWater = false;               // a vertex reads a water layer record
-    bool animatedTiles = false;            // a tile is one of the sector's animated tiles
+    std::vector<const TileVertex*> entries;
+    std::vector<std::uint32_t> indices;
+    bool readsWater = false;
+    bool animatedTiles = false;
     QuarterRange quarters[4];
-    PoolPlace place;                                 // in the pool
-    bool geometryDirty = true;                       // all of it to upload
+    PoolPlace place;
+    bool geometryDirty = true;
     std::uint32_t vertexFrom = 0, vertexTo = 0;      // vertices whose positions or texture coordinates to upload
     std::uint32_t colourFrom = 0, colourTo = 0;      // vertices whose colours to upload
-    bool pending = false;                            // in g_pending
-    std::uint32_t lastUsed = 0;                      // FrameNumber() of its last hand-over
+    bool pending = false;
+    std::uint32_t lastUsed = 0;
     std::uint32_t mark = 0;                          // Restart's
 };
 
@@ -300,7 +297,6 @@ bool SameGeometry(const CachedPage& a, const CachedPage& b) {
            std::memcmp(a.indices.data(), b.indices.data(), a.indices.size() * sizeof(std::uint32_t)) == 0;
 }
 
-// Vertex `i` into the range [from, to) of vertices to upload.
 void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
     if (to <= from) {
         from = i;
@@ -358,7 +354,6 @@ struct PageKeyHash {
 };
 std::unordered_map<PageKey, CachedPage, PageKeyHash> g_pages;
 std::vector<CachedPage*> g_pending;   // pages with something to upload
-// A page not handed over for this many frames is dropped (its pool room comes back at the next Restart).
 constexpr std::uint32_t kPageLife = 600;
 
 #if defined(EI_RENDER_VALIDATION)
@@ -368,7 +363,6 @@ std::uint64_t g_checks = 0, g_stale = 0;
 constexpr std::uint32_t kCheckEvery = 16;
 #endif
 
-// The pool: the pages' vertices (geometry and colours) and indices.
 GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
@@ -397,7 +391,6 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
     p.shader = g_shader;
-    // Buffer 0 the pool's geometry (position, texture coordinates), buffer 1 its colours.
     p.layout.buffers[0].stride = sizeof(PageVertex);
     p.layout.buffers[1].stride = kColourPairBytes;
     p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
@@ -410,9 +403,9 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.layout.attrs[2].offset = 4;
     p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
     p.layout.attrs[3].offset = 12;
-    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;   // the normal
+    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;
     p.layout.attrs[4].offset = 20;
-    p.layout.attrs[5].format = SG_VERTEXFORMAT_FLOAT;    // the light lost under the water
+    p.layout.attrs[5].format = SG_VERTEXFORMAT_FLOAT;
     p.layout.attrs[5].offset = 32;
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
@@ -435,7 +428,6 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
 
 TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
 
-// A texture of a page texture's size and levels, level k all grey k * 32 (at most 255).
 struct LevelImage {
     int width, height, levels;
     sg_image image;
@@ -485,7 +477,6 @@ void DropLevelImages() {
 
 // --- The pool -------------------------------------------------------------------------------------------
 
-// Room for `p` in the pool (all of it to upload when placed anew). False when the pool is full.
 bool Place(CachedPage& p) {
     bool anew = false;
     if (!g_pool.Place(p.place, static_cast<std::uint32_t>(p.vertices.size()), static_cast<std::uint32_t>(p.indices.size()),
@@ -520,7 +511,6 @@ void Restart(const Frame& f) {
     }
 }
 
-// The page's changes into its room in the pool: all of it, or the vertices and colours that changed.
 void Write(CachedPage& p) {
     FrameStats& stats = Stats();
     if (p.geometryDirty) {
@@ -546,7 +536,6 @@ void Write(CachedPage& p) {
     p.colourFrom = p.colourTo = 0;
 }
 
-// Builds `p` again; true when its geometry differs from what it had (it then has the new one).
 CachedPage g_scratch;
 bool BuildAgain(const SectorData* s, int page, int lod, bool seams, CachedPage& p) {
     BuildPage(s, page, lod, seams, g_scratch);
@@ -680,7 +669,6 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     PointShadowUniforms(f, &point);
     sg_range pr{&point, sizeof(point)};
     sg_apply_uniforms(3, &pr);
-    // The pieces' triangles in their order; ranges that follow each other in the pool in one draw.
     std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light) + sizeof(point);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
@@ -708,7 +696,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
 
 void TerrainPositions(const Frame& f, std::size_t step, std::vector<Vector3>* out) {
     out->clear();
-    std::size_t at = 0, next = 0;   // the vertices passed, the next one taken
+    std::size_t at = 0, next = 0;
     for (const TerrainPiece& piece : f.terrainPieces) {
         const CachedPage& p = *piece.page;
         const QuarterRange& q = p.quarters[piece.quarter];
@@ -779,9 +767,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     ++Stats().terrainPages;
     Frame& f = CurrentFrame();
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
-    // The clip matrix: the top of the transform pipeline's stack at +0x24 (renderer +8), which the
-    // old path's transform the sector's vertices with (the landscape's model matrix
-    // pushed by the terrain passes on top of the view).
+    // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
+    // vertices with (the landscape's model matrix pushed by the terrain passes on top of the view).
     const char* pipeline = *reinterpret_cast<char* const*>(static_cast<const char*>(renderer) + 8);
     if (!pipeline) return;
     const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
@@ -802,8 +789,6 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     if (!inView) return;
 
-    // The page as kept: built when new or when its tiles changed, its vertices read again when the game
-    // moved some.
     PageKey key{s, page, lod | (seams && s->seamBefore != 0 ? 4 : 0) | (seams && s->seamAfter != 0 ? 8 : 0)};
     auto [found, made] = g_pages.try_emplace(key);
     CachedPage& p = found->second;
@@ -845,7 +830,6 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     if (!g_pool.Placed(p.place)) p.geometryDirty = true;
 
-    // The quarters in view: their colours read again, their tiles drawn.
     bool relit = false;
     std::size_t firstPiece = f.terrainPieces.size();
     for (int q = 0; q < 4; ++q) {
@@ -896,13 +880,13 @@ struct SectorCaster {
     std::vector<TerrainCasterVertex> vertices;
     ShadowCasterSphere sphere{};
     PoolPlace place;
-    bool dirty = true;                 // to write into the pool
-    std::uint32_t seen = 0;            // FrameNumber() it was last handed over in
-    bool cast = false;                 // it casts in that frame (reaches the map)
+    bool dirty = true;
+    std::uint32_t seen = 0;
+    bool cast = false;
 };
 std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
 std::vector<SectorCaster*> g_frameCasters;
-std::vector<std::uint32_t> g_gridIndices;   // the 32 x 32 cells' triangles
+std::vector<std::uint32_t> g_gridIndices;
 GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
 
 void BuildCaster(const SectorData* s, SectorCaster& c) {

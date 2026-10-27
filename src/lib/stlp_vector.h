@@ -1,12 +1,10 @@
 #pragma once
 
-// STLport's vector<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
-// section 2).
-// Three pointers: start, finish, end of storage (the allocator proxy's empty byte shares the last
-// word). The block comes from the node allocator: its byte size, a multiple of sizeof(T), picks the
-// free list, so every member that frees it computes the size from the element size exactly as the
-// instantiation does. The game's instantiations of the members below are registered at their own
-// addresses in stlp_vector.cpp through the VectorAbi shims.
+// STLport's vector<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2).
+// Three pointers: start, finish, end of storage (the allocator proxy's empty byte shares the last word). The
+// block comes from the node allocator: its byte size, a multiple of sizeof(T), picks the free list, so every
+// member that frees it computes the size from the element size exactly as the instantiation does. The game's
+// instantiations of the members below are registered at their own addresses in stlp_vector.cpp.
 
 #include "crt.h"
 #include "stlp_alloc.h"
@@ -55,19 +53,16 @@ public:
         eos_ = fresh + len;
     }
 
-    // pop_back(): destroy the last element (a trivial one: the finish pointer steps back).
     void pop_back() {
         --finish_;
         finish_->~T();
     }
 
-    // clear(): destroy every element in order; keep the storage.
     void clear() {
         for (T* p = start_; p != finish_; ++p) p->~T();
         finish_ = start_;
     }
 
-    // _Vector_base(const allocator_type&): no storage.
     void ConstructEmpty() {
         start_ = nullptr;
         finish_ = nullptr;
@@ -80,7 +75,6 @@ public:
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
     }
 
-    // get_allocator: the allocator's tag byte, the low byte of the last word.
     std::uint8_t AllocatorTag() const { return static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(eos_)); }
 
     // The three pointers by reference, for code that inlines the vector operations
@@ -255,7 +249,6 @@ public:
         eos_ = fresh + n;
     }
 
-    // push_back(x).
     template <typename E>
     void PushBack(const T& x) {
         if (finish_ != eos_) {
@@ -282,7 +275,6 @@ public:
         E::Destroy(x);
     }
 
-    // operator=(x).
     template <typename E>
     void AssignVector(const vector& x) {
         if (&x == this) return;
@@ -364,14 +356,13 @@ struct AllocProxy {
     void* data;
 };
 
-// The game's instantiations are __thiscall members, declared here as __fastcall functions with the
-// unused EDX second.
+// The game's instantiations are __thiscall members, declared here as __fastcall functions with an unused
+// second argument.
 template <typename T, typename E = PlainElement<T>>
 struct VectorAbi : vector<T> {
     using Vector = vector<T>;
     using Element = E;
 
-    // ~_Vector_base.
     static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
     // The scalar deleting destructor of a _Vector_base: returns this.
     Vector* DeleteBase(unsigned flags) {
@@ -379,7 +370,6 @@ struct VectorAbi : vector<T> {
         if (flags & 1) gamecrt::operator_delete(this);
         return this;
     }
-    // _Vector_base(n, allocator).
     void ConstructWithCapacity(std::size_t n, const void*) {
         Vector::ConstructWithCapacity(n);
     }
@@ -387,7 +377,6 @@ struct VectorAbi : vector<T> {
     T* AllocateAndCopy(std::size_t n, const T* first, const T* last) {
         return Vector::template AllocateAndCopy<E>(n, first, last);
     }
-    // _M_insert_overflow(pos, x, n).
     void InsertOverflow(T* pos, const T& x, std::size_t n) {
         Vector::template InsertOverflow<E>(pos, x, n);
     }
@@ -404,21 +393,16 @@ struct VectorAbi : vector<T> {
     T* EraseRange(T* first, T* last) {
         return Vector::template EraseRange<E>(first, last);
     }
-    // clear.
     static void __fastcall Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
     // resize(n, x).
     void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
-    // resize(n): resize(n, T) with a temporary the policy makes first and
-    // destroys last.
     void ResizeDefault(std::size_t n) { Vector::template ResizeDefault<E>(n); }
     // ~vector: the elements destroyed in order, then the storage freed.
     static void __fastcall Destruct(Vector* self) {
         self->template EraseRange<E>(self->begin(), self->end());
         self->FreeStorage();
     }
-    // reserve(n).
     void Reserve(std::size_t n) { Vector::template Reserve<E>(n); }
-    // push_back(x).
     void PushBack(const T& x) { Vector::template PushBack<E>(x); }
     // push_back of a default-constructed element, out of line.
     static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
@@ -432,13 +416,12 @@ struct VectorAbi : vector<T> {
     void Deallocate(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // The same compiled as a function of p and n.
     static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
-    // uninitialized_copy(first, last, result) (ECX first, EDX last; the tag
-    // argument is not read): the end of the copies.
+    // uninitialized_copy(first, last, result) (the tag argument is not read): the end of the copies.
     static T* __fastcall UninitializedCopy(const T* first, const T* last, T* result, const void*) {
         for (; first != last; ++first, ++result) E::Construct(result, *first);
         return result;
     }
-    // uninitialized_fill_n(first, n, x) (ECX first, EDX n): the end of the copies.
+    // uninitialized_fill_n(first, n, x): the end of the copies.
     static T* __fastcall UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
         for (; n > 0; --n, ++first) E::Construct(first, *x);
         return first;

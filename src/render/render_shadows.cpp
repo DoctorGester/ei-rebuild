@@ -1,26 +1,16 @@
-// Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands
-// over the sun (CWorldClient::Render), which object each mesh belongs to (BeginCaster, the object
-// draws) and which objects cast this frame (CastsShadow, from their shadow draw:
-// the options' switches and the game's own visibility of the shadow). Once a frame, before the world
-// draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives
-// every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
-// meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
-// alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
-// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli). The
-// game's decals are neither made nor drawn.
-// Objects the game does not draw (outside the view) whose shadow can reach the visible ground
-// cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
-// of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
-// The map holds depth only: the receivers lit on the GPU take the sun
-// away by their normals' facing (a face turned away gets no sun to lose), the others are shadowed on their
-// faces turned to the sun; both look the map up a little along their normal (the normal offset).
-// A unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
-// (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
-// The point lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, their
-// pass inside the shadow map's time (FrameStats::shadowMs, shadowDraws, the GPU's shadow map time).
-// Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
-// for the landscape's space; that space is the one the map is fitted in (the inverse of the
-// terrain's matrix times a mesh's gives the mesh's model matrix into it).
+// Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands over the sun,
+// which object each mesh belongs to (BeginCaster) and which objects cast this frame (CastsShadow). Once a
+// frame, before the world draws, PrepareShadows fits an orthographic view from the sun around the visible
+// ground and gives every receiving batch the matrix from its model space to the map; DrawShadowMap draws the
+// casters' meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's alpha),
+// then the map's depth range per cell. Objects the game does not draw whose shadow can reach the visible ground
+// cast too (ShadowCasterMesh, tested against the map's fit made right then). The receivers lit on the GPU take
+// the sun away by their normals' facing, the others are shadowed on their faces turned to the sun; both look
+// the map up a little along their normal. A unit's meshes compare from the unit's nearest depth in the map
+// (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset. The point
+// lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, inside the shadow map's time.
+// Space: the meshes' matrices are clip matrices, the terrain's the same for the landscape's space, in which
+// the map is fitted.
 #include "render.h"
 #include "render_internal.h"
 
@@ -103,7 +93,6 @@ M4 Multiply(const M4& a, const M4& b) {
     return r;
 }
 
-// A point or direction in double (x, y, z) and a homogeneous point.
 struct D3 {
     double x, y, z;
 };
@@ -115,7 +104,6 @@ double Dot(const D3& a, const D3& b) { return DotUnrounded<Sum3::XYZ, double>(a.
 
 D3 Cross(const D3& a, const D3& b) { return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}; }
 
-// a * v, row by row.
 D4 Transform(const M4& a, const D4& v) {
     double r[4];
     for (int i = 0; i < 4; ++i) {
@@ -223,7 +211,6 @@ sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
 sg_sampler g_compare{};
 bool g_dummyCleared = false;
-// The depth range per cell (shaders/shadow_reduce.hlsl), then around each cell (shadow_dilate.hlsl).
 sg_shader g_reduceShader{}, g_dilateShader{};
 sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
@@ -329,7 +316,6 @@ bool MakeTerrainCasterPipeline() {
     return ok;
 }
 
-// An image of `size` with a colour attachment and a texture view (the range: RGBA32F).
 bool MakeColour(int size, sg_pixel_format format, const char* label, sg_image* image, sg_view* attachment,
                 sg_view* texture) {
     sg_image_desc d{};
@@ -427,12 +413,10 @@ bool MakeRangePipeline(const ShaderBytecode& code, sg_image_sample_type sampleTy
     return ok;
 }
 
-// An RGBA32F image of `size` with an attachment and a texture view.
 bool MakeRange(int size, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
     return MakeColour(size, SG_PIXELFORMAT_RGBA32F, label, image, attachment, texture);
 }
 
-// One full-screen pass into `attachment` reading `source`.
 void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const int* uniforms, const char* label) {
     sg_pass pass{};
     pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
@@ -454,7 +438,6 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     sg_end_pass();
 }
 
-// The 1 x 1 map bound when there is none (cleared to the far plane once).
 void EnsureDummy() {
     if (!g_rangeDummy.id)
         MakeRange(1, "ei-shadow-range-none", &g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
@@ -495,7 +478,6 @@ void ReleaseQueries() {
     g_querySlot = -1;
 }
 
-// Results of earlier frames that are ready go into this frame's counts.
 void CollectQueries() {
     ID3D11DeviceContext* context = D3DContext();
     for (GpuQueries& q : g_queries) {
@@ -540,7 +522,6 @@ struct Fit {
 };
 Fit g_fit;
 
-// The world's first ground batch (its command), SIZE_MAX: none.
 std::size_t FirstGround(const Frame& f) {
     for (const Frame::Range& r : f.worldRanges) {
         std::size_t end = std::min(r.end, f.commands.size());
@@ -581,7 +562,6 @@ const Fit& FitMap(Frame& f) {
     ShadowFrame& sh = f.shadow;
     if (!sh.haveSun || f.worldRanges.empty()) return g_fit;
 
-    // The world's first ground batch gives the camera's matrix (landscape space to clip).
     const std::size_t firstGround = FirstGround(f);
     if (firstGround == SIZE_MAX) return g_fit;
     const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
@@ -596,7 +576,7 @@ const Fit& FitMap(Frame& f) {
     if (!MapLightDirection(sh.sun, &travel)) return g_fit;
     D3 d{travel.x, travel.y, travel.z};
     // The sun's view: x across, y the rest, z along the light.
-    D3 x{d.y, -d.x, 0.0};   // d x up
+    D3 x{d.y, -d.x, 0.0};
     double across = std::sqrt(LengthSquared2DUnrounded<double>(x.x, x.y));
     x = across < 1e-6 ? D3{1.0, 0.0, 0.0} : D3{x.x / across, x.y / across, 0.0};
     D3 y = Cross(d, x);
@@ -656,7 +636,6 @@ bool WorldCamera(const Frame& f, Matrix4* clip, Vector3* eye) {
     *clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
     M4 fromClip;
     if (!Invert(FromMatrix(*clip), &fromClip)) return false;
-    // The camera's position: the point clip space puts at w = 0 (x = y = 0).
     D4 at = Transform(fromClip, D4{0.0, 0.0, 1.0, 0.0});
     if (std::fabs(at.w) <= 1e-12) return false;
     *eye = Vector3{static_cast<float>(at.x / at.w), static_cast<float>(at.y / at.w), static_cast<float>(at.z / at.w)};
@@ -849,7 +828,7 @@ void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
 }
 
 namespace {
-std::optional<StatsTimer> g_walkTimer;   // BeginShadowWalk .. EndShadowWalk
+std::optional<StatsTimer> g_walkTimer;
 } // namespace
 
 void BeginShadowWalk() {
@@ -1022,7 +1001,6 @@ void PrepareShadows(Frame& f) {
 void DrawShadowMap(Frame& f) {
     FpuGuard fpu;
 #if defined(EI_RENDER_VALIDATION)
-    // The frame's GPU time begins here (the frame's first pass follows).
     {
         ID3D11Device* device = D3DDevice();
         ID3D11DeviceContext* context = D3DContext();
@@ -1064,7 +1042,6 @@ void DrawShadowMap(Frame& f) {
             f.shadow.on = false;
             g_info.made = false;
         } else {
-            // The casters outside the view: their stream (appended before the pass).
             int outsideVertices = -1, outsideIndices = -1;
             if (!g_outside.empty()) {
                 outsideVertices = g_outsideVertexBuffer.Append(g_outsideVertices.data(),
@@ -1159,7 +1136,6 @@ void DrawShadowMap(Frame& f) {
                 g_info.outsideCasters = static_cast<int>(outside.size());
                 g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
             }
-            // The ground: the sectors handed over, their faces turned away from the sun.
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = ToMatrix(g_fit.light);
                 sg_range vr{&light, sizeof(light)};

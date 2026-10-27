@@ -1,14 +1,12 @@
-// Meshes in the new renderer: everything the old path draws through the device's mesh draws
-// Figures and map objects, the sky, and the
-// interface's sprites (CUiMesh) and 3D previews. The game hands the mesh over in model space with the
-// matrix it projects it with (BeginMesh); each pass the old path then draws (
-// src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass):
-// blend, alpha test, depth, culling, fog, the two texture stages' operations, filters and textures.
-// The material's state blocks are opaque to us, so the state is read back from the old device
-// rather than decoded; later the materials will be read from the game's data. A figure mesh drawn
-// through the figure part draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw
-// from that pool; every other mesh is built into the frame's stream. A figure part the game hands over
-// with its lighting (MeshSource::lighting) is lit in the shader from its normals.
+// Meshes in the new renderer: everything the old path draws through the device's mesh draws (figures and map
+// objects, the sky, the interface's sprites (CUiMesh) and 3D previews). The game hands the mesh over in model
+// space with the matrix it projects it with (BeginMesh); each pass the old path then draws
+// (src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass): blend,
+// alpha test, depth, culling, fog, the two texture stages' operations, filters and textures. The material's
+// state blocks are opaque to us, so the state is read back from the old device. A figure mesh drawn through the
+// figure part draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other
+// mesh is built into the frame's stream. A figure part handed over with its lighting (MeshSource::lighting) is
+// lit in the shader from its normals.
 #include "render.h"
 #include "render_internal.h"
 
@@ -252,7 +250,7 @@ PassState ReadPassState(char* device) {
         st.addressU = static_cast<std::uint8_t>(t[9]);
         st.addressV = static_cast<std::uint8_t>(t[10]);
         if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
-        // The surface holder the old path bound to the stage (device +0x12C + stage * 4).
+        // The surface holder the old path bound to the stage.
         if (!device) continue;
         const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
         st.hasTexture = holder != nullptr;
@@ -570,8 +568,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
         g_pending.mesh.normals = nullptr;
         g_pending.mesh.words = nullptr;
     }
-    // The old path fogs the projected vertices by distance (slot 35 of the transform object at the
-    // pipeline's +0xC: range start +0x34, 255 / length +0x3C).
+    // The old path fogs the projected vertices by distance (the transform object's range start and 255 / length).
     g_pending.distanceFog = mesh.distanceFog;
     const char* pipeline = *reinterpret_cast<char* const*>(g_pending.device + 0xAC);
     const char* transform = pipeline ? *reinterpret_cast<char* const*>(pipeline + 0xC) : nullptr;

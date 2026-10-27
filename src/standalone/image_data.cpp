@@ -33,11 +33,11 @@ namespace ei {
 
 std::uintptr_t g_dataShift = 0;
 
-void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
-void ReportImageFailure(const char* what);                                // hook/standalone.cpp
-void ResolveImageImports();                                              // image_imports.cpp
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
+void ReportImageFailure(const char* what);
+void ResolveImageImports();
 // "<dll>!<function>" of game.exe's import slot `slot` into `out`.
-void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size);   // image_imports.cpp
+void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size);
 
 namespace {
 

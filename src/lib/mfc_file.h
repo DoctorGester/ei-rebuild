@@ -17,13 +17,13 @@ namespace mfc::impl {
 
 // CFileStatus (0x118 bytes): what CFile::GetStatus fills in.
 struct CFileStatus {
-    CTime created;          // +0x00 m_ctime
-    CTime modified;         // +0x04 m_mtime
-    CTime accessed;         // +0x08 m_atime
-    long size;              // +0x0C m_size
-    BYTE attribute;         // +0x10 m_attribute
-    BYTE padding;           // +0x11
-    char fullName[MAX_PATH];    // +0x12 m_szFullName
+    CTime created;
+    CTime modified;
+    CTime accessed;
+    long size;
+    BYTE attribute;
+    BYTE padding;
+    char fullName[MAX_PATH];
 };
 static_assert(sizeof(CFileStatus) == 0x118);
 
@@ -39,9 +39,9 @@ struct CFile {
     static constexpr HANDLE kNoFile = INVALID_HANDLE_VALUE;   // CFile::hFileNull
 
     void* vtable;
-    HANDLE handle;          // +0x04 m_hFile
-    BOOL closeOnDelete;     // +0x08 m_bCloseOnDelete
-    CString fileName;       // +0x0C m_strFileName (the full path)
+    HANDLE handle;
+    BOOL closeOnDelete;
+    CString fileName;       // m_strFileName (the full path)
 
     static void* Vtable();
 
@@ -80,7 +80,7 @@ static_assert(sizeof(CFile) == 0x10);
 
 // CStdioFile (0x14 bytes): a CFile with a CRT stream over its handle.
 struct CStdioFile : CFile {
-    gamecrt::CrtFile* stream;   // +0x10 m_pStream
+    gamecrt::CrtFile* stream;
 
     static void* Vtable();
 
@@ -109,12 +109,12 @@ static_assert(sizeof(CStdioFile) == 0x14);
 // operator new: FindNextFile swaps the next one in.
 struct CFileFind {
     void* vtable;
-    WIN32_FIND_DATAA* found;    // +0x04 m_pFoundInfo
-    WIN32_FIND_DATAA* next;     // +0x08 m_pNextInfo
-    HANDLE context;             // +0x0C m_hContext (null or INVALID_HANDLE_VALUE when none)
-    BOOL gotLast;               // +0x10 m_bGotLast
-    CString root;               // +0x14 m_strRoot
-    char separator;             // +0x18 m_chDirSeparator ('\\')
+    WIN32_FIND_DATAA* found;
+    WIN32_FIND_DATAA* next;
+    HANDLE context;             // m_hContext (null or INVALID_HANDLE_VALUE when none)
+    BOOL gotLast;
+    CString root;
+    char separator;             // m_chDirSeparator ('\\')
 
     static void* Vtable();
 

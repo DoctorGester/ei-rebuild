@@ -19,7 +19,7 @@
 namespace str {
 
 std::string __cdecl Format(const char* format, ...);
-std::string FormatV(const char* format, va_list arguments);   // crt_format.cpp
+std::string FormatV(const char* format, va_list arguments);
 
 int Find(const std::string& s, char c, int start = 0);
 int Find(const std::string& s, const char* sub, int start = 0);

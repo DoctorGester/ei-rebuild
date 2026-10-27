@@ -6,7 +6,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 
-class GameBuffer;   // net_coder.h
+class GameBuffer;
 
 // The maps folder: the game's data folder (a CString) + "maps\", constructed into `out`. Returns `out`.
 mfc::CString* __stdcall MapsFolder(mfc::CString* out);

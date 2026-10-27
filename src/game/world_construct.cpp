@@ -62,7 +62,6 @@ PlatformSet::PlatformSet() {
     ConstructList(list, mfc::impl::PlatformListClass::Vtable());
 }
 
-// ---- CWorldServer ------------------------------------------------------------------------
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -82,7 +81,6 @@ CWorldServer::CWorldServer() {
 }
 EI_REWRITTEN_SPECIAL(0x00589ED0, CWorldServer::CWorldServer);
 
-// ---- CWorldClient ------------------------------------------------------------------------
 
 CWorldClient::CWorldClient() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());

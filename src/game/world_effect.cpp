@@ -37,7 +37,6 @@ void MoveByVelocity(CEffect* e) {
 
 } // namespace
 
-// --- CEffect -------------------------------------------------------------------------------------
 
 void CEffect::SendFull() {
     DeltaField* field = state_.BeginWriteB(0);
@@ -95,7 +94,6 @@ Vector3* CEffect::Position(void*) { return &localPosition_; }
 
 double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
-// --- CEffectSound --------------------------------------------------------------------------------
 
 void CEffectSound::Reset() {
     ClearBase(this);
@@ -182,7 +180,6 @@ void CEffectSound::Save(CStream* stream) {
 
 double CEffectSound::Radius() { return radius_; }
 
-// --- CEffectSoundSeq -----------------------------------------------------------------------------
 
 void CEffectSoundSeq::Reset() {
     ClearBase(this);
@@ -246,7 +243,6 @@ void CEffectSoundSeq::Save(CStream* stream) {
 
 double CEffectSoundSeq::Radius() { return radius_; }
 
-// --- CEffectAmbientSound -------------------------------------------------------------------------
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);

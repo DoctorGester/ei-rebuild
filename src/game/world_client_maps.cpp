@@ -1,9 +1,7 @@
 // The client world's object maps (helpers and the CWorldClient methods that keep the maps). See
-// docs/notes/world.md ("Client maps").
-// The client files every object in a sector grid (STLport lists of counted pointers, one per 16x16
-// cell) and a second grid; most of the helpers there are the STLport and MFC instantiations behind
-// those maps (config/library.csv). Rewritten here: the grids' Move (two instantiations), the window
-// hit collectors, the radius marker, the pending-map lookup and the bounds-checked record accessors.
+// docs/notes/world.md ("Client maps"). The client files every object in a sector grid (STLport lists of
+// counted pointers, one per 16x16 cell) and a second grid; most of the helpers are the STLport and MFC
+// instantiations behind those maps (config/library.csv).
 #include "ground_print.h"
 #include "item_db_text.h"
 #include "hash_tables_400.h"
@@ -79,9 +77,8 @@ namespace {
 // negative coordinate gives a huge index that fails the bounds tests.
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 
-// The list operations of the two grids' instantiations (thiscall on the cell's list):
-// erase(out iterator, node), end(out iterator) and insert(out iterator, position, value): the held
-// objects' list (counted values; erase, end and insert instantiations).
+// The list operations of the two grids' instantiations (thiscall on the cell's list): erase, end and insert
+// on the held objects' list (counted values).
 using HeldOps = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
 struct GridOpsA {
     static void Erase(SectorList*, SectorListNode** out, SectorListNode* node) {
@@ -90,7 +87,6 @@ struct GridOpsA {
 };
 using GridOpsB = GridOpsA;
 
-// The counted pointer's copy and destruction.
 void HoldRef(CEngineObject* object) {
     if (object) ++object->refCount_;
 }
@@ -110,7 +106,6 @@ void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) 
         return;
     }
     if (oldX < grid->width_ && oldY < grid->height_) {
-        // list::remove(value) with a counted copy of the object as the value.
         HoldRef(object);
         SectorList* list = &grid->rows_[oldY][oldX];
         SectorListNode* head = list->head;
@@ -127,7 +122,6 @@ void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) 
     }
     std::memcpy(stored, position, 12);
     if (newX < grid->width_ && newY < grid->height_) {
-        // push_back of a counted copy.
         CEngineObject* value = object;
         HoldRef(value);
         SectorList* list = &grid->rows_[newY][newX];
@@ -138,8 +132,6 @@ void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) 
 
 } // namespace
 
-// ---- Sector grids --------------------------------------------------------------------------------
-
 void SectorGrid::Move(CEngineObject* object, const float* position) {
     MoveInGrid<GridOpsA>(this, object, position);
 }
@@ -147,8 +139,6 @@ void SectorGrid::Move(CEngineObject* object, const float* position) {
 void SectorGrid::Move2(CEngineObject* object, const float* position) {
     MoveInGrid<GridOpsB>(this, object, position);
 }
-
-// ---- Functors ------------------------------------------------------------------------------------
 
 RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float px,
                                    float py, float factor) {
@@ -158,7 +148,7 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
         double dy = print.position_.y - py;
         double distance = libcrt::Hypot(dx, dy);
         float limit = print.scale_ * factor;
-        // FCOMPP + TEST AH,0x41: visible unless the distance is greater.
+        // Visible unless the distance is greater.
         EI_NAN_AUDIT(distance, limit);
         if (distance <= static_cast<double>(limit)) print.visible_ = 1;
     }
@@ -170,7 +160,6 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
 EI_REWRITTEN(0x00571D50, RadiusFunctor::Mark);
 
 
-// Vector<ScreenEntry>::_M_insert_overflow (plain elements).
 void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
     stlp::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
                                                                               static_cast<std::size_t>(count));
@@ -214,8 +203,6 @@ HitCollector* HitCollector::CollectParts(ScreenEntryNode* first, ScreenEntryNode
 }
 EI_REWRITTEN(0x005718B0, HitCollector::CollectParts);
 
-// ---- Lookups -------------------------------------------------------------------------------------
-
 int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const {
     const Node* node = Find(*key);
     if (!node) return 0;
@@ -225,12 +212,9 @@ int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::N
 EI_REWRITTEN(0x0056FC60, PendingIndex::Lookup);
 
 
-// ---- The client's object maps --------------------------------------------------------------------
-
 namespace {
 
-// The plain STLport lists of pointers (heroes_, objects_, list7BC_, screenEntries_): end, insert, begin,
-// erase (thiscall on the list; plain values).
+// The plain STLport lists of pointers (heroes_, objects_, list7BC_, screenEntries_): end, insert, begin, erase.
 using PlainList = SectorList;
 using FiledNode = MapObjectList::Node;
 struct PlainOps {
@@ -240,8 +224,7 @@ struct PlainOps {
     static void Erase(MapObjectList*, FiledNode** out, FiledNode* node) { *out = MapObjectList::Erase(node); }
 };
 
-// The sector grid's cell list (held objects): remove(counted value), push_back
-// clear; the second grid's clear.
+// The sector grid's cell list (held objects): remove(counted value), push_back, clear; the second grid's clear.
 struct CellOps {
     static constexpr auto Remove = stlp::ListRemoveHeld;
     static void PushBack(SectorList* list, CEngineObject** value) {
@@ -251,19 +234,16 @@ struct CellOps {
     static constexpr auto Clear2 = HeldOps::Clear;
 };
 
-// The client's MFC CList<CEngineObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's
-// RemoveAt (on the platform set's list).
+// The client's MFC CList<CEngineObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's RemoveAt.
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
 
-// ClearMaps: the session's player data.
 void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
 constexpr int kTypeHero = 0x32;
 
-// The object's grid cell list, or null outside the grid.
 SectorList* CellFor(SectorGrid& grid, CMapObject* object) {
     std::uint32_t x = CellOf(object->localPosition_.x);
     std::uint32_t y = CellOf(object->localPosition_.y);
@@ -346,7 +326,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     PlatformList& platforms = platforms_.list;
     for (PlatformNode* node = platforms.head; node;) {
         PlatformNode* next = node->next;
-        if (node->data.id == id) platforms.RemoveAt(node);   // inlined RemoveAt
+        if (node->data.id == id) platforms.RemoveAt(node);
         node = next;
     }
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
@@ -543,7 +523,7 @@ void CWorldClient::ClearMaps() {
     heroes.head->prev = heroes.head;
 
     MapObjectList& objects = objects_;
-    FiledNode* node = objects.head->next;   // begin()
+    FiledNode* node = objects.head->next;
     FiledNode* end = objects.head;
     ReleaseIdentified functor{};
     while (node != end) {
@@ -567,15 +547,14 @@ using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNod
                                                 CBaseManager*);
 CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
-    hits.Finish() = hits.Start();   // erase(begin, end): __copy of nothing
+    hits.Finish() = hits.Start();
     CBaseManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
     (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
     if (hits.begin() == hits.end()) return nullptr;
 
-    // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
-    // inlined (the same steps as the out-of-line loop).
+    // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level inlined.
     const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
     CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
@@ -614,7 +593,7 @@ CUnit* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
             object = client->manager40_->FindObject(client->hitCursor_->objectId);
         } while (!object);
     }
-    return static_cast<CUnit*>(object);   // a unit (tested above)
+    return static_cast<CUnit*>(object);
 }
 } // namespace
 
@@ -640,11 +619,9 @@ void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out)
     }
 }
 
-// ---- The party's units ----------------------------------------------------------------
-
 namespace {
 
-bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
+bool SameText(const char* a, const char* b) {
     for (;; ++a, ++b) {
         if (*a != *b) return false;
         if (*a == 0) return true;
@@ -711,12 +688,9 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
     }
 }
 
-// ---- Objects in range -----------------------------------------------------------------
-
 namespace {
 
-// Branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
-// picks one side.
+// Branch-free selects (C0 shifted into a mask): `a < b` picks one side.
 float MaxZero(float b) {
     EI_NAN_AUDIT(b);
     return 0.0f < b ? b : 0.0f;
@@ -726,7 +700,6 @@ float MinOf(float a, float b) {
     return a < b ? a : b;
 }
 
-// _ftol: truncation to a 64-bit integer, the low word kept.
 std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
 
 } // namespace
@@ -762,7 +735,7 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
             float dz = pz - point->z;
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
-            // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
+            // Skipped when the limit is below (or unordered).
             if (limit >= distance) {
                 stlp::list<CObject3D*>::Insert(out->End(), object);
             }
@@ -775,18 +748,15 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
     }
 }
 
-// ---- Platforms --------------------------------------------------------------
-
 namespace {
 constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 } // namespace
 
 int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
     *out = nullptr;
-    // FCOMP + TEST AH,1: steeper faces are left out.
+    // Steeper faces are left out.
     EI_NAN_AUDIT(normal->z);
     if (normal->z < kSteepest) return 0;
-    // AddHead with the instantiation's NewNode.
     PlatformNode* last = list.head;
     PlatformNode* node = list.NewNode(nullptr, last);
     // (Every field is written below or by the caller; the record's old bytes are not read.)
@@ -820,7 +790,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     const Vector3& high = item->boxMax;
     const Vector3& pivot = item->pivot;
 
-    // The rotation matrix of the quaternion (w, x, y, z).
     float q0 = rotation->w, q1 = rotation->x, q2 = rotation->y, q3 = rotation->z;
     float t1 = q1 + q1, t2 = q2 + q2, t3 = q3 + q3;
     float t1q0 = t1 * q0, t2q0 = t2 * q0, t3q0 = t3 * q0;
@@ -843,7 +812,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
                           {low.x, high.y, high.z}, {high.x, high.y, high.z}, {high.x, low.y, high.z},
                           {high.x, low.y, low.z},  {low.x, low.y, low.z}};
     for (Vector3& corner : corners) corner = *position + TransformColumnNormal<Sum3::ZYX>(m, (pivot + corner) + offset);
-    // The face normals, rotated (rows summed ZXY).
     Vector3 normals[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
     for (Vector3& n : normals) n = TransformColumnNormal<Sum3::ZXY>(m, n);
     for (int i = 0; i < 6; ++i) {
@@ -859,8 +827,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         std::memcpy(&record->radius, &item->radius, 4);   // a dword move
     }
 }
-
-// ---- Teardown -------------------------------------------------------------------------
 
 namespace {
 
@@ -878,8 +844,8 @@ void EmptyList(stlp::list<T>& list, F free) {
     list.head->prev = list.head;
 }
 
-// The three ground print lists emptied (Teardown and the zone load inline this): each element
-// destroyed, its node returned to the pool.
+// The three ground print lists emptied (Teardown and the zone load inline this): each element destroyed, its
+// node returned to the pool.
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
         node->data.Destruct();
@@ -895,7 +861,6 @@ void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& fee
     });
 }
 
-// An owned engine object deleted (the scalar deleting destructor, with 1) and cleared.
 template <typename T>
 void DeleteOwned(T*& slot) {
     if (CEngineObject* object = slot) {
@@ -931,7 +896,7 @@ void CWorldClient::Destroy() {
     }
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // the dropped ones released
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     RainSnow()->Destroy();
     platforms_.Destroy();
@@ -973,12 +938,9 @@ void CWorldClient::Destroy() {
     DropAndDelete(texts_);
 }
 
-// ---- Zone reset -----------------------------------------------------------------------
-
 void CWorldClient::ResetZoneObjects() {
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // the dropped ones released
-    // The second grid's cells: each element released (flags 0), its node freed,
-    // the cell linked to itself.
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
+    // The second grid's cells: each element released (flags 0), its node freed, the cell linked to itself.
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
         for (int y = 0; y < static_cast<int>(second.height_); ++y)
@@ -988,11 +950,8 @@ void CWorldClient::ResetZoneObjects() {
     ObjectListIterator it{nullptr, nullptr};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
     if (bird_) bird_->Reset();
-    // The iterator's destructor, inlined: the manager's count drops without a release.
     if (it.manager) --it.manager->refCount_;
 }
-
-// ---- The selection --------------------------------------------------------------------
 
 namespace {
 // The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
@@ -1020,13 +979,11 @@ void CWorldClient::Deselect(CEngineObject* object) {
     }
     const int id = object->id_;
     Node* node = selected.head->next;
-    while (node != selected.head && node->data != id) node = node->next;   // find
+    while (node != selected.head && node->data != id) node = node->next;
     if (node == selected.head) return;
     stlp::list<int>::Erase(node);
     if (object->flags_ & 0x10) Unhighlight(object);
 }
-
-// ---- Selecting ------------------------------------------------------------------
 
 void CWorldClient::Select(CEngineObject* object) {
     if (!object) return;
@@ -1040,21 +997,19 @@ void CWorldClient::Select(CEngineObject* object) {
     using Node = stlp::list<int>::Node;
     const int id = object->id_;
     Node* node = selected.head->next;
-    while (node != selected.head && node->data != id) node = node->next;   // find
+    while (node != selected.head && node->data != id) node = node->next;
     if (node != selected.head) return;
     stlp::list<int>::Insert(selected.head, id);
 }
 EI_REWRITTEN(0x00566030, CWorldClient::Select);
-
-// ---- Set up ---------------------------------------------------------------------------
 
 namespace {
 
 
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
-// A heap object (operator new[]'s memory) made by its constructor (null without memory), stored and
-// referenced (the pointer is not tested before counting).
+// A heap object made by its constructor (null without memory), stored and referenced (the pointer is not tested
+// before counting).
 template <typename T>
 T* MakeCounted() {
     std::uint8_t* memory = New(sizeof(T));
@@ -1063,8 +1018,7 @@ T* MakeCounted() {
     return object;
 }
 
-// A new object (its class's operator new and constructor), stored and referenced (the pointer is not
-// test the pointer before counting).
+// A new object (its class's operator new and constructor), stored and referenced.
 template <typename T>
 T* NewCounted() {
     T* object = new T();
@@ -1081,7 +1035,6 @@ void GridToFour(SectorGrid& grid) {
     grid.Resize(4, 4);
 }
 
-// A reference on every object of `manager`.
 void ReferenceEveryObject(CBaseManager* manager) {
     auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
     if (walk) walk->manager = nullptr;
@@ -1107,7 +1060,7 @@ void DestroySectorList(stlp::list<CEngineObject*>* list) {
 SectorList* SectorList::VectorDelete(unsigned flags) {
     if (flags & 2) {
         SectorList* cells = this;
-        int* block = reinterpret_cast<int*>(cells) - 1;   // new[]'s element count
+        int* block = reinterpret_cast<int*>(cells) - 1;
         for (int i = *block; i-- > 0;) DestroySectorList(&cells[i]);
         if (flags & 1) gamecrt::operator_delete(block);
         return reinterpret_cast<SectorList*>(block);
@@ -1152,7 +1105,7 @@ EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 int CWorldClient::Create() {
     CWorld::Create();
     {
-        std::string path = (TheDataFolder() + worlddata::TexturesFolderText()).GetString();   // operator+
+        std::string path = (TheDataFolder() + worlddata::TexturesFolderText()).GetString();
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
@@ -1197,15 +1150,14 @@ int CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        std::string path = (TheTextFolder() + worlddata::TextsFileText()).GetString();   // operator+
+        std::string path = (TheTextFolder() + worlddata::TextsFileText()).GetString();
         texts_->AddSource(path.c_str());
     }
     {
-        std::string path = (TheTextFolder() + worlddata::TextsLmpFileText()).GetString();   // operator+
+        std::string path = (TheTextFolder() + worlddata::TextsLmpFileText()).GetString();
         texts_->AddSource(path.c_str());
     }
 
-    // The lightning manager.
     std::uint8_t* lightningMemory = New(sizeof(CLightningManager));
     CLightningManager* lists = lightningMemory ? new (lightningMemory) CLightningManager() : nullptr;
     listManager_ = lists;
@@ -1227,14 +1179,12 @@ int CWorldClient::Create() {
     else
         flags_ &= ~0x200u;
     {
-        std::string path = (TheDataFolder() + worlddata::CursorFileText()).GetString();   // operator+
+        std::string path = (TheDataFolder() + worlddata::CursorFileText()).GetString();
         cursor_ = text::sys::LoadCursorFromFileA(path.c_str());
     }
 
-    // A reference on every object of the spell manager.
     if (SpellManager()) ReferenceEveryObject(SpellManager());
 
-    // Room for 400 screen entries (reserve).
     ScreenHits& entries = hits_;
     if (entries.Capacity() < 400) {
         int count = static_cast<int>(entries.size());
@@ -1261,8 +1211,6 @@ int CWorldClient::Create() {
     return 1;
 }
 
-// ---- References for a zone load -------------------------------------------------------
-
 void CWorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(ItemFactory());
     // The item factory is tested again before walking the spells.
@@ -1270,7 +1218,6 @@ void CWorldClient::ReferenceItemsAndSpells() {
 }
 
 namespace {
-// Every object of `manager` released (a heap iterator).
 void ReleaseEveryObject(CBaseManager* manager) {
     auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
     if (walk) walk->manager = nullptr;
@@ -1295,8 +1242,6 @@ void CWorldClient::ReleaseItemsAndSpells() {
         SpellManager()->DestroyAll();
     }
 }
-
-// ---- The item and spell blocks of a zone's state --------------------------------
 
 int CWorldClient::LoadItemsAndSpells(CStream* block) {
     ReleaseItemsAndSpells();
@@ -1417,8 +1362,6 @@ EI_REWRITTEN_SPECIAL(0x00562DF0, ClientArrayManager::~ClientArrayManager);
 
 EI_REWRITTEN_SPECIAL(0x00562DD0, ClientArrayManager::~ClientArrayManager);
 
-// ---- The zone's state block ----------------------------------------------------
-
 namespace {
 
 constexpr int kSkyTextureKind = 0x3D;
@@ -1449,13 +1392,11 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
     grid.Resize(static_cast<int>(width >> 4), static_cast<int>(height >> 4));
 }
 
-// The zone of the local player as the map database knows it, or null.
 MapRecord* LocalZoneRecord() {
     mfc::CString zone(mfc::CString::kUnset);
     return TheMapDatabase()->FindMap(*LocalPlayerName(&zone));
 }
 
-// Whether the local player is in the last zone ("gz20g", compared as it is).
 bool InFinalZone() {
     mfc::CString zone(mfc::CString::kUnset);
     return gamecrt::mbscmp((*LocalPlayerName(&zone)).GetString(), worlddata::FinalZoneText()) == 0;
@@ -1487,7 +1428,6 @@ int CWorldClient::LoadZone(CStream* block) {
     GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);
 
-    // The old zone goes.
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     ResetZoneObjects();
     ClearMaps();

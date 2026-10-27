@@ -28,7 +28,6 @@ void InsertRange(DriverNode* position, DriverNode* first, DriverNode* last) {
     stlp::list<RefPtr>::InsertRange<Policy>(stlp::AsRefNode(position), stlp::AsRefNode(first), stlp::AsRefNode(last));
 }
 
-// An empty list's sentinel from the node pool (the lists' constructors, inlined).
 DriverNode* NewSentinel() {
     auto* node = stlp::allocate_as<DriverNode>();
     node->next = node;
@@ -66,13 +65,11 @@ void ReleaseCounted(CRefObject* object) {
 
 } // namespace
 
-// ---- CPlayerSource ---------------------------------------------------------------------------------
 
 CPlayerSource::~CPlayerSource() {}
 EI_REWRITTEN_SPECIAL(0x0055F2E0, CPlayerSource::~CPlayerSource);
 EI_REWRITTEN_SPECIAL(0x0055F2F0, CPlayerSource::~CPlayerSource);
 
-// ---- CWorldHandle ---------------------------------------------------------------------------------
 
 // A new helper with the same pending link (counted).
 CWorldHandle* CWorldHandle::Clone() {
@@ -96,7 +93,6 @@ CWorldHandle::~CWorldHandle() { ReleaseCounted(pendingLink_); }
 EI_REWRITTEN_SPECIAL(0x0055F280, CWorldHandle::~CWorldHandle);
 EI_REWRITTEN_SPECIAL(0x0055F260, CWorldHandle::~CWorldHandle);
 
-// ---- CClientHandle --------------------------------------------------------------------------------
 
 CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
 EI_REWRITTEN(0x005626B0, CClientHandle::Clone);
@@ -151,12 +147,10 @@ EI_REWRITTEN_SPECIAL(0x0055F790, DriverSession::~DriverSession);
 
 } // namespace netlink
 
-// ---- CWorld::OpenSession ---------------------------------------------------------------
 
 void CWorld::OpenSession() { netSession_.ShareAssign(new DriverSession()); }
 EI_REWRITTEN(0x0055F410, CWorld::OpenSession);
 
-// ---- CWorld::CloseSession --------------------------------------------------------------
 
 void CWorld::CloseSession() {
     RefPtr& session = netSession_;
