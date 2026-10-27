@@ -585,7 +585,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         object->SetFigureScale(&scale.x);
         std::memcpy(&object->baseScale, &scale, sizeof(scale));
         object->ApplyBaseScale();
-        static_cast<CUnit*>(object)->SetPrototype23C(prototype);
+        UnitOrNull(object)->SetPrototype23C(prototype);
     }
     UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
