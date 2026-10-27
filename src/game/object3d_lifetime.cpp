@@ -105,22 +105,22 @@ void CObject3D::Destroy3D() {
 }
 EI_REWRITTEN(0x00516080, CObject3D::Destroy3D);
 
-void CObject3D::AddEffectSource(CEngineObject* source) {
+void CObject3D::AddEffectSource(CParticleSource* source) {
     if (effectSources.Find(source)) return;
     effectSources.AddTail(source);
     if (source) {
         ++source->refCount_;
-        static_cast<CParticleSource*>(source)->Attach(this);
+        source->Attach(this);
     }
 }
 EI_REWRITTEN(0x00518A00, CObject3D::AddEffectSource);
 
-void CObject3D::RemoveEffectSource(CEngineObject* source) {
+void CObject3D::RemoveEffectSource(CParticleSource* source) {
     auto* node = effectSources.Find(source);
     if (!node) return;
     effectSources.RemoveAt(node);
     if (source) {
-        static_cast<CParticleSource*>(source)->Attach(nullptr);
+        source->Attach(nullptr);
         source->Release();
     }
 }

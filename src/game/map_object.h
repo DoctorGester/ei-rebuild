@@ -109,7 +109,7 @@ public:
     // The scale becomes the base scale (units override it). Returns the z component's bits.
     virtual std::uint32_t ApplyBaseScale();
     // A hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other objects ignore it).
-    virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster);
+    virtual void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster);
     virtual int StatsChanged();        // PackVitals (units override); 1
     // Returns 1 (units hand the argument to their controller's vitals virtual).
     virtual std::uintptr_t ScaleEffectChanged(int scaleEffect);

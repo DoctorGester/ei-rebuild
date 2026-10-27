@@ -117,7 +117,7 @@ void CWorldServer::Tick(char force) {
     }
     finished.Clear();
 
-    static_cast<AIEventTable*>(AIEvents())->Advance(tick_);
+    AIEvents()->Advance(tick_);
     // Every countdown counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 

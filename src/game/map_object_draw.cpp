@@ -43,9 +43,6 @@ constexpr int kStackWorld = 1;                      // the pipeline's matrix sta
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
-// A temporary texture reference: released.
-void __fastcall ReleaseTemporary(void* object) { static_cast<CEngineObject*>(object)->ReleaseAndDelete(); }
-
 // The light list being collected: aligned storage of light pointers.
 using LightList = FigureLights;
 
@@ -150,10 +147,9 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
             Finish(lights, list);
             return result;
         }
-        CEngineObject* temporary = nullptr;
-        // The first set takes +0xDC (woundsMaterial) as stage 0's texture.
-        TheRenderDevice()->SetMaterial(static_cast<CDeviceMaterial*>(k == 0 ? static_cast<void*>(woundsMaterial) : temporary));
-        if (k != 0 && temporary) ReleaseTemporary(temporary);   // never set
+        // The first set takes the wounds material as stage 0's texture.
+        WoundsMaterial* wounds = woundsMaterial;
+        TheRenderDevice()->SetMaterial(k == 0 ? wounds : nullptr);
         set = partSets[k];
         for (int g = 0; g < set->groups.size; ++g) {
             for (int p = 0; p < set->groups[g]->parts.size; ++p) {

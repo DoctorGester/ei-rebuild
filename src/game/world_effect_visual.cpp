@@ -562,10 +562,10 @@ void CEffectLightning::UpdateEnds() {
         std::memcpy(&to_, &target->localPosition_, sizeof(Vector3));
         to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
-    CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);
-    if (source != nullptr && source->GetClassId() == 0x50 && ContextWorld(this)->IsServer() == 0) {
+    CUnit* source = UnitOrNull(WorldOf(this)->ObjectWithId(fromObject_));
+    if (source != nullptr && ContextWorld(this)->IsServer() == 0) {
         Vector3 point;
-        std::memcpy(&from_, static_cast<CUnit*>(source)->EffectPoint(&point), sizeof(Vector3));
+        std::memcpy(&from_, source->EffectPoint(&point), sizeof(Vector3));
     }
 }
 

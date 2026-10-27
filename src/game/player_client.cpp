@@ -803,7 +803,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < partyUnitIds_.size; ++i) {
         bool inserted;
         PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CEngineObject* unit = player->WorldContext()->FindUnit(partyUnitIds_.data[i]);
+        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_.data[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 

@@ -249,9 +249,8 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
 }
 EI_REWRITTEN(0x00524FE0, UnitVitals::TakeHit);
 
-BOOL CUnit::IsBehind(const CEngineObject* target) {
+BOOL CUnit::IsBehind(const CMapObject* t) {
     if (!player) return 0;
-    auto* t = static_cast<const CObject3D*>(target);
     float dx = t->localPosition_.x - localPosition_.x;
     float dy = t->localPosition_.y - localPosition_.y;
     float dz = t->localPosition_.z - localPosition_.z;

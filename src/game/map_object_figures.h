@@ -21,6 +21,7 @@
 #undef GetClassName   // CEngineObject::GetClassName
 
 class CObject3D;
+class CParticleSource;
 
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
@@ -414,9 +415,9 @@ public:
     void Destroy3D();
     // Adds `source` (a particle source; it calls this from its Attach) to the effect sources unless it is there:
     // referenced and attached to this object.
-    void AddEffectSource(CEngineObject* source);
+    void AddEffectSource(CParticleSource* source);
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
-    void RemoveEffectSource(CEngineObject* source);
+    void RemoveEffectSource(CParticleSource* source);
 
     // A side half (type 0x46) replaces the attached one as SetSpecific does; other objects (and null) are
     // ignored.
@@ -463,7 +464,7 @@ public:
     std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // loaded on first use
     mfc::CString name;              // the figure's name
-    mfc::CTypedPtrList<CEngineObject> effectSources;   // the particle sources attached to the object
+    mfc::CTypedPtrList<CParticleSource> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     FigurePartArray parts;
     FigurePartArray pendingParts;   // built by LoadFigures

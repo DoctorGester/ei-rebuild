@@ -348,7 +348,7 @@ public:
     // Target zone and entrance of exit `index`; FALSE when out of range.
     BOOL GetZoneExit(int index, mfc::CString* target, int* entrance);
     // Registers an object that lives for a limited time (spells, effects) in timedObjects_.
-    void AddTimedObject(CEngineObject* object);
+    void AddTimedObject(CEffect* object);
     void RemoveTimedObject(unsigned id);
     void AddToUpdateMap(CMapObject* unit);
     // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80 plus

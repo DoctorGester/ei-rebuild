@@ -35,9 +35,9 @@ void CItem::Load(CStream* stream) {
     CSpellManager* spells = WorldContext()->SpellManager();
     std::uint32_t id = StreamSlot(stream);
     stream->Read(&id, kDword);
-    CEngineObject* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObject(id);
+    CSpell* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObjectAs<CSpell>(id);
     CSpell* previous = spell_;
-    spell_ = static_cast<CSpell*>(spell);
+    spell_ = spell;
     if (spell != nullptr) ++spell->refCount_;
     if (previous != nullptr) previous->Release();
     stream->Read(&count_, kDword);

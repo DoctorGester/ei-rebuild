@@ -155,10 +155,10 @@ EI_REWRITTEN(0x00693F10, CTextureManager::FindOrLoad);
 
 bool CTextureManager::ReloadAll() {
     bool ok = true;
-    ObjectListIterator registered{nullptr, nullptr};
-    for (CEngineObject* object = registered.First(this); object; object = registered.Next()) {
+    ObjectListIteratorOf<CTexture> registered{};
+    for (CTexture* object = registered.First(this); object; object = registered.Next()) {
         object->flags_ &= ~kTextureLoaded;
-        bool loaded = LoadTexture(static_cast<CTexture*>(object)) != 0;
+        bool loaded = LoadTexture(object) != 0;
         ok = loaded && ok;
     }
     for (auto* node = cache_.head; node;) {

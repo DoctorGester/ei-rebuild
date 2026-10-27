@@ -40,14 +40,13 @@ void CParticleManager::Destroy() {
 }
 
 CParticleSource* CParticleManager::CreateSource(int type) {
-    CEngineObject* object = CreateObject(type, -1);
-    ++object->refCount_;
-    int id = object->id_;
+    CParticleSource* source = CreateObjectAs<CParticleSource>(type, -1);
+    ++source->refCount_;
+    int id = source->id_;
     if (id > maxHeldId_) maxHeldId_ = id;
-    CParticleSource* source = static_cast<CParticleSource*>(object);
     held_[id] = source;
     if (quietStart != 0) {
-        int kind = object->type_;
+        int kind = source->type_;
         if (kind == kStoppedTypeA || kind == kStoppedTypeC || kind == kStoppedTypeB) source->StopEmitting();
     }
     return source;

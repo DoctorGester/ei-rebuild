@@ -903,7 +903,7 @@ struct AIBrain {
     // Every allied unit within callRadius of the owner's unit hears a call for help (kind 0x1A) at `point`;
     // the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b);
+    void ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b);
     AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);
 
     CUnitServer* owner;

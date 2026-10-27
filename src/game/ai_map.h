@@ -766,7 +766,7 @@ public:
     int MaterialAt(const Vector3* position);
     void TurnObject(CMapObject* object, const Quaternion* rotation);
     // The cell's terrain type (AITerrainType); the first one outside the map.
-    void* MaterialRecordAt(const Vector3* position);
+    AITerrainType* MaterialRecordAt(const Vector3* position);
     // Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.
     bool BridgeDeckAt(int x, int y, int* height);
 

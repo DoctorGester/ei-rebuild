@@ -31,7 +31,7 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
 EI_REWRITTEN(0x005CF220, AIAttention::CurrentAttack);
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
-    mfc::CTypedPtrList<CUnit> candidates{};
+    AIObjectList candidates{};
     candidates.vtable = mfc::impl::PtrListClass::Vtable();
     candidates.blockSize = 10;
     AITargetChoice best{-1, nullptr};

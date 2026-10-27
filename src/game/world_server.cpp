@@ -149,14 +149,13 @@ BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     return 1;
 }
 
-void CWorldServer::AddTimedObject(CEngineObject* object) {
+void CWorldServer::AddTimedObject(CEffect* effect) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
-    auto* effect = static_cast<CEffect*>(object);
     effect->startTick_ = tick_;
-    ++object->refCount_;
+    ++effect->refCount_;
     effect->MarkChanged();   // flags_ |= 2, stamped with the server time
-    unsigned id = static_cast<unsigned>(object->id_);
-    timedObjects_.Set(id, object);
+    unsigned id = static_cast<unsigned>(effect->id_);
+    timedObjects_.Set(id, effect);
 }
 
 void CWorldServer::RemoveTimedObject(unsigned id) {

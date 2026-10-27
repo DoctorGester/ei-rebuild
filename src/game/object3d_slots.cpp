@@ -48,13 +48,13 @@ EI_REWRITTEN(0x00516D50, CObject3D::AttachSpecific);
 
 void CObject3D::RemoveAllEffectSources() {
     while (effectSources.head) {
-        CEngineObject* source = effectSources.head->data;
+        CParticleSource* source = effectSources.head->data;
         auto* node = effectSources.head;
         while (node && node->data != source) node = node->next;
         if (!node) continue;
         effectSources.RemoveAt(node);
         if (source) {
-            static_cast<CParticleSource*>(source)->Attach(nullptr);
+            source->Attach(nullptr);
             source->Release();
         }
     }

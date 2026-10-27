@@ -117,15 +117,15 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     auto* world = WorldContext();
     if (!world->IsServer()) {
         if (type_ == kUnitTypeHero) {
-            if (CEngineObject* hand = FindPartByPrefix(kRightHand)) {
+            if (CFigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
-                PartWorldPosition(&at.x, static_cast<CFigureMesh*>(hand));
+                PartWorldPosition(&at.x, hand);
                 out->x = at.x;
                 out->y = at.y;
                 out->z = at.z;
                 return out;
             }
-        } else if (!static_cast<CUnitClientSpecific*>(controller)->WeaponPoint(&local)) {
+        } else if (!ClientController()->WeaponPoint(&local)) {
             out->x = localPosition_.x + center.x;
             out->y = localPosition_.y + center.y;
             out->z = localPosition_.z + center.z;

@@ -525,17 +525,16 @@ void CUnitServer::TickAction() {
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = TheServerWorld()->manager48_;
-            CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
+            auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;
-            auto* particle = static_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
             particle->SetAttachedTo(unit->id_);
-            world->AddTimedObject(effect);
+            world->AddTimedObject(particle);
             CEngineObject* old = effectObject;
-            effectObject = effect;
-            if (effect) ++effect->refCount_;
+            effectObject = particle;
+            ++particle->refCount_;
             if (old) old->Release();
         }
     }

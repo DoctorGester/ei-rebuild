@@ -98,7 +98,7 @@ EI_REWRITTEN(0x0062CF70, CExchangeScreen::OnLButtonDown);
 // --- the exchange went through -------------------------------------------------------------------
 
 void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    static_cast<CParty*>(LocalPlayerData())->ReleaseAllItems();
+    LocalPlayerData()->ReleaseAllItems();
     auto* local = LocalPlayerData();
     ReturnAll(local, partyC);
     ReturnAll(LocalPlayerData(), partyB);

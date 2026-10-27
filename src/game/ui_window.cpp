@@ -386,7 +386,7 @@ EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 
 namespace {
 // A new object of the model manager by name, or null.
-CEngineObject* NewModelObject(const char* name) {
+CFigureMesh* NewModelObject(const char* name) {
     return TheFigureManager()->NewFigure(name);
 }
 
@@ -395,10 +395,10 @@ CEngineObject* NewModelObject(const char* name) {
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
     for (int i = 0; i < sceneObjects_.size; ++i) {
         if (sceneObjects_.data[i] != object) continue;
-        CEngineObject* made = NewModelObject(name);
+        CFigureMesh* made = NewModelObject(name);
         if (!made) return nullptr;
         ++made->refCount_;
-        static_cast<CFigureMesh*>(made)->SetObject(this);
+        made->SetObject(this);
         auto* sprite = AsUiMesh(made);
         auto* old = AsUiMesh(object);
         sprite->material_ = blackMaterial_;
@@ -431,14 +431,14 @@ EI_REWRITTEN(0x005FF460, CUiWindow::ReplaceSceneObject);
 // --- AddSprite -------------------------------------------------------------------------------------
 
 CUiMesh* CUiWindow::AddSprite(const char* name) {
-    CEngineObject* object = NewModelObject(name);
+    CFigureMesh* object = NewModelObject(name);
     if (!object) return nullptr;
     bool listed = false;
     for (int i = 0; i < sceneObjects_.size && !listed; ++i) listed = sceneObjects_.data[i] == object;
     if (!listed) {
         sceneObjects_.SetAtGrow(sceneObjects_.size, object);
         ++object->refCount_;
-        static_cast<CFigureMesh*>(object)->SetObject(this);
+        object->SetObject(this);
     }
     auto* sprite = AsUiMesh(object);
     sprite->material_ = blackMaterial_;

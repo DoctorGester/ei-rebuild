@@ -83,9 +83,9 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
-void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b) {
+void AIBrain::ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b) {
     // `a` is read as a byte.
-    attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
+    attention.Choose(this, choice, candidates, from, static_cast<std::uint8_t>(a) != 0, b);
 }
 
 // --- The corpse list ---------------------------------------------------------------
