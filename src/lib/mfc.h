@@ -20,9 +20,9 @@ using BOOL = int;
 // in a header just before it. An empty string points at the shared afxEmptyString data.
 class CString {
 public:
-    CString();                                    // inline in MFC: m_pchData = afxEmptyString
+    CString();
     CString(const char* s);
-    CString(const char* s, int length);           // (the first `length` characters)
+    CString(const char* s, int length);
     CString(const CString& s);
     // A bridge while the game's text is half std::string (str.h): the same characters.
     CString(const std::string& s) : CString(s.c_str()) {}
@@ -38,27 +38,27 @@ public:
     char* GetBufferSetLength(int length);
     char* GetBuffer(int minLength);
     void ReleaseBuffer(int newLength);            // (-1: up to the terminator)
-    int GetLength() const { return reinterpret_cast<const int*>(data_)[-2]; }   // CStringData::nDataLength
-    void MakeLower();                             // (calls _mbslwr)
-    void AssignChar(char c);                      // operator=(TCHAR)
-    void TrimRight(const char* targets);          // TrimRight(LPCTSTR)
-    void TrimRight();                             // (white space)
+    int GetLength() const { return reinterpret_cast<const int*>(data_)[-2]; }
+    void MakeLower();
+    void AssignChar(char c);
+    void TrimRight(const char* targets);
+    void TrimRight();
     void TrimRight(char target);
-    void TrimLeft();                              // (white space)
+    void TrimLeft();
     void TrimLeft(char target);
     const CString& operator+=(char c);
     const CString& operator+=(const CString& s);
     const CString& operator+=(const char* s);
     CString Left(int count) const;
-    CString Right(int count) const;               // Right(nCount)
-    CString Mid(int first) const;                 // Mid(nFirst)
-    CString Mid(int first, int count) const;      // Mid(nFirst, nCount)
-    int Remove(char ch);                          // Remove(chRemove) (the count removed)
+    CString Right(int count) const;
+    CString Mid(int first) const;
+    CString Mid(int first, int count) const;
+    int Remove(char ch);                          // the count removed
     int FindOneOf(const char* set) const;
-    int ReverseFind(char ch) const;               // (-1 when absent)
-    int Find(const char* sub) const;              // Find(LPCTSTR) (-1 when absent)
-    int Find(const char* sub, int start) const;   // Find(LPCTSTR, nStart)
-    int Find(char c) const;                       // (-1 when absent)
+    int ReverseFind(char ch) const;               // -1 when absent
+    int Find(const char* sub) const;              // -1 when absent
+    int Find(const char* sub, int start) const;
+    int Find(char c) const;                       // -1 when absent
     int Find(char c, int start) const;
 
     operator const char*() const { return data_; }
@@ -77,8 +77,8 @@ static_assert(sizeof(CString) == 4);
 
 class CFileVirtuals;
 
-// CFile (0x10 bytes): vtable, OS handle, close-on-delete flag, file name. The game calls these
-// methods non-virtually, so they are plain members.
+// CFile: vtable, OS handle, close-on-delete flag, file name. The game calls these methods non-virtually, so
+// they are plain members.
 class CFile {
 public:
     enum OpenFlags { modeRead = 0 };
@@ -92,58 +92,55 @@ public:
     void Close();
     // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
     void* Handle() const { return handle_; }
-    // The file as code that calls through its vtable sees it (CFileVirtuals, below).
     CFileVirtuals* Virtuals();
 
 private:
     void* vtable_;
     void* handle_;
     BOOL closeOnDelete_;
-    char* fileName_;    // CString; raw here
+    char* fileName_;
 };
 static_assert(sizeof(CFile) == 0x10);
 
 // The virtual slots of MFC 4.2's CFile for callers that dispatch through a file's vtable (game.exe's code
-// does; the verify build hands some loaders a proxy file). CFile above calls the bodies directly. Declared
-// only: a devirtualised call would not link. Slots declared `void Name()` keep their place in the order only.
+// does; the verify build hands some loaders a proxy file). Declared only; slots declared `void Name()` keep
+// their place in the order only.
 class __declspec(novtable) CFileVirtuals {
 public:
     virtual void GetRuntimeClass();
     virtual void* DeletingDestructor(unsigned flags);
-    virtual void Serialize();                                          // 2: CObject's (empty)
+    virtual void Serialize();                                          // CObject's (empty)
     virtual unsigned long GetPosition() const;
-    virtual void GetFileName();                                        // 4
-    virtual void GetFileTitle();                                       // 5
-    virtual void GetFilePath();                                        // 6
-    virtual void SetFilePath();                                        // 7
+    virtual void GetFileName();
+    virtual void GetFileTitle();
+    virtual void GetFilePath();
+    virtual void SetFilePath();
     virtual BOOL Open(const char* path, unsigned flags, void* error);
-    virtual void Duplicate();                                          // 9
+    virtual void Duplicate();
     virtual long Seek(long offset, unsigned from);
-    virtual void SetLength(unsigned long length);                      // 11
+    virtual void SetLength(unsigned long length);
     virtual unsigned long GetLength() const;
     virtual unsigned Read(void* buffer, unsigned count);
     virtual void Write(const void* buffer, unsigned count);
-    virtual void LockRange();                                          // 15
-    virtual void UnlockRange();                                        // 16
-    virtual void Abort();                                              // 17
-    virtual void Flush();                                              // 18
+    virtual void LockRange();
+    virtual void UnlockRange();
+    virtual void Abort();
+    virtual void Flush();
     virtual void Close();
-    // 20: (0: no buffer of its own; CArchive reads and writes through the file then).
+    // (0: no buffer of its own; CArchive reads and writes through the file then).
     virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);
 };
 inline CFileVirtuals* CFile::Virtuals() { return reinterpret_cast<CFileVirtuals*>(this); }
 
-// The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
-// through an object's vtable (the inlined DestructElements calls slot 1 with
-// 0; a CList or a CDib is deleted through slot 1 with 1); declared only.
+// The virtual slots every MFC 4.2 CObject has, for callers that dispatch through an object's vtable (the
+// inlined DestructElements calls slot 1 with 0; a CList or a CDib is deleted through slot 1 with 1).
 class __declspec(novtable) CObjectVirtuals {
 public:
-    virtual void GetRuntimeClass();                         // 0
-    virtual void* DeletingDestructor(unsigned flags);       // 1
-    virtual void Serialize();                               // 2
+    virtual void GetRuntimeClass();
+    virtual void* DeletingDestructor(unsigned flags);
+    virtual void Serialize();
 };
 
-// CFileFind (0x1C bytes).
 class CFileFind {
 public:
     CFileFind();
@@ -163,26 +160,25 @@ private:
 };
 static_assert(sizeof(CFileFind) == 0x1C);
 
-// The virtual slots of MFC 4.2's CFileFind for callers that dispatch through it
-// like that; declared only. Slots declared `void Name()` keep their place only (8-13
-// are the six GetLast*Time / GetCreationTime overloads).
+// The virtual slots of MFC 4.2's CFileFind for callers that dispatch through it; slots declared `void
+// Name()` keep their place only (8-13 are the six GetLast*Time / GetCreationTime overloads).
 class __declspec(novtable) CFileFindVirtuals {
 public:
     virtual void GetRuntimeClass();
     virtual void DeletingDestructor();
-    virtual void Serialize();                               // 2
+    virtual void Serialize();
     virtual CString GetFileName() const;
     virtual CString GetFilePath() const;
     virtual CString GetFileTitle() const;
-    virtual void GetFileURL();                              // 6
-    virtual void GetRoot();                                 // 7
-    virtual void GetTime8();                                // 8
-    virtual void GetTime9();                                // 9
-    virtual void GetTime10();                               // 10
-    virtual void GetTime11();                               // 11
-    virtual void GetTime12();                               // 12
-    virtual void GetTime13();                               // 13
-    virtual BOOL MatchesMask(unsigned long mask) const;     // 14: (file attribute bits)
+    virtual void GetFileURL();
+    virtual void GetRoot();
+    virtual void GetTime8();
+    virtual void GetTime9();
+    virtual void GetTime10();
+    virtual void GetTime11();
+    virtual void GetTime12();
+    virtual void GetTime13();
+    virtual BOOL MatchesMask(unsigned long mask) const;     // file attribute bits
     virtual BOOL IsDots() const;
     virtual BOOL FindFile(const char* pattern, unsigned long flags);
     virtual BOOL FindNextFile();
@@ -192,8 +188,7 @@ public:
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
 public:
-    // CTime(year, month, day, hour, minute, second, dst) through mktime.
-    // Returns this.
+    // CTime(year, month, day, hour, minute, second, dst) through mktime. Returns this.
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
 
     // Strftime of the local time into at most 127 characters (empty when it does not fit).
@@ -206,10 +201,9 @@ static_assert(sizeof(CTime) == 4);
 // CPlex: the block allocator behind MFC's lists and maps.
 struct CPlex {
     CPlex* next;
-    // followed by the block's elements
 };
 namespace impl {
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);   // (mfc_list.cpp)
+CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 int __fastcall FreePlexChain(CPlex* head);
 } // namespace impl
 inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
@@ -218,18 +212,15 @@ inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
 inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
-// The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in
-// the element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared
-// containers"). The vtable is a plain field: an object game.exe constructs keeps the one its
-// constructor wrote, and code that builds one itself passes the instantiation's vtable. The
-// templates have no constructors, so they can sit in layouts and be brace-initialised.
-// The member functions are MFC 4.2's, written once: an instantiation the game calls out of line can
-// either be registered on these members or keep forwarding to its original address.
+// The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in the
+// element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared containers").
+// The vtable is a plain field: an object game.exe constructs keeps the one its constructor wrote, and code
+// that builds one itself passes the instantiation's vtable. The templates have no constructors, so they can
+// sit in layouts and be brace-initialised. The member functions are MFC 4.2's, written once.
 
-// MFC 4.2's default ConstructElements / DestructElements for element types without constructors:
-// new elements are zero-filled (the bitwise zeroing before the placement new), nothing is destroyed.
-// An instantiation whose elements are constructed out of line (CString, records with
-// constructors) passes its own policy with the same two static functions.
+// MFC 4.2's default ConstructElements / DestructElements for element types without constructors: new
+// elements are zero-filled, nothing is destroyed. An instantiation whose elements are constructed out of
+// line (CString, records with constructors) passes its own policy with the same two static functions.
 template <typename T>
 struct PlainElements {
     static void Construct(T* elements, int count) {
@@ -238,9 +229,8 @@ struct PlainElements {
     static void Destruct(T*, int) {}
 };
 
-// CString elements: MFC 4.2's afxtempl.h specialises ConstructElements / DestructElements for
-// CString: each new element the empty string, each removed one released.
-// CArray<CString> takes them by default.
+// CString elements: MFC 4.2's afxtempl.h specialises ConstructElements / DestructElements for CString: each
+// new element the empty string, each removed one released. CArray<CString> takes them by default.
 template <>
 struct PlainElements<CString> {
     static void Construct(CString* elements, int count) {
@@ -290,8 +280,7 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
-    // The constructor body: the instantiation's vtable (named by its class's accessor, `Class::Vtable()`), empty (like
-    // CByteArray's).
+    // The constructor body: the instantiation's vtable (`Class::Vtable()`), empty (like CByteArray's).
     CArray* Construct(const void* vtablePointer) {
         vtable = const_cast<void*>(vtablePointer);
         data = nullptr;
@@ -340,9 +329,8 @@ struct CArray {
 
     void RemoveAll() { SetSize(0, -1); }
 
-    // Serialize (slot 2 of each instantiation's CObject vtable; CObject::Serialize is empty): the
-    // count (ReadCount then SetSize when loading), then the elements as raw bytes (MFC's default
-    // SerializeElements).
+    // Serialize (CObject::Serialize is empty): the count (ReadCount then SetSize when loading), then the
+    // elements as raw bytes (MFC's default SerializeElements).
     void Serialize(CArchive* ar) {
         if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(size));
         else SetSize(static_cast<int>(ar->ReadCount()), -1);
@@ -356,14 +344,12 @@ struct CArray {
         data[index] = value;
     }
 
-    // Add: SetAtGrow at the end; returns the new element's index.
     int Add(const T& value) {
         int index = size;
         SetAtGrow(index, value);
         return index;
     }
 
-    // ElementAt: the element's address.
     T& ElementAt(int index) { return data[index]; }
 
     // GetAt(nIndex) returning the element by value (the result pointer first; returns it).
@@ -398,7 +384,6 @@ struct CArray {
         size -= count;
     }
 
-    // Copy (operator= of the elements): SetSize to the source's size, then assign element by element.
     void Copy(const CArray& source) {
         SetSize(source.size, -1);
         for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
@@ -463,7 +448,6 @@ struct CList {
         return node;
     }
 
-    // FreeNode: return to the free list; the last node frees all blocks (RemoveAll).
     void FreeNode(Node* node) {
         Elements::Destruct(&node->data, 1);
         node->next = free;
@@ -556,7 +540,6 @@ struct CList {
         return nullptr;
     }
 
-    // FindIndex: the index-th node from the head, or null.
     Node* FindIndex(int index) const {
         if (index >= count || index < 0) return nullptr;
         Node* n = head;
@@ -566,11 +549,10 @@ struct CList {
 };
 static_assert(sizeof(CList<int>) == 0x1C);
 
-// CMap<K, ARG_K, V, ARG_V> (0x1C bytes): vtable, hash table, table size, count, free
-// associations, CPlex blocks, block size. An association is next, hash, key, value (dword packed,
-// so a 64-bit key sits at +8). Hashing and the association pool stay with each instantiation's own
-// GetAssocAt / InitHashTable / NewAssoc (called through their addresses); the walk and RemoveAll,
-// which the game inlines, are written here.
+// CMap<K, ARG_K, V, ARG_V> (0x1C bytes): vtable, hash table, table size, count, free associations, CPlex
+// blocks, block size. An association is next, hash, key, value (dword packed, so a 64-bit key sits at +8).
+// Hashing and the association pool stay with each instantiation's own GetAssocAt / InitHashTable /
+// NewAssoc; the walk and RemoveAll, which the game inlines, are written here.
 #pragma pack(push, 4)
 template <typename K, typename V>
 struct CMapAssoc {
@@ -626,9 +608,8 @@ struct CMap {
         return nullptr;
     }
 
-    // NewAssoc: an association from the free list (a new block of `blockSize` when it is
-    // empty, its first association used first), the count raised, key and value zeroed. `next` and
-    // `hash` are the caller's.
+    // NewAssoc: an association from the free list (a new block of `blockSize` when it is empty), the count
+    // raised, key and value zeroed. `next` and `hash` are the caller's.
     Assoc* NewAssoc() {
         if (!freeList) {
             CPlex* block = PlexCreate(blocks, static_cast<unsigned>(blockSize), sizeof(Assoc));
@@ -662,8 +643,6 @@ struct CMap {
         return assoc->value;
     }
 
-    // RemoveAll for elements without destructors: the table deleted (even when null), the pool
-    // and the blocks freed.
     void RemoveAll() {
         gamecrt::operator_delete(table);
         table = nullptr;
@@ -676,10 +655,9 @@ struct CMap {
 static_assert(sizeof(CMap<int, int>) == 0x1C);
 static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 
-// CStringArray (afxcoll, 0x14 bytes): CArray's layout over CStrings. Its members are MFC's own
-// code, reached through their addresses. No constructor, so it can sit in layouts:
-// Construct / Destruct are the constructor and destructor (console::CStringArray is the local
-// version that calls them).
+// CStringArray (afxcoll, 0x14 bytes): CArray's layout over CStrings. Its members are MFC's own code, reached
+// through their addresses. No constructor, so it can sit in layouts: Construct / Destruct are the constructor
+// and destructor.
 struct CStringArray {
     void* vtable;       // written by Construct
     CString* data;
@@ -703,9 +681,8 @@ struct CStringArray {
 };
 static_assert(sizeof(CStringArray) == 0x14);
 
-// CTypedPtrList<CPtrList, T*>: a CPtrList (the non-template list of void*, same layout) with typed
-// elements. The game inlines its operations; they are CList<T*>'s (a new node's data is zeroed,
-// nothing destroyed).
+// CTypedPtrList<CPtrList, T*>: a CPtrList (the list of void*, same layout) with typed elements. The game
+// inlines its operations; they are CList<T*>'s (a new node's data is zeroed, nothing destroyed).
 template <typename T>
 using CTypedPtrList = CList<T*>;
 

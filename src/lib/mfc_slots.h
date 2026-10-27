@@ -1,10 +1,9 @@
 #pragma once
 
-// The MFC collection functions only the exe's vtables point at (docs/notes/standalone.md
-// section 2): each CArray / CList / CMap instantiation's scalar deleting destructor (vtable slot 1)
-// and the destructors they call. The bodies are mfc_array.h's and mfc_list.h's templates;
-// mfc_slots.cpp registers the instantiations whose elements need nothing of the game,
-// src/game/game_slots.cpp the others.
+// The MFC collection functions only the exe's vtables point at (docs/notes/standalone.md section 2): each
+// CArray / CList / CMap instantiation's scalar deleting destructor and the destructors they call. The bodies
+// are mfc_array.h's and mfc_list.h's templates; mfc_slots.cpp registers the instantiations whose elements
+// need nothing of the game, src/game/game_slots.cpp the others.
 
 #include "compiled_vtable.h"
 #include "mfc_archive.h"
@@ -38,9 +37,9 @@ struct ScalarDeleting {
 void __fastcall ExceptionDestruct(libcrt::Exception* self);
 
 // ---- Serialize (vtable slot 2) --------------------------------------------------------------
-// afxtempl.h's Serialize with the default SerializeElements: each element as its raw bytes (ar.Write
-// / ar.Read of sizeof(TYPE)), whatever it holds. CObject::Serialize first is empty. `Abi` is the
-// instantiation's (mfc_array.h, mfc_list.h): its element and how SetSize / NewNode build one.
+// afxtempl.h's Serialize with the default SerializeElements: each element as its raw bytes, whatever it
+// holds. CObject::Serialize first is empty. `Abi` is the instantiation's: its element and how SetSize /
+// NewNode build one.
 
 // The count (loading: ReadCount, then SetSize(count, -1)), then the elements in one block.
 template <typename T, typename E>
@@ -52,9 +51,8 @@ void ArrayAbi<T, E>::Serialize(CArchive* ar) {
     else ar->Read(this->data, bytes);
 }
 
-// The count, then each element from the head. Loading reads each into a local (built as the
-// element's constructor builds it; plain data is left as it was) and adds it at the tail (the node's
-// element constructed, then assigned).
+// The count, then each element from the head. Loading reads each into a local (plain data is left as it was)
+// and adds it at the tail (the node's element constructed, then assigned).
 template <typename T, typename E>
 void ListAbi<T, E>::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
@@ -71,11 +69,10 @@ void ListAbi<T, E>::Serialize(CArchive* ar) {
 }
 
 // The same stored form; loading goes through a temporary as the instantiations whose element has an
-// assignment of its own compile it. `Through` is a ListTemporary: `Init` builds the
-// temporary (before its bytes are read over it), the list's NewNode builds the tail node's element,
-// `Assign` assigns it from the temporary, the node is linked, `Destroy` destroys the temporary. The
-// temporary holds the stored bytes, so its pointers are whatever the archive held: the assignment
-// shares them and the destruction releases them again.
+// assignment of its own compile it. `Through` is a ListTemporary: `Init` builds the temporary (before its
+// bytes are read over it), the list's NewNode builds the tail node's element, `Assign` assigns it from the
+// temporary, `Destroy` destroys it. The temporary holds the stored bytes, so its pointers are whatever the
+// archive held: the assignment shares them and the destruction releases them again.
 template <typename ListAbiT, auto InitFn, auto AssignFn, auto DestroyFn>
 struct ListTemporary {
     using Abi = ListAbiT;
@@ -107,11 +104,9 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
     }
 }
 
-// SerializeElements<CString> (__stdcall): each string stored (operator<<) or
-// loaded (operator>>).
+// SerializeElements<CString>: each string stored (operator<<) or loaded (operator>>).
 void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count);
-// CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings
-// (mfc_array.cpp).
+// CArray<CString>::Serialize: the count, then the strings.
 template <>
 void Strings::Serialize(CArchive* ar);
 
@@ -139,22 +134,18 @@ void MapAbi<K, V>::Serialize(CArchive* ar) {
 }
 
 // ---- Compiler-made vtables -------------------------------------------------------------------
-// The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table
-// its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose
-// vtable the compiler makes in place of game.exe's table for the instantiation (docs/notes/standalone.md,
-// "Compiler-made vtables"): CObject's three slots over the header's layout (the CArray / CList whose first field
-// holds the table). Slot 0 is CObject's GetRuntimeClass, slot 1 the destructor `Destroy` (the
-// instantiation's own: the table written, the elements destroyed, the storage freed; the compiler's scalar deleting
-// destructor frees the object into the game's heap), slot 2 Serialize (`Store`). Our code calls the header's
-// functions by name; the slots are what a dispatch through the table reaches (DestructElements' slot 1
-// on an element that is a collection, CArchive's slot 2). A tag derived from another is the derived
-// instantiation's (its destructor ends in the base's, which stores the base's table).
+// The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the
+// table its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++
+// class whose vtable the compiler makes in place of game.exe's table (docs/notes/standalone.md,
+// "Compiler-made vtables"): CObject's three slots (GetRuntimeClass, the destructor `Destroy`, Serialize
+// (`Store`)) over the header's layout. Our code calls the header's functions by name; the slots are what a
+// dispatch through the table reaches. A tag derived from another is the derived instantiation's (its
+// destructor ends in the base's, which stores the base's table).
 
 // CObject::GetRuntimeClass: CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
 struct CRuntimeClass;
 const CRuntimeClass* ObjectRuntimeClass();
 
-// The table a T's constructor stores (compiled_vtable.h).
 using ei::CompiledVtable;
 
 template <typename F>
@@ -199,10 +190,9 @@ inline void InitAttention12(Attention12* p) {
 }
 using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 
-// ---- The container instantiations of mfc_array.h and mfc_list.h ----------------------------------
-// Their tags are declared there (the element policies and aliases name them) and defined here: one class per vtable,
-// each with the slots the exe's table has (the instantiation's destructor and Serialize). A tag that is a base of
-// another is not final (the base is defined first); the derived tag's table calls the base's destructor.
+// The container instantiations of mfc_array.h and mfc_list.h: their tags are declared there and defined
+// here, one class per vtable. A tag that is a base of another is not final (the base is defined first); the
+// derived tag's table calls the base's destructor.
 
 using List30 = ListAbi<Bytes<0x30>>;
 
@@ -458,7 +448,7 @@ struct MotionWaypointBaseClass
 struct MotionWaypointArrayClass final : MotionWaypointBaseClass {
     static void* Vtable() { return CompiledVtable<MotionWaypointArrayClass>(); }
 };
-// A unit's carried objects (CUnit +0x49C).
+// A unit's carried objects.
 struct CarriedArrayClass final
     : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &Plain4::Serialize> {};
 // CArray<int> of quest item ids (world_party).
