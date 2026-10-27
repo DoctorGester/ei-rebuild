@@ -778,3 +778,62 @@ and wearing its armour; the first hero shown the page titles; the first page (4 
 constructor, else 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
 highest skill per spell school; the allod's constructor music; antialiasing (render state 2 = 2) when the
 device sorts independently.
+
+### CBriefingScreen::OnMouseMove
+
+Mouse move: with the chat window active, cursor 0xD and the event to it; otherwise cursor 0, the container's
+handler, then by state: 1 the hovered topic row (redrawn when it changes), 3 cursor 0xE, 4 cursor 0. Walking
+(state 0, right button up): over a person who can talk (as OnLeftDown; on a network client not the leader) its
+topics are looked up (cursor 0xE when it has any) and its "pers" text, when it has one, is shown in surface 1
+at the mouse (-125, -20); over a zone exit, cursor 0xF when the zone of exit_ (not of the exit found: kept) is
+not "none" and its "z.<zone>" variable is not 1.
+
+### CBriefingScreen::OnKeyDown
+
+Keys: with the chat window active only Esc, which gives the input back. Otherwise the container's handler,
+then Backspace / Enter go to a network client's chat line; Enter (single player) and Esc skip the phrases
+(with 1 until the state changes) or take the rewards; Esc also opens the escape menu (state 0), ends the start
+or the topic choice (1); Space the next phrase. Other keys while walking by their action: 4 the objectives
+window when a quest of this allod ("q.<quest>.<zone>.." = 1) is active, 0xB the camera to the leader, '5' /
+'6' quick save / load "saveq". Every handled key sets handled_.
+
+### CBriefingScreen::StartDialogue
+
+Dialogue topic_ starts: "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen
+5) with constructor N (the topic from its eighth character) when that class template exists. Otherwise the
+"#show" lines of the text "briefing <topic>" name the people: the first one not the leader is person_, a
+second third_; without one, state 0. The places: the person's (or, with noWalk_, the leader's) position, the
+other 2.5 + viewDistance along its facing, the third one beside the middle; their facings across, flat and
+normalised. With `remember` the people's positions are kept first (personHome_, thirdPlace_). A mover of the
+third person (or of the person, noWalk_) is dropped, its target kept unless it was waited for; then the leader
+(or, noWalk_, the person) and the third walk to their places (waited, `immediate`). `immediate` starts the
+phrases at once (StartPhrases), else state 2.
+
+### CBriefingScreen::FinishDialogue
+
+The dialogue ends (the rewards taken, or skipped): the voice stops, the music fades in, the shown items go,
+every speaker leaves (the server hears event 2, its blink stops, its server unit's flag 0x40000000 back,
+height 0, action dropped) and the list is emptied; the leader and the person back to height 0, the third
+speaker walks back to thirdPlace_ (and is forgotten), with noWalk_ the person to personHome_. The first
+"b.*.<topic>" variable (three parts) completes (for player 0). State 0, the server hears event 0 with the
+leader; a dialogue that started by itself (briefingStarted_) puts the camera on the leader (message 0x04) and
+frees it, otherwise it goes back to savedCamera_ / lookAt_.
+
+### CBriefingScreen::ShowItem
+
+"#show <name>": a person `name` joins the speakers (moved to the end; the server hears event 1; the leader's
+server unit gets flag 0x40000000; its controller's actionDone the speakers' callback). Anything else with
+`index` >= 0 is a loot item ("_" read as " ", lowercased, the loot table's name index): an item of that name
+shown already goes, then slot `index` % 7 (x 300, 500, 200, 400, 600, 75, 725; y 300 or 500) gets a backdrop
+and frame for the first seven, the item's figure "initqu<n>item" (tinted from index 8) with its image
+"quitem<n>" in a new texture, turned over about x; it goes first in shown_. The third argument is not read.
+
+### CBriefingScreen::NextPhrase
+
+The next phrase of the current text: its lines up to the next "#phrase <speaker> [voice]" are carried out
+("#nolips", "#show", "#hide", "#animation n", "#camera n [angle distance height]"); the phrase (up to the next
+'#') goes, headed by the speaker's name, into dialogueText_ and (unless `skip`) the text window, with its
+voice "<t|s>\briefing\<topic>\<n>.mp3" and phraseTime_. After the last phrase: state 4 and the briefing
+record's rewards as lines (experience, gold, items given and lost, quests). The camera then views the phrase's
+speaker, who talks (an animation, blinking unless "#nolips") while the others listen; skipping to the end
+shows the whole text at once.
