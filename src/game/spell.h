@@ -62,7 +62,7 @@ public:
     bool IsOffensive();
 
     // By the target flags in the low 16 bits of flags_; either may be null.
-    bool CanAffect(const CEngineObject* caster, CEngineObject* target) const;
+    bool CanAffect(const CUnit* caster, CMapObject* target) const;
 
     // `target`'s Destroy runs first.
     void CopyTo(CSpell* target);

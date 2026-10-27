@@ -241,8 +241,7 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
 // device's converter for a 16-bit one. 1 when done; otherwise the result of the fatal error report (nonzero
 // when the player goes on). Kept: a holder that already has its pixels must have the picture's width as both
 // width and height; a 24-bit surface is reported, then cleared.
-int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
-    const auto* picture = static_cast<const MmpHeader*>(data);
+int CDXSurface::LoadPictureData(const MmpHeader* picture, int /*flag*/) {
     if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");
     if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
     if (!render::SurfaceMemoryOf(this)) {
@@ -283,7 +282,7 @@ EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
 // A holder whose surface shows an .mmp picture (the software cursor's images, windows made from a picture). The new
 // renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the surface
 // back. Throws the game's error object when the picture cannot be loaded.
-CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) : device(deviceIn) {
+CDXSurface::CDXSurface(CTextureDevice* deviceIn, const MmpHeader* picture, int flag) : device(deviceIn) {
     if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
     ++device::HolderCount();

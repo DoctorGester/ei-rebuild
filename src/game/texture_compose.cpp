@@ -151,7 +151,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
     CPixelConverter* converter = PixelConverter();
     int drawn = 0;
     for (int i = 0; i < names->GetSize(); ++i) {
-        const auto* data = static_cast<const MmpHeader*>(GetFile((*names)[i], nullptr));
+        auto* data = GetFileData((*names)[i]);
         if (!data) {
             game::DebugLog(kCantFindLayer, ((*names)[i]).GetString());
             continue;
@@ -161,7 +161,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
         const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
         converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
         ++drawn;
-        CloseFile(const_cast<MmpHeader*>(data));
+        CloseFile(data);
     }
     return drawn;
 }

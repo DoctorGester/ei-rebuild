@@ -129,7 +129,7 @@ EI_REWRITTEN(0x00691A00, CTexture::Create);
 EI_REWRITTEN(0x00691A70, CTexture::Destroy);
 
 
-void* CTextureManager::GetFileData(const char* name) { return GetFile(name, nullptr); }
+MmpHeader* CTextureManager::GetFileData(const char* name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
 EI_REWRITTEN(0x00691CF0, CTextureManager::GetFileData);
 
 CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }

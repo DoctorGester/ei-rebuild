@@ -177,7 +177,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
             hasContainer = true;
         } else if (UiItemKinds::IsSpell(item)) {
             // A record out of range is read through null, like the original.
-            const itemdb::SpellRecord* spell = itemdb::SpellAt(static_cast<const CItemLoot*>(item)->index_);
+            const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index_);
             needed += spell->skill;
             manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
             lastMana = spell->mana;
@@ -187,7 +187,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
         } else if (UiItemKinds::IsModifier(item)) {
-            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(static_cast<const CItemLoot*>(item)->index_);
+            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index_);
             manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
             cell.x = static_cast<float>(column) + 450.0f;
@@ -293,7 +293,7 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
             DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
             hasPart = true;
             // Another record type keeps the part found before.
-            auto* loot = static_cast<const CItemLoot*>(item);
+            auto* loot = AsLoot(item);
             if (loot->recordType_ <= 2) part = PartRecord(loot);
         } else if (IsSpellContainer(item)) {
             cell.x = 350.0f;
