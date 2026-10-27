@@ -177,7 +177,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
 
         // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
         // `changed & bit`).
-        int parts = object->NetState()->fieldCount_;
+        int parts = object->NetState()->fields_.size;
         for (int i = 0; i < parts; ++i)
             if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
 

@@ -92,9 +92,9 @@ void ReadPlayer(CPlayer* p, Builder& b) {
 }
 
 void ReadEffects(CMapObject* m, Builder& b) {
-    b.Int("effects", m->effectCount);
-    for (int i = 0; i < m->effectCount; ++i) {
-        const auto& e = m->effects[i];
+    b.Int("effects", m->effects.size);
+    for (int i = 0; i < m->effects.size; ++i) {
+        const auto& e = m->effects.data[i];
         b.Unsigned("effect#.type", e.type, i);
         b.Unsigned("effect#.power", e.power, i);
         b.Int("effect#.ticksLeft", e.ticksLeft, i);
@@ -522,7 +522,7 @@ void ReadClientUnit(CUnit* u, Builder& b) {
     b.Int("maxHp", v.maxHitPoints);
     b.Unsigned("mana", v.mana);
     b.Unsigned("maxMana", v.maxMana);
-    b.Int("effects", u->effectCount);
+    b.Int("effects", u->effects.size);
     b.Int("controller", u->controller ? u->controller->GetClassId() : -1);
 }
 

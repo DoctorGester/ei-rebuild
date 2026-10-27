@@ -47,12 +47,12 @@ void FillBar(CUiMesh* bar, float ratio, float width, float top, float bottom) {
     bar->visible_ = 1;
     float u = (ratio * width + 64.0f) * (1.0f / 256.0f) + (1.0f / 512.0f);
     float edge = ratio - 0.5f;
-    bar->Quads()[0].x[2] = edge;
-    bar->Quads()[0].x[3] = edge;
-    bar->Texels()[2].u = u;
-    bar->Texels()[2].v = top;
-    bar->Texels()[3].u = u;
-    bar->Texels()[3].v = bottom;
+    bar->vertices_[0].x()[2] = edge;
+    bar->vertices_[0].x()[3] = edge;
+    bar->texCoords_[2].u = u;
+    bar->texCoords_[2].v = top;
+    bar->texCoords_[3].u = u;
+    bar->texCoords_[3].v = bottom;
 }
 
 // `value` / `maximum` clamped to 1, or 0 when the bar is not filled (`ratio` is left
@@ -177,10 +177,10 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
     RECT line{40, 35, 155, 50};
 
-    if (unit->effectCount > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
+    if (unit->effects.size > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
     // The unit's effects are the map object's records.
-    const MapEffect* effects = unit->effects;
-    for (int i = 0; i < unit->effectCount && i < kPlaces; ++i) {
+    const MapEffect* effects = unit->effects.data;
+    for (int i = 0; i < unit->effects.size && i < kPlaces; ++i) {
         code.Empty();
         text.Empty();
         const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);

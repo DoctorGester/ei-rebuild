@@ -94,19 +94,28 @@ EI_REWRITTEN(0x00664490, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x006645D0, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
 
+namespace {
+// The stack record: zeroed storage the record is constructed and destroyed in by hand.
+union StackRecord {
+    StackRecord() : bytes{} {}
+    ~StackRecord() {}
+    PartyUnitRecord record;
+    unsigned char bytes[sizeof(PartyUnitRecord)];
+};
+} // namespace
+
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();
     // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the constructor
     // leaves the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
     // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
     // game's too, harness_leftovers.h).
-    alignas(PartyUnitRecord) unsigned char storage[sizeof(PartyUnitRecord)] = {};
-    auto* temporary = reinterpret_cast<PartyUnitRecord*>(storage);
-    temporary->Construct();
+    StackRecord temporary;
+    temporary.record.Construct();
     int index = members_.size;
     members_.SetSize(index + 1, -1);
-    members_.data[index].Assign(temporary);
-    temporary->Destruct();
+    members_.data[index].Assign(&temporary.record);
+    temporary.record.Destruct();
 
     PartyUnitRecord* record = &members_.data[members_.size - 1];
     record->texts[1] = name;

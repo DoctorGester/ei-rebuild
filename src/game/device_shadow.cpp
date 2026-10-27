@@ -29,12 +29,12 @@ void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
 // (each copied as qwords).
-void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
+void Fill(TLVertex* out, int count, const void* colours, const void* uvs) {
     const ProjectedVertex* projected = Projected().data;
     for (int i = 0; i < count; ++i) {
         std::memcpy(&out[i].x, &projected[i], 16);
         std::memcpy(&out[i].color, colours, 8);
-        std::memcpy(&out[i].u, uvs + i * 8, 8);
+        std::memcpy(&out[i].u, static_cast<const std::uint8_t*>(uvs) + i * 8, 8);
     }
 }
 
@@ -46,14 +46,14 @@ void Scale(int count, const float* scale) {
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
 // (kScreenStack); each pass the indexed draw then makes hands over the device's state.
-void HandOver(CTextureDevice* device, const void* positions, const char* uvs, int count, const std::uint16_t* indices,
+void HandOver(CTextureDevice* device, const void* positions, const void* uvs, int count, const std::uint16_t* indices,
               int indexCount, const std::uint32_t* colours, const float* zScale, bool clipped) {
     render::MeshDraw m{};
     m.positions = static_cast<const float*>(positions);
     m.positionCount = count;
     m.colours = &colours[0];
     m.speculars = &colours[1];
-    m.uvs = reinterpret_cast<const float*>(uvs);
+    m.uvs = static_cast<const float*>(uvs);
     m.corners = nullptr;
     m.cornerCount = count;
     m.indices = indices;
@@ -66,7 +66,7 @@ void HandOver(CTextureDevice* device, const void* positions, const char* uvs, in
     render::BeginMesh(device, m);
 }
 
-int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int blocks, const std::uint16_t* indices,
+int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int blocks, const std::uint16_t* indices,
              int indexCount, std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale) {
     CTransformPipeline* pipeline = device->pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
@@ -114,7 +114,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `bounds` passed
 // to the projection (null: crossing), `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.
-int CTextureDevice::DrawFlatBlocks(const void* positions, const char* uvs, int blocks,
+int CTextureDevice::DrawFlatBlocks(const void* positions, const void* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
                               const ClipBounds* bounds, float zScale) {
     render::BeginFlatDrawTime(blocks * 4);

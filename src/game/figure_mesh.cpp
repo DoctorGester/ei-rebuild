@@ -592,7 +592,7 @@ namespace {
 template <typename Packet>
 void NegateBlock(lib::AlignedArray<Packet>& packets, int block) {
     for (int i = 0; i < packets.size; ++i) {
-        float* v = reinterpret_cast<float*>(&packets.data[i]) + block * 4;
+        float* v = packets.data[i].block[block];
         for (int k = 0; k < 4; ++k) v[k] = -v[k];
     }
 }

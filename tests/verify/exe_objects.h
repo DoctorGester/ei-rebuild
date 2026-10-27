@@ -298,10 +298,14 @@ struct CMapObject : CObject3D {
     int updateCountdown;                    // +0x174
     float animationSpeed;                   // +0x178
     UnitVitalsPacked packedVitals;          // +0x17C
-    std::uint8_t unknown194[0x4];
-    MapEffect* effects;                     // +0x198
-    int effectCount;                        // +0x19C
-    std::uint8_t unknown1A0[0x18];
+    struct {                                // the CArray<MapEffect> (map_object.h's effects)
+        void* vtable;                       // +0x194
+        MapEffect* data;                    // +0x198
+        int size;                           // +0x19C
+        int maxSize;
+        int growBy;
+    } effects;
+    std::uint8_t unknown1A8[0x10];
     int sectorCellX;                        // +0x1B8
     int sectorCellY;                        // +0x1BC
     std::uint8_t unknown1C0[0x78];

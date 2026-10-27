@@ -277,7 +277,7 @@ EI_REWRITTEN(0x00584EA0, ZoneExits::CopyAt);
 EI_REWRITTEN(0x00587DD0, ZoneExits::CopyAt);
 
 void DeltaState::SetFieldCount(int count) {
-    reinterpret_cast<recordarrays::DeltaFields::Array*>(this)->SetSize(count, -1);
+    fields_.SetSize(count, -1);
 }
 
 // The lib templates over tags the game's headers define: the registrations that need the complete tag.

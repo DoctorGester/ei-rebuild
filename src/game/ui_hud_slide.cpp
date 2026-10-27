@@ -440,9 +440,9 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
     markers->ResetColours();
     markers->SetUvCount(4);
-    const UiTexel markerTexels[4] = {
+    const TexCoord markerTexels[4] = {
         {0.9375f, 0.984375f}, {0.953125f, 0.984375f}, {0.96875f, 0.984375f}, {0.984375f, 0.984375f}};
-    for (int i = 0; i < 4; ++i) markers->Texels().data[i] = markerTexels[i];
+    for (int i = 0; i < 4; ++i) markers->texCoords_.data[i] = markerTexels[i];
     // 3 and 4: the map's and the buttons' plain backgrounds.
     CUiMesh* back = AddSprite(nullptr);
     back->SetRectangle(20.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
@@ -477,7 +477,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     const CUiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
-            viewPolygon_.Add(UiPointF{disc->Quads()[block].x[corner], disc->Quads()[block].y[corner]});
+            viewPolygon_.Add(UiPointF{disc->vertices_[block].x()[corner], disc->vertices_[block].y()[corner]});
     }
     UpdateView();
     BuildMarkers();

@@ -48,8 +48,8 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
         for (int k = 0; k < 3; ++k) {
             std::uint16_t corner = static_cast<const std::uint16_t*>(buffers.indices)[t + k];
             const MeshCorner& record = static_cast<const MeshCorner*>(buffers.corners)[corner];
-            std::memcpy(&target->corners[k].screen, &points[record.index[0]], sizeof(IntPoint));
-            std::memcpy(&target->corners[k].texture, &TexturePoints().data[record.index[2]], sizeof(IntPoint));
+            std::memcpy(&target->corners[k].screen, &points[record.position], sizeof(IntPoint));
+            std::memcpy(&target->corners[k].texture, &TexturePoints().data[record.texCoord], sizeof(IntPoint));
         }
         if (target->keyTexels) rasteriser->RasteriseKeyedTriangle(target);
         else rasteriser->RasteriseTriangle(target);

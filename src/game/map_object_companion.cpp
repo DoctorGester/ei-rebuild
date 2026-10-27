@@ -50,14 +50,14 @@ bool IsScaleEffect(int type) {
 
 
 int CMapObjectServer::RunTick() {
-    if (owner->effectCount <= 0) return 0;
+    if (owner->effects.size <= 0) return 0;
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
             int type = owner->effects[i].type;
-            int tail = owner->effectCount - i - 1;
+            int tail = owner->effects.size - i - 1;
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
-            --owner->effectCount;
+            --owner->effects.size;
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) ObjectSlots(owner)->RecomputeScale();
             owner->MarkChanged(3);
@@ -68,7 +68,7 @@ int CMapObjectServer::RunTick() {
                 ObjectSlots(owner)->SetStunned(0);
         }
         ++i;
-    } while (i < owner->effectCount);
+    } while (i < owner->effects.size);
     return 0;
 }
 EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
@@ -94,8 +94,8 @@ EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
 int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
-    if (OwnerOf(this)->effectCount > 0) {
-        for (int i = 0; i < OwnerOf(this)->effectCount; ++i) {
+    if (OwnerOf(this)->effects.size > 0) {
+        for (int i = 0; i < OwnerOf(this)->effects.size; ++i) {
             MapEffect& effect = OwnerOf(this)->effects[i];
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;

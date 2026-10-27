@@ -31,7 +31,7 @@ float Row(const lib::AlignedArray<VertexPacket>& packets, int vertex, int row) {
     return packets.data[vertex / 4].block[row][vertex % 4];
 }
 float Row(const lib::AlignedArray<NormalPacket>& packets, int vertex, int row) {
-    return std::bit_cast<float>(packets.data[vertex / 4].w[row * 4 + vertex % 4]);
+    return packets.data[vertex / 4].block[row][vertex % 4];
 }
 
 // _ftol: truncation.

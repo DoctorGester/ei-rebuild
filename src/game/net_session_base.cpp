@@ -67,8 +67,7 @@ SessionBase::SessionBase() {
     // 3 x 256 empty handler vectors (the element constructor only zeroes them).
     for (auto& channel : handlers_)
         for (HandlerVector& v : channel) v = HandlerVector{};
-    reinterpret_cast<std::uint32_t*>(&time_)[0] = 0;
-    reinterpret_cast<std::uint32_t*>(&time_)[1] = 0;
+    time_ = 0.0;
     frame_ = 1;
     magic_ = 0;
     timeout_ = 0x3C;

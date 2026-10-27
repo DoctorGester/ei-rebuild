@@ -82,12 +82,12 @@ void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint3
     CUiMesh* bar = Sprite(object);
     float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
     double right = fraction - kHalf;
-    bar->Quads()[0].x[2] = static_cast<float>(right);
-    bar->Quads()[0].x[3] = static_cast<float>(right);
-    bar->Texels()[2].u = u;
-    bar->Texels()[2].v = FloatFromBits(v0);
-    bar->Texels()[3].u = u;
-    bar->Texels()[3].v = FloatFromBits(v1);
+    bar->vertices_[0].x()[2] = static_cast<float>(right);
+    bar->vertices_[0].x()[3] = static_cast<float>(right);
+    bar->texCoords_[2].u = u;
+    bar->texCoords_[2].v = FloatFromBits(v0);
+    bar->texCoords_[3].u = u;
+    bar->texCoords_[3].v = FloatFromBits(v1);
 }
 
 // The original inlines three quaternion products, each with its own operand order; every

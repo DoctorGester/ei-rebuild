@@ -86,21 +86,21 @@ public:
         indexPos_ += 6;
     }
 
-    UiQuadBlock& Block() { return mesh_->Quads()[entry_]; }
+    VertexPacket& Block() { return mesh_->vertices_[entry_]; }
 
     void Show(std::int16_t frame) {
         for (int k = 0; k < 4; ++k) {
-            UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
-            v.position = static_cast<std::int16_t>(vertex_ + k);
-            v.frame = frame;
+            MeshCorner& v = mesh_->corners_[vertex_ + k];
+            v.position = static_cast<std::uint16_t>(vertex_ + k);
+            v.texCoord = static_cast<std::uint16_t>(frame);
         }
         Next();
     }
     void Hide() {
         for (int k = 0; k < 4; ++k) {
-            UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
+            MeshCorner& v = mesh_->corners_[vertex_ + k];
             v.position = 0;
-            v.frame = 0;
+            v.texCoord = 0;
         }
         Next();
     }
@@ -135,31 +135,31 @@ public:
     }
 
     void PutSquare(float x, float y) {
-        UiQuadBlock& b = Block();
+        VertexPacket& b = Block();
         float left = static_cast<float>(D(x) - kSquareHalf);
         float top = static_cast<float>(D(y) - kSquareHalf);
         float right = static_cast<float>(D(x) + kSquareHalf);
         float bottom = static_cast<float>(D(y) + kSquareHalf);
-        b.x[0] = left;
-        b.y[0] = top;
-        b.x[1] = right;
-        b.y[1] = top;
-        b.x[2] = left;
-        b.y[2] = bottom;
-        b.x[3] = right;
-        b.y[3] = bottom;
+        b.x()[0] = left;
+        b.y()[0] = top;
+        b.x()[1] = right;
+        b.y()[1] = top;
+        b.x()[2] = left;
+        b.y()[2] = bottom;
+        b.x()[3] = right;
+        b.y()[3] = bottom;
     }
 
     void PutDiamond(float x, float y) {
-        UiQuadBlock& b = Block();
-        b.x[0] = x;
-        b.y[0] = static_cast<float>(D(y) - kArrowWing);
-        b.x[1] = static_cast<float>(D(x) + kArrowWing);
-        b.y[1] = y;
-        b.x[2] = static_cast<float>(D(x) - kArrowWing);
-        b.y[2] = y;
-        b.x[3] = x;
-        b.y[3] = static_cast<float>(D(y) + kArrowWing);
+        VertexPacket& b = Block();
+        b.x()[0] = x;
+        b.y()[0] = static_cast<float>(D(y) - kArrowWing);
+        b.x()[1] = static_cast<float>(D(x) + kArrowWing);
+        b.y()[1] = y;
+        b.x()[2] = static_cast<float>(D(x) - kArrowWing);
+        b.y()[2] = y;
+        b.x()[3] = x;
+        b.y()[3] = static_cast<float>(D(y) + kArrowWing);
     }
 
     int indexPos() const { return indexPos_; }
@@ -195,7 +195,7 @@ std::int16_t UnitFrame(const CUnit* unit) {
 
 // The arrow of a unit at map position (x, y) (already zoomed), pointing along the unit's
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
-void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
+void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
     const Quaternion* rotation = &unit->localRotation_;
     // The rotated Y axis is computed twice, x taken from the first, y from the second (the function is
     // pure).
@@ -220,21 +220,21 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
     float tipX = static_cast<float>(nx * kArrowAhead + D(x));
     float tipY = static_cast<float>(ny * kArrowAhead + D(y));
-    b.x[0] = tipX;
-    b.y[0] = tipY;
-    b.x[1] = tipX;
-    b.y[1] = tipY;
+    b.x()[0] = tipX;
+    b.y()[0] = tipY;
+    b.x()[1] = tipX;
+    b.y()[1] = tipY;
 
     // The back corners: the direction turned by +-135 degrees (sums of the scaled components).
     float sy = static_cast<float>(ny * kDiagonal);
     float sx = static_cast<float>(nx * kDiagonal);
     float leftX = static_cast<float>(D(sy) - D(sx));
     double leftY = nx * -kDiagonal - D(sy);   // kept on the FPU stack
-    b.x[2] = static_cast<float>(D(leftX) * kArrowWing + D(x));
-    b.y[2] = static_cast<float>(leftY * kArrowWing + D(y));
+    b.x()[2] = static_cast<float>(D(leftX) * kArrowWing + D(x));
+    b.y()[2] = static_cast<float>(leftY * kArrowWing + D(y));
     float rightY = static_cast<float>(D(sx) - D(sy));
-    b.x[3] = static_cast<float>(leftY * kArrowWing + D(x));
-    b.y[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
+    b.x()[3] = static_cast<float>(leftY * kArrowWing + D(x));
+    b.y()[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
 }
 
 } // namespace
@@ -473,13 +473,13 @@ void CHudMap::UpdateView() {
     count = points.size;
     area->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
-        area->Vertices()[i].position = static_cast<std::int16_t>(i);
-        area->Vertices()[i].frame = static_cast<std::int16_t>(i);
+        area->corners_[i].position = static_cast<std::uint16_t>(i);
+        area->corners_[i].texCoord = static_cast<std::uint16_t>(i);
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->Texels()[i].u = static_cast<float>(D(points.data[i].x) / D(textureSize_));
-        area->Texels()[i].v = static_cast<float>(D(points.data[i].y) / D(textureSize_));
+        area->texCoords_[i].u = static_cast<float>(D(points.data[i].x) / D(textureSize_));
+        area->texCoords_[i].v = static_cast<float>(D(points.data[i].y) / D(textureSize_));
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -509,8 +509,8 @@ void CHudMap::UpdateView() {
             double x = (D(v.x) - D(centreX_)) * D(scale_);
             float y = static_cast<float>(-((D(v.y) - D(centreY_)) * D(scale_)));
             float mapY = static_cast<float>(D(y) * D(zoom_));
-            area->Quads()[q].x[k] = static_cast<float>(x * D(zoom_));
-            area->Quads()[q].y[k] = mapY;
+            area->vertices_[q].x()[k] = static_cast<float>(x * D(zoom_));
+            area->vertices_[q].y()[k] = mapY;
         }
     }
     area->RefreshBuffers();
@@ -530,20 +530,20 @@ void CHudMap::UpdateView() {
         return;
     }
     bounds->visible_ = 1;
-    UiQuadBlock& b = bounds->Quads()[0];
-    b.x[0] = left;
-    b.y[0] = bottom;
-    b.x[1] = left;
-    b.y[1] = top;
-    b.x[2] = right;
-    b.y[2] = bottom;
-    b.x[3] = right;
-    b.y[3] = top;
+    VertexPacket& b = bounds->vertices_[0];
+    b.x()[0] = left;
+    b.y()[0] = bottom;
+    b.x()[1] = left;
+    b.y()[1] = top;
+    b.x()[2] = right;
+    b.y()[2] = bottom;
+    b.x()[3] = right;
+    b.y()[3] = top;
     float u0 = static_cast<float>((D(left) / D(scale_) + D(centreX_)) / D(textureSize_));
     float vTop = static_cast<float>(D(static_cast<float>(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
     float u1 = static_cast<float>((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
     float vBottom = static_cast<float>(D(static_cast<float>(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
-    UiTexel* uv = bounds->Texels().data;
+    TexCoord* uv = bounds->texCoords_.data;
     uv[0].u = u0;
     uv[0].v = vBottom;
     uv[1].u = u0;
