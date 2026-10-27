@@ -17,12 +17,10 @@
 
 namespace {
 
-// The body shared by the vector serialisers (one instantiation per record type,
-// `Abi` the vector's instantiation: its element policy destroys a record, ResizeDefault is its
-// resize(n)). Loading destroys the old records,
-// resizes to the number of record chunks and
-// reads each; saving writes the records in order. prints.db records serialise through their
-// vtable, acks.db records by a direct call.
+// The body shared by the vector serialisers (one instantiation per record type, `Abi` the vector's
+// instantiation: its element policy destroys a record, ResizeDefault is its resize(n)). Loading destroys the
+// old records, resizes to the number of record chunks and reads each; saving writes the records in order.
+// prints.db records serialise through their vtable, acks.db records by a direct call.
 template <typename Abi>
 void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
     using Record = std::remove_pointer_t<decltype(v->begin())>;

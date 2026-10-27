@@ -136,8 +136,7 @@ constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- The steps -----------------------------------------------------------------------------------
 
-// A float copied through the FPU (FLD / FSTP dword): exact, except that a signalling NaN comes out
-// quiet.
+// A float copied through the FPU (FLD / FSTP dword): exact, except that a signalling NaN comes out quiet.
 std::uint32_t ThroughFpu(std::uint32_t bits) {
     bool nan = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0;
     return nan ? bits | 0x00400000u : bits;

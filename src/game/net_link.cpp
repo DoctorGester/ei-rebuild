@@ -302,8 +302,7 @@ ReplayLink::~ReplayLink() {}
 EI_REWRITTEN_SPECIAL(0x00478CC0, ReplayLink::~ReplayLink);
 EI_REWRITTEN_SPECIAL(0x00478CA0, ReplayLink::~ReplayLink);
 
-// Destroyed and built again in place (the reference count and +9 kept): two closed files, not
-// recording.
+// Destroyed and built again in place (the reference count and +9 kept): two closed files, not recording.
 int ReplayLink::OnShutdown() {
     net::Rebuild(this);
     return 0;
@@ -340,9 +339,8 @@ EI_REWRITTEN(0x00478C90, ReplayLink::Disconnect);
 
 FramedLink::FramedLink() {}
 
-// The original reads the copy's new buffer (never written) into the source's inbox instead of the
-// other way round: the copy's bytes are whatever the allocation held and the source's are
-// overwritten with them. Kept.
+// The original reads the copy's new buffer (never written) into the source's inbox instead of the other way
+// round: the copy's bytes are whatever the allocation held and the source's are overwritten with them. Kept.
 FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
     inbox_.SetSize(other.inbox_.size_);
     CStream* stream = &inbox_;

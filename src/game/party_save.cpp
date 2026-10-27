@@ -42,8 +42,7 @@ void WriteItemIds(CStream* stream, const PartyItemArray& list) {
     }
 }
 
-// Releases what the list holds, then reads a count and that many ids, each resolved in `manager`
-// and counted.
+// Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
 void ReadItemIds(CStream* stream, PartyItemArray& list, CBaseManager* manager) {
     for (int i = 0; i < list.size; ++i) list.data[i]->Release();
     int count;

@@ -1,7 +1,6 @@
 // The game client's timed entries and commands: an object kept on the timers list, a
-// command message for the server, the client's own server entry, the
-// start of the game and the ratio of a received buffer.
-// See net_classes.h and docs/notes/network.md.
+// command message for the server, the client's own server entry, the start of the game and the ratio of a
+// received buffer. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
 #include "game_strings.h"
@@ -75,8 +74,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
 }
 EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 
-// Makes `*out` an empty server entry (no name or description, kind 4, no
-// players).
+// Makes `*out` an empty server entry (no name or description, kind 4, no players).
 void ClientSession::CreateEntry(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
     if (entry == out->ptr) return;

@@ -307,8 +307,7 @@ CParty* CPlayer::AssignParty(CParty* source) {
 EI_REWRITTEN(0x00665CC0, CPlayer::AssignParty);
 
 void CPlayer::ReleaseTamedUnits() {
-    // The walk goes on from the node of a unit that has just left (and been erased), as the
-    // original's does.
+    // The walk goes on from the node of a unit that has just left (and been erased), as the original's does.
     for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
         CUnit* unit = node->value;
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);

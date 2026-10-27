@@ -43,9 +43,8 @@ void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size);
 // CMappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
 // (unless ignored) to `out`.
 void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* pattern);
-// The mod's extra archives (their full paths): figures.res / menus.res entries for the figure
-// manager and the link figure loader, textures.res / redress.res /
-// menus.res entries for the texture manager.
+// The mod's extra archives (their full paths): figures.res / menus.res entries for the figure manager and the
+// link figure loader, textures.res / redress.res / menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
 const std::vector<std::string>& TextureArchives();
 

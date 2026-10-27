@@ -55,9 +55,8 @@ struct LinePacket {
 };
 static_assert(sizeof(LinePacket) == 0x40);
 
-// A line list (line_batch.cpp): the figure parts' debug bounds and the
-// world client's lists. The points sit four to a packet; the unused points of the last
-// packet repeat the last point.
+// A line list (line_batch.cpp): the figure parts' debug bounds and the world client's lists. The points sit
+// four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
     int spare00;                             // -1 (the destructor); nothing reads it
     lib::AlignedArray<LinePacket> packets;

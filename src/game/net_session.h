@@ -7,9 +7,8 @@
 
 namespace net {
 
-// Called from the main loop and from the loading screens
-// : ticks the two sessions with the real time since the last call, then the
-// game's per-frame network step.
+// Called from the main loop and from the loading screens : ticks the two sessions with the real time since
+// the last call, then the game's per-frame network step.
 void __cdecl Pump();
 
 } // namespace net

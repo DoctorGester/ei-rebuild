@@ -36,10 +36,9 @@ public:
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
     // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();
-    // (`this` not used). Walks `pattern` (a directory plus "\*.*") depth first,
-    // skipping dots, system and hidden entries and counting files in *counter; the first file of at
-    // least 0x800 bytes once *counter has reached `target` is copied to `out` (returns 1). 0 when
-    // the walk ends first.
+    // (`this` not used). Walks `pattern` (a directory plus "\*.*") depth first, skipping dots, system and
+    // hidden entries and counting files in *counter; the first file of at least 0x800 bytes once *counter has
+    // reached `target` is copied to `out` (returns 1). 0 when the walk ends first.
     int FindSeedFile(char* out, const char* pattern, int target, int* counter);
 
     std::uint32_t seeded_;          // non-zero once seeded from results_

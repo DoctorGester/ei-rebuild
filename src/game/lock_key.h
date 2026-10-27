@@ -16,8 +16,7 @@ struct LockKey {
     mfc::BOOL Opens(const LockKey* lock) const;
     // Always 1: placed traps take any key.
     mfc::BOOL AcceptedByTrap() const;
-    // Reads / writes
-    // the three dwords (the writes through a stack copy each).
+    // Reads / writes the three dwords (the writes through a stack copy each).
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream) const;
     // The constructor of the battle screen's item key

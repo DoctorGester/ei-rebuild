@@ -348,10 +348,9 @@ int CParticleSource::EmitLightning(Particle* p, int) {
 }
 EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
 
-// Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
-// one) are scattered on a ring around the carrier. Then one particle per point while the fade has
-// not started (frame = the modifier's number), then drifting sparks between a random point and
-// its starting place.
+// Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least one) are scattered on a
+// ring around the carrier. Then one particle per point while the fade has not started (frame = the modifier's
+// number), then drifting sparks between a random point and its starting place.
 int CParticleSource::EmitModifier(Particle* p, int index) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
@@ -521,9 +520,8 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 }
 EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 
-// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the
-// normal's z replaced by its reciprocal when non-zero); after the second the source stops
-// emitting.
+// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the normal's z replaced by
+// its reciprocal when non-zero); after the second the source stops emitting.
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
@@ -638,9 +636,8 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
 }
 EI_REWRITTEN(0x004957E0, CParticleSource::EmitFeebleMind);
 
-// FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's
-// position once it is tracked, else the source), drifting in a random direction inside the unit
-// disc, rising.
+// FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
+// tracked, else the source), drifting in a random direction inside the unit disc, rising.
 int CParticleSource::EmitFeetCloud(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
     p->color = 0x00FFFFFF;
@@ -681,9 +678,8 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
 }
 EI_REWRITTEN(0x00495A30, CParticleSource::EmitFeetCloud);
 
-// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4
-// off) and detaches; the ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries
-// per tick (at most 8).
+// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4 off) and detaches; the
+// ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries per tick (at most 8).
 void CParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {

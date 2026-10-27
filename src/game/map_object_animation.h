@@ -41,11 +41,10 @@ struct AnimationTrack : CEngineObject {
 
     // DestroyTrack's reset; returns 1.
     int CreateTrack();
-    // The key frames from the model entry at *cursor (advanced past them): the
-    // rotations (a count, then that many quaternions; none: null), the positions (likewise, three floats each),
-    // the frame count and the vertex count; the frame array is sized to the frames and the vertices to the vertex
-    // count (both without keeping their contents), and each frame points at its vertex set, which follow one
-    // after another.
+    // The key frames from the model entry at *cursor (advanced past them): the rotations (a count, then that
+    // many quaternions; none: null), the positions (likewise, three floats each), the frame count and the
+    // vertex count; the frame array is sized to the frames and the vertices to the vertex count (both without
+    // keeping their contents), and each frame points at its vertex set, which follow one after another.
     void LoadKeyFrames(std::uint8_t** cursor);
     // No animation, bone or key frames (the vertex sets' block freed), the
     // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.

@@ -1,8 +1,7 @@
 // The game server's players and their connections: lookups (
-// ), admission and the password, kicking and banning
-// the departure reports and the lines to
-// every guest. See net_classes.h and docs/notes/network.md.
-// Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
+// ), admission and the password, kicking and banning the departure reports and the lines to every guest. See
+// net_classes.h and docs/notes/network.md. Players (players_) are PlayerMessages, bindings (bindings_)
+// BindingMessages (net_server_join.cpp).
 #include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
@@ -182,8 +181,7 @@ void ServerSession::Ban(Connection* connection) {
 }
 EI_REWRITTEN(0x0041A620, ServerSession::Ban);
 
-// A client lost and a client left: the client's player is
-// announced (text 4 / text 1).
+// A client lost and a client left: the client's player is announced (text 4 / text 1).
 void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;
     const auto& bindings = bindings_;

@@ -215,10 +215,9 @@ EI_REWRITTEN(0x0042FD10, CoderState::EncodeMatch);
 
 namespace {
 
-// The match in progress stopped matching at the newest byte: walks the hash chain of the match's
-// start (`a`, a distance back from the match's start `t`) in step with the chain of the newest
-// position (`e`, a distance back from `cur`) and takes the first earlier string that repeats the
-// match plus the newest byte.
+// The match in progress stopped matching at the newest byte: walks the hash chain of the match's start (`a`,
+// a distance back from the match's start `t`) in step with the chain of the newest position (`e`, a distance
+// back from `cur`) and takes the first earlier string that repeats the match plus the newest byte.
 bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
     std::uint32_t t = c.pos - static_cast<std::uint32_t>(c.matchLen);
     std::int32_t a = c.chain[c.matchPos] + static_cast<std::int32_t>((t - static_cast<std::uint32_t>(c.matchPos)) & kWindowMask);
@@ -314,8 +313,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
             }
             prev = byte;
         }
-        // The last byte: closes the match (one position earlier, as `pos` did not move) or is a
-        // literal.
+        // The last byte: closes the match (one position earlier, as `pos` did not move) or is a literal.
         if (matchPos >= 0) {
             EncodeMatch(matchPos - 1);
         } else {

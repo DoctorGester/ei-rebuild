@@ -1,12 +1,11 @@
 #pragma once
 
-// The network message classes (message types 1..17 as
-// SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
-// docs/notes/cleanup-network.md and docs/notes/network.md.
-// Every class has a factory (the type registry's, a static Create: a new message with no references), a
-// constructor, a copy constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp).
-// Slot 1 is Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is
-// left undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
+// The network message classes (message types 1..17 as SessionBase::RegisterMessageTypes registers their
+// factories). Names provisional; see docs/notes/cleanup-network.md and docs/notes/network.md. Every class has
+// a factory (the type registry's, a static Create: a new message with no references), a constructor, a copy
+// constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp). Slot 1 is
+// Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is left
+// undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
 
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -68,8 +67,7 @@ protected:
     void ReadText(BufferCursor* cursor);
 };
 
-// Type 6: a chat line from a client (the server's handler announces it with
-// the player's number and name).
+// Type 6: a chat line from a client (the server's handler announces it with the player's number and name).
 class SayMessage final : public TextMessage {
 public:
     SayMessage();

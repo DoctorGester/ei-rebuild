@@ -1,7 +1,6 @@
 // The named party records of the party manager: reset at new game, and the script commands' helpers to
-// find,
-// add and remove a record by name. See party_records.h and docs/notes/world.md ("Party records and class
-// templates").
+// find, add and remove a record by name. See party_records.h and docs/notes/world.md ("Party records and
+// class templates").
 #include "object_tables.h"
 #include "party_records.h"
 #include "party_manager.h"

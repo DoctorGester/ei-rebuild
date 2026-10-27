@@ -129,8 +129,7 @@ EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 
-// The base half's (the engine object's fields, no object). Deleting form: the
-// base half's.
+// The base half's (the engine object's fields, no object). Deleting form: the base half's.
 CObject3DServer::CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F240, CObject3DServer::CObject3DServer);
 CObject3DServer::~CObject3DServer() {}

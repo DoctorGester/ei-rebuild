@@ -121,9 +121,8 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     other->trading_ = 1;
 }
 
-// Offer updated: the offer's version moves on; when both offers of its trade are live,
-// accepted and agree crosswise (each one accepted the other's current revision), the trade is
-// done with the two revisions.
+// Offer updated: the offer's version moves on; when both offers of its trade are live, accepted and agree
+// crosswise (each one accepted the other's current revision), the trade is done with the two revisions.
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
     ++message->version_;
     PartyMessage* other = FindPartnerOffer(self->offers_, message);

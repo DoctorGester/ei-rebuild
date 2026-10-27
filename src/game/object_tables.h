@@ -51,9 +51,8 @@ struct ZoneExit {
     // angle; Read takes the last three only from version 0x68 on (else 0).
     void Read(CStream* stream);
     void Write(CStream* stream) const;
-    // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
-    // The compiler's operator=: +0x00..+0x24 as dwords,
-    // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
+    // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.) The compiler's operator=:
+    // +0x00..+0x24 as dwords, the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);
 };
 static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
@@ -122,18 +121,14 @@ struct CMapDatabase {
     MapRecord* FindMap(const char* name);
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(const char* name);
-    // Adds the allods and maps of a map.txt-style text file. Returns
-    // false if the file is not found.
+    // Adds the allods and maps of a map.txt-style text file. Returns false if the file is not found.
     bool Load(const char* fileName);
-    // Loads "map.txt", then "map-LMP.txt"; returns the second
-    // Load's result (WinMain does not read it).
+    // Loads "map.txt", then "map-LMP.txt"; returns the second Load's result (WinMain does not read it).
     bool LoadAll();
-    // The constructor: the two arrays empty with their vtables.
-    // It runs from a static initialiser on the database, before the hooks
-    // are installed, so the hook on it never fires. Returns this.
+    // The constructor: the two arrays empty with their vtables. It runs from a static initialiser on the
+    // database, before the hooks are installed, so the hook on it never fires. Returns this.
     CMapDatabase* Construct();
-    // The maps' array (its
-    // vtable back, each record's destructor, the storage freed), then the allods' (each
+    // The maps' array (its vtable back, each record's destructor, the storage freed), then the allods' (each
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
     void Destruct();
 
@@ -157,8 +152,7 @@ struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
         return FindOrInsert(entry).mapped;
     }
 
-    // Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name
-    // first, as the game does.
+    // Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name first, as the game does.
     float Get(const char* name);
     // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
     // test) removes the entry instead. Nothing for an empty name.
@@ -171,8 +165,7 @@ struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
     // Empties the table, then reads {zero-terminated name, float} pairs from the
     // stream up to an empty name (compared with the exe's empty string).
     void Load(CStream* stream);
-    // Writes each entry (name with its zero, then the value), in bucket order,
-    // then an empty name.
+    // Writes each entry (name with its zero, then the value), in bucket order, then an empty name.
     void Save(CStream* stream);
 };
 static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTable) == 0x14);

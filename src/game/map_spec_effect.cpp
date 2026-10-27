@@ -92,8 +92,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x0046D420, EffectSpec::Move);
 
-// Takes the two strings by value and only destroys them (the callee destroys
-// its by-value parameters).
+// Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
 void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
 EI_REWRITTEN(0x0046D4D0, EffectNotify);
 

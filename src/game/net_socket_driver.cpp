@@ -108,8 +108,7 @@ EI_REWRITTEN(0x00440690, NetAddress::Format);
 
 // ---- The UDP driver ---------------------------------------------------------------------------------
 
-// The broadcast address is the host's first address with the host part (by its class: A, B or C)
-// set to 0xFF.
+// The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
 SocketDriver* SocketDriver::Construct() {
     addresses.ConstructEmpty();
     alignas(4) std::uint8_t wsa[0x190];

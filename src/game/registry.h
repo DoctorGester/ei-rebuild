@@ -50,8 +50,7 @@ public:
     // The names of all sections into `out` (in table order). Returns 1.
     BOOL GetSectionNames(console::CStringArray* out);
 
-    // Identical copies. An int value, a float one truncated (_ftol), or
-    // `defaultValue`.
+    // Identical copies. An int value, a float one truncated (_ftol), or `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);
     int GetInt2(const char* section, const char* key, int defaultValue);
     // A float value, an int one (exact, FILD), or `defaultValue`, in ST0 (declared
@@ -63,12 +62,10 @@ public:
     // (strncpy, so not terminated when too long); *length becomes the copied length.
     void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);
 
-    // Int / float array (or a single value) into `out`. Without the key
-    // `out` is emptied and the result is 0.
+    // Int / float array (or a single value) into `out`. Without the key `out` is emptied and the result is 0.
     BOOL GetIntArray(const char* section, const char* key, IntArray* out);
     BOOL GetFloatArray(const char* section, const char* key, DwordArray* out);
-    // A string array (or a single string) into `out`. Without the key `out` is emptied
-    // and the result is 0.
+    // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
     BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);
 
     BOOL attached_;               // 1: the data is not ours (Attach)

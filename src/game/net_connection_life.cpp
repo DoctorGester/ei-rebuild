@@ -1,7 +1,6 @@
 // A connection's construction, reset, clone and destruction 
-// the id pools' copy and the replica entries' slots.
-// The containers are STLport instantiations (library), called through their original addresses.
-// See net_connection.h and docs/notes/network.md.
+// the id pools' copy and the replica entries' slots. The containers are STLport instantiations (library),
+// called through their original addresses. See net_connection.h and docs/notes/network.md.
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
@@ -247,9 +246,8 @@ ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
 ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
 EI_REWRITTEN(0x004343C0, ReplicaEntry::Clone);
 
-// Entry reset: releases the object, then built again in place as the constructor
-// would (object, version and id cleared; type and flags kept). Returns what EAX held (nothing in
-// particular).
+// Entry reset: releases the object, then built again in place as the constructor would (object, version and
+// id cleared; type and flags kept). Returns what EAX held (nothing in particular).
 int ReplicaEntry::OnShutdown() {
     ReleaseEntryObject(this);
     object_.ptr = nullptr;

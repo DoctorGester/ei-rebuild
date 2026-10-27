@@ -253,10 +253,9 @@ public:
     // A new bone (the figure manager's class 0x300C) named `child` with parent
     // `parentName` joins through LinkBone. Returns 1.
     int LinkPiece(FigureModel* model, const char* child, const char* parentName);
-    // `bone` becomes a child of the first bone named as its parent (name2)
-    // unless that one has a child of its name; it joins the list (referenced), takes the model
-    // name (name3) and morph, and its manager loads its key frames from `model`.
-    // `changed` set. Returns 1.
+    // `bone` becomes a child of the first bone named as its parent (name2) unless that one has a child of its
+    // name; it joins the list (referenced), takes the model name (name3) and morph, and its manager loads its
+    // key frames from `model`. `changed` set. Returns 1.
     int LinkBone(FigureModel* model, FigureBone* bone);
     // The bone named as `part` carries it as its mesh (referenced, the old one released): the part takes the
     // bone's position and rotation. 0 when no bone has the name, else 1. `changed` set.
@@ -273,14 +272,12 @@ public:
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
     // z) times its default scale.
     void PlaceIfChanged();
-    // When `changed`: each bone's placing animator is evaluated at the frame reached
-    // then PlaceIfChanged.
+    // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged.
     void UpdatePose();
     // The queue emptied, Play(null), `changed` set.
     void Stop();
-    // The morph becomes (s, t, u) on every bone, whose manager reloads its key
-    // frames from the owner's model, and on the state (`changed` cleared); then the
-    // root places the skeleton as PlaceIfChanged does.
+    // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
+    // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);
     // Every bone's name appended to `out` (SetAtGrow at its size).
     void CollectBoneNames(mfc::CStringArray* out);
@@ -382,8 +379,7 @@ public:
     CFigureMesh* FindPartByPrefix(const char* prefix);
     // The first part (parts, then pending parts) named exactly `partName`, or null.
     CFigureMesh* FindPart(const char* partName);
-    // The first part (parts, then pending parts) whose engine object type_ is
-    // `type`, or null.
+    // The first part (parts, then pending parts) whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
     // Every part (parts, then pending parts) whose name starts with `prefix` (strstr at
     // the name's start) appended to `out`.
@@ -432,9 +428,8 @@ public:
     // A new part joins the parts (referenced; owner, animation state and side half told as AddPart does); the box
     // pivot is the part's position and flag 4 is set. Returns it.
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
-    // The object's figure becomes `model` and each name of the
-    // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
-    // Without a figure manager: FatalError. Returns 1.
+    // The object's figure becomes `model` and each name of the CStringArray `partNames` is loaded by LoadPart
+    // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
     // The world client calls it when a unit becomes the controlled one. With the figure loaded (flags_ 0x80): each
     // part's world transform is updated from the object's and its world box grows the bounds; the centre is the
@@ -491,8 +486,7 @@ public:
     void PlayAnimation(FigureAnimation* animation, int unused);
     // The same with the arguments the other way round. Returns 1.
     int PlayAnimationSecond(int unused, FigureAnimation* animation);
-    // The animation state's bone named as `part` carries it (AttachMesh); 0
-    // without a state.
+    // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
     int AttachPartMesh(CEngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
@@ -517,8 +511,7 @@ public:
     std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // loaded on first use
     mfc::CString name;              // the figure's name
-    // +0x0A8 the particle sources attached to the object (MFC CPtrList, Object3DListClass, block
-    // size 10).
+    // +0x0A8 the particle sources attached to the object (MFC CPtrList, Object3DListClass, block size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
     Vector3 scale;
     FigurePartArray parts;

@@ -73,8 +73,7 @@ const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
-// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of
-// the scope.
+// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of the scope.
 struct TextBuffer {
     mfc::CString text{mfc::CString::kUnset};
     mfc::CString* Get() { return &text; }
@@ -82,9 +81,8 @@ struct TextBuffer {
 
 const char* QuestPrefix() { return "q."; }
 
-// The client world's readers of the zone (Rebirth-patched) and two other state blocks
-// all RET 4 with the block.
-// The quest log passes (list, a, b) to its top screen's slot 28.
+// The client world's readers of the zone (Rebirth-patched) and two other state blocks all RET 4 with the
+// block. The quest log passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
@@ -783,8 +781,7 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>): insert_unique, find,
-// clear.
+// The client's party unit ids (hash_set<int>): insert_unique, find, clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // The set, empty at the start: built by the static initialiser in the list's order and destroyed by the exit
 // function it registers

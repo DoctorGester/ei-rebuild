@@ -204,11 +204,9 @@ std::uint32_t CMapObject::ReadNetState(int first) {
 
 namespace {
 
-// CUnit helpers: release all items, the move speeds, MarkChanged,
-// the path's reader and two accessors;
-// the motion's path on +0x27C; a player's unit list remove / add;
-// the object's manager context and the client's local view; the
-// field reader's CString, CString operator= and destructor.
+// CUnit helpers: release all items, the move speeds, MarkChanged, the path's reader and two accessors; the
+// motion's path on +0x27C; a player's unit list remove / add; the object's manager context and the client's
+// local view; the field reader's CString, CString operator= and destructor.
 
 constexpr float kStatEpsilon = 1e-4f;
 

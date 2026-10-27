@@ -35,9 +35,8 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
-// The static vector: constructor, erase of a range, introsort loop and final
-// insertion sort by object, atexit.
-// CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
+// The static vector: constructor, erase of a range, introsort loop and final insertion sort by object,
+// atexit. CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
 // storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};

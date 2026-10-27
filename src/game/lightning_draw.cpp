@@ -27,10 +27,9 @@
 
 namespace {
 
-// The visibility of a bounds record for the device's view: 2 is outside.
-// The world an engine object belongs to (its frame counter).
-// The glow's static arrays: CArray constructor, its exit-time destructor, the points' exit-time free,
-// the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
+// The visibility of a bounds record for the device's view: 2 is outside. The world an engine object belongs
+// to (its frame counter). The glow's static arrays: CArray constructor, its exit-time destructor, the points'
+// exit-time free, the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
 // The sprite records are zero filled.
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 

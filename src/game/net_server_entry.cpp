@@ -1,6 +1,5 @@
 // The game server's description of itself: a server entry like those the
-// client reads from the server list (net_server_list.cpp). See net_classes.h and
-// docs/notes/network.md.
+// client reads from the server list (net_server_list.cpp). See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
 #include "options.h"
@@ -16,9 +15,8 @@
 
 namespace net {
 
-// Makes `*out` a new server entry: the name, the kind, the current map's title
-// as the description when a map message is held (else empty), the number of clients, the maximum
-// and whether a password is set.
+// Makes `*out` a new server entry: the name, the kind, the current map's title as the description when a map
+// message is held (else empty), the number of clients, the maximum and whether a password is set.
 void ServerSession::Describe(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
     if (&name_ != &entry->name_) entry->name_.AssignFrom(name_);

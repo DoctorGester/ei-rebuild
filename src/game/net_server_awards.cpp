@@ -51,9 +51,8 @@ namespace net {
 EI_REWRITTEN(0x004263F0, RefPtr::CopyShared);
 EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 
-// Queues an award message for `connection` on the pending awards with a 60
-// second delay. `text` is the caller's string (made in the argument slot), destroyed here as the
-// callee destroys a by-value argument.
+// Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
+// caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
 void ServerSession::QueueAward(CRefObject* connection, int kind, float value, stlp::string text) {
     auto* award = NewCounted<AwardMessage>();
     CRefObject* previous = award->connection_.ptr;
@@ -160,11 +159,10 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
     QueueMapList();
 }
 
-// The zone leaving command ("<zone>_2"). When a map message is held: announces the
-// map's title (text 6) and, when the map registry knows "<map>_1", queues the host's items with
-// the final award. Then drops the map message, empties the queued messages, +0x25B0
-// and +0x2598, queues the following zones and clears the world's map (with
-// null).
+// The zone leaving command ("<zone>_2"). When a map message is held: announces the map's title (text 6) and,
+// when the map registry knows "<map>_1", queues the host's items with the final award. Then drops the map
+// message, empties the queued messages, +0x25B0 and +0x2598, queues the following zones and clears the
+// world's map (with null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {

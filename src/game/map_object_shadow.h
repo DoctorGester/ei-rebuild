@@ -42,8 +42,7 @@ struct PartGroup {
 };
 static_assert(sizeof(PartGroup) == 0x14);
 
-// A part set of a 3D object's client half: a texture and the groups of parts drawn
-// with it, one per material.
+// A part set of a 3D object's client half: a texture and the groups of parts drawn with it, one per material.
 struct TextureParts {
     // The destructor: every group's parts and material released, the group deleted; the
     // array freed. The texture is only forgotten (the half's `textures` holds its reference).
@@ -62,13 +61,11 @@ class CObject3DClientSpecific : public CObject3DSpecific {
 public:
     CObject3DClientSpecific();
     ~CObject3DClientSpecific() override;
-    // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
-    // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
-    // Returns 1.
+    // The cursor -1, flags_ 0, the shadow and wounds textures and the wounds material dropped, bounds and
+    // sphere 0, no part sets (not freed), touch time 0, scale 1. Returns 1.
     int Create() override;
-    // The shadow and wounds textures and the wounds material dropped, both part
-    // sets destroyed and deleted, every texture and material released and the arrays emptied; no
-    // object, touch time and flags_ 0.
+    // The shadow and wounds textures and the wounds material dropped, both part sets destroyed and deleted,
+    // every texture and material released and the arrays emptied; no object, touch time and flags_ 0.
     void Destroy() override;
     // Class name and id: "CObject3DClientSpecific", 0x37.
     const char* GetClassName() override;
@@ -135,9 +132,8 @@ public:
     CFigureMesh* FindPart(const char* name) override;
     CFigureMesh* FindPartOfType(int type) override;
 
-    // The part sets and skins. The wounds material slot cleared and the material it
-    // held released (deleted at its last reference): CountedRef<WoundsMaterial>::Assign(nullptr), inlined by the
-    // callers.
+    // The part sets and skins. The wounds material slot cleared and the material it held released (deleted at
+    // its last reference): CountedRef<WoundsMaterial>::Assign(nullptr), inlined by the callers.
     void ClearWoundsMaterial();
     // `part` joins the group of its material in the set
     // of its texture, both made on first use (FindOrAddTexture, FindOrAddMaterial);
@@ -146,8 +142,7 @@ public:
     // The part named `name` leaves its group and is released. Returns it, or null when there is none or no group
     // holds it.
     CFigureMesh* RemoveFromPartSets(const char* name) override;
-    // `part` leaves its group and is released: 1, or 0 when no group
-    // holds it.
+    // `part` leaves its group and is released: 1, or 0 when no group holds it.
     int OnPartRemoved(CFigureMesh* part) override;
     // The texture of kind `kind`: one of `textures`, else a new one of the client
     // world for a new part set, the first for the skin kinds (1, 3, 4, 6-9, 0xB,

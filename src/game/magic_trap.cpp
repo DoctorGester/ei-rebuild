@@ -43,12 +43,11 @@ using PtrList = mfc::CTypedPtrList<CUnit>;
 using PtrNode = PtrList::Node;
 PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
-// The trap's map object context (object.cpp); the living units of the sides
-// `sides` in the circles of `area`, appended to `out` after emptying it (a fastcall
-// with the context in ECX; FindTrapVictims below, called through its address so its verify
-// wrapper sees the call); casting the spell at the newcomers `units` (MagicTrap::CastAtUnits
-// below).
-// The sector map's units within `radius` of `point` into `list` (emptied first; sector_map.cpp).
+// The trap's map object context (object.cpp); the living units of the sides `sides` in the circles of `area`,
+// appended to `out` after emptying it (a fastcall with the context in ECX; FindTrapVictims below, called
+// through its address so its verify wrapper sees the call); casting the spell at the newcomers `units`
+// (MagicTrap::CastAtUnits below). The sector map's units within `radius` of `point` into `list` (emptied
+// first; sector_map.cpp).
 constexpr int kPtrListBlockSize = 10;
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it); a counted reference's assignment;
@@ -196,9 +195,8 @@ namespace {
 // The map object context's (the world's) slot 22.
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
-// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the
-// destructor all have it (each element's reference released and cleared, the list emptied, its
-// blocks freed).
+// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
+// element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
     MagicTrap::UnitList& inside = trap->inside;
     for (MagicTrap::UnitList::Node* node = inside.head; node; node = node->next) {
@@ -261,8 +259,7 @@ void* TailFields(MagicTrap* trap, int i) {
 }
 constexpr int kTailFieldCount = 4;
 
-// An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the
-// game's order).
+// An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the game's order).
 template <typename T>
 void EmptyArray(mfc::CArray<T>& array) {
     array.data = nullptr;
@@ -271,8 +268,7 @@ void EmptyArray(mfc::CArray<T>& array) {
     array.size = 0;
 }
 
-// The spell, a counted reference: the new one's count raised before the old one is
-// released.
+// The spell, a counted reference: the new one's count raised before the old one is released.
 void SetSpell(MagicTrap* trap, CSpell* spell) {
     CSpell* old = trap->spell;
     trap->spell = spell;

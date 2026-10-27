@@ -1,10 +1,9 @@
 #pragma once
 
-// The 3D library's figure meshes and their loading from .lnk link files. A
-// CLinkFigureLoader (model.h; one per world view) loads a figure by name: its .lnk file
-// lists the parts, each a FIG / FIG8 (or older headerless) record in figures.res / menus.res, morphed
-// by three coefficients and appended to one CLinkMesh. See docs/notes/models.md, "Link figures".
-// Names provisional.
+// The 3D library's figure meshes and their loading from .lnk link files. A CLinkFigureLoader (model.h; one
+// per world view) loads a figure by name: its .lnk file lists the parts, each a FIG / FIG8 (or older
+// headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one CLinkMesh.
+// See docs/notes/models.md, "Link figures". Names provisional.
 
 #include "figure_mesh.h"   // AlignedArray, VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
@@ -153,10 +152,9 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
-    // The shadow of part `name`: its points projected with
-    // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
-    // projected points `pixels` rasterised into the shadow target. Both return the point count (0
-    // when there is no such part).
+    // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
+    // into `points`, growing `bounds`; then its projected points `pixels` rasterised into the shadow target.
+    // Both return the point count (0 when there is no such part).
     virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                             Vector2* points, float* bounds) = 0;
     virtual int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) = 0;
@@ -253,8 +251,7 @@ static_assert(offsetof(CLinkMesh, ranges_) == 0x9C);
 static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
 
-// A length-prefixed string of a
-// .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to
-// the first zero byte (copied through a static buffer) and keeps its old text for
-// length 0. The cursor moves past the record.
+// A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor; `out` gets
+// the characters up to the first zero byte (copied through a static buffer) and keeps its old text for length
+// 0. The cursor moves past the record.
 void __fastcall ReadLinkString(stlp::string* out, const char** cursor);

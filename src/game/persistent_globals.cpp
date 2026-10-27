@@ -17,9 +17,8 @@
 
 namespace {
 
-// MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,
-// two list positions per bucket (first and last of its range; end() when empty), mask and
-// maximum index.
+// MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list, two list
+// positions per bucket (first and last of its range; end() when empty), mask and maximum index.
 class AddonStringMap {
 public:
     struct Element {

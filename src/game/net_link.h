@@ -127,8 +127,7 @@ public:
     bool Receive(CMemoryStream* stream) override;     // Virtual 9 (the front of the queue)
     void Disconnect() override;
 
-    // Two links joined to each other; the first goes
-    // to the player's link (+8), the second is returned.
+    // Two links joined to each other; the first goes to the player's link (+8), the second is returned.
     static LoopbackLink* __stdcall CreatePair(CWorldHandle* player);
 
     StreamQueue queue_;
@@ -187,8 +186,7 @@ protected:
     FramedLink(const FramedLink& other);
 };
 
-// The per-player driver: a framed link over a network
-// connection's reliable streams.
+// The per-player driver: a framed link over a network connection's reliable streams.
 class DriverLink final : public FramedLink {
 public:
     DriverLink();
@@ -217,9 +215,8 @@ struct DriverNode {
     DriverLink* Driver() const { return static_cast<DriverLink*>(value.ptr); }
 };
 
-// The network session (CWorld + 0x60, made by CWorld::OpenSession; a real
-// class): a player source (player_source.h) with two lists
-// of drivers. Its lifetime is in world_sessions.cpp.
+// The network session (CWorld + 0x60, made by CWorld::OpenSession; a real class): a player source
+// (player_source.h) with two lists of drivers. Its lifetime is in world_sessions.cpp.
 class DriverSession final : public CPlayerSource {
 public:
     DriverSession();

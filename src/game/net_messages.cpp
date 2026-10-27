@@ -579,8 +579,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
     TakeObject(cursor, partner_);
 }
 
-// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the
-// server list).
+// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the server list).
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
     std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied as dwords

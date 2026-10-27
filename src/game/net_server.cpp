@@ -83,13 +83,12 @@ T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.p
 
 } // namespace
 
-// What the connection being updated receives: the players and the variables,
-// its own binding (the binding whose connection it is; hosting when its player is the host), the
-// newer chat lines meant for everyone or for it (numbered after the player's first line), every
-// shared file with, for the one a request of this connection names, its chunks (priority 1), the
-// queued maps for the host, the host message and the map message, the awards for this connection,
-// the trade offers to the player whose members all exist (the offer and its members), and the
-// trades naming the player. Priority 2 unless noted.
+// What the connection being updated receives: the players and the variables, its own binding (the binding
+// whose connection it is; hosting when its player is the host), the newer chat lines meant for everyone or
+// for it (numbered after the player's first line), every shared file with, for the one a request of this
+// connection names, its chunks (priority 1), the queued maps for the host, the host message and the map
+// message, the awards for this connection, the trade offers to the player whose members all exist (the offer
+// and its members), and the trades naming the player. Priority 2 unless noted.
 void ServerSession::CollectReplicated(ReplicatedVector** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;

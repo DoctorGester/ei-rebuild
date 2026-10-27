@@ -1,9 +1,8 @@
 #pragma once
 
-// Lightning bolts: CLightning (class id 0x1E) and
-// the manager that owns and draws them (CLightningManager). A bolt is a main
-// segment from one end point to the other plus six branches that start at points along it; every
-// segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
+// Lightning bolts: CLightning (class id 0x1E) and the manager that owns and draws them (CLightningManager). A
+// bolt is a main segment from one end point to the other plus six branches that start at points along it;
+// every segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
 
 #include "base_manager.h"
@@ -27,9 +26,8 @@ struct LightningPoint {
 };
 static_assert(sizeof(LightningPoint) == 16);
 
-// An aligned array of LightningPoint (the raw operator new block is kept just before the data, at
-// data[-1]). Its SetSize is the library instantiation's, reached through
-// LightningPointsSetSize (lightning.cpp).
+// An aligned array of LightningPoint (the raw operator new block is kept just before the data, at data[-1]).
+// Its SetSize is the library instantiation's, reached through LightningPointsSetSize (lightning.cpp).
 using LightningPointArray = lib::AlignedArray<LightningPoint>;
 void __fastcall LightningPointsSetSize(LightningPointArray* points, void*, int newSize, int newGrowBy);
 
@@ -58,9 +56,8 @@ struct LightningSegment {
     LightningPointArray points;
     float width;                // passed to the renderer
 
-    // Straight segment between two points: start, step and point count (48 below 10
-    // units, 72 above 15, 5 per unit in between, a multiple of 4), the displacement axes scaled to
-    // the length (at most 15).
+    // Straight segment between two points: start, step and point count (48 below 10 units, 72 above 15, 5 per
+    // unit in between, a multiple of 4), the displacement axes scaled to the length (at most 15).
     void Init(const Vector3* from, const Vector3* to);
     // Advances the noise keys to `time` (one new key per elapsed unit, at most 100) and
     // writes the two noise curves (one value per point) to outSide / outUp.

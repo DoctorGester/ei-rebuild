@@ -37,8 +37,7 @@ using Materials = ArrayAbi<CMaterial, scene::HelperElements>;
 using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
 using SceneNodes = ArrayAbi<scene::SceneNode, scene::NodeElements>;
 
-// A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by
-// FaceGroup::Destruct.
+// A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by FaceGroup::Destruct.
 using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
 // CArray<FaceGroup> (a mesh's +0x148), its vtable the compiler's (mfc_slots.h).
 struct FaceGroupArrayClass final
@@ -51,8 +50,7 @@ void InitDeltaField(DeltaField* p);
 void DestroyDeltaField(DeltaField* p);
 using DeltaFields = ArrayAbi<DeltaField, EachElements<DeltaField, InitDeltaField, DestroyDeltaField>>;
 
-// Music themes: the names empty, both name arrays constructed; destroyed
-// from the last member to the first.
+// Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
 void InitTheme(MusicTheme* p);
 void __fastcall DestroyTheme(MusicTheme* p);
 using Themes = ArrayAbi<MusicTheme, EachElements<MusicTheme, InitTheme, DestroyTheme>>;
@@ -84,9 +82,8 @@ struct FakeUnitRecord9CArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
                                     &Materials::Serialize> {};
 
-// CStringArray over the part names of a map object (the server companion's, the object's own).
-// GetAt by value (two copies), the element copy-constructed into `result`,
-// which is returned.
+// CStringArray over the part names of a map object (the server companion's, the object's own). GetAt by value
+// (two copies), the element copy-constructed into `result`, which is returned.
 struct PartNames : mfc::CArray<mfc::CString> {
     mfc::CString* CopyAt(mfc::CString* result, int index) const;
 };

@@ -506,13 +506,11 @@ public:
     // The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
-    // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the
-    // final award).
+    // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the final award).
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
-    // Lists `data` under `name` (unless listed) as a file message
-    // with 64-byte chunk messages.
+    // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
     void ShareFile(const stlp::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
@@ -520,8 +518,7 @@ public:
     // players and their maximum, the game kind, whether a password is set, the dword the master last sent and
     // the session magic. EI_Plugin's NewMaster patches the send; this is the version without it.
     void AnnounceToMaster();
-    // Keeps a chat or system line for the clients (`player` null
-    // for the server's own; at most 50 lines).
+    // Keeps a chat or system line for the clients (`player` null for the server's own; at most 50 lines).
     void Announce(const char* text, CRefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
@@ -717,9 +714,8 @@ static_assert(sizeof(ClientSession) == 0x2700);
 
 // ---- The game announcement ------------------------------------------------------------------------
 
-// The game announcement the server builds and the client reads
-// in its entry. Field meanings: player count, maximum players, the
-// session magic. Names provisional.
+// The game announcement the server builds and the client reads in its entry. Field meanings: player count,
+// maximum players, the session magic. Names provisional.
 struct GameInfoRecord {
     stlp::string name;
     stlp::string description;

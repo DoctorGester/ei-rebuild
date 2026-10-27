@@ -1,6 +1,5 @@
 // Small methods of the 3D object (CObject3D): its deleting destructor, the
-// attached half and animation state, and the setters that reach every part. See
-// map_object_figures.h.
+// attached half and animation state, and the setters that reach every part. See map_object_figures.h.
 #include "map_object_figures.h"
 
 #include "ai_map.h"   // FootprintPart

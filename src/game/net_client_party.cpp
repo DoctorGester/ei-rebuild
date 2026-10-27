@@ -1,6 +1,5 @@
 // The client's trade offer (called by the party screens after a change): one member
-// message per party member, kept in our PartyMessage. See net_messages.h and
-// docs/notes/network.md.
+// message per party member, kept in our PartyMessage. See net_messages.h and docs/notes/network.md.
 #include "core_streams.h"
 #include "library_containers.h"
 #include "net_messages.h"
@@ -25,8 +24,7 @@ namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 
-// vector<CEngineObject*> with counted elements (library), the party's
-// reset and add.
+// vector<CEngineObject*> with counted elements (library), the party's reset and add.
 
 // The received offers: an STLport list of counted PartyMessages.
 using OfferNode = stlp::list<RefPtr>::Node;
@@ -148,12 +146,11 @@ void __fastcall ClientCommitParty(ClientSession* self) {
 }
 EI_REWRITTEN(0x0041E180, ClientCommitParty);
 
-// Rebuilds the partner's party from the paired offer, once every member message
-// of it holds data. Each message gives (when its first dword, the spell's id, is positive) a spell
-// made by the party's spell manager (slot 22; CreateObject with the stored type and that id, its
-// packed id set and its Load, slot 9) and an item made by the item manager (slot 18; CreateObject
-// with id -1, packed id, Load). The items are added to the party, which takes
-// the offer's money first; trade records older than the offer's revision are dropped.
+// Rebuilds the partner's party from the paired offer, once every member message of it holds data. Each
+// message gives (when its first dword, the spell's id, is positive) a spell made by the party's spell manager
+// (slot 22; CreateObject with the stored type and that id, its packed id set and its Load, slot 9) and an
+// item made by the item manager (slot 18; CreateObject with id -1, packed id, Load). The items are added to
+// the party, which takes the offer's money first; trade records older than the offer's revision are dropped.
 void __fastcall ClientApplyParty(ClientSession* self) {
     PartyMessage* remote = ClientFindParty(self);
     if (!remote) return;

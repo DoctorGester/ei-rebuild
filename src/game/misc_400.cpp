@@ -38,9 +38,8 @@ CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
 int CClientSpecificManager::GetClassId() { return 0x30; }
 
-// A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
-// failed allocation. The constructors (the figure drawer and five other classes') each return
-// this.
+// A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation. The
+// constructors (the figure drawer and five other classes') each return this.
 CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {
     case 'E': return new FigureMeshDrawer();
@@ -55,9 +54,8 @@ CEngineObject* CClientSpecificManager::NewObject(int type) {
 
 namespace misc400 {
 
-// Memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32
-// bytes with the block's address in the dword before it (vertex and index arrays; freed through
-// that address).
+// Memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32 bytes with the block's address
+// in the dword before it (vertex and index arrays; freed through that address).
 void* __fastcall AlignedWords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 2)); }
 void* __fastcall AlignedDwords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 4)); }
 

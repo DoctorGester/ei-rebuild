@@ -357,8 +357,7 @@ void UnitSpec::Apply() {
 }
 EI_REWRITTEN(0x0046C4D0, UnitSpec::Apply);
 
-// The unit's fields, the common ones, then the five behaviour records (each given the unit's
-// position first).
+// The unit's fields, the common ones, then the five behaviour records (each given the unit's position first).
 void UnitSpec::Save() {
     BeginWrite(0xBBBB0000);
     WriteByte(0xBBBB000A, static_cast<std::uint8_t>(record.applyStats));

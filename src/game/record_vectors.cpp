@@ -1,6 +1,5 @@
 // The game's STLport vector<T> instantiations over game records (record_vectors.h), registered at
-// their own addresses. The element
-// size of each was read from its size arithmetic.
+// their own addresses. The element size of each was read from its size arithmetic.
 #include "record_vectors.h"
 
 #include "ei/hook.h"

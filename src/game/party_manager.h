@@ -82,8 +82,7 @@ struct PartyManager {
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);
     // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
-    // the key is
-    // not stored. The login's name and password are not read.
+    // the key is not stored. The login's name and password are not read.
     bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
     // Copies `source` into the party stored under the key (operator[] creates it when missing; the copy
     // reads `source` non-const). True.

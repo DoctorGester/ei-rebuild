@@ -207,8 +207,7 @@ struct FiguredUnitElement {
     }
 };
 
-// The dressed units' records; the destructor: both id lists'
-// storage, the last first.
+// The dressed units' records; the destructor: both id lists' storage, the last first.
 struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitRecord::prototype, &DressedUnitRecord::items,
                                                 &DressedUnitRecord::extraWeapons, &DressedUnitRecord::extraWeapon,
                                                 &DressedUnitRecord::modelNumber> {
@@ -245,8 +244,7 @@ using Print2Vector = stlp::VectorAbi<PrintRecord2, PrintElement<PrintRecord2>>;
 
 // ---- acks.db's speech lists (acks_db.h; acks_db.cpp) ------------------------------------
 
-// A speech: memberwise (the chance left as it is by default); the destructor the
-// strings from the last.
+// A speech: memberwise (the chance left as it is by default); the destructor the strings from the last.
 struct SpeechElement : records::Memberwise<SpeechRecord, &SpeechRecord::chance, &SpeechRecord::sound,
                                            &SpeechRecord::text, &SpeechRecord::name> {
     static void Destroy(SpeechRecord* p) { p->~SpeechRecord(); }
@@ -354,9 +352,8 @@ using ExtraAcksVector = stlp::VectorAbi<acks::ExtraAcks, ExtraAcksElement>;
 
 // ---- The client's lobby queries (net_classes.h; net_lobby.cpp) -----------------------------
 
-// A query: the copy constructor, the copy loop's assignment (the address, then the
-// reply buffer's), the default (a zero address, an empty growing buffer) and
-// the destructor (the reply buffer's).
+// A query: the copy constructor, the copy loop's assignment (the address, then the reply buffer's), the
+// default (a zero address, an empty growing buffer) and the destructor (the reply buffer's).
 struct QueryElement {
     using R = net::Query;
     static void Construct(R* to, const R& from) { new (to) R(from); }
@@ -478,8 +475,7 @@ using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotEl
 
 // ---- The UI's lists (ui.h, ui_camp.h, ui_screens.h) ---------------------------------------------
 
-// The save list's entries (ui_saveload.cpp): the compiler's copy constructor,
-// operator= and destructor.
+// The save list's entries (ui_saveload.cpp): the compiler's copy constructor, operator= and destructor.
 struct SaveEntryElement {
     static void Construct(SaveEntry* to, const SaveEntry& from) { to->CopyConstruct(&from); }
     static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }

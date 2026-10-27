@@ -36,8 +36,7 @@ static_assert(offsetof(PartyRecord, name) == 0x78);
 
 // The named records: an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
-    // The party of the first record named `name` (_mbscmp), else of the
-    // last unnamed record, else null.
+    // The party of the first record named `name` (_mbscmp), else of the last unnamed record, else null.
     CParty* Find(const char* name) const;
     // Appends a new record named `name`.
     void Add(const char* name);

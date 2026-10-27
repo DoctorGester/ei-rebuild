@@ -96,9 +96,8 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
 }
 EI_REWRITTEN(0x0049E950, MultiplyByConjugate);
 
-// *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is
-// negative); nearly equal rotations interpolate linearly. The weight of a is rounded to float, the
-// weight of b is not.
+// *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
+// rotations interpolate linearly. The weight of a is rounded to float, the weight of b is not.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     double cosine = DotWZYXUnrounded<double>(a, b);
     Quaternion c;

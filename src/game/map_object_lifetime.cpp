@@ -1,6 +1,5 @@
 // Constructors and destructors of the map object family: CObject3D, CMapObject, CUnit, their
-// server / client companions and the server-side unit controller. See
-// docs/notes/map_objects.md ("Lifetime").
+// server / client companions and the server-side unit controller. See docs/notes/map_objects.md ("Lifetime").
 #include "ai_map.h"        // AIPath
 #include "ai_motion.h"     // UnitMotion
 #include "combat.h"

@@ -429,10 +429,9 @@ const char* NoCarrierRing() { return "Particle effect Casting without carrier\n"
 const char* NoCarrierHealing() { return "Particle effect Healing without carrier\n"; }
 constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's last phase)
 
-// The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's
-// feet with a random lift, their flames spaced evenly around the circle; the source's height is
-// the radius growth per tick (Healing also sets the flame growth). Each ring counts down from
-// `countdown`.
+// The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's feet with a
+// random lift, their flames spaced evenly around the circle; the source's height is the radius growth per
+// tick (Healing also sets the flame growth). Each ring counts down from `countdown`.
 void PlaceRings(CParticleSource* s, int countdown) {
     float step = static_cast<float>(ei::kRadiansPerDegree * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
     Vector3 offset;
@@ -800,9 +799,8 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
 
 } // namespace
 
-// Until all orbiters exist each emission adds one (needs a carrier); then sparks start
-// at a random point between an orbiter's previous and current position and fly off with a random
-// velocity from the spread box.
+// Until all orbiters exist each emission adds one (needs a carrier); then sparks start at a random point
+// between an orbiter's previous and current position and fly off with a random velocity from the spread box.
 int CParticleSource::EmitCastSwirl(Particle* p, int) {
     if (elementCount < lifetime) {
         if (!attachedTo) {
@@ -887,8 +885,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
 }
 EI_REWRITTEN(0x00491230, CParticleSource::UpdateCastSwirl);
 
-// Orbiters turn about the source's vertical axis (by -turn) and keep their previous
-// world position.
+// Orbiters turn about the source's vertical axis (by -turn) and keep their previous world position.
 void CParticleSource::TickCastSwirl(ParticleElement* e) {
     float c = e->orbiter.turnCos;
     float s = e->orbiter.turnSin;
@@ -1011,9 +1008,8 @@ int CParticleSource::EmitLink(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048D8D0, CParticleSource::EmitLink);
 
-// Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed),
-// spinning around the axis; the beam bulges in the middle and the alpha peaks there (capped by
-// element 0). Dropped past the beam's end.
+// Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed), spinning around the axis;
+// the beam bulges in the middle and the alpha peaks there (capped by element 0). Dropped past the beam's end.
 int CParticleSource::UpdateLink(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
     double travelled = D(p->drift.y) + D(p->drift.x);
@@ -1590,8 +1586,7 @@ int CParticleSource::UpdateShower(Particle* p) {
 }
 EI_REWRITTEN(0x0048F300, CParticleSource::UpdateShower);
 
-// Shower directions age; after 5 ticks the source stops emitting and lets go of its
-// carrier.
+// Shower directions age; after 5 ticks the source stops emitting and lets go of its carrier.
 void CParticleSource::TickShower(ParticleElement* e) {
     if (++e->ray.age > 5) {
         flags_ &= ~1u;
@@ -1735,10 +1730,9 @@ int CParticleSource::UpdateBag(Particle* p) {
 }
 EI_REWRITTEN(0x00493770, CParticleSource::UpdateBag);
 
-// Bag balls: when a ball's countdown runs out it is thrown again from the source (a
-// random kind 0-2, a random offset, a random velocity of 0.2 size) and rests 7-9 ticks; while
-// flying it ages, now and then gets a random kick, and moves (its step is kept). Without a
-// carrier the ball is gone.
+// Bag balls: when a ball's countdown runs out it is thrown again from the source (a random kind 0-2, a random
+// offset, a random velocity of 0.2 size) and rests 7-9 ticks; while flying it ages, now and then gets a
+// random kick, and moves (its step is kept). Without a carrier the ball is gone.
 void CParticleSource::TickBag(ParticleElement* e) {
     if (--e->ticks < 0) {
         if (!attachedTo) {
@@ -2030,9 +2024,8 @@ const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 
 } // namespace
 
-// BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff
-// starts at a random point of the disc around the carrier's figure, turning about the axis faster
-// the nearer it is, and rising.
+// BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
+// point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
 int CParticleSource::EmitStench(Particle* p, int) {
     if (elementCount == 0) {
         if (!attachedTo) {
@@ -2454,9 +2447,8 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
 }
 EI_REWRITTEN(0x00493DE0, CParticleSource::EmitCylinder);
 
-// Cylinder: a star follows its element and fades by its countdown (dropped
-// once the source stops); a spark fades by its life, drifts by its step, is held on its star's
-// orbit radius and spirals round it, shrinking.
+// Cylinder: a star follows its element and fades by its countdown (dropped once the source stops); a spark
+// fades by its life, drifts by its step, is held on its star's orbit radius and spirals round it, shrinking.
 int CParticleSource::UpdateCylinder(Particle* p) {
     int state = p->state;
     if (state >= 0) {
@@ -2757,9 +2749,8 @@ namespace {
 
 } // namespace
 
-// Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks
-// per tick after it). A spark on the ring, at a random angle, between the ring and its eased
-// inner edge.
+// Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks per tick after it). A
+// spark on the ring, at a random angle, between the ring and its eased inner edge.
 int CParticleSource::EmitBanshee(Particle* p, int) {
     if (elementCount == 0) {
         SetElementCount(this, 1);
@@ -3247,9 +3238,8 @@ namespace {
 
 } // namespace
 
-// VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a
-// random height in a random direction; the others smoke (state 4) at a random point of the vent,
-// rising by the source's height.
+// VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a random height in a random
+// direction; the others smoke (state 4) at a random point of the vent, rising by the source's height.
 int CParticleSource::EmitVulkan(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 0;
@@ -3329,8 +3319,7 @@ int CParticleSource::EmitFireStar(Particle* p, int) {
 }
 EI_REWRITTEN(0x00494950, CParticleSource::EmitFireStar);
 
-// FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then
-// hidden and dropped.
+// FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then hidden and dropped.
 int CParticleSource::UpdateFireStar(Particle* p) {
     if (--p->life <= 0) {
         p->color = 0xFFFFFF;

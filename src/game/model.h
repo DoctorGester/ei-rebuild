@@ -127,9 +127,8 @@ public:
                               std::uint16_t* clippedIndices, int* vertexCount, int* indexCount);
     virtual void Unknown38();
     virtual void Unknown39();
-    // Lights a figure mesh: its vertex packets and normals, the colours written (one
-    // per normal), its words, the lights (their localPosition_, colours set for the material) and
-    // the material's light vector.
+    // Lights a figure mesh: its vertex packets and normals, the colours written (one per normal), its words,
+    // the lights (their localPosition_, colours set for the material) and the material's light vector.
     virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,
                            int wordCount, CLight** lights, int lightCount, const std::uint32_t* vector);
 };
@@ -180,8 +179,7 @@ public:
         const int depth = ++stack.count;
         stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, m.m);
     }
-    // The top of stack `index` (matrices[count - 1], computed
-    // even when empty).
+    // The top of stack `index` (matrices[count - 1], computed even when empty).
     const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
     // Drops the top of stack `index` unless it is empty.
     void PopMatrix(int index) {
@@ -353,9 +351,8 @@ public:
     void* CreateBase(void* window, options::GameOptions* settings);
     // The base constructor's work: flags_, pipeline_ and sun_ cleared.
     CVisualizator* SetUpBase();
-    // DestroyBase. The sun dropped (set to null, then released) and the transform object
-    // told (AddSun with null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and
-    // its processor forgotten.
+    // DestroyBase. The sun dropped (set to null, then released) and the transform object told (AddSun with
+    // null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and its processor forgotten.
     void DestroyBase();
     // SetBaseColour. colour_ = `colour`; the transform object's ambient
     // becomes its red, green and blue bytes times 1 / 255.
@@ -363,8 +360,7 @@ public:
     // The sun becomes `light` (counted; the old one released) and is handed to the
     // transform object (AddSun) when there is one.
     void SetSun(CLight* light);
-    // SetSun, then the colour from r, g, b in 0..1, packed as
-    // SetFogColour packs them.
+    // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
     std::uint32_t flags_;            // bit 0: the software cursor option; bit 1 set by the creation
@@ -470,10 +466,9 @@ public:
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
     int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB) override;
-    // Draws `figure` through its drawer unless it is
-    // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
-    // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
-    // and third arguments are not read there.
+    // Draws `figure` through its drawer unless it is hidden (flags +8 bit 0x80); `alpha` reaches the mesh
+    // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
+    // is passed on. The second and third arguments are not read there.
     int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                    tagRECT* screen) override;
     // Draws a line list with the pipeline and the device object.
@@ -486,10 +481,9 @@ public:
     // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
     // rectangles. The first argument is 0 at every call known.
     int DrawSprites(int unknown, void* points, void* sprites) override;
-    // The selection marker under a selected
-    // unit (the draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
-    // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
-    // geometry draw as six triangles of two vertex blocks.
+    // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent
+    // 0x8000FF00, 0.3 above `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the
+    // device's flat geometry draw as six triangles of two vertex blocks.
     int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) override;
     // A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
@@ -511,10 +505,9 @@ public:
     bool SetGamma(float brightness, float contrast, float gamma) override;
     // The display settings SetGamma last kept.
     void GetGamma(float* brightness, float* contrast, float* gamma) const override;
-    // False without
-    // a device object (called by WM_ACTIVATE after a switch back). A full-screen device gets its cooperative level (with its screen
-    // rectangle) and display mode (the render target's size and depth) back; then
-    // IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
+    // False without a device object (called by WM_ACTIVATE after a switch back). A full-screen device gets
+    // its cooperative level (with its screen rectangle) and display mode (the render target's size and depth)
+    // back; then IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
     // surfaces restored, and the texture manager's restore, whose result is returned.
     bool RestoreSurfaces() override;
     // Nothing calls it. The pipeline's
@@ -522,8 +515,7 @@ public:
     // the creation fills them, then the transform object's projection and viewport size.
     virtual void SetView(const tagRECT* screen, float fieldOfView);
 
-    // Makes sure the texture in `holder` is loaded
-    // and binds it to `stage`.
+    // Makes sure the texture in `holder` is loaded and binds it to `stage`.
     int BindHeldTexture(int stage, HeldTexture* holder);
     // The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
@@ -598,23 +590,20 @@ struct FigureModel {
     CMappedResource* animations;
     AnimationMap animationCache;    // each a CMMIOResource over the animation's data
 
-    // The link figure loader's sets open
-    // the three archives from the images of the figure's .mod / .bon / .anm files (OpenFromMemory);
-    // a null image leaves its archive alone.
+    // The link figure loader's sets open the three archives from the images of the figure's .mod / .bon /
+    // .anm files (OpenFromMemory); a null image leaves its archive alone.
     void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
 void __fastcall DestroyFigureModel(FigureModel* model);
 
-// Loads .lnk link files and the figures they name (over an abstract base
-// with six pure virtuals and the plain counted root, neither with fields; created at startup with
-// figures.res and menus.res, a Rebirth-patched function). A figure is a CLinkMesh of
-// parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
-// multimap by name (a counted reference each) and hands out a cached one whose coefficients are
-// within 1e-5 (squared distance) unless asked for a fresh one. Parts come
-// from the figure's own archive set when there is one, else from the open archives
-// as "<figure><part>.fig". link_loader.cpp.
+// Loads .lnk link files and the figures they name (over an abstract base with six pure virtuals and the plain
+// counted root, neither with fields; created at startup with figures.res and menus.res, a Rebirth-patched
+// function). A figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every
+// mesh it made in a multimap by name (a counted reference each) and hands out a cached one whose coefficients
+// are within 1e-5 (squared distance) unless asked for a fresh one. Parts come from the figure's own archive
+// set when there is one, else from the open archives as "<figure><part>.fig". link_loader.cpp.
 class CLinkMesh;
 class CTextureDevice;
 class ITransformPipeline;
@@ -636,9 +625,8 @@ public:
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
     virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
     virtual void ClearCache();
-    // `mesh` with new coefficients: a mesh others also hold (more than
-    // two references) is looked up again by its name; otherwise its parts are
-    // morphed in place (SetMorph, then per part). Null stays null.
+    // `mesh` with new coefficients: a mesh others also hold (more than two references) is looked up again by
+    // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
     static void* operator new(std::size_t size) noexcept;
@@ -650,9 +638,8 @@ public:
     // Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
     int AddArchive(const stlp::string* path);
-    // Reads a FIG / FIG8 part record at *cursor (moved past
-    // it) into `mesh` as part `name`: its header (two dwords, bounds fitted to the vertices morphed
-    // by s, t, u) and its elements (CLinkMesh::AddPart).
+    // Reads a FIG / FIG8 part record at *cursor (moved past it) into `mesh` as part `name`: its header (two
+    // dwords, bounds fitted to the vertices morphed by s, t, u) and its elements (CLinkMesh::AddPart).
     void LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
     // The same for the older record without a FIG header (6 morph corners).
     void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
@@ -703,10 +690,9 @@ struct PrintLook {
 };
 static_assert(sizeof(PrintLook) == 0xC);
 
-// A record of prints.db (terrain footprints). 0x28 bytes. The records live
-// in the prints' vectors (record_vectors.h): the copies copy the name and the looks; the record resize(n)
-// appends copies of has an empty name with room for 8 bytes and zero looks; the destructor
-// returns the name's storage.
+// A record of prints.db (terrain footprints). 0x28 bytes. The records live in the prints' vectors
+// (record_vectors.h): the copies copy the name and the looks; the record resize(n) appends copies of has an
+// empty name with room for 8 bytes and zero looks; the destructor returns the name's storage.
 struct PrintRecord {
     PrintRecord();
     PrintRecord(const PrintRecord& from);
@@ -748,13 +734,11 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return seco
 struct PrintsDatabase {
     template <typename Record> using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
 
-    // Rebirth-patched, hooked in the vanilla launch
-    // only). "prints.db" of `folder` + "database.res": the three tables, each read through an
-    // archive of its own and filed under its records' names. 1; FatalError's result when the
-    // archive (reported as "databases.res") or the file cannot be opened.
+    // Rebirth-patched, hooked in the vanilla launch only). "prints.db" of `folder` + "database.res": the
+    // three tables, each read through an archive of its own and filed under its records' names. 1;
+    // FatalError's result when the archive (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
-    // The static initialiser's work. The three tables empty,
-    // each index with 100 buckets (193).
+    // The static initialiser's work. The three tables empty, each index with 100 buckets (193).
     PrintsDatabase* Construct();
     // The exit function's work. The tables from the
     // last: the index's nodes and buckets, then the records and their storage.
@@ -774,7 +758,6 @@ inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // ---- Water level changes: water_tweens.h ----------------------------------------------
 
-// A length-prefixed name (a
-// four-byte length, then the characters) at *cursor into `out` (emptied for length 0), the
-// cursor moved past it (the skeleton links' child / parent names, figure_links.cpp).
+// A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
+// 0), the cursor moved past it (the skeleton links' child / parent names, figure_links.cpp).
 void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);

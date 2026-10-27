@@ -21,9 +21,8 @@ namespace net {
 
 namespace {
 
-// The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
-// The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): loading a zone's quests.
-// vector<string> (library): the block free.
+// The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4). The game flow at 0x7AFE20
+// (world_briefing.cpp, world_game.cpp): loading a zone's quests. vector<string> (library): the block free.
 void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
 
 
@@ -107,9 +106,8 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     AwardHost(entry, false);
 }
-// Unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
-// ) on +0x25AC for each zone the flow picks for the server's kind after the
-// current map, loading each zone's quests.
+// Unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable ) on +0x25AC for each zone
+// the flow picks for the server's kind after the current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
     stlp::vector<stlp::string> zones;   // empty

@@ -1,6 +1,5 @@
 // The game client's tick and its award handling: timers count down,
-// and received awards are applied to the local player. See net_classes.h and
-// docs/notes/network.md.
+// and received awards are applied to the local player. See net_classes.h and docs/notes/network.md.
 
 #include "game_lists.h"
 #include "net_messages.h"

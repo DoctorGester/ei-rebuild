@@ -62,12 +62,10 @@ struct DeltaField {
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;
-    // Resize(0) on the four streams: sizes and positions 0,
-    // buffers kept.
+    // Resize(0) on the four streams: sizes and positions 0, buffers kept.
     void Empty();
 
-    // Rewinds the snapshots, empties the outputs; both channels keep their
-    // snapshots unless `channel1Only`.
+    // Rewinds the snapshots, empties the outputs; both channels keep their snapshots unless `channel1Only`.
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
     // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.

@@ -127,9 +127,8 @@ public:
     void SendPair18(std::uint32_t a, std::uint32_t b);
     void SendObject43(const CEngineObject* object);                 // id, nothing without an object
     void SendObject0B(const CEngineObject* object, std::uint32_t value);   // id, value
-    // Message 0x12, a byte and `value` (the 2nd argument; the first is not
-    // read). The original never writes the byte: whatever its stack holds goes out. Ours sends 0;
-    // the client's handler skips the byte.
+    // Message 0x12, a byte and `value` (the 2nd argument; the first is not read). The original never writes
+    // the byte: whatever its stack holds goes out. Ours sends 0; the client's handler skips the byte.
     void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);
@@ -149,15 +148,12 @@ public:
     // world's update count) send their delta (0x41 / 0x51: id, then the delta stream). 1.
     int SendObjectsChanged(const PlayerObjectArray* objects);
     int SendTimedChanged(const PlayerObjectArray* objects);
-    // Objects gone from view: dropped from the player's map and
-    // released (0x42 / 0x52: id). 1.
+    // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
     int SendObjectsRemoved(const PlayerObjectArray* objects);
     int SendTimedRemoved(const PlayerObjectArray* objects);
-    // Every item of the player's item list the party's item manager knows is
-    // sent (SendObject14, slot 22).
+    // Every item of the player's item list the party's item manager knows is sent (SendObject14, slot 22).
     void SendItems();
-    // For a joined player (state 1): message 0x05, a stream with the
-    // given items' spells and then the items,
+    // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
     void SendItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
     // Message 0x60: the world's +0x6C flag, +0x24, the party units (partyUnits_) by id and
@@ -174,11 +170,10 @@ public:
     // Message 0x80: the party saved (with its variables) as a sized block; the next
     // refresh in 900..1800 updates (ISAAC).
     void SendParty();
-    // Every packet waiting on the link is decompressed into the
-    // received stream and its messages run through the handlers; before the player has
-    // joined (state 0) only types 0 and 8, the rest of such a packet is dropped. A read past the
-    // end, a type without a handler or a refusing handler ends in the fatal error (its
-    // result returned). 0 when leaving (state 3, also after a handler) or without a link, else 1.
+    // Every packet waiting on the link is decompressed into the received stream and its messages run through
+    // the handlers; before the player has joined (state 0) only types 0 and 8, the rest of such a packet is
+    // dropped. A read past the end, a type without a handler or a refusing handler ends in the fatal error
+    // (its result returned). 0 when leaving (state 3, also after a handler) or without a link, else 1.
     int ReceiveMessages();
     // The party units (partyUnits_) recomputed: with +0x24 at -1, group50F8_ plus the
     // player's units, the units they see and what they know (the brains' +0x12C lists), and every
@@ -195,14 +190,13 @@ public:
     // -1313, redeployed (Redeploy with scripts) and the new hero's brain gets the units (class
     // 0x50) the old one knew and the old hero, each once and counted.
     void OnLeaderDied();
-    // Message 0x36, from the client's ViewOrderTarget / dead-unit order
-    // handlers). Unit ids (a count, then the ids; units missing or blocked, flag 0x800000, are
-    // left out), a flag, a kind, a value and the target object's id. With two units or more the
-    // one nearest to the order's aim point (UseOrderDistanceSquared) is asked first: the first
-    // whose controller accepts the use order (CheckOrder) or would accept it from where its
-    // path ends (CheckOrderAt; its position without a path) does it, the rest are dropped one by
-    // one; when none does, the nearest is chosen. With one unit that unit. The chosen unit's
-    // brain's Player mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
+    // Message 0x36, from the client's ViewOrderTarget / dead-unit order handlers). Unit ids (a count, then
+    // the ids; units missing or blocked, flag 0x800000, are left out), a flag, a kind, a value and the target
+    // object's id. With two units or more the one nearest to the order's aim point (UseOrderDistanceSquared)
+    // is asked first: the first whose controller accepts the use order (CheckOrder) or would accept it from
+    // where its path ends (CheckOrderAt; its position without a path) does it, the rest are dropped one by
+    // one; when none does, the nearest is chosen. With one unit that unit. The chosen unit's brain's Player
+    // mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
     int OnUseOrder();
 
     // The rest of the client's messages. Each returns 1, or 0
@@ -391,11 +385,9 @@ public:
     // A unit not yet in units_ is counted, raises the max id and is put in;
     // then the connection's slot 14. Nothing for null or a known unit.
     void AddUnit(CUnit* unit);
-    // A unit in units_ is erased, released and given to the
-    // connection's slot 14.
+    // A unit in units_ is erased, released and given to the connection's slot 14.
     void RemoveUnit(CUnit* unit);
-    // The item's id joins the recharge list unless there; the connection's
-    // slot 22.
+    // The item's id joins the recharge list unless there; the connection's slot 22.
     void ItemUsed(CEngineObject* item);
     // The recharge list emptied, then the party assigned from `source`
     // (CParty::Assign, whose result is returned).
@@ -404,15 +396,13 @@ public:
     // (CUnit::SetPlayer(null)); the walk stops at a null entry.
     void ReleaseTamedUnits();
 
-    // Ticks the objects in the list (slot 6; looked up by id through the
-    // party's slot 18 manager) and drops the ones that are gone or whose tick returned 0, then runs
-    // slot 21 of the connection.
+    // Ticks the objects in the list (slot 6; looked up by id through the party's slot 18 manager) and drops
+    // the ones that are gone or whose tick returned 0, then runs slot 21 of the connection.
     void Tick();
 
     // The embedded party (party_storage.h).
     CParty* Party() { return party_.Get(); }
-    // The connection as the server's view of it (a CPlayerServer on the server world, null for
-    // none).
+    // The connection as the server's view of it (a CPlayerServer on the server world, null for none).
     CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection_); }
 
     netlink::NetLink* link_;                    // +0x1C the connection to the player's client, null: none

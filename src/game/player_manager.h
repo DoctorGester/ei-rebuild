@@ -1,11 +1,10 @@
 #pragma once
 
-// The world's player manager (a CBaseManager of CPlayer objects, the world's +0x38, also the script
-// commands' event dispatcher ; a real virtual class);
-// player_manager.cpp, its lifetime and class virtuals in
-// Its slot 2 and 14 bodies are registered by member pointer under their own
-// names. Creating a player for a lobby session is Rebirth-patched (PlayerNumbers, reproduced
-// behind its flag); callers go through its address (PlayerCreateOriginal, rule 9).
+// The world's player manager (a CBaseManager of CPlayer objects, the world's +0x38, also the script commands'
+// event dispatcher ; a real virtual class); player_manager.cpp, its lifetime and class virtuals in Its slot 2
+// and 14 bodies are registered by member pointer under their own names. Creating a player for a lobby session
+// is Rebirth-patched (PlayerNumbers, reproduced behind its flag); callers go through its address
+// (PlayerCreateOriginal, rule 9).
 
 #include "base_manager.h"
 
@@ -24,8 +23,7 @@ public:
 
     // CBaseManager's Create, its result made 0 / 1.
     BOOL CreatePlayers();
-    // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is
-    // `type`; null when the allocation fails.
+    // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
     // A new player (type 0x300A, a free id) with a new connection from the
     // world's side-specific manager (type 0x49: a CPlayerServer or a CPlayerClient), one reference

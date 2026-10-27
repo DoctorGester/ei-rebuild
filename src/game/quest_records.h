@@ -48,8 +48,7 @@ struct QuestBriefingRecord {
     // chunk 3 the given items, string field 4 the text, chunks 5-9 the other lists
     // (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
-    // The compiler's destructor. The text, the lists from the last (each string,
-    // then the storage), the name.
+    // The compiler's destructor. The text, the lists from the last (each string, then the storage), the name.
     void Destruct();
     // The copy constructor, operator= (inlined in the vector's code) and the vector's
     // resize(n) temporary (empty strings with room for 8 bytes, empty lists), as the quest's.
@@ -93,11 +92,10 @@ static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefin
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
-    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch
-    // only; called by WinMain at startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1)
-    // and the briefings (chunk 2), each read through an archive of its own and filed under its
-    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
-    // file cannot be opened.
+    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch only; called by WinMain at
+    // startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1) and the briefings (chunk 2),
+    // each read through an archive of its own and filed under its records' names. 1; FatalError's result when
+    // the archive (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
@@ -108,10 +106,9 @@ struct QuestDatabase {
     // The destructor (database_destruct.cpp; run by the exit function). The members from the
     // last: each index's nodes and buckets, then its records and their storage.
     void Destruct();
-    // script_quest.cpp (and a copy of it; the script commands' quest
-    // lookup, QuestComplete awards the record's +0x0C). The record of quest `name`, null if none.
-    // The index's operator[] (the game's find_or_insert on a {name, null} pair) leaves a
-    // null entry for a missing name.
+    // script_quest.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
+    // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
+    // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
     QuestRecord* FindQuest(const char* name);
 
     stlp::vector<QuestRecord> quests;

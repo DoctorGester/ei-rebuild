@@ -53,29 +53,26 @@ public:
     // the circles' storage freed inline (count and capacity 0), the points SetSize(0, -1), the
     // list emptied, period 10, countdown and +0x28C 0. Returns what the map object's Create returned.
     int CreateTrap();
-    // Virtual slot 3 (Destroy; the manager's ReleaseObject / DestroyAll). The map
-    // object's Destroy, the spell released, the circles freed inline, the points
-    // SetSize(0, -1), the list emptied.
+    // Virtual slot 3 (Destroy; the manager's ReleaseObject / DestroyAll). The map object's Destroy, the spell
+    // released, the circles freed inline, the points SetSize(0, -1), the list emptied.
     void DestroyTrap();
     // Virtual slot 6 (the per-tick update). The map object's update; then,
     // on the server world (its slot 26) with a spell: a period not above 0 updates the units
     // inside; otherwise the countdown goes down by one (not below 0) and, once it is
     // not above 0, the trap fires at what is in it. Returns the map object's result.
     int UpdateTrap();
-    // An armed trap casts its spell at the living units of its sides found
-    // in its circles, when there are any. The context is fetched even when
-    // the trap is not armed.
+    // An armed trap casts its spell at the living units of its sides found in its circles, when there are
+    // any. The context is fetched even when the trap is not armed.
     void FireAtOccupants();
     // Virtual slot 56 (the world server's RemoveObject tells every object). Drops
     // every entry of the units inside that refers to `object` (the reference released and
     // cleared, the node freed; the last one empties the list as RemoveAll). Returns 0.
     int ForgetObject(CEngineObject* object) override;
 
-    // Sets the trap up from its zone record (called by the zone loader): the
-    // sides, the spell made from the record's text by the spell manager (the context's slot 22,
-    // the old one released), the position, the circles and points copied, the units
-    // inside forgotten (each reference released, the list's blocks freed), the period with the
-    // countdown at 0, and +0x28C from the record's byte.
+    // Sets the trap up from its zone record (called by the zone loader): the sides, the spell made from the
+    // record's text by the spell manager (the context's slot 22, the old one released), the position, the
+    // circles and points copied, the units inside forgotten (each reference released, the list's blocks
+    // freed), the period with the countdown at 0, and +0x28C from the record's byte.
     void SetUp(const MagicTrapRecord* record);
 
     // Called from the trap's update while the world is live, it has

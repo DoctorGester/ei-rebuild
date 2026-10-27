@@ -78,8 +78,7 @@ namespace mapspec {
 // An MFC CArray of plain elements.
 using PlainArray = mfc::CArray<std::uint8_t>;
 
-// A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one).
-// A waypoint.
+// A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one). A waypoint.
 struct Waypoint {
     Vector3 position;
     float time;                  // the look's turning time (AILook::time; chunk BBBE0003)
@@ -232,8 +231,7 @@ public:
 
     void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // "MagicTrap"
-    // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then
-    // the common ones.
+    // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then the common ones.
     void Save() override;
 
     MagicTrapRecord trap;
@@ -323,8 +321,7 @@ public:
 
     void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // "Sound"
-    // Makes the sound (when it has sounds); otherwise moves the world object and makes its
-    // effect again.
+    // Makes the sound (when it has sounds); otherwise moves the world object and makes its effect again.
     void Apply() override;
     void Save() override;           // chunk CC01
 

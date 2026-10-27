@@ -129,10 +129,9 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
-// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
-// hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
-// by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
-// `*count`.
+// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded;
+// vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved by (-k*dy, k*dx) with v at the
+// bottom, both with the current u. Appends both to `*array` at `*count`.
 void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
@@ -170,9 +169,8 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
 EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
-// Draws an indexed triangle list
-// of TL vertices under the device's critical section; with distanceFog_ set the
-// transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
+// Draws an indexed triangle list of TL vertices under the device's critical section; with distanceFog_ set
+// the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);

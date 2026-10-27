@@ -1,8 +1,7 @@
 // CObject3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
-// levers, map objects with animations; called by the zone loader, the world's object setup,
-// Lever::SetState and the unit controller): the state takes the model, one box and one name per
-// animated part, and the object's bounds around the boxes. See map_object_figures.h and
-// docs/notes/map_objects.md ("Figures").
+// levers, map objects with animations; called by the zone loader, the world's object setup, Lever::SetState
+// and the unit controller): the state takes the model, one box and one name per animated part, and the
+// object's bounds around the boxes. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "figure_manager.h"
 #include "map_object_figures.h"
 

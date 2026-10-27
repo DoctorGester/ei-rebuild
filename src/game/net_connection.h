@@ -169,9 +169,8 @@ public:
     // Builds and sends one update packet of at most `budget` entry bytes. False when
     // entries had to be left out (or the send failed).
     bool SendUpdate(int budget);
-    // Reads one entry of an update (created / changed or removed) into `records_` and
-    // calls the session's handlers (channel 0 created, 1 changed, 2 removed). False when the
-    // object could not be created.
+    // Reads one entry of an update (created / changed or removed) into `records_` and calls the session's
+    // handlers (channel 0 created, 1 changed, 2 removed). False when the object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
     // Remembers which (type, id) the received object has (attached_).
     void AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key);
@@ -202,12 +201,10 @@ public:
     // Clocks, lost packets, sending, delayed id reuse; false
     // when the peer timed out or the reliable stream overflowed.
     bool Tick(double dt);
-    // A packet arrived: the round-trip averages take its age;
-    // reliable changes it carried count as delivered, removals it carried end their entries (the
-    // id goes to the newest freed-id batch).
+    // A packet arrived: the round-trip averages take its age; reliable changes it carried count as delivered,
+    // removals it carried end their entries (the id goes to the newest freed-id batch).
     void Delivered(SentPacket* packet);
-    // 1 when the peer has been silent for longer than three average round trips (or a
-    // value is NaN), else 0.
+    // 1 when the peer has been silent for longer than three average round trips (or a value is NaN), else 0.
     int Silent() const;
     // The packet with sequence `sequence` (in the history or the acknowledged list) was
     // acknowledged: Delivered, and it leaves its list.
@@ -218,8 +215,7 @@ public:
     // Whether an update with sequence `sequence` is new (not 32 older than the newest,
     // not seen before); remembers it.
     bool Accept(std::uint32_t sequence);
-    // Appends the queued incoming reliable chunks that are next in sequence to the
-    // incoming reliable stream.
+    // Appends the queued incoming reliable chunks that are next in sequence to the incoming reliable stream.
     void ProcessHeaders();
     // Reads an update packet: sequence, acknowledgements, a reliable chunk and the
     // entries. False when an entry could not be read; true otherwise (also for a stale packet).

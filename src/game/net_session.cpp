@@ -30,8 +30,7 @@ void __cdecl InitGameClientPointer() {
     libcrt::AtExit(ReleaseGameClient);
 }
 
-// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of
-// their flags).
+// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 void __cdecl DestroySendBuffer() {
     std::uint8_t flags = g_bufferFlags;

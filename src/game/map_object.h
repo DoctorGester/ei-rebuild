@@ -44,8 +44,7 @@ struct MapEffect {
     MapEffect* Construct();
     // One tick less; whether any are left (0 / 1).
     int Tick();
-    // Type, power, ticksLeft, value and strength, read or written one by one (`ending` is not
-    // saved).
+    // Type, power, ticksLeft, value and strength, read or written one by one (`ending` is not saved).
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 };
@@ -134,8 +133,7 @@ public:
     virtual void TakePrototype(const char* prototype);
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
     virtual std::uintptr_t SetStats(const UnitStats* stats);
-    // Hands `data` to a CMapObjectServer companion. Returns what the original leaves
-    // in EAX.
+    // Hands `data` to a CMapObjectServer companion. Returns what the original leaves in EAX.
     virtual std::uintptr_t SetServerData(const void* data);
     // Empty; units: the controller's size-class virtual.
     virtual std::uintptr_t UpdateSizeClasses();
@@ -169,9 +167,8 @@ public:
     virtual Vector3* EyePoint(Vector3* out);        // where the object sees from (GroundPoint); returns `out`
     virtual std::uint32_t ReadNetState(int first);   // (units override)
     virtual void WriteNetState();      // (units override)
-    // The fields 0-3 written into / read from the DeltaState; the reader's result says whether
-    // every field's snapshot was consumed.
-    // Z = ground height at (x, y) + `offset`.
+    // The fields 0-3 written into / read from the DeltaState; the reader's result says whether every field's
+    // snapshot was consumed. Z = ground height at (x, y) + `offset`.
     virtual void PlaceOnGround(float offset);
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
@@ -184,8 +181,7 @@ public:
     virtual int ForgetObject(CEngineObject* object);
     virtual void UpdateMoveFactors();  // empty; units: the controller's UpdateMoveFactors
     virtual void RefreshWounds();      // empty; units: the controller's hit virtual
-    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0; units their forward
-    // speed.
+    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0; units their forward speed.
     virtual double MoveSpeed();
     virtual float Radius();                         // 60 (0xF0): 0.75; units' +0x328, ST0
     // 61 (0xF4): units only keep `name` in their CString +0x238 (the script name); a
@@ -234,8 +230,7 @@ public:
     // Statistics changed: a CMapObjectServer companion packs its vitals into the rounded vitals. Returns 1, or 0
     // for another companion.
     int PackVitals();
-    // A CMapObjectServer companion (class 0x39) gets the base of
-    // each protection (7 pairs) zeroed.
+    // A CMapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
     void ClearProtectionBases();
 
     // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags_;
@@ -267,8 +262,7 @@ public:
     // argument is unread.
     void FreeArray(UseSpotArray* array, int unused);
 
-    // The visibility mode virtual with mode 0 for `level` 0 (or NaN), 1 for 1, else 2. Returns
-    // its EAX.
+    // The visibility mode virtual with mode 0 for `level` 0 (or NaN), 1 for 1, else 2. Returns its EAX.
     int SetVisibilityLevel(float level);
 
     // The virtuals a plain map object leaves empty are free functions there; these read

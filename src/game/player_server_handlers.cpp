@@ -59,8 +59,7 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
-// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt
-// Are the template's members).
+// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt Are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }

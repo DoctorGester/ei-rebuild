@@ -266,8 +266,7 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const stlp::string* name
 
 FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     if (auto* found = figureSets_.Find(*name)) return found->value;
-    // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat,
-    // no length check).
+    // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat, no length check).
     char path[512];
     const char* files[3];
     const char* const suffixes[3] = {".mod", ".bon", ".anm"};

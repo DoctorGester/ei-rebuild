@@ -46,11 +46,10 @@ stlp::string* NetAddress::ToString(stlp::string* out) const {
 }
 EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
-// Advances the session clock by `dt`, then hands every datagram waiting on the
-// socket to the handler slot of its kind (its first byte) with the sender's address and a cursor
-// after that byte (an empty datagram is only logged). Then ticks every connection; one that timed
-// out is reported and removed. Counts the call in `frame_`. The current session
-// is this one meanwhile.
+// Advances the session clock by `dt`, then hands every datagram waiting on the socket to the handler slot of
+// its kind (its first byte) with the sender's address and a cursor after that byte (an empty datagram is only
+// logged). Then ticks every connection; one that timed out is reported and removed. Counts the call in
+// `frame_`. The current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
@@ -204,8 +203,7 @@ EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
-// Copies `size` bytes to the write position and moves it on (no room check); returns
-// the buffer.
+// Copies `size` bytes to the write position and moves it on (no room check); returns the buffer.
 GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     std::memcpy(cur, from, size);
     cur += size;
