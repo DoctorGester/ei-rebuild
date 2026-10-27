@@ -1,6 +1,5 @@
-// Unit AI modes: the simple virtual slots of Guard, Patrol, Sentry, Follow,
-// Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
-// targets, so every mode object of the game runs these.
+// Unit AI modes: the simple virtuals of Guard, Patrol, Sentry, Follow, Suspection, Aggression, CorpseWatcher,
+// Fear and Player.
 #include "combat.h"
 #include "game_data.h"
 #include "unit_ai.h"
@@ -37,9 +36,8 @@ constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
 
-// The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
-// kept as bytes in unit.h). Its refreshPending_ == 2 is what the modes take as the player
-// controlling the unit directly.
+// The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
+// as the player controlling the unit directly.
 inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
     return player->Server();
 }
@@ -65,12 +63,12 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
 }
 
 
-constexpr float kMoveTime = 1000000.0f;                                 // 0x49742400
+constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
 constexpr float kNearY = 80.0f;
 constexpr float kHalf = 0.5f;
-constexpr float kNoWander = -1.0f;                                      // 0xBF800000
-constexpr float kStandRadius = 5.0f;                                    // 0x40A00000
+constexpr float kNoWander = -1.0f;
+constexpr float kStandRadius = 5.0f;
 constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // (0.2)
 constexpr float kCloseSq = 25.0f;
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
@@ -131,7 +129,7 @@ void AIMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
     std::uint32_t roll = IsaacRandom::Global().Next();
-    volatile std::int64_t wide = roll;             // FILD qword of the zero-extended value
+    volatile std::int64_t wide = roll;             // the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
 }
@@ -182,7 +180,7 @@ void GuardMode::Execute(AIBrain* brain) {
         }
     }
     failures = 0;
-    float dx = order.point.x - point.x;    // FSTP float each
+    float dx = order.point.x - point.x;
     float dy = order.point.y - point.y;
     float dz = order.point.z - point.z;
     Vector3 direction;
@@ -396,7 +394,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         std::memcpy(&going, &brain->move.point, sizeof(Vector3));
         double dy = point.y - going.y;      // kept on the FPU stack
         double dx = point.x - going.x;
-        // TEST AH,0x41: jump to a new move only when the distance is greater.
+        // A new move only when the distance is greater.
         EI_NAN_AUDIT(dx, dy);
         if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
             const float* unit = &brain->owner->unit->localPosition_.x;
@@ -720,7 +718,7 @@ bool DirectControl(const AIBrain* brain) {
 void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
     std::memcpy(&self->point, to, sizeof(Vector3));
     Vector3 shifted;
-    shifted.x = to->x + offset->x;      // FSTP float each
+    shifted.x = to->x + offset->x;
     shifted.y = to->y + offset->y;
     shifted.z = to->z + offset->z;
     if (self->PathClear(brain, to, &shifted)) {

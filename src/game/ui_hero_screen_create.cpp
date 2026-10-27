@@ -1,8 +1,7 @@
 // The multiplayer hero screen's Create. Rebirth's WideScreen adds two hidden curtain sprites over the
 // screen's margins (widescreen::AddCurtains), which this does after the original's body; EI_Plugin.asi
-// patches it too (EiPluginFixes, reproduced: the figures' sex test). Nothing in the code calls it but
-// the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
-// ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
+// patches it too (EiPluginFixes, reproduced: the figures' sex test). See ui_screens.h and docs/notes/ui.md,
+// section 5. Scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete open the screen.
 #include "party.h"
 #include "stl_sorts.h"
 #include "ui.h"
@@ -76,8 +75,7 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollba
 
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
-// std::sort(begin, end) (its first level of the introsort loop does
-// the same steps as the out-of-line loop).
+// std::sort(begin, end) (its first level of the introsort loop does the same steps as the out-of-line loop).
 void SortNames(NameList& names) {
     mfc::CString* first = names.begin();
     mfc::CString* last = names.end();
@@ -96,8 +94,8 @@ void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* pr
     names.push_back(prototype->name);
 }
 
-// EI_Plugin's test (cmp word [ecx+4], 0x6566 on the name's characters): the 16 bits at +4, as the
-// plugin reads them, past a short name's end included.
+// EI_Plugin's test: the 16 bits at +4 of the model's name ("fe"), as the plugin reads them, past a short
+// name's end included.
 bool ModelNameIsFemale(const std::string& model) {
     std::uint16_t word;
     std::memcpy(&word, model.c_str() + 4, sizeof word);
@@ -110,7 +108,7 @@ void CMpHeroScreen::CreateScreen() {
     TheGameFlow()->UseResources(true);
     LoadTexture("campinfo", kTextureKind, nullptr);
     CUiModel* model = AddModel();
-    model->Load("unmoco2", "MainMenu00", "MainMenu00labels");   // "unmoco2", "MainMenu00", "MainMenu00labels"
+    model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};

@@ -37,11 +37,8 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-// The camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 } // namespace
-
-// --- Shared ---------------------------------------------------------------------------------
 
 // --- Item predicates -------------------------------------------------------------------------
 
@@ -126,7 +123,7 @@ void CUiItemStrip::SetFilter(int filter) {
     pending_ = 0.0f;
     filter_ = filter;
     velocity_ = 0.0f;
-    // Each filter has its own button texture column (+0xCC of the tab objects) and tooltips.
+    // Each filter has its own button texture column (the tab objects' texture offset) and tooltips.
     int tipBase;
     std::uint32_t column;
     switch (filter) {
@@ -239,7 +236,7 @@ int CUiItemStrip::TabOf(const CItem* item) {
 void CUiItemStrip::ScrollToItem(CItem* item) {
     if (!item) return;
     CItem* wanted = item;
-    float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
+    float found = -1.0f;   // the list index of the last match (stored as float)
     list_.SetSize(0, -1);
     // The original inlines the array's SetSize in the second loop.
     auto append = [&](CItem* entry) {
@@ -356,7 +353,6 @@ void CForwardingStrip::OnLButtonDownForward(int flags, int x, int y) {
     if (item) OwnerTakeItem(item);
 }
 
-// Entry points on the input sub-object.
 EI_REWRITTEN(0x00620E10, CUiItemStrip::OnLButtonDown);
 EI_REWRITTEN(0x00621010, CUiItemStrip::OnLButtonUp);
 EI_REWRITTEN(0x00620F10, CUiItemStrip::OnMouseMove);
@@ -370,7 +366,7 @@ int HeroSchoolSkill(UnitStats* stats, int school) {
 }
 
 int HeroManaUnits(UnitStats* stats) {
-    // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
+    // The maximum is stored as a float before the division; the quotient is not rounded.
     float maximum = static_cast<float>(stats->ManaCurve());
     return static_cast<int>(gamecrt::Ftol(maximum / stats->Period20()));
 }
@@ -463,7 +459,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     if (voiceTop_ > selected) voiceTop_ = selected;
     voiceScroll_->SetPosition(voiceTop_);
     voiceScroll_->TakePosition(&voiceTop_);
-    // Each voice is {file, name}; the hero keeps the file name at +0x18.
+    // Each voice is {file, name}; the hero keeps the file name in texts[6].
     const mfc::CString& file = voices_->begin()[voiceIndex_].file;
     HeroRecord()->texts[6] = file;
     DrawVoices();
@@ -476,7 +472,7 @@ double CMpHeroScreen::EquipmentWeight() {
     if (weapon_) weight = weapon_->Weight();
     if (armor_) weight += armor_->Weight();
     if (spellContainer_) weight += spellContainer_->Weight();
-    // The original reads the list at +0x750 (armorCount / armor) as the quick items.
+    // The original reads the armour list as the quick items.
     int count = static_cast<int>(hero->armorCount);
     CItem** quick = hero->armor;
     for (int i = 0; i < count; ++i)

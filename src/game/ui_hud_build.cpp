@@ -1,10 +1,9 @@
-// The battle screen's weapon bar, quick items, spell column and action column: the four
-// constructors, the functions that add a slot's sprite
-// and the weapon bar's highlight. Rebirth
-// patches all nine for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
-// the weapon bar and the action column at the screen's left edge, the quick items and the spell
-// column at its right (the panel offset while some of them run, layout constants moved by
-// EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
+// The battle screen's weapon bar, quick items, spell column and action column: the four constructors, the
+// functions that add a slot's sprite and the weapon bar's highlight. Rebirth patches all nine for its
+// WideScreen layout, reproduced behind the flag (ui_widescreen.h): the weapon bar and the action column at
+// the screen's left edge, the quick items and the spell column at its right (the panel offset while some of
+// them run, layout constants moved by EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and
+// docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 #include "game_strings.h"
 
@@ -126,7 +125,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
-        float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;   // 40, 100
+        float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular_ = kColourOn;
@@ -155,8 +154,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
-        // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and
-        // pi * 0.75.
+        // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
         Quaternion first, second, third;
         first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f /*00742804*/));
         second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f /*00742800*/));
@@ -278,8 +276,7 @@ EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
-    // WideScreen (addon's handler): the panel offset from here on, the
-    // rectangle less the shift.
+    // WideScreen (addon's handler): the panel offset from here on, the rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
     rect_ = {-shift, 250, 40 - shift, 510};
