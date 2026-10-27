@@ -80,10 +80,9 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     if (host) record->host_ = 1;
 
-    std::uint32_t announcement = 0;   // CString
+    mfc::CString announcement(mfc::CString::kUnset);   // constructed by the call
     mfc::CString* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(formatted->GetString(), nullptr);
-    reinterpret_cast<mfc::CString*>(&announcement)->~CString();
 }
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
 

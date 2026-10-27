@@ -340,8 +340,8 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {
 void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
-    reinterpret_cast<CParty*>(&self->parties_[0])->Clear(1, 0);
-    reinterpret_cast<CParty*>(&self->parties_[1])->Clear(1, 0);
+    self->parties_[0].Get()->Clear(1, 0);
+    self->parties_[1].Get()->Clear(1, 0);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.

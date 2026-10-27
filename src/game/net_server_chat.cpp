@@ -54,10 +54,9 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 
 // Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
-    std::uint32_t line = 0;   // CString
+    mfc::CString line(mfc::CString::kUnset);   // constructed by the call
     mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);
     Announce(formatted->GetString(), player);
-    reinterpret_cast<mfc::CString*>(&line)->~CString();
 }
 
 EI_REWRITTEN(0x0041A310, ServerSession::Announce);
