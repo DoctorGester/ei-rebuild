@@ -1,11 +1,5 @@
-// CParticleSource set-up: Create, Reset and Clear. Names are provisional. Create resets the source, then fills
-// the per-type parameters by `type_` (0x2000-0x2052; the script names are a table in the game's data):
-// emission rates, lifetime, spread, sizes, the three callbacks (emit, update, element), the element array
-// some types keep, and the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle
-// per texture frame (the frames are a grid of `frameColumns` columns). The callbacks are member pointers to
-// our rewrites (CParticleSource's EmitCallback, UpdateCallback, ElementCallback: plain code addresses, as in
-// the original). Floating point follows the original's x87 code: `double` for values the original keeps on
-// the FPU stack, static_cast<float> where it stores to a float.
+// CParticleSource set-up: Create, Reset and Clear.
+// More: docs/notes/comments-c22i.md, "particle_create.cpp".
 #include "effects.h"
 #include "map_object_figures.h"
 #include "texture.h"

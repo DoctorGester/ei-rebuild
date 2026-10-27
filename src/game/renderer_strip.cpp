@@ -1,11 +1,6 @@
-// The renderer's ribbon draw
-// with its helpers (indexed draw of TL vertices, one ribbon cross
-// section, the direction at a point). A polyline of world points is projected (by the transform
-// object's point projection, with clipping flags when asked), and every point becomes a
-// pair of screen vertices offset across the line's screen direction by width * rhw * 15, with the
-// texture's u running along the ribbon and v across it; consecutive pairs make two triangles. The
-// ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
-// function-local statics. See docs/notes/models.md ("Renderer").
+// The renderer's ribbon draw with its helpers (indexed draw of TL vertices, one ribbon cross section, the
+// direction at a point).
+// More: docs/notes/comments-c22i.md, "renderer_strip.cpp".
 #include "clip.h"
 #include "device.h"
 #include "model.h"

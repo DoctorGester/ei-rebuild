@@ -1,11 +1,5 @@
-// The options object's constructor. The static initialiser runs it on
-// the global before WinMain (and registers the destructor with atexit), so the
-// constructor has already run when the hooks install.
-// These are not the defaults the game plays with: OptionsResetDefaults is called
-// before the registry is read, and that sets most of them again (640 x 480 and so on). What stays
-// from here: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
-// layout, both lights' radius and a few values the defaults function does not touch. The master server's name
-// stays empty.
+// The options object's constructor.
+// More: docs/notes/comments-c22i.md, "options_construct.cpp".
 #include "options.h"
 #include "game_strings.h"
 

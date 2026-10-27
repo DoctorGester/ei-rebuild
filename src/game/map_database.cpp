@@ -1,13 +1,6 @@
-// The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled
-// from map.txt / map-LMP.txt.
-// The file is read line by line through the text manager and split into words. Lines
-// starting with a directive word set the current record:
-//   #allod <name>, then 5 lines with one word each (the allod's other names)
-//   #zone <name> <allod> <game|brief|edge>       a new map, the current one from here
-//   #res, #camera, #maps, #figure (each followed by a line of words), #weather, #cage, #restrict,
-//   #sky                                         fields of the current map
-//   #exit (then "<target> <n>")                  a new exit of the current map
-//   #deploy, #remove, #passtime, #view, #deployangle   fields of the current exit
+// The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
+// LMP.txt.
+// More: docs/notes/comments-c22i.md, "map_database.cpp".
 #include "item_db_text.h"
 #include "angles.h"
 #include "game_strings.h"

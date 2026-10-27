@@ -1,12 +1,9 @@
-// Rebirth's PersistentGlobalVars (addon.dll 1001E3C1), reproduced behind its flag: where the game
-// empties a variable table, the "gvar." entries survive. addon copies them into an
-// std::unordered_map<std::string, float> of its own compiler (MSVC 2010: FNV-1 over every
-// (len / 10 + 1)-th character, 8 buckets growing by 8 at a load factor above 1, nodes kept in one
-// list with each bucket's range in it), lets the game clear the table, then sets the
-// entries again in the order of that list. The order decides the order of the entries
-// in the game's hash chains (and so in saves and in listings), so the container is reproduced
-// here exactly: AddonStringMap below is that unordered_map's insert, find and rehash.
-// See docs/notes/rebirth.md ("PersistentGlobalVars").
+// Rebirth's PersistentGlobalVars (addon.dll 1001E3C1), reproduced behind its flag: where the game empties a
+// variable table, the "gvar." entries survive. addon copies them into an std::unordered_map<std::string,
+// float> of its own compiler (MSVC 2010: FNV-1 over every (len / 10 + 1)-th character, 8 buckets growing by 8
+// at a load factor above 1, nodes kept in one list with each bucket's range in it), lets the game clear the
+// table, then sets the entries again in the order of that list.
+// More: docs/notes/comments-c22i.md, "persistent_globals.cpp".
 #include "object_tables.h"
 
 #include "ei/hook.h"

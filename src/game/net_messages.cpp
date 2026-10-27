@@ -1,12 +1,7 @@
-// The network message classes (net_messages.h) and the message base: for each class its factory,
-// constructor, copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's
-// server entry (net_classes.h; no factory). See docs/notes/network.md and
-// docs/notes/cleanup-network.md.
-// The original inlines several STLport copies of the same string and vector code (copy
-// construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,
-// assignment from a C string); they are reproduced here through one helper each, with the same
-// allocations in the same order. The reset slots end with the inlined placement new's null test
-// of `this`, which cannot fail here and is left out.
+// The network message classes (net_messages.h) and the message base: for each class its factory, constructor,
+// copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's server entry
+// (net_classes.h; no factory).
+// More: docs/notes/comments-c22i.md, "net_messages.cpp".
 #include "net_messages.h"
 #include "game_lists.h"
 #include "net_connection.h"

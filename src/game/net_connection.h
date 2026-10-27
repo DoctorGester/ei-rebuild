@@ -1,16 +1,8 @@
 #pragma once
 
-// A connection of a network session to one peer (0x1168 bytes; constructor
-// created by SessionBase::AddClient) and the object replication it runs.
-// Names are provisional; see docs/notes/network.md.
-// Replication: every replicated object (a Message, whose version changes with it) is tracked by a
-// ReplicaEntry in one of 11 priority maps. Each update packet carries, highest priority first, the
-// entries whose object version differs from the version last sent (a 1 bit, type, id, then the
-// object's own Write) or whose object went away (a 0 bit, type, id). Every packet is remembered in
-// the send history with what it carried, so an acknowledgement (or its absence) can mark entries as
-// delivered or resend them. A reliable byte stream (reliableOut_, reliableIn_) travels in front of
-// the entries in chunks of up to 255 bytes ("headers"). The peer keeps the objects it received in
-// `records_` (key type << 16 | id).
+// A connection of a network session to one peer (0x1168 bytes; constructor created by SessionBase::AddClient)
+// and the object replication it runs.
+// More: docs/notes/comments-c22i.md, "net_connection.h".
 #include "core_refcount.h"
 #include "net_classes.h"
 #include "net_coder.h"

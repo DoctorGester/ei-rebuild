@@ -1,19 +1,7 @@
 #pragma once
 
-// The game's binary registry files (*.reg: quests, item databases, settings), read through
-// CFileRegistry. Names come from the game's own messages
-// ("CFileRegistry::FindData().\nWrong type of entry.").
-// File layout (all offsets from the start of the file):
-//   +0x00 u32 magic 0x45AB3EFB
-//   +0x04 u16 section count = size of the section hash table
-//   +0x06 the section table, 6 bytes per slot: u16 next slot in the chain (0xFFFF ends it),
-//         u32 offset of the section
-// A section: u16 key count (its hash table size), u16 name length, the name (no terminator),
-// then its key table (6-byte slots like the section table, offsets from the section).
-// A key: u8 type, u16 name length, the name, then the value. Types: 0 int, 1 float, 2 string
-// (u16 length + characters), 0x80/0x81/0x82 arrays of them (u16 count first).
-// A name's home slot is (sum of tolower(c) over its signed characters) % table size; names
-// compare case-insensitively over their stored length.
+// The game's binary registry files (*.reg: quests, item databases, settings), read through CFileRegistry.
+// More: docs/notes/comments-c22i.md, "registry.h".
 
 #include <cstdint>
 
