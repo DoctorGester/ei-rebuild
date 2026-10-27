@@ -16,7 +16,7 @@ const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registr
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
 // _ftol of a float: FLD, then the game's _ftol (truncates).
-int FloatToInt(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
+int FloatToInt(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
     std::uint16_t v;
@@ -28,6 +28,13 @@ std::uint32_t U32(const std::uint8_t* p) {
     std::memcpy(&v, p, 4);
     return v;
 }
+float F32(const std::uint8_t* p) {
+    float v;
+    std::memcpy(&v, p, 4);
+    return v;
+}
+// The text bytes at `p` (names and strings are stored inline, without a terminator).
+const char* Chars(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
 
 // The home slot of `name` in a table of `slots` entries.
 std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
@@ -133,7 +140,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = root + 6 + 6 * (slot & 0xFFFF);
         record = data_ + U32(entry + 2);
         if (U16(record + 2) == static_cast<std::uint16_t>(sectionLength) &&
-            libcrt::Memicmp(reinterpret_cast<const char*>(record + 4), section, sectionLength & 0xFFFF) == 0)
+            libcrt::Memicmp(Chars(record + 4), section, sectionLength & 0xFFFF) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;
@@ -149,7 +156,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = keyTable + 6 * (slot & 0xFFFF);
         value = record + U32(entry + 2);
         if (U16(value + 1) == static_cast<std::uint16_t>(keyLength) &&
-            libcrt::Memicmp(reinterpret_cast<const char*>(value + 3), key, keyLength & 0xFFFF) == 0)
+            libcrt::Memicmp(Chars(value + 3), key, keyLength & 0xFFFF) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;
@@ -174,7 +181,7 @@ BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     out->SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
-        (*out)[i] = mfc::CString(reinterpret_cast<const char*>(record + 4), U16(record + 2));
+        (*out)[i] = mfc::CString(Chars(record + 4), U16(record + 2));
     }
     return 1;
 }
@@ -184,7 +191,7 @@ int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
         return static_cast<int>(U32(value));
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
-        return FloatToInt(reinterpret_cast<const float*>(value));
+        return FloatToInt(F32(value));
     return defaultValue;
 }
 EI_REWRITTEN(0x00694B90, CFileRegistry::GetInt);
@@ -196,7 +203,7 @@ EI_REWRITTEN(0x00694BE0, CFileRegistry::GetInt2);
 
 double CFileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
-        return *reinterpret_cast<const float*>(value);
+        return F32(value);
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
         return static_cast<int>(U32(value));
     return defaultValue;
@@ -205,7 +212,7 @@ EI_REWRITTEN(0x00694C80, CFileRegistry::GetFloat);
 
 mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        mfc::CString text(reinterpret_cast<const char*>(value + 2), U16(value));
+        mfc::CString text(Chars(value + 2), U16(value));
         text::FromAssetText(&text);
         std::string result = text.GetString();
         return result;
@@ -219,7 +226,7 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
         // EI_UTF8: the UTF-8 text is cut to the buffer at a character's end (without it the bytes, the
         // asset's 16-bit length).
-        const std::string string = text::FromAssetText(std::string_view(reinterpret_cast<const char*>(value + 2), U16(value)));
+        const std::string string = text::FromAssetText(std::string_view(Chars(value + 2), U16(value)));
         int count;
         if constexpr (text::kUtf8) {
             count = static_cast<int>(text::FittingBytes(string, static_cast<std::size_t>(*length - 1)));
@@ -265,7 +272,7 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
     out->SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         std::uint16_t length = U16(value);
-        mfc::CString text(reinterpret_cast<const char*>(value + 2), length);
+        mfc::CString text(Chars(value + 2), length);
         text::FromAssetText(&text);
         (*out)[i] = text;
         value += length + 2;
