@@ -24,18 +24,12 @@
 
 namespace {
 
-// The object's world; the sector map's units in a radius (position, list, radius), Remove, Add; the AI map's
-// refresh,
-// cell tests (CanLeaveCell, FindFreeCellNear (unit, from, out)); the figure's animation (model name); MarkChanged
-// (part); the unit's controller resync (on +0x240).
-
 } // namespace
 
 void Lever::SetState(int wanted, float duration) {
-    // FCOMP + TEST AH,1: a negative duration takes the model's default.
+    // A negative duration takes the model's default.
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
-        // The model's record by name: the table's operator[] (an unknown name gets a null entry).
         const LeverRecord* record = TheLeverTable().Named(name);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
@@ -53,10 +47,9 @@ void Lever::SetState(int wanted, float duration) {
         current = chosen <= 0 ? 0 : chosen;
     }
 
-    // Only on the server.
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
-    mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
+    mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
@@ -72,7 +65,6 @@ void Lever::SetState(int wanted, float duration) {
 
     states = stateCount;
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
-    // FCOMP + TEST AH,0x41: timed only for a duration above zero.
     if (duration > 0.0f) {
         to = travel;
         std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
@@ -110,7 +102,7 @@ void Lever::SetState(int wanted, float duration) {
 EI_REWRITTEN(0x0052B7A0, Lever::SetState);
 
 void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
-    // CArray::RemoveAll, inlined.
+    // out->RemoveAll().
     if (out->data) {
         gamecrt::operator_delete(out->data);
         out->data = nullptr;
@@ -127,7 +119,6 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         float along = spot[0];
         float across = spot[1];
         float length = static_cast<float>(std::sqrt(across * across + along * along));
-        // FCOM 0.0; TEST AH,0x41: normalised only for a length above zero.
         if (length > 0.0f) {
             along = along / length;
             across = across / length;

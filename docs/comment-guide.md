@@ -72,7 +72,8 @@ after:
 ## The mechanical part: tools/comments.py
 
 - `python tools/comments.py stats [--files] [PATH...]` counts per area (or file): comment lines,
-  addresses in comments, ticket ids, "the original" / "game.exe", history words.
+  addresses in comments, ticket ids, "the original" / "game.exe", history words. With `--kinds`, the
+  removal pass's candidate kinds instead (see "Removal pass", "Measuring").
 - `python tools/comments.py apply [PATH...]` rewrites `//` comments in place by rule: a comment that is
   only addresses / ticket ids goes (its line too when it stands alone); an address header at the start
   ("006E3DC0 (RET 4). The name ...") goes; a parenthesis of only addresses / ticket ids goes; ticket
@@ -111,3 +112,182 @@ trailing "// (file.cpp)" and "RET 4" / "ECX p" fragments. Read each file and rew
 rename, move or reformat code; don't add new comments to code that has none unless the
 code is unreadable without one (then one line); don't delete a comment that holds a real why only
 because it mentions the original: rewrite it.
+
+## Removal pass
+
+The passes above reworded comments; they removed few (47,951 -> 43,258 comment lines). The removal pass
+deletes what a reader of the code does not need. Ask of each comment: does it tell something the
+name, the types and the code beside it do not? If not, delete it; if partly, cut it to that part. A
+declaration's comment says what the function is for and what a caller must know (a side effect, a
+result that matters, units, a quirk); the steps belong to the body, which shows them. When in doubt
+about a fact (a why, a quirk, a layout), keep it, shortened.
+
+### What to delete
+
+1. **Comments that restate the name or the code.** `// Stores the wind direction and strength.` over
+   `void SetWind(const Vector3* direction, float strength);`, `// The fog start for `hour`.` over
+   `float FogStart(float hour)`, `// Only on the server.` over `if (!world->IsServer()) return;`,
+   `// CR LF` after `TrimRight("\r\n")`, a constructor's or destructor's comment that lists what its
+   body assigns or calls, `// "CItemArmor"` after a `GetClassName()` declaration.
+2. **The same comment twice.** A function commented at its declaration and again at its definition
+   keeps one: the header's for what it does, the definition's only for a why the body needs.
+3. **Member-offset trailers and offsets in prose** (`// +0x1C ...`, "(CUnit +0x334)", "+0xCC").
+   Drop the offset; keep the words after it when they say something the member name does not, and
+   name members instead of offsets (`scale.z`, not `+0xCC`). Offsets stay only where the layout is
+   still real: the code reads by offset (options.h's `field` constants), or the bytes leave the process
+   or come from game.exe's data image (records read or written as raw bytes, network packets). Field
+   and chunk ids of a file format stay (they are the format); `static_assert`s are code, not comments.
+4. **Slot numbers.** `// 26` after a virtual, `// 9: LoadLever`, "Virtual slot 31 (...):",
+   "Slots 11 / 12:". The virtual's name is the reference. They stay only where code still indexes a
+   vtable or builds one by number (compiled_vtable.h, mfc_slots.h, game_slots.h, game_data.h's slot
+   helpers, a `Vtable()` table) until those are converted.
+5. **Registers and instructions.** "in ST0", "(EAX)", "AL = 1", "Callers test AL", "FCOMP + TEST
+   AH,0x41: ...", "RET 4", "__fastcall", "(inlined)". Keep the behaviour they imply when the code does
+   not show it ("a NaN counts as night"), without the instruction.
+6. **Number trailers that repeat the literal.** `#define EI_TEN 10.0f /*0073CB98*/ // 10.0`,
+   `return 220.0f /*00742AE4*/; } // 220`. A trailer that decodes bits stays (`0x3D23D70A); // 0.04f`);
+   the `/*0073CB98*/` tags are not comments to touch.
+7. **File pointers.** `class CStream;   // core_streams.h`, "(lever_table_load.cpp)", "unit_lever.cpp:
+   SetState, CollectUseSpots; lever_object.cpp the rest". Grep finds them. The file header keeps its one
+   pointer to docs/notes.
+8. **Rulers** that are bare (`// -----`, `// --- ------`) or titled with the one function that follows
+   (`// --- Close ---`). Rulers that name a group of functions in a long file stay.
+9. **Stale claims from the hook era.** "Not rewritten", "through its address", "before the hooks are
+   installed, so the hook never fires", "Rebirth patches it, so the vanilla launch only", "while it runs
+   inside game.exe", "Names provisional", "a real virtual class: the compiler makes its vtable". All
+   game code is ours and runs in the standalone image: say what is true now, or delete.
+10. **"As the original" with nothing behind it**, and "like the original" after a statement that is
+    plainly the behaviour. A quirk kept on purpose stays ("a count above 2 reads on into the record").
+11. **Caller and callee lists**, sizes ("0x2C bytes") nothing depends on, "Returns this." where the
+    type says it, and leftovers: a line that repeats the end of the line above, "// Small slots.", a
+    callee list left in an empty namespace, a lone "(file.cpp)".
+
+### What to move to docs/notes
+
+A comment block of 8 lines or more (`long blocks`) that describes a subsystem, research or the
+original's behaviour at large goes to the area's notes file (docs/notes/<area>.md) under a heading, and
+the source keeps a one-line pointer ("See docs/notes/renderer.md, "Smooth option"."). Move, don't lose:
+every fact lands in the notes or stays. What a reader of that one function needs stays at the function.
+
+### What must stay
+
+Everything in "What stays" above, in particular: why an x87 order, a stored double or a `rand()` draw
+must stay; quirks of the original kept on purpose; save, packet and file layouts (field order, chunk
+ids, offsets of raw records); units and ranges; Rebirth fixes and their flags; `TODO(ID)`; the rdata
+tags; `} // namespace`. Trailers that give a member a meaning its name lacks stay, without the offset
+(`float rate; // 1 / duration (0: no move)`).
+
+### Re-wrap
+
+Re-wrap every block you touch to about 110 columns; earlier passes left half-empty lines (`rewrap`
+counts the lines a re-wrap saves).
+
+### Examples (the pilot, lever.h)
+
+Before:
+
+```cpp
+class CStream;   // core_streams.h
+...
+    mfc::CString name;          // +0x00 (field 0)
+    float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
+...
+    LeverRecord* begin;             // +0x00
+...
+    // (lever_table_load.cpp). The constructor: no records, an empty index of 193
+    // buckets (the prime after 100). It runs from a static initialiser on the table,
+    // before the hooks are installed, so the hook on it never fires. Returns this.
+    LeverRecordTable* Construct();
+...
+    // The map object, the lock {1, 0, 0}, the map object's Create,
+    // the animation cleared, 6 network fields, then the lock again, state 0 of 1, not
+    // cycling, both flags 0.
+    Lever();
+    // The map object's Destroy, then its destructor.
+    ~Lever() override;
+...
+    void Load(CStream* stream) override;                      // 9: LoadLever
+    bool IsSynchronised() override { return Slot29True(); }        // 29
+...
+    // Slots 9 / 10. The map object part, then
+    // state, count, cycling, the lock (three dwords; LockKey's Load / Save) and both flag bytes.
+    void LoadLever(CStream* stream);
+...
+    // Small slots.
+    bool Slot29True();                  // AL = 1
+    // The radius (+0x134), in ST0.
+    double RadiusSlot();
+...
+    float rate;                     // +0x25C 1 / duration (0: no move)
+```
+
+After:
+
+```cpp
+class CStream;
+...
+    mfc::CString name;          // field 0
+    float farScale;             // field 3: the spots' distance factor when scale.z is 1
+...
+    LeverRecord* begin;
+...
+    // No records, an empty index of 193 buckets (the prime after 100). Returns this.
+    LeverRecordTable* Construct();
+...
+    Lever();
+    ~Lever() override;
+...
+    void Load(CStream* stream) override;
+    bool IsSynchronised() override { return Slot29True(); }
+...
+    // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
+    // both flag bytes.
+    void LoadLever(CStream* stream);
+...
+    bool Slot29True();
+    double RadiusSlot();
+...
+    float rate;                     // 1 / duration (0: no move)
+```
+
+In a body (unit_lever.cpp) the instruction note goes, the condition says it; the dword copy's note
+stays (it keeps a NaN's bits, which a float assignment need not):
+
+```cpp
+    // FCOMP + TEST AH,0x41: timed only for a duration above zero.     <- deleted
+    if (duration > 0.0f) {
+        to = travel;
+        std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
+```
+
+The pilot (lever.h, lever_object.cpp, unit_lever.cpp) went from 140 to 72 comment lines. Headers full of
+offset and slot trailers lose 40-50%, .cpp files 15-25%.
+
+### Measuring
+
+`python tools/comments.py stats --kinds [--files] [PATH... | --batch ID]` counts, per area or file:
+
+| column | what it counts |
+| --- | --- |
+| offset trailers | a comment after code that starts with `+0xNN` |
+| offset mentions | other comments holding `+0xNN` |
+| slot mentions | "slot N", "slots N", "vtable slot" |
+| number trailers | a comment after code that is only a number (`// 26`, `// 0.8`, `// 10: empty`) |
+| rulers | bare rulers and rulers titled with one word |
+| registers | ST0, EAX..ESP, AL, RET n, calling conventions, "thunk", "inlined" |
+| file trailers | `// file.h` after a forward declaration, `// "Name"` after a GetClassName |
+| stale claims | "not rewritten", "game.exe's code", "inside game.exe", "the hook build", "hooked" |
+| bare original | a comment ending in "as / like the original (does)" |
+| long blocks | lines in own-line comment blocks of 8 lines or more (docs/notes candidates) |
+| rewrap | lines a re-wrap of the prose blocks at 110 columns saves |
+
+The counts are candidates, not verdicts (a kept save layout still counts). A batch reports its files'
+`stats --kinds` total before and after; it is done when the kinds are near zero except the kept ones
+and the comment lines are down by about a third.
+
+### A removal batch
+
+As "A batch" above (merge, `work.py start`, file by file, the whole file read before its one edit pass,
+comments only), with this section as the rules. Notes that long blocks move to go in the same commit as
+their files. Check: `python tools/comments.py samecode main` clean (0 files with more than comment
+changes) every ~10 files and at the end, `build.cmd release` once before the last commit, no game runs.

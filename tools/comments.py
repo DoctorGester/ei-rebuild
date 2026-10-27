@@ -1,6 +1,7 @@
 """Comment cleanup (C22, docs/comment-guide.md): counts, the mechanical rewrites, and a ratchet.
 
-  python tools/comments.py stats [PATH...]     per-area (or per-file with --files) counts
+  python tools/comments.py stats [PATH...]     per-area (or per-file with --files) counts; --kinds: the removal
+                                               pass's candidate kinds (docs/comment-guide.md, "Removal pass")
   python tools/comments.py apply [PATH...]     the mechanical rules on // comments, in place
   python tools/comments.py list  [PATH...]     every comment line that still holds an address or a ticket id
   python tools/comments.py check [--update]    fails when a file's counts go above config/comment_baseline.csv
@@ -56,6 +57,85 @@ PAREN_HEAD = re.compile(r'(?<=\()\s*' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')
 HISTORY_RX = re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
                         r'formerly|previously|registration)\b')
 ORIGINAL_RX = re.compile(r'(?i)\bthe original\b|\bgame\.exe\b')
+
+
+# The removal pass's kinds (docs/comment-guide.md, "Removal pass"), counted by `stats --kinds`. Each is a
+# candidate count, not a verdict: the pass reads the comment and decides.
+OFFSET_TRAILER = re.compile(r'//\s*\+0x[0-9A-Fa-f]+\b')                      # int x;   // +0x1C ...
+OFFSET_MENTION = re.compile(r'\+\s?0x[0-9A-Fa-f]+\b')                        # "... (CUnit +0x334) ..."
+SLOT_MENTION = re.compile(r'(?i)\bslots?\s+\d+|\bvtable slot')               # "slot 9", "(vtable slot 2)"
+NUMBER_TRAILER = re.compile(r'//\s*~?-?[\d.]+(?:\s*/\s*\d+)?f?(?:\s*:.*)?')   # virtual ...;   // 26   /   0.8f;   // 0.8
+RULER_BARE = re.compile(r'//[-=*#_~/ ]{3,}')                                 # // ------------
+RULER_ONE_WORD = re.compile(r'//\s*-{2,}\s*[\w:~]+\s*-{2,}\s*')              # // --- Close ---------
+REGISTER_RX = re.compile(r'\b(?:ST0|EAX|ECX|EDX|ESI|EDI|EBX|EBP|ESP|AL|RET \d+|RET n|__thiscall|__stdcall|'
+                         r'__fastcall|__cdecl|thunk|inlined)\b')
+FILE_TRAILER = re.compile(r'//\s*(?:[\w/]+\.(?:h|cpp)|"[^"]*")')              # class X;   // x.h   /   // "CItem"
+DECLARATION = re.compile(r'\s*(?:(?:class|struct|union|enum)\b[^{]*;|.*\bGetClassName\b.*)\s*$')
+STALE_RX = re.compile(r"(?i)not (?:yet )?rewritten|not ported|game\.exe's code|still (?:the original|game\.exe)|"
+                      r"inside game\.exe|the hook build|hooked\b")
+BARE_ORIGINAL = re.compile(r'(?i)(?:as|like) (?:in )?the original(?: does| did| game)?\)?[.;]?\s*$')
+LONG_BLOCK = 8          # an own-line block this long is a docs/notes candidate
+WRAP = 110
+
+
+def removal_kinds(text):
+    """Counts of the removal pass's candidate kinds in one file (zeros for a generated one)."""
+    c = dict.fromkeys(['offset trailers', 'offset mentions', 'slot mentions', 'number trailers', 'rulers',
+                       'registers', 'file trailers', 'stale claims', 'bare original', 'long blocks', 'rewrap'], 0)
+    if GENERATED.search(text[:600]):
+        return c
+    block, last_line = [], -2
+    blocks = []
+    for s, e in line_comments(text):
+        line_start = text.rfind('\n', 0, s) + 1
+        code = text[line_start:s]
+        body = text[s:e].rstrip()
+        own = not code.strip()
+        if own:
+            n = text.count('\n', 0, s)
+            if block and n == last_line + 1 and code == block[-1][0]:
+                block.append((code, body))
+            else:
+                if block:
+                    blocks.append(block)
+                block = [(code, body)]
+            last_line = n
+        if not own and OFFSET_TRAILER.match(body):
+            c['offset trailers'] += 1
+        elif OFFSET_MENTION.search(body):
+            c['offset mentions'] += 1
+        if SLOT_MENTION.search(body):
+            c['slot mentions'] += 1
+        if not own and NUMBER_TRAILER.fullmatch(body):
+            c['number trailers'] += 1
+        if own and (RULER_BARE.fullmatch(body) or RULER_ONE_WORD.fullmatch(body)):
+            c['rulers'] += 1
+        if REGISTER_RX.search(body):
+            c['registers'] += 1
+        if not own and FILE_TRAILER.fullmatch(body) and DECLARATION.fullmatch(code):
+            c['file trailers'] += 1
+        if STALE_RX.search(body):
+            c['stale claims'] += 1
+        if BARE_ORIGINAL.search(body):
+            c['bare original'] += 1
+    if block:
+        blocks.append(block)
+    for b in blocks:
+        if len(b) >= LONG_BLOCK:
+            c['long blocks'] += len(b)
+        # Prose blocks only: every line "// text", no rulers, lists or indented lines after the first.
+        if len(b) < 2 or not all(re.match(r'// \S', body) for _, body in b) or \
+                any(re.match(r'// (?:-{2,}|={2,}|\d+[.)] |[-*] )', body) for _, body in b[1:]):
+            continue
+        width = WRAP - len(b[0][0]) - 3
+        lines, cur = 1, 0
+        for w in ' '.join(body[3:] for _, body in b).split():
+            if cur and cur + 1 + len(w) > width:
+                lines, cur = lines + 1, len(w)
+            else:
+                cur = cur + 1 + len(w) if cur else len(w)
+        c['rewrap'] += max(0, len(b) - lines)
+    return c
 
 
 def sources(paths):
@@ -147,24 +227,31 @@ def area(r):
     return '/'.join(parts[:2]) if len(parts) > 2 else r
 
 
-def cmd_stats(paths, per_file):
+def cmd_stats(paths, per_file, kinds):
+    """The counts per area (or file); with `kinds`, the comment lines and the removal pass's kinds."""
+    def counts(text):
+        c = count(text)
+        if kinds:
+            c = {'comment lines': c['comment lines'], **removal_kinds(text)}
+        return c
     rows = {}
     for p in sources(paths):
         key = rel(p) if per_file else area(rel(p))
-        c = count(read(p))
+        c = counts(read(p))
         acc = rows.setdefault(key, dict.fromkeys(c, 0))
         for k, v in c.items():
             acc[k] += v
-    keys = list(count(''))
-    print(f'{"":40} ' + ' '.join(f'{k:>20}' for k in keys))
+    keys = list(counts(''))
+    widths = [max(len(k), 7) if kinds else 20 for k in keys]
+    print(f'{"":40} ' + ' '.join(f'{k:>{w}}' for k, w in zip(keys, widths)))
     total = dict.fromkeys(keys, 0)
     for key in sorted(rows):
         if per_file and not any(rows[key][k] for k in keys[1:]):
             continue
-        print(f'{key:40} ' + ' '.join(f'{rows[key][k]:>20,}' for k in keys))
+        print(f'{key:40} ' + ' '.join(f'{rows[key][k]:>{w},}' for k, w in zip(keys, widths)))
         for k in keys:
             total[k] += rows[key][k]
-    print(f'{"total":40} ' + ' '.join(f'{total[k]:>20,}' for k in keys))
+    print(f'{"total":40} ' + ' '.join(f'{total[k]:>{w},}' for k, w in zip(keys, widths)))
 
 
 def cmd_apply(paths):
@@ -276,7 +363,7 @@ def main(argv):
         rest = rest[:i] + batch_files(rest[i + 1]) + rest[i + 2:]
     paths = [a for a in rest if not a.startswith('--')]
     if cmd == 'stats':
-        cmd_stats(paths, '--files' in rest)
+        cmd_stats(paths, '--files' in rest, '--kinds' in rest)
     elif cmd == 'apply':
         cmd_apply(paths)
     elif cmd == 'list':

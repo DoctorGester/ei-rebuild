@@ -20,7 +20,7 @@
 #include <initializer_list>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // windows.h's macro would rename CEngineObject::GetClassName
 
 namespace {
 constexpr int kLeverNetFields = 6;
@@ -103,7 +103,6 @@ EI_REWRITTEN(0x0052BDD0, Lever::LoadLever);
 
 void Lever::SaveLever(CStream* stream) {
     SaveMapObject(stream);
-    // Each value goes through a stack copy, as the game writes them.
     std::uint32_t value = static_cast<std::uint32_t>(state);
     stream->Write(&value, 4);
     value = static_cast<std::uint32_t>(stateCount);

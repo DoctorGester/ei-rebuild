@@ -3235,6 +3235,51 @@ depends = ["C22a2", "C22b2"]
 note = "User 2026-10-27: after the prose changes, re-examine the comments and schedule passes that actually remove unnecessary ones. Sample each area: comments that restate the code, member-offset trailers (// +0xNN) not tied to a save or packet layout, section rulers, long why-blocks that belong in docs/notes. Write the rules into docs/comment-guide.md, add a comments.py count for each kind, and file removal batches (Sonnet, medium) sized like C22a-f. Also left by C22a2: ~120 'slot N' lines (unit.h, unit_client_models.h, ui_camp.h, mfc_slots.h, stlp_*.h) and ~40 fragment candidates in unit_client_models.h / ui_camp.h; C22c/C22d left bare 'as the original' lines and ~528 // +0xNN trailers."
 
 [[ticket]]
+id = "C22h"
+title = "Comment removal batch: 245 files, 8647 comment lines (acks_db .. lightning)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22h]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22h (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22h): 866 offset trailers, 342 offset mentions, 118 slot mentions, 130 number trailers, 163 registers, 245 long-block lines, 321 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+
+[[ticket]]
+id = "C22i"
+title = "Comment removal batch: 207 files, 8632 comment lines (lightning.h .. renderer_strip)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22i]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22i (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22i): 818 offset trailers, 403 offset mentions, 173 slot mentions, 356 number trailers, 161 registers, 256 long-block lines, 412 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+
+[[ticket]]
+id = "C22j"
+title = "Comment removal batch: 160 files, 9015 comment lines (renderer_triangles .. ui_camp.h, with ui.h)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22j]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22j (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22j): 1147 offset trailers, 446 offset mentions, 98 slot mentions, 228 number trailers, 128 rulers, 470 long-block lines, 578 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+
+[[ticket]]
+id = "C22k"
+title = "Comment removal batch: 207 files, 8861 comment lines (ui_camp_create .. world.h)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22k]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22k (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22k): 655 offset trailers, 310 offset mentions, 155 slot mentions, 246 number trailers, 152 registers, 328 long-block lines, 358 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+
+[[ticket]]
+id = "C22l"
+title = "Comment removal batch: 199 files, 8035 comment lines (world_briefing .. src/hook, lib, render, standalone)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22l]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22l (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22l): 238 offset trailers, 243 number trailers, 120 rulers, 134 registers, 45 stale claims, 666 long-block lines (render.h, lib headers: move to docs/notes), 228 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
