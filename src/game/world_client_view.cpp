@@ -43,7 +43,7 @@ float* StackTop(CTransformPipeline* device, int index) {
 
 // Terrain::HeightAt declared double: the original adds the unrounded ST0.
 
-// 0056E840 (also inlined by the original): push_back.
+// Also inlined by the original: push_back.
 void PushBack(FrameQueue& v, CEngineObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
         if (v.Finish()) *v.Finish() = value;
@@ -195,7 +195,7 @@ namespace {
 // Clamp used by the picking: negative or NaN becomes +0 (the original's branch-free select).
 __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
-// 0056BF30 / 0056C350 share everything but the height function (which returns ST0 unrounded).
+// The two draws share everything but the height function (which returns ST0 unrounded).
 template <typename Height>
 Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
     CTransformPipeline* device = Device();
@@ -330,8 +330,8 @@ BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
 
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------
 
-// Empty at the start, as the static initialisers 0056A4D0-0056A7F0 leave them (in the list's order: the last list
-// first); the exit functions they register free their storage through ~vector() 0056E800 (docs/notes/standalone.md,
+// Empty at the start, as the static initialisers leave them (in the list's order: the last list
+// first); the exit functions they register free their storage through ~vector() (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit stlp::vector<CEngineObject*> g_touchedModels = /*007AF508*/ {};
 constinit stlp::vector<CEngineObject*> g_shadow52 = /*007AF518*/ {};

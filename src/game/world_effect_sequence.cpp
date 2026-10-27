@@ -16,11 +16,11 @@
 
 namespace {
 
-// The sound manager (*007AF784).
+// The sound manager.
 
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 
-// The choosers (00676DD0..00676F90): called with the previous index and the number of sounds
+// The choosers: called with the previous index and the number of sounds
 // started so far; bit 30 of the result loops the sound. Without a first name any of the n names is
 // picked; with one, the first call plays it (index 0) and later calls pick among the n after it.
 int __fastcall LoopFirst(int, int) { return 0x40000000; }

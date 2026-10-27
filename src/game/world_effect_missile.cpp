@@ -28,7 +28,7 @@
 
 namespace {
 
-constexpr float kMissileSpeed = 0.6666667f;     // 007433D4, per tick
+constexpr float kMissileSpeed = 0.6666667f;     // per tick
 constexpr float kGroundClearance = 1.0f;
 constexpr float kLightDrift = 0.0001f;          // the light's velocity x (keeps it "moving")
 constexpr float kSoundRadius = 30.0f;

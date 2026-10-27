@@ -1,5 +1,5 @@
-// The client world's light by the time of day (UpdateLighting, 00566360) and the zone exit
-// markers' colour (UpdateExitMarkers, 00567680). See world.h and docs/notes/world.md.
+// The client world's light by the time of day (UpdateLighting) and the zone exit
+// markers' colour (UpdateExitMarkers). See world.h and docs/notes/world.md.
 #include "party.h"
 #include "world.h"
 #include "world_data.h"
@@ -38,7 +38,7 @@ constexpr float kHalf = 0.5f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
-// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: not the folded double).
+// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (not the folded double).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
 const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).

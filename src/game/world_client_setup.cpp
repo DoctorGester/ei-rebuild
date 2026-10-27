@@ -1,5 +1,5 @@
 // The client world's set-up at startup: SetUpGraphics and the light colours by hour
-// from the lights table (LoadLights, 00563930; config\LightsGipat.ini). See world.h.
+// from the lights table (LoadLights; config\LightsGipat.ini). See world.h.
 #include "material.h"
 #include "options.h"
 #include "world.h"
@@ -40,8 +40,8 @@ const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::TheOptions()->resourcesPath_.GetString(); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
 
-// Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
-// figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
+// Through their addresses: the texture manager's device (not rewritten) and the
+// figure loader's constructor (returns this; Rebirth-patched, its vanilla body is
 // in link_loader_create.cpp).
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key

@@ -1,4 +1,4 @@
-// R20: the casters of the new renderer's shadow map that the game does not draw this frame. The map
+// The casters of the new renderer's shadow map that the game does not draw this frame. The map
 // (src/render/render_shadows.cpp, docs/notes/renderer.md section 13 item 10) takes the meshes of the
 // objects the game draws; an object outside the view, or a part of a drawn one that the part's own
 // view test left out, can still throw its shadow onto the visible ground. After the world's object
@@ -67,7 +67,7 @@ Matrix Multiply(const Matrix& a, const Matrix& b) {
     return r;
 }
 
-// The placement 0051B7E0 builds (ObjectWorldMatrix of a rotation and a position), into a local.
+// The placement it builds (ObjectWorldMatrix of a rotation and a position), into a local.
 Matrix Placement(const Quaternion& rotation, const Vector3& position) {
     Matrix4 m;
     ObjectWorldMatrix(&rotation, &position, &m);

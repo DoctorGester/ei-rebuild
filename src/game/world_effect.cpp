@@ -14,12 +14,12 @@ using namespace effect;
 
 namespace {
 
-// The sound system (*007AF784), thiscall (006B8600 plays a sound: CSoundManager::Play3D). The
+// The sound system (thiscall; Play3D plays a sound: CSoundManager::Play3D). The
 // mover takes the volume and radius as the floats' bits.
 // Moves a playing sound.
 // Stops a sound.
-// 006BA5E0 / 006BA7C0: moves / stops a sound sequence.
-// 006B9950 / 006B9A30: starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
+// Moves / stops a sound sequence.
+// Starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
 // returns the handle to keep (-1).
 
 // What every Reset (slot 18) does to the base part first: position, field streams, start tick,
@@ -110,7 +110,7 @@ void CEffectSound::Reset() {
     if (sound_ != -1 && looping_ != 0) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
     looping_ = 1;
-    std::memset(name_, 0, sizeof(name_));   // SV7b2a: the original clears name_[0] (the harness all of it)
+    std::memset(name_, 0, sizeof(name_));   // the original clears name_[0] only (the harness all of it)
     volume_ = 0.0f;
     radius_ = 0.0f;
     noFade_ = 0;

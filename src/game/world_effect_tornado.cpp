@@ -28,7 +28,7 @@ namespace {
 constexpr int kTornadoParticles = 0x200A;
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 40.0f;
-// The speed per tick: a random word * 0073CCB0 * 0.12 + 0.096.
+// The speed per tick: a random word * 2^-32 * 0.12 + 0.096.
 constexpr double kRandomScale = 9.313226580990458e-11;
 constexpr float kSpeedRange = 0.12f;
 constexpr float kSpeedMin = 0.096f;

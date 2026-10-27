@@ -17,7 +17,7 @@
 
 namespace {
 
-// The fog manager (*007AF75C); VisFogManagerAdd makes a fog object, already counted once
+// The fog manager; VisFogManagerAdd makes a fog object, already counted once
 // by the manager's list.
 ClientArrayManager* FogManager() { return TheClientWorld()->arrayManager_; }
 

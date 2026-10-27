@@ -27,8 +27,8 @@ using namespace effect;
 namespace {
 
 
-// 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
-// 004113A0 (camera.cpp): a camera shake from an event at `at`.
+// The world client's: a scorch mark on the ground. All arguments are float bits.
+// camera.cpp: a camera shake from an event at `at`.
 
 
 void ClearBase(CEffect* e) {
@@ -81,13 +81,13 @@ bool IsOneShotType(int type) {
     }
 }
 
-// The scorch mark's angle: a random value times the double at 0073FFD0, the value loaded with
+// The scorch mark's angle: a random value times a constant, the value loaded with
 // FILD qword (exact), FMUL qword, rounded to float.
 float RandomAngle(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * 1.4668330997698233e-9 /*0073FFD0*/);
 }
 
-// The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
+// The ISAAC Next the 0x2030 scorch inlines.
 std::uint32_t InlineRandom() {
     IsaacRandom& random = IsaacRandom::Global();
     std::uint32_t index = random.count_--;

@@ -78,12 +78,12 @@ void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream);
 // A positional sound (vtable 007433EC, class id 0x48). 0x264 bytes.
 class CEffectSound final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 00676060 "CEffectSound"
-    int GetClassId() override;                    // 12: 00676070 (0x48)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // world_effect_lifetime.cpp. The constructor ends with Reset; the destructor runs Reset twice
     // (inline, then slot 18).
     CEffectSound();
-    ~CEffectSound() override;                              // 006760A0 (deleting: 00676080)
+    ~CEffectSound() override;
     void Reset() override;
     int RunTick() override;
     void Start(int update) override;
@@ -107,11 +107,11 @@ public:
 // A sequence of sounds picked at random (vtable 0074344C, class id 99). 0x174 bytes.
 class CEffectSoundSeq final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 00676940 "CEffectSoundSeq"
-    int GetClassId() override;                    // 12: 00676950 (0x63)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // As CEffectSound's; the destructor then destroys the name array and the name.
     CEffectSoundSeq();
-    ~CEffectSoundSeq() override;                              // 00676980 (deleting: 00676960)
+    ~CEffectSoundSeq() override;
     void Reset() override;
     int RunTick() override;
     void Start(int update) override;                       // 00676C00 (slot 23; world_effect_sequence.cpp)
@@ -133,11 +133,11 @@ public:
 // A looping ambient sound (vtable 0074350C, class id 0x49). 0x174 bytes.
 class CEffectAmbientSound final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 006776A0 "CEffectAmbientSound"
-    int GetClassId() override;                    // 12: 006776B0 (0x49)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor ends with Reset; the destructor runs Reset twice (inline, then slot 18).
     CEffectAmbientSound();
-    ~CEffectAmbientSound() override;                              // 006776E0 (deleting: 006776C0)
+    ~CEffectAmbientSound() override;
     void Reset() override;
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
@@ -157,11 +157,11 @@ public:
 // A point light (vtable 0074356C, class id 0x4B). 0x164 bytes.
 class CEffectPointLight final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 00677F80 "CEffectPointLight"
-    int GetClassId() override;                    // 12: 00677F90 (0x4B)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor ends with Reset; the destructor runs Reset (slot 18) and releases the light.
     CEffectPointLight();
-    ~CEffectPointLight() override;                              // 00677FC0 (deleting: 00677FA0)
+    ~CEffectPointLight() override;
     void Reset() override;
     int RunTick() override;
     void Start(int update) override;
@@ -169,7 +169,6 @@ public:
     void Pack(DeltaField* field) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // 24: 00677F70 (slot 19 is the base's). The base's radius plus range_.
     virtual double LightRadius();
 
     Vector3 color_;            // +0x14C
@@ -181,11 +180,11 @@ public:
 // A particle source (vtable 007435D0, class id 0x4A; CreateParticleSource). 0x180 bytes.
 class CEffectParticle : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 00678950 "CEffectParticle"
-    int GetClassId() override;                    // 12: 00678960 (0x4A)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor ends with Reset; the destructor runs Reset (slot 18) and releases the source.
     CEffectParticle();
-    ~CEffectParticle() override;                              // 00678990 (deleting: 00678970)
+    ~CEffectParticle() override;
     void Reset() override;
     Vector3* Position(void* group) override;
     void Start(int update) override;
@@ -215,12 +214,12 @@ public:
 // A particle wall (vtable 00743630, class id 0x5A; fire wall). 0x18C bytes.
 class CEffectWall final : public CEffectParticle {
 public:
-    const char* GetClassName() override;          // 11: 006799A0 "CEffectWall"
-    int GetClassId() override;                    // 12: 006799B0 (0x5A)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor runs the particle's Reset and then its own; the destructor its
     // own Reset and the particle's, then releases the source.
     CEffectWall();
-    ~CEffectWall() override;                              // 006799E0 (deleting: 006799C0)
+    ~CEffectWall() override;
     void Reset() override;
     void SetDirection(const Vector3* direction);
     int Unpack(int update, DeltaField* field) override;
@@ -234,12 +233,12 @@ public:
 // A lightning bolt between two points or objects (vtable 00743690, class id 0x4D). 0x178 bytes.
 class CEffectLightning final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 0067A070 "CEffectLightning"
-    int GetClassId() override;                    // 12: 0067A080 (0x4D)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor does not reset: only the bolt (null), the width (0) and the flag (0) are set.
     // The destructor runs Reset (slot 18) and releases the bolt.
     CEffectLightning();
-    ~CEffectLightning() override;                              // 0067A0B0 (deleting: 0067A090)
+    ~CEffectLightning() override;
     void Reset() override;
     void UpdateEnds();                            // end points from the objects
     void Start(int update) override;
@@ -274,7 +273,6 @@ public:
     int Steer();
     // A new target: arrived_ cleared.
     void SetTarget(int objectId);
-    // 18: 0067AA00 (the subclasses' Reset inline it). The base's Reset, not arrived, no target,
     // not from the caster.
     void Reset() override;
     // 24: the parts (or the figure) follow the missile.
@@ -290,12 +288,12 @@ public:
 // 007436F0, class id 0x4E; created by CSpellEffect::CreateArrow). 0x6C0 bytes.
 class CEffectArrow final : public CEffectMissile {
 public:
-    const char* GetClassName() override;          // 11: 0067B180 "CEffectArrow"
-    int GetClassId() override;                    // 12: 0067B190 (0x4E)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // world_effect_missile.cpp. The three embedded effects are built and destroyed with their own
     // constructor and destructor bodies; the constructor ends with Reset.
     CEffectArrow();
-    ~CEffectArrow() override;                              // 0067B1C0 (deleting: 0067B1A0)
+    ~CEffectArrow() override;
     int RunTick() override;
     void Reset() override;
     void MoveParts() override;                    // the parts follow, Start(1)
@@ -324,11 +322,11 @@ public:
 // server hands the hit to the target (its slot 31). 0x19C bytes. world_effect_missile.cpp.
 class CEffectArrowFigure final : public CEffectMissile {
 public:
-    const char* GetClassName() override;          // 11: 0067BC90 "CEffectArrowFigure"
-    int GetClassId() override;                    // 12: 0067BCA0 (0x5B)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor resets (Reset); the destructor resets twice (inline, then slot 18).
     CEffectArrowFigure();
-    ~CEffectArrowFigure() override;                              // 0067BCD0 (deleting: 0067BCB0)
+    ~CEffectArrowFigure() override;
     void Reset() override;                                 // figure out of the maps and released
     int RunTick() override;
     void MoveParts() override;                    // the figure follows
@@ -349,11 +347,11 @@ public:
 // 0x170 bytes. world_effect_visibility.cpp.
 class CEffectShowVisibility final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 0067C450 "CEffectShowVisibility"
-    int GetClassId() override;                    // 12: 0067C460 (0x5E)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor gives the grid one square (cells and rows allocated) and does not Reset.
     CEffectShowVisibility();
-    ~CEffectShowVisibility() override;                              // 0067C490 (deleting: 0067C470)
+    ~CEffectShowVisibility() override;
     void Reset() override;                                 // grid cleared, fog released
     void SetUnits(int observerId, int seerId);
     void Start(int update) override;
@@ -378,11 +376,11 @@ public:
 // 0x16C bytes. world_effect_moshka.cpp.
 class CEffectMoshka final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 0067CAB0 "CEffectMoshka"
-    int GetClassId() override;                    // 12: 0067CAC0 (0x64)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor and destructor reset (the destructor twice: inline, then slot 18).
     CEffectMoshka();
-    ~CEffectMoshka() override;                              // 0067CAF0 (deleting: 0067CAD0)
+    ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
     int RunTick() override;                                   // Update(game tick), returns 0
     // 0067CD90 (RET 8; `this` unused). A perch seen from 1.5 above `from`: random directions at
@@ -415,11 +413,11 @@ public:
 // emitting for the last 110 ticks. 0x15C bytes. world_effect_tornado.cpp.
 class CEffectTornado final : public CEffect {
 public:
-    const char* GetClassName() override;          // 11: 0067D7C0 "CEffectTornado"
-    int GetClassId() override;                    // 12: 0067D7D0 (0x65)
+    const char* GetClassName() override;
+    int GetClassId() override;
     // The constructor resets inline (as Reset); the destructor resets twice (inline, slot 18).
     CEffectTornado();
-    ~CEffectTornado() override;                              // 0067D800 (deleting: 0067D7E0)
+    ~CEffectTornado() override;
     void Reset() override;                                 // source cleared and released, sound stopped
     // From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the
     // ticks to go are the distance over the speed (rounded, at least 0; 0 when the points meet).

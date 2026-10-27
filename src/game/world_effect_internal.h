@@ -61,7 +61,7 @@ inline float BelowOneOrOne(const float& value) {
 
 // The owning manager's context.
 inline void* ManagerContext(const void* object) { return static_cast<const CEngineObject*>(object)->ManagerContext(); }
-// 0055FB00 (world). A unit by id, or null.
+// A unit by id, or null.
 inline void* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 // An object of a manager by id, or null.
 inline void* FindObject(void* manager, void*, int id) { return static_cast<CBaseManager*>(manager)->FindObject(id); }
@@ -72,7 +72,7 @@ inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldC
 
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------
 
-// The four streams of a field emptied (the original's 00675F70 or its inline copy).
+// The four streams of a field emptied.
 inline void EmptyField(DeltaField* f) {
     f->snapshot[0].Resize(0);
     f->snapshot[1].Resize(0);

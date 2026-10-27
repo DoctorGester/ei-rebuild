@@ -231,7 +231,7 @@ public:
     virtual CParticleManager* ClientParticleManager() { return nullptr; }
     virtual CEngineObject* ClientManager194() { return nullptr; }   // not identified
     virtual CEngineObject* ClientManager198() { return nullptr; }   // not identified
-    virtual int Unused39() { return 0; }   // 39: 0055EC40 in both
+    virtual int Unused39() { return 0; }
     // 40 (world_create.cpp; 0055FAE0, the server's 00593AA0 FindObject). The map object manager's
     // (slot 19) object with this id, or null.
     virtual CMapObject* ObjectWithId(int id);
@@ -400,10 +400,10 @@ public:
     // and the harness reach it by its address.
     int Update();
     int RunTick() override { return Update(); }
-    const char* GetClassName() override;   // 11: 0058A410 "CWorldServer" (world_class_slots.cpp)
-    int GetClassId() override;             // 12: 0058A420 (8)
+    const char* GetClassName() override;
+    int GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
-    int IsServer() override;               // 26: 0058A380 (1)
+    int IsServer() override;
     double GridHeightAt(float x, float y) override { return GridHeight(x, y); }
     // The server's height slots (world_server.cpp; ST0, RET 8). 0058A390 (slot 28): the AI map's
     // top height at (x, y, 0). 0058A3D0 / 0058A3F0 (slots 29 / 30): slot 27 / slot 28 as they are.
@@ -869,8 +869,8 @@ public:
     int Create() override;
     // 00561840 (slot 3; the client's Destroy): the face list emptied.
     void Destroy() override;
-    const char* GetClassName() override;   // 11: 00561870 "CBridgeManager" (world_class_slots.cpp)
-    int GetClassId() override;             // 12: 00561880 (0x34)
+    const char* GetClassName() override;
+    int GetClassId() override;
 
     // Max(height, z of every platform surface whose area contains the point); the
     // point is projected onto each platform plane along z.
@@ -1034,10 +1034,10 @@ public:
     CWorldHandle() : pendingLink_(nullptr) {}
     ~CWorldHandle() override;           // 0055F280 (deleting: 0055F260): the link released
 
-    int OnShutdown() override;          // 2: 0055F1E0 (the link released, none pending)
-    CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
+    int OnShutdown() override;
+    CWorldHandle* Clone() override;
     bool Query() override { return false; }
-    void TakeNew(JoinedLinks* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
+    void TakeNew(JoinedLinks* joined) override;
 
     netlink::NetLink* pendingLink_;     // +0x08 counted; handed over by slot 6
 };
@@ -1048,7 +1048,7 @@ class CClientHandle final : public CPlayerSource {
 public:
     // (deleting destructor: 00562750, the counted value's)
     int OnShutdown() override { return 0; }
-    CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
+    CClientHandle* Clone() override;
     bool Query() override { return false; }
     // The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
@@ -1114,11 +1114,11 @@ struct ClientArrayManager : CBaseManager {
     // Destroy's body (004E2850: the object and every listed one released), the list's and
     // the pointer's own destructors, then CBaseManager's destructor.
     ~ClientArrayManager() override;
-    int Create() override;                         // 2: 004E2990 (VisFogManagerCreate)
-    void Destroy() override;                       // 3: 004E2850 (VisFogManagerDestroy)
-    int RunTick() override;                        // 6: 004E2760 (VisFogManagerTick)
-    const char* GetClassName() override;           // 11: 00562DB0 "CVisFogManager"
-    int GetClassId() override;                     // 12: 00562DC0 (0x60)
+    int Create() override;
+    void Destroy() override;
+    int RunTick() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
     // 13: 00562DA0, CBaseManager's Init (the same code at its own address).
     CEngineObject* NewObject(int type) override;
 

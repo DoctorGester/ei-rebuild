@@ -1,4 +1,4 @@
-// R20: the new renderer's shadow casters outside the view (world_client_shadow_casters.cpp).
+// The new renderer's shadow casters outside the view (world_client_shadow_casters.cpp).
 #pragma once
 
 class CWorldClient;
@@ -8,11 +8,11 @@ class CWorldClient;
 // shadow map (render::ShadowCasterMesh). Reads the game's objects only.
 void HandOverOutsideCasters(CWorldClient* world);
 
-// R16i: the frame's light for the GPU lighting (render::SceneLighting), after UpdateLighting: the sun
+// The frame's light for the GPU lighting (render::SceneLighting), after UpdateLighting: the sun
 // (direction, colour), the frame's ambient colour and the landscape's point lights. Reads only.
 void HandOverSceneLights(CWorldClient* world);
 
-// R16i: after the ground's draws, with the landscape's sun shadows on (flag 0x10): the loaded sectors
+// After the ground's draws, with the landscape's sun shadows on (flag 0x10): the loaded sectors
 // whose ground can shadow the visible ground cast into the shadow map (render::ShadowTerrainSector).
 // Reads the sector grid directly (no SectorAt: the cache's order and loads stay the game's).
 void HandOverTerrainCasters(CWorldClient* world);
