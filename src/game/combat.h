@@ -49,7 +49,6 @@ static_assert(sizeof(UnitAction) == 0x24);
 // flags 0, duration -1, kind 0. The padding byte is never set; the original's steps carried a stack byte
 // there, ours carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
 using AnimationStep = mfc::impl::AnimationStep12;
-// `step` made the blank step above. Returns it.
 AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step);
 
 // An animation list: an MFC CArray of AnimationStep (data, size, maxSize, growBy) and a dword after it
@@ -63,7 +62,6 @@ struct AnimationSteps : mfc::impl::AnimationStepListAbi {
     // duration -1); a blank step is appended first when the list is empty or its last step
     // already carries an emote (+1 not 0xFF).
     void AddEmote(int emote);
-    // Every step's +8 becomes `value`.
     void SetStepFlags(int value);
     // The sum of the durations; -1 when one is negative (open-ended).
     int Duration() const;
@@ -76,26 +74,20 @@ struct AnimationSteps : mfc::impl::AnimationStepListAbi {
     void Save(CStream* stream);
     // Copy construction: the steps (SetSize to the source's count, then each step) and extra. Returns this.
     AnimationSteps* CopyConstruct(const AnimationSteps& source);
-    // Assignment, Copy of the steps and extra.
     void Assign(const AnimationSteps& source);
     // The steps' array, CArray<AnimationStep> (the instantiation mfc::impl::AnimationSteps; extra
     // is left alone by each).
     // SetSize(count, growBy); new steps are blank.
     void SetSize(int newCount, int newGrowBy = -1);
-    // `step` appended; its index.
     int Add(const AnimationStep& step);
-    // Step `index` becomes `step`, the array grown to hold it.
     void SetAtGrow(int index, const AnimationStep& step);
-    // `count` steps from `index` removed.
     void RemoveAt(int index, int count);
-    // The steps become a copy of `source`'s.
     void CopySteps(const AnimationSteps& source);
     // Constructed empty (with the base vtable or the list's own), or with a copy of `source`'s steps. Return
     // this.
     AnimationSteps* ConstructBase();
     AnimationSteps* ConstructOwn();
     AnimationSteps* CopyConstructSteps(const AnimationSteps& source);
-    // Destroyed (the base vtable, the storage freed).
     void DestructSteps();
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
@@ -144,7 +136,6 @@ class CWorldServer;
 bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
                                     CUnit* target, const Vector3* at);
 
-// A movement mode and whether it was mode 3.
 struct MoveModeState {
     int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
     std::uint8_t flag4;         // read for mode 2
@@ -276,9 +267,7 @@ public:
 
     // Attack range: the active weapon's +0x58, else the natural reach.
     float AttackRange();
-    // The active weapon's type, else the natural weapon type.
     int WeaponType();
-    // Is the active weapon a bow or crossbow (types 5, 6)? 0/1.
     BOOL HasRangedWeapon();
     // Does the unit attack from a distance: a ranged weapon, or (without a weapon) a
     // natural weapon other than 0x10 with a reach above 1?
@@ -298,7 +287,6 @@ public:
     // The quick item of `source` (high bit ignored) if it carries a spell (class 0x13,
     // category 5 or 8), else null.
     CItem* SpellCarrier(std::uint32_t source);
-    // Is `source` a quick item of category 8 carrying a spell?
     bool IsScrollSource(std::uint32_t source);
     // The spell (CSpell) behind `source`: a spell slot, or the spell of a carrier item.
     CSpell* SpellOfSource(std::uint32_t source);
@@ -311,7 +299,6 @@ public:
     bool CanCast(const AIOrder* order);
     // The target point of the first order of kind 1 (+0x190, then +0x1B4). 0/1.
     BOOL GetMovePoint(float* out);
-    // The distance from which `action` can be carried out.
     float ActionDistance(const AIOrder* order);
     // False only for a melee order (kind 3 without a ranged weapon, or 6) on a living
     // unit standing on its own (+0x324 == 0) whose prototype +0x24 plus its height is 1.5 or more.
@@ -326,7 +313,6 @@ public:
     // EffectsChanged: sets the unit's flags_ bit 0x10000000 when it has an effect of type 0x20 and a natural
     // weapon other than 0x10, else clears it.
     void EffectsChanged() override;
-    // What the unit attacks with.
     void GetAttackParams(AttackParams* out) override;
     // The attack roll of `attacker` against this unit: random spread + attack, minus a
     // distance penalty, plus a speed ratio unless `backstab`; at least 0. Draws from the global
@@ -431,7 +417,6 @@ public:
     // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
     // spell's skill for a spell of its own; message 0x13 if not, or while flags_ has 0x10000000.
     void OrderCastAt(std::uint32_t source, const Vector3* point, int run);
-    // Kind 5 (cast at `target`), as OrderCastAt.
     void OrderCast(std::uint32_t source, CMapObject* target, int run);
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
@@ -446,7 +431,6 @@ public:
     // hears message 9, unless running and out of breath. Other than walking and running the current order's run
     // flag is cleared.
     void SetMoveStyle(int style);
-    // The weapon slot the unit wants.
     void SetWantedWeapon(int slot);
     // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a living
     // unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body (0x18A95; a
@@ -489,11 +473,9 @@ public:
     // UnitStats::ClearOuterLayers's 0).
     bool RebuildArmourLayers(int unused);
     int ClearOuterArmourLayers() override;
-    // The armour spells and the AI's attack options rebuilt. Returns 1.
     BOOL RefreshEquipment() override;
     // HostileMaskChanged: the claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;
-    // Copies the statistics (0x704 bytes) to `out`.
     void CopyStats(UnitStats* out);
     // Experience gained (UnitStats::GainExperience), then RefreshVitals(0) (only CUnitServer's vtable has it),
     // whose 1 it returns.
@@ -525,7 +507,6 @@ public:
     // skill, on a living unit of size class 0 that is too high to reach (its prototype's height plus its z at 1.5
     // or above); else CanPlanAction.
     bool CanReachAndPlan(const AIOrder* order);
-    // The same, planning with the unit placed at `point` meanwhile.
     bool CanReachAndPlanFrom(const AIOrder* order, const Vector3* point);
 
     // The animation steps of an order. The unit's animation entries are looked up by a key of
@@ -549,7 +530,6 @@ public:
     // Every tick: takes over the queued order, else follows the path and continues the
     // current order (ContinueAction for actions; a finished move or animation lets the queue on).
     void UpdateOrders();
-    // Takes over the queued order (+0x1B4) by its kind; true when it started.
     bool StartQueuedOrder();
     // The move part of StartQueuedOrder (kind 1): plans a path with the units near the goal lifted
     // off the sector map; done orders let the next one start.
@@ -567,7 +547,6 @@ public:
     void SyncMoveModes();
     // Takes over the queued order (an inlined copy of StartQueuedOrder's common start).
     void TakeQueuedOrder();
-    // The unit's second movement mode, marking it changed.
     void SetUnitMoveMode2(int mode);
 
     // The update and the animation queue. Once per world update. A living unit regenerates,
@@ -585,9 +564,7 @@ public:
     // Drops the queue's steps that are over (a pause after one takes its animation over);
     // true when one was dropped.
     bool PopFinishedSteps();
-    // Shows the queue's first step on the unit (not a pause).
     void ShowCurrentStep();
-    // The queue becomes `steps` (copied in twice) and starts.
     void PlaySteps(const AnimationSteps* steps);
     // Sets the state; other than 5 (acting) the size class is updated and the effect
     // object dropped, 5 sets +0x180 to 10 updates from now.
@@ -623,7 +600,6 @@ public:
     // The idle animation into `steps`: the emote 0xFE for a hero walking (mode 2 without flag4), else the idle
     // entry of the weapon and movement key (| 0x80580000), if any.
     void BuildIdle(AnimationSteps* steps);
-    // The idle animation (+0x960), rebuilt when the key (+0x95C) changed.
     AnimationSteps* IdleAnimation();
     // Unless idle, moving or turning: the idle animation, rebuilt when needed, plays.
     void PlayIdle();
@@ -792,7 +768,6 @@ public:
     void SetBusy(std::uint8_t busy) { moveMode2.flag4 = busy; }
     std::uint8_t Busy() const { return moveMode2.flag4; }
 
-    // The unit's CUnit::AddHostileMask (its result returned).
     std::uintptr_t AddHostileMask(std::uint32_t mask);
 };
 static_assert(offsetof(CUnitServer, unit) == 0x1C);

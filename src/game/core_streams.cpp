@@ -14,7 +14,6 @@
 
 namespace {
 
-// CStream::version_ of a new stream.
 constexpr std::uint32_t kDefaultVersion = 2000000000;
 
 // operator+(const CString&, char) (AFXAPI).

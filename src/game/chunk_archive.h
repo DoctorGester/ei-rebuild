@@ -70,7 +70,6 @@ public:
     };
     using Stack = stlp::list<Ref>;
     static_assert(sizeof(Stack::Node) == 0x18);
-    // The objects to save (STLport list<CRefObject*>).
     using SavedList = stlp::list<CRefObject*>;
 
     // Key -> object: while loading, the objects the index names (by the key their records are
@@ -90,16 +89,13 @@ public:
     };
     static ClassRegistry& Registry();   // g_classRegistry
 
-    // The current chunk: the top of the stack.
     Ref* Current() { return &stack_.End()->prev->data; }
-    // A default chunk pushed on the stack (push_back(); insert(end())).
     void PushChunk() { Stack::InsertDefault<RefElement>(stack_.End()); }
     std::uint8_t* Data() { return dataStream_.data_; }
     // Drops the current chunk (the stack's erase(--end()), STLport), as LeaveChunk does
     // after a load.
     void PopChunk();
 
-    // Chunk primitives.
     bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);
     bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);
     // The `occurrence`-th child `id` of `parent` into `out`.
@@ -146,10 +142,8 @@ public:
     void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);
     // The class templates (counted pointers) as object references (field 1 per chunk 1).
     void SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void* unused);
-    // Field(id, value, 4).
     void IntField(int id, int* value);
 
-    // The ack records' helpers: an acks::SpeechRecord as chunk `id`.
     void SerializeSpeech(int id, SpeechRecord* speech);
     // (the third argument, the archive again, is unused): an
     // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
@@ -193,7 +187,6 @@ public:
     // the skill levels.
     void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
     void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
-    // Chunk `id` holding `record` (its Serialize).
     void SkillLevelChunk(int id, SkillLevelRecord* record);
     // The unit database's vectors (unit_db.cpp; the same shape, called by the loader):
     // the prototypes, the NPCs,
@@ -209,7 +202,6 @@ public:
     // The constructor (also inlined elsewhere): two empty memory streams, the
     // containers, version 1.
     ChunkArchive();
-    // The other constructor (also inlined): the containers, then the streams.
     ~ChunkArchive();
     ChunkArchive(const ChunkArchive&) = delete;
     ChunkArchive& operator=(const ChunkArchive&) = delete;

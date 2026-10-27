@@ -229,7 +229,6 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 
 } // namespace
 
-// The one-texture draw (thiscall on the device).
 int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
                               const void* corners, int cornerCount, const void* words, int wordCount,
@@ -242,7 +241,6 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void
 }
 EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
-// The same with two textures for the draw.
 int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, const void* normals, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,

@@ -31,7 +31,6 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 }
 } // namespace
 
-// The destructor.
 void __fastcall RecordDestruct(LeverRecord* self) {
     self->text28.~CString();
     self->sound.~CString();
@@ -54,7 +53,6 @@ void LeverRecord::Archive(ChunkArchive* archive) {
 }
 EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
-// The deleting destructor.
 LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
     app::RecordDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
@@ -62,7 +60,6 @@ LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
 
-// Copy constructor and assignment; both return this.
 LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
     new (&name) mfc::CString(from->name);
     app::CopyPlain(this, from);

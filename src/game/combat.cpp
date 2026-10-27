@@ -34,7 +34,6 @@
 // locals.
 
 namespace {
-// The combat log: the AI stream.
 constexpr libcrt::Ostream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
 } // namespace
 
@@ -58,11 +57,9 @@ constexpr float kHundred = 100.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kHitMark = std::bit_cast<float>(0x7F7FFFFFu);       // FLT_MAX
 constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // -FLT_MAX
-// Melee reach floors of ActionDistance (immediates in the original).
 constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
 constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
 
-// Size classes and movement factors.
 constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // immediate (1.89)
 constexpr float kLoadOverloaded = 1.5f;
 constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0.85
@@ -91,18 +88,15 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-// Difficulty and the attack factor per difficulty (floats).
 float DifficultyAttackFactor() {
     int difficulty = options::TheOptions()->difficulty_;
     return GameLogicSettings().attack[difficulty];
 }
 
-// The unit's server object (CUnit + 0x170): its mana.
 float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
-// The map objects' virtual slots and the server controller's.
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { static_cast<CUnitController*>(controller)->GetAttackParams(out); }
@@ -134,7 +128,6 @@ GameOstream* GameOstream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostre
 
 namespace {
 
-// Names of the hit locations (DamageInfo +0x2C) in the log.
 const char* HitLocationName(int location) {
     switch (static_cast<std::uint32_t>(location)) {
     case 0: return "Head!";
@@ -357,7 +350,6 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         float own = Radius(unit);
         return static_cast<float>((Radius(target) + static_cast<double>(own)) - kPointOne);
     }
-    // Melee (kinds below 4 and above 6).
     if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
@@ -664,7 +656,6 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             return 1;
         }
     }
-    // Missed (or the stats refused the hit).
     if (attacker && attacker->GetClassId() == kClassUnit) {
         auto* diplomacy = &ServerWorld()->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);

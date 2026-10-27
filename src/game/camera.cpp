@@ -463,7 +463,6 @@ void CCamera::Update(float dt) {
         if (least > pitch_) pitch_ = static_cast<float>(least);
     }
 
-    // Turn about Z.
     Approach(&turnRate_, &turnTarget_, turnResponse_, dt);
     EI_NAN_AUDIT(turnRate_);
     if (turnRate_ != 0.0f) {
@@ -481,7 +480,6 @@ void CCamera::Update(float dt) {
         viewRotation_.x = x;
     }
 
-    // Zoom.
     float zoomTarget;
     std::memcpy(&zoomTarget, &zoomTarget_, sizeof(float));
     Approach(&zoomRate_, &zoomTarget, zoomResponse_, dt);
@@ -503,7 +501,6 @@ void CCamera::Update(float dt) {
 
     ApplyView();
 
-    // Shakes: damped oscillations added to the height.
     if (shakes_.Empty()) return;
     float offset = 0.0f;
     for (ShakeList::Node* node = shakes_.First(); node != shakes_.End();) {

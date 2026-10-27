@@ -40,7 +40,6 @@ namespace {
 
 // ---- The files -------------------------------------------------------------------------------------
 
-// The files' extensions: this file's copies of the header constants.
 constexpr const char* kMapExtension = /*0073FD1C*/ ".MP";
 constexpr const char* kSectorExtension = /*0073FD20*/ ".SEC";
 constexpr std::uint32_t kMapMagic = 0xCE4AF672;
@@ -128,7 +127,6 @@ struct Archive {
     lib::InPlace<CMappedResource> storage;
 };
 
-// A registry as a local.
 struct Registry {
     Registry() { file.Construct(); }
     ~Registry() { file.Destroy(); }

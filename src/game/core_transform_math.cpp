@@ -213,7 +213,6 @@ void CTransformObject::RollTowards(const Vector3& dir) {
     Rotate(axis, angle);
 }
 
-// LocalRotation = rotation(angle about axis) * localRotation.
 void CTransformObject::Rotate(const Vector3& axis, float angle) {
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, axis);

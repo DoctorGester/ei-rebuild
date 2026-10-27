@@ -39,9 +39,8 @@ namespace {
 
 
 // The interface takes the input: pending windows closed before and after each message,
-// then the message with (wParam, x, y) (ui_interface_input.cpp).
+// then the message with (wParam, x, y).
 
-// The console's ostream.
 libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 // Objects told about activation changes: the cursor, the display device
@@ -125,7 +124,7 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
-// EI_UTF8: the window is a Unicode one (system_text.h), so WM_CHAR carries a UTF-16 unit, and a character
+// EI_UTF8: the window is a Unicode one, so WM_CHAR carries a UTF-16 unit, and a character
 // past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
 // half of a pair waits for the second (a half that comes alone is dropped).
 unsigned g_highSurrogate = 0;
@@ -303,7 +302,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
         device->lastLoadResult_ = result;
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }
-    // EI_UTF8: the image's MessageBoxA takes UTF-8 (system_text.h).
+    // EI_UTF8: the image's MessageBoxA takes UTF-8.
     int answer = gameapi::MessageBoxA(g_mainWindow, text, g_windowTitle, static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);
     return answer;
@@ -373,7 +372,6 @@ namespace {
 const char* MemoryDepletedText() { return "Memory depleted"; }
 } // namespace
 
-// The body is the message box's, inlined.
 int __cdecl OutOfMemory(std::size_t) {
     ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
     return 0;

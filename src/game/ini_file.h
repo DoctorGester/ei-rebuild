@@ -58,6 +58,6 @@ public:
     // The items joined with `separator`; 0 (nothing written) for an empty list.
     BOOL WriteList(const char* section, const char* key, const console::CStringArray* items, char separator);
 
-    mfc::CString path_;   // +0x00
+    mfc::CString path_;
 };
 static_assert(sizeof(CIniFile) == 4);

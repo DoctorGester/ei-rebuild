@@ -69,7 +69,6 @@ static_assert(offsetof(CameraSettings, alternate) == 0x124);
 static_assert(offsetof(CameraSettings, views) == 0x178);
 static_assert(offsetof(CameraSettings, pitchMax) == 0x1DC);
 
-// A saved view.
 struct CameraView {
     float distance;
     Quaternion rotation;
@@ -101,7 +100,6 @@ static_assert(sizeof(CameraKey) == 0x24);
 // A cubic curve in 3D: polynomial coefficients c0..c3 for x, then y, then z (as CubicSegment).
 struct CubicCurve3 {
     float c[12];
-    // Point at t; returns out.
     Vector3* Evaluate(Vector3* out, float t) const;
 };
 
@@ -162,7 +160,6 @@ public:
     void SetFocus(const Vector3* p);
     // Pan velocity target from a screen-space direction (x right, y up the screen).
     void Pan(const Vector3* direction);
-    // Stops panning, turning, tilting and zooming.
     void StopMotion();
     // Zoom by 1.05^steps, clamped to the current limits.
     void ZoomBy(float steps);
@@ -170,18 +167,14 @@ public:
     // pitch only.
     bool SaveView(unsigned slot);
     bool RestoreView(unsigned slot);
-    // Sets distance and pitch from a view; stops all motion.
     void SetDistancePitch(const CameraView* view);
-    // Views 0-3 to / from the settings record.
     void ViewsToSettings(CameraSettings* settings);
     void ViewsFromSettings(const CameraSettings* settings);
     // View rotation = `angle` radians about Z, then ApplyView.
     void SetHeading(float angle);
-    // Free placement on / off.
     void SetFree(bool on);
     // Free placement at `from` looking at `to`. Third argument unused.
     void LookFrom(const Vector3* from, const Vector3* to, int unused);
-    // Keep the focus within `radius` of `center`.
     void SetBounds(const Vector3* center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3* source, float duration, float amplitude, float decay);
@@ -297,7 +290,6 @@ inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-// Constants (addresses in the exe in the comments).
 #define CAM_PI 3.141592653589793 /*0073B9A0*/
 #define CAM_NINETY 90.0 /*0073BAB8*/
 #define CAM_FORTY_FIVE 45.0 /*0073BA28*/

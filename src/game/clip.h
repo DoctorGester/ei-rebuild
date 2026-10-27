@@ -10,7 +10,6 @@
 #include <cstdint>
 #include "game_data.h"
 
-// D3DTLVERTEX (0x20 bytes).
 struct TLVertex {
     float x, y, z, rhw;
     std::uint32_t color;      // ARGB
@@ -36,8 +35,8 @@ void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVert
 // plane and writes the result back to `indices` and `*count`; intersection vertices are appended
 // at `vertices[*vertexCount]`. Returns the new count. ECX carries the triangle's combined
 // outcode and is not used.
-//   KeepBelow (x, y, z): keeps vertices with coordinate <= limit.
-//   KeepAbove (x, y, z): keeps vertices with coordinate > limit.
+// KeepBelow (x, y, z): keeps vertices with coordinate <= limit.
+// KeepAbove (x, y, z): keeps vertices with coordinate > limit.
 int __fastcall ClipXBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 int __fastcall ClipXAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 int __fastcall ClipYBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);

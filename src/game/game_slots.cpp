@@ -1,4 +1,4 @@
-// The scalar deleting destructors of the MFC collections that destroy game elements (game_slots.h): each calls its
+// The scalar deleting destructors of the MFC collections that destroy game elements: each calls its
 // class's destructor (ours, registered elsewhere) directly.
 #include "game/game_slots.h"
 

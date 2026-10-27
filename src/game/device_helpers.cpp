@@ -23,12 +23,11 @@
 
 // ---- Counted holders ------------------------------------------------------------------------------
 
-// (HeldEngineObject::Assign: refptr_copies.cpp.)
 EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
-// The renderer's counted base (texture.h): nothing to destroy. Its deleting destructor is reached by no object.
+// The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
 CRendererBase::~CRendererBase() = default;
 EI_REWRITTEN_SPECIAL(0x004E7800, CRendererBase::~CRendererBase);
 

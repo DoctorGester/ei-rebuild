@@ -1,6 +1,6 @@
 // The key bindings file (the base path + the name): loaded at start
 // and saved on the interface's shutdown. Each line is "<key> <action>". The
-// tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
+// tables are the ones FindCommandByKey and the options window
 // use: the action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at
 // Scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
 // Id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md

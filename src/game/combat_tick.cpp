@@ -73,7 +73,6 @@ constexpr int kChaseMaxTicks = 0x40;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
-// Party messages.
 constexpr int kMessageCannotReach = 0x0C;
 constexpr int kMessageTargetLost = 0x0B;
 constexpr int kMessageCannotDo = 0x0E;
@@ -81,7 +80,6 @@ constexpr int kMessageNoMana = 0x0F;
 constexpr int kMessageNoCharge = 0x11;
 constexpr int kMessageUnseen = 0x12;
 constexpr int kMessageStopped = 0x1B;
-// Shouts.
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
@@ -95,11 +93,8 @@ bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast 
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
-// The world time of an object's world.
 int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
-// The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
-// The messages of a unit's player (CPlayer::connection_).
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
@@ -118,7 +113,6 @@ void ClearAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-// A CPtrList on the stack, as LiftNearby fills it.
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 } // namespace
 
@@ -199,7 +193,6 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
 void CUnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
-    // The counted reference assigned.
     CMapObject* target = action2.target;
     if (target != action.target) {
         if (action.target) action.target->Release();
@@ -652,7 +645,6 @@ void CUnitServer::ExecuteOrder() {
             TellParty(unit, (action.source & kQuickItemSource) ? kMessageNoCharge : kMessageNoMana);
             stop = true;
         } else {
-            // The action starts now.
             bool fresh = true;
             if (CUnit* other = UnitOrNull(action.target)) {
                 auto* theirs = other->ServerController();

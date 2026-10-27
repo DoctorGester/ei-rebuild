@@ -28,7 +28,6 @@ void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* 
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype, 4);
     auto* tables = static_cast<Table*>(self);
-    // operator[] as inlined: find_or_insert of {key, 0}.
     tables[0].FindOrInsert({vtable, 0})->value = id;
     tables[1].FindOrInsert({id, 0})->value = reinterpret_cast<std::uint32_t>(factory);
     if (prototype && --prototype->refs_ == 0) delete prototype;

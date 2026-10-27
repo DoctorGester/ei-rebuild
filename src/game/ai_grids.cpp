@@ -1,4 +1,4 @@
-// The AI map's grid template instantiations (ai_grids.h) and the small constructors of the map's
+// The AI map's grid template instantiations and the small constructors of the map's
 // members: the local search, the unit layers' base, the event table
 // the dirty rectangle's reset; and the terrain types'
 // open-cell marks. See ai_map.h and docs/notes/ai.md.
@@ -66,7 +66,6 @@ EI_REWRITTEN(0x005BD0B0, AllocateOccluderGrid);
 
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid) { FreeGrid(*grid); }
 EI_REWRITTEN(0x005BD010, FreeAnyGrid);
-// Byte-identical copies (the other element types' destructors).
 EI_REWRITTEN(0x00598400, FreeAnyGrid);
 EI_REWRITTEN(0x00598420, FreeAnyGrid);
 EI_REWRITTEN(0x00598440, FreeAnyGrid);

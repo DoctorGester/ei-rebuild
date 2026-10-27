@@ -45,14 +45,11 @@ bool ArgIs(const CStringArray* args, int i, const char* text) { return Mbscmp((*
 bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-// The world's player `id`, or null.
 CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
-// The client world's local player (its local view's player).
 CPlayer* LocalPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-// The network client session, active unless it was detached.
 inline net::ClientSession* Server() { return net::GameClient(); }
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
@@ -346,7 +343,6 @@ void __fastcall HostServer(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DF490, HostServer);
 
-// memusage does nothing.
 void __fastcall MemUsage(CStringArray*) {}
 EI_REWRITTEN(0x005DF5A0, MemUsage);
 
@@ -355,7 +351,6 @@ EI_REWRITTEN(0x005DF5A0, MemUsage);
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
 EI_REWRITTEN(0x005DFC10, Disconnect);
 
-// Lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
@@ -491,7 +486,6 @@ void __fastcall Days(CStringArray* args) {
 }
 EI_REWRITTEN(0x005E00D0, Days);
 
-// Partyresend.
 void __fastcall PartyResend(CStringArray*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }

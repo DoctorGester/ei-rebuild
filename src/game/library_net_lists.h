@@ -3,7 +3,7 @@
 // The connection's STLport lists whose elements own something (docs/notes/standalone.md):
 // the send history (list<SentPacket>, each packet owning a list<SentItem> of counted entries), the
 // freed-id batches (list<vector<FreedId>>) and the reliable chunk lists (list<ReliableChunk>, plain
-// bytes), with the element policies (stlp_list.h) their copy constructors, default inserts, erase,
+// bytes), with the element policies their copy constructors, default inserts, erase,
 // clear and ~list use; the session's clients find_if by peer address and the counted pointer's
 // init. Registered in library_net_lists.cpp.
 // Thiscalls are __fastcall with an unused EDX.

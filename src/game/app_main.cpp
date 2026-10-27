@@ -113,7 +113,6 @@ void __cdecl ConstructMovieFolder() {
     libcrt::AtExit(ei::Code<AtExitFunction>(0x00455DC0));
 }
 
-// The exit functions.
 void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
 void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
 void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
@@ -139,7 +138,6 @@ EI_REPLACE(0x00455D90, DestroyCommandLineMap);
 EI_REPLACE(0x00455DC0, DestroyMovieFolder);
 EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
 
-// The application's flags and handles.
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};
 HWND g_mainWindow = /*0079BC28*/ {};
@@ -195,7 +193,6 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
-// The objects.
 void* ClassRegistry() { return &ChunkArchive::Registry(); }
 void* QuestDatabaseObject() { return &TheQuestDatabase(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
@@ -206,7 +203,6 @@ void* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
-// The network log's stream (the old iostream).
 console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- The callees -----------------------------------------------------------------------------------
@@ -228,7 +224,6 @@ ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
 constexpr UINT kWarningBox = 0x31;      // MB_OKCANCEL | MB_ICONEXCLAMATION
 constexpr UINT kCriticalBox = 0x30;     // MB_ICONEXCLAMATION
-// The system messages by line.
 enum MessageLine { kNeedsDirectX7, kLittleDiskSpace, kInsertDisc };
 constexpr int kMessageLines = 3;
 
@@ -258,7 +253,6 @@ void LoadSystemMessages(console::CStringArray& messages) {
     gamecrt::operator_delete(text);
 }
 
-// An argument's text after its first `prefixLength` characters.
 mfc::CString Tail(const mfc::CString& argument, int prefixLength) { return argument.Right(argument.GetLength() - prefixLength); }
 
 // The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only
@@ -349,7 +343,6 @@ void RegisterWindowClass(HINSTANCE instance) {
     libcrt::Exit(-1);
 }
 
-// The buffers _splitpath fills, sized as the game sizes them.
 struct PathParts {
     char drive[0x80];
     char directory[0x400];
@@ -407,12 +400,10 @@ bool CheckDrives(const console::CStringArray& messages) {
     return true;
 }
 
-// One reference of the mouse object dropped: deleted at the last.
 void ReleaseMouse(CDirectInputMouse* mouse) {
     if (--mouse->references_ == 0) delete mouse;
 }
 
-// The mouse object made (not set up yet) and kept with one reference.
 void CreateMouse() {
     auto* mouse = new CDirectInputMouse();
     CDirectInputMouse* old = Mouse();
@@ -421,7 +412,6 @@ void CreateMouse() {
     if (old) ReleaseMouse(old);
 }
 
-// The folders the game writes to.
 void CreateFolders(mfc::CString& path) {
     path.Format("%ssaves\\", TheDataFolder().GetString());
     gameapi::CreateDirectoryA(path, nullptr);
@@ -571,7 +561,6 @@ void TakeActivationChange() {
     g_activationChanged = 0;
 }
 
-// The milliseconds since the last pass.
 std::uint32_t TimeSinceLastPass() {
     if (!(g_lastTimeGuard & 1)) {
         g_lastTimeGuard |= 1;

@@ -77,7 +77,6 @@ struct TemplateTable : stlp::vector<ClassTemplate*> {
     // 5) when `fourClasses` (low byte) is set, else five (1 to 5, the
     // fifth with zero weights).
     void Build(unsigned fourClasses);
-    // The first template of class `type`, null if none.
     ClassTemplate* Find(int type) const;
 };
 using ClassTemplateVector = TemplateTable;

@@ -1,7 +1,7 @@
 #pragma once
 
-// The Direct3D device's mesh work buffers, shared by its mesh draws (device_mesh.cpp) and its flat-coloured draw
-// (device_shadow.cpp): engine aligned arrays (lib::AlignedArray). The game's inlined SetSize calls per-size
+// The Direct3D device's mesh work buffers, shared by its mesh draws and its flat-coloured draw
+//: engine aligned arrays (lib::AlignedArray). The game's inlined SetSize calls per-size
 // allocators (TL vertices, words, 16 bytes, bytes), which AlignedArray::Allocate matches. See
 // docs/notes/models.md ("Mesh draws").
 
@@ -14,11 +14,10 @@
 
 namespace devicebuffers {
 
-// A projected position: x, y, z, rhw (16 bytes).
 struct ProjectedVertex : Vector4 {};
 static_assert(sizeof(ProjectedVertex) == 16);
 
-// The buffers (device_buffers.cpp): zero at the start; their exit functions free the blocks.
+// The buffers: zero at the start; their exit functions free the blocks.
 extern lib::AlignedArray<TLVertex> g_vertices;
 extern lib::AlignedArray<std::uint16_t> g_clipIndices;
 extern lib::AlignedArray<ProjectedVertex> g_projected;

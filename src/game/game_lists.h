@@ -13,8 +13,8 @@
 
 #include <type_traits>
 
-void __fastcall RefPtrRelease(RefPtr* self);                  // refptr_copies.cpp
-void __fastcall ObjectHolderRelease(CEngineObject** self);    // refptr_copies.cpp
+void __fastcall RefPtrRelease(RefPtr* self);
+void __fastcall ObjectHolderRelease(CEngineObject** self);
 // ObjectHolderRelease on such a field.
 template <class T>
 void ReleaseHeld(T** holder) {

@@ -1,4 +1,4 @@
-// The exe's STLport map instantiations outside the connection (library_trees.h), their members
+// The exe's STLport map instantiations outside the connection, their members
 // registered at the library addresses (stlp_tree.h, stlp_tree_abi.h) so the standalone image has
 // them. Several members exist more than once
 // (the same body compiled into different objects): one body serves each.

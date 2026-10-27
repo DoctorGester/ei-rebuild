@@ -49,7 +49,7 @@ void AssignCounted(T*& slot, T* object) {
 } // namespace
 
 namespace {
-// A counted reference by id (load resolves through `context`); CBaseManager::FindObject (base_manager.cpp),
+// A counted reference by id (load resolves through `context`); CBaseManager::FindObject,
 // through its game address.
 
 // Resolves an id read from the stream in `manager` (-1: none).
@@ -58,13 +58,11 @@ CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     stream->Read(&id, 4);
     return id == -1 ? nullptr : manager->FindObject(id);
 }
-// The same for an item's id in the item manager.
 CItem* ReadItem(CStream* stream, const CBaseManager* items) {
     int id;
     stream->Read(&id, 4);
     return id == -1 ? nullptr : FindItem(items, id);
 }
-// The same for a unit's id in the map objects' manager.
 CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
     int id;
     stream->Read(&id, 4);
@@ -207,12 +205,10 @@ void CUnitServer::Load(CStream* stream) {
     stream->Read(&deathReported, 1);
     stream->Read(&sinkSpeed, 4);
 
-    // The context's (the world's) virtual for the timed objects.
     CBaseManager* effects = WorldContext()->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
-    // The map objects' manager (the world server's).
     AssignCounted(followedLeader, ReadUnit(stream, WorldObjectManager()));
 
     if (stream->version_ < kVersion180) return;

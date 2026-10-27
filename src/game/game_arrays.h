@@ -2,7 +2,6 @@
 
 // The CArray<T> instantiations whose elements the game destroys through its own code: lib/mfc_array.h's templates
 // over the game's element types, with the element destructors ours (each called directly). Registered in
-// game_arrays.cpp.
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -13,8 +12,8 @@
 #include "game_data.h"
 
 namespace aligned {
-std::uint32_t* __fastcall AllocateDwords(int count);   // aligned_arrays.cpp
-void __fastcall ArrayAt8Free(void* self);   // aligned_arrays.cpp
+std::uint32_t* __fastcall AllocateDwords(int count);
+void __fastcall ArrayAt8Free(void* self);
 void __fastcall ArrayAt4Free(void* self);
 } // namespace aligned
 

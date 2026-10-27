@@ -266,7 +266,7 @@ public:
     // Fills `out` with (8, the id, 0) and returns it; the other classes write three zeros.
     LockKey GetUse() override;
 
-    // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
+    // the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
     std::uint32_t questItemId_;
 };
@@ -298,7 +298,7 @@ public:
     // of another database (recordType_).
     float GetPrice() override;
 
-    // Slot 19, by kind_: a record's name ("<type>_<number>.<variant>" for weapons and
+    // By kind_: a record's name ("<type>_<number>.<variant>" for weapons and
     // armors, "qitem", "prototype" (spells, +0x60), "modifier" + number), "material<index>", or
     // "litem<number>" for the loot itself.
     mfc::CString FigureName() override;

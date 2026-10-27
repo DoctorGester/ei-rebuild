@@ -1,4 +1,4 @@
-// Lightning bolts (lightning.h). Names are provisional.
+// Lightning bolts. Names are provisional.
 // Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "lightning.h"

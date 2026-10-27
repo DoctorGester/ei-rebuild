@@ -20,17 +20,16 @@ struct MotionSegment {
     float toDirX, toDirY;
     float length;
     float speed;
-    MotionCubic curveX;     // +0x28
-    MotionCubic curveY;     // +0x38
+    MotionCubic curveX;
+    MotionCubic curveY;
     float segmentStart;
     float segmentEnd;
-    int segment;            // +0x50
+    int segment;
 };
 static_assert(offsetof(MotionSegment, curveX) == offsetof(UnitMotion, curveX) - offsetof(UnitMotion, fromX));
 static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) - offsetof(UnitMotion, fromX));
 } // namespace
 
-// Its time in ticks. Four bytes.
 int __fastcall WorldTick(CWorld* world) { return world->tick_; }
 EI_REPLACE(0x0054B220, WorldTick);
 

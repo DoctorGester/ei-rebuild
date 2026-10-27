@@ -18,8 +18,8 @@
 
 namespace {
 
-// The manager's model of a name (figure_models.cpp).
-// The animation state: LinkPiece, FindRoot (map_object_animation_bones.cpp).
+// The manager's model of a name.
+// The animation state: LinkPiece, FindRoot.
 // Game::FatalError(format, ...).
 
 
@@ -76,7 +76,7 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         bones.data = GetFile(path.c_str(), &bones.size);
     }
     if (!bones.data) return 0;
-    // The bone's cage interpolation (map_object_cage.h): 0x48-byte data (a prism of six points), or
+    // The bone's cage interpolation: 0x48-byte data (a prism of six points), or
     // any other size (a cube of eight); the stream is the data pointer, advanced as it is read.
     auto* cage = reinterpret_cast<CageInterpolator*>(bone);
     auto** stream = reinterpret_cast<const float**>(static_cast<void*>(&bones.data));

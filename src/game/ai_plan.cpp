@@ -32,14 +32,12 @@ using WaypointList = mfc::CList<Waypoint, mfc::RawElements<Waypoint>>;
 using WaypointNode = WaypointList::Node;
 static_assert(sizeof(WaypointNode) == 0x14);
 
-// The waypoint list's NewNode(prev, next): List12's (the element zeroed).
 WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNode* next) {
     return mfc::impl::NewNodeAs<mfc::impl::List12>(list, prev, next);
 }
 // The local search: begin (unit, from, to), continue (from, to, fresh), whether a cell was reached, the cost
 // of a cell, commit, finish, reset. Atexit, for the function-local spiral cache.
 
-// The function-local static SpiralCache.
 SpiralCache g_spiral = /*007C2F58*/ {};
 std::uint8_t g_spiralGuard = /*007C2F60*/ {};
 std::uint8_t& SpiralGuard() { return g_spiralGuard; }
@@ -135,7 +133,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 bestX = w->data.x;
                 bestY = w->data.y;
             } else {
-                // The nearest cell around the waypoint the search did reach.
                 exact = false;
                 bool found = false;
                 for (int k = 0; k < count; ++k) {
@@ -156,7 +153,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 }
             }
             if (!next && search->CostAt(toX, toY) == kUnreachable) {
-                // The last leg did not reach the target: one more leg from the best cell.
                 search->CommitDirections();
                 if (!search->Recenter(bestX, bestY, toX, toY, 1)) {
                     failed = true;
@@ -180,7 +176,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     }
 
     if (failed) {
-        // Far enough from the start: aim at the best cell instead.
         int dx = fromX - bestX;
         if (dx < 0) dx = -dx;
         int dy = fromY - bestY;
@@ -203,7 +198,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             search->Reset();
             bool retried = false;
             if (static_cast<char>(retry)) {
-                // Exclude the failing waypoint's region and plan again.
                 RegionNode* bad = failedAt->data.region;
                 int x = bad->data.x;
                 int y = bad->data.y;

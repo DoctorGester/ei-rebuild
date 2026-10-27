@@ -1,4 +1,4 @@
-// CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString (ini_file.h).
+// CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString.
 #include "ini_file.h"
 #include "game_strings.h"
 

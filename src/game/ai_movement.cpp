@@ -17,7 +17,7 @@
 #include <cstring>
 #include "game_data.h"
 
-// The unit shape cache (ai_shape_cache.h). Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
+// The unit shape cache. Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
 constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
 
 namespace {
@@ -162,7 +162,6 @@ EI_REWRITTEN(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
 
 namespace {
-// The byte grid's block and row table for its width and height.
 void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
     grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid->width * grid->height));
     grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid->height * sizeof(std::uint8_t*)));
@@ -301,7 +300,6 @@ void* CAIMap::UnitShape(float standingHeight) {
         handle.cache = UnitShapes();
         handle.counted.Assign(shape);
     } else {
-        // Not cached yet: create it and store it under the handle.
         shape = UnitShapes()->CreateShape(&handle);
         RefPtr none = {nullptr};
         ShapePair pair;

@@ -35,11 +35,8 @@ public:
 
     // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
-    // Destroys, releases and deletes every object and clears the tables.
     void Destroy() override;
-    // Frees the spares and creates the objects listed in the stream.
     void Load(CStream* stream) override;
-    // Writes {id, type, prototypeId_} of every registered object.
     void Save(CStream* stream) override;
 
     // Keeps the context and creates (slot 2); a failed create clears the context
@@ -62,7 +59,6 @@ public:
     // for -1, under a free id; the manager becomes its owner and it is created (slot 2). Null
     // when slot 14 fails.
     virtual CEngineObject* CreateObject(int type, int id);
-    // CreateObject (slot 23) of a type whose objects are T's.
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
     // An object without references leaves the manager: unregistered, destroyed
     // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (its EAX
@@ -71,11 +67,8 @@ public:
 
     // The destructor (slot 0 adds the delete). Destroy (CBaseManager's, slot 3), the containers, the engine object.
     ~CBaseManager() override;
-    // Object registered under `id`, or null.
     CEngineObject* FindObject(unsigned id) const;
-    // FindObject in a manager whose objects are T's.
     template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
-    // Sets context_ (as Init does).
     void SetContext(CManagerContext* context);
     // The object registered under `id` leaves the registration tables (it stays alive
     // and keeps its id); returns it, or null.
@@ -86,7 +79,6 @@ public:
     // Unregisters the object (when registered under its id) and keeps it as a spare of
     // its type with id -1. Returns 0.
     int RemoveObject(CEngineObject* object);
-    // Deletes the spare objects and their lists and empties the spare tables.
     void FreeSpares();
     // The registered objects' own data (slots 9 / 10) by id, up to an end
     // mark.
@@ -155,20 +147,16 @@ struct ObjectListIteratorOf : ObjectListIterator {
 // its vtable).
 class CClientSpecificManager : public CBaseManager {
 public:
-    // CBaseManager's constructor.
     CClientSpecificManager();
-    // CBaseManager's destructor.
     ~CClientSpecificManager() override;
-    const char* GetClassName() override;     // "CClientSpecificManager"
+    const char* GetClassName() override;
     int GetClassId() override;               // 0x30
     // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
     // failed allocation.
     CEngineObject* NewObject(int type) override;
 
-    // The registered constructor: in place; returns this.
 };
 namespace misc400 {
-//: the destructor (slot 0 adds the delete).
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
@@ -179,18 +167,14 @@ void* __fastcall ConstructOn(void* memory) {
     return new (memory) T();
 }
 
-// The effect manager (the world's timed objects).
 class CEffectManager : public CBaseManager {
 public:
-    // CBaseManager's constructor (inlined in CWorld::Create).
     CEffectManager();
-    // CBaseManager's destructor.
     ~CEffectManager() override;
     // The deleting destructor (slot 0).
     // CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
     int Create() override;
-    const char* GetClassName() override;     // "CEffectManager"
+    const char* GetClassName() override;
     int GetClassId() override;               // 0x32
-    // A new effect of `type`.
     CEngineObject* NewObject(int type) override;
 };

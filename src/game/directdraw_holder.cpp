@@ -152,7 +152,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     game::DebugLog("Acquiring graphics processor from graphics library.\n");   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
 
-    // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
+    // The switch-over: the new renderer presents; no DirectDraw object, display mode or
     // surfaces. The switch-over takes the cooperative level (the flags and the screen rectangle are
     // kept) and lists the one display mode; the primary and the render target are holders without
     // a surface; no video formats. Without the new renderer the game cannot run (no DirectDraw

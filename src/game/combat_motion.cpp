@@ -64,7 +64,6 @@ constexpr int kMessagePartial = 0x01;
 
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The world server, its AI map and sector map.
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -84,14 +83,12 @@ int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
 int TickOf(const CWorld* world) { return world->tick_; }
 CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
-// The unit's server object (CUnit + 0x170) and its vitals.
 UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
-// The first step of the queue shown on the unit.
 void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
     if (queue.size == 0) return;
@@ -160,7 +157,6 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
     if (entry) AddEmote(steps, entry->index);
 }
 
-// The idle key of the unit now (weapon and movement bits).
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
 // A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a CList of path
@@ -221,7 +217,6 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
     if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
-    // Standing 0.
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = world->Sectors();
@@ -597,7 +592,6 @@ EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
-    // RemoveAll.
     for (UnitList::Node* node = list->head; node; node = node->next) {
     }
     list->count = 0;

@@ -14,7 +14,7 @@
 #include <cstring>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -160,7 +160,7 @@ CPlainFigureMesh::~CPlainFigureMesh() {
 EI_REWRITTEN_SPECIAL(0x00454510, CPlainFigureMesh::~CPlainFigureMesh);
 EI_REWRITTEN_SPECIAL(0x004543A0, CPlainFigureMesh::~CPlainFigureMesh);
 
-// CPlainFigureMesh's constructor, as the scene's figure records (record_arrays.h) inline it: the shared
+// CPlainFigureMesh's constructor, as the scene's figure records inline it: the shared
 // constructor, then zeros over the mesh's six arrays and the class 0x42 vtable.
 void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 

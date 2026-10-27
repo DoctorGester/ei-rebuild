@@ -62,7 +62,6 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
     TheCursor()->Start();
 }
 
-// Reset (fastcall). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
     TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);

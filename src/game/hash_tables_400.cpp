@@ -1,9 +1,9 @@
 // Hash tables (STLport hashtables of one-dword keys and values):
-//  - the id tables of CBaseManager (base_manager.cpp): MFC-style SetAt / Lookup / RemoveKey, find and
-//    operator[] over a hashtable that also keeps the highest key inserted;
-//  - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
-//    type registry (net_classes.h): constructor and destructors, which the compiler inlined from the
-//    hashtable's.
+// - the id tables of CBaseManager: MFC-style SetAt / Lookup / RemoveKey, find and
+// operator[] over a hashtable that also keeps the highest key inserted;
+// - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
+// type registry: constructor and destructors, which the compiler inlined from the
+// hashtable's.
 // See docs/notes/core.md.
 #include "hash_tables_400.h"
 

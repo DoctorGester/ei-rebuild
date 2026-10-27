@@ -34,7 +34,6 @@ constexpr int kRelease = 2;
 constexpr int kCreateSurface = 6;            // IDirectDraw::CreateSurface (+0x18)
 constexpr int kSetCooperativeLevel = 20;     // IDirectDraw::SetCooperativeLevel (+0x50)
 
-// The interface and class ids as the game has them.
 constexpr IID kIidDirectMusic2 = /*00744900*/ {0x6536115A, 0x7B2D, 0x11D2, {0xBA, 0x18, 0x00, 0x00, 0xF8, 0x75, 0xAC, 0x12}};
 constexpr CLSID kClsidDirectMusic = /*00744930*/ {0x636B9F10, 0x0C7D, 0x11D1, {0x95, 0xB2, 0x00, 0x20, 0xAF, 0xDC, 0x74, 0x21}};
 constexpr IID kIidDirectDrawSurface4 = /*00745C50*/ {0x0B2B8630, 0xAD35, 0x11D0, {0x8E, 0xA6, 0x00, 0x60, 0x97, 0x97, 0xEA, 0x5B}};
@@ -65,7 +64,6 @@ bool SystemDirectDraw() {
     return exeFolder[0] && ddrawFolder[0] && gameapi::lstrcmpiA(exeFolder, ddrawFolder) != 0;
 }
 
-// A native run: the system's DirectDraw.
 bool DirectXIsGiven() {
     if (!SystemDirectDraw()) return false;
     ei::Log("app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped");
@@ -75,7 +73,6 @@ bool DirectXIsGiven() {
 } // namespace
 
 std::uint32_t __cdecl GetDxVersion() {
-    // Nothing is probed in a native run.
     if (DirectXIsGiven()) return 0x800;
     void* ddraw = nullptr;     // IDirectDraw
     void* ddraw2 = nullptr;

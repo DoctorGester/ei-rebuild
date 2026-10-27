@@ -168,7 +168,7 @@ void SpellListRecord::Destruct() {
 }
 EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
-// ---- The spell records as vector elements (record_vectors.h) -------------------------------------
+// ---- The spell records as vector elements -------------------------------------
 
 namespace {
 using IdElement = stlp::PlainElement<int>;

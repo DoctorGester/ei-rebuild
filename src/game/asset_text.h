@@ -3,10 +3,10 @@
 // Text in UTF-8 (docs/notes/standalone.md section 4). The game's assets hold their
 // display text in one 8-bit code page (Windows-1251 for the Russian data); with EI_UTF8 every string
 // inside the game is UTF-8, and asset text is converted where it is read:
-//   - the text database (texts.res: TextSources::Find, text_sources.cpp)
-//   - .reg string values (CFileRegistry's string readers, registry.cpp: menus.reg, quest.reg, smessbase.reg)
-//   - .mob strings (Chunk::ReadString / ReadEncodedString, chunk_stream.cpp: unit names, dialogue, scripts)
-//   - the titles' script credits.scr (CCreditsScreen::Build, ui_layouts.cpp)
+// - the text database (texts.res: TextSources::Find, text_sources.cpp)
+// - .reg string values (CFileRegistry's string readers, registry.cpp: menus.reg, quest.reg, smessbase.reg)
+// - .mob strings (Chunk::ReadString / ReadEncodedString, chunk_stream.cpp: unit names, dialogue, scripts)
+// - the titles' script credits.scr (CCreditsScreen::Build, ui_layouts.cpp)
 // Identifiers and file names inside assets are ASCII, which is the same in both. RTF (the titles'
 // pages) names its own code page and is left as it is.
 // EI_UTF8 is a compile-time switch (`build.cmd verify utf8`, CMake -DEI_UTF8=ON), off by default; with it
@@ -27,7 +27,6 @@
 namespace text {
 
 inline constexpr bool kUtf8 = EI_UTF8 != 0;
-// The code page the assets' text is written in.
 inline constexpr unsigned kAssetCodePage = EI_ASSET_CODEPAGE;
 
 // `bytes`, text in `codepage`, as UTF-8 (EI_UTF8), else unchanged.
@@ -70,7 +69,7 @@ std::size_t FittingBytes(std::string_view text, std::size_t room);
 void CopyFitting(char* to, std::size_t size, const char* from);
 
 // --- Typing ---------------------------------------------------------------------------------
-// With EI_UTF8 the game window is a Unicode one (system_text.h), so a typed character reaches the editors
+// With EI_UTF8 the game window is a Unicode one, so a typed character reaches the editors
 // (the message box's edit field, the console line, the chat line, the save window's name) as its code point
 // (app.cpp's DispatchInput joins a surrogate pair) and is stored as UTF-8. The editors' caret stays a byte
 // offset, always at a character's start: it moves, deletes and limits the length by character. Without

@@ -71,7 +71,7 @@ public:
 
     int Create() override;                  // below
     void Destroy() override { ClearSources(); }
-    const char* GetClassName() override;    // "CTextManager"
+    const char* GetClassName() override;
     int GetClassId() override;              // class id 0x2A
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a

@@ -275,7 +275,6 @@ public:
         return D3D_OK;
     }
 
-    // The one display mode: the screen's.
     void SetMode(int width, int height, int bitsPerPixel) {
         width_ = width;
         height_ = height;
@@ -294,7 +293,6 @@ public:
     }
 
 private:
-    // One state set: a render state, or a texture stage's state.
     struct Entry {
         bool stageState;
         DWORD stage, state, value;
@@ -350,14 +348,12 @@ private:
 
 SwitchOverDevice g_switchOver;
 
-// The display modes' enumeration: the one mode.
 HRESULT EnumMode(LPVOID context, LPDDENUMMODESCALLBACK2 callback) {
     DDSURFACEDESC2 mode = g_switchOver.Mode();
     if (callback) callback(&mode, context);
     return DD_OK;
 }
 
-// The texture formats' enumeration: the fixed table.
 HRESULT EnumFormats(LPD3DENUMPIXELFORMATSCALLBACK callback, LPVOID context) {
     int count = 0;
     const DDPIXELFORMAT* formats = device::SwitchOverTextureFormats(&count);

@@ -1,6 +1,6 @@
 #pragma once
 
-// Bink movies (bink_video.cpp): the Bink handle's first fields and the game's video object.
+// Bink movies: the Bink handle's first fields and the game's video object.
 
 #include <cstddef>
 #include <cstdint>
@@ -9,10 +9,9 @@
 
 struct CDXSurface;
 
-// Set while a .mob file loads: the loading screen's movie stays as it is (bink_video.cpp).
+// Set while a .mob file loads: the loading screen's movie stays as it is.
 extern std::uint8_t g_loadingMovieOff;
 
-// The loading screen's movie at progress step `progress` (bink_video.cpp).
 void __fastcall ShowLoadingMovie(int progress);
 // Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space
 // end it, Space skips frames, the screen cleared first, a loading screen step first, unused).
@@ -26,24 +25,22 @@ void CloseLoadingMovie();
 
 // The Bink handle's first fields (Bink 1.x: Width, Height, Frames, FrameNum, LastFrameNum).
 struct BinkHeader {
-    std::uint32_t width;        // +0x00
-    std::uint32_t height;       // +0x04
-    std::uint32_t frames;       // +0x08 the frame count
-    std::uint32_t frameNum;     // +0x0C the frame to decode next (1-based)
-    std::uint32_t lastFrame;    // +0x10 the frame decoded last
+    std::uint32_t width;
+    std::uint32_t height;
+    std::uint32_t frames;       // the frame count
+    std::uint32_t frameNum;     // the frame to decode next (1-based)
+    std::uint32_t lastFrame;    // the frame decoded last
 };
 static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 
 // CBinkVideo (Open, Frame): the decode surface, its Bink surface type,
 // the letterboxed screen rectangle and the Bink handle.
 struct CBinkVideo {
-    // One step of the movie (bink_video.cpp).
     unsigned Frame(char toPrimary);
     // Closes the movie open before, opens `name` (with movies on), hides the
     // cursor, makes the decode surface's holder and the screen rectangle (centred at the movie's size
     // in movies mode 1, else stretched to the screen's width). Nonzero (the low byte) when it plays.
     char Open(const char* name, char loadingStep);
-    // The constructor: no holder, no movie. Returns this.
     CBinkVideo* Construct();
     // Closes the movie when one is open, lets the
     // holder go, takes the cursor's background from the primary surface again and shows the cursor.
@@ -52,10 +49,10 @@ struct CBinkVideo {
     // gone).
     void Destruct();
 
-    CDXSurface* holder;         // +0x00
-    std::uint32_t surfaceType;  // +0x04 BinkDDSurfaceType of the holder's surface
-    RECT to;                    // +0x08
-    BinkHeader* bink;           // +0x18
+    CDXSurface* holder;
+    std::uint32_t surfaceType;  // BinkDDSurfaceType of the holder's surface
+    RECT to;
+    BinkHeader* bink;
 };
 static_assert(offsetof(CBinkVideo, to) == 0x08);
 static_assert(offsetof(CBinkVideo, bink) == 0x18);

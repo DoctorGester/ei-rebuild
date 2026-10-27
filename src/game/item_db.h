@@ -312,7 +312,7 @@ struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord(const QuickItemRecord& from);
     ~QuickItemRecord();
     int Kind() override;                        // 0x3006
-    // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
+    // and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
     // copied (the string is constructed empty).
     void CopyOwn(const QuickItemRecord* source);
     QuickItemRecord* AssignQuick(const QuickItemRecord* source);
@@ -338,7 +338,7 @@ struct QuestItemRecord : ItemRecordHead {
     // The zone names and their storage, then the head's members.
     ~QuestItemRecord();
     int Kind() override;                        // 0x3009
-    // +0x6C only: the zone list is constructed empty, not copied.
+    // only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
     QuestItemRecord* AssignQuest(const QuestItemRecord* source);   // the zone list is kept
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
@@ -503,7 +503,7 @@ struct SpellDatabase {
 
     SpellTable spells;
     SpellModifierTable modifiers;
-    stlp::vector<SpellListRecord> lists[3];     // +0x4C, +0x58
+    stlp::vector<SpellListRecord> lists[3];     // +0x58
 };
 static_assert(offsetof(SpellDatabase, lists) == 0x40);
 static_assert(sizeof(SpellDatabase) == 0x64);

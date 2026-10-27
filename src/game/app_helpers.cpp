@@ -23,7 +23,6 @@ namespace app {
 
 namespace {
 
-// Imported by name: "kernel32.dll", "GetDiskFreeSpaceExA".
 const char* Kernel32Text() { return "kernel32.dll"; }
 const char* GetDiskFreeSpaceExText() { return "GetDiskFreeSpaceExA"; }
 
@@ -53,7 +52,6 @@ double __fastcall DiskFreeSpace(const char* path) {
 // Whether QuitGame posts the quit message (cleared while a timed movie plays).
 void __fastcall SetQuitAllowed(std::uint8_t allowed) { g_quitAllowed = allowed; }
 
-// Posts WM_QUIT when quitting is allowed; returns whether it did.
 bool __fastcall QuitGame(int exitCode) {
     if (!g_quitAllowed) return false;
     gameapi::PostQuitMessage(exitCode);
@@ -92,7 +90,6 @@ void __cdecl DelayedProtectionCheck() {
     }
 }
 
-// The check list built empty, its sentinel from the node pool.
 void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
 
 } // namespace app

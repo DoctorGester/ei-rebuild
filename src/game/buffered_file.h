@@ -20,15 +20,12 @@
 // addresses, rewrite-guide rule 4); the overrides call them.
 class BufferedStream : public GameBuffer {
 public:
-    // No block, base 0, flags 0 (the other pointers are left).
     BufferedStream() {
         base = 0;
         begin = nullptr;
         flags = 0;
     }
-    // The destructor body: ReleaseBlock.
     ~BufferedStream() override { ReleaseBlock(); }
-    // The deleting destructor (slot 5) frees into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }
@@ -72,7 +69,6 @@ public:
     // the block (error bit on a short read), the pointers shifted so the cursor keeps its file
     // position, base = position.
     void MoveWindow(std::int32_t position);
-    // The cursor's file position.
     std::int32_t Position() const { return static_cast<std::int32_t>(cur - begin) + base; }
     std::int32_t Capacity() const { return static_cast<std::int32_t>(end - begin); }
 };
@@ -83,7 +79,6 @@ class BufferedFile : public BufferedStream {
 public:
     // The constructor the quest file loader inlines: BufferedStream's, no file.
     BufferedFile() : file(nullptr) {}
-    // The destructor body: Close, then BufferedStream's.
     ~BufferedFile() override { Close(); }
 
     int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }
@@ -95,7 +90,6 @@ public:
     // Fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
     int ReadAtFile(std::int32_t position, void* to, std::uint32_t size);
-    // Flush, the block freed, the file closed.
     void Close();
     // Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.

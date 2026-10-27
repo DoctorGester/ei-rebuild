@@ -21,7 +21,6 @@ namespace {
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
-// The inlined list destructor (the nodes need no destruction).
 void DestroyList(PathCellList& list) {
     list.vtable = PathCellListVtable();
     list.count = 0;
@@ -76,7 +75,6 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
 }
 
 void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
-    // The inlined RemoveAll.
     path->count = 0;
     path->free = nullptr;
     path->tail = nullptr;
@@ -109,7 +107,6 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
         default: break;
         }
     }
-    // The first cell (AddHead; its element zeroed first).
     path->AddHead(cellAt(x, y));
 }
 

@@ -28,7 +28,6 @@ void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
         gamecrt::operator_delete(records.rows);
         records.width = width;
         records.height = height;
-        // The record block and its row table.
         records.data = static_cast<BlockRecord*>(gamecrt::operator_new(records.width * records.height * sizeof(BlockRecord)));
         records.rows = static_cast<BlockRecord**>(gamecrt::operator_new(records.height * sizeof(BlockRecord*)));
         for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
@@ -107,7 +106,6 @@ void BlockSearch::Expand() {
     record->next = touched;
     touched = record;
     bestCost = record->cost;
-    // Each direction and the one leading back.
     for (int direction = 1; direction <= 8; ++direction) Relax(direction, (direction + 3) % 8 + 1);
     PickBest();
 }
@@ -125,7 +123,6 @@ bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x
         seeded = true;
     }
     search->PickBest();
-    // The list's inlined destructor.
     blocks.RemoveAll();
     return seeded;
 }

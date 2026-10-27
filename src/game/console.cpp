@@ -32,7 +32,6 @@ void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
 void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
 void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
 
-// The library's CStdioFile (lib/mfc_file.h) has this layout.
 mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
 CStdioFile::CStdioFile() { Impl()->Construct(); }
 CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }
@@ -59,7 +58,6 @@ int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// A network game is running (the server object is present and active).
 bool NetworkGame() { return IsMultiplayerClient(); }
 
 } // namespace

@@ -55,7 +55,6 @@ public:
     virtual int OnShutdown() = 0;           // the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
 
-    // Drops one reference; destroys the object at zero.
     void Release();
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself
     // meanwhile. Returns OnShutdown's EAX.
@@ -63,9 +62,7 @@ public:
 };
 static_assert(sizeof(CRefObject) == 8);
 
-// An owning pointer to a CRefObject (one dword).
 struct RefPtr {
-    // Body of the slot, registered by member pointer.
     RefPtr* DeleteScalar(unsigned flags);
     RefPtr* AssignCounted(const RefPtr* other);
     RefPtr* CopyPlain(const RefPtr* other);
@@ -80,7 +77,6 @@ struct RefPtr {
     RefPtr* AssignObject(CRefObject* object);
     CRefObject* ptr;
 
-    // Points at `object` (adding a reference) and releases the previous one.
     void Assign(CRefObject* object);
     // Initialises to share `object`: null for a null or detached object, a clone for a
     // copy-on-share one. The result is marked copy-on-share.

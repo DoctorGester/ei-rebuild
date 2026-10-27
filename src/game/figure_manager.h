@@ -1,7 +1,7 @@
 #pragma once
 
-// The figure manager's loaders (figure_manager.cpp): the resource manager that makes the game-side figure
-// objects (figure_factory.cpp) and loads their data from its archives or a cached model (figure_models.cpp;
+// The figure manager's loaders: the resource manager that makes the game-side figure
+// objects and loads their data from its archives or a cached model (figure_models.cpp;
 // docs/notes/models.md). Name provisional.
 
 #include "figure_mesh.h"   // CFigureMesh
@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 struct AnimationTrack;
 class CFigureAnimationState;
@@ -21,7 +21,7 @@ struct FigureAnimation;
 struct FigureBone;
 
 
-// figure_factory.cpp: the figure object factory, also the figure manager's creator virtual.
+// The figure object factory, also the figure manager's creator virtual.
 void* __stdcall CreateFigureObject(int classId);
 
 // FigureModel, the cached model, is in model.h.
@@ -36,14 +36,14 @@ extern RECT g_menuRects[kMenuRects];
 
 class CFigureManager : public CResourceManager {
 public:
-    // figure_mesh_life.cpp. CResourceManager's constructor, an empty model map with NextPrime(100) buckets.
+    // CResourceManager's constructor, an empty model map with NextPrime(100) buckets.
     CFigureManager();
-    // figure_model_destroy.cpp. Every cached model destroyed and freed, the base's clean-up, the model map cleared
+    // Every cached model destroyed and freed, the base's clean-up, the model map cleared
     // and its buckets freed, then CResourceManager's destructor.
     ~CFigureManager() override;
 
     int Create() override { return CreateWithArchives(); }
-    const char* GetClassName() override;                                     // "CFigureManager"
+    const char* GetClassName() override;
     int GetClassId() override;                                               // 0x28
     CEngineObject* NewObject(int type) override;                             // the factory
     BOOL AddArchive(const char* path) override { return AddMmioArchive(path); }
@@ -54,14 +54,14 @@ public:
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
     FigureModel* FindModel(const stlp::string* name);
-    // figure_animation.cpp. Sets `animation` (found in the model by its name) of the model `modelName` on
+    // Sets `animation` (found in the model by its name) of the model `modelName` on
     // `figure`; 0 when it cannot.
     int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // menu_rects.cpp (CreateWithArchives): the main menu's and the escape menu's button rectangles from
     // "menus.reg" into `rects` (g_menuRects). 1; FatalError's result when the file or an entry cannot be read.
     int LoadMenuRects(RECT* rects);
 
-    // figure_mesh_life.cpp. CBaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
+    // CBaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
     // class 0x45 object (id -1) of the context's specific manager.
     CEngineObject* CreateFigureObject(int type, int id);
     // Create (patched by Rebirth, so vanilla only). The base manager's Create (0 when it fails), then the
@@ -87,7 +87,7 @@ public:
     // bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
-    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> models_;   // +0xBC the cached models by name
+    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> models_;   // the cached models by name
 };
 static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);
 

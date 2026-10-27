@@ -1,7 +1,7 @@
 // The device object itself (CTextureDevice, texture.h): its constructor, its destructor body and the texture format
 // table. IDirect3DDevice7 is called through device.h (the switch-over device answers). The Direct3D device
 // enumeration callback and the depth buffer are gone (config/dead_code.csv). The base class is in
-// directdraw_holder.cpp. See docs/notes/renderer.md (sections 9, 12).
+// See docs/notes/renderer.md (sections 9, 12).
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends the game in
 // WinMain.
 #include "app.h"
@@ -76,7 +76,7 @@ void RecordStageBlocks(CTextureDevice* device) {
     }
 }
 
-// The rest of the constructor in the switch-over (device.h): no Direct3D object, device list,
+// The rest of the constructor in the switch-over: no Direct3D object, device list,
 // depth formats, depth buffer or render target; the IDirect3DDevice7 token in their place (with the
 // HAL device's id). The texture formats come from the switch-over's fixed table, the state blocks
 // are recorded on it (their handles tokens the new renderer's mirror knows), the viewport is the
@@ -124,7 +124,6 @@ void CTextureDevice::BuildFormatTable() {
         if (described->dwFlags & DDPF_FOURCC) {
             const std::uint32_t code = described->dwFourCC;
             if ((code & 0x00FFFFFF) != kDxtCode) {
-                // The code as text.
                 char text[5];
                 std::memcpy(text, &code, 4);
                 text[4] = 0;
@@ -179,7 +178,6 @@ CTextureDevice::~CTextureDevice() {
     if (d3dDevice_) device::Release(device::D3D(this));
     if (d3d_) device::Direct3D(this)->Release();
 
-    // The members' destructors, last to first.
     if (material_) material_->Release();
     formats_.Destroy();
     textureFormats_.Destroy();
@@ -209,7 +207,7 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 
-    // The switch-over (device.h): no Direct3D object or device, no DirectDraw fallback.
+    // The switch-over: no Direct3D object or device, no DirectDraw fallback.
     ConstructWithoutDirect3D(this);
 }
 EI_REWRITTEN_SPECIAL(0x004E5E50, CTextureDevice::CTextureDevice);

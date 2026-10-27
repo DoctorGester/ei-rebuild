@@ -40,12 +40,10 @@ using console::OStreamObject;
 using StreambufObject = lib::StaticObject<ConsoleStreambuf>;
 using ExitFunction = void(__cdecl*)();
 
-// A command map: built empty, destroyed by ~map.
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     lib_trees::Commands::Construct(&map.Get());
     libcrt::AtExit(exit);
 }
-// A streambuf: built for its message filter.
 void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
     buffer.Construct(filter);
     libcrt::AtExit(exit);

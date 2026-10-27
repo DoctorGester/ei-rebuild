@@ -30,7 +30,6 @@ void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint3
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
-// *slot = texture with counted references, the old one released.
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* previous = *slot;
     *slot = value;

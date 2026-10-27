@@ -23,14 +23,12 @@ using PositionMap = CBaseManager::PositionMap;
 using SpareMap = CBaseManager::SpareMap;
 using SpareCountMap = CBaseManager::SpareCountMap;
 
-// Destroy's list<int> of ids: the sentinel node of a circular list.
 using IdList = stlp::list<int>;
 using IdNode = IdList::Node;
 
 // The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
-// The fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
 const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't find first free key.\n"; }
 
 // --- Helpers ------------------------------------------------------------------------------------
@@ -364,7 +362,6 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
         spareCounts_[type] = count;
         return 0;
     }
-    // The first spare of this type: a new list (CPtrList(10)).
     auto* list = gamecrt::operator_new_as<ObjectList>();
     if (list) {
         list->count = 0;
@@ -427,7 +424,6 @@ void CBaseManager::Load(CStream* in) {
     }
 }
 
-// The object list's count, then {id, type, prototypeId_} per object.
 void CBaseManager::Save(CStream* out) {
     int count = objectList_.count;
     out->Write(&count, 4);
@@ -512,7 +508,6 @@ CEngineObject* ObjectListIterator::First(CBaseManager* list) {
 }
 EI_REWRITTEN(0x00404920, ObjectListIterator::First);
 
-// The object at the position (moving it on), or null at the end.
 CEngineObject* ObjectListIterator::Next() {
     ObjectNode* node = position;
     if (!node) return nullptr;

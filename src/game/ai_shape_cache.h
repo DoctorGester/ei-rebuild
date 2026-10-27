@@ -24,20 +24,16 @@ struct ShapeCacheHandle {
 };
 static_assert(sizeof(ShapeCacheHandle) == 0x10);
 
-// The bucket of a handle: its key.
 struct ShapeCacheHash {
     std::size_t operator()(const ShapeCacheHandle& handle) const { return handle.key; }
 };
 
-// A real virtual class with one virtual.
 class UnitShapeCache {
 public:
     CRefObject* Get(void* handleIn);
 
-    // A node is {next, handle, shape}: 0x18 bytes.
     using Map = stlp::hash_map<ShapeCacheHandle, RefPtr, ShapeCacheHash>;
 
-    // Makes the shape for a handle (CreateUnitShape in ai_unit_layer.h).
     virtual CRefObject* CreateShape(const ShapeCacheHandle* handle);
 
     // The static initialiser calls it on the global; returns this. An empty map with the first prime number of
@@ -47,8 +43,8 @@ public:
     // reference dropped, the nodes and the buckets freed.
     void Destruct();
 
-    std::uint32_t unused_04;       // +0x04
-    Map shapes;                     // +0x08
+    std::uint32_t unused_04;
+    Map shapes;
 };
 static_assert(sizeof(UnitShapeCache::Map::Node) == 0x18);
 static_assert(offsetof(UnitShapeCache, shapes) == 8 && sizeof(UnitShapeCache) == 0x1C);
@@ -64,6 +60,6 @@ static_assert(sizeof(ShapePair) == 0x14);
 // reference dropped.
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 
-// The cache (ai_movement.cpp): built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).
+// The cache: built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).
 extern lib::StaticObject<UnitShapeCache> g_unitShapes;
 inline UnitShapeCache* UnitShapes() { return &*g_unitShapes; }

@@ -2,7 +2,7 @@
 
 // The exe's STLport map instantiations outside the connection (net_connection_trees.h has its five):
 // their value policies and stlp::TreeAbi types, registered at their addresses by
-// library_trees.cpp. Node sizes from each one's _M_create_node.
+// Node sizes from each one's _M_create_node.
 
 #include "console.h"       // CommandMap
 #include "link_figure.h"   // LinkPartHeader, LinkPartRanges, LinkHeaderMap, LinkRangeMap

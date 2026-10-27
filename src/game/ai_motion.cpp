@@ -53,7 +53,6 @@ constexpr float kMinLength = 9.99999975e-06f;
 int Direction(const PathCell& from, const PathCell& to) {
     return DirectionSteps()[(to.y - from.y) * 3 + to.x - from.x];
 }
-// Difference between two directions in 45-degree steps (0..4).
 int DirectionDelta(int a, int b) {
     int d = a - b;
     if (d < 0) d = -d;
@@ -299,7 +298,6 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         double ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
         if (static_cast<double>(to) > time && to != order->startTime) {
-            // Still turning towards it: interpolate the facing over [start, to].
             double angleTo = x87::fpatan(ty - order->y, static_cast<double>(tx) - order->x) - order->angle;
             const double twoPi = static_cast<double>(kPi) + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
@@ -350,7 +348,6 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         end = segmentStart;     // later: walk on from the cached segment
         index = segment;
     } else {
-        // Before the path: turn in place first.
         *turning = true;
         turnRate = baseTurnRate;
         float turnTime = AbsBits(static_cast<float>(static_cast<double>(turn) / baseTurnRate));
@@ -396,7 +393,6 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             }
         }
         if (!found) {
-            // Past the end: stand at the last point.
             segmentStart = saved;
             std::memset(speedOut, 0, sizeof(float));
             const MotionPoint& last = points.data[points.size - 1];
@@ -643,7 +639,6 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
 
     EI_NAN_AUDIT(startOffset, endOffset);
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
-        // A single cell from start to target: one point at each end.
         CopyBits(&p.x, &a->x);
         CopyBits(&p.y, &a->y);
         int size = points.size;

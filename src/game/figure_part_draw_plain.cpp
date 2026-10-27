@@ -1,5 +1,5 @@
 // The plain draw of one figure part (on the part's scene node): the simpler sibling of the lit draw
-// (figure_part_draw.cpp), always through the device and without the lighting: a hidden mesh (flag 0x80) is
+//, always through the device and without the lighting: a hidden mesh (flag 0x80) is
 // skipped, the drawn flag (0x40) cleared, the mesh clip-tested against the view, animated meshes (type 13..16)
 // advanced to the current time; flat meshes (0x100) get their colours filled with one value and speculars with
 // another (the arrays keep their sizes), a mesh not yet lit (no 0x10) asks the device to light it (draw flag
@@ -32,9 +32,9 @@ lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
-// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
 // The node's animation at a time (float bits), and the call after the draw (the renderer).
-// The device's mesh draw (device_mesh.cpp).
+// The device's mesh draw.
 
 // *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }

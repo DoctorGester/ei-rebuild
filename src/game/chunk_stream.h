@@ -18,18 +18,14 @@
 
 class Chunk {
 public:
-    // Nothing read or written yet, under `parent`.
     explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
-    // Nothing to do (also the unit record's chunk classes' versions).
     ~Chunk();
 
     // 0: empty. Called by ForEachChild for each child header read; the readers (the
     // zone's object records, map_spec.h) read the chunk's value by its id.
     virtual void OnChunk();
-    // The file (an MFC CFile): the parent's, or null without a parent.
     virtual mfc::CFileVirtuals* File();
 
-    // Counts `bytes` as consumed here and in every parent.
     void Advance(int bytes);
     // Writing a chunk of unknown size: the header with a placeholder size,
     // and at the end the size (consumed_) patched in.
@@ -44,7 +40,6 @@ public:
     // Reads the headers of the chunks that follow until the parent is consumed, calling
     // OnChunk for each and skipping what it leaves unread.
     void ForEachChild();
-    // Values of the current chunk.
     float ReadFloat();
     int ReadInt();
     std::uint8_t ReadByte();
@@ -71,11 +66,11 @@ public:
     void ReadStringArray(mfc::CStringArray* array);
     void WriteStringArray(std::uint32_t id, mfc::CStringArray* array);
 
-    std::uint32_t id_;       // +0x04
-    std::int32_t consumed_;  // +0x08 bytes of the chunk read or written so far, header included
-    std::int32_t size_;      // +0x0C size from the header, header included
-    std::uint32_t start_;    // +0x10 file position of the size field while writing
-    Chunk* parent_;          // +0x14
+    std::uint32_t id_;
+    std::int32_t consumed_;  // bytes of the chunk read or written so far, header included
+    std::int32_t size_;      // size from the header, header included
+    std::uint32_t start_;    // file position of the size field while writing
+    Chunk* parent_;
 };
 static_assert(offsetof(Chunk, id_) == 0x04);
 static_assert(offsetof(Chunk, parent_) == 0x14);
@@ -85,18 +80,16 @@ static_assert(sizeof(Chunk) == 0x18);
 // (CWorldServer::LoadMapObjects) is one too.
 class RootChunk : public Chunk {
 public:
-    // No parent, the file closed.
     RootChunk() : Chunk(nullptr) {}
 
     mfc::CFileVirtuals* File() override;   // 1: &file_
 
-    // The CFile destroyed (the .mob root's destructor does the same).
     ~RootChunk();
 
     // Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
     int Open(mfc::CString path, unsigned flags);
 
-    mfc::CFile file_;        // +0x18
+    mfc::CFile file_;
 };
 static_assert(offsetof(RootChunk, file_) == 0x18);
 static_assert(sizeof(RootChunk) == 0x28);

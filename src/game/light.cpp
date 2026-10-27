@@ -14,7 +14,7 @@
 #include <cstring>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 

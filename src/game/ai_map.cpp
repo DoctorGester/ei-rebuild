@@ -17,10 +17,8 @@ int WorldToCell(float world) {
 }
 
 namespace {
-// Standing heights of the 8 size classes.
 constexpr float kSizeClassHeights[8] = /*0079169C*/ {0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.7f, 0.7f, 1.5f};
 
-// Cell centre to world coordinate, as FindFreeCellNear computes it.
 float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
@@ -291,7 +289,6 @@ EI_REWRITTEN(0x005B64E0, CAIMap::BridgeDeckAt);
 // --- Line of sight -------------------------------------------------------------------------------
 
 namespace {
-// Transparency of an occluder class.
 constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
 constexpr float kMinVisibility = 0.0001f;
 } // namespace
@@ -397,7 +394,6 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
 EI_REWRITTEN(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
-    // Function-local static (initialised on first use, destroyed at exit).
     auto& guard = g_findFreeGuard;
     auto* cache = &g_findFreeSpiral;
     if (!(guard & 1)) {

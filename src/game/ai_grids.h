@@ -27,7 +27,6 @@ void FreeGrid(SearchGrid<T>& grid) {
     gamecrt::operator_delete(grid.rows);
 }
 
-// Allocate per element type (thiscall on the grid).
 void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid);
 void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid);
 // The region map's edge words, eight per block, all -1.
@@ -42,10 +41,9 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // bits are left as allocated.
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
-// The destructor (shared by the grid classes).
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
 // The event table's cells (Rebirth patches the resize that calls it).
-struct AIEventCell;   // unit_ai.h
+struct AIEventCell;
 // The edge and representative-cell grids' default constructors (1 x 1, then the allocator; the region map's
 // constructor hands them to the vector constructor iterator).
 void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
@@ -54,7 +52,6 @@ void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
-// Fills the six area lists from their tables (ai_area_lists.cpp).
 void __fastcall FillAreaLists(CAIMap* map);
 
 // CAIMap's dirty rectangle (+0x004: dirtyMinX .. dirtyMaxY).

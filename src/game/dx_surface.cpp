@@ -161,7 +161,6 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
         CDXSurface::operator delete(holder);   // not counted in yet: no destructor
         return nullptr;
     }
-    // The memory is the surface.
     FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
     return holder;
 }

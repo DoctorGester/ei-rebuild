@@ -15,7 +15,6 @@ namespace {
 
 constexpr std::size_t kBuckets = 100;   // each index asks for 100 buckets (STLport: 193)
 
-// A table's records: the STLport vector its first three words are.
 template <typename R>
 stlp::vector<R>& RecordsOf(void* table) {
     return *static_cast<stlp::vector<R>*>(table);
@@ -27,7 +26,6 @@ void DestroyRecords(void* table) {
     Abi::Destruct(&RecordsOf<typename Abi::Vector::value_type>(table));
 }
 
-// A unit table: the index, then the records.
 template <typename Abi, typename Table>
 void DestroyUnitTable(Table& table) {
     table.byName.Destroy();
@@ -43,7 +41,6 @@ void ConstructUnitTable(Table& table) {
     table.byName.InitBuckets(kBuckets);
 }
 
-// An item table: the index, then the records.
 template <typename Abi, typename Record>
 void DestroyItemTable(itemdb::NamedRecordTable<Record>& table) {
     table.names.Destroy();
@@ -67,7 +64,7 @@ EI_REWRITTEN(0x0057CBE0, UnitDatabase::Reset);
 namespace itemdb {
 
 void SpellDatabase::Reset() {
-    Destruct();   // database_destruct.cpp
+    Destruct();
     Construct();
 }
 

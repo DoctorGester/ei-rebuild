@@ -122,7 +122,7 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     // The pose virtual stores the quaternion as the world rotation.
     CombineRotation(rotation);
     // The position (+0x1C) rotated by the quaternion (w, v):
-    //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
+    // 2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{rotation.x, rotation.y, rotation.z};
     auto* p = &localPosition_;
     double dot = DotUnrounded<Sum3::ZYX, double>(v, *p);

@@ -23,7 +23,6 @@ class CString;
 //.
 class CStream {
 public:
-    // Version_ 2000000000, ok_ set.
     CStream();
     CStream(const CStream&) = delete;
     CStream& operator=(const CStream&) = delete;
@@ -45,7 +44,6 @@ public:
     // Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
     mfc::CString* ReadString(void* out);
-    // ReadString into a temporary, assigned to `out`.
     void ReadInto(mfc::CString* out);
 
     // Reads a block WriteSized wrote (a two-byte size word, two more bytes when
@@ -105,9 +103,7 @@ public:
 // Resize and SetSize flush and reset that state.
 class CMemoryStream : public CStream {
 public:
-    // An empty stream (Reset's fields); also the queue streams' constructor.
     CMemoryStream();
-    // The destructor (deleting too): the buffer freed.
     ~CMemoryStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok_
     // 2: grows to (capacity + size) * 2. The harness's observer (verify builds) is told
@@ -164,7 +160,6 @@ public:
     std::uint32_t size_;            // end of the data
 };
 
-// The game's save stream: the global CMemoryStream g_saveStream.
 CMemoryStream* GameSaveStream();
 // The stream the received packets are decompressed into (with the network queue's vtable; ReceiveMessages fills it):
 // g_receivedMessages.

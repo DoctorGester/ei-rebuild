@@ -58,7 +58,6 @@ class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
     CStdioFile();
-    // Opened at once; a failure throws a CFileException* (lib/mfc_try.h).
     CStdioFile(const char* name, unsigned flags);
     ~CStdioFile();
     mfc::BOOL Open(const char* name, unsigned flags, void* error);
@@ -68,7 +67,6 @@ public:
     char* ReadString(char* buffer, unsigned size);
     void WriteString(const char* text);
     void Close();
-    // The file as code that calls through its vtable sees it.
     CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
 private:
@@ -89,9 +87,7 @@ public:
     GameOStream& operator<<(char c);
     GameOStream& operator<<(int n);
     GameOStream& operator<<(double d);
-    // Operator<<(ostream& (*)(ostream&)), here only with flush.
     GameOStream& Apply(libcrt::Manipulator manipulator);
-    // Apply(flush): the manipulator ostream& flush(ostream&).
     GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
     // The header's inline operator<<(float): sets x_floatused, prints as double. The game passes
     // the x87 value as is (never rounded to float).
@@ -99,7 +95,6 @@ public:
         floatUsed = 1;
         return *this << d;
     }
-    // The same, out of line, for a float argument.
     GameOStream& PutFloatArgument(float f);
 };
 static_assert(sizeof(GameOStream) == 8);
@@ -124,7 +119,6 @@ extern OStreamObject g_rpgLogOut;
 extern OStreamObject g_graphicsLogOut;
 extern OStreamObject g_eventLogOut;
 extern OStreamObject g_aiLogOut;
-// The console's ostream.
 inline GameOStream& Out() { return g_consoleOut; }
 // A log stream seen through one of the game's per-file ostream views (inserters only, no data of their own).
 template <class View>
@@ -134,7 +128,6 @@ View* StreamAs(libcrt::Ostream& stream) {
 }
 // `<< '\n' << flush`, how every console message ends.
 void EndLine(GameOStream& os);
-// Out() << text, then EndLine.
 void PrintLine(const char* text);
 
 // The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
@@ -142,9 +135,7 @@ void PrintLine(const char* text);
 // area (buffer_) and move into line_ on overflow; sync hands the line to the console window.
 class ConsoleStreambuf final : public libcrt::Streambuf {
 public:
-    // The base on buffer_, the filter, the empty line.
     explicit ConsoleStreambuf(unsigned filter);
-    // The line released (a member), then the base's.
     ~ConsoleStreambuf() override;
     int Sync() override;
     int Overflow(int c) override;
@@ -256,7 +247,6 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-// Runs one console line.
 void __fastcall Execute(const char* text);
 // Rebirth's console additions. AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
@@ -275,7 +265,6 @@ int __fastcall Tokenize(const char* text, CStringArray* out);
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix);
 
-// Command handlers.
 namespace commands {
 void __fastcall Help(CStringArray* args);          // help
 void __fastcall DebugInfo(CStringArray* args);     // debuginfo

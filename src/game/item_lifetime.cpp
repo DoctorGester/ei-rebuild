@@ -10,7 +10,7 @@
 
 #include <cstring>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -117,7 +117,7 @@ EI_REWRITTEN_SPECIAL(0x006A49A0, CItemLoot::CItemLoot);
 CItemSpell::CItemSpell() = default;
 EI_REWRITTEN_SPECIAL(0x006A56E0, CItemSpell::CItemSpell);
 
-// Slots 11 / 12: the exe's class names and ids.
+// The exe's class names and ids.
 const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
 int CItemWeapon::GetClassId() { return 0x11; }
 const char* CItemArmor::GetClassName() { return "CItemArmor"; }

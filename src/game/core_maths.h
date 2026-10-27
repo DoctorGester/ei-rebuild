@@ -7,9 +7,7 @@
 
 // Operator+: `out` = a + b. __fastcall (out in ECX, a in EDX, b on the stack), returns out.
 Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b);
-// Unary minus: `out` = -v. Returns out.
 Vector3* __fastcall NegateVector(Vector3* out, const Vector3& v);
-// Operator*(float): `out` = v * s. Returns out.
 Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s);
 
 // Clamps to [-1, 1]; NaN gives -1.
@@ -19,7 +17,6 @@ float __stdcall ClampUnit(float v);
 struct CubicSegment {
     float c[4];
 
-    // Coefficients for the segment between control values p1 and p2.
     void SetBSpline(float p0, float p1, float p2, float p3);
     // Value at t (Horner's scheme). Returned unrounded in ST0.
     float Evaluate(float t) const;

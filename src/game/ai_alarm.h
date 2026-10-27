@@ -6,11 +6,10 @@
 
 #include <cstdint>
 
-class CStream;       // core_streams.h
-class CUnitServer;   // combat.h
+class CStream;
+class CUnitServer;
 
 struct AIAlarm {
-    // Everything cleared.
     void Reset();
     // The same, returning the state (the controller's constructor).
     AIAlarm* Construct();
@@ -23,10 +22,10 @@ struct AIAlarm {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    int level;      // +0x00 what the group's members raised this step
-    int pending;    // +0x04 raised by the unit's own AI since the last step
-    int active;     // +0x08 the level being passed on
-    int timer;      // +0x0C steps left of it
+    int level;      // what the group's members raised this step
+    int pending;    // raised by the unit's own AI since the last step
+    int active;     // the level being passed on
+    int timer;      // steps left of it
 };
 static_assert(sizeof(AIAlarm) == 0x10);
 

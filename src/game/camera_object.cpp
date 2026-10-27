@@ -30,7 +30,6 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 } // namespace
 
-// CTransformObject's destructor (deleting), which is CEngineObject's.
 EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
 EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
@@ -148,7 +147,6 @@ int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_
 }
 EI_REWRITTEN(0x0040D0A0, CCamera::Init);
 
-// The near distance, far distance and field of view (as dwords).
 void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const {
     std::memcpy(a, &nearDistance_, 4);
     std::memcpy(b, &farDistance_, 4);

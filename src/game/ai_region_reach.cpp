@@ -29,7 +29,6 @@ using PointArray = BlockPointArray;
 static_assert(sizeof(BlockPointArray) == 0x14);
 void DestroyPoints(BlockPointArray& points) { mfc::impl::DestructArrayOf<mfc::impl::PointArrayClass>(points); }
 
-// The blocks, guard bit 0 of g_blocksGuard.
 constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
 PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
@@ -62,7 +61,6 @@ const int* StepY() { return DirectionDy() + 1; }
 
 } // namespace
 
-// The {x, y, cost} records zero filled.
 void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainElements<BlockCost>::Construct(elements, count); }
 
 namespace {
@@ -72,7 +70,6 @@ namespace {
 // The region map's per size class grids (edge words, representative cells, regions) are allocated for their
 // size here.
 
-// A grid resized (freed and reallocated) when the size changes.
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
@@ -330,7 +327,6 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
     }
     forward.Attach(this, false);
     backward.Attach(this, true);
-    // The stream's state byte as it is (AL).
     bool ok;
     std::memcpy(&ok, &stream->ok_, sizeof(ok));
     return ok;
@@ -383,7 +379,6 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
                                  BlockPointArray* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
-    // The excluded blocks (CArray<{x, y}>) are marked visited in both.
     const BlockPoint* points = excluded->data;
     for (int i = 0; i < excluded->size; ++i) {
         Exclude(forward, points[i].x, points[i].y);
@@ -505,7 +500,6 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         default: break;
         }
     }
-    // The first cell (AddHead; its element zeroed first).
     path->AddHead(cellAt(x, y));
 }
 
@@ -563,9 +557,7 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-// The region map's constructor (returns this).
 CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
-    // The two block searches start with a 1x1 record grid.
     for (BlockSearch* search : {&self->forward, &self->backward}) {
         SearchGrid<BlockRecord>& records = search->records;
         records.width = 1;

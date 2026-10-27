@@ -25,17 +25,14 @@ public:
     CUnitShape();
     // Constructed again empty: no levels, radius -1. Returns 0.
     int OnShutdown() override;
-    // A new shape with the same levels and radius (no references yet).
     CUnitShape* Clone() override;
 
-    std::uint8_t levels[16][16];    // +0x008 rows of 16
-    float radius;                   // +0x108
+    std::uint8_t levels[16][16];    // rows of 16
+    float radius;
 };
 
-// The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
 using UnitShapeHandle = ShapeCacheHandle;
 // The shape cache's creator virtual: a new shape for the handle's radius (`this` unused).
 CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle);
 
-// The bucket of a block key.
 inline int UnitLayerBucket(int blockX, int blockY) { return (blockX * 17 + blockY) & 0x3FF; }

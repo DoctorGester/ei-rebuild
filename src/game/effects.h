@@ -2,8 +2,8 @@
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
 // - CParticleSource ("CParticle"): one emitter. Its tick runs the per-type callbacks the
-//   constructor stores (emit one particle, update one particle: 0 kills it, update
-//   one element of the source's own array).
+// constructor stores (emit one particle, update one particle: 0 kills it, update
+// one element of the source's own array).
 // - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
 // - CVisibilityFog ("CVisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
@@ -299,7 +299,6 @@ public:
     ~CParticleManager() override;
     const char* GetClassName() override;
     int GetClassId() override;                     // class id 0x2C
-    // A new source of `type` (particle_create.cpp, NewParticleSource).
     CEngineObject* NewObject(int type) override;
 
     // QuietStart cleared, then CBaseManager::Create; returns 1 / 0.
@@ -310,7 +309,6 @@ public:
 
     Particle* AcquireParticle();                    // from the pool, else new (0x64 bytes)
     void ReleaseParticle(Particle* p);              // back to the pool's tail
-    // Draws every source back to front; 0 when a source failed to draw.
     int DrawAll(void* renderer);
     // A new source of `type` (CreateObject(type, -1)), referenced and held under
     // its id; with quietStart set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
@@ -615,9 +613,7 @@ struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
-// Data 32-byte aligned, the block address below it.
 using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
-// An MFC-style array with a vtable.
 using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
 // (The list position's particle with the position advanced is the list's GetNext.)
@@ -641,7 +637,6 @@ public:
     const char* GetClassName() override;            // "CWeather" (nothing asks)
     int GetClassId() override;                      // class id 0x1D
 
-    // The rain or snow drawn.
     int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);
     void FinishFade();
@@ -737,7 +732,6 @@ public:
     // The construction: the engine object's fields, everything up to the cell map zero, an empty
     // cell map (100 buckets asked).
     CVisibilityFog();
-    // Deleting destructor: ClearCells, the table freed.
     ~CVisibilityFog() override;
     int Create() override;                          // ClearCells, 1
     void Destroy() override { ClearCells(); }

@@ -49,7 +49,7 @@ constexpr int kNoSpot = 0x7FFFFFFF;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
-// The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
+// The map objects' virtual slots: 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 
 // --- Helpers --------------------------------------------------------------------------------------
@@ -126,13 +126,10 @@ struct LocalUnitMotion {
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
 };
 
-// The spots a use order may go to (map_object.h).
 using SpotArray = UseSpotArray;
 
-// A CPtrList on the stack (blocks of 10).
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 
-// The messages of a unit's player (CPlayer::connection_).
 CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
 void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
@@ -374,7 +371,6 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         sectors->Add(current->data);
     }
     ReportPath(path.Path(), found ? 1 : 0);
-    // The list's RemoveAll (inlined).
     lifted.count = 0;
     lifted.free = nullptr;
     lifted.tail = nullptr;

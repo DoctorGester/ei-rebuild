@@ -44,7 +44,6 @@ bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
     }
     Sector* sector = SectorOf(this, x, y);
     if (!(word & kChained)) {
-        // The inline occluder moves into the first record of a chain.
         int index = sector->NewOccluder();
         std::uint32_t w = word;
         SectorOccluder& first = sector->occluders[index];

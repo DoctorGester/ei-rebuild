@@ -21,7 +21,7 @@ FootprintCellSet* FootprintCellSet::Construct() {
 }
 EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
-// The spells' footprint set (spell_effect_internal.h), empty at the start: built by a static initialiser in the
+// The spells' footprint set, empty at the start: built by a static initialiser in the
 // list's order and freed by the exit function it registers (docs/notes/standalone.md, "The static
 // initialisers' objects").
 namespace spellfx {

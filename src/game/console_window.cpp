@@ -35,7 +35,6 @@ void ConsoleWindow::SetRect(const RECT* rect) {
 }
 EI_REWRITTEN(0x005E3E90, ConsoleWindow::SetRect);
 
-// Keeps the last `lines` lines.
 void ConsoleWindow::SetHistory(int lines) {
     history_ = lines;
     if (lines_.GetSize() > lines) lines_.RemoveAt(0, lines_.GetSize() - lines);
