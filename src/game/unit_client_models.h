@@ -1,13 +1,13 @@
 #pragma once
 
-// How the client dresses a unit: the figure parts of the armour it wears and the composed skin texture of party
-// units. CUnitClientSpecific is the client-side controller of a party unit (GetClassName "CUnitClientSpecific", class
-// id 0x3D). See docs/notes/units.md ("Creation, databases, save").
+// How the client dresses a unit: the figure parts of the armour it wears and the composed skin texture of
+// party units. CUnitClientSpecific is the client-side controller of a party unit (class id 0x3D). See
+// docs/notes/units.md ("Creation, databases, save").
 
-#include "ai_map.h"   // PathOrder
+#include "ai_map.h"
 #include "console.h"
 #include "engine_object.h"
-#include "unit.h"   // CUnitController, CUnit
+#include "unit.h"
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -19,7 +19,7 @@
 
 class CParticleSource;
 class CTexture;
-struct tagRECT;          // windows.h RECT
+struct tagRECT;
 class CUnit;
 struct UnitPrototypeRecord;
 struct FigureAnimation;
@@ -29,10 +29,9 @@ struct Vector3;
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
-// An entry of a client controller's speech queue (plays one). What a unit says: an acks.db entry (acks_db.h) with its
-// sound file name.
+// What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
-    int chance;                     // eligible when at least the roll (0..99, acks_db.cpp)
+    int chance;                     // eligible when at least the roll (0..99)
     stlp::string sound;             // the sound file
     stlp::string text;
     stlp::string name;              // named speeches
@@ -41,7 +40,7 @@ static_assert(offsetof(SpeechRecord, name) == 0x1C);
 static_assert(sizeof(SpeechRecord) == 0x28);
 
 struct ClientSpeech {
-    const SpeechRecord* id;         // (compares it with the last speech, +0x94)
+    const SpeechRecord* id;         // (compared with lastSpeech)
     int kind;                       // 2 / 0x1C: not over a speech that still plays
     int delay;                      // ticks until it plays; negative: playing
     int sound;                      // its sound handle (-1 none)
@@ -50,7 +49,7 @@ struct ClientSpeech {
 };
 static_assert(sizeof(ClientSpeech) == 0x14);
 
-// What the speech queue's filters compare (slot 51 builds one for each walk; unit_client_speech.cpp).
+// What the speech queue's filters compare.
 struct SpeechFilter {
     int Replaced(const ClientSpeech* queued) const;
     // Has `queued`'s sound ended (it had one)? A talking speech then clears the server unit's flag 0x800000.
@@ -66,18 +65,17 @@ struct ClientSpeechNode {
 };
 static_assert(sizeof(ClientSpeechNode) == 0x1C);
 
-// The figure part names of the three armour groups (seven char[4] each): a body
-// armour covers "bd" and the arm pieces, trousers "hp" and the legs, a helmet the hair "hr" and
-// the head "hd" (the rest of that row is empty). Armour slots 0 / 1 / 2 use rows 2 / 0 / 1.
+// The figure part names of the three armour groups: a body armour covers "bd" and the arm pieces, trousers
+// "hp" and the legs, a helmet the hair "hr" and the head "hd" (the rest of that row is empty). Armour slots 0
+// / 1 / 2 use rows 2 / 0 / 1.
 inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
     {"bd", "rh1", "rh2", "rh3", "lh1", "lh2", "lh3"},
     {"hp", "rl1", "rl2", "rl3", "ll1", "ll2", "ll3"},
     {"hr", "hd", "", "", "", "", ""},
 };
 
-// One layer of a composed skin: what it is (0x32 the unit's own skin, 0x3005 armour,
-// 0x3004 a weapon; 0 none), the packed item id or prototype index, and the armour slot / weapon
-// type. MFC CArray of them; its SetSize is.
+// One layer of a composed skin: what it is (0x32 the unit's own skin, 0x3005 armour, 0x3004 a weapon; 0
+// none), the packed item id or prototype index, and the armour slot / weapon type.
 struct SkinLayer {
     int kind;
     std::uint32_t id;
@@ -87,10 +85,10 @@ static_assert(sizeof(SkinLayer) == 0xC);
 
 using SkinLayerArray = mfc::CArray<SkinLayer>;
 
-// What the texture manager composes a skin from: the layers as bytes in 32-byte
-// aligned storage, the layer texture names, and a flag (0x100 detailed, 0x80 simple).
+// What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
+// texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
-    lib::AlignedArray<std::uint8_t> layers;   // the bytes (size, capacity, growBy after the data)
+    lib::AlignedArray<std::uint8_t> layers;
     console::CStringArray textures;
     int flags;
 };
@@ -141,8 +139,8 @@ public:
     // 1.
     int ShowWeapon(std::uint32_t slot) override;
 
-    // The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour
-    // slots; else two layers, armour slot 0 and the weapon in hand.
+    // The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour slots; else two layers,
+    // armour slot 0 and the weapon in hand.
     void BuildSkinLayers(int detailed, SkinLayerArray* out);
 
     // Composes the unit's skin texture through the texture manager from the skin layers and the textures
@@ -157,95 +155,81 @@ public:
 
     // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update". Returns 1.
     int RunTick() override;
-    // The blink. With a face texture and a skin texture (the client half's material), unless the eyes
-    // already are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
-    // rectangle (the model's +0x158..+0x164 in 256ths of the skin, down the mip chain); eyesClosed becomes 1
-    // / 0.
+    // The blink. With a face texture and a skin texture (the client half's material), unless the eyes already
+    // are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye rectangle
+    // (the model's eye fields in 256ths of the skin, down the mip chain); eyesClosed becomes 1 / 0.
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
-    // The face texture the blink uses, loaded
-    // once: the texture manager's texture of kind 0x3D named "<model>mouth_<skin, 2 digits>"
-    // (heroes, the prototype's +0x0C) or "<model>mouth", loaded; one that did not load
-    // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
-    // loaded face.
+    // The face texture the blink uses, loaded once: the texture manager's texture of kind 0x3D named
+    // "<model>mouth_<skin, 2 digits>" (heroes) or "<model>mouth"; one that did not load (flags_ bit 8 clear)
+    // is dropped and blinking stops. False without a prototype or a loaded face.
     bool LoadFaceTexture();
     int FiguresLoaded() override;
     int RestartFadeIn() override;
-    // The level from the packed experience (UnitParams +0x04, CUnit +0x334):
-    // ln(experience /) / ln stored as a float and rounded to nearest.
+    // The level from the packed experience: ln(experience / considerModifier) / ln(considerLogBase) stored as
+    // a float and rounded to nearest (0x80000000 for experience 0).
     int Level() override;
-    // When the wounds texture is needed
-    // the client half shows "mo<unit id>w", else none. Returns 1.
+    // When the wounds texture is needed the client half shows "mo<unit id>w", else none. Returns 1.
     int RefreshWounds() override;
-    // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80;
-    // its part names, the parts found by FindPart) unless +0x74 already says so;
-    // +0x74 and +0x75 take the new state.
+    // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80) unless weaponHidden
+    // already says so; weaponHidden and arrowHidden take the new state.
     void ShowWeaponParts(bool hidden);
-    // For heroes with a bow in hand: the arrow part "rh3.arrow00" shows (flags_ 0x80
-    // cleared, +0x75 = 0) when the animation (flag 1 in its +0x18) passes its frame +0x28, and
-    // is hidden again (+0x75 = 1) outside the window up to frame +0x2C, or always for animations
+    // For heroes with a bow in hand: the arrow part "rh3.arrow00" shows when the animation (flag 1) passes
+    // its arrowFrom frame, and is hidden again outside the window up to arrowTo, or always for animations
     // without the flag.
     void UpdateArrow();
 
-    // The unit moves on to world time `time`. Before the last time (or
-    // NaN) it is only put back on the ground (+0x320 above, the world's MoveObject); otherwise the
-    // step (more than 500 becomes 500..600, one IsaacRandom draw) runs the invisible / stunned
-    // pulses, places the unit on its path unless +0x260 (then the animation speed is
-    // 1), and advances the animation by the step (times the animation speed when +0x25C is 2;
-    // not when +0x25C is 1).
+    // The unit moves on to world time `time`. Before the last time (or NaN) it is only put back on the ground
+    // (plus heightOffset, the world's MoveObject); otherwise the step (more than 500 becomes 500..600, one
+    // IsaacRandom draw) runs the invisible / stunned pulses, places the unit on its path unless pathTimeShift
+    // (then the animation speed is 1), and advances the animation by the step (times the animation speed in
+    // motion mode 2; not in mode 1).
     void AdvanceTime(float time) override;
-    // Unless the unit is frozen (flags_ 0x10000000) the animation queue
-    // is emptied and the unit's animations start again: the special idle (StartIdleAnimation(1))
-    // for +0x255 == -2, else the entries +0x254 (played) and +0x255 (queued behind it, or played
-    // alone); then the animation is advanced to `time` + 1 - +0x258 when that is above 0 (+0x2C /
-    // +0x30 take the state), the last time becoming +0x258 plus it, else +0x258.
+    // Unless the unit is frozen (flags_ 0x10000000) the animation queue is emptied and the unit's animations
+    // start again: the special idle (StartIdleAnimation(1)) for secondEntry -2, else animationEntry (played)
+    // and secondEntry (queued behind it, or played alone); then the animation is advanced to `time` + 1 -
+    // animationStart when that is above 0, the last time becoming animationStart plus it.
     void RestartAnimation(float time) override;
-    // Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind)
-    // for the weapon in hand (bit of its prototype's type; no bit for an unknown id) or the natural
-    // weapon (+0x34F, when below 7), with 0x10000 for non-heroes and 0x80580000 for +0x255 == -2;
-    // plays it (`play`) or queues it.
+    // Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind) for the weapon in
+    // hand (bit of its prototype's type) or the natural weapon (when below 7), with 0x10000 for non-heroes
+    // and 0x80580000 for secondEntry -2; plays it (`play`) or queues it.
     void StartIdleAnimation(std::uint8_t play);
 
-    // StatChanged: a hit on body location `location` (0 head .. 5 right leg) of strength `amount`; the hit sound and blood
+    // A hit on body location `location` (0 head .. 5 right leg) of strength `amount`; the hit sound and blood
     // particles; see docs/notes/units.md, "StatChanged on the client".
     void StatChanged(int location, float amount, std::uint32_t flags) override;
-    // Sparks (particles 0x2043, 10 alpha)
-    // attach to the unit, sized by its radius; the parts flash unless they are
-    // already, and the flash lasts at least 4 more ticks.
+    // Sparks (particles 0x2043, 10 alpha) attach to the unit, sized by its radius; the parts flash unless
+    // they are already, and the flash lasts at least 4 more ticks.
     void Wound(float unused) override;
-    // The companion's light goes out; blood kinds
-    // 1..4 leave a decal under the body part "bd" (or the unit, sized 0.75 x its smaller extent).
+    // The companion's light goes out; blood kinds 1..4 leave a decal under the body part "bd" (or the unit,
+    // sized 0.75 x its smaller extent).
     void Died() override;
-    // With a player the companion shows the
-    // party light (colour, alpha 1, radius).
+    // With a player the companion shows the party light (colour, alpha 1, radius).
     void PlayerChanged(void* player) override;
     void MotionChanged() override;
 
-    // The unit says `speech` (nothing for null), a speech of `kind`.
-    // Queued speeches the new kind replaces (SpeechReplaced) and finished ones (SpeechFinished)
-    // leave the queue; unless the queue is empty or the kind is one of 0x1D-0x1F, 0x23-0x26, 0x2A
-    // nothing more happens. The speech (delay 3; `talking` for kind 0x2B) joins the queue's end;
-    // into an empty queue it plays at once (delay 0; a talking one sets the server unit's flag
-    // 0x800000; kinds 2 / 0x1C only when the last waiting speech sound has ended, and their
-    // sound becomes +0x90).
+    // The unit says `speech` (nothing for null), a speech of `kind`. Queued speeches the new kind replaces
+    // and finished ones leave the queue; unless the queue is empty or the kind is one of 0x1D-0x1F,
+    // 0x23-0x26, 0x2A nothing more happens. The speech (delay 3; `talking` for kind 0x2B) joins the queue's
+    // end; into an empty queue it plays at once (delay 0; a talking one sets the server unit's flag 0x800000;
+    // kinds 2 / 0x1C only when the last waiting speech sound has ended, and their sound becomes speechSound).
     void Say(const SpeechRecord* speech, int kind) override;
-    // Every queued speech's sound stops (talking ones clear the server
-    // unit's flag 0x800000) and the queue is emptied.
+    // Every queued speech's sound stops (talking ones clear the server unit's flag 0x800000) and the queue is
+    // emptied.
     void StopSpeech() override;
-    // Plays `speech`'s sound (2D, priority 1, volume 100, as speech) into its +0x0C and
-    // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
+    // Plays `speech`'s sound (2D, priority 1, volume 100, as speech) and remembers it with the time. False
+    // when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
-    // 1 when a weapon model is held (any weapon id not -1). Slot 37
-    // (HasMainArmour): 1 when one of the first three armour slots (body, trousers, helmet) holds a model.
+    // 1 when a weapon model is held (any weapon id not -1). HasMainArmour: 1 when one of the first three
+    // armour slots (body, trousers, helmet) holds a model.
     int HasOtherArmour() override;
     int HasMainArmour() override;
 
-    // For heroes the composed skins are renewed:
-    // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
-    // unchecked) and the simple one (ComposeSkin(0)) into the second's (+0x24, skipped when
-    // missing). A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's
-    // LoadTexture) when ComposeSkin returned non-zero or the name differs. Returns 1.
+    // For heroes the composed skins are renewed: the detailed one (ComposeSkin(1)) into the first part set's
+    // texture (read unchecked) and the simple one (ComposeSkin(0)) into the second's (skipped when missing).
+    // A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's LoadTexture) when
+    // ComposeSkin returned non-zero or the name differs. Returns 1.
     int RefreshEquipment() override;
     int RefreshModel() override;
     // Every armour slot taken off, the ids cleared, then the first min(count, 7) of `ids` put on.
@@ -257,36 +241,31 @@ public:
     // The sounds of the animation playing between the last update's frame and now (attacks, deaths, skills, idles, hits,
     // footsteps); see docs/notes/units.md, "Animation sounds".
     void PlayStepSounds();
-    // The footstep sound on ground kind `terrain` into `out` (CString::Format), for units
-    // whose prototype's model has sounds for it (+0x144 counts): on a platform 0.01 or more away
-    // from the ground the kind is 2; crawling (movement mode 0) except on kinds 6 / 14 gives
-    // "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav" (one rand()
-    // each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
+    // The footstep sound on ground kind `terrain` into `out`, for units whose prototype's model has sounds
+    // for it: on a platform 0.01 or more away from the ground the kind is 2; crawling (movement mode 0)
+    // except on kinds 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav"
+    // (one rand() each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
     int FootstepSound(int terrain, mfc::CString* out);
-    // The sound of `animation`'s action into `out` (emptied first) when its sound frame
-    // (+0x44, not 0) lies in [from, to): "weapons\miss.wav" for `miss`, else one of its sound
-    // numbers (+0x48, rand()) in the folder of the second prototype or its model:
-    // idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000: tame, steal, science,
-    // loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else by the
-    // attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a
-    // chance left `out` empty), else 0.
+    // The sound of `animation`'s action into `out` (emptied first) when its sound frame (not 0) lies in
+    // [from, to): "weapons\miss.wav" for `miss`, else one of its sound numbers (rand()) in the folder of the
+    // second prototype or its model: idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000:
+    // tame, steal, science, loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else
+    // by the attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a chance
+    // left `out` empty), else 0.
     int ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out, std::uint8_t miss);
 
-    // The wound level of each of the six body parts (head, body, hands, legs)
-    // into (*levels)[0..5]: 0 for a part without state or maximum, at full durability, or at 75%
-    // or more; 1 above 33%, 2 above one point, 3 at one point or less. Heroes (type_ 0x32) show
-    // none under armour whose record hides them (ArmorRecord::showsWounds; trousers: legs, body
-    // armour: body and hands, helmet: head); others show each pair of hands / legs at the worse
-    // level. True (AL) when any part was wounded before the armour test.
+    // The wound level of each of the six body parts (head, body, hands, legs) into (*levels)[0..5]: 0 for a
+    // part without state or maximum, at full durability, or at 75% or more; 1 above 33%, 2 above one point, 3
+    // at one point or less. Heroes show none under armour whose record hides them (ArmorRecord::showsWounds;
+    // trousers: legs, body armour: body and hands, helmet: head); others show each pair of hands / legs at
+    // the worse level. True when any part was wounded before the armour test.
     bool WoundLevels(std::uint8_t** levels);
-    // The unit's wounds texture: with any wound, a skin request of the six
-    // levels and the textures "<model><part>w<level>.mmp" of the wounded parts (128 pixels for
-    // heroes, else 64) is composed by the texture manager as "mo<id>w". Returns its
-    // result, or 0 without wounds.
+    // With any wound, a skin request of the six levels and the textures "<model><part>w<level>.mmp" of the
+    // wounded parts (128 pixels for heroes, else 64) is composed by the texture manager as "mo<id>w". Returns
+    // its result, or 0 without wounds.
     int ComposeWoundsTexture();
-    // The two marker sources (sources[1], sources[2])
-    // stopped, released and forgotten, then `path` and `marker` kept in their place
-    // (each referenced; null: none).
+    // The two marker sources (sources[1], sources[2]) stopped, released and forgotten, then `path` and
+    // `marker` kept in their place (each referenced; null: none).
     void SetMarkers(CParticleSource* path, CParticleSource* marker);
     void DropFaceTexture();
 
@@ -317,7 +296,7 @@ public:
     std::uint8_t blinks;
     std::uint8_t unused_0D1[3];
     int blinkTimer;                 // ticks to the next blink change
-    int eyesClosed;                 // sets it, clears it
+    int eyesClosed;
 };
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
@@ -334,11 +313,10 @@ static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
 static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
-// The figure part names a unit of prototype `prototype` shows with the
-// armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as
-// "hr.<hair>.armor<number>" unless the prototype has no hair, -1), the parts of the
-// weapons `weaponIds` (also into `names`), and every plain part of the three rows
-// (into `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
+// The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
+// `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,
+// -1), the parts of the weapons `weaponIds` (also into `names`), and every plain part of the three rows (into
+// `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
