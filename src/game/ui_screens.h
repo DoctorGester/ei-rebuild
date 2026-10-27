@@ -1,9 +1,8 @@
 #pragma once
 
-// Interface screens (docs/notes/ui.md, "Screens"): the camp's item strips, the multiplayer hero screen, the in-game
-// escape menu, the credits and the exchange window. Every screen is a CUiWindow (ui.h) extended with its own fields.
-// Input handlers are called on the window's second vtable sub-object (the entry points are __fastcall shims). Handler
-// arguments: mouse (button flags, x, y) in screen pixels; key down (virtual-key code, repeat count, scan code and
+// Interface screens (docs/notes/ui.md, "Screens"): the camp's item strips, the multiplayer hero and
+// connection screens, the escape menu, the credits, the main menu and the exchange window. Handler arguments:
+// mouse (button flags, x, y) in screen pixels; key down (virtual-key code, repeat count, scan code and
 // flags); wheel (key flags, wheel delta, x, y).
 
 #include "bink_video.h"
@@ -35,7 +34,6 @@ inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
 namespace uiorig {
-// Plays an interface sound.
 void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 // Leaves the running game for the main menu (the game object global).
 void LeaveGame();
@@ -43,29 +41,27 @@ void LeaveGame();
 
 static_assert(sizeof(CUiWindow) == 0x148);
 
-// An MFC CArray of item pointers with zeroed new slots.
 using UiItemArray = mfc::CArray<CItem*>;
 
-// The item predicates of the camp screens (they do not read the owning screen). Loot items (type 0x3007, CItemLoot) are sorted by kind and record type.
+// The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
+// type.
 struct UiItemKinds {
     static bool __stdcall IsPart(const CItem* item);       // kind 2, record type 0-2 (blueprint parts)
     static bool __stdcall IsKindOne(const CItem* item);    // kind 1 (a material)
     static bool __stdcall IsSpell(const CItem* item);      // kind 2, record type 3 (the spell table)
     static bool __stdcall IsModifier(const CItem* item);   // kind 2, record type 4 (spell modifier table)
     static BOOL __stdcall IsSpellContainer(const CItem* item);   // type 0x3008
-    // An item the item constructor can take apart: a weapon (0x3004), type 0x3005, or
-    // armour (0x3006) whose prototype's material class is not "none"; never when the prototype
-    // exists with its +0x68 flag clear.
+    // An item the item constructor can take apart: a weapon (0x3004), type 0x3005, or armour (0x3006) whose
+    // prototype's material class is not "none"; never when the prototype exists and is not buildable.
     static bool __stdcall IsBuildable(const CItem* item);
 };
 
-// An STLport vector<CString> (the figure names).
 using MpStringVector = stlp::vector<mfc::CString>;
 
 // --- Camp item strip ------------------------------------------------------------------------
-// The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions choose a
-// category, two arrows scroll it, the strip itself (region 8) shows `visible_` slots. Created by the camp screen and the
-// exchange window. Regions: 0/1 arrows, 2-7 tabs, 8 the strip.
+// The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions
+// choose a category, two arrows scroll it, the strip itself shows `visible_` slots. Created by the camp screen and
+// the exchange window. Regions: 0/1 arrows, 2-7 tabs, 8 the strip.
 
 // An item panel (CUiItemPanel): mode_ is what clicking an item does (1 equip, 2, 3, cursor 0x16-0x18); owner_ is the
 // screen that owns the strip (item clicks, predicates).
@@ -73,7 +69,6 @@ class CUiItemStrip : public CUiItemPanel {
 public:
     // The plain strip (the visible-list virtual is pure), the base of the forwarding and the figure strips.
     using CUiItemPanel::CUiItemPanel;
-    // The visible list rebuilt (Update every frame).
     virtual void RebuildList() = 0;
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
@@ -188,10 +183,10 @@ static_assert(offsetof(CUiItemStrip, list_) == 0x198);
 static_assert(offsetof(CUiItemStrip, source_) == 0x1AC);
 static_assert(offsetof(CUiItemStrip, slots_) == 0x1B0);
 
-// --- Camp screen: CCampPages (ui_camp.h) --------------------------------------------------------
+// --- Camp screen ------------------------------------------------------------------------------
 
-// A party hero's statistics (UnitStats of a hero record) as the camp reads them: the skill in a spell school rounded
-// like FISTP, and the whole "mana units" (the mana maximum stored as float, divided by the period, truncated).
+// A party hero's statistics as the camp reads them: the skill in a spell school rounded to nearest, and the
+// whole "mana units" (the mana maximum stored as float, divided by the period, truncated).
 int HeroSchoolSkill(UnitStats* stats, int school);
 int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (required skill, mana cost).
@@ -310,7 +305,6 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    // (CItemScreen: descPanel_, hoveredItem_, iconWindow_, models_ and textures_ are the base's.)
     int mode_;                  // 9, 10, 11
     int heroIndex_;             // selected hero
     CUiScrollbar* heroScroll_;  // scroll bar of the hero list
@@ -319,7 +313,7 @@ public:
     CItem* weapon_;
     CItem* armor_;
     CItem* spellContainer_;
-    CHeroStatsPanel* statsPanel_;   // (the hero is set by the screen)
+    CHeroStatsPanel* statsPanel_;
     CHeroEquipPanel* weaponPanel_;  // shows the weapon and the armour
     CHeroQuickStrip* spellPanel_;
     CUiItemStrip* figureStrips_[2]; // the figures of defaults_ (voices voiceLists_[0]) and of names_ (voiceLists_[1])
@@ -370,11 +364,11 @@ struct UnitSoundBank {
 };
 static_assert(offsetof(UnitSoundBank, entries) == 0x1AC);
 
-// --- Multiplayer connection screen (ui_connect_screen.cpp) ----------------------------------------
-// The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0 the
-// entry that hosts a new game. Regions: 0 connect / host, 1 back, 2 ask the master server, 3 add / forget an address, 4
-// the unlisted switch, 5 the password, 6-9 the sort columns, 10-13 the game type tabs, 14 and up the list rows. Sprites:
-// 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (textureOffsetU_ 0.09 selected). Multiplayer only.
+// --- Multiplayer connection screen --------------------------------------------------------------
+// The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
+// the entry that hosts a new game. Regions: 0 connect / host, 1 back, 2 ask the master server, 3 add / forget an
+// address, 4 the unlisted switch, 5 the password, 6-9 the sort columns, 10-13 the game type tabs, 14 and up the list
+// rows. Sprites: 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (textureOffsetU_ 0.09 selected).
 
 // An entry of the connection screen's list.
 struct MpAddressEntry {
@@ -400,7 +394,6 @@ static_assert(offsetof(MpAddressEntry, state) == 0x2C);
 static_assert(offsetof(MpAddressEntry, password) == 0x30);
 static_assert(sizeof(MpAddressEntry) == 0x34);
 
-// The vector's own instantiation members.
 struct MpAddresses : stlp::vector<MpAddressEntry> {
     void PushDefault();
     // One inserted before `pos` (the tail moved up by assignment); returns it.
@@ -416,7 +409,6 @@ inline std::uint32_t g_connectTextColour = /*00793AD8*/ 0xA7D7E4;
 
 class CMpConnectScreen : public CUiContainer {
 public:
-    // Built inline by the hero screen's Continue.
     explicit CMpConnectScreen(CInterface3D* ui) : CUiContainer(ui) {
         selectedAddress_ = net::NetAddress{};
         allodNames_.Construct();
@@ -429,8 +421,8 @@ public:
     int LeftDouble(int b, int x, int y) override { return OnLButtonDouble(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
 
-    // The message box results : the kinds the screen opens boxes with, ORed with 1 (OK)
-    // or 2 (cancel) when they come back.
+    // The message box results: the kinds the screen opens boxes with, ORed with 1 (OK) or 2 (cancel) when
+    // they come back.
     enum BoxKind : std::uint32_t {
         kBoxNotice = 0x10000,         // a message (refusal, wrong protocol)
         kBoxAddress = 0x20000,        // an address to ask
@@ -440,18 +432,18 @@ public:
     };
     static constexpr int kRows = 15;
 
-    // The screen over 800 x 600 (Rebirth-patched; this is the vanilla body): see docs/notes/ui.md, "CMpConnectScreen::CreateScreen".
+    // The screen over 800 x 600 (the vanilla body; Rebirth patches it): see docs/notes/ui.md,
+    // "CMpConnectScreen::CreateScreen".
     void CreateScreen() override;
     // Surface 1 ("connecting") shown while the client asks a host; when it stops asking, a refusal box ("lmp_server_full",
     // "..._you_are_banned", "..._wrong_password", else "..._cannot_connect"; text key + "_msg") and nothing else this frame.
     // Otherwise the children, and every 0.5 s the client asks the selected address (none for row 0) and the list is rebuilt
     // and drawn; the scroll bar, the player slider (maxPlayers_ = its position + 1) and a changed name redraw the list.
     void Update() override;
-    // A box answered: an address (0x20001) is parsed (port 8888 unless
-    // given) and asked when known, the address book written, the list drawn; the master request
-    // ending (0x40002) draws the list; the new game's password (0x30001 / 0x30002) is kept and its
-    // switch shows whether there is one; a join password (0x50001) joins the selected server with
-    // it and sets the client's game type from the row.
+    // A box answered: an address (0x20001) is parsed (port 8888 unless given) and asked when known, the
+    // address book written, the list drawn; the master request ending (0x40002) draws the list; the new
+    // game's password (0x30001 / 0x30002) is kept and its switch shows whether there is one; a join password
+    // (0x50001) joins the selected server with it and sets the client's game type from the row.
     void OnBoxResult(std::uint32_t result);
     // By region (above): 0 Connect, 1 back (the cancel sound, the address book written, the network sessions dropped, the
     // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
@@ -472,12 +464,12 @@ public:
     // written, a password server opens the password box, the server is joined at once with no password and the
     // client's game type set from the row.
     void Connect();
-    // On a valid selection: an entry asked directly is forgotten (and the address book
-    // written); another opens the address box (texts_[19]) with the row's address (empty for row 0).
+    // On a valid selection: an entry asked directly is forgotten (and the address book written); another
+    // opens the address box (texts_[19]) with the row's address (empty for row 0).
     void EditAddress();
     // The master server request: the master address (a text in the game's data, port 28004) in a
-    // CMasterRequestBox (texts_[20]) with the client's queries' extra word (EI_Plugin's NewMaster with a second
-    // master set: the master tried first, net_second_master.h).
+    // CMasterRequestBox (texts_[20]) with the client's queries' extra word (EI_Plugin's NewMaster with a
+    // second master set: the master tried first).
     void MasterRequest();
     // Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
@@ -534,9 +526,9 @@ public:
     CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                       const net::NetAddress* address, std::uint32_t extra);
     ~CMasterRequestBox() override;
-    // The update virtual (the other virtuals are the message box's). The bar's right edge at 225 + 355 * the
-    // received share; the link steps: done (3) hands the reply to the client's server list; the box closes
-    // (0x40002) when the link is done or, stepping again, closed (up to three steps a frame).
+    // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the
+    // client's server list; the box closes (0x40002) when the link is done or, stepping again, closed (up to
+    // three steps a frame).
     void Update() override;
 
     net::MasterLink link_;
@@ -546,7 +538,6 @@ static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
 static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
 static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
-// The multiplayer heroes: the vector of SavedParties (TheSavedParties(), world.h).
 inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
 inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
 
@@ -579,8 +570,7 @@ static_assert(sizeof(CEscMenu) == 0x168);
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 
 // --- Credits ------------------------------------------------------------------------------------
-// The titles window (main menu region 4).
-// A line of the titles' script (the value of a lines_ node, after next / prev).
+// The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
     void Destroy();
 
@@ -595,17 +585,17 @@ static_assert(sizeof(TitleLine) == 0x10 && offsetof(TitleLine, text) == 8 && off
 // The titles' scrolling text surface.
 class CUiScrollingSurface : public CUiSurface {
 public:
-    // A surface of format 5 over the layout rectangle; "Riched20.dll" loaded and
-    // a hidden multi-line "RichEdit20A" child of the game window created; white background, the
-    // offsets and the speed 0 (startTime_ and textLength_ are left as they were).
+    // A surface of format 5 over the layout rectangle; "Riched20.dll" loaded and a hidden multi-line
+    // "RichEdit20A" child of the game window created; white background, the offsets and the speed 0
+    // (startTime_ and textLength_ are left as they were).
     CUiScrollingSurface(CInterface3D* ui, const RECT* rect);
     virtual ~CUiScrollingSurface();
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(CMappedResource* archive, const char* name);
     // Streams the RTF block into the control (EM_STREAMIN), the offset 0, the text rendered. Returns true.
     bool LoadRtf(const void* data, std::uint32_t size);
-    // While the speed is not 0 the offset moves by the game time passed times
-    // the speed (truncated) and the text is rendered again; then the surface's own draw.
+    // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and the
+    // text is rendered again; then the surface's own draw.
     void Blit() override;
     // Starts the text at `speed` (0: still), from below the surface when `fromBelow` (the offset minus the surface's height in
     // twips); the end offset 0, the start time the game time.
@@ -641,20 +631,20 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // Ends the titles: back to where they were opened from.
     void Close();
-    // The window's Create (ui_layouts.cpp). Opened in a game (fromGame_ 0) the loading screen steps and the music
-    // stops; the cursor hidden, the "<name>fin" movies played, font smoothing switched off, "outro.res" opened and
-    // its "credits.scr" parsed into lines_ (one record per line: "#scroll" flag, speed, two texts); the scrolling
-    // text surface and the header surface, both frozen; the display's flag kept in savedDisplay_ and cleared; the
-    // player starts "Movies\<name>.bik".
+    // Opened in a game (fromGame_ 0) the loading screen steps and the music stops; the cursor hidden, the
+    // "<name>fin" movies played, font smoothing switched off, "outro.res" opened and its "credits.scr" parsed
+    // into lines_ (one record per line: "#scroll" flag, speed, two texts); the scrolling text surface and the
+    // header surface, both frozen; the display's flag kept in savedDisplay_ and cleared; the player starts
+    // "Movies\<name>.bik".
     void CreateScreen() override;
-    // Once the game time passes nextLineAt_ and the text has stopped: both
-    // surfaces frozen, then the next line: its text file loaded and started (a "#scroll" line scrolls at its
-    // speed under its header, another stays for its speed in seconds), or past the last line finished_. The movie
-    // steps (stretched unless the movie flag is 1); when it has ended after the last line: "<name>fout" played,
-    // the screen flag cleared and the titles closed as Close() does; otherwise the container's draw.
+    // Once the game time passes nextLineAt_ and the text has stopped: both surfaces frozen, then the next
+    // line: its text file loaded and started (a "#scroll" line scrolls at its speed under its header, another
+    // stays for its speed in seconds), or past the last line finished_. The movie steps (stretched unless the
+    // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
+    // and the titles closed as Close() does; otherwise the container's draw.
     BOOL Draw(int pass) override;
-    // The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the
-    // display's flag restored, the screen flag set and the cursor shown.
+    // The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the display's flag
+    // restored, the screen flag set and the cursor shown.
     void OnClose();
     // A window above closed: the movie player is closed.
     void OnMessageResult(int result);
@@ -686,7 +676,7 @@ static_assert(sizeof(CCreditsScreen) == 0x1FC);
 class CMainMenu : public CUiContainer {
 public:
     explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
-    BOOL Draw(int pass) override;   // ui_container_draws.cpp
+    BOOL Draw(int pass) override;
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
@@ -696,23 +686,22 @@ public:
     // options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status "reserved_04", the server flag, the
     // hero screen). Then the container's handler.
     void OnLButtonDown(int buttons, int x, int y);
-    // The interface's saved state cleared, the flow's party step 0,
-    // an inert extra input side (UiInertInput), the full-screen rectangle, the version line, the
-    // six regions; the default music, the map edge fade kept and set to 6, rain by a coin
-    // toss, daylight between 7 and 21, the rain started before 7; the camera path
-    // "MainMenu.cam" and the menu music.
+    // The interface's saved state cleared, the flow's party step 0, an inert extra input side (UiInertInput),
+    // the full-screen rectangle, the version line, the six regions; the default music, the map edge fade kept
+    // and set to 6, rain by a coin toss, daylight between 7 and 21, the rain started before 7; the camera
+    // path "MainMenu.cam" and the menu music.
     void CreateScreen() override;
     // A surface (100, 480)-(780, 600) with the "version_name" text, added to the window.
     void AddVersionLine();
-    // The update virtual (every frame). The children's update; with rain the weather turns on at 0 o'clock and
-    // off at 7 (the truncated hour changing); at night before 6 with rain and an option bit, every 100 ms a 1 in
-    // 41 chance of a lightning bolt at random; the hour kept.
+    // The children's update; with rain the weather turns on at 0 o'clock and off at 7 (the truncated hour
+    // changing); at night before 6 with rain and an option bit, every 100 ms a 1 in 41 chance of a lightning
+    // bolt at random; the hour kept.
     void Update() override;
     // The map edge fade put back, then two interface calls.
     void Close();
-    // A message box's answer (the flow's party step 0 and the server
-    // flag cleared first): 0x10001 (the quit box's yes) the exit movie and quit, 0x20001 the intro
-    // movie and the flow's state 3, 0xCCCCCCCC (the titles closed) the version line again.
+    // A message box's answer (the flow's party step 0 and the server flag cleared first): 0x10001 (the quit
+    // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
+    // titles closed) the version line again.
     void OnMessageResult(int result);
     // Hovering a region plays its stone's animation (regions 0-5: 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone
     // sound, once per region; then the container's handler.
@@ -753,37 +742,34 @@ public:
     // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
     // "CExchangeScreen::CreateScreen".
     void CreateScreen() override;
-    // The item (or help topic) under the mouse from the strip, else the grid,
-    // goes to the description panel; the four surfaces get "xch_current_money" with the local party's money and
-    // "xch_accept", "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its
-    // money and "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded
-    // by our offer's acceptance and the third button by the partner's; then the children.
+    // The item (or help topic) under the mouse from the strip, else the grid, goes to the description panel;
+    // the four surfaces get "xch_current_money" with the local party's money and "xch_accept",
+    // "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its money and
+    // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
+    // offer's acceptance and the third button by the partner's; then the children.
     BOOL Draw(int pass) override;
     void OnKeyDown(int key, int repeat, int flags);
-    // The exchange went through: the local party's items are
-    // released, every item of `partyC`, then of `partyB`, returned into it (ReturnAll), its money set to partyB's
-    // - partyA's + partyC's, and the client goes back to the world.
+    // The exchange went through: the local party's items are released, every item of `partyC`, then of
+    // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
+    // goes back to the world.
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
-    // The screen closes: the description panel describes nothing and the
-    // scratch party is deleted (its deleting destructor).
+    // The description panel describes nothing and the scratch party is deleted.
     void Close();
     // A message box's answer: nothing.
     void OnMessageResult(int result);
-    // The children's update; then, when the client's offer is gone
-    // or detached, our offer's items go back to the local party and the client returns to the
-    // world; else a changed money field (its changed_ cleared) becomes our offer's money (atoi)
-    // and the offer is published.
+    // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
+    // the local party and the client returns to the world; else a changed money field (its changed_ cleared)
+    // becomes our offer's money (atoi) and the offer is published.
     void Update() override;
-    // (Input click.) The container's handler, then by region: 0 accept (the buy sound and the trade recorded with
-    // the local party, when our offer is live and not accepted and its money is within the local party's; else
-    // the cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
+    // The container's handler, then by region: 0 accept (the buy sound and the trade recorded with the local
+    // party, when our offer is live and not accepted and its money is within the local party's; else the
+    // cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
     void OnLButtonDown(int buttons, int x, int y);
-    // Refused by the accept virtual: the
-    // cancel sound. Mode 1 (the strip): the put_on sound, `item` moves from the local party into our offer
-    // (MoveItem with limit 8, merging) and the offer is published. Mode 5 (the grid), only for an item of our
-    // offer: the put_off sound, the item moves back to the local party, the strip scrolls to what the party now
-    // holds and the offer is published. Other modes nothing.
+    // Refused by the accept virtual: the cancel sound. Mode 1 (the strip): the put_on sound, `item` moves
+    // from the local party into our offer (MoveItem with limit 8, merging) and the offer is published. Mode 5
+    // (the grid), only for an item of our offer: the put_off sound, the item moves back to the local party,
+    // the strip scrolls to what the party now holds and the offer is published. Other modes nothing.
     void MoveOffered(CItem* item, int mode);
     // Whether `item` may move with `mode`: always.
     bool CanMove(CItem* item, int mode);
@@ -795,7 +781,7 @@ public:
     CUiItemStrip* figures_;          // the players (figure strip)
     CTradeGrid* grid_;               // the two offers (mode 5)
     CUiEditField* moneyField_;       // the money offered
-    MpStringVector names_;           // CStrings: the figure strip's names
+    MpStringVector names_;           // the figure strip's names
 };
 static_assert(offsetof(CExchangeScreen, scratch_) == 0x190);
 static_assert(offsetof(CExchangeScreen, names_) == 0x1AC);
