@@ -18,10 +18,6 @@
 
 #include <windows.h>   // RECT
 
-class CObject3D;
-class CTexture;
-class CFigureMesh;
-struct VertexPacket;
 struct DecalTexCoord;
 
 #include "device_material.h"   // CDeviceMaterial, MaterialStage

@@ -13,7 +13,6 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CStream;
 class CTorchObjectSpec;
 
 class CTorchObject : public CMapObject {

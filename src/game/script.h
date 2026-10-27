@@ -167,7 +167,6 @@ struct ScriptGroups : mfc::CArray<ScriptGroup> {
 // The script's CList instantiations. A Pop copies the element into `out` before the node is freed; a Push
 // constructs the new node's element, then assigns `value` (returns the node).
 struct ScriptDecl;
-struct ScriptDefinition;
 struct ScriptRun;
 
 // The command blocks and the WorldScript blocks.
@@ -237,8 +236,6 @@ struct ScriptBinding {
     int varIndex;
 };
 static_assert(sizeof(ScriptBinding) == 12);
-
-class SSCCmd;
 
 // One token: its text and the line it starts on.
 struct ScriptToken {
@@ -367,9 +364,6 @@ struct ScriptParticleType {
 static_assert(sizeof(ScriptParticleType) == 12);
 constexpr int kScriptParticleTypeCount = 64;
 
-struct ScriptDecl;
-struct ScriptDefinition;
-struct ScriptRun;
 struct ScriptArea;
 
 // A script's error as CScript::GetError hands it out: the text (the caller destroys it), the code and the
@@ -862,8 +856,6 @@ inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 void __fastcall ScriptQuestStart(const char* name);
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
-
-struct QuestRecord;
 
 // ---- Loader arrays ----
 // The pointer stays.

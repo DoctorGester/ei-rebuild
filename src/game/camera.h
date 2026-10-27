@@ -18,9 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CBaseManager;
 class CObject3D;
-class Terrain;
 
 // Zoom distance limits of one camera mode. Inside [min, max] the distance moves freely; between
 // max and hardMax (min and hardMin) it eases back; beyond the hard limits it is cut.

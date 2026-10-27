@@ -99,7 +99,6 @@ CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 
 using PtrList = mfc::CList<CUnit*>;
-using PartyArray = mfc::CArray<UnitPlacement>;
 using ObjectIterator = ObjectListIterator;
 
 
@@ -235,7 +234,7 @@ void RedeployParty(const SSCCmd* cmd) {
     CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
     if (!player) return;
     CPlayerServer* state = player->Server();
-    PartyArray slots;
+    mfc::CArray<UnitPlacement> slots;
     mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
     CParty* party = player->Party();

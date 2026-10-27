@@ -97,8 +97,7 @@ EI_REWRITTEN(0x0055EA10, StoreStartFolder);
 namespace {
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
-// The interface's close-all flag (CInterface3D +0x44): every window closes before the next input message or
-// by the next pass (CloseAllPending, Activate, Draw).
+// Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.c_str(); }

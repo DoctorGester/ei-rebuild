@@ -1,6 +1,6 @@
-// Creature statistics (U9): the armour layers of the body slots, the body's packed protection and
-// two skill values (an attribute with the quick items' bonuses, a spell school's skill). See unit.h
-// (UnitStats) and docs/notes/units.md ("Statistics in play").
+// Creature statistics: the armour layers of the body slots, the body's packed protection and two skill values
+// (an attribute with the quick items' bonuses, a spell school's skill). See unit.h (UnitStats) and
+// docs/notes/units.md ("Statistics in play").
 #include "unit.h"
 
 #include "item.h"
@@ -53,7 +53,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
         CItemArmor* piece = unit->armor[i];
         if (!piece) continue;
         float condition = piece->condition_;
-        if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
+        if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // to nearest
     }
 }
 EI_REWRITTEN(0x00523300, UnitStats::RebuildArmourLayers);
@@ -98,7 +98,7 @@ double UnitStats::SpellSchoolSkill(int school) {
     if (school >= 0 && school <= 2) base = skills[3];
     else if (school >= 3 && school <= 4) base = skills[4];
     else if (school >= 5 && school <= 7) base = skills[5];
-    // The level byte +0x6DA + school and its record: SkillLevelValue of skill school + 7.
+    // skillLevels[school + 7] and its record.
     double level = SkillLevelValue(school + 7);
     return (base + level) + (stat20 - kStatBase);
 }

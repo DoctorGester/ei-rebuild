@@ -17,8 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTexture;
-
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
@@ -55,8 +53,6 @@ static_assert(offsetof(CSkyObject, colorsB_) == 0x148);
 static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
 static_assert(offsetof(CSkyObject, distances_) == 0x220);
 static_assert(sizeof(CSkyObject) == 0x230);
-
-class CSceneRenderer;
 
 // The world view's sky.
 struct CSky {

@@ -1,8 +1,7 @@
-// Slot 0 of the interface's windows: the scalar deleting destructors (the destructor body, then the
-// memory freed when bit 0 of the flags is set; they return the object), the input sides' copies
-// of them (input vtable slot 0: `this` moved back from the input side at +0x94 to the window,
-// then a jump to the window's), and the short destructor bodies only they call. Bodies that only
-// jump to the window's or container's destructor are registered as those. docs/notes/ui.md,
+// The interface windows' scalar deleting destructors (the destructor body, then the memory freed when bit 0
+// of the flags is set; they return the object), the input sides' copies of them (`this` moved back from the
+// input side to the window, then a jump to the window's), and the short destructor bodies only they call.
+// Bodies that only jump to the window's or container's destructor are registered as those. docs/notes/ui.md,
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
 #include "library_trees.h"
@@ -248,7 +247,7 @@ EI_REWRITTEN_SPECIAL(0x0060E6A0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x006157F0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00635DA0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00635DD0, CUiWindow::~CUiWindow);
-// --- Deleting destructors (slot 0) --------------------------------------------------------------
+// --- Deleting destructors ----------------------------------------------------------------------
 
 // The plain window and the windows whose body is the window's.
 EI_REWRITTEN_SPECIAL(0x005FE910, CUiWindow::~CUiWindow);
@@ -270,12 +269,8 @@ EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7
 EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu
 EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu
 
+// --- The input sides' deleting destructors (a jump to the window's) ---------------------------
 
-// The item screen, the camp, screen 9
-
-// --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
-
-// Each is the window class's deleting destructor reached through its input side.
 EI_REWRITTEN_SPECIAL(0x00600AC0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x005F45F0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613D50, CUiWindow::~CUiWindow);

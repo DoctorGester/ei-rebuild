@@ -27,10 +27,6 @@ namespace {
 // The value a window leaves pending that ends the game session (the message boxes' "yes").
 constexpr std::uint32_t kLeaveGame = 0x990001;
 
-// Not rewritten: the mouse cursor's SetShape, the game session's
-// Disconnect and LeaveGame, the client's server flag,
-// a surface's contents saved and the message box constructor (interface,
-// caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
 
 void ReleaseBackdrop(CUiSurface* surface) {

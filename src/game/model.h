@@ -194,7 +194,6 @@ class CTextureDevice;
 namespace options {
 class GameOptions;
 }
-class CLight;
 class CTexture;
 class CPixelConverter;
 
@@ -544,9 +543,7 @@ void __fastcall DestroyFigureModel(FigureModel* model);
 // 1e-5 (squared distance) unless asked for a fresh one. Parts come from the figure's own archive set when
 // there is one, else from the open archives as "<figure><part>.fig".
 class CLinkMesh;
-class CTextureDevice;
 class ITransformPipeline;
-struct VertexPacket;
 
 class CLinkFigureLoader final {
 public:

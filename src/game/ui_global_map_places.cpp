@@ -1,7 +1,6 @@
-// The global map's (CGlobalMap, ui_camp.h) places: the titles and positions of its allod, zones
-// and quests from the texts and map.txt, the zone selection's marker colours and the weather. The
-// map's Create (ui_global_map.cpp) calls them through their addresses. See
-// docs/notes/ui.md ("Camp, global map, hero screens").
+// The global map's (CGlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
+// from the texts and map.txt, the zone selection's marker colours and the weather. See docs/notes/ui.md
+// ("Camp, global map, hero screens").
 #include "global_map_clouds.h"
 #include "model.h"
 #include "app.h"

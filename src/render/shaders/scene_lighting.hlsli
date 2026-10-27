@@ -10,24 +10,10 @@ cbuffer light_params : register(b1) {
     float4 point_slots[4];     // per light (4 a vector): its point shadow's map + 1, 0 none
 };
 
-// The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp: ShadeSun, then
-// LightVertex), at a point `p` (the landscape's space) with the unit normal `n`: `m` the material colour
-// the sun and ambient light start from (the water's; on the ground the water's above it, else black), `mp`
-// the one the point lights start from (the record's own), `loss` the light lost under the water (0 above
-// it), `hidden` how much of the sun the shadow map hides at the point (the vertex lighting's ray march
-// gave 0 or 1) and `strength` the map's darkening (render_shadows.cpp kStrength). Ambient and direct light
-// apart: in the sun max(material + facing x sun, ambient), in the shade ambient + material, as the game
-// lit them; but a shadow is never lighter than the sunlit light times 1 - strength (the old decals' and
-// the map's look before: where the ambient light is nearly the sun's, as in the towns, the game's
-// shade alone hardly shows), on faces turned to the map's light (by their facing to it: the map's sun,
-// at least 20 degrees high, is what casts; a face turned away keeps its light, its own object's shadow
-// there is no acne). The point lights (each material + its light, at most 1 per channel, by its falloff
-// and facing, dimmed under the water by the light's vertical part) take the largest per channel, darkened
-// by the same shade (the towns' lamps light the ground by day too: the units' shadows would vanish under
-// them; the point lights cast no shadow of their own), the specular ones (shaded alike) apart (`spec`,
-// added after the texture as the specular word was). A light with a point shadow (`shadows`:
-// point_shadow.hlsli) adds only what reaches the point; the ground casts none, so the point is looked up
-// moved along its own normal. The colour word's light is returned.
+// The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp). `m`: the material colour the
+// sun and ambient light start from, `mp`: the point lights', `loss`: the light lost under the water, `hidden`:
+// how much sun the shadow map hides, `strength`: the map's darkening. See docs/notes/renderer.md, "The
+// renderer's source files".
 float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float hidden, float strength,
                     bool shadows, float2 turn, out float3 spec) {
     float3 ambient = ambient_colour.rgb * saturate(1.0 - loss);

@@ -69,7 +69,7 @@ struct UnitLogStream : libcrt::Ostream {
     UnitLogStream* Put(const char* text) { PutText(text); return this; }
     UnitLogStream* Put(double value) { PutDouble(value); return this; }
     UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
-    UnitLogStream* Apply(libcrt::Manipulator manipulator) {                                                        // manipulator(*this)
+    UnitLogStream* Apply(libcrt::Manipulator manipulator) {
         libcrt::Ostream::Apply(manipulator);
         return this;
     }
@@ -80,8 +80,6 @@ namespace {
 constexpr libcrt::Ostream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
 UnitLogStream* HitLog() { return console::StreamAs<UnitLogStream>(*kHitLog); }
 } // namespace
-
-// CUnitServer: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
 
 namespace {
 void Remark(CUnit* unit, int code) {
@@ -96,7 +94,7 @@ void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemar
     float threshold = item->conditionMax_ * GameLogicSettings().itemDurabilityCritical;
     int pieces = static_cast<int>(item->count_);   // the wear is shared between the stack's pieces
     if (pieces > 0) {
-        item->condition_ = static_cast<float>(item->condition_ - amount / static_cast<double>(pieces));   // FILD: exact
+        item->condition_ = static_cast<float>(item->condition_ - amount / static_cast<double>(pieces));   // exact
     } else {
         item->condition_ = item->condition_ - amount;
     }

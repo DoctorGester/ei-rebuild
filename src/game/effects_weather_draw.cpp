@@ -32,13 +32,11 @@ struct FogSprite {
 // The draw's work arrays (function-local statics): the sprites' centres and sizes and their records (a CArray of
 // SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. Exit handlers
 // free the records and the points.
-using FogPointArray = lib::AlignedArray<ParticleVertex>;
-using FogSpriteArray = mfc::CArray<FogSprite>;
 constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
 lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
 void __cdecl FreePoints() { g_points.FreeData(); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
-FogSpriteArray& Sprites() { return *g_sprites; }
+mfc::CArray<FogSprite>& Sprites() { return *g_sprites; }
 void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;

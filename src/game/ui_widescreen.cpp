@@ -61,8 +61,8 @@ Layout Compute() {
     layout.margin = (w - layout.width43) / 2;
     float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
     layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
-    // FILD width43; FIDIV width; FSTP dword (10024954) and FILD width; FMUL qword 0.0075f (a float
-    // constant widened to a double: 0.0074999998); FIDIV height; FSTP dword (10024902).
+    // As addon computes them: width43 / width stored to a float (addon's 10024954), and width * 0.0075f (a
+    // float constant widened to a double: 0.0074999998) / height stored to a float (10024902).
     volatile double ratio = static_cast<double>(layout.width43) / static_cast<double>(w);
     layout.axisScale = static_cast<float>(ratio);
     volatile double perHeight = static_cast<double>(w) * static_cast<double>(0.0075f);
@@ -83,7 +83,7 @@ void Startup() {
     g_layout = Compute();
     g_computed = true;
     if (!g_layout.active) return;
-    // addon: FILD extra; FADD 800.0 / 695.0 (doubles); FSTP dword.
+    // addon: extra + 800.0 / 695.0 summed as doubles, stored as floats.
     g_layoutWidth = static_cast<float>(g_layout.extra + 800.0);
     g_panelRight = static_cast<float>(g_layout.extra + 695.0);
     ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
@@ -92,7 +92,7 @@ void Startup() {
 }
 EI_STARTUP_ACTION(Startup);
 
-// Division of the 64-bit product as addon's IMUL r/m32; IDIV r/m32 do (no 32-bit wrap).
+// Division of the 64-bit product, as addon's multiply and divide do (no 32-bit wrap).
 int MulDiv64(int a, int b, int divisor) {
     return static_cast<int>(static_cast<std::int64_t>(a) * b / divisor);
 }
@@ -130,8 +130,8 @@ void LeavePanel() {
     if (Active()) SetPanelOffset(0);
 }
 
-// addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (when ECX is nonzero), y
-// by the mode's height.
+// addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (with `margin`), y by
+// the mode's height.
 int RectToScreen(RECT* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
@@ -169,8 +169,7 @@ int PointFromScreen(POINT* point, bool margin) {
     return point->y;
 }
 
-// addon's text extent code: MOV EAX,800; IMUL EBX; MOV ECX,width43; IDIV ECX, then the same with 600 and the
-// height.
+// addon's text extent code.
 SIZE TextExtentToLayout(SIZE pixels) {
     const Layout& l = Get();
     return SIZE{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
@@ -192,8 +191,7 @@ void SetCurtainLook(CUiMesh* curtain, int visible) {
 }
 } // namespace
 
-// 100234AB / 100235BA: AddSprite(0) and SetRectangle through their addresses;
-// FILD margin; FCHS for the left edge, FILD margin; FADD 800.0 (a double) for the right one.
+// addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
 void AddCurtains(CUiWindow* window, int visible) {
     if (!Active()) return;
     const int margin = Get().margin;

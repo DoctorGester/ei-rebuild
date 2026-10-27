@@ -73,7 +73,7 @@ bool Drain(float* value, const float* rate) {
     return drained < 0.0;
 }
 
-// FILD of the world's time, FSTP to float (the time Sample is called with).
+// The world's time as a float (what Sample is called with).
 float TimeAsFloat(const int* time) { return static_cast<float>(*time); }
 
 // --- Accessors -----------------------------------------------------------------------------------
@@ -92,8 +92,8 @@ constexpr int kStateCasting = 5;
 constexpr int kBlockedReplan = 1;
 constexpr int kBlockedWait = 2;
 
-// The counted "waiting for" link (followsLeader +0x1D8, followedLeader +0x1DC: the fields the
-// chase uses for the leader it follows).
+// The counted "waiting for" link (followsLeader / followedLeader: the fields the chase uses for the leader it
+// follows).
 void SetWaitingFor(CUnitServer* c, CUnit* blocker) {
     c->followsLeader = 1;
     CUnit* old = c->followedLeader;
@@ -235,8 +235,8 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     return -1;   // stays where it is
 }
 
-// The motion is over: a path with no cells left (`reached`, +0xA8) stops facing its way; otherwise
-// the path continues or, at its end, the unit stops facing its way.
+// The motion is over: a path with no cells left (`reached`) stops facing its way; otherwise the path
+// continues or, at its end, the unit stops facing its way.
 void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
     if (MotionPathOf(c)->reached) {
@@ -270,8 +270,8 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     c->PlaySteps(c->IdleAnimation());
 }
 
-// Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
-// the units around the blocked step lifted when `liftBlocker`.
+// Replans the path to the order's goal (its z holds the range PathTo asked for), with the units around the
+// blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
         world->Sectors()->Remove(UnitOf(c));
@@ -376,9 +376,9 @@ void UpdateMotion(CUnitServer* c) {
     bool canStand;
     bool liftBlocker = false;
     // The game's "blocked" local is uninitialised: only CanStandAtFromHere (a cell inside the map) and the
-    // blocker cases write it, so a unit that reached no cell, or a cell outside the map, decides on
-    // whatever the stack held there (entry ESP - 0x98, left by earlier calls). Every value but
-    // kBlockedReplan and kBlockedWait acts alike; here it is 0 (docs/notes/combat.md).
+    // blocker cases write it, so a unit that reached no cell, or a cell outside the map, decides on whatever
+    // the stack held there. Every value but kBlockedReplan and kBlockedWait acts alike; here it is 0
+    // (docs/notes/combat.md).
     int blocked = 0;
     if (cellX < 0) {
         canStand = true;
@@ -398,8 +398,8 @@ void UpdateMotion(CUnitServer* c) {
         sectors->Add(UnitOf(c));
     }
 
-    // An idle unit standing in a kind-3 occluder (while its motion order started before
-    // the world's +0x2804 and moveMode2's flag4 is clear) replans.
+    // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
+    // footprintTick and moveMode2's flag4 is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
         OrderOf(MotionPathOf(c))->startTime < world->AIMap()->footprintTick && c->moveMode2.flag4 == 0) {
@@ -413,7 +413,7 @@ void UpdateMotion(CUnitServer* c) {
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
-        if (c->stats.movementKind == 2) c->animationHeld = 1;   // : the stats' +0x60
+        if (c->stats.movementKind == 2) c->animationHeld = 1;
         else c->frozen = 1;
         if (UnitOf(c)->obstacle != 0) SetObstacle(c, 0);
     }

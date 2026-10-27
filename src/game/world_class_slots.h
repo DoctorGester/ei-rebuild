@@ -1,20 +1,12 @@
 #pragma once
 
-// The constant virtuals of the engine's small tables that are still free functions
-// (world_class_slots.cpp): class names and ids and the interface objects' base. The worlds' own
-// virtuals are their classes' members (world.h), defined in world_class_slots.cpp too.
-// docs/notes/world.md.
+// The constant virtuals of the engine's small tables that are still free functions (world_class_slots.cpp):
+// class names and ids and the interface objects' base. The worlds' own virtuals are their classes' members
+// (world.h), defined in world_class_slots.cpp too. docs/notes/world.md.
 
 #include <cstdint>
 
-class CBaseManager;
-class CMaterialManager;
 class CEngineObject;
-class CFigureManager;
-class CLightningManager;
-struct CItemManager;
-class CParticleManager;
-class CTextureManager;
 
 // GetClassName / GetClassId of the vtable named in the comment.
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // "CI3DFigure"

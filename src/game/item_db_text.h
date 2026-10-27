@@ -13,7 +13,6 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 
-class CMappedResource;
 namespace console { class CStringArray; }
 
 // An archive the texts are looked up in.

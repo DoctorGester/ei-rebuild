@@ -44,8 +44,6 @@
 
 namespace {
 
-// The game's folder (a CString global returned by an accessor).
-
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
@@ -53,10 +51,9 @@ constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | mode
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
-// --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
-// The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
-// _Construct(p, x).
+// An entry copy-constructed in place (the list's STLport vector).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable as the original calls it.
 BOOL IsDirectory(const mfc::CFileFind& find) {
@@ -65,7 +62,7 @@ BOOL IsDirectory(const mfc::CFileFind& find) {
 mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
 mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
 
-// A file stream on the stack with the reads and writes the save list uses (net_link.h).
+// A file stream on the stack with the reads and writes the save list uses.
 struct LocalFileStream {
     netlink::FileStream s;
 
@@ -313,7 +310,7 @@ void CSaveLoadWindow::FillEntries() {
                     entry->map_ = map;
                 }
                 info.Stream()->ReadInto(&entry->zone_);
-                // +8 of the stream: the version the header read.
+                // The version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);

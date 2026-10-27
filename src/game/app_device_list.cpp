@@ -17,8 +17,7 @@
 
 namespace app {
 
-using LeverRecordVector = stlp::vector<LeverRecord>;
-static_assert(sizeof(LeverRecordVector) == 12);
+static_assert(sizeof(stlp::vector<LeverRecord>) == 12);
 
 namespace {
 // The chunk archive: +0x58 is its loading flag, +0x50 its chunk stack.

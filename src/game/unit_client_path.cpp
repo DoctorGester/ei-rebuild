@@ -32,11 +32,10 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 
 } // namespace
 
-// (slot 41 passes (+0x34, 0); the tick's time and rate). Samples the
-// motion at `time`, moves the unit there (on the ground, +0x320 above), snaps its facing once when
-// +0x76 is set, then turns it: at once with unit flag 0x10000000, else blended toward the motion's
-// direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally the animation
-// speed factor +0x178 from the motion's speed and the figure's current animation.
+// Samples the motion at `time`, moves the unit there (on the ground, heightOffset above), snaps its facing
+// once when snapHeading is set, then turns it: at once with unit flag 0x10000000, else blended toward the
+// motion's direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally animationSpeed
+// from the motion's speed and the figure's current animation.
 static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
@@ -55,19 +54,19 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
     position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
-    ObjectWorld(self)->MoveObject(unit, &position.x);   // the world's slot 41
+    ObjectWorld(self)->MoveObject(unit, &position.x);
     if (self->snapHeading) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);
     }
     if (unit->flags_ & 0x10000000) {
         unit->TurnUpTowards(direction, 1);
-    } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
+    } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis;
         unit->localRotation_.AxisY(&axis);
-        // Both angles are stored as floats (FSTP). Left unrounded they shift the heading by
-        // a float ULP in about one call in ten, and at a heading of +-pi (where jumps from
-        // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
+        // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
+        // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
+        // flipped the orientation's sign once in the ui_hud run.
         float current = static_cast<float>(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
         float target = static_cast<float>(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
         for (;;) {
@@ -88,7 +87,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         unit->SetHeading(&direction.x);
     }
 
-    // The animation the figure plays (its animation state, CObject3D +0x98).
+    // The animation the figure plays.
     const FigureAnimation* animation = unit->Object3D()->animation->current;
     if (!animation) {
         unit->animationSpeed = 1.0f;
@@ -96,7 +95,6 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     }
     float length;
     std::memcpy(&length, &animation->stride, sizeof(length));
-    // FCOMP + TEST AH,0x40: equal to 0.
     EI_NAN_AUDIT(length);
     if (length == 0.0f) {
         unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));

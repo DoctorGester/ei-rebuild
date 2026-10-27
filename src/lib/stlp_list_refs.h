@@ -30,8 +30,7 @@ struct SharedRef {
     static void Destroy(RefPtr* p) { p->Destroy(); }
 };
 
-// RefPtr copied with one more reference and destroyed with a plain release
-// (RefPtrRelease).
+// RefPtr copied with one more reference and destroyed with a plain release (RefPtrRelease).
 struct CountedRef {
     static void Copy(RefPtr* to, const RefPtr& from) { to->FromRawCounted(from.ptr); }
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
@@ -100,9 +99,8 @@ using SharedEntryList = PolicyList<RefEntry, SharedEntry>;
 using CountedEntryList = PolicyList<RefEntry, CountedEntry>;
 static_assert(sizeof(SharedRefList) == 4);
 
-// A reference list whose elements all point at a T (one network message class): the list's layout,
-// policy and operations (it still passes as a SharedRefList / CountedRefList), the elements read
-// typed.
+// A reference list whose elements all point at a T (one network message class): the list's layout, policy and
+// operations (it still passes as a SharedRefList / CountedRefList), the elements read typed.
 template <typename T, typename E>
 struct RefListOf : PolicyList<RefPtr, E> {
     using Node = typename PolicyList<RefPtr, E>::Node;

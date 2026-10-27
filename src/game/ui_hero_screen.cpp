@@ -46,7 +46,7 @@ const char* const kSelectVoiceKey = "lmp_select_voice";
 float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
-// The multiplayer heroes object (its vector at +4: SavedHero).
+// The multiplayer heroes (their vector of SavedHero).
 SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
@@ -167,7 +167,6 @@ void CMpHeroScreen::Update() {
     std::string name = nameEdit_->text_.GetString();
     const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
-    // Equal.
     float target = NewHeroPoints();
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;

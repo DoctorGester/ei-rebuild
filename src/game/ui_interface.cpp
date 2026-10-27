@@ -13,13 +13,12 @@ namespace {
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 
-// 32-bit wrapping multiply (IMUL r32, r/m32).
+// 32-bit wrapping multiply.
 int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// The compiler's division by 600 (a multiply by a magic constant) leaves the
-// low dword of the product in a register.
+// The low dword the compiler's division by 600 (a multiply by a magic constant) leaves as the result.
 int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
 } // namespace
 
@@ -40,12 +39,9 @@ int CInterface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
     return WithoutMargin(this)->ScalePointFromScreenEntry(point);
 }
 
-// The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on,
-// addon's versions. addon replaces the first two with JMPs to its code and writes the last three's
-// code over (with two entries of its own that clear the interface first and skip
-// the margin; its patched mouse handlers call the second). Every one of them
-// skips the margin when called without an interface (addon's code calls it so): the
-// entries the hooks use, below, handle that.
+// The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on, addon's
+// versions, which skip the margin when called without an interface (addon's code calls them so; the entries
+// below handle that).
 
 int CInterface3D::ScaleRectToScreen(RECT* rect) const {
     if (widescreen::Active()) return widescreen::RectToScreen(rect, true);
@@ -58,7 +54,7 @@ int CInterface3D::ScaleRectToScreen(RECT* rect) const {
 }
 
 // An identical copy of this function exists in the game that nothing calls; addon points it at the same code
-// as this one. Not rewritten.
+// as this one.
 int CInterface3D::ScalePointToScreen(POINT* point) const {
     if (widescreen::Active()) return widescreen::PointToScreen(point, true);
     point->x = Mul(point->x, width_) / kLayoutWidth;
@@ -90,8 +86,8 @@ int CInterface3D::ScalePointFromScreenCopy(POINT* point) const {
     return point->y;
 }
 
-// The hooks: with Rebirth's code in place these are also reached without an
-// interface (addon's entries; ui_widescreen.h).
+// With Rebirth's code in place these are also reached without an interface (addon's entries;
+// ui_widescreen.h).
 int CInterface3D::ScaleRectToScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectToScreen(rect, false);
     return ScaleRectToScreen(rect);

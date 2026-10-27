@@ -53,12 +53,12 @@ constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
 float ConstOne() { return 1.0f /*0073B84C*/; }
-float ConstFromStep() { return 50.0f /*0074023C*/; }   // 50.0: value = setting * 50
-float ConstToStep() { return 0.02f /*00742B80*/; }     // 0.02: setting = value * 0.02
-float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // 4.0: setting 20's value
-float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // 0.25: setting 20 from it
-float ConstHalf() { return 0.5f /*0073B86C*/; }       // 0.5: the slider's centre
-float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above the track
+float ConstFromStep() { return 50.0f /*0074023C*/; }   // value = setting * 50
+float ConstToStep() { return 0.02f /*00742B80*/; }     // setting = value * 0.02
+float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // setting 20's value
+float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // setting 20 from it
+float ConstHalf() { return 0.5f /*0073B86C*/; }       // the slider's centre
+float ConstThumbLift() { return 0.1f /*0073B850*/; }  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
@@ -154,8 +154,6 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 }
 } // namespace
 
-// --- COptionsWindow::RefreshRows ---------------------------------------------------------
-
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
@@ -196,8 +194,6 @@ void COptionsWindow::RefreshRows() {
     UiSurfaceReleaseDC(surface);
 }
 EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
-
-// --- COptionsWindow::ShowGroup -----------------------------------------------------------
 
 void COptionsWindow::ShowGroup(int group) {
     mfc::CString tip;
@@ -253,8 +249,6 @@ void COptionsWindow::ShowGroup(int group) {
 }
 EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 
-// --- COptionsWindow::BuildSettings -------------------------------------------------------
-
 void COptionsWindow::BuildSettings() {
     settings_.clear();   // copy and destructors inlined
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
@@ -293,8 +287,6 @@ void COptionsWindow::BuildSettings() {
 }
 EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 
-// --- COptionsWindow::BuildBindings -------------------------------------------------------
-
 void COptionsWindow::BuildBindings() {
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.Finish() = bindings_.Start();
@@ -323,8 +315,6 @@ void COptionsWindow::BuildBindings() {
     }
 }
 EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
-
-// --- RebuildKeysText ---------------------------------------------------------------------
 
 namespace {
 void RebuildKeysText(OptionBinding& binding) {
@@ -369,8 +359,6 @@ void COptionsWindow::CommitBinding() {
 }
 EI_REWRITTEN(0x00652000, COptionsWindow::CommitBinding);
 
-// --- COptionsWindow::LoadSettings --------------------------------------------------------
-
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
     OptionSetting* s = settings_.begin();
@@ -383,7 +371,7 @@ void COptionsWindow::LoadSettings() {
     // _ftol: truncation.
     s[3].value_ = static_cast<int>(OptSpeedA() * fromStep);
     s[4].value_ = static_cast<int>(OptSpeedB() * fromStep);
-    // FCOMP; TEST AH,0x40: equal gives 0.
+    // Equal gives 0.
     float sign22 = OptSign22();
     float sign23 = OptSign23();
     EI_NAN_AUDIT(sign22, sign23);
@@ -416,8 +404,6 @@ void COptionsWindow::LoadSettings() {
     }
 }
 EI_REWRITTEN(0x00652200, COptionsWindow::LoadSettings);
-
-// --- COptionsWindow::Apply ---------------------------------------------------------------
 
 void COptionsWindow::Apply() {
     std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));

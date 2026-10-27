@@ -21,8 +21,7 @@ namespace {
 inline double D(float f) { return f; }
 
 // The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_), the two colour arrays
-// (colorsA_, colorsB_) and the 16-bit indices. All are lib::AlignedArray instantiations
-// (aligned_arrays.cpp).
+// (colorsA_, colorsB_) and the 16-bit indices.
 using IndexArray = lib::AlignedArray<std::uint16_t>;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
@@ -84,8 +83,8 @@ void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
 }
 
 // --- Points on a circle, computed on the FPU ---------------------------------------------------------
-// The angle of point j of n is (j * pi + j * pi) / n (FILD, FMUL float pi, FADD ST0,ST0, FDIV of
-// the FILD'd n), never stored. The FCOS / FSIN result is used unrounded in the same expression.
+// The angle of point j of n is (j * pi + j * pi) / n with the float pi, never stored. The FCOS / FSIN result
+// is used unrounded in the same expression.
 
 double CircleAngle(int j, int n) {
     const double turn = static_cast<double>(j) * 3.1415927f /*00740154*/;
@@ -113,8 +112,6 @@ float CircleTexel(int j, int n, bool sine, int radius, int centre) {
 }
 
 } // namespace
-
-// --- CUiMeshBuilder::Framed -------------------------------------------------------------------
 
 void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
                             int u0, int v0, int u1, int v1) {
@@ -201,8 +198,6 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
 }
 EI_REWRITTEN(0x005E8450, CUiMeshBuilder::Framed);
 
-// --- CUiMeshBuilder::Disc ---------------------------------------------------------------------
-
 void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
                           int uvRadius) {
     ResetVertexColours(this);
@@ -241,8 +236,6 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     NudgeAndCommit(this);
 }
 EI_REWRITTEN(0x005E8C60, CUiMeshBuilder::Disc);
-
-// --- CUiMeshBuilder::Ring ---------------------------------------------------------------------
 
 void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
                           int v0, int u1, int v1) {
@@ -319,8 +312,6 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     NudgeAndCommit(this);
 }
 EI_REWRITTEN(0x005E91F0, CUiMeshBuilder::Ring);
-
-// --- CUiMeshBuilder::ResetColours --------------------------------------------------------------------
 
 void CUiMeshBuilder::ResetColours() { ResetVertexColours(this); }
 namespace {

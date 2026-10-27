@@ -27,8 +27,7 @@ namespace {
 inline double D(float f) { return f; }
 
 
-// Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): a
-// rectangle, a strip of `count` framed cells.
+// Sprite builders (Rebirth-patched): a rectangle, a strip of `count` framed cells.
 struct SpriteBuild {
     void Rectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                    int v1);
@@ -84,7 +83,7 @@ void CItemIconWindow::Build() {
         float right = static_cast<float>(x + 200);
         sprite()->Cells(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f /*00740548*/)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
                         0xB0, 1, 4);
-        float middle = static_cast<float>(D(left) + D(100.0f /*0073BAB0*/));   // + 100
+        float middle = static_cast<float>(D(left) + D(100.0f /*0073BAB0*/));
         sprite()->Rectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
         sprite()->Rectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
         float half = static_cast<float>(x + 100);
@@ -184,7 +183,6 @@ EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);
 // --- Moving items between lists ----------------------------------------------
 
 namespace {
-// CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
 CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
     return list->AddItem(item, keepCount, merge);
 }

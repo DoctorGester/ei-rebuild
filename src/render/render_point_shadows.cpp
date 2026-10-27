@@ -1,19 +1,5 @@
-// Point-light shadows (docs/notes/renderer.md section 13, item 9). The sun's map (render_shadows.cpp)
-// shadows the sun alone; here the few strongest point lights in view (the campfire, the lamps, a torch)
-// get a cube of six depth faces each, drawn from the same casters (the objects the game shadows, by their
-// meshes drawn this frame), and the receivers lit on the GPU take each such light away where it is hidden:
-// the ground (shaders/scene_lighting.hlsli's point loop) and the figure parts (shaders/mesh.hlsl's
-// figure_light). The receivers' rules follow the sun's (shaders/point_shadow.hlsli):
-// - an object never shadows itself from a light inside it or just beside it (the campfire's spit, the hero's
-//   light above his head, a torch-bearer): an object with a mesh whose bounding sphere, grown by
-//   kHoldMargin, holds the light casts nothing for it;
-// - a unit's meshes compare from the unit's nearest distance to the light (as the sun map's unit front): no shadow of
-//   its own, every other caster's on every face;
-// - other meshes are shadowed only on faces turned to the light (by their face normal), looked up a little
-//   along it (the normal offset).
-// The lights' cubes share one depth atlas: a light a row of kPointFaceTexels-texel faces, one per column.
-// What is left out: the ground casts no point shadow, nor objects outside the view (that walk is the sun map's only);
-// lights beyond the kept scene lights (render::SceneLighting's nearest kMostSceneLights) cast none.
+// Point-light shadows: a cube of six depth faces for each of the few strongest point lights in view. See
+// docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 

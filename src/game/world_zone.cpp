@@ -1,6 +1,5 @@
-// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map
-// objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
-// docs/notes/world.md.
+// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
+// script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
 #include "core_refcount.h"
@@ -37,7 +36,7 @@ namespace {
 
 // ---- Game data --------------------------------------------------------------------------------
 
-// The empty string the game compares against and passes as "no text" (a zero byte in .data).
+// The target of an exit that leads nowhere.
 constexpr const char* kNoExit = "none";
 
 // The default orientation of new units, passed by value.
@@ -103,7 +102,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     PartyUnitRecord* record = builder.Record();
     records.SetSize(1, -1);
     records.data[0] = record;
-    record->unitId = id;   // the unit's id
+    record->unitId = id;
     CreateUnits(nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
@@ -223,14 +222,14 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         if (map) allod = map->allod;
     }
     if (SameName(allod.c_str(), "gipat")) {
-        app::g_loadingMovieName = "progres2.bik";   // progres2.bik
+        app::g_loadingMovieName = "progres2.bik";
     } else if (SameName(allod.c_str(), "ingos")) {
-        app::g_loadingMovieName = "progres3.bik";   // progres3.bik
+        app::g_loadingMovieName = "progres3.bik";
     } else {
         bool suslanger = SameName(allod.c_str(), "suslanger");
-        app::g_loadingMovieName = "progres4.bik";   // progres4.bik
+        app::g_loadingMovieName = "progres4.bik";
         if (!suslanger) {
-            app::g_loadingMovieName = "progres.bik";   // progres.bik
+            app::g_loadingMovieName = "progres.bik";
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
                 if (SameName(allod.c_str(), "gipat2")) app::g_loadingMovieName = "progres2.bik";
                 else if (SameName(allod.c_str(), "jigran")) app::g_loadingMovieName = kProgres5;
@@ -238,7 +237,7 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         }
     }
     if (zone) {
-        if (libcrt::Stricmp(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";   // progres1.bik
+        if (libcrt::Stricmp(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";
         if (libcrt::Stricmp(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
     }
 }

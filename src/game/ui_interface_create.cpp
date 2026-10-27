@@ -1,9 +1,8 @@
-// The interface manager's start (CInterface3D::Create, called once by the application's
-// start with the renderer's device object): the screen size, the three fonts, the keyboard layout,
-// the console window, the debug information panel, the chat overlay, the fade and the help topics
-// seen (config\tutorial.ini). Rebirth's WideScreen changes the fonts' scale (addon's FMUL at +BF
-// reads its float: widescreen::FontScale); hooked in both launches. See ui.h and
-// docs/notes/ui.md, section 3.
+// The interface manager's start (CInterface3D::Create, called once by the application's start with the
+// renderer's device object): the screen size, the three fonts, the keyboard layout, the console window, the
+// debug information panel, the chat overlay, the fade and the help topics seen (config\tutorial.ini).
+// Rebirth's WideScreen changes the fonts' scale (widescreen::FontScale). See ui.h and docs/notes/ui.md,
+// section 3.
 #include "ui.h"
 
 #include "console.h"
@@ -42,7 +41,7 @@ mfc::impl::CFont* NewFont() { return new mfc::impl::CFont(); }
 
 bool CreateFont(mfc::impl::CFont* font, int size) {
     if (font->CreatePointFont(size, FontFace(), nullptr)) return true;
-    game::FatalError("CInterface3D::Create.\n Cannot create font.\n");   // "CInterface3D::Create.\n Cannot create font.\n"
+    game::FatalError("CInterface3D::Create.\n Cannot create font.\n");
     return false;
 }
 
@@ -156,7 +155,7 @@ void CInterface3D::Create(CTextureDevice* device) {
             text::SplitWords(line, &words, ' ');
             if (words.GetSize() <= 1) continue;
             const char* count = words[1];
-            helpTopics_.Subscript(words[0]) = std::atoi(count);   // operator[]
+            helpTopics_.Subscript(words[0]) = std::atoi(count);
         }
         file.Close();
     }

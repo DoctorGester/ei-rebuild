@@ -56,7 +56,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
     AddCounted(list, item);
 }
 
-// One item of class `kind` for `record` in every material whose +0x04 names the record's material,
+// One item of class `kind` for `record` in every material whose soundName names the record's material class,
 // made by the list's item constructor with `manager`. A material index out of the table reads through null.
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {

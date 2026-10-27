@@ -4,13 +4,6 @@
 // engine objects in the world's object list; the server ticks them (RunTick) and sends their state to the
 // clients as a DeltaField (Unpack / Pack), and the client side starts or moves the actual sound, light or
 // particle source (Start). See docs/notes/effects.md.
-// Virtuals shared by every effect (CEngineObject's, CTransformObject's and these): Create (Reset, then
-// a full state write), Destroy (Reset), RunTick (0 = remove the effect), Load / Save (save game; the
-// stream's Read / Write, the save version), Reset, Radius (float), Position(group), Unpack(update,
-// field) (returns 0 when the field did not end where expected), Pack(field), Start(update) (0: create
-// the sound / light / source, else move it).
-// Non-virtual helpers of the base: SendFull / SendDelta / Receive wrap Pack and Unpack in the
-// DeltaField's begin / end.
 
 #include "core_transform.h"
 #include "effects.h"
@@ -50,7 +43,7 @@ public:
     int Receive(int update, BitStream* reader);
     // Flags bit 1 (changed) and the change stamp (global).
     void MarkChanged();
-    // Moving_ = velocity is not (+-0, +-0, +-0). No callers.
+    // moving_ = the velocity is not zero. No callers.
     void UpdateMoving();
     // Sets the velocity (moving_ as in UpdateMoving) and marks the effect changed.
     void SetVelocity(const Vector3* velocity);
@@ -353,9 +346,8 @@ public:
     ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
     int RunTick() override;                                   // Update(game tick), returns 0
-    // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at
-    // least 4) and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5.
-    // Returns out.
+    // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at least 4)
+    // and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5.
     Vector3* FindPerch(Vector3* out, const Vector3* from);
     // The frame's step: `now` is the animation time (frames).
     void Update(float now);

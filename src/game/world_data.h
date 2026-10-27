@@ -13,7 +13,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-class CInterface3D;
 class CLight;
 struct QuestBriefingRecord;
 
@@ -21,9 +20,7 @@ namespace worlddata {
 
 inline const char* StartZoneText() { return "zone1"; }
 inline const char* ScriptBeginText() { return "WorldScript("; }
-// AddObject( Heroes, GetObjectByID( "%i" ) )
 inline const char* AddToHeroesFormat() { return "AddObject( Heroes, GetObjectByID( \"%i\" ) )"; }
-// PlayAnimation(GetObjectByName( "hero" ),"uspecial25")
 inline const char* HeroArrivalText() { return "PlayAnimation(GetObjectByName( \"hero\" ),\"uspecial25\")"; }
 inline const char* ScriptEndText() { return ")"; }
 inline const char* HairFormat() { return "hr.%.2d"; }
@@ -67,7 +64,6 @@ inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 inline int ShadowSetting() { return static_cast<const volatile int&>(options::TheOptions()->shadowQuality_); }
 
 inline const char* DefaultAllodText() { return "gipat"; }
-// "Can't load terrain or map file "%s"." and a line end
 inline const char* CantLoadTerrainFormat() { return "Can't load terrain or map file \"%s\".\n"; }
 inline const char* CaveSkyText() { return "Sky01"; }
 inline const char* OpenSkyText() { return "Sky00"; }
@@ -94,10 +90,8 @@ inline const char* ConfiguredTextPath() { return options::TheOptions()->resource
 inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.c_str(); }
 
 inline const char* AutosaveEventText() { return "autosave"; }
-// "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
-// The volume settings the sound manager takes on the client's tenth tick (
-// The last is the movies' volume, bink_video.cpp).
+// The volume settings the sound manager takes on the client's tenth tick; the movies' is bink_video.cpp's.
 inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
 inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
 inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
@@ -137,7 +131,6 @@ inline const char* MercVariableN9Format() { return "b.%s.n9_%i"; }
 inline const char* MercVariableN10Format() { return "b.%s.n10_%i"; }
 inline const char* MercVariableN11Format() { return "b.%s.n11_%i"; }
 inline const char* MercHiredFormat() { return "amerc_%i"; }
-// "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
 inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )"; }
 inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]

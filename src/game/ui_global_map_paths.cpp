@@ -104,7 +104,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
                 Arrival(arrivals_, exit) = time;
             } else {
                 EI_NAN_AUDIT(pathTime_, Arrival(arrivals_, exit));
-                if (pathTime_ < Arrival(arrivals_, exit)) Arrival(arrivals_, exit) = time;   // smaller
+                if (pathTime_ < Arrival(arrivals_, exit)) Arrival(arrivals_, exit) = time;
             }
             if (beyondTarget_) continue;
             goesBeyond = true;
@@ -123,7 +123,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
             variable = str::Format(kZoneVariable, zone->name.GetString());
-            int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));   // _ftol: truncated
+            int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));   // truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }
         if (passable) {

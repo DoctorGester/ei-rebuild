@@ -1,6 +1,6 @@
 // The unit database's and the skill database's loads from their archive at startup and the model and level
-// tables' name lookups. Rebirth patches both loads (it redirects their file lookup to a mod folder's copy):
-// these are the vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
+// tables' name lookups. Rebirth patches both loads (it redirects their file lookup to a mod folder's copy);
+// these are the vanilla functions. See docs/notes/units.md.
 #include "chunk_archive.h"
 #include "unit_db.h"
 

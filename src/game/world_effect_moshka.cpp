@@ -52,8 +52,7 @@ constexpr float kClearance = 0.5f;            // above the ground, the sight thr
 // the floats 0.03 and 0.3 widened).
 constexpr double kSpeedFactor = static_cast<double>(0.03f);
 constexpr double kSpeedBase = static_cast<double>(0.3f);
-// FindPerch: the eye 1.5 above the start, radius 50 less 5 each
-// try but at least 4, height 30 rising by 3.
+// FindPerch: the eye 1.5 above the start, radius 50 less 5 each try but at least 4, height 30 rising by 3.
 constexpr float kEyeHeight = 1.5f;
 constexpr float kPerchRadius = 50.0f;
 constexpr float kPerchRadiusStep = 5.0f;
@@ -62,7 +61,7 @@ constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
 constexpr double kRandomAngle = 1.4621764913365538e-09;   // 2 pi / 2^32
 
-// FCOMP; TEST AH,40h: equal.
+// a == b, or unordered (FCOMP's C3 is set then too).
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
@@ -255,7 +254,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);
-    attached->SetLit(1);   // SetLit
+    attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);

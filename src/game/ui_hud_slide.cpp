@@ -4,14 +4,14 @@
 #include "ui.h"
 #include "game_strings.h"
 
-#include "item_db_text.h"       // GameTexts
+#include "item_db_text.h"
 #include "map_object.h"
-#include "object_tables.h"      // MapRecord, GameMapDatabase
+#include "object_tables.h"
 #include "ui_gdi.h"
 #include "ui_mesh_build.h"
 #include "ui_widescreen.h"
 #include "unit.h"
-#include "world.h"              // LocalPlayerName
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -339,18 +339,18 @@ EI_REWRITTEN(0x006456E0, CHudUnitPanel::SetupVanilla);
 
 namespace {
 constexpr const char* kDefaultPicture = "battle00";
-float ZoneUnit() { return 32.0f /*0073CA90*/; }            // 32: world units per unit of a zone's size
-float MapSide() { return 2.0f /*0073CDB8*/; }             // 2: the map's side in map units
-float ZoomRange() { return 0.05f /*0074134C*/; }           // 0.05: the largest zoom per world unit
+float ZoneUnit() { return 32.0f /*0073CA90*/; }            // world units per unit of a zone's size
+float MapSide() { return 2.0f /*0073CDB8*/; }             // the map's side in map units
+float ZoomRange() { return 0.05f /*0074134C*/; }           // the largest zoom per world unit
 float Pi() { return 3.1415927f /*007423F8*/; }
-float OutlineStep() { return 0.125f /*0073C520*/; }         // 0.125: sixteen points round the map
+float OutlineStep() { return 0.125f /*0073C520*/; }         // sixteen points round the map
 double OutlineRadius() { return 65.0 /*00742A98*/; }
 double OutlineCentreX() { return 700.0 /*00742A88*/; }
 double OutlineCentreY() { return 80.0 /*00742A90*/; }
-float DepthUnit() { return 0.48157462f /*007423FC*/; }           // 0.48157: the layout's half height at depth 1
+float DepthUnit() { return 0.48157462f /*007423FC*/; }           // the layout's half height at depth 1
 float BoundsScale() { return 0.045f /*00742A80*/; }
 float MarkersScale() { return 0.03f /*00742A7C*/; }
-float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // -0.5: the sling starts a quarter turn back
+float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // the sling starts a quarter turn back
 constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;
@@ -404,9 +404,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiRegion* sling = AddRegion();
     sling->SetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 1, 0x34);
-    // The round map's outline: each product and sum is a float on the game's FPU (24-bit
-    // precision; FCOS / FSIN themselves are not rounded), so the point under the centre is 80
-    // down, not 79 (see OnArc in ui_hud_setup.cpp).
+    // The round map's outline: each product and sum is a float on the game's FPU (24-bit precision; FCOS /
+    // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
     CUiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * Pi()) * OutlineStep());

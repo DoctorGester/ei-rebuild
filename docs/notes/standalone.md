@@ -2141,3 +2141,162 @@ game.exe runs only as the original game, for the harness's references; none of o
   game's GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
   counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
   covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.
+
+## 6. The image's source files
+
+Moved from the files' headers.
+
+### host.cpp
+
+ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2). The host is an ordinary
+exe: it neither reads game.exe nor lays out anything at game.exe's addresses. The game's hInstance is this module,
+whose one resource is its version information (host.rc; the game's strings are literals in our code, no icon yet);
+ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from the build
+(src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
+(image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
+cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach our code
+that way. The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
+free, with no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code
+that went around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching
+other memory. What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is
+guarded.
+
+### image_code.cpp
+
+game.exe's code in the standalone image (docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is at
+its addresses (the host keeps what of game.exe's range is free reserved with no access): nothing runs there and
+nothing jumps through it. What runs for an address of game.exe's code is CodeAddress's: the replacement registered
+for it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address.
+The code cells of game.exe's data (vtable slots, callback tables, the static initialiser list:
+image_code_cells.inc, tools/gen_image_cells.py) are pointed at it once the table is in (FixCodeCells), and the
+static initialisers, the code literals and the harness ask CodeAddress. In game.exe (the original's runs) every
+address is its own code.
+
+### image_data.cpp
+
+game.exe's .rdata and .data in ei_hook.dll's own storage (docs/notes/standalone.md, "Own data"). In the standalone
+image both sections (kMovedBegin-kMovedEnd: .rdata with the import address table at its start, .data with its
+zero-filled tail, the .bss) are kept in g_dataStorage instead of at their addresses: the data seam (game_data.h)
+adds g_dataShift to each of their addresses, the pointer cells of game.exe's .rdata and .data that point into the
+range (image_cells.inc, tools/gen_image_cells.py: vtables' RTTI, the C++ exception tables, MFC's runtime classes
+and maps, string pointers) get the same shift. Nothing is at the old range (the host keeps what of game.exe's range
+is free reserved), so a use that missed the seam faults and is named with its data address and code address
+(OnOldData); a game address outside the range asked of the seam is named too (StrayGameAddress). The initial bytes
+come from game.exe at build time (image_data_bytes.inc in the build folder, gen_image_cells.py --bytes). In
+game.exe (the original's runs) none of it happens: the shift stays 0. The import slots at the storage's start are
+ours: zero from the build, resolved right after the move (image_imports.cpp). The move runs before every other
+static constructor of ei_hook.dll (init_seg(compiler)): the harness and the game's globals bind references to game
+data at static initialisation, and the harness takes import slots there.
+
+### image_imports.cpp
+
+game.exe's imports in ei_hook.dll's storage (docs/notes/standalone.md, "Own data"). The image's import slots are a
+table of ours: every slot of game.exe's import address table (image_imports.inc, written by tools/gen_iat.py from
+game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here into the storage at the
+data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that calls through a
+slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink, Winsock, the static initialisers'
+Import; the harness's slot routes by address) reaches our table. The image's command-line import gets its wrapper
+in place of the export (ImageRoute, hook/standalone_main.cpp); the resource and module imports take the host's
+module as it is. Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image
+runs none of game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's
+import and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
+trap until the run ends (OnTrap; the launch-free check fails on it). Runs from image_data.cpp's mover, before every
+other static constructor of ei_hook.dll: the harness takes import slots in its own. In game.exe (the original's
+runs) nothing happens: the loader filled its table.
+
+### lib/mfc_file.h
+
+MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path helpers they use,
+written out for the standalone exe (docs/notes/standalone.md section 2). Same layout as the copy linked into
+game.exe; the tables are compiled (mfc_file.cpp's FileTable, StdioFileTable and FileFindTable) in place, with the
+slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp). CFile works on Win32
+handles through the game's import table. CStdioFile's stream is the host CRT's FILE (crt.h: the game's FILE* is the
+host's).
+
+### lib/mfc_handle_map.h
+
+MFC 4.2's handle maps (winhand.cpp) and what they are built from: CMapPtrToPtr (map_pp.cpp),
+CRuntimeClass::CreateObject and the new handler MFC swaps around its allocations (docs/notes/standalone.md section
+2). A handle map finds the C++ object of a Windows handle: the permanent map holds the objects that attached their
+handle (a CPen, a CFont), the temporary map the objects FromHandle made for the others (a CTempDC for a surface's
+DC, a CTempGdiObject for a stock pen). The game has no CWinApp, so nothing ever empties the temporary maps (no
+OnIdle). Every body is registered at its library address (mfc_handle_map.cpp); the maps live in MFC's module thread
+state, which the image replaces with its own (mfc_gdi.cpp).
+
+### lib/mfc_runtime_class.h
+
+MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in .rdata)
+and the 5 serializable ones (CByteArray, CDWordArray, CStringArray, CWordArray in mfc_coll.cpp, CDib in
+game/dib.cpp) in .data, where the static initialisers link them into the module state's class list (AfxClassInit
+writes m_pNextClass). Each record names its base's record and its create function (ours, registered at the game's
+address: the pointers are compared by tools/named_data.py, "Pointer elements"). The hierarchy is one piece: a
+record's base is a named range, and game.exe's data holds no pointer into a named range, so CObject's record (the
+root) could be named only once every record that points at it was. Only the exceptions', files' and GDI
+temporaries' records are read (GetRuntimeClass, the handle maps); the rest are what their base pointers and create
+functions reach.
+
+### lib/mfc_state.h
+
+MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData, auxdata.cpp), as
+far as the exe's static initialisers and exit functions reach them (docs/notes/standalone.md). The thread and
+process locals are globals MFC fills on first use (_afxThreadState, _afxBaseModuleState and the others); the exit
+functions free them through the destructors here. afxData is built by a static initialiser and its menu-dot bitmap
+deleted at exit. The header also holds what the other static initialisers call: AfxClassInit (the runtime class
+list of the module state), MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush (an atexit
+that deletes it). The image has a stand-in module state with the members used so far (ImageModuleState). Every body
+is registered at its library address (mfc_state.cpp); in the image nothing fills the locals (the handle maps are
+thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
+
+### lib/mfc_slots.h: the collections' compiler-made vtables
+
+---- Compiler-made vtables ------------------------------------------------------------------- The collection
+templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table its constructor
+and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose vtable the
+compiler makes in place of game.exe's table (docs/notes/standalone.md, "Compiler-made vtables"): CObject's three
+slots (GetRuntimeClass, the destructor `Destroy`, Serialize (`Store`)) over the header's layout. Our code calls the
+header's functions by name; the slots are what a dispatch through the table reaches. A tag derived from another is
+the derived instantiation's (its destructor ends in the base's, which stores the base's table).
+
+### lib/mfc_try.h: why TRY / CATCH works across the two C++ runtimes
+
+A rewrite writes exactly that. What makes it work across the two C++ runtimes:
+- a throw is `throw` of a pointer to one of the classes below: this compiler makes the throw information, which
+  lists the pointer to the class and to each base like the game's did (".PAVCFileException@@", ".PAVCException@@",
+  ".PAVCObject@@", ".PAX");
+- a handler matches a thrown object when the type descriptors are the same object or carry the same decorated name.
+  So the classes are in the global namespace under the game's names and have its bases; nothing else of them is
+  used (they are never made here: the objects are the game's MFC objects, thrown through a cast pointer);
+- the unwind runs the frames between the throw and the handler through their frame handlers (RtlUnwind), then ours.
+
+### lib/stlp_deque.h
+
+STLport's deque<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). 0x28 bytes:
+the start and finish iterators (cur, first, last, node), the map of node pointers and its size; the allocator
+proxies are empty bytes inside the map words (the constructor writes them and then zeroes the words). Nodes hold
+512 / sizeof(T) elements (one for larger T). Only trivially destructible T: the game's instantiations destroy
+nothing. Instantiations: the camera's view stack (0x24-byte entries, 14 per 0x1F8-byte node; camera.h keeps its own
+layout) and the material's (0x10-byte entries, 32 per 0x200-byte node; material.h). The members are registered at
+the instantiations' addresses in stlp_deque.cpp through the DequeAbi shims.
+
+### lib/stlp_hash.h
+
+STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2); the
+library body the instantiations' own addresses are registered to (stlp_hash.cpp). Layout (0x14 bytes): the hasher,
+key_equal and key extractor (empty, one byte each, then a pad byte), the bucket vector (vector<Node*>,
+stlp_vector.h) and the element count, which STLport keeps in the node allocator's proxy. A node is the next pointer
+followed by the value; its size picks the pool's free list, so each instantiation's node type comes from its
+node-creation code. Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
+below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the head of its
+bucket, and iteration walks the buckets in order and each chain from its head. A rehash (resize) moves each old
+bucket's chain, head first, to the head of its new bucket.
+
+### lib/stlp_tree.h
+
+STLport's red-black tree (_Rb_tree, map, multimap, set) as compiled into game.exe (stlp.h includes it;
+docs/notes/standalone.md, section 2). The STLport of the exe is SGI's 3.x tree: _M_insert(x, y, v) without the
+later hint argument, the hint insert falling back to insert_unique(v), erase(key) through equal_range. A tree is
+0xC bytes: the header node (from the node pool; its parent is the root, its left / right the leftmost / rightmost
+node, red), the element count and the empty compare object (one byte). Nodes are color (a bool: red 0, black 1, in
+a dword whose other bytes are left as the allocation had them), parent, left, right, then the value. The node-only
+algorithms (_Rb_global<bool>: increment, decrement, the rotations and both rebalances) are one body each in
+stlp_tree.cpp, registered at their addresses.

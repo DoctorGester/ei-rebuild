@@ -1,6 +1,5 @@
 // CUnit's own virtual slots (shared by CFakeUnit): the per-tick update and the slots that pass map object
-// events on to the unit's controller (CUnit + 0x240), plus standing on the ground. See unit.h and
-// docs/notes/units.md.
+// events on to the unit's controller, plus standing on the ground. See unit.h and docs/notes/units.md.
 #include "combat.h"
 #include "unit.h"
 
@@ -23,7 +22,7 @@ constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit co
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 
-// The world's slots 29 / 30 give the ground and water surface heights at (x, y), in ST0.
+// The world gives the ground and water surface heights at (x, y), unrounded.
 CWorld* WorldOf(CUnit* unit) { return unit->World(); }
 } // namespace
 

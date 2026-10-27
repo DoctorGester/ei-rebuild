@@ -34,7 +34,6 @@ using netlists::PacketRecordElement;
 using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
-using Items = stlp::list<SentItem>;
 // CollectChanges's static vector of {object, priority}; its exit function frees the storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
@@ -297,7 +296,7 @@ bool Connection::SendUpdate(int budget) {
                 break;
             }
             ++*count;
-            Items::InsertDefault<SentRecordElement>(sent->data.items.End());
+            stlp::list<SentItem>::InsertDefault<SentRecordElement>(sent->data.items.End());
             SentItem* item = &sent->data.items.End()->prev->data;
             ReplicaEntry* old = item->entry;
             item->entry = entry;

@@ -106,7 +106,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         angle_ = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
-        tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);   // pi * 0.8
+        tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);
         Quaternion turn = TiltTimesSpin(tilt, spin);
         std::memcpy(&turn_, &turn, sizeof(turn));
         MouseDragX() = 0;

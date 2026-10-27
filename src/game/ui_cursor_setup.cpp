@@ -28,8 +28,7 @@ void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     if (old) old->Release();
 }
 
-// A new off-screen surface of the screen's format (through its address); null when the
-// allocation fails.
+// A new off-screen surface of the screen's format; null when the allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
     return new CDXSurface(device, width, height);
 }

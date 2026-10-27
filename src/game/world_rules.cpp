@@ -38,7 +38,7 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
     CEngineObject* first = registry->FindObject(a->objectId);
     CEngineObject* second = registry->FindObject(b->objectId);
     if (!first || !second) return false;
-    // The matrix's row 2: the depth axis (+0x20) and its offset (+0x2C).
+    // The matrix's row 2: the depth axis and its offset.
     const Vector3 normal{view[8], view[9], view[10]};
     float offset = view[11];
     const CMapObject* p = ObjectSlots(first);

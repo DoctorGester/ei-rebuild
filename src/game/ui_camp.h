@@ -17,9 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CItem;
-class CParty;
-class CUnit;
 class CConstructorPage;
 class CGlobalMapClouds;
 class CHeroEquipPanel;
@@ -42,9 +39,7 @@ void LoadPersonTexts(PersonTextMap* map);
 // selection box (0 or less: never).
 inline int BoxSelectThreshold() { return options::TheOptions()->cameraFrameSelectionArea_; }
 
-struct ItemHoverInfo;
 class ClassTemplate;
-struct PartyUnitRecord;
 
 // The statistics' names, also their text keys.
 inline const char* const* SkillNames() {
@@ -265,7 +260,6 @@ struct TradeRecord {
     std::uint8_t padAfterBought[3];  // not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
-using TradeRecords = stlp::vector<TradeRecord>;
 
 class CTradePanel : public CUiItemPanel {
 public:
@@ -324,7 +318,7 @@ public:
     TradeRows schools_;              // six
     TradeRows science_;              // one
     int experience_;                 // experience the hero can spend
-    TradeRecords records_;           // one per party member
+    stlp::vector<TradeRecord> records_;           // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
     float holdTime_;                 // from -0.5 s
     mfc::CStringArray texts_;        // the titles

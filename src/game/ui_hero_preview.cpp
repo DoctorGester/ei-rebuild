@@ -120,7 +120,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     std::memcpy(&savedOrientation, &model->localRotation_, 16);
     CSceneRenderer* renderer = pass;
     std::uint32_t savedColour = renderer->colour_;
-    // White: three FISTPs of 255.0 packed as 0xFF rr gg bb.
+    // White: 255.0 converted three times, packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
     model->flags_ |= 0x800;
     {

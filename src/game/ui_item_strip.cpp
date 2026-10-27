@@ -115,7 +115,7 @@ BOOL CForwardingStrip::Draw(int pass) {
     const float frac = static_cast<float>(position - static_cast<float>(first));
     const float hundred = 100.0f /*0073BAB0*/, fifty = 50.0f /*0074023C*/, one = 1.0f /*0073B84C*/;
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
-    const float dim = 0.1953125f;   // 0x3E480000
+    const float dim = 0.1953125f;
     SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
     SceneMesh(1)->textureOffsetU_ = static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0.0f;
 
@@ -188,18 +188,18 @@ EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
 namespace {
 
-// The time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
+// The time since the last frame in seconds (ticks * 0.001f, unrounded).
 inline double __fastcall StripFrameTime(void* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 } // namespace
 
 void CUiItemStrip::Update() {
     const float zero = 0.0f /*0073B858*/;
-    const float repeat = 0.1f /*00741EC0*/;      // 0.1 s per slot while an arrow is held
-    const float nearDistance = 0.5f /*00741EB4*/;  // 0.5 slot: closer than this the scroll eases out
+    const float repeat = 0.1f /*00741EC0*/;      // seconds per slot while an arrow is held
+    const float nearDistance = 0.5f /*00741EB4*/;  // slots: closer than this the scroll eases out
     const float easeDivisor = 0.25f /*00741EB8*/;
-    const float accel = 15.0f /*00741EBC*/;       // 15 slots/s^2
-    const float maxSpeed = 7.0f /*00741EB0*/;    // 7 slots/s
+    const float accel = 15.0f /*00741EBC*/;       // slots/s^2
+    const float maxSpeed = 7.0f /*00741EB0*/;    // slots/s
     const float half = 0.5f /*0073B86C*/;
     const float snapLow = 0.01f /*0073C548*/;
     const float snapPending = 0.02f /*0073CCD8*/;

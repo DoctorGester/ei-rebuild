@@ -43,7 +43,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
-// The world: the time of day (in ST0).
+// The world's night level, unrounded.
 double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 
 
@@ -122,8 +122,8 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValueUnit, panel.labels[6].GetString(), vision, panel.labels[13].GetString());
     panel.DrawLine();
 
-    // The controller's attack parameters : attack, defence, the damage type (below 7
-    // unsigned: "dmg_<n>" names it) and range.
+    // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
+    // it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);
     panel.text.Format(kValue, panel.labels[3].GetString(), combat.attack);

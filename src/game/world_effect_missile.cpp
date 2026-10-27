@@ -242,10 +242,8 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&flag, 1);
 }
 
-// The base, then the three parts (their constructors inlined) and the empty name; Reset at the end.
 CEffectArrow::CEffectArrow() { Reset(); }
 
-// Reset; then the name, the sound, the light, the particle part and the base go.
 CEffectArrow::~CEffectArrow() { Reset(); }
 
 // The abstract missile's destructor (no live object has its table).
@@ -381,7 +379,6 @@ void CEffectArrowFigure::Save(CStream* s) {
     s->Write(&flag, 1);
 }
 
-// No figure, then Reset.
 CEffectArrowFigure::CEffectArrowFigure() {
     figure_ = nullptr;
     Reset();

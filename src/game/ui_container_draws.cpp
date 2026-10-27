@@ -24,11 +24,10 @@ namespace {
 
 constexpr std::uint32_t kAlphaRef = 0x18;
 
-// The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
-// IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all of it), the result in
-// the device object's +8: only the new renderer clears (the switch-over has no depth buffer), the result 0.
+// IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all of it): only the new
+// renderer clears (the switch-over has no depth buffer); the result is 0.
 void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     device->result_ = 0;
     render::Rect r[8];
@@ -37,7 +36,7 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     render::ClearDepth(z, rects ? r : nullptr, rects ? n : 0);
 }
 
-// share this: the depth buffer cleared to 1, then the container draw.
+// The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
@@ -47,7 +46,6 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 
 } // namespace
 
-// Nothing when the interface's +0x30 is clear. Returns 1.
 BOOL CUiContainer::Draw(int pass) {
     if (!interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(this);
@@ -72,10 +70,9 @@ EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
-// The owner slot 51 gives the hero's data: +0x730 / +0x734 the quick items
-// (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
-// worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
-// the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
+// The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
+// selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection. Returns
+// 1.
 int CHeroEquipPanel::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };

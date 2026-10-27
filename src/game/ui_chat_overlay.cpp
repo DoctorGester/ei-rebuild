@@ -1,6 +1,5 @@
-// The in-game chat overlay: its constructor, per-frame update and
-// redraw), the chat line's opening and its keys. Its destructor is in ui_window_delete.cpp.
-// docs/notes/ui.md, section 3.
+// The in-game chat overlay: its constructor, per-frame update and redraw, the chat line's opening and its
+// keys. Its destructor is in ui_window_delete.cpp. docs/notes/ui.md, section 3.
 #include "asset_text.h"
 #include "console.h"
 #include "net_classes.h"
@@ -35,7 +34,6 @@ constexpr int kTypedFont = 1;
 // A chat message stays on the client's timers list for 60 s (the float's bits).
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -258,7 +256,7 @@ void CChatOverlay::DrawTyped() {
 }
 EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
-// --- the chat line's keys (input slots 9 and 10) -------------------------------------------------
+// --- the chat line's keys -------------------------------------------------------------------------
 
 void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;

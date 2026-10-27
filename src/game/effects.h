@@ -25,8 +25,6 @@
 
 #undef GetClassName
 
-class CMemoryStream;
-class CSceneRenderer;
 struct TLVertex;
 struct VertexPacket;
 
@@ -271,7 +269,6 @@ static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(Particle
 
 class CParticleSource;
 class CObject3D;
-class CTexture;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class CParticleManager;
@@ -589,7 +586,6 @@ struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
-using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
 using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
 // Room for `count` elements, 32-byte aligned, the allocated block stored just below;

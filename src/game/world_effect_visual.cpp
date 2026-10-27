@@ -37,8 +37,7 @@ void ClearBase(CEffect* e) {
     e->changeStamp_ = -1;
 }
 
-// The light's range fields: range, range^2 and 1 / range^2 with the square left unrounded for the
-// division (FMUL, FST, FDIV ST,ST(1)).
+// The light's range fields: range, range^2 and 1 / range^2 with the square left unrounded for the division.
 void SetLightRange(CLight* light, std::uint32_t rangeBits) {
     light->range_ = std::bit_cast<float>(rangeBits);
     const double square = static_cast<double>(light->range_) * light->range_;
@@ -58,7 +57,7 @@ int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
     // On only when above.
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f /*0073B858*/) return 0;
-    // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
+    // The speed when the distance is below it or they are unordered.
     const double divisor = dist >= speed ? dist : speed;
     *t = static_cast<float>(speed / divisor);
     return 1;
@@ -78,8 +77,7 @@ bool IsOneShotType(int type) {
     }
 }
 
-// The scorch mark's angle: a random value times a constant, the value loaded with
-// FILD qword (exact), FMUL qword, rounded to float.
+// The scorch mark's angle: a random value (exact) times a constant in double, rounded to float.
 float RandomAngle(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * 1.4668330997698233e-9 /*0073FFD0*/);
 }

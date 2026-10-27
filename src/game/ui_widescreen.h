@@ -54,19 +54,17 @@ void EnterLeftPanel();
 void EnterRightPanel();
 void LeavePanel();
 
-// The scaling with the wide layout (addon's replacements; only while Active()). Each returns what addon's code
-// leaves in EAX: the last coordinate stored (y, or the bottom of a rectangle). `margin`: addon's code tests
-// ECX (the interface) and adds / takes off the margin only when it is nonzero; its two entries in front of
-// the screen-to-layout scaling clear ECX first, and its code in the text surfaces' draw calls the
-// layout-to-screen scaling with ECX 0.
+// The scaling with the wide layout (addon's replacements; only while Active()). Each returns the last
+// coordinate stored (y, or the bottom of a rectangle). `margin`: addon adds / takes off the margin only when
+// its interface argument is set; its two entries in front of the screen-to-layout scaling pass none, and the
+// text surfaces' draw calls the layout-to-screen scaling without one.
 int RectToScreen(RECT* rect, bool margin);
 int PointToScreen(POINT* point, bool margin);
 int RectFromScreen(RECT* rect, bool margin);
 int PointFromScreen(POINT* point, bool margin);
 
 // The interface's text extent (addon's replacement): GetTextExtentPoint32's pixels to layout units, the width
-// by the 4:3 part's width (not the screen's) and the height by the mode's height (IMUL / IDIV, 64-bit
-// products).
+// by the 4:3 part's width (not the screen's) and the height by the mode's height (64-bit products).
 SIZE TextExtentToLayout(SIZE pixels);
 
 // The projection's x scale on the axis swap's diagonal: axisScale while Active(), else 1.
@@ -74,9 +72,8 @@ float AxisScale();
 // What a 75-point font's pixel height is multiplied by for the interface fonts' scale: fontScale while
 // Active(), else the original's 0.01.
 float FontScale();
-// addon's 9 bytes (SUB EAX,margin / 2; MOV [ESP+4],EAX), which the global map's mouse move and click call in
-// place of the pick picture's pixel read: the half-size picture's x is (x / 2) - margin / 2. margin / 2 while
-// Active(), else 0.
+// addon's patch of the global map's mouse move and click, in place of the pick picture's pixel read: the
+// half-size picture's x is (x / 2) - margin / 2. margin / 2 while Active(), else 0.
 int PickShift();
 
 // addon's handlers after the camp's and the multiplayer hero screen's Creates: two more sprites of `window`

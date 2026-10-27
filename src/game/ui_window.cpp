@@ -22,7 +22,7 @@
 #include <bit>
 
 namespace {
-// 32-bit wrapping multiply (IMUL r32, r/m32).
+// 32-bit wrapping multiply.
 int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
@@ -47,8 +47,8 @@ BOOL CUiRegion::HitTest(int x, int y) const {
     if (!enabled_) return 0;
     if (!gameapi::PtInRect(&bounds_, POINT{x, y})) return 0;
     if (rectOnly_) return 1;
-    // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products
-    // wrap like the original's 32-bit IMULs.
+    // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
+    // bits like the original's.
     int count = points_.size;
     for (int i = 0; i < count;) {
         const UiPoint& a = points_[i];
@@ -248,8 +248,8 @@ void CUiWindow::ClearObjects() {
 }
 EI_REWRITTEN(0x005FF1E0, CUiWindow::ClearObjects);
 
-// Returns `surface` (the original leaves its argument in EAX; the titles' Create freezes the surface through
-// the result).
+// Returns `surface`, which the original leaves as its result; the titles' Create freezes the surface through
+// it.
 void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added) = nullptr;
 
 CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
@@ -454,11 +454,7 @@ constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f}; 
 } // namespace
 
 namespace {
-// The engine object's base constructor (thiscall).
-// The material manager (thiscall): makes a material (MaterialCreateOriginal), registers it
-// (CMaterialManager::FillMaterial).
 
-// A material's emissive colour (+0x50..+0x58, every component `value`) and one more reference.
 void PrepareMaterial(CMaterial* material, float value) {
     material->colors.emissive.x = value;
     material->colors.emissive.y = value;

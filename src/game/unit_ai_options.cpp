@@ -20,7 +20,7 @@ constexpr float kAttackSpellWeight = 1.3f;
 constexpr float kHelpWeight = 1.0f;
 constexpr float kHealWeight = 10.0f;
 
-// The option kind per spell type ('s byte through its jump table).
+// The option kind per spell type.
 constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6, 6, 6, 8, 8, 8,
                                  8, 8, 8, 7, 4, 5, 8, 8, 5, 4, 6, 4, 6, 8, 8, 8, 8, 8, 8, 1, 1};
 
@@ -188,8 +188,7 @@ void AIAttention::Build(CUnit* unit) {
     }
 }
 
-// The count, the array sized to it (SetSize inlined), then each
-// option (through its address).
+// The count, the array sized to it (SetSize inlined), then each option.
 void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     int count;
     stream->Read(&count, 4);

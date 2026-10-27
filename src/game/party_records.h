@@ -12,9 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CParty;
-class ChunkArchive;
-
 class PartyRecord : public CRefCounted {
 public:
     PartyRecord();

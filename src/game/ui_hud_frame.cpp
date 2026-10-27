@@ -63,7 +63,7 @@ float TimeOfDay() {
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-// Time since the last frame in seconds, unrounded in ST0.
+// Time since the last frame in seconds, unrounded.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }

@@ -14,11 +14,6 @@
 
 #undef GetClassName
 
-struct AnimationTrack;
-class CFigureAnimationState;
-struct FigureAnimation;
-struct FigureBone;
-
 
 void* __stdcall CreateFigureObject(int classId);
 

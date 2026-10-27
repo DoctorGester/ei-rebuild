@@ -17,7 +17,6 @@
 #undef GetClassName
 
 class CSpell;
-class CSpellConstructor;
 class CSpellManager;
 class CStream;
 

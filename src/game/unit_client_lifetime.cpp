@@ -1,5 +1,4 @@
-// Create and Destroy of the client controller (CUnitClientSpecific slots 2 / 3). See
-// unit_client_models.h and docs/notes/units.md.
+// Create and Destroy of the client controller. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
 #include "ai_map.h"

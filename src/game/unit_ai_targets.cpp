@@ -28,7 +28,7 @@ namespace {
 constexpr float kCurrentBonus = 10.0f;
 constexpr float kGroupBase = 3.0f;
 constexpr float kDamageWeight = 1.0f;
-constexpr float kGroupDamageWeight = 1.3f;      // (0x3FA66666)
+constexpr float kGroupDamageWeight = 1.3f;
 constexpr float kHealFactor = 3.0f;
 constexpr float kDistanceWeight = 25.0f;
 constexpr float kHitWeight = 2.0f;
@@ -46,7 +46,7 @@ const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // and the starting
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// The prototype's +0x24 (compared with 0.5: units below it count as small).
+// The prototype's height (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }

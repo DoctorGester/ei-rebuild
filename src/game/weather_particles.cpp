@@ -62,7 +62,7 @@ constexpr double kSwayPeriod = 50.0;
 constexpr int kSwayCells = 0x7C;
 
 // Set by static initialisers.
-constexpr float kCellSize = /*007AEDA8*/ 0.5f;      // 1 / 2
+constexpr float kCellSize = /*007AEDA8*/ 0.5f;
 constexpr float kRainRise = /*007AEDA4*/ 40.0f;     // half a rain cycle's fall less 10: 0.5 * 200 * 0.5 - 10
 constexpr float kSnowRise = /*007AEDA0*/ 40.0f;     // the same for snow: 0.1 * 1000 * 0.5 - 10
 constexpr float kHalfHeight = /*007AED9C*/ 30.0f;   // the band around the camera: 40 / 2 + 10

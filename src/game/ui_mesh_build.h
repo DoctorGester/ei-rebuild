@@ -16,9 +16,8 @@ public:
     // (u0, v0)-(u1, v1) for the outer edge, moved in proportionally for the inner one.
     void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
                 int v0, int u1, int v1);
-    // A disc of `count` points around the layout point (x, y) (Place,
-    // Place), radius `radius`; texels on the circle of radius `uvRadius` around (u, v); a fan of
-    // count - 2 triangles.
+    // A disc of `count` points around the layout point (x, y), radius `radius`; texels on the circle of
+    // radius `uvRadius` around (u, v); a fan of count - 2 triangles.
     void Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v, int uvRadius);
     // A ring of `count` segments around (x, y) between `radius - width` and
     // `radius`: 4 vertices and 6 indices per segment (the last segment closes on vertices 0 and 1),

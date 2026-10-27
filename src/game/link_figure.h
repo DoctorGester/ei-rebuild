@@ -18,8 +18,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CLight;
-
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
@@ -69,7 +67,6 @@ static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDr
 static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
 class CTextureDevice;
-class CTexture;
 
 struct CDXSurface;
 

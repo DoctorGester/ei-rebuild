@@ -19,8 +19,8 @@ std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 
 CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
     children_ = UiPtrArray<CUiWindow>{};
-    // The extra input sides (an empty STLport vector; the low byte of `ui` is stored as
-    // its allocator into +0x160 and overwrites it with the null capacity at once).
+    // The extra input sides (an empty STLport vector; the low byte of `ui` is stored as its allocator and
+    // overwritten with the null capacity at once).
     inputsBegin_ = nullptr;
     inputsEnd_ = nullptr;
     inputsCapacity_ = nullptr;
@@ -77,8 +77,8 @@ void CUiContainer::UpdateBase() {
     for (int i = 0; i < children_.size; ++i) children_.data[i]->Update();
 }
 EI_REWRITTEN(0x006010E0, CUiContainer::UpdateBase);
-// The compiler's jump thunks to it (functions.csv "thunk" rows): the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
+// The compiler's jump thunks to it (functions.csv "thunk" rows; the standalone image has no code at them):
+// the same replacement, so their calls skip its check.
 EI_REWRITTEN(0x0062AD00, CUiContainer::UpdateBase);
 
 void CUiContainer::RedrawContainer() {

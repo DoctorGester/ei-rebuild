@@ -1,9 +1,8 @@
 // The help / message window's page (CHelpWindow::ShowPage): everything the
 // window shows is rebuilt from the texts for page page_ (see ui.h).
-// Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial
-// messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
-// installs in both launches. Rebirth-patched callees: the surface's text, the sprites' Place, SetRectangle and
-// SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
+// Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial messages follow the
+// battle screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's
+// text, the sprites' Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"
 

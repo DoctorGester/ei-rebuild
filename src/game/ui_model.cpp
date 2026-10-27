@@ -89,9 +89,8 @@ void CUiModel::ShowAllParts(int show) {
 }
 EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 
-// Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface
-// clock, with flag 0x800 set during the draw. The original builds the white from three FISTPs of
-// 255.0.
+// Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,
+// with flag 0x800 set during the draw.
 void CUiModel::Draw(CSceneRenderer* pass) {
     std::uint32_t saved = pass->colour_;
     pass->SetColour(0xFFFFFFFF);
@@ -104,7 +103,6 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 }
 EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 
-// The figure's steps go through their addresses.
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);

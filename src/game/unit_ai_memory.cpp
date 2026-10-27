@@ -22,7 +22,7 @@
 
 namespace {
 constexpr float kZero = 0.0f;
-const float kFar = 1e30f;                       // 7149F2CA
+const float kFar = 1e30f;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
@@ -36,7 +36,7 @@ double Distance2(const CUnit* a, const float* b) {
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    os.PutInt(value);   // returns the stream itself
+    os.PutInt(value);
     return os;
 }
 } // namespace

@@ -18,9 +18,7 @@
 #include "lib/mfc.h"
 
 class CLight;
-class CSceneRenderer;
 class CTransformPipeline;
-struct ClipBounds;
 
 namespace terrain {
 

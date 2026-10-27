@@ -31,8 +31,7 @@ void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
 }
 } // namespace
 
-// The unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
-// unit_create.cpp, called through its address.
+// The unit prototype table's record named `name`.
 
 CItemArmor* CUnit::EquipArmour(CItem* item) {
     if (!item) return nullptr;
@@ -156,7 +155,8 @@ std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
     }
     int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
-    // EAX keeps the low half of the IMUL by the reciprocal of 0x120, the original record size (no caller reads it).
+    // The original returns the low half of the multiply by the reciprocal of 0x120, the original record size
+    // (no caller reads it).
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
 EI_REWRITTEN(0x005308D0, CUnit::SetPrototype23CByName);

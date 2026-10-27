@@ -23,11 +23,8 @@ class CItem;
 class CItemConstructor;
 struct CItemManager;
 class CParty;
-class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
-class ChunkArchive;
-class CStream;
 struct PartyUnitRecord;
 
 // A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an

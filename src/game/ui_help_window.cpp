@@ -1,7 +1,7 @@
 // The help / message window (CHelpWindow, ui.h): its Build, Close, the pulse (Update)
 // and the input side's button and key handlers.
-// The page itself is built by ShowPage (Rebirth-patched, through its address; its vanilla body is
-// in ui_help_page.cpp). See docs/notes/ui.md.
+// The page itself is built by ShowPage (Rebirth-patched; its vanilla body is in ui_help_page.cpp). See
+// docs/notes/ui.md.
 #include "ui.h"
 #include "game_strings.h"
 #include "ui_screens.h"
@@ -103,7 +103,7 @@ void CHelpWindow::Update() {
     pulseTime_ = static_cast<float>(time);
     double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
     double alpha = wave * 255.0f;
-    float alphaStored = static_cast<float>(alpha);   // stored to a local float like the original's FST
+    float alphaStored = static_cast<float>(alpha);   // stored to a float
     double rest = (1.0f - wave) * 80.0f;
     // _ftol truncates.
     std::uint32_t a = static_cast<std::uint32_t>(Clamp255(static_cast<int>(alpha)));

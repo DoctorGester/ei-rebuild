@@ -25,7 +25,6 @@ class CObject3D;
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;
-class CTransformObject;
 struct tagRECT;
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is kept at data[-1]).
@@ -33,8 +32,6 @@ using AlignedPtrArray = lib::AlignedArray<void*>;
 // An object's figure parts (CObject3D::parts / pendingParts).
 using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
-class CFigureMesh;
-struct FigureModel;
 struct FootprintPart;
 
 // One animation of a figure's animation database.
@@ -85,8 +82,6 @@ struct AnimationDatabase {
 };
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
-
-class CBaseManager;
 
 // The side-specific half of a 3D object (CObject3D::Specific()): CObject3DClientSpecific (class id 0x37) on
 // the client, CObject3DServer (0x38, stubs) on the server.
@@ -145,8 +140,6 @@ public:
     CFigureMesh* FindPart(const char* name) override;
     CFigureMesh* FindPartOfType(int type) override;
 };
-
-class CObject3D;
 
 // A bone of a figure's skeleton (made from the skeleton links). The animation state's bone list holds them,
 // one of its members the root. Only the fields the pose code uses.

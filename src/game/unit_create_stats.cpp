@@ -226,9 +226,9 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     const Model* model = ModelOf(prototype);
     const Npc* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
-    // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare
-    // absorb values, the high bits of builtFlags, ...) are 0, not what the caller's stack held
-    // (a determinism fix, the harness zeroes them in game.exe too, harness_leftovers.h).
+    // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare absorb
+    // values, the high bits of builtFlags, ...) are 0, not what the caller's stack held (a determinism fix;
+    // the harness zeroes them in the original too).
     std::memset(vitals, 0, sizeof(UnitVitals));
     std::memset(stats, 0, sizeof(UnitStats));
     vitals->Reset();
@@ -372,12 +372,12 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])): FYL2X with FLDLN2 and the CRT's _CIpow. Unrounded.
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
     return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
 }
 
-// A level record's value (+0x34, unsigned) as FILD of a zero-extended qword.
+// A level record's value (unsigned; exact).
 double LevelOf(const SkillLevelRecord* record) {
     volatile std::int64_t wide = record->values[7];
     return static_cast<double>(wide);
@@ -468,7 +468,7 @@ namespace {
 constexpr float kStatBase = 25.0f;
 constexpr int kSkillRecordSize = 0x18;
 
-// The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
+// The level value of skill `index` stored to a float; 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {
     std::uint8_t level = stats->skillLevels[index];   // unchecked
     if (level == 0) return kZero;
@@ -547,8 +547,6 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
-
-// --- Applying a prototype ---------------------------------------------------------------------
 
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)

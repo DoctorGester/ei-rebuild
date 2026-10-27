@@ -566,7 +566,7 @@ void PartyMessage::Write(BufferCursor* cursor) {
 void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
-    static_cast<stlp::VectorAbi<RefPtr, stlp::CountedRefElement>*>(&members_)->ResizeDefault(static_cast<std::size_t>(count));
+    members_.ResizeDefault<stlp::CountedRefElement>(static_cast<std::size_t>(count));
     for (std::int32_t i = 0; i < count; ++i) {
         RefPtr& slot = members_.begin()[i];
         AssignCounted(slot, g_currentConnection->ReadObjectRef(cursor));

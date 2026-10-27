@@ -73,9 +73,8 @@ struct HelperElements {
     }
 };
 
-// An array header inside an element (the CArray constructor inlined): the vtable of `Class` (a type
-// with a static Vtable(), the instantiation's vtable in the exe's data), then data, size, maxSize and
-// growBy zero.
+// An array header inside an element (the CArray constructor inlined): the vtable of `Class` (a type with a
+// static Vtable(), the instantiation's vtable in the exe's data), then data, size, maxSize and growBy zero.
 template <typename Class>
 void ConstructHeader(void* at) {
     static_cast<CArray<Bytes<1>>*>(at)->Construct(Class::Vtable());
@@ -166,32 +165,11 @@ void DestructArrayOf(CArray<T, E>& a) {
 // CompiledCollection); the element policies and aliases below only name them. What each is: mfc_slots.h.
 
 struct IntArrayClass;
-struct UnitPtrArrayClass;
-struct FloatArrayClass;
-struct ArgFloatArrayClass;
-struct ObjectRefArrayClass;
-struct ScriptGroupClass;
-struct ScriptFloatsClass;
 struct ScriptAreaClass;
-struct ScriptIfThenArrayClass;
-struct PartySlotArrayClass;
 struct AiLookArrayClass;
-struct SpriteArrayClass;
 struct BoneLinkArrayClass;
 struct WaypointArrayClass;
-struct ExitArrayClass;
-struct MapRecordItemsClass;
-struct PointArrayClass;
-struct AttackOptionArrayClass;
-struct AnimationStepsClass;
-struct AnimationStepsCopyClass;
-struct ClientMapArrayClass;
-struct ObjectPtrArrayClass;
-struct SectorArrayClass;
-struct CellRowArrayClass;
-struct AreaListClass;
 struct ScriptAreaPartsClass;
-struct StringArrayClass;
 struct ArrayBaseClass;
 struct AiLookRecordArrayClass;
 
@@ -210,8 +188,7 @@ inline void InitKeyFrame40(KeyFrame40* p) {
     p->z = 0.0f;
 }
 
-// {dword, CString} and 0x3C-byte records with a CString at +0x28: the string
-// set to the shared empty one.
+// {dword, CString} and 0x3C-byte records with a CString at +0x28: the string set to the shared empty one.
 template <std::size_t Size, std::size_t StringAt>
 struct WithString {
     std::uint8_t bytes[Size];
@@ -221,9 +198,8 @@ void InitWithString(WithString<Size, StringAt>* p) {
     *reinterpret_cast<char**>(p->bytes + StringAt) = PchNil();
 }
 
-// Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at
-// `ArrayAt` (0x2C bytes, six strings, the array at +0x18; 0x5C bytes, eight
-// strings, the array at +0x48).
+// Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at `ArrayAt`
+// (0x2C bytes, six strings, the array at +0x18; 0x5C bytes, eight strings, the array at +0x48).
 template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
 struct StringsAndArray {
     std::uint8_t bytes[Size];
@@ -324,9 +300,8 @@ inline void InitParticle16(Particle16* p) {
     p->present = 0;
 }
 
-// The destructors of elements that hold an array header at `ArrayAt`: the
-// vtable of `BaseClass`, the storage freed, the fields left. With `Strings` CStrings from +0:
-// those destroyed afterwards, the last first.
+// The destructors of elements that hold an array header at `ArrayAt`: the vtable of `BaseClass`, the storage
+// freed, the fields left. With `Strings` CStrings from +0: those destroyed afterwards, the last first.
 template <typename E, std::size_t ArrayAt, typename BaseClass>
 void __fastcall DestroyArrayAt(E* p) {
     auto* header = reinterpret_cast<CArray<Bytes<1>>*>(reinterpret_cast<std::uint8_t*>(p) + ArrayAt);

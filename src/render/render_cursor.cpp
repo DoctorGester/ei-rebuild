@@ -1,18 +1,6 @@
-// The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md,
-// section 9). The game's cursor thread (every 41 ms) drew the cursor straight onto the
-// primary surface when it moved, so it kept moving while the main thread drew no frame (a long frame,
-// a blocking load). Without DirectDraw the cursor thread hands the move here instead
-// (render::CursorBetweenFrames): the last frame presented on the game window, which holds no cursor
-// (the present draws it over the frame), is presented again with the cursor at its new place.
-// The main thread keeps using sokol alone. The cursor thread makes no sokol call: it records its
-// present on a Direct3D 11 deferred context with the raw objects of sokol's present pipeline (the frame
-// target and the cursor through the gamma ramp into the back buffer: the draw the main thread's present
-// makes) and runs it as one command list on the immediate context (ExecuteCommandList, which puts the
-// context's state back, so sokol's state cache stays right), with the device's multithread protection
-// on. The swap chain and the frame target are shared: the main thread's frame draw and present on the
-// game window and the cursor thread's present take turns under one lock, and the main thread takes the
-// references the cursor thread draws with at the end of each of its presents (and drops them when it
-// begins the next frame's draws: the frame target is partly drawn until then).
+// The software cursor between frames (render::CursorBetweenFrames): the cursor thread presents the last frame
+// again with the cursor at its new place, recorded on a deferred context. See docs/notes/renderer.md, "The
+// renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 
@@ -201,10 +189,9 @@ bool Refused(Refusal why) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// Verify build: the back buffer the cursor thread drew, read back and checked against the frame, the
-// cursor's texels where their alpha is a half or more and the gamma ramp as uploaded (one to one
-// placement only; a channel off by more than one counts as a difference); kept for the harness
-// (ReadCursorPresent).
+// Verify build: the back buffer the cursor thread drew, read back and checked against the frame, the cursor's
+// texels where their alpha is a half or more and the gamma ramp as uploaded (one to one placement only; a
+// channel off by more than one counts as a difference); kept for the harness (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
 ID3D11Texture2D* g_readback[2] = {nullptr, nullptr};   // the back buffer and the frame

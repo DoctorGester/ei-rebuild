@@ -1,7 +1,6 @@
 #pragma once
 
-// MFC 4.2 classes statically linked into game.exe, used by our code through
-// the library implementations (config/library.csv). Layouts match MFC so objects can be shared with the game's code.
+// MFC 4.2 classes the game links statically, in MFC's layouts (config/library.csv).
 
 #include "crt.h"
 
@@ -102,9 +101,8 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// The virtual slots of MFC 4.2's CFile for callers that dispatch through a file's vtable (game.exe's code
-// does; the verify build hands some loaders a proxy file). Declared only; slots declared `void Name()` keep
-// their place in the order only.
+// The virtual slots of MFC 4.2's CFile, for callers that dispatch through a file's vtable (the verify build
+// hands some loaders a proxy file). Slots declared `void Name()` only keep their place.
 class __declspec(novtable) CFileVirtuals {
 public:
     virtual void GetRuntimeClass();
@@ -188,7 +186,7 @@ public:
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
 public:
-    // CTime(year, month, day, hour, minute, second, dst) through mktime. Returns this.
+    // CTime(year, month, day, hour, minute, second, dst) through mktime.
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
 
     // Strftime of the local time into at most 127 characters (empty when it does not fit).
@@ -249,8 +247,7 @@ struct RawElements {
     static void Destruct(T*, int) {}
 };
 
-// CArray<T, ARG> (0x14 bytes): vtable, data, size, allocated size, growth step.
-// MFC 4.2 CArchive, only what the CArray serialisers use: +0x14 the mode (bit 0: loading).
+// Only what the CArray serialisers use: the mode (bit 0: loading).
 class CArchive {
 public:
     bool IsLoading() const { return (mode_ & 1) != 0; }
@@ -280,7 +277,7 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
-    // The constructor body: the instantiation's vtable (`Class::Vtable()`), empty (like CByteArray's).
+    // The constructor body: the instantiation's vtable, empty (like CByteArray's).
     CArray* Construct(const void* vtablePointer) {
         vtable = const_cast<void*>(vtablePointer);
         data = nullptr;
@@ -290,12 +287,8 @@ struct CArray {
         return this;
     }
 
-    // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
-    // max(newSize, maxSize + step), moving the old elements (Relocate) and constructing only the
-    // new ones; the old storage is freed without destroying anything. growBy -1 keeps the step.
-    // Moves `count` elements from `from` to `to` (they may overlap; the slots at `to` hold no live elements): their
-    // bytes, or the element policy's Relocate where an element is not relocatable as bytes (a std::string, whose
-    // debug build tracks its own address).
+    // `from` and `to` may overlap; the slots at `to` hold no live elements. The element policy's Relocate where an
+    // element is not relocatable as bytes (a std::string, whose debug build tracks its own address).
     static void Relocate(T* to, T* from, int count) {
         if constexpr (requires { Elements::Relocate(to, from, count); }) {
             Elements::Relocate(to, from, count);
@@ -304,6 +297,9 @@ struct CArray {
         }
     }
 
+    // 0 frees the storage; growing past maxSize reallocates to max(newSize, maxSize + step), relocating the old
+    // elements and constructing only the new ones; the old storage is freed without destroying anything.
+    // newGrowBy -1 keeps the step.
     void SetSize(int newSize, int newGrowBy = -1) {
         if (newGrowBy != -1) growBy = newGrowBy;
         if (newSize == 0) {
@@ -663,9 +659,8 @@ struct CMap {
 static_assert(sizeof(CMap<int, int>) == 0x1C);
 static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 
-// CStringArray (afxcoll, 0x14 bytes): CArray's layout over CStrings. Its members are MFC's own code, reached
-// through their addresses. No constructor, so it can sit in layouts: Construct / Destruct are the constructor
-// and destructor.
+// CStringArray (afxcoll): CArray's layout over CStrings. No constructor, so it can sit in layouts: Construct /
+// Destruct are the constructor and destructor.
 struct CStringArray {
     void* vtable;       // written by Construct
     CString* data;

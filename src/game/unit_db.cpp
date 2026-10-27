@@ -15,12 +15,7 @@
 
 namespace {
 
-// The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of `size` bytes
-// (missing
-// ones read as zero), a CString field, entering / leaving chunk `id`. The CString vector's archive; four dwords as
-// fields 0..3; a model's body slot as fields 0..3. The pieces of the vector archive that the NPC serialiser
-// inlines:
-// counting the fields `id` of the current chunk (chunk_archive.cpp), emptying a vector<CString> and resizing it.
+// Emptying a vector of strings (a piece of the vector archive the NPC serialiser inlines).
 template <typename Text>
 void StringsClear(stlp::vector<Text>* strings) {
     strings->template EraseRange<stlp::ObjectElement<Text>>(strings->begin(), strings->end());
@@ -37,7 +32,7 @@ void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
     if (ar->loading_) {
         StringsClear(strings);
         count = ar->CountChunks(1);
-        static_cast<stlp::VectorAbi<Text, stlp::ObjectElement<Text>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));
+        strings->template ResizeDefault<stlp::ObjectElement<Text>>(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }

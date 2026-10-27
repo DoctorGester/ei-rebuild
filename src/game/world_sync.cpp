@@ -79,14 +79,11 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
-// world_object_sets.cpp. Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and
-// `removed`.
+// Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
 void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
               StaticPtrArray* removed) {
     ::DiffObjectSets(known, current, added, kept, removed);
 }
-// The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured groups, the
-// dressed records: gamehash's tables), the unit added by UnitSet::Add and the set written by its writer.
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
@@ -216,7 +213,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         }
         if (dirty & kDirtyWeather) {
             int strength = x87::fistp(weatherStrength_);
-            // EAX is pushed with the byte in AL (the rest is left from the dirty flags); the callee reads the byte.
             if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty_ & kDirtyTime) {
@@ -244,7 +240,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         state->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
-        // Timed objects.
         collected.SetSize(static_cast<int>(timedObjects_.map.Size()));
         end = CollectTimedObjects(this, state, collected.data);
         collected.SetSize(static_cast<int>(end - Collected().data));
@@ -287,7 +282,6 @@ int CWorldServer::SendZone(CPlayer* player) {
         for (int i = 0; i < exits_.size; ++i) exits_[i].Write(&message);
         write(&cave_, 4);
 
-        // The zone's units.
         UnitSet units;
         units.figured.Construct(100, 0, 0, 0);
         units.dressed.Construct(100, 0, 0, 0);

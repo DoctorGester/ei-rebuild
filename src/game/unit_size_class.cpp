@@ -37,7 +37,7 @@ void CUnit::UpdateSizeClass() {
     else if (moveMode == 1) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
     else sizeClass = static_cast<std::uint16_t>(combat.sizeClass);
 
-    // The larger half extent, selected bitwise by FCOMP's C0: above.y when above.x is below it or NaN.
+    // The larger half extent, selected bitwise: above.y when above.x is below it or NaN.
     float extentX = above.x;
     float extentY = above.y;
     float extent = extentX >= extentY ? extentX : extentY;
@@ -51,7 +51,7 @@ void CUnit::UpdateSizeClass() {
     if (sizeClass != 0) return;
     // The prototype by prototypeId_; out of range it reads address 0x24 (kept).
     auto* prototype = unitdb::PrototypeRecord(prototypeId_);
-    // FCOMP; TEST AH,0x41: only for a value above 1.5.
+    // Only for a value above 1.5 (NaN not).
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }
 EI_REWRITTEN(0x00530570, CUnit::UpdateSizeClass);

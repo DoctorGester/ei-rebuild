@@ -19,12 +19,10 @@ namespace mfc::impl {
 // m_bAutoDelete (a positive value: Delete frees the object).
 class CException : public CObject {
 public:
-    // Auto-delete on.
     CException() : autoDelete(TRUE) {}
-    // Auto-delete as given.
     explicit CException(BOOL autoDeleteFlag) : autoDelete(autoDeleteFlag) {}
 
-    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
+    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;
     // The error message in a message box, or the prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE)
     // when there is none; the box's answer. The help context starts at 0 here (unset in game.exe when slot 3
     // leaves it; the box ignores it).
@@ -66,8 +64,7 @@ class CUserException final : public CSimpleException {
 public:
     using CSimpleException::CSimpleException;
     const CRuntimeClass* GetRuntimeClass() const override;
-    // The constructor on `this`, as the generated static initialiser builds MFC's
-    // _simpleUserException there. Returns this.
+    // The constructor on `this`, as the generated static initialiser builds MFC's _simpleUserException there.
     CUserException* Construct(BOOL autoDeleteFlag, unsigned id) { return new (this) CUserException(autoDeleteFlag, id); }
 };
 class CMemoryException final : public CSimpleException {
@@ -96,7 +93,6 @@ public:
     // An empty exception (cause none, no OS error) as CFile's constructors build it on the stack, or the thrown one
     // (AfxThrowFileException).
     explicit CFileException(int causeValue = none, long osErrorValue = -1) : cause(causeValue), osError(osErrorValue) {}
-    // The name released (a member).
     ~CFileException() override;
     const CRuntimeClass* GetRuntimeClass() const override;
     // Prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has
@@ -115,7 +111,6 @@ public:
     enum Cause { none = 0, generic, readOnly, endOfFile, writeOnly, badIndex, badClass, badSchema };
 
     explicit CArchiveException(int causeValue) : cause(causeValue) {}
-    // The name released (a member).
     ~CArchiveException() override;
     const CRuntimeClass* GetRuntimeClass() const override;
     // As CFileException's, with AFX_IDP_ARCH_NONE + cause.
@@ -151,8 +146,7 @@ namespace mfc {
 // AFX_EXCEPTION_LINK's two library functions (the link is mfc_try.h's ExceptionLink).
 ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);
 void __cdecl TryCleanup();
-// The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop
-// in MFC's thread state). The hook build shares game.exe's; the image has its own.
+// The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop).
 ExceptionLink** __cdecl ExceptionLinkTop();
 
 } // namespace mfc

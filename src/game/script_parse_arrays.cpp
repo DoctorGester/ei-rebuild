@@ -23,7 +23,6 @@ using namespace scriptarray;
 
 // The instantiations' ConstructElements: bindings zeroed; each nested call zeroed with a
 // new SSCCmd; each definition with its arrays' vtables; looks zeroed.
-using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 
 // The element destructors the inlined SetSize runs when the array empties or shrinks (neither
 // happens in Add or SetAtGrow, whose new size is above the old one).
@@ -32,7 +31,7 @@ constexpr RangeFn DestroyDefinitions = DestroyEach<ScriptDefinition, ScriptDefin
 
 const ElementKind kBindings{sizeof(ScriptBinding), ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
 const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};
-const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructAs<DefinitionArray>, DestroyDefinitions, DestroyDefinitions};
+const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructAs<mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>, DestroyDefinitions, DestroyDefinitions};
 const ElementKind kLooks{sizeof(AILook), ConstructAs<mfc::impl::Plain16>, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).

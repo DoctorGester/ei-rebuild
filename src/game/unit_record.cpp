@@ -48,7 +48,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
 
     target->ReleaseAllItems();
     UnitVitals& vitals = target->ServerCompanion()->vitals;
-    UnitStats& s = target->ServerController()->stats;         // controller +0x1E0
+    UnitStats& s = target->ServerController()->stats;
     vitals.hitPoints = static_cast<float>(r.hitPoints);
     vitals.maxHitPoints = static_cast<float>(r.maxHitPoints);
     vitals.mana = static_cast<float>(r.mana);

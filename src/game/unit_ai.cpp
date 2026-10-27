@@ -38,7 +38,6 @@ constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
 
-// Virtual slot 55 (0xDC) of units and objects: non-zero when dead / gone.
 int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
 // The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
@@ -54,13 +53,11 @@ struct GameOstream : libcrt::Ostream {
 constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
 
-// DestructElements of counted references (gamearrays::ObjectRefs').
+// DestructElements of counted references.
 template <typename T>
 void DestructRefs(T** refs, int count) {
     gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
 }
-
-// The game's memmove.
 
 // The mode names of the "new motivation" message (passed by address).
 const char* ModeName(int type) {
@@ -78,7 +75,6 @@ const char* ModeName(int type) {
     default: return nullptr;    // 9 and anything else: the name stays empty
     }
 }
-// "Unit %i new motivation %s with power of %i".
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 } // namespace
 
@@ -118,8 +114,6 @@ AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
     return out;
 }
 EI_REWRITTEN(0x005D8D50, CountedUnits::PopHead);
-
-// --- Think ---------------------------------------------------------------------------------------
 
 void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
@@ -304,7 +298,7 @@ EI_REWRITTEN(0x005D5F20, AIBrain::AggressionEnemy);
 // --- Positions -----------------------------------------------------------------------------------
 
 bool AIBrain::IsNearPath(const Vector3* point, float radius) {
-    float radiusSq = radius * radius;       // FSTP float
+    float radiusSq = radius * radius;
     {
         // Kept on the FPU stack (double holds the 24-bit results exactly).
         double dx = position.x - point->x;
@@ -317,13 +311,13 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
     float pointX = point->x;
     float pointY = point->y;
-    float segX = previousPosition.x - position.x;     // FSTP float [EBP+0xC]
-    float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
+    float segX = previousPosition.x - position.x;
+    float segY = previousPosition.y - position.y;
     float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
                                           LengthSquared2DUnrounded<double>(segY, segX));
     // Clamp to [0, 1] with selects: a NaN t gives 1.
     float clamped = 0.0f >= t ? 0.0f : static_cast<float>(t);
-    float clampedStored = clamped;                     // FLD/FSTP through memory
+    float clampedStored = clamped;                     // stored, then reloaded
     float u = 1.0f >= clampedStored ? static_cast<float>(clampedStored) : 1.0f;
     double ex = position.x - (pointX - u * segX);
     double ey = position.y - (pointY - u * segY);
@@ -367,7 +361,6 @@ void AIBrain::UpdateMove() {
         CUnit* unit = o->unit;
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
         double dx = move.point.x - unit->localPosition_.x;
-        // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             if (target) target.Reset();
             target = nullptr;
@@ -396,7 +389,7 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (move.looks.data->stopFirst) o->StopQueued();
-        float end = static_cast<float>(CurrentWorldTick()) + move.looks.data->wait;     // FILD + FADD, FSTP float
+        float end = static_cast<float>(CurrentWorldTick()) + move.looks.data->wait;
         actionTime = x87::fistp(end);
         int remaining = move.looks.size - 1;
         if (remaining != 0) std::memmove(move.looks.data, move.looks.data + 1, static_cast<unsigned>(remaining) << 4);
@@ -499,7 +492,7 @@ EI_REWRITTEN(0x005D7CE0, AIBrain::UseOn);
 
 void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
-    owner->OrderMove(point, run, unknown, 1000000.0f);    // 0x49742400
+    owner->OrderMove(point, run, unknown, 1000000.0f);
 }
 EI_REWRITTEN(0x005D7AE0, AIBrain::Walk);
 

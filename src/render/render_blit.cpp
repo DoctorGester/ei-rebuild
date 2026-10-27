@@ -77,7 +77,6 @@ void DestroyMultisampledPipelines() {
     g_multisampledSamples = 0;
 }
 
-// The blit's or the depth clear's pipeline for the pass being drawn.
 sg_pipeline PassPipeline(bool clear) {
     int samples = PassSampleCount();
     if (samples <= 1) return clear ? g_clear : g_blit;

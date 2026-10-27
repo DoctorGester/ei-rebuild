@@ -55,7 +55,6 @@ using ItemArray = PartyItemArray;
 using IdArray = mfc::CArray<int>;
 using RecordArray = RecordPtrArray;
 
-// The map database's zone record by name.
 const MapRecord* FindZone(const char* name) {
     return TheMapDatabase()->FindMap(name);
 }
@@ -85,7 +84,6 @@ bool Contains(const IdArray& ids, int id) {
     return false;
 }
 
-// Whether a quest item's description names this zone.
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
@@ -261,9 +259,7 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 
 namespace {
 
-// Patched by Rebirth. The item manager makes an item by name. The item manager makes a spell by name.
 
-// The world server's item manager (CWorld::itemManager_).
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 
 } // namespace

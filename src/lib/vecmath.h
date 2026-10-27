@@ -36,7 +36,6 @@ struct Vector3 {
 
     // A second copy of Construct (scene loader); returns this.
     Vector3* ConstructScene(float x_, float y_, float z_);
-    // The three parts copied from `other`.
     void Assign(const Vector3* other);
 
     // The constructor Vector3(x, y, z): callers use the returned `this`.
@@ -102,8 +101,7 @@ static_assert(sizeof(Matrix4) == 64);
 struct MatrixRows {
     float m[12];
 
-    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no
-    // translation). Returns out.
+    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no translation). Returns out.
     Vector3* Transform(Vector3* out, const Vector3* v) const;
 };
 static_assert(sizeof(MatrixRows) == 48);
@@ -180,8 +178,8 @@ __forceinline double Product(float first, Rest... rest) {
 }
 
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
-// template named Dot would make `&Dot`, the hooked, ambiguous); the named variants and the
-// templates whose names are free are global.
+// template named Dot would make `&Dot`, the registered function's address, ambiguous); the named
+// variants and the templates whose names are free are global.
 namespace vecmath {
 
 // The grouped sum x * x' + y * y' + z * z' of six float operands. Callers pass loaded floats, never
@@ -302,10 +300,9 @@ __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
             (q.y * q.z + q.w * q.x) * 2.0f};
 }
 
-// The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component
-// rounded to float as those store it (V3e). Precise for the same reason: inlined into /fp:fast code,
-// `(z * x + y * w) * 2` was regrouped into (2zx + yw) + yw. By reference: a precise inlined body
-// spills scalar arguments to memory.
+// The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component rounded to float as those store
+// it (V3e). Precise for the same reason: inlined into /fp:fast code, `(z * x + y * w) * 2` was regrouped into
+// (2zx + yw) + yw. By reference: a precise inlined body spills scalar arguments to memory.
 __forceinline Vector3 RotatedAxisX(const Quaternion& q) {
     float xx = q.x * q.x;   // a float temporary
     return {(q.w * q.w - ((q.z * q.z + q.y * q.y) + xx)) + xx * 2.0f, (q.y * q.x + q.w * q.z) * 2.0f,
@@ -327,7 +324,6 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 // removing this pragma changes the code of 39 objects (the sums get rounded through memory).
 #pragma float_control(precise, off, push)
 
-// x * x + y * y.
 template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
 
@@ -340,7 +336,6 @@ __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     return dx * dx + dy * dy;
 }
 
-// x * x2 + y * y2.
 template <typename T>
 __forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 

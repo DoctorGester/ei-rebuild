@@ -48,7 +48,6 @@ constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
 constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
-// Shows a lightning bolt from `from` to `to` (the client glue).
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
 
@@ -87,8 +86,7 @@ void TryLightningStrike(CWorldServer* world) {
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }
 
-// Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy
-// otherwise.
+// Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
 void UpdateRain(CWorldServer* world) {
     if (--WeatherDelay() > 0) return;
     if (world->weather_ == 0) {

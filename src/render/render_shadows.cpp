@@ -1,16 +1,4 @@
-// Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands over the sun,
-// which object each mesh belongs to (BeginCaster) and which objects cast this frame (CastsShadow). Once a
-// frame, before the world draws, PrepareShadows fits an orthographic view from the sun around the visible
-// ground and gives every receiving batch the matrix from its model space to the map; DrawShadowMap draws the
-// casters' meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's alpha),
-// then the map's depth range per cell. Objects the game does not draw whose shadow can reach the visible ground
-// cast too (ShadowCasterMesh, tested against the map's fit made right then). The receivers lit on the GPU take
-// the sun away by their normals' facing, the others are shadowed on their faces turned to the sun; both look
-// the map up a little along their normal. A unit's meshes compare from the unit's nearest depth in the map
-// (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset. The point
-// lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, inside the shadow map's time.
-// Space: the meshes' matrices are clip matrices, the terrain's the same for the landscape's space, in which
-// the map is fitted.
+// Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 

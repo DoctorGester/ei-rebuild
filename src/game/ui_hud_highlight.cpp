@@ -14,12 +14,12 @@ namespace {
 
 constexpr std::uint32_t kColourOn = 0xFF404040;
 constexpr std::uint32_t kColourOff = 0xFF000000;
-constexpr float kButtonScaleOn = 1.15f;   // 3F933333
+constexpr float kButtonScaleOn = 1.15f;
 constexpr float kButtonScaleOff = 1.0f;
-constexpr float kQuickScaleOn = 0.65f;    // 3F266666, the unit's quick items (bottom row)
-constexpr float kQuickScaleOff = 0.55f;   // 3F0CCCCD
+constexpr float kQuickScaleOn = 0.65f;    // the unit's quick items (bottom row)
+constexpr float kQuickScaleOff = 0.55f;
 constexpr float kOwnScaleOn = 1.0f;       // the player's items (top row)
-constexpr float kOwnScaleOff = 0.85f;     // 3F59999A
+constexpr float kOwnScaleOff = 0.85f;
 constexpr int kBottomRow = 4;             // slots 0-3
 
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }

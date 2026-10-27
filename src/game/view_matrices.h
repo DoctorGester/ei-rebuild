@@ -1,8 +1,7 @@
 #pragma once
 
-// View and light matrices of the 3D transform library side and two small
-// helpers. Matrices are row-major 4x4 float arrays (translation in column 3).
-// Names provisional; see docs/notes/script.md ("Leftovers").
+// View and light matrices of the 3D transform library side and two small helpers. Matrices are row-major 4x4
+// float arrays (translation in column 3). See docs/notes/script.md ("Leftovers").
 
 #include "maths.h"
 

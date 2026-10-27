@@ -61,9 +61,8 @@ void CWorld::Destroy() {
 EI_REWRITTEN(0x0055F8E0, CWorld::Destroy);
 
 // ---- The managers' own small virtuals -------------------------------------
-// GetClassName / GetClassId and the destructors of the player manager, the effect manager (the world's
-// +0x48) and the item manager (compiler-made vtables; the item manager's folder name "items" is in
-// world_class_slots.cpp). The deleting destructor adds the delete.
+// GetClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
+// (the item manager's folder name "items" is in world_class_slots.cpp). The deleting destructor adds the delete.
 
 namespace {
 constexpr const char* kPlayerManagerName = "CPlayerManager";

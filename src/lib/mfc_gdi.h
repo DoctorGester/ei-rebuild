@@ -140,8 +140,7 @@ public:
 };
 static_assert(sizeof(CDC) == 0x10);
 
-// CTempDC's create function (its CRuntimeClass): a CTempDC from its fixed allocator. Null
-// when out of memory.
+// CTempDC's create function (its CRuntimeClass): a CTempDC from its fixed allocator. Null when out of memory.
 void* __stdcall CreateTempDC();
 
 // The fixed allocators of the temporary DCs and GDI objects, 64 to a block, built and destroyed by game.exe's

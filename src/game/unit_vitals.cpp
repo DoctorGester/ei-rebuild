@@ -32,7 +32,7 @@ constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
 constexpr float kTen = 10.0f;
 constexpr float kRevived = std::bit_cast<float>(0x3A83126Fu);       // 0.001
-constexpr double kMinHeal = 0.001;                                  // 0.001 (a double)
+constexpr double kMinHeal = 0.001;                                  // a double
 constexpr std::uint32_t kNoCapacity = 0x49742400u;                  // 1000000.0f
 constexpr std::uint32_t kKeyedUnknown044 = 0xC0000000u;             // -2.0f
 constexpr float kUnkeyedRateBase = 15.0f;                           // 0x41700000
@@ -58,8 +58,7 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// base ^ (ln(experience / divisor) / ln(logBase)), computed as FYL2X with FLDLN2 for both logarithms and the
-// CRT's _CIpow (ST1 ^ ST0). Returned unrounded.
+// base ^ (ln(experience / divisor) / ln(logBase)) with the CRT's _CIpow. Unrounded.
 double ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
     return libcrt::CiPow(*base, x87::flog(static_cast<double>(*experience) / *divisor) / x87::flog(*logBase));
 }
@@ -70,8 +69,7 @@ double IntelligenceFactor(const float* intelligence) {
                          static_cast<double>(*intelligence) - 25.0f /*0073E124*/);
 }
 
-// The level value of skill `skill` (0 without a level or a record): the record's +0x34, loaded like FILD of
-// a zero-extended qword (exact).
+// The level value of skill `skill` (0 without a level or a record), unsigned and exact.
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
@@ -82,7 +80,7 @@ double LevelValueOf(const UnitStats* stats, int skill) {
 
 double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
-// Branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
+// Branch-free selects as the original's: `ifLess` when a < b or unordered.
 float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }
 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
@@ -303,7 +301,7 @@ EI_REWRITTEN(0x00523F50, UnitStats::ManaCurve);
 
 double UnitStats::RateValue() {
     float base = stat18 * kPointTwo + kTen;
-    float level = static_cast<float>(LevelValueOf(this, kSkillRate));   // FILD, FSTP float
+    float level = static_cast<float>(LevelValueOf(this, kSkillRate));
     float arms = ArmsFactor(1);
     return (level * kPercentB + kOne) * arms * base;
 }

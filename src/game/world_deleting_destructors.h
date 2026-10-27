@@ -7,12 +7,7 @@
 #include <cstdint>
 
 class CEngineObject;
-class CFigureManager;
-struct AICallRecord;
-struct RefPtr;
-struct ScriptPointLight;
 namespace mapspec {
-struct Behaviour;
 }
 
 // The deleting destructors of a holder of an engine object, released through Release

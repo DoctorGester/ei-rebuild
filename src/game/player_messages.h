@@ -20,12 +20,9 @@
 
 class CPlayer;
 class CItem;
-class CParty;
-class CPlayerClient;
 class CUnit;
 class CMapObject;
 class CEffect;
-struct WaterTweens;
 struct PathOrder;
 namespace netlink {
 class NetLink;

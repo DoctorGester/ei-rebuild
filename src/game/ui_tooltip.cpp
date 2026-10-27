@@ -1,7 +1,6 @@
 // A region's tooltip (CUiTooltip): its constructor, which splits the text into lines and measures them, the
 // destructor body, SetText and the drawing of the lines; and its showing (Rebirth-patched: its WideScreen is
-// reproduced behind the flag, and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
-// docs/notes/items_spells.md.
+// reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "options.h"
 #include "ui_widescreen.h"
@@ -51,7 +50,6 @@ float ShowDelay() { return options::TheOptions()->toolTipTime_; }
 float AppearTime() { return 0.0f /*00742F2C*/; }
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
 SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -101,7 +99,7 @@ EI_REWRITTEN_SPECIAL(0x0065E320, CUiTooltip::CUiTooltip);
 CUiTooltip::~CUiTooltip() { lines_.Destruct(); }
 EI_REWRITTEN_SPECIAL(0x0065E4F0, CUiTooltip::~CUiTooltip);
 EI_REWRITTEN_SPECIAL(0x0065E4D0, CUiTooltip::~CUiTooltip);   // the deleting destructor
-EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's (SUB ECX,0x94; JMP)
+EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;

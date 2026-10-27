@@ -1,10 +1,8 @@
-// The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla): the
-// servers' rows, the new game's controls and the selected entry's details, drawn on the screen's
-// first surface. Rebirth patches it twice and both are reproduced behind their flags: WideScreen (the
-// line under the titles scaled without the margin) and ExtendedServerName (wider columns, the
-// servers' names and the new game's row drawn shortened with an ellipsis, the selected server's name
-// wrapped); the screen's other members call it through its address. See ui_screens.h and
-// docs/notes/ui.md, section 5.
+// The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla): the servers' rows, the new
+// game's controls and the selected entry's details, drawn on the screen's first surface. Rebirth patches it
+// twice and both are reproduced behind their flags: WideScreen (the line under the titles scaled without the
+// margin) and ExtendedServerName (wider columns, the servers' names and the new game's row drawn shortened
+// with an ellipsis, the selected server's name wrapped). See ui_screens.h and docs/notes/ui.md, section 5.
 #include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"

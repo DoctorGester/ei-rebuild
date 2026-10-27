@@ -1,6 +1,5 @@
-// What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims
-// the perception memory's HearCall / AddClaim and the AI events'
-// Noise. See unit_ai.h and docs/notes/unit_ai.md.
+// What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims, the perception memory's HearCall /
+// AddClaim and the AI events' Noise. See unit_ai.h and docs/notes/unit_ai.md.
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -25,7 +24,6 @@
 #include <string>
 
 namespace {
-// The CPtrList the sector map fills (blocks of 10).
 constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
@@ -38,7 +36,7 @@ void RemoveCall(AIHeardCalls* calls, int index) {
     --calls->size;
 }
 
-// The inlined Add: SetSize through its address, then the record assigned (the text shared).
+// The inlined Add: SetSize, then the record assigned (the text shared).
 void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const std::string& text) {
     int index = calls->size;
     calls->SetSize(index + 1, -1);

@@ -1,5 +1,5 @@
-// Resetting creature statistics and packing them into the rounded records the unit carries
-// (UnitParams at CUnit + 0x330, UnitVitalsPacked at CUnit + 0x17C). See unit.h.
+// Resetting creature statistics and packing them into the rounded records the unit carries (UnitParams and
+// UnitVitalsPacked). See unit.h.
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -15,11 +15,11 @@ constexpr float kByteMax = 255.0f;
 constexpr float kTwo = 2.0f;
 constexpr float kSpeedScale = 25.5f;
 constexpr float kOne = 1.0f;
-constexpr int kNoNaturalWeapon = 8;              // UnitStats +0xAC after Reset
+constexpr int kNoNaturalWeapon = 8;              // after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
 
-// FISTP of a float first stored (FSTP float, FLD, FISTP).
+// Rounded to the nearest integer after a store to float.
 int RoundStored(float value) { return x87::fistp(value); }
 
 // round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).

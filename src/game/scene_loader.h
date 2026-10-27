@@ -26,9 +26,6 @@
 #include <cstdint>
 
 class CAnimationNode;
-class CFigureMesh;
-class CPlainFigureMesh;
-class CObject3D;
 
 namespace scene {
 struct TextureNameRecord;

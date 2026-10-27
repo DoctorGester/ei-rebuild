@@ -1,12 +1,9 @@
 #pragma once
 
-// MFC 4.2's worker threads as the game starts them (mfc_thread.cpp): AfxBeginThread with
-// a thread procedure (the sound stream, the MIDI player and the cursor) and AfxEndThread, which the
-// procedures call at their end. The CWinThread constructor and its CommonConstruct are registered in
-// both builds; AfxBeginThread and AfxEndThread in the image only (the hook build keeps game.exe's
-// thread state, which they keep the current thread in). The image's threads come from the host CRT's
-// _beginthreadex and need no MFC thread state: the procedures never pump messages or open dialogs, so
-// AfxInitThread's message filter hook and AfxTermThread's temporary maps are left out.
+// MFC 4.2's worker threads as the game starts them: AfxBeginThread with a thread procedure (the sound stream,
+// the MIDI player, the cursor) and AfxEndThread. The threads come from the host CRT's _beginthreadex and need
+// no MFC thread state: the procedures never pump messages or open dialogs, so AfxInitThread's message filter
+// hook and AfxTermThread's temporary maps are left out.
 
 #include "mfc_window.h"
 #include "game/game_data.h"

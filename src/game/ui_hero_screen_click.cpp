@@ -6,7 +6,7 @@
 #include "ui_camp.h"
 #include "acks_db.h"
 #include "unit_create.h"
-#include "unit_db.h"   // UnitPrototypeRecord
+#include "unit_db.h"
 #include "item_db_text.h"
 
 #include "ei/hook.h"
@@ -66,8 +66,6 @@ void BackToMainMenu(CInterface3D* ui) {
     ui->SetPendingValue(0);
 }
 
-// The heroes' map transfer (sent after a rename).
-// The multiplayer heroes' folder.
 const char* HeroesFolder() { return TheSavedParties().folder_.c_str(); }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
@@ -556,7 +554,7 @@ void CMpHeroScreen::DeleteHero() {
     gameapi::DeleteFileA(path.c_str());
     MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
     for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
-    (--MpHeroesEnd())->Destruct();   // destructed in place
+    (--MpHeroesEnd())->Destruct();
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     RefreshHeroScroll();
@@ -654,8 +652,7 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        static_cast<libcontainers::HeroRecordAbi*>(&TheSavedParties().entries_)
-            ->InsertOverflow(MpHeroesEnd(), blank.record, 1);
+        TheSavedParties().entries_.InsertOverflow<libcontainers::HeroRecordElement>(MpHeroesEnd(), blank.record, 1);
         blank.record.Destruct();
     } else {
         if (MpHeroesEnd()) MpHeroesEnd()->Construct();

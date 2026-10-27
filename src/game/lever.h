@@ -17,8 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CStream;
-
 // The spots a use order may go to.
 using LeverSpots = UseSpotArray;
 

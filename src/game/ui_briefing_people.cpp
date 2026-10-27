@@ -136,8 +136,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
-            static_cast<libcontainers::SpeakerAbi*>(reinterpret_cast<libcontainers::Speakers*>(&speakers_))
-                ->InsertOverflow(speakersEnd_, added, 1);
+            reinterpret_cast<stlp::vector<BriefingSpeaker>*>(&speakers_)
+                ->InsertOverflow<libcontainers::SpeakerElement>(speakersEnd_, added, 1);
         }
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;

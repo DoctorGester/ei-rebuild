@@ -1,14 +1,7 @@
 #pragma once
 
-// MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in
-// .rdata) and the 5 serializable ones (CByteArray, CDWordArray, CStringArray, CWordArray in mfc_coll.cpp, CDib in
-// game/dib.cpp) in .data, where the static initialisers link them into the module state's class list
-// (AfxClassInit writes m_pNextClass). Each record names its base's record and its create function (ours,
-// registered at the game's address: the pointers are compared by tools/named_data.py, "Pointer elements"). The
-// hierarchy is one piece: a record's base is a named range, and game.exe's data holds no pointer into a named
-// range, so CObject's record (the root) could be named only once every record that points at it was.
-// Only the exceptions', files' and GDI temporaries' records are read (GetRuntimeClass, the handle maps); the rest
-// are what their base pointers and create functions reach.
+// MFC 4.2's CRuntimeClass records of the game's copy, as named data. See docs/notes/standalone.md, "The
+// image's source files".
 
 #include "mfc_gdi.h"
 #include "mfc_handle_map.h"

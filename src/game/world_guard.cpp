@@ -1,6 +1,5 @@
-// The player data guard: while the game window is not active the players'
-// gold, party records and unit statistics are XORed with a random key, and XORed back when it is.
-// See world.h and docs/notes/world.md.
+// The player data guard: while the game window is not active the players' gold, party records and unit
+// statistics are XORed with a random key, and XORed back when it is. See world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "combat.h"
@@ -19,7 +18,6 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-// The party outside a game (a CParty like CPlayer + 0x70): its records, their count and its gold.
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 int GlobalRecordCount() { return GlobalParty()->members_.size; }
 int& GlobalGold() { return GlobalParty()->money_; }

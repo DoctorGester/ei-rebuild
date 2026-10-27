@@ -1,8 +1,7 @@
-// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer
-// and CWorldClient. Only their static initialisers (defined here on the names) call them.
-// The members with C++ constructors (the strings, the zone header) are the compiler's; the others'
-// constructors are written out in the original's order (the inlined ones) or called (the out-of-line
-// ones).
+// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer and CWorldClient. Only
+// their static initialisers (defined here on the names) call them. The members with C++ constructors (the
+// strings, the zone header) are the compiler's; the others' constructors are written out in the original's
+// order (the inlined ones) or called (the out-of-line ones).
 #include "world.h"
 
 #include "ai_map.h"
@@ -31,8 +30,7 @@ constexpr std::uint32_t kClientFlags = 0x3DC0;
 constexpr std::uint32_t kClientDebugFlags = 0xB;
 constexpr int kClientConstant228 = 10;
 
-// CList's constructor as inlined: the instantiation's vtable, empty, no
-// blocks.
+// CList's constructor as inlined: the instantiation's vtable, empty, no blocks.
 template <typename T>
 void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.vtable = vtable;

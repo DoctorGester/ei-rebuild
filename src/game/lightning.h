@@ -16,8 +16,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTexture;
-
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // One polyline point (16 bytes: the fourth float is never written here).

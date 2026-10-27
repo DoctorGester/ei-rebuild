@@ -251,8 +251,6 @@ MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last
 }
 EI_REWRITTEN(0x0061EA90, MpAddressList::Erase);
 
-// --- Update --------------------------------------------------------------------------------------
-
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
     bool asking = client->joinState_ == net::ClientBase::kAsking;
@@ -304,8 +302,6 @@ void CMpConnectScreen::Update() {
     if (renamed) DrawListVanilla();
 }
 EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
-
-// --- a box answered ------------------------------------------------------------------------------
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
@@ -437,8 +433,6 @@ EI_REWRITTEN(0x0061C700, CMpConnectScreen::OnLButtonDown);
 EI_REWRITTEN(0x0061CA30, CMpConnectScreen::OnLButtonDouble);
 EI_REWRITTEN(0x0061CAD0, CMpConnectScreen::OnKeyDown);
 
-// --- the selection kept in the list and in view --------------------------------------------------
-
 void CMpConnectScreen::SelectAndScroll() {
     if (selected_ < 0) selected_ = 0;
     if (static_cast<unsigned>(selected_) >= entries_.size()) selected_ = static_cast<int>(entries_.size()) - 1;
@@ -451,8 +445,6 @@ void CMpConnectScreen::SelectAndScroll() {
     DrawListVanilla();
 }
 EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
-
-// --- connect or host -----------------------------------------------------------------------------
 
 void CMpConnectScreen::Connect() {
     interface_->PlaySound(OkSound(), 0);
@@ -483,8 +475,6 @@ void CMpConnectScreen::Connect() {
 }
 EI_REWRITTEN(0x0061CCE0, CMpConnectScreen::Connect);
 
-// --- add or forget an address --------------------------------------------------------------------
-
 void CMpConnectScreen::EditAddress() {
     int row = selected_;
     if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
@@ -503,8 +493,6 @@ void CMpConnectScreen::EditAddress() {
 }
 EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
-// --- ask the master server -----------------------------------------------------------------------
-
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
     net::NetAddress master{};
@@ -520,8 +508,6 @@ void CMpConnectScreen::MasterRequest() {
 }
 EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
-// --- config\addrbook.ini -------------------------------------------------------------------------
-
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
     netlink::FileStream file;
@@ -536,8 +522,6 @@ void CMpConnectScreen::SaveAddressBook() {
     file.Close();
 }
 EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
-
-// --- the list from the client's servers ----------------------------------------------------------
 
 void CMpConnectScreen::RebuildList() {
     entries_.Erase(entries_.begin(), entries_.end());
@@ -606,8 +590,6 @@ void CMpConnectScreen::RebuildList() {
 }
 EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
-// --- Create (the vanilla body) -------------------------------------------------------------------
-
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
@@ -665,7 +647,7 @@ void CMpConnectScreen::CreateScreen() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    CTextManager* texts = GameClientTexts();   // the client's text table
+    CTextManager* texts = GameClientTexts();
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);
@@ -713,8 +695,8 @@ void CMpConnectScreen::CreateScreen() {
     {
         nameEdit_ = new CUiEditField(interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
         AddChild(nameEdit_);
-        // ExtendedServerName: the classes 15, font 0, at most 50
-        // characters (the name taken from the hero below still stops at 10).
+        // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
+        // below still stops at 10).
         if (extended)
             nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, TextColour(), kCaretColour);
         else

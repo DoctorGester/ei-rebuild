@@ -1,9 +1,8 @@
-// The weather's draw (thiscall on the weather object; called by the world view's
-// effects pass with the renderer). Mode (0 none, 1 rain, 2 snow): the weather is
-// stepped (with the world's tick), its texture bound on stage 0, and the rain
-// or snow drawn. Those two build their particles' pre-transformed vertices (vertices,
-// indices) and draw them with the device directly; the new renderer (src/render) gets the same
-// triangles after they return. See docs/notes/effects.md and docs/notes/renderer.md.
+// The weather's draw (on the weather object; called by the world view's effects pass with the renderer). Mode
+// (0 none, 1 rain, 2 snow): the weather is stepped (with the world's tick), its texture bound on stage 0, and
+// the rain or snow drawn. Those two build their particles' pre-transformed vertices (vertices, indices) and
+// draw them with the device directly; the new renderer (src/render) gets the same triangles after they
+// return. See docs/notes/effects.md and docs/notes/renderer.md.
 #include "effects.h"   // CRainSnow
 #include "texture.h"
 #include "model.h"     // CSceneRenderer

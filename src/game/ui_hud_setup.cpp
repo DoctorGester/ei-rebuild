@@ -43,11 +43,10 @@ constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
 float ArcAngle(int turn, float step) { return static_cast<float>(static_cast<float>(static_cast<float>(turn) * Pi()) * step); }
-// The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only
-// add, subtract, multiply, divide and square root), so they stay unrounded and it is their product
-// with the radius that the FPU rounds to float at its 24-bit precision. That is what makes
-// sin(pi / 2) x radius the whole radius below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded
-// to float first gives 16.999998 and 16: X33).
+// The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only add, subtract,
+// multiply, divide and square root), so they stay unrounded and it is their product with the radius that the
+// FPU rounds to float at its 24-bit precision. That is what makes sin(pi / 2) x radius the whole radius
+// below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded to float first gives 16.999998 and 16).
 double ArcCos(float angle) { return x87::fcos(static_cast<double>(angle)); }
 double ArcSin(float angle) { return x87::fsin(static_cast<double>(angle)); }
 

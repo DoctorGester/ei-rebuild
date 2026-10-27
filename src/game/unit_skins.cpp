@@ -1,9 +1,8 @@
-// The zone's unit skins and figures (thiscall on the zone's client object, called by the zone load): for
-// every dressed unit (first list, 0x24-byte records) two composite textures are built through the texture
-// cache: the body skin ("<model>skin_NN.mmp" and the armour pieces' "<model><item>.mmp"),
-// registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" / "prot<n>s"); for every
-// other unit (second list, 0x3C-byte records) the list of its textures goes to the figure maker.
-// Names provisional; see docs/notes/world.md.
+// The zone's unit skins and figures (the zone load): for every dressed unit (first list) two composite
+// textures are built through the texture cache: the body skin ("<model>skin_NN.mmp" and the armour pieces'
+// "<model><item>.mmp"), registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" /
+// "prot<n>s"); for every other unit (second list) the list of its textures goes to the figure maker. See
+// docs/notes/world.md.
 #include "console.h"
 #include "game_strings.h"
 #include "item.h"
@@ -35,8 +34,7 @@ namespace {
 
 // --- Tables --------------------------------------------------------------------------------------
 
-// The unit prototypes (+8 the model) and models (+0xE8 the texture name prefix), the armours (+0xB8
-// the layer). An index past the end gives null.
+// The unit prototypes, models and armours by index; an index past the end gives null.
 const UnitPrototypeRecord* UnitPrototype(std::uint32_t index) {
     return unitdb::PrototypeRecord(index);
 }
@@ -60,16 +58,13 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// An item's texture name (an armour's: out, material index, armour index; a weapon's: out, weapon record, material record);
-// the 12-byte record list of a unit's textures and its allocator; the texture set's byte array; the texture cache: build
-// a composite texture (CTextureManager::Compose) and register it; the unit's texture names from its prototype; the
-// vector<string> members the texture lists use.
+// The storage of `a1` strings back to the pool.
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
 
 // --- The dressed units ---------------------------------------------------------------------------
 
-// What the texture cache composes a skin from: SkinRequest (unit_client_models.h), the texture
-// records as its layer bytes, the texture file names, the composite's size as its flags.
+// What the texture cache composes a skin from: the texture records as its layer bytes, the texture file
+// names, the composite's size as its flags.
 using SkinComposition = SkinRequest;
 
 // The vector UnitTextureRecords fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
@@ -84,7 +79,6 @@ using RecordList = stlp::vector<TextureRecord>;
 
 } // namespace
 
-// UnitTextureRecords (`body`, the dressed unit record; returns the record list). Defined below.
 void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
 
 namespace {
@@ -135,8 +129,7 @@ void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::u
     if (id != kNone) AddItem(set, model, id);
 }
 
-// The extra weapon picked by the record's index byte in its list: weapon and
-// material records named together.
+// The extra weapon picked by the record's index byte in its list: weapon and material records named together.
 void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedUnitRecord* record) {
     const std::uint32_t* list = record->extraWeapons.Start();
     int count = static_cast<int>(record->extraWeapons.Finish() - list);
@@ -283,8 +276,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
 } // namespace
 
-// `others` and `dressed` are vectors of unit records (0x3C / 0x24 bytes); the dressed units (the second
-// argument) come first.
+// `others` and `dressed` are vectors of unit records; the dressed units (the second argument) come first.
 void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed) {
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
@@ -298,7 +290,7 @@ EI_REWRITTEN(0x00568800, CWorldClient::BuildUnitSkins);
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
 void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
-    list->clear();   // erase(begin, end)
+    list->clear();
     auto& items = const_cast<IdList&>(record->items);
     if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;
     const TextureRecord empty = {0, kNone, kNone};
