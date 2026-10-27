@@ -3353,6 +3353,13 @@ depends = ["C14a"]
 note = "User 2026-10-27: seemingly unnecessary aligned data structures. lib::AlignedArray (src/lib/containers.h) is the engine's 32-byte-aligned array with CArray growth and memcpy relocation, new slots uninitialised; replace with std::vector (or a small aligned vector only where the renderer or SIMD really needs the alignment), checking where code depends on garbage-initialised new slots, growth steps or memcpy moves of non-trivial types. Also review the 42 alignas / __declspec(align) and 22 #pragma pack uses: keep only file, save and packet layouts. Checks: verify/release, image suite goldens the same."
 
 [[ticket]]
+id = "C33"
+title = "Forward declarations: drop the ones nothing needs"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-27. 637 forward declarations (class/struct X;) in 124 files under src. Drop each one whose type is already defined by an included header, is never named in the file, or is only named where the full type is needed anyway; keep the ones that break an include cycle or keep a heavy header out. Script the candidates (tools/, grep + compile), check each removal with build.cmd verify and release; no game runs (declarations only). Small green commits."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
