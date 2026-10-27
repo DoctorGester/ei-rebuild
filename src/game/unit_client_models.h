@@ -108,12 +108,7 @@ struct AttackParams;
 
 class CUnitClientSpecific : public CUnitController {
 public:
-    // The list +0x58 (block size 0x80), an
-    // empty speech queue (its header node allocated), no face texture, fully faded in.
     CUnitClientSpecific();
-    // The three particle sources stop and are released, the face
-    // texture released (no blink), the speech queue's nodes and header freed, the MFC list +0x58
-    // emptied.
     ~CUnitClientSpecific() override;
 
     // No sources, times, animation or motion order (PathOrder::Reset

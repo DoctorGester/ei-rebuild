@@ -14,9 +14,7 @@
 // The picked units' input side (one of screen 7's extra inputs). The other virtuals are the base
 // input side's.
 struct UnitPickInput final : UiInputSide {
-    // The interface, an empty id list.
     explicit UnitPickInput(CInterface3D* ui);
-    // The deleting destructor. The list freed.
     ~UnitPickInput() override;
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
     int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
@@ -43,7 +41,6 @@ struct UnitPickInput final : UiInputSide {
 // close are the container's.
 class CViewScreen : public CUiContainer {
 public:
-    // Built inline by CInterface3D::CreateScreen (screen 7): only the container.
     explicit CViewScreen(CInterface3D* ui) : CUiContainer(ui) {}
     // The screen's Create. Three extra inputs: an inert one, UnitPickInput, the battle camera's keys; the camera
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
@@ -52,7 +49,6 @@ public:
     BOOL DrawView(int pass);
     // The camera free again.
     void OnClose();
-    // The virtuals of its own (its input side is the container's).
     BOOL Draw(int pass) override { return DrawView(pass); }
     void CloseScreen() override { OnClose(); }
 

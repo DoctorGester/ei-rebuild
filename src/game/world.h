@@ -917,7 +917,7 @@ struct ClientArrayManager : CBaseManager {
     mfc::CList<CEngineObject*> list;      // counted
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
-// vis_fog_manager.cpp: the manager's Clear (its object and every listed one released, the list
+// The manager's Clear (its object and every listed one released, the list
 // emptied); a new fog object, counted, at the list end.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
@@ -1560,7 +1560,7 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
 int __stdcall LoadMission(CStream* file);
 
-// world_savefile.cpp. SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte
+// SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte
 // and the LZ-compressed data (or, when decompressing it does not give the data back, 0 and the raw
 // data). SaveFileRead (memory stream, magic) reads one back (versions up to
 // kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
@@ -1570,7 +1570,7 @@ inline constexpr int kSaveVersion = /*00790260*/ 116;
 inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
-// world_briefing.cpp. The mercenary who speaks `briefing` (the second word of the first "#show" line of
+// The mercenary who speaks `briefing` (the second word of the first "#show" line of
 // section "briefing <name>" that is not "Hero"), or "", constructed into `out`. The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
@@ -1636,7 +1636,7 @@ inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_;
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.
 void __stdcall ShowBolt(Vector3 from, Vector3 to);
 
-// world_guard.cpp. With `plain` 0 the players' gold, party records and, on the server,
+// With `plain` 0 the players' gold, party records and, on the server,
 // their units' controller statistics are XORed with a new random key, with 1 they are
 // XORed back; also the party records outside a game. Nothing when the state is already `plain`. One
 // helper does one player list.

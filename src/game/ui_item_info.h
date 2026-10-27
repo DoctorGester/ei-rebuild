@@ -35,7 +35,7 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
 // holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
 // or white when there is no such image; null when it cannot be made or locked.
 CTexture* __fastcall ItemFigureTexture(const char* name);
-// ui_item_model.cpp. The model manager's object `name`, or a 100 x 100
+// The model manager's object `name`, or a 100 x 100
 // interface sprite standing in for it; counted (one reference for the caller).
 CUiMesh* __fastcall ItemModel(const char* name);
 
@@ -82,7 +82,7 @@ struct ItemObjectCache {
     std::uint32_t limit;
 };
 static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) == 0x24);
-// ui_hero_screen.cpp. Every cached object released, in key order (the hero screen's model and texture caches).
+// Every cached object released, in key order (the hero screen's model and texture caches).
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 
 // Release the least recently used entries of the
@@ -101,10 +101,10 @@ public:
     }
     // The counted root's body (core_streams.cpp).
     ~ItemTurn() override;
-    // ui_small_members.cpp. Nothing for a C++ object (the original writes the object's tables again, a
+    // Nothing for a C++ object (the original writes the object's tables again, a
     // construction in place). 0.
     int OnShutdown() override;
-    // ui_item_screen.cpp. A new state with the same angle, speed, flag and glow and no
+    // A new state with the same angle, speed, flag and glow and no
     // references (null when the allocation fails).
     ItemTurn* Clone() override;
 
@@ -139,8 +139,6 @@ public:
 // caches of item models (by the item's picture name) and figure textures (by its figure name).
 class CItemScreen : public CUiContainer {
 public:
-    // ui_item_screen.cpp: both caches'
-    // objects released and their maps destroyed, then the container's.
     ~CItemScreen() override;
 
     // The item screens' slots over the container's (the plain item screen,
@@ -181,14 +179,14 @@ public:
     // screen's texture 0, built), textures "modifiers2" and "campslots", the display's settings, and the
     // caches' limits (30, or 20 with an option byte set) applied (ui_item_screen.cpp).
     void CreateBase();
-    // ui_item_screen.cpp. Moves `item` into `to` (CParty::AddItem with the stack kept when `merge` and
+    // Moves `item` into `to` (CParty::AddItem with the stack kept when `merge` and
     // Shift are down, merging with `merge`) and out of `from` (RemoveItem, all of the stack likewise);
     // returns what `to` now holds. With `limit` > 0 and at least that many items in `to`, only when
     // `item` is the same (IsSameAs) as one of its first `limit` items (else nothing, null). The
     // unconditional move with `turning` gives the moved item a turning state (made if missing) with its
     // flag set. Flags are bytes.
     CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning);
-    // ui_item_screen.cpp. Moves every item of `from` into `to` (whole stacks,
+    // Moves every item of `from` into `to` (whole stacks,
     // merged); returns the last item `to` took, or null when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
     CItemInfoPanel* descPanel_;
@@ -198,8 +196,6 @@ public:
     ItemObjectCache textures_;
 
 protected:
-    // Each screen's constructor starts with the container and no item under the mouse; the caches
-    // are its own to set up.
     explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui), hoveredItem_(nullptr) {}
 };
 static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
@@ -227,11 +223,7 @@ static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
 class CItemInfoPanel : public CUiItemPanel {
 public:
-    // The description panel of `owner` (ui_item_info.cpp): its item
-    // list and text arrays constructed.
     CItemInfoPanel(CInterface3D* ui, CItemScreen* owner);
-    // ui_window_delete.cpp: the skill and item text arrays, the item
-    // list, then the window's.
     ~CItemInfoPanel() override;
     void Deactivate() override { DescribeItem(); }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
@@ -267,7 +259,7 @@ public:
     // item list.
     void Build(int x, int y);
 
-    // ui_small_members.cpp. The described item: the
+    // The described item: the
     // list's first entry, or null.
     CItem* FirstItem() const;
     // The described item: the list's first entry, or null.

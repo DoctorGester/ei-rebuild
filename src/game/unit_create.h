@@ -71,9 +71,7 @@ int __stdcall PrototypeObjectClass(const char* name);
 // compiler makes its vtable). +0xAC is its map object context
 // (the world).
 struct CMapObjectManager : CResourceManager {
-    // CResourceManager's constructor.
     CMapObjectManager();
-    // CResourceManager's destructor.
     ~CMapObjectManager() override;
     int Create() override;                                  // CreateManager
     const char* GetClassName() override;

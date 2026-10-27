@@ -152,9 +152,7 @@ static_assert(offsetof(CUiItemStrip, count_) == 0x188);
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
 class CForwardingStrip : public CUiItemStrip {
 public:
-    // The strip of `owner`: its visible list.
     CForwardingStrip(CInterface3D* ui, CItemScreen* owner);
-    // The visible list's storage, then the window's.
     ~CForwardingStrip() override;
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
@@ -531,7 +529,7 @@ static_assert(sizeof(CMpConnectScreen) == 0x260);
 // sprite. Its result is kBoxMaster (| 2 when done).
 class CMasterRequestBox : public CMessageBox {
 public:
-    // ui_connect_screen.cpp: the box (flags 2: one cancel button; format 1), the link connecting to `address`, the
+    // The box (flags 2: one cancel button; format 1), the link connecting to `address`, the
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
     CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                       const net::NetAddress* address, std::uint32_t extra);
@@ -558,7 +556,6 @@ inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_
 // (message box), 4 options.
 class CEscMenu : public CUiContainer {
 public:
-    // Built inline by the screens' Escape keys.
     explicit CEscMenu(CInterface3D* ui) : CUiContainer(ui) {}
     void CloseScreen() override { OnClose(); }
     void MessageResult(int result) override { OnMessageResult(result); }
@@ -634,7 +631,6 @@ static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
 class CCreditsScreen : public CUiContainer {
 public:
-    // The container, the archive, the lines list, the name, the player, fromGame_.
     CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name);
     ~CCreditsScreen() override;
     void CloseScreen() override { OnClose(); }
@@ -651,13 +647,13 @@ public:
     // text surface and the header surface, both frozen; the display's flag kept in savedDisplay_ and cleared; the
     // player starts "Movies\<name>.bik".
     void CreateScreen() override;
-    // ui_credits.cpp (draw, returns 1). Once the game time passes nextLineAt_ and the text has stopped: both
+    // Once the game time passes nextLineAt_ and the text has stopped: both
     // surfaces frozen, then the next line: its text file loaded and started (a "#scroll" line scrolls at its
     // speed under its header, another stays for its speed in seconds), or past the last line finished_. The movie
     // steps (stretched unless the movie flag is 1); when it has ended after the last line: "<name>fout" played,
     // the screen flag cleared and the titles closed as Close() does; otherwise the container's draw.
     BOOL Draw(int pass) override;
-    // ui_credits.cpp. The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the
+    // The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the
     // display's flag restored, the screen flag set and the cursor shown.
     void OnClose();
     // A window above closed: the movie player is closed.
@@ -743,7 +739,6 @@ class CParty;
 class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
-    // The item screen, the two item caches (limit 50), no names.
     explicit CExchangeScreen(CInterface3D* ui);
     ~CExchangeScreen() override;
     void CloseScreen() override { Close(); }
@@ -758,14 +753,14 @@ public:
     // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
     // "CExchangeScreen::CreateScreen".
     void CreateScreen() override;
-    // ui_exchange.cpp (draw, returns 1). The item (or help topic) under the mouse from the strip, else the grid,
+    // The item (or help topic) under the mouse from the strip, else the grid,
     // goes to the description panel; the four surfaces get "xch_current_money" with the local party's money and
     // "xch_accept", "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its
     // money and "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded
     // by our offer's acceptance and the third button by the partner's; then the children.
     BOOL Draw(int pass) override;
     void OnKeyDown(int key, int repeat, int flags);
-    // ui_exchange.cpp (CInterface3D::OnExchangeDone). The exchange went through: the local party's items are
+    // The exchange went through: the local party's items are
     // released, every item of `partyC`, then of `partyB`, returned into it (ReturnAll), its money set to partyB's
     // - partyA's + partyC's, and the client goes back to the world.
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
@@ -784,7 +779,7 @@ public:
     // the cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
     void OnLButtonDown(int buttons, int x, int y);
-    // ui_exchange.cpp (what the strip and the grid call with their mode). Refused by the accept virtual: the
+    // Refused by the accept virtual: the
     // cancel sound. Mode 1 (the strip): the put_on sound, `item` moves from the local party into our offer
     // (MoveItem with limit 8, merging) and the offer is published. Mode 5 (the grid), only for an item of our
     // offer: the put_off sound, the item moves back to the local party, the strip scrolls to what the party now

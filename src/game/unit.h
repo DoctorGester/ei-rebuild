@@ -63,7 +63,7 @@ struct UnitParams {
     double Period();
     // Zeroes the block; the slot types become 4 and +0x20 7.
     int Reset();
-    // (unit_params_skill.cpp; the client's GetAttackParams uses it for party
+    // The client's GetAttackParams uses it for party
     // units). UnitStats::WeaponSkillBonus on the packed bytes, with the weapon's prototype record
     // `weapon` (or null) given: types 0-4 skill 0 + the weapon's +0x7B, 5-6 skill 1 + +0x7C, each
     // plus (the stat named by the skill's first letter - 25) and the level value of skill `type`;
@@ -212,11 +212,7 @@ static_assert(offsetof(CUnitController, unit) == 0x1C);
 // scene_loader.h) derives from it and shares these bodies.
 class CUnit : public CMapObject {
 public:
-    // Builds the map object, the script name, the motion and the carried array, no controller or player, then Reset.
-    // The factory constructs in place (Construct); so does the fake unit's constructor.
     CUnit();
-    // The release, the map object's Destroy, Reset, the carried and motion arrays freed; then the script name and the
-    // map object's destructor.
     ~CUnit() override;
 
     CItem* CarriedItem(int index) const;

@@ -24,7 +24,7 @@ class ChunkArchive;
 using CStringVector = stlp::vector<mfc::CString>;
 static_assert(sizeof(CStringVector) == 0xC);
 
-// unit_db.cpp. A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC and quest
+// A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC and quest
 // briefing serialisers inline it: loading empties the vector (the other serialiser erases the range
 // instead, with the same result) and resizes it to the count of fields 1; each string is the next
 // occurrence of field 1 (the current chunk's occurrence, set before each).
@@ -220,7 +220,7 @@ struct UnitLevelRecord {
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
-// unit_db_destroy.cpp: the prototype, NPC and model records' destructors.
+// The prototype, NPC and model records' destructors.
 namespace unitdb {
 void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
 void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
@@ -238,7 +238,7 @@ void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 struct UnitModelTable {
     using NameIndex = stlp::hash_map<stlp::string, UnitModelRecord*, stlp::StringHash>;
 
-    // unit_db_load.cpp. The record named `name`: operator[] on the name index, so an unknown name is
+    // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
     UnitModelRecord* FindByName(const char* name);
     // Record `index`, or null past the end.
@@ -271,7 +271,7 @@ struct UnitDatabase {
     // names (lower-cased in place) the number of files whose name starts with it (soundCounts, resized to
     // the names).
     void CountSoundFiles(void* sounds);
-    // unit_db_load.cpp. Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` +
+    // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` +
     // `archive`: the level records (chunk 1), the models (2), the prototypes (3) and the NPCs (4), each
     // from its own pass over the file with every record entered into its table's name index; then every
     // prototype's modelIndex becomes the index of the model named by modelName, and every model slot's
@@ -379,10 +379,10 @@ struct SkillDatabase {
     int IndexOf(const char* levelName) const;
     // The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
-    // unit_stat_small.cpp. Skill / level record `index`, or null past the end.
+    // Skill / level record `index`, or null past the end.
     SkillRecord* SkillAt(std::uint32_t index);
     SkillLevelRecord* LevelAt(std::uint32_t index);
-    // unit_db_load.cpp. Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
+    // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
     // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
     // the fatal error report returns when the archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);

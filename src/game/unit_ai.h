@@ -278,7 +278,6 @@ static_assert(sizeof(FollowMode) == 0x0C);
 class SuspectionMode : public AIActionMode {
 public:
     SuspectionMode() { ClearFields(); }
-    // The constructor in place.
     SuspectionMode* Construct();
     ~SuspectionMode() override;
     int OnShutdown() override;
@@ -371,7 +370,6 @@ public:
     // Every field is zeroed first (ClearFields; a determinism fix: game.exe leaves shelter y / z and fleePoint x / y, which
     // the saves write, and the harness zeroes game.exe's alike), then distance, spread 3 and an unset shelter (x = -1313).
     explicit FearMode(std::uint8_t flag);
-    // The constructor in place.
     FearMode* Construct(std::uint8_t flag);
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
     ~FearMode() override;

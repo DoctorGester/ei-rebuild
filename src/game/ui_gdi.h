@@ -9,6 +9,6 @@
 #include <windows.h>
 
 class CUiSurface;
-// (ui_surface_dc.cpp; declared in ui.h too): a surface's CDC and its release.
+// Declared in ui.h too): a surface's CDC and its release.
 mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);

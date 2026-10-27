@@ -34,8 +34,6 @@ class CDirectInputMouse final {
 public:
     // WinMain's: no references, no DirectInput or device.
     CDirectInputMouse() {}
-    // Shutdown, then the two counted pointers' releases
-    // (both already null).
     virtual ~CDirectInputMouse();
 
     // On the game's heap (app_lifetime.cpp).
