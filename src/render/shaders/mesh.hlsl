@@ -3,6 +3,10 @@
 // part lit on the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of
 // the vertex colour (whose alpha it keeps).
 #include "shadow_receiver.hlsli"
+#define POINT_SHADOW_B b1
+#define POINT_SHADOW_T t5
+#define POINT_SHADOW_S s5
+#include "point_shadow.hlsli"
 cbuffer vs_params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 distance_fog;   // x: on, y: start, z: 1 / (end - start); w: keep z inside the depth range
@@ -10,6 +14,7 @@ cbuffer vs_params : register(b0) {
     float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // model space to the shadow map
     float4 uv_offset;      // xy: added to the texture coordinates (a mesh kept on the GPU)
     float4 normal_offset;  // x: how far along its normal a receiver's point is looked up in the map
+    float4 wrow0; float4 wrow1; float4 wrow2;   // model space to the landscape's (point shadows)
 };
 cbuffer fs_params : register(b0) {
     float4 fog_colour;     // rgb
@@ -32,12 +37,16 @@ cbuffer fs_params : register(b0) {
     float4 light_sun_colour;
     float4 light_ambient;
     float4 light_emissive;
-    float4 light_points[16];   // per light: model-space position, 1 / range squared; lit colour
+    float4 light_points[16];   // per light: model-space position, 1 / range squared; lit colour, w: its
+                               // point shadow's map + 1, 0 none
+    float4 point_on;       // x: point shadows taken (the landscape rows set), y: a unit's mesh
+    float4 point_front;    // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0;
                float3 normal : NORMAL; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 shadow : TEXCOORD1;
-                float3 model : TEXCOORD2; float3 normal : TEXCOORD3; float4 pos : SV_Position; };
+                float3 model : TEXCOORD2; float3 normal : TEXCOORD3; float3 land : TEXCOORD4;
+                float4 pos : SV_Position; };
 vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
@@ -60,6 +69,7 @@ vs_out vs_main(vs_in i) {
     o.shadow = float4(dot(lrow0, q), dot(lrow1, q), dot(lrow2, q), 1.0);
     o.model = i.pos;
     o.normal = i.normal;
+    o.land = float3(dot(wrow0, p), dot(wrow1, p), dot(wrow2, p));
     return o;
 }
 Texture2D<float4> tex0 : register(t0);
@@ -78,7 +88,11 @@ SamplerState shadow_linear : register(s4);   // the range, filtered
 // emissive colour, at most 1. The crown: pulled towards its average colour, taken as the average over
 // every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over
 // -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before R16i.
-float3 figure_light(float3 p, float3 n) {
+// A light with a point shadow (point_shadow.hlsli) adds only what reaches `land` (the point in the
+// landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh compares from the
+// unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
+// `face`: the smoothed normals lean far from their faces), looked up moved along `face`.
+float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn) {
     float3 ambient = light_ambient.rgb;
     float facing = dot(light_sun.xyz, n);
     float3 lit = max(ambient, light_sun_colour.rgb * facing);
@@ -90,7 +104,17 @@ float3 figure_light(float3 p, float3 n) {
         float falloff = 1.0 - distance2 * at.w;
         if (falloff < 0.0) continue;
         float c = dot(d * rsqrt(max(distance2, 1e-12)), n);
-        lit = max(lit, colour.rgb * c * falloff);
+        float seen = 1.0;
+        if (colour.w > 0.5 && point_on.x > 0.5 && c > 0.0) {
+            int slot = (int)colour.w - 1;
+            if (point_on.y > 0.5) {
+                seen = point_seen(slot, land, 0.0, point_front[slot], turn);
+            } else {
+                float facing = saturate(dot(face, normalize(point_shadow_at[slot].xyz - land)) * 6.0);
+                if (facing > 0.0) seen = lerp(1.0, point_seen(slot, land, face, kNoPointFront, turn), facing);
+            }
+        }
+        lit = max(lit, colour.rgb * c * falloff * seen);
     }
     float3 c = min(1.0, lit + light_emissive.rgb);
     if (light_on.y > 0.0) {
@@ -143,6 +167,11 @@ bool passes(int func, float a, int reference) {
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     bool lit_here = light_on.x > 0.5;
+    // The face normal in the landscape's space, turned to the camera (point shadows).
+    float3 face = cross(ddx(i.land), ddy(i.land));
+    float face_length = length(face);
+    face = face_length > 1e-20 ? face / face_length : float3(0.0, 0.0, 1.0);
+    if (dot(face, point_shadow_eye.xyz - i.land) < 0.0) face = -face;
     // How much of the sun the shadow map hides. A unit's mesh: the shadows other objects cast, on
     // every face (none of its own: its sun side is shaded by the lighting's N.L; by face it flipped triangle
     // by triangle on a low-poly creature). Any other mesh: on faces turned to the sun only, by their face
@@ -157,7 +186,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
         if (!unit) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy, shadow_scale, shadow_camera);
     }
     float4 diffuse = i.col;
-    if (lit_here) diffuse.rgb = figure_light(i.model, i.normal);
+    if (lit_here) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy));
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
     // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).

@@ -16,6 +16,8 @@
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
 // R16i2: a unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
 // (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
+// The point lights' shadows (render_point_shadows.cpp) are prepared and drawn from here, their
+// pass inside the shadow map's time (FrameStats::shadowMs, shadowDraws, the GPU's shadow map time).
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
 // for the landscape's space; that space is the one the map is fitted in (the inverse of the
 // terrain's matrix times a mesh's gives the mesh's model matrix into it).
@@ -351,29 +353,6 @@ bool MakeColour(int size, sg_pixel_format format, const char* label, sg_image* i
     return ok;
 }
 
-// A depth image of `size` with an attachment and a texture view.
-bool MakeDepth(int size, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
-    sg_image_desc d{};
-    d.usage.depth_stencil_attachment = true;
-    d.width = size;
-    d.height = size;
-    d.pixel_format = kDepthFormat;
-    d.sample_count = 1;
-    d.label = label;
-    *image = sg_make_image(&d);
-    sg_view_desc v{};
-    v.depth_stencil_attachment.image = *image;
-    *attachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.texture.image = *image;
-    *texture = sg_make_view(&v);
-    bool ok = sg_query_image_state(*image) == SG_RESOURCESTATE_VALID &&
-              sg_query_view_state(*attachment) == SG_RESOURCESTATE_VALID &&
-              sg_query_view_state(*texture) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the %dx%d shadow depth image could not be made", size, size);
-    return ok;
-}
-
 void DestroyTarget(sg_image* image, sg_view* attachment, sg_view* texture) {
     if (attachment->id) sg_destroy_view(*attachment);
     if (texture->id) sg_destroy_view(*texture);
@@ -475,25 +454,11 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     sg_end_pass();
 }
 
-sg_sampler CompareSampler() {
-    if (g_compare.id) return g_compare;
-    sg_sampler_desc d{};
-    d.min_filter = SG_FILTER_LINEAR;
-    d.mag_filter = SG_FILTER_LINEAR;
-    d.mipmap_filter = SG_FILTER_NEAREST;
-    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    d.compare = SG_COMPAREFUNC_LESS_EQUAL;
-    d.label = "ei-shadow-compare";
-    g_compare = sg_make_sampler(&d);
-    return g_compare;
-}
-
 // The 1 x 1 map bound when there is none (cleared to the far plane once).
 void EnsureDummy() {
     if (!g_rangeDummy.id)
         MakeRange(1, "ei-shadow-range-none", &g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
-    if (!g_dummy.id && !MakeDepth(1, "ei-shadow-none", &g_dummy, &g_dummyAttachment, &g_dummyTexture)) return;
+    if (!g_dummy.id && !MakeShadowDepth(1, 1, "ei-shadow-none", &g_dummy, &g_dummyAttachment, &g_dummyTexture)) return;
     if (g_dummyCleared) return;
     sg_pass pass{};
     pass.action.depth.load_action = SG_LOADACTION_CLEAR;
@@ -575,6 +540,18 @@ struct Fit {
 };
 Fit g_fit;
 
+// The world's first ground batch (its command), SIZE_MAX: none.
+std::size_t FirstGround(const Frame& f) {
+    for (const Frame::Range& r : f.worldRanges) {
+        std::size_t end = std::min(r.end, f.commands.size());
+        for (std::size_t k = r.first; k < end; ++k) {
+            const Command& c = f.commands[k];
+            if (c.kind == Command::Terrain && !f.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
+        }
+    }
+    return SIZE_MAX;
+}
+
 // Landscape space to the map's clip space: x, y -1..1 over the area, z 0..1 from `zNear` to the
 // ground's far side.
 M4 LightMatrix(const Fit& fit, double zNear, double* depth) {
@@ -605,15 +582,7 @@ const Fit& FitMap(Frame& f) {
     if (!sh.haveSun || f.worldRanges.empty()) return g_fit;
 
     // The world's first ground batch gives the camera's matrix (landscape space to clip).
-    std::size_t firstGround = SIZE_MAX;
-    for (const Frame::Range& r : f.worldRanges) {
-        std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end && firstGround == SIZE_MAX; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain && !f.terrainBatches[static_cast<std::size_t>(c.index)].water) firstGround = k;
-        }
-        if (firstGround != SIZE_MAX) break;
-    }
+    const std::size_t firstGround = FirstGround(f);
     if (firstGround == SIZE_MAX) return g_fit;
     const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
     M4 camera = FromMatrix(f.matrices[static_cast<std::size_t>(ground.matrix)]);
@@ -679,6 +648,58 @@ const Fit& FitMap(Frame& f) {
 // --- The hand-over ----------------------------------------------------------------------------------
 
 namespace detail {
+
+bool WorldCamera(const Frame& f, Matrix4* clip, Vector3* eye) {
+    const std::size_t firstGround = FirstGround(f);
+    if (firstGround == SIZE_MAX) return false;
+    const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
+    *clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
+    M4 fromClip;
+    if (!Invert(FromMatrix(*clip), &fromClip)) return false;
+    // The camera's position: the point clip space puts at w = 0 (x = y = 0).
+    D4 at = Transform(fromClip, D4{0.0, 0.0, 1.0, 0.0});
+    if (std::fabs(at.w) <= 1e-12) return false;
+    *eye = Vector3{static_cast<float>(at.x / at.w), static_cast<float>(at.y / at.w), static_cast<float>(at.z / at.w)};
+    return true;
+}
+
+bool MakeShadowDepth(int width, int height, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
+    sg_image_desc d{};
+    d.usage.depth_stencil_attachment = true;
+    d.width = width;
+    d.height = height;
+    d.pixel_format = kDepthFormat;
+    d.sample_count = 1;
+    d.label = label;
+    *image = sg_make_image(&d);
+    sg_view_desc v{};
+    v.depth_stencil_attachment.image = *image;
+    *attachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = *image;
+    *texture = sg_make_view(&v);
+    bool ok = sg_query_image_state(*image) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*attachment) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*texture) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the %dx%d shadow depth image %s could not be made", width, height, label);
+    return ok;
+}
+
+sg_sampler ShadowCompareSampler() {
+    if (g_compare.id) return g_compare;
+    sg_sampler_desc d{};
+    d.min_filter = SG_FILTER_LINEAR;
+    d.mag_filter = SG_FILTER_LINEAR;
+    d.mipmap_filter = SG_FILTER_NEAREST;
+    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    d.compare = SG_COMPAREFUNC_LESS_EQUAL;
+    d.label = "ei-shadow-compare";
+    g_compare = sg_make_sampler(&d);
+    return g_compare;
+}
+
+sg_view NoShadowTexture() { return g_dummyTexture; }
 
 bool MapLightDirection(const Vector3& sun, Vector3* travel) {
     double horizontal = std::sqrt(LengthSquared2DUnrounded<double>(sun.x, sun.y));
@@ -922,6 +943,7 @@ void PrepareShadows(Frame& f) {
     sh.on = false;
     sh.lights.clear();
     g_info = ShadowInfo{};
+    PreparePointShadows(f);
     if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0))
         return;
     StatsTimer timer(&FrameStats::shadowMs);
@@ -1031,7 +1053,7 @@ void DrawShadowMap(Frame& f) {
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
         bool ok = MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
-                  (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
+                  (g_map.id || MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
                   MakeRangePipeline(kReduceShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
                                     &g_reduceShader, &g_reducePipeline) &&
                   MakeRangePipeline(kDilateShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
@@ -1166,6 +1188,7 @@ void DrawShadowMap(Frame& f) {
             }
         }
     }
+    DrawPointShadows(f);
 #if defined(EI_RENDER_VALIDATION)
     if (g_querySlot >= 0) D3DContext()->End(g_queries[g_querySlot].stamps[1]);
 #endif
@@ -1193,7 +1216,7 @@ void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
     bool on = g_mapTexture.id && g_rangeTexture.id && CurrentFrame().shadow.on;
     b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
-    b.samplers[samplerSlot] = CompareSampler();
+    b.samplers[samplerSlot] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
     b.views[viewSlot + 1] = on ? g_rangeTexture : g_rangeDummyTexture;
     b.samplers[samplerSlot + 1] = RangeSampler();
@@ -1227,6 +1250,7 @@ void DestroyShadows() {
 #if defined(EI_RENDER_VALIDATION)
     ReleaseQueries();
 #endif
+    DestroyPointShadows();
     g_outsideVertexBuffer.Destroy();
     g_outsideIndexBuffer.Destroy();
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
