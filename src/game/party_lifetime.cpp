@@ -129,9 +129,9 @@ EI_REWRITTEN(0x00664AC0, PartyUnitRecord::DeletingDestruct);
 
 namespace {
 void __fastcall DestroyPartyMembers(PartyMembers* members) { members->Destruct(); }
-// Slot 2 through the slot's archive type (mfc::impl's; the template's Serialize takes mfc.h's).
+// Slot 2 through the slot's archive type (mfc::impl's).
 struct PartyMembersStore : PartyMembers {
-    void Store(mfc::impl::CArchive* ar) { Serialize(reinterpret_cast<mfc::CArchive*>(ar)); }
+    void Store(mfc::impl::CArchive* ar) { Serialize(ar); }
 };
 
 // CArray<PartyUnitRecord>'s compiled table: CObject's GetRuntimeClass, the destructor (the compiler's deleting
@@ -158,7 +158,7 @@ EI_REWRITTEN(0x00664470, PartyMemberArray::DeletingDestruct);
 EI_REWRITTEN(0x00663FA0, PartyMemberArray::SetSize);
 // CArray<PartyUnitRecord>::Serialize, in the array's table (PartyMembers::Vtable()); no code calls it (the
 // parties go through CStream, party_save.cpp).
-EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize);
+EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize<mfc::impl::CArchive>);
 
 // --- The managers and constructors a party makes ------------------------------------------------
 

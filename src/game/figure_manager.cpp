@@ -78,7 +78,7 @@ CFigureMesh* CFigureManager::NewFigure(const char* name) {
     }
     char* cursor = static_cast<char*>(data);
     figure->LoadFromMemory(&cursor, 0.0f, 0.0f, 0.0f);
-    figure->bounds_.flags = 0;
+    figure->box_.bounds.flags = 0;
     CloseFile(data);
     return figure;
 }

@@ -65,8 +65,10 @@ struct CountedMesh : stlp::CountedRef {
 using MeshCache = PairTree<stlp::string, CountedMesh>;
 
 // The item screens' model and texture caches (ItemObjectCache, ui_item_info.h; 0x24-byte nodes):
-// the cached object and when it was last used.
-using ItemCache = stlp::TreeAbi<ItemObjectCache::Map>;
+// the cached object and when it was last used. The game has one instantiation for both.
+template <typename Object>
+using ItemCacheOf = stlp::TreeAbi<typename ItemObjectCache<Object>::Map>;
+using ItemCache = ItemCacheOf<CTexture>;
 
 // The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
@@ -81,7 +83,7 @@ static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:
 // Map() (the header from the pool, empty), then the limit 50.
-using HeroItemCache = ItemObjectCache;
-HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);
+template <typename Object>
+ItemObjectCache<Object>* __fastcall ConstructHeroItemCache(ItemObjectCache<Object>* self);
 
 } // namespace lib_trees

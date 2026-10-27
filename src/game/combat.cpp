@@ -147,14 +147,14 @@ std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->lastHitSour
 float CUnitServer::AttackRange() {
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon) return weapon->reach_;
-    return Combat().reach;
+    return stats.combat[UnitStats::kReach];
 }
 EI_REWRITTEN(0x0054B620, CUnitServer::AttackRange);
 
 int CUnitServer::WeaponType() {
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon) return weapon->GetType();
-    return Combat().naturalWeapon;
+    return stats.naturalWeapon;
 }
 EI_REWRITTEN(0x0054B650, CUnitServer::WeaponType);
 
@@ -167,7 +167,7 @@ EI_REWRITTEN(0x0054B680, CUnitServer::HasRangedWeapon);
 
 BOOL CUnitServer::AttacksFromRange() {
     if (!ActiveWeapon(unit)) {
-        return Combat().naturalWeapon != kNoNaturalWeapon && Combat().reach > kOne ? 1 : 0;
+        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > kOne ? 1 : 0;
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (!weapon) return 0;
@@ -177,7 +177,7 @@ EI_REWRITTEN(0x0054B6C0, CUnitServer::AttacksFromRange);
 
 int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
-    double factor = Combat().rate;    // stays on the FPU stack
+    double factor = stats.rate;    // stays on the FPU stack
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     // of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
     float value = static_cast<float>(Unsigned(AsWeapon(item)->actionValue_) * factor);
@@ -186,18 +186,18 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
 EI_REWRITTEN(0x0054B760, CUnitServer::ScaledItemValue);
 
 int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
-    float factor = Combat().rate;
+    float factor = stats.rate;
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     if (kind != 3) return 0;
     int value;
     if (item) value = static_cast<int>(item->GetPrototype()->category);
-    else value = static_cast<int>(gamecrt::Ftol(Combat().attackCategory));
+    else value = static_cast<int>(gamecrt::Ftol(stats.attackCategory));
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
 }
 EI_REWRITTEN(0x0054B9C0, CUnitServer::ScaledAttackValue);
 
-void CUnitServer::GetDamageByType(std::uint16_t* out) {
+void CUnitServer::GetDamageByType(DamageWords* out) {
     CUnit* self = unit;
     CItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
@@ -208,28 +208,28 @@ void CUnitServer::GetDamageByType(std::uint16_t* out) {
         weapon->GetDamageTypes(weights);
         for (int i = 0; i < 7; ++i) {
             float value = scale * weights[i];
-            out[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
+            out->words[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
         }
         return;
     }
-    float total = Combat().damageSpread + Combat().damage;
+    float total = stats.damageSpread + stats.damage;
     float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
-        float value = scale * Combat().damageWeights[i];
-        out[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
+        float value = scale * stats.damageWeights[i];
+        out->words[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
     }
 }
 EI_REWRITTEN(0x0054BA30, CUnitServer::GetDamageByType);
 
-void CUnitServer::GetSpellDamage(std::uint32_t source, std::uint16_t* out) {
+void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
-    std::memset(out, 0, 16);
+    *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(gamecrt::Ftol(SpellDamage(spell)));
         int type = spell->GetDamageType();
-        out[1 + type] = value;
+        out->words[1 + type] = value;
     }
-    out[0] = 0x7FFF;
+    out->words[0] = 0x7FFF;
 }
 EI_REWRITTEN(0x0054BB20, CUnitServer::GetSpellDamage);
 
@@ -324,7 +324,7 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     int kind = order->kind;
     CMapObject* target = order->target;
     if (kind >= 4 && kind <= 5) {
-        if (!unit->player && Combat().naturalWeapon == kNoNaturalWeapon) return Combat().reach;
+        if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
         std::uint32_t source = order->source;
         CSpell* spell;
         if (source & kQuickItemSource) {
@@ -352,12 +352,12 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
         CItemWeapon* weapon = ActiveWeapon(unit);
-        float range = weapon ? weapon->reach_ : Combat().reach;
+        float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
         float reach = range >= floor ? range : floor;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
-    float range = weapon ? weapon->reach_ : Combat().reach;
+    float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
     float own = Radius(unit);
     return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
 }
@@ -383,7 +383,7 @@ EI_REWRITTEN(0x0054C800, CUnitServer::CanReachTarget);
 std::uint32_t CUnitServer::WeaponTypeMask() {
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon) return 1u << (weapon->GetType() & 31);
-    int natural = Combat().naturalWeapon;
+    int natural = stats.naturalWeapon;
     if (natural < 7) return 1u << (natural & 31);
     return 0;
 }
@@ -403,7 +403,7 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
 EI_REWRITTEN(0x005500A0, CUnitServer::MoveModeMask);
 
 int CUnitServer::Level() {
-    float experience = Combat().experience;
+    float experience = stats.experience;
     float base = GameLogicSettings().considerModifier;
     float step = GameLogicSettings().considerLogBase;
     // ln(experience / base) / ln(step) as the x87 computes it, rounded to float, then to the nearest integer.
@@ -413,7 +413,7 @@ int CUnitServer::Level() {
 EI_REWRITTEN(0x00556760, CUnitServer::Level);
 
 void CUnitServer::EffectsChanged() {
-    if (unit->HasEffect(0x20) && Combat().naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
+    if (unit->HasEffect(0x20) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
     else unit->flags_ &= ~kFlagSpellBlocked;
 }
 EI_REWRITTEN(0x00553220, CUnitServer::EffectsChanged);
@@ -436,16 +436,16 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->defence = static_cast<int>(gamecrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
-        std::memcpy(&out->damageMin, &Combat().damage, sizeof(float));
-        out->damageMax = Combat().damageSpread + Combat().damage;
-        out->attack = static_cast<int>(gamecrt::Ftol(Combat().attack));
-        out->defence = static_cast<int>(gamecrt::Ftol(Combat().defence));
-        std::memcpy(&out->speed, &Combat().speed, sizeof(float));
+        std::memcpy(&out->damageMin, &stats.damage, sizeof(float));
+        out->damageMax = stats.damageSpread + stats.damage;
+        out->attack = static_cast<int>(gamecrt::Ftol(stats.combat[UnitStats::kAttack]));
+        out->defence = static_cast<int>(gamecrt::Ftol(stats.combat[UnitStats::kDefence]));
+        std::memcpy(&out->speed, &stats.combat[UnitStats::kSpeed], sizeof(float));
         if (weapon) {
             out->weaponType = weapon->GetType();
             out->damageType = WeaponDamageType(weapon->prototypeId_);
         } else {
-            out->weaponType = Combat().naturalWeapon;
+            out->weaponType = stats.naturalWeapon;
             const auto* model = self->GetPrototypeModel();
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
@@ -461,7 +461,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
-    std::memcpy(&out->attackSpread, &Combat().attackSpread, sizeof(float));
+    std::memcpy(&out->attackSpread, &stats.combat[UnitStats::kAttackSpread], sizeof(float));
     out->ScaleForDifficulty(keyed);
 }
 EI_REWRITTEN(0x00555A00, CUnitServer::GetAttackParams);
@@ -536,13 +536,13 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
-        std::memcpy(out->typeWeights, Combat().damageWeights, sizeof(out->typeWeights));
+        std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
         double factor = keyed ? kOne : DifficultyAttackFactor();
-        float roll = static_cast<float>(factor * Combat().attack);
+        float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         double extra = kZero;
-        float spread = Combat().damageSpread;
+        float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);
         if (spread != kZero) {
             float scaled = spread * kHundred;
@@ -550,7 +550,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
             std::uint32_t random = IsaacRandom::Global().Next();
             extra = Unsigned(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;
         }
-        out->amount = static_cast<float>(extra + Combat().damage);
+        out->amount = static_cast<float>(extra + stats.damage);
     }
     out->amount = ScaleDamageByEffects(self, out->amount);
     out->location = location;
@@ -631,7 +631,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                     auto* controller = attacker->ServerController();
                     CItemWeapon* own = ActiveWeapon(controller->unit);
                     if (own) LastDamageSource(unit) = static_cast<std::int16_t>(own->GetType());
-                    else LastDamageSource(unit) = static_cast<std::int16_t>(controller->Combat().naturalWeapon);
+                    else LastDamageSource(unit) = static_cast<std::int16_t>(controller->stats.naturalWeapon);
                 }
             } else {
                 LastDamageSource(unit) = 7;
@@ -675,8 +675,8 @@ std::int16_t SizeClassOf(double size, float load) {
 } // namespace
 
 void CUnitServer::UpdateSizeClasses() {
-    CombatStats& combat = Combat();
-    if (combat.bodyKind == 2) {
+    UnitStats& combat = stats;
+    if (combat.movementKind == 2) {
         combat.sizeClass20 = 0;
         combat.sizeClass = 0;
         return;
@@ -697,7 +697,7 @@ EI_REWRITTEN(0x00552FB0, CUnitServer::UpdateSizeClasses);
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
     double factor = world->nightLevel_;
-    double scaled = (factor * Combat().daySightPercent) * kWorldFactorScale;
+    double scaled = (factor * stats.valuesB0[1].current) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;
     moveFactors[1] = kOne;

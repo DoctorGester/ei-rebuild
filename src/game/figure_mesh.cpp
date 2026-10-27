@@ -177,12 +177,12 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
         radius_ = MorphScalar(FloatsAt(*cursor), s, t, u, true);
         *cursor += 0x20;
 
-        std::memcpy(&bounds_.center, &center_, 12);
-        bounds_.radius = radius_;
-        bounds_.flags |= 1;
-        std::memcpy(&bounds_.boxMin, &boxMin_, 12);
-        std::memcpy(&bounds_.boxMax, &boxMax_, 12);
-        bounds_.flags |= 2;
+        std::memcpy(&box_.bounds.center, &center_, 12);
+        box_.bounds.radius = radius_;
+        box_.bounds.flags |= 1;
+        std::memcpy(&box_.bounds.boxMin, &boxMin_, 12);
+        std::memcpy(&box_.bounds.boxMax, &boxMax_, 12);
+        box_.bounds.flags |= 2;
         return;
     }
     std::memcpy(&center_, *cursor, 12);
@@ -193,10 +193,10 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     *cursor += 12;
     std::memcpy(&radius_, *cursor, 4);
     *cursor += 4;
-    std::memcpy(&bounds_.center, &center_, 12);
-    bounds_.flags |= 1;
-    bounds_.radius = radius_;
-    bounds_.SetBox(&boxMin_.x, &boxMax_.x);
+    std::memcpy(&box_.bounds.center, &center_, 12);
+    box_.bounds.flags |= 1;
+    box_.bounds.radius = radius_;
+    box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
 }
 EI_REPLACE_METHOD(0x005A18E0, CFigureMesh::LoadBounds);
 
@@ -365,7 +365,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
     vertices_.SetSize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
+    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
 
     normals_.SetSize(header.normalCount);
     colorsA_.SetSize(header.normalCount * 4);
@@ -410,7 +410,7 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
     vertices_.SetSize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
+    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
 
     normals_.SetSize(header.normalCount);
     colorsA_.SetSize(header.normalCount * 4);
@@ -457,9 +457,9 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     mesh->materialValue_ = Read<std::uint32_t>(*cursor);
     mesh->meshType_ = Read<std::uint32_t>(*cursor);
     if (shared)
-        MorphOldBounds(mesh->bounds_, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
+        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
     else
-        MorphOldBounds(mesh->bounds_, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
+        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
     *cursor += 0xF0;
 
     int count = ReadCount(cursor);
@@ -473,7 +473,7 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
         const std::uint32_t one = 0x3F800000;
         for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
     }
-    if (mesh->vertices_.size != 0) FitBounds(&mesh->bounds_, mesh->vertices_.data, mesh->vertices_.size);
+    if (mesh->vertices_.size != 0) FitBounds(&mesh->box_.bounds, mesh->vertices_.data, mesh->vertices_.size);
 
     count = ReadCount(cursor);
     mesh->normals_.SetSize(count);
@@ -575,9 +575,9 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
     // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner
     // sums stay on the FPU in the original (the same at the main thread's 24-bit precision).
-    const Vector3& c = bounds_.center;
-    const Vector3& lo = bounds_.boxMin;
-    const Vector3& hi = bounds_.boxMax;
+    const Vector3& c = box_.bounds.center;
+    const Vector3& lo = box_.bounds.boxMin;
+    const Vector3& hi = box_.bounds.boxMax;
     for (int corner = 0; corner < 8; ++corner) {
         Vector3 p = {((corner & 4) ? lo : hi).x + c.x, ((corner & 2) ? lo : hi).y + c.y, ((corner & 1) ? lo : hi).z + c.z};
         Vector3 w = TransformRow<Sum3::ZYX>(m, p);
@@ -628,7 +628,7 @@ void CPlainFigureMesh::MirrorX() {
 EI_REWRITTEN(0x005A4B30, CPlainFigureMesh::MirrorX);
 
 void CFigureMesh::FitVertexBounds() {
-    if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
+    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
 }
 EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 

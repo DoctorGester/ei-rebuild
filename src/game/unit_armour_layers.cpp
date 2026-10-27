@@ -58,7 +58,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
 }
 EI_REWRITTEN(0x00523300, UnitStats::RebuildArmourLayers);
 
-void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::int16_t* out) {
+void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
     int top = keyed ? 2 : 0;
     const UnitStatSlot& body = slots[kBodySlot];
@@ -67,7 +67,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::i
         for (int j = top; j >= 0; --j) {
             if (body.layers[j].state >= kLayerThere) value += body.layers[j].absorb[k];
         }
-        out[1 + k] = static_cast<std::int16_t>(x87::RoundToInt(static_cast<float>(value)));
+        out->words[1 + k] = static_cast<std::uint16_t>(x87::RoundToInt(static_cast<float>(value)));
     }
 }
 EI_REWRITTEN(0x00523020, UnitStats::PackBodyProtection);

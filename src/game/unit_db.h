@@ -66,7 +66,7 @@ struct UnitPrototypeRecord {
     std::uint32_t level;            // 0x29 (CUnit::Level of a unit without a text key)
     std::uint32_t experienceValue;      // 0x2B the experience its death awards
     float protectionScale;          // 11
-    std::uint32_t field12;              // 12 (UnitStats::prototypeField12; nothing reads it)
+    std::uint32_t field12;              // 12 (UnitStats::attackCategory)
     float speed;                    // 13
     float combat[5];                // 14, 15, 0x24, 16, 17
     std::uint32_t naturalWeapon;    // 0x12
@@ -259,17 +259,6 @@ inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
 }
 inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database().models.byName.Subscript(name); }
 } // namespace unitdb
-
-// Eight damage or protection words (an AI attack option's damage, a combat controller's
-// protection): word 0 apart, words 1..7 per damage type.
-struct DamageWords {
-    std::uint16_t words[8];
-
-    // The sum over words 1..7 of what exceeds the matching protection word (a difference with its top bit set
-    // counts 0), as 16 bits.
-    std::uint32_t ExcessOver(const DamageWords* protection) const;
-};
-static_assert(sizeof(DamageWords) == 0x10);
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records
 // (three per skill: levels 1..3).

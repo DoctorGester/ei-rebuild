@@ -238,17 +238,17 @@ bool GiveUnitWeapon(Call* call) {
     unit->pendingWeapon = slot;
     if (override) {
         const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
-        CombatStats& stats = unit->ServerController()->Combat();
+        UnitStats& stats = unit->ServerController()->stats;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
         Store(&stats.damage, item->damage_);
         Store(&stats.damageSpread, item->damageSpread_);
         float sum = prototype->combat[3] + weapon->defenceBonus;
-        Store(&stats.defence, sum);
+        Store(&stats.combat[UnitStats::kDefence], sum);
         float reach;
         std::memcpy(&reach, &weapon->reach, 4);
-        Store(&stats.reach, reach);
+        Store(&stats.combat[UnitStats::kReach], reach);
         sum = prototype->combat[1] + weapon->attackBonus;
-        Store(&stats.attack, sum);
+        Store(&stats.combat[UnitStats::kAttack], sum);
         stats.attackCategory = static_cast<float>(x87::FromUnsigned(weapon->category));
         stats.naturalWeapon = item->GetType();
         for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);

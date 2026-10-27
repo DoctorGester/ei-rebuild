@@ -268,7 +268,8 @@ EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
 namespace {
 
 // Screen 9's two maps are item caches (lib_trees::ItemCache, with two allocators).
-using ItemCache = lib_trees::ItemCache;
+template <typename Object>
+using ItemCache = lib_trees::ItemCacheOf<Object>;
 
 } // namespace
 
@@ -276,9 +277,9 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     // A stack byte and the argument slot serve as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
-    static_cast<ItemCache*>(&models_.map)->ConstructWith(&junk, &slot);
+    static_cast<ItemCache<CUiMesh>*>(&models_.map)->ConstructWith(&junk, &slot);
     models_.limit = 50;
-    ItemCache::Construct(&textures_.map);
+    ItemCache<CTexture>::Construct(&textures_.map);
     textures_.limit = 50;
 }
 EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);

@@ -254,7 +254,7 @@ namespace net {
 namespace {
 // The handler vectors' destructor (the vector base's: the storage freed), as the CRT's eh vector
 // destructor iterator takes it.
-constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<void*>::DestroyBase>;
+constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<MessageHandler>::DestroyBase>;
 // The clients list: its nodes and sentinel go back to the pool.
 } // namespace
 

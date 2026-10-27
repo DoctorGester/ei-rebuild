@@ -2,6 +2,7 @@
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
+#include "net_handlers.h"
 #include "net_messages.h"
 #include "party.h"
 
@@ -19,11 +20,9 @@ namespace {
 // The embedded party's constructor.
 void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
 
-void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
-
-template <typename T>
-void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) {
-    client->AddHandlerFor<T>(channel, Handler(handler));
+template <typename T, typename Function>
+void RegisterInline(ClientSession* client, int channel, Function handler) {
+    client->AddHandlerFor<T>(channel, AsHandler(handler));
 }
 
 } // namespace
@@ -80,37 +79,37 @@ ClientSession::ClientSession() {
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
-    RegisterInline<BindingMessage>(this, 0, 0x0041E430);
-    RegisterInline<BindingMessage>(this, 2, 0x0041E460);
-    RegisterInline<PlayerMessage>(this, 0, 0x0041E490);
-    RegisterInline<PlayerMessage>(this, 1, 0x0041E510);
-    RegisterInline<PlayerMessage>(this, 2, 0x0041E520);
-    RegisterInline<LineMessage>(this, 0, 0x0041E5D0);
-    RegisterInline<LineMessage>(this, 2, 0x0041E690);
-    RegisterInline<HostMessage>(this, 0, 0x0041E730);
-    RegisterInline<HostMessage>(this, 2, 0x0041E760);
-    RegisterInline<ZoneMessage>(this, 0, 0x0041E790);
-    RegisterInline<ZoneMessage>(this, 2, 0x0041E850);
+    RegisterInline<BindingMessage>(this, 0, ClientOnBinding);
+    RegisterInline<BindingMessage>(this, 2, ClientOnBindingGone);
+    RegisterInline<PlayerMessage>(this, 0, ClientOnPlayer);
+    RegisterInline<PlayerMessage>(this, 1, ClientOnPlayerChanged);
+    RegisterInline<PlayerMessage>(this, 2, ClientOnPlayerGone);
+    RegisterInline<LineMessage>(this, 0, ClientOnLine);
+    RegisterInline<LineMessage>(this, 2, ClientOnLineGone);
+    RegisterInline<HostMessage>(this, 0, ClientOnInfo);
+    RegisterInline<HostMessage>(this, 2, ClientOnInfoGone);
+    RegisterInline<ZoneMessage>(this, 0, ClientOnZone);
+    RegisterInline<ZoneMessage>(this, 2, ClientOnZoneGone);
 
-    RegisterMapHandler(0, Handler(0x0041E900));
-    RegisterMapHandler(2, Handler(0x0041E960));
-    RegisterVariableHandler(0, Handler(0x0041E990));
-    RegisterVariableHandler(1, Handler(0x0041EA10));
-    RegisterVariableHandler(2, Handler(0x0041EA20));
-    RegisterFileHandler(0, Handler(0x0041EAC0));
-    RegisterFileHandler(2, Handler(0x0041EBF0));
-    RegisterChunkHandler(0, Handler(0x0041ECC0));   // patched by Rebirth: passed by address
-    RegisterChunkHandler(2, Handler(0x0041EF10));
-    RegisterAwardHandler(0, Handler(0x0041EF90));
-    RegisterPartyHandler(0, Handler(0x0041EFF0));
-    RegisterPartyHandler(1, Handler(0x0041F090));
-    RegisterPartyHandler(2, Handler(0x0041F0D0));
-    RegisterMemberHandler(0, Handler(0x0041F150));
-    RegisterMemberHandler(1, Handler(0x0041F180));
-    RegisterMemberHandler(2, Handler(0x0041F1B0));
-    RegisterTradeHandler(0, Handler(0x0041F1E0));
-    RegisterTradeHandler(1, Handler(0x0041F270));
-    RegisterTradeHandler(2, Handler(0x0041F3A0));
+    RegisterMapHandler(0, AsHandler(ClientOnMap));
+    RegisterMapHandler(2, AsHandler(ClientOnMapGone));
+    RegisterVariableHandler(0, AsHandler(ClientOnVariable));
+    RegisterVariableHandler(1, AsHandler(ClientOnVariableChanged));
+    RegisterVariableHandler(2, AsHandler(ClientOnVariableGone));
+    RegisterFileHandler(0, AsHandler(ClientOnFile));
+    RegisterFileHandler(2, AsHandler(ClientOnFileGone));
+    RegisterChunkHandler(0, AsHandler(ClientOnFileChunk));   // patched by Rebirth: passed by address
+    RegisterChunkHandler(2, AsHandler(ClientOnObjectGone));
+    RegisterAwardHandler(0, AsHandler(ClientOnAward));
+    RegisterPartyHandler(0, AsHandler(ClientOnParty));
+    RegisterPartyHandler(1, AsHandler(ClientOnPartyChanged));
+    RegisterPartyHandler(2, AsHandler(ClientOnPartyGone));
+    RegisterMemberHandler(0, AsHandler(ClientOnMember));
+    RegisterMemberHandler(1, AsHandler(ClientOnMember));
+    RegisterMemberHandler(2, AsHandler(ClientOnMember));
+    RegisterTradeHandler(0, AsHandler(ClientOnTrade));
+    RegisterTradeHandler(1, AsHandler(ClientOnTradeChanged));
+    RegisterTradeHandler(2, AsHandler(ClientOnTradeGone));
 
     parties_[0]->Create();
     parties_[1]->Create();

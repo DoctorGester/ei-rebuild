@@ -141,45 +141,6 @@ struct AttackParams {
 };
 static_assert(sizeof(AttackParams) == 0x20);
 
-// The combat values at the start of UnitStats (unit.h leaves them unnamed): an overlay of its first 0x110
-// bytes.
-struct CombatStats {
-    std::uint8_t unused_00[4];
-    float experience;           // log-scaled into the level
-    std::uint8_t attributeStats[0x30 - 0x08];  // UnitStats: spent experience, the attributes, speed, rate base
-    float rate;                 // the attack rate; 15 / rate scales item values and attack times
-    std::uint8_t movementStats[0x60 - 0x34];   // UnitStats: mode speeds, sight, load and the load factors
-    int bodyKind;               // 1 has body slots; 2 no size classes
-    std::uint8_t unused_64[4];
-    std::int16_t sizeClass;     // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
-    std::int16_t unused_6A;
-    std::int16_t sizeClass20;   // the same for 0.2 times the size
-    std::int16_t sizeClass60;   // and for 0.6 times the size
-    float reach;                // attack range without a weapon
-    float attack;
-    float attackSpread;
-    float defence;
-    float speed;
-    float damage;
-    float damageSpread;
-    float attackCategory;       // the natural attack's or the weapon's category (attack times, values)
-    float damageWeights[7];     // natural attack, per damage type
-    int naturalWeapon;          // weapon type of the natural attack (0x10: none / spells only)
-    std::uint8_t nightSight[0xBC - 0xB0];      // UnitStats::valuesB0[0] (sight by night) and [1].base
-    float daySightPercent;      // UnitStats::valuesB0[1].current; scales the world's night level in the movement factors
-    std::uint8_t statValues[0xFC - 0xC0];      // UnitStats::valuesB0[2..5], valuesE0[0..3]
-    float noise;                // how loud the unit's attacks are (scaled by 2 for a hit,
-                                // 1.5 for a skill use, passed to the AI events' noise with kind 0x1A)
-    std::uint8_t statValuesTail[0x110 - 0x100];  // UnitStats::valuesE0[4..5]
-};
-static_assert(offsetof(CombatStats, noise) == 0xFC);
-static_assert(offsetof(CombatStats, sizeClass) == 0x68);
-static_assert(offsetof(CombatStats, reach) == 0x70);
-static_assert(offsetof(CombatStats, daySightPercent) == 0xBC);
-static_assert(offsetof(CombatStats, damageWeights) == 0x90);
-static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
-static_assert(sizeof(CombatStats) == 0x110);
-
 // A record of the unit's presence with the AI events. AIViewer::StepNoise, which would fill it, always returns
 // 0, so none is ever written; the layout is speculative (the fields the controller's update would write).
 struct AIEventPresence {
@@ -233,24 +194,22 @@ public:
     bool ArmourTakenOff(std::uint32_t unused) override { return RebuildArmourLayers(static_cast<int>(unused)); }
     void ObjectDeleted(CEngineObject* object) override { OnObjectDeleted(object); }
 
-    CombatStats& Combat() { return *reinterpret_cast<CombatStats*>(&stats); }
-
     // The active weapon's reach, else the natural reach.
     float AttackRange();
     int WeaponType();
     BOOL HasRangedWeapon();
     // A ranged weapon, or (without a weapon) a natural weapon other than 0x10 with a reach above 1.
     BOOL AttacksFromRange();
-    // The item's action value (unsigned) scaled by 15 / Combat().rate (unscaled when that is 0), rounded.
+    // The item's action value (unsigned) scaled by 15 / stats.rate (unscaled when that is 0), rounded.
     // 0 for no item.
     int ScaledItemValue(const CItem* item);
     // For `kind` 3: the item prototype's category (or the truncated attackCategory without an item) scaled
     // like ScaledItemValue; 0 for other kinds.
     int ScaledAttackValue(int kind, CItem* item);
     // out[1..7]: the weapon's (party units) or the natural attack's damage, scaled, times each weight.
-    void GetDamageByType(std::uint16_t* out);
+    void GetDamageByType(DamageWords* out);
     // out[0] = 0x7FFF, out[1 + the spell's damage type] = its truncated damage, the rest 0.
-    void GetSpellDamage(std::uint32_t source, std::uint16_t* out);
+    void GetSpellDamage(std::uint32_t source, DamageWords* out);
     // The quick item of `source` (high bit ignored) if it carries a spell (class 0x13, category 5 or 8).
     CItem* SpellCarrier(std::uint32_t source);
     bool IsScrollSource(std::uint32_t source);
@@ -630,7 +589,7 @@ public:
     std::uint8_t unused_1D9[3];
     CUnit* followedLeader;          // (referenced) the party unit whose attack this one joins
     UnitStats stats;                // its flags get bit 0x10 on a hit
-    std::int16_t protection[8];     // [0] the defence value, [1..7] the body's protection
+    DamageWords protection;         // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
     float sinkSpeed;                // a dead unit's body sinks this much a tick (accelerating)
     float moveFactors[4];

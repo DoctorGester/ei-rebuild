@@ -280,7 +280,7 @@ int CWorldClient::AddObject(CMapObject* object) {
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
         CObject3D* figure = object->Object3D();
         for (int i = 0; i < figure->parts.size; ++i) {
-            if ((figure->PartBox(i)->flags >> 10) & 1) {
+            if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
                 int id = object->id_;
                 platforms_.AddBox(id, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
             }
@@ -332,7 +332,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < figure->parts.size; ++i) {
-        if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
+        if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
         platforms_.AddBox(object->id_, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
     }
 }
@@ -720,9 +720,9 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = node->data;
             float pz = point->z;
-            float ox = object->localPosition_.x + object->center.x;
-            float oy = object->localPosition_.y + object->center.y;
-            double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
+            float ox = object->localPosition_.x + object->bounds.center.x;
+            float oy = object->localPosition_.y + object->bounds.center.y;
+            double reach = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
             float dx = ox - point->x;
             float dy = oy - point->y;
             float dz = pz - point->z;
@@ -777,9 +777,9 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
 }
 
 void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation) {
-    const Vector3& offset = item->offset;
-    const Vector3& low = item->boxMin;
-    const Vector3& high = item->boxMax;
+    const Vector3& offset = item->bounds.center;
+    const Vector3& low = item->bounds.boxMin;
+    const Vector3& high = item->bounds.boxMax;
     const Vector3& pivot = item->pivot;
 
     float q0 = rotation->w, q1 = rotation->x, q2 = rotation->y, q3 = rotation->z;
@@ -816,7 +816,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         record->x = rotated.x + position->x;
         record->y = rotated.y + position->y;
         record->z = rotated.z + position->z;
-        std::memcpy(&record->radius, &item->radius, 4);   // a dword move
+        std::memcpy(&record->radius, &item->bounds.radius, 4);   // a dword move
     }
 }
 

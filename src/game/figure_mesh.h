@@ -106,16 +106,16 @@ public:
 
     // Reads the bounding volume (centre, box, radius) that follows the mesh header and morphs it: "FIG8" files
     // hold 8 corner versions of each value, blended trilinearly by the figure's three morph coefficients; other
-    // versions hold one. Sets the box and centre of `bounds_`.
+    // versions hold one. Sets the box and centre of `box_.bounds`.
     void LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic);
 
     // The abstract base has no mesh to read: only marks itself loaded (flags_ 0x20).
     void LoadNothing(char** cursor, float s, float t, float u);
-    // Fits bounds_ around the vertices; nothing without vertices.
+    // Fits box_.bounds around the vertices; nothing without vertices.
     void FitVertexBounds();
 
     // Called for every part of a CObject3D: grows the world-space box [min, max] by the 8 corners of this part's
-    // box (bounds_) transformed by its matrix; nothing when the position is 1e4 or more from the origin.
+    // box (box_.bounds) transformed by its matrix; nothing when the position is 1e4 or more from the origin.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
     // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
@@ -187,11 +187,10 @@ public:
     Vector3 boxMin_;
     Vector3 boxMax_;
     float radius_;
-    // the part's box: with boxPivot_ a FootprintPart, copied whole from the piece's LinkPartHeader
+    // the part's box: a FootprintPart, copied whole from the piece's LinkPartHeader
     // (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
     // is the piece's place in the figure, the radius the blood's size.
-    ClipBounds bounds_;
-    Vector3 boxPivot_;                  // the part's position when it was loaded; cleared with the bounds
+    FootprintPart box_;                 // bounds_ and the part's position when it was loaded (cleared with the bounds)
     lib::AlignedArray<VertexPacket> vertices_;
     lib::AlignedArray<NormalPacket> normals_;
 };

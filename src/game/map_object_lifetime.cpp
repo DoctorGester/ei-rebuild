@@ -81,6 +81,12 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 } // namespace
 
 
+void CObject3D::ClearBounds() {
+    std::memset(&bounds, 0, sizeof(bounds));
+    std::memset(unused_150, 0, sizeof(unused_150));
+    eyeHeight = 0;
+}
+
 CObject3D::CObject3D() { SetUpObject3D(); }
 EI_REWRITTEN_SPECIAL(0x00515BD0, CObject3D::CObject3D);
 
@@ -100,7 +106,7 @@ void CObject3D::SetUpObject3D() {
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
     partNames.Construct();
-    std::memset(&boundsFlags, 0, 0xE * 4);
+    ClearBounds();
     partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
     partBoxes = nullptr;
     partBoxGrowBy = 0;

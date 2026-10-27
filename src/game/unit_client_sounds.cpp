@@ -282,8 +282,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
         float turn = angle;
         if (facing.x < 0.0f) turn = -turn;
-        float sizeY = foot->bounds_.boxMax.y;
-        float sizeX = foot->bounds_.boxMax.x;
+        float sizeY = foot->box_.bounds.boxMax.y;
+        float sizeX = foot->box_.bounds.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
         // The prototype's valuesE0[0] is the footprint scale (read unchecked: a unit without a prototype
         // faults here).
