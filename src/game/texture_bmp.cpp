@@ -3,7 +3,6 @@
 // LoadTexture). The .bmp's 24-bit colours and, when there is an 8-bit a_<name>.bmp beside it, its
 // grey levels as alpha are converted to the texture's 16-bit format; the original writes them into a
 // system-memory surface and loads that into a managed texture.
-//
 // The texture has no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): its holder has
 // only the new renderer's memory (NewMemoryTextureHolder), the pixels are written there and the new
 // renderer reads them. See docs/notes/renderer.md (section 7).
@@ -36,7 +35,7 @@ const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead
 // The .bmp's pixels as 0068FBF0 writes them into `out` (`pitch` bytes a row): `rows` rows of
 // `perRow` 16-bit pixels, the colours read on as B, G, R bytes without the .bmp's row padding (and
 // in its row order: a bottom-up .bmp comes out upside down), the alpha the alpha .bmp's byte at the
-// pixel's index (when given, else 255), converted to the texture's format (004EDC00). Pixels from
+// pixel's index (when given, else 255), converted to the texture's format. Pixels from
 // row `maxRows` / column `maxPerRow` on are read but not written.
 void WritePixels(std::uint8_t* out, int pitch, int rows, int perRow, int maxRows, int maxPerRow,
                  const std::uint8_t* colour, const std::uint8_t* alpha, const ChannelLayout& layout) {

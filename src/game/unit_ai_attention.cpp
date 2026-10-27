@@ -1,5 +1,4 @@
 // The unit AI brain's attention (+0xA4): what it attacks now and looking for a better target
-// (005CF220, 005CFE40).
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -12,7 +11,7 @@
 #include <cstdint>
 
 namespace {
-// The order the player's check (0054C8B0) is asked about before an attack (AIOrder; the original
+// The order the player's check is asked about before an attack (AIOrder; the original
 // clears it with 00545F40 and makes it an attack (3, 6) on the target inline).
 using AttackOrder = AIOrder;
 

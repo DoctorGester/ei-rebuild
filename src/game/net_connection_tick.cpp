@@ -1,6 +1,5 @@
-// A connection's tick (00433BD0): clocks, lost-packet detection, sending, delayed id reuse and the
+// A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
 // timeout. See net_connection.h and docs/notes/network.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
@@ -44,7 +43,7 @@ std::int32_t ReliableSize(GameBuffer* b) {
 
 } // namespace
 
-// 00433BD0: advances the idle time and the clock by `dt`. Packets older than the loss timeout
+// Advances the idle time and the clock by `dt`. Packets older than the loss timeout
 // (3 standard deviations above the average round trip, at least 0.1, at most the session's
 // maxRoundTrip_) are rolled back and move to the acknowledged list, where they stay for
 // maxRoundTrip_ seconds. Sends an update every sendInterval_ (stopping early once the reliable
@@ -75,14 +74,14 @@ bool Connection::Tick(double dt) {
         if (D(loss) >= age) break;
         RollBack(&node->data);
         HistoryNode* next = node->next;
-        Packets::SpliceOne(acknowledged_.End(), node);   // 004380C0
+        Packets::SpliceOne(acknowledged_.End(), node);
         node = next;
         if (node == history_.End()) break;
     }
     for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
         if (D(kept) < age) {
-            node = Packets::Erase<PacketRecordElement>(node);   // 00437F30
+            node = Packets::Erase<PacketRecordElement>(node);
         } else {
             node = node->next;   // also NaN
         }
@@ -115,15 +114,15 @@ bool Connection::Tick(double dt) {
             auto id = static_cast<std::uint16_t>(e->id);
             stlp::vector<std::uint16_t>& pool = idPools_[e->type].free;
             if (pool.end() != pool.EndOfStorage()) {
-                stlp::ConstructAt(pool.end(), &id);   // 0043D7E0
+                stlp::ConstructAt(pool.end(), &id);
                 ++pool.Finish();
             } else {
-                pool.InsertOverflow<stlp::PlainElement<std::uint16_t>>(pool.end(), id, 1);   // 0043B530
+                pool.InsertOverflow<stlp::PlainElement<std::uint16_t>>(pool.end(), id, 1);
             }
         }
         oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end), 0043DC80
-        Batches::Erase<FreedIdsElement>(freedIds_.First());   // 004390C0
-        Batches::InsertDefault<FreedIdsElement>(freedIds_.End());   // 00439000
+        Batches::Erase<FreedIdsElement>(freedIds_.First());
+        Batches::InsertDefault<FreedIdsElement>(freedIds_.End());
     }
 
     bool alive = false;
@@ -165,16 +164,16 @@ void Connection::Delivered(SentPacket* packet) {
             if (found != tree->end()) {
                 entry = item->entry;
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                bySentId_.EraseKey(key);   // 0043BE60
+                bySentId_.EraseKey(key);
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
                 FreedIds& batch = freedIds_.End()->prev->data;   // the newest batch
                 if (batch.end() != batch.EndOfStorage()) {
-                    stlp::ConstructAt(batch.end(), &value);   // 0043D7F0
+                    stlp::ConstructAt(batch.end(), &value);
                     ++batch.Finish();
                 } else {
-                    batch.InsertOverflow<stlp::PlainElement<FreedId>>(batch.end(), value, 1);   // 0043B6C0
+                    batch.InsertOverflow<stlp::PlainElement<FreedId>>(batch.end(), value, 1);
                 }
                 tree->EraseAt(found);
             }

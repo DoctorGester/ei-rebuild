@@ -19,7 +19,7 @@
 #include <cstring>
 
 namespace {
-// 007C54B8: the defence factor of units without a player, per difficulty (GameDifficulty()).
+// The defence factor of units without a player, per difficulty (GameDifficulty()).
 inline const float* DefenceFactors() { return GameLogicSettings().defence; }
 
 UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }

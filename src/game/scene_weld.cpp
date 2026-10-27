@@ -1,5 +1,5 @@
 // The fake unit scene's vertex welding (0044C4A0, called by LoadFakeUnitScene after loading; Ghidra
-// names it LinkNodes): for every mesh, positions closer than the weld distance (0073B860) to an
+// names it LinkNodes): for every mesh, positions closer than the weld distance to an
 // earlier one are merged, the face corners and the node's morph key points are renumbered to the
 // merged list, then the texture coordinates the same way. Names provisional; see
 // docs/notes/objects.md ("Rewritten").
@@ -26,7 +26,7 @@ double WeldDistance() { return 0.00001 /*0073B860*/; }
 
 } // namespace
 
-// 0044C4A0. `unit`: the fake unit (meshes: CArray at +0x544, 0x18C each); `nodes`: the scene's
+// `unit`: the fake unit (meshes: CArray at +0x544, 0x18C each); `nodes`: the scene's
 // nodes, one per mesh (morph keys at +0xD0). A position or coordinate within the weld distance of
 // an earlier kept one (or a NaN distance) maps to it, otherwise it is kept.
 void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {

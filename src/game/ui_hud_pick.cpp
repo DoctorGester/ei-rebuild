@@ -1,5 +1,5 @@
 // The HUD buttons that start or drop a pending action on the battle screen: a spell button
-// (0063EC90), an action button (0063FB50), a quick item slot (0063DD70), and the battle screen's
+// an action button, a quick item slot, and the battle screen's
 // pending action they share (inlined by the original). See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
@@ -14,8 +14,8 @@
 #include <cstdint>
 
 namespace {
-constexpr const char* kSoundClick = "buttons\\battle\\click.wav";       // 00794460
-constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";   // 00794524
+constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
+constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 constexpr int kQuickSlots = 8;
 // Item categories (CItem::GetCategory) that carry a spell to aim: wands and scrolls.
 constexpr int kCategoryWand = 5;

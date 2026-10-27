@@ -5,7 +5,6 @@
 // layout and allocator as the copy linked into game.exe: every body is registered at its library
 // address (mfc_string.cpp), and verify_mfc_string.cpp checked it against the original in the hook
 // build until S21d.
-//
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
 
 #include "mfc.h"
@@ -26,9 +25,9 @@ class CFixedAlloc {
 public:
     CFixedAlloc* Construct(unsigned allocSize, unsigned blockSize);   // 006E6BCD (the constructor; returns this)
     void Destruct();                                                // 006E6BF5 (the destructor)
-    void FreeAll();                                                 // 006E6C09
-    void* Alloc();                                                  // 006E6C31
-    void Free(void* block);                                         // 006E6CC0
+    void FreeAll();
+    void* Alloc();
+    void Free(void* block);
 
     unsigned AllocSize() const { return allocSize_; }
     unsigned BlockSize() const { return blockSize_; }
@@ -84,87 +83,87 @@ inline char* PchNil() { return g_dataNil->data(); }
 class CString {
 public:
     CString() : data_(PchNil()) {}                  // inline in MFC (Init)
-    CString(const CString& source);                 // 007006E5
+    CString(const CString& source);
     CString(const char* text);                      // 007009DE (a MAKEINTRESOURCE id loads the string)
-    CString(const char* text, int length);          // 006FD4DE
-    ~CString();                                     // 00700970
+    CString(const char* text, int length);
+    ~CString();
 
-    const CString& operator=(const CString& source);    // 00700AA9
-    const CString& operator=(const char* text);         // 00700AF9
-    const CString& operator=(char c);                   // 006FD559
-    const CString& operator+=(const CString& text);     // 00700D88
-    const CString& operator+=(const char* text);        // 00700D4C
-    const CString& operator+=(char c);                  // 00700D73
+    const CString& operator=(const CString& source);
+    const CString& operator=(const char* text);
+    const CString& operator=(char c);
+    const CString& operator+=(const CString& text);
+    const CString& operator+=(const char* text);
+    const CString& operator+=(char c);
 
     int GetLength() const { return GetData()->dataLength; }
     bool IsEmpty() const { return GetData()->dataLength == 0; }
     operator const char*() const { return data_; }
-    void Empty();                                   // 007008FB
-    // CString::LoadString (00702B0E): string `id` of game.exe's table (mfc_resource.h); FALSE when it
+    void Empty();
+    // CString::LoadString: string `id` of game.exe's table (mfc_resource.h); FALSE when it
     // is missing or empty (the string is then empty).
     BOOL LoadResourceString(unsigned id);
 
-    char* GetBuffer(int minLength);                 // 00700DA0
+    char* GetBuffer(int minLength);
     void ReleaseBuffer(int newLength);              // 00700DEF (-1: up to the terminator)
-    char* GetBufferSetLength(int length);           // 00700E17
-    char* LockBuffer();                             // 00700E6A
-    void UnlockBuffer();                            // 00700E7C
+    char* GetBufferSetLength(int length);
+    char* LockBuffer();
+    void UnlockBuffer();
 
-    int Find(char c) const;                         // 00700E91
-    int Find(char c, int start) const;              // 00700E9F
-    int Find(const char* sub) const;                // 006FDBD9
-    int Find(const char* sub, int start) const;     // 006FDBE7
-    int ReverseFind(char c) const;                  // 006FDBB7
-    int FindOneOf(const char* set) const;           // 00700ECC
+    int Find(char c) const;
+    int Find(char c, int start) const;
+    int Find(const char* sub) const;
+    int Find(const char* sub, int start) const;
+    int ReverseFind(char c) const;
+    int FindOneOf(const char* set) const;
 
-    CString Mid(int first) const;                   // 006FD9B4
-    CString Mid(int first, int count) const;        // 006FD9D7
-    CString Left(int count) const;                  // 006FDAE9
-    CString Right(int count) const;                 // 006FDA6D
+    CString Mid(int first) const;
+    CString Mid(int first, int count) const;
+    CString Left(int count) const;
+    CString Right(int count) const;
 
-    void MakeLower();                               // 00700EFE
-    int Remove(char c);                             // 006FD963
-    void TrimRight();                               // 006FE11F
-    void TrimRight(char target);                    // 006FE0DD
-    void TrimRight(const char* targets);            // 006FE08A
-    void TrimLeft();                                // 006FE216
-    void TrimLeft(char target);                     // 006FE1D3
+    void MakeLower();
+    int Remove(char c);
+    void TrimRight();
+    void TrimRight(char target);
+    void TrimRight(const char* targets);
+    void TrimLeft();
+    void TrimLeft(char target);
 
     void __cdecl Format(const char* format, ...);   // 006FDF5F (`this` is the first stack argument)
-    void FormatV(const char* format, va_list arguments);   // 006FDC12
+    void FormatV(const char* format, va_list arguments);
 
     // The library's helpers.
     CStringData* GetData() const { return reinterpret_cast<CStringData*>(data_) - 1; }
     void Init() { data_ = PchNil(); }
-    void AllocBuffer(int length);                                       // 007007DD
-    void AllocCopy(CString& dest, int copyLength, int copyIndex, int extraLength) const;   // 0070099A
-    void AssignCopy(int length, const char* text);                      // 00700A7C
-    void ConcatCopy(int length1, const char* text1, int length2, const char* text2);   // 00700B61
-    void ConcatInPlace(int length, const char* text);                   // 00700CED
-    void CopyBeforeWrite();                                             // 00700919
-    void AllocBeforeWrite(int length);                                  // 00700947
-    // The constructor from text in place (007009DE) and operator=(LPCWSTR) (00700B20, thiscall, RET 4) as
+    void AllocBuffer(int length);
+    void AllocCopy(CString& dest, int copyLength, int copyIndex, int extraLength) const;
+    void AssignCopy(int length, const char* text);
+    void ConcatCopy(int length1, const char* text1, int length2, const char* text2);
+    void ConcatInPlace(int length, const char* text);
+    void CopyBeforeWrite();
+    void AllocBeforeWrite(int length);
+    // The constructor from text in place and operator=(LPCWSTR) (00700B20, thiscall, RET 4) as
     // members, so they register by name; both return this.
     CString* ConstructText(const char* text);
     CString* AssignWide(const wchar_t* text);
-    void Release();                                                     // 007008A7
-    static void __stdcall Release(CStringData* data);                   // 007008D8
-    static void __fastcall FreeData(CStringData* data);                 // 0070085F
+    void Release();
+    static void __stdcall Release(CStringData* data);
+    static void __fastcall FreeData(CStringData* data);
 
 private:
     char* data_;
 };
 static_assert(sizeof(CString) == 4);
 
-CString __stdcall operator+(const CString& a, const CString& b);    // 00700B9F
-CString __stdcall operator+(const CString& a, const char* b);       // 00700C05
-CString __stdcall operator+(const char* a, const CString& b);       // 00700C79
-CString __stdcall operator+(const CString& a, char b);              // 006FD56E
-CString __stdcall operator+(char a, const CString& b);              // 006FD5D0
+CString __stdcall operator+(const CString& a, const CString& b);
+CString __stdcall operator+(const CString& a, const char* b);
+CString __stdcall operator+(const char* a, const CString& b);
+CString __stdcall operator+(const CString& a, char b);
+CString __stdcall operator+(char a, const CString& b);
 
 // ConstructElements / DestructElements<CString> (AFXTEMPL.H, out of line): new elements point at
 // the empty string; destroying releases each.
-void __stdcall ConstructStrings(CString* elements, int count);      // 006FE268
-void __stdcall DestructStrings(CString* elements, int count);       // 006FE296
+void __stdcall ConstructStrings(CString* elements, int count);
+void __stdcall DestructStrings(CString* elements, int count);
 
 } // namespace mfc::impl

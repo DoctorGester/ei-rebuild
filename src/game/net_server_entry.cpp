@@ -16,7 +16,7 @@
 
 namespace net {
 
-// 0041A7E0 (slot 15): makes `*out` a new server entry: the name, the kind, the current map's title
+// Makes `*out` a new server entry: the name, the kind, the current map's title
 // as the description when a map message is held (else empty), the number of clients, the maximum
 // and whether a password is set.
 void ServerSession::Describe(RefPtr* out) {
@@ -48,7 +48,7 @@ void ServerSession::Describe(RefPtr* out) {
         out->Share(entry);
     }
 }
-// 00417E10: when announced, the master's address is set from the host name at 0079BED8 and port
+// When announced, the master's address is set from the host name at 0079BED8 and port
 // 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;

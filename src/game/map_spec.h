@@ -51,10 +51,10 @@ static_assert(sizeof(TrapPoints) == 0x14);
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; 005927C0 passes it to
 // MagicTrap::SetUp).
 struct MagicTrapRecord {
-    std::uint32_t sides;        // +0x00 (-1); the zone loader (00481660) makes it the players the
+    std::uint32_t sides;        // +0x00 (-1); the zone loader makes it the players the
                                 // owner (+0x6E) is hostile to (relation 2), one bit each
     mfc::CString spell;         // +0x04 the spell's text
-    Vector3 position;           // +0x08 the position when the zone loaded (00481660)
+    Vector3 position;           // +0x08 the position when the zone loaded
     TrapArea area;              // +0x14
     TrapPoints points;          // +0x28
     std::int32_t period;        // +0x3C (15)
@@ -140,22 +140,22 @@ void __fastcall BehaviourDestruct(Behaviour* self);
 // written chunk by chunk (no record is a block of file bytes). They live on the game's heap.
 class Spec : public Chunk {
 public:
-    // 00469CA0. No parent chunk, id -1, at the origin unrotated, named and commented "none", kind 0.
+    // No parent chunk, id -1, at the origin unrotated, named and commented "none", kind 0.
     Spec();
 
     void OnChunk() override {}                              // 0: 00469E20 (empty)
-    // 2: 00469F20. The world object with the record's id.
+    // The world object with the record's id.
     virtual void* WorldObject();
     virtual void Nothing(int) {}                            // 3: 00469DA0 (empty, RET 4)
-    // 4: 00469DB0 (RET 4). The type name in `out` (a CString returned by value): "error".
+    // The type name in `out` (a CString returned by value): "error".
     virtual mfc::CString* TypeName(mfc::CString* out);
-    // 5: 00469F40 (RET 0xC). Moves the record, then Apply.
+    // Moves the record, then Apply.
     virtual void Move(float dx, float dy, float dz);
-    // 6: 00469DE0. Removes the world object (here: Apply).
+    // Removes the world object (here: Apply).
     virtual void Remove();
     // 7: 00469DF0 (empty). Makes or updates the world object.
     virtual void Apply() {}
-    // 8: 00469E00. Refreshes the world object (here: Apply).
+    // Refreshes the world object (here: Apply).
     virtual void Refresh();
     // 9: 00469E10 (empty). Writes the record as a chunk of its own.
     virtual void Save() {}
@@ -182,7 +182,7 @@ public:
 // An object record (game.exe's vtable 0073C5F0, 0x8C bytes; chunk B001).
 class ObjectSpec : public Spec {
 public:
-    // 0046A5C0. Kind 1, no model, textures "none", player -1, scale 0.5, visible, no parts.
+    // Kind 1, no model, textures "none", player -1, scale 0.5, visible, no parts.
     ObjectSpec();
     // 0046AEB0 (deleting: 0046A6F0). The quick item effect's record (UseQuickItem, game.exe's twin
     // vtable 0073FA58) is one too: its 0058EDF0 / 0058EDD0 are the same code.
@@ -191,15 +191,15 @@ public:
     void OnChunk() override;                                 // 0: 0046AB20, the chunk just read, by its id
     mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046B090 (RET 4), the player number ("%i")
     void Remove() override;                                  // 6: 0046AF70, removes the world object, then Apply
-    // 7: 0046AFB0. Makes the world object, or updates it from the record (position, rotation, scale,
+    // Makes the world object, or updates it from the record (position, rotation, scale,
     // visibility) while it is out of the editor's lists.
     void Apply() override;
-    void Refresh() override;                                 // 8: 0046AFA0
+    void Refresh() override;
     void Save() override;                                    // 9: 0046A920, the record as chunk B001
-    // 11: 0046A940. The common fields (also called directly by the subclasses' Save).
+    // The common fields (also called directly by the subclasses' Save).
     virtual void WriteFields();
 
-    // 0046A710 (RET 4). Copies `from`: the base fields but its kind and chunk state, then the object's.
+    // Copies `from`: the base fields but its kind and chunk state, then the object's.
     void Assign(const ObjectSpec* from);
 
     // The world object an object record makes is a map object (a unit for a unit record).
@@ -224,11 +224,11 @@ public:
 // A flame (game.exe's vtable 0073C620, 0xA0 bytes; chunk BBBF0000).
 class FlameSpec : public ObjectSpec {
 public:
-    // 0046B210. Kind 6, volume 0.7, the sound "nature\fire\small.wav".
+    // Kind 6, volume 0.7, the sound "nature\fire\small.wav".
     FlameSpec();
     ~FlameSpec() override;          // 0046B120 (deleting: 0046B1F0)
 
-    void OnChunk() override;        // 0: 0046B3C0
+    void OnChunk() override;
     void Apply() override;          // 7: 0046B310, the world object is always made again
     void Save() override;           // 9: 0046B340, chunk BBBF0000 with the flame's fields, then the common ones
 
@@ -240,14 +240,14 @@ public:
 // A magic trap (game.exe's vtable 0073C650, 0xD0 bytes; chunk BBAB0000).
 class TrapSpec : public ObjectSpec {
 public:
-    // 0046B4A0. Kind 7, every side, no area or points, period 15.
+    // Kind 7, every side, no area or points, period 15.
     TrapSpec();
     // 0046B570 (deleting: 0046B550). The arrays' destructors inlined: their blocks freed.
     ~TrapSpec() override;
 
-    void OnChunk() override;                                 // 0: 0046B7D0
+    void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046B520 (RET 4), "MagicTrap"
-    // 9: 0046B680. Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then
+    // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then
     // the common ones.
     void Save() override;
 
@@ -257,11 +257,11 @@ public:
 // A lever (game.exe's vtable 0073C6B0, 0xA4 bytes; chunk BBAC0000).
 class LeverSpec : public ObjectSpec {
 public:
-    // 0046BD40. Kind 8, the key {1, 0, 0}, two states.
+    // Kind 8, the key {1, 0, 0}, two states.
     LeverSpec();
     ~LeverSpec() override;          // 0046BDC0 (deleting: 0046BDA0)
 
-    void OnChunk() override;        // 0: 0046BF20
+    void OnChunk() override;
     void Save() override;           // 9: 0046BE80, chunk BBAC0000
 
     LeverSetup lever;            // +0x8C
@@ -281,9 +281,9 @@ class EffectSpec : public Spec {
 public:
     ~EffectSpec() override;         // 0046D370 (deleting: 0046D350)
 
-    // 2: 0046D3D0. Effects are managed under -3001 - id.
+    // Effects are managed under -3001 - id.
     void* WorldObject() override;
-    // 5: 0046D420 (RET 0xC). Moves the record, not below the terrain, then Apply.
+    // Moves the record, not below the terrain, then Apply.
     void Move(float dx, float dy, float dz) override;
     // 11: 0046D3F0 (the sound record's 0046E490 is the same code; RET 4). Shows or hides the world
     // object (flag 0x40 hides).
@@ -305,10 +305,10 @@ protected:
 // A particle source (game.exe's vtable 0073C758; chunk DD01).
 class ParticleSpec : public EffectSpec {
 public:
-    ParticleSpec();                 // 0046D520. Kind 4, no type, scale 1.
+    ParticleSpec();                 // Kind 4, no type, scale 1.
     ~ParticleSpec() override;       // 0046D5A0 (deleting: 0046D580)
 
-    void OnChunk() override;                                 // 0: 0046D730
+    void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046D550 (RET 4), "Particle source"
     void Apply() override;          // 7: 0046D870, makes the source (when it has a type) or updates its effect
     void Save() override;           // 9: 0046D680, chunk DD01
@@ -320,10 +320,10 @@ public:
 // A light (game.exe's vtable 0073C788; chunk AA01).
 class LightSpec : public EffectSpec {
 public:
-    LightSpec();                    // 0046D960. Kind 2, white, shadows, radius 10.
+    LightSpec();                    // Kind 2, white, shadows, radius 10.
     ~LightSpec() override;          // 0046DA20 (deleting: 0046DA00)
 
-    void OnChunk() override;                                 // 0: 0046DBF0
+    void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046D9D0 (RET 4), "Light"
     void Apply() override;          // 7: 0046DD70, makes the light or updates its effect (colour, radius, position)
     void Save() override;           // 9: 0046DB20, chunk AA01
@@ -337,12 +337,12 @@ public:
 // A sound (game.exe's vtable 0073C7B8; chunk CC01).
 class SoundSpec : public EffectSpec {
 public:
-    SoundSpec();                    // 0046DE70. Kind 3, no sounds, volume 10, radius 15, pauses 1500-3000.
+    SoundSpec();                    // Kind 3, no sounds, volume 10, radius 15, pauses 1500-3000.
     ~SoundSpec() override;          // 0046DF70 (deleting: 0046DF50)
 
-    void OnChunk() override;                                 // 0: 0046E190
+    void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046DF20 (RET 4), "Sound"
-    // 7: 0046E380. Makes the sound (when it has sounds); otherwise moves the world object and makes its
+    // Makes the sound (when it has sounds); otherwise moves the world object and makes its
     // effect again.
     void Apply() override;
     void Save() override;           // 9: 0046E090, chunk CC01
@@ -361,10 +361,10 @@ public:
 };
 
 // A unit record (game.exe's vtable 0073C6E0, 0x324 bytes; chunk BBBB0000; code in map_spec_unit.cpp).
-// The world server's CreateUnits (0058EF20) fills one on the stack for each unit it creates.
+// The world server's CreateUnits fills one on the stack for each unit it creates.
 class UnitSpec : public ObjectSpec {
 public:
-    // 0046C010. Kind 5, five behaviour records (the first enabled), the prototype "none", no statistics.
+    // Kind 5, five behaviour records (the first enabled), the prototype "none", no statistics.
     UnitSpec();
     ~UnitSpec() override;           // 0046C140 (deleting: 0046C120)
 
@@ -379,7 +379,7 @@ public:
 };
 
 // Record constructors (each returns this), by .mob chunk id.
-ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);  // 0046E5E0
+ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
 // The records of a .mob file by id (00481660's local): an STLport hash_map<int, record*> (100
 // buckets to start) and the largest id read.
 struct MobRecords {
@@ -391,12 +391,12 @@ static_assert(offsetof(MobRecords, maxId) == 0x14);
 // A .mob file's root chunk (mob_reader.cpp; CWorldServer::LoadMapObjects opens it).
 class MobFile : public RootChunk {
 public:
-    // 00481F00 (RET 0xC): reads the file's top-level chunks: the scripts (0xACCEECCA plain,
+    // Reads the file's top-level chunks: the scripts (0xACCEECCA plain,
     // 0xACCEECCB encoded) into `scripts`, the weather (0xABD0: wind and time of day, applied to the
     // server), the records (0xB000) into `records`, the players (0xDDDDDDD1) into `diplomacy`.
     // Returns the last 0xC000 (true) / 0xD000 (false) seen, true without either (AL).
     bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts);
-    // 00481660 (RET 8): reads the file, applies its player relations, makes every record's world
+    // Reads the file, applies its player relations, makes every record's world
     // object (traps learn their hostile players, units their alarm records), frees the records, then
     // loads the scripts unless `keepIds`' low byte is set. Returns true (AL). The first argument
     // (the world) is not used.

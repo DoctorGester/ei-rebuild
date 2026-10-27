@@ -1,5 +1,5 @@
 // The game's CArray<T> instantiations (mfc_array.h) registered at their own addresses: the ones something still
-// reaches by game.exe's address (tools/registration_readers.py, C20c); our code calls the others directly.
+// reaches by game.exe's address (tools/registration_readers.py); our code calls the others directly.
 // Instantiations with the same element policy share one body; the
 // groups were found by comparing the instructions of every instantiation our code forwards to
 // (addresses masked), the element sizes and helpers read from each.

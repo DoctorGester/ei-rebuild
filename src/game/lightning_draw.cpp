@@ -1,5 +1,5 @@
 // Drawing a lightning bolt (00467AD0, CLightning's renderer virtual; called by DrawAll) and its
-// glow (00467590): the segments as textured strips through the render device (slot 16), then a
+// glow: the segments as textured strips through the render device (slot 16), then a
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
@@ -27,11 +27,11 @@
 
 namespace {
 
-// 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
-// 00455950: the world an engine object belongs to (its frame counter at +0x64).
+// The visibility of a bounds record for the device's view (+8): 2 is outside.
+// The world an engine object belongs to (its frame counter at +0x64).
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
 // points' exit-time free 004679F0; sprite record constructor 00468F90 [pointer, count]; aligned
-// allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled (00468F90).
+// allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled.
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
 
@@ -47,10 +47,10 @@ using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C
 static_assert(sizeof(SpriteArray) == 0x14);
 constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00467A10 (00468D80)
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00467A10
 constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
-void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }   // 004679F0
+void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 // The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
@@ -64,7 +64,7 @@ float RandomOffset() {
 
 } // namespace
 
-// 00467590. `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
+// `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
 void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size) {
     if (!(g_glowGuards & 1)) {
@@ -79,9 +79,9 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         p.growBy = 0;
         p.capacity = 0;
         p.size = 0;
-        libcrt::AtExit(FreeGlowPoints);   // 004679F0
+        libcrt::AtExit(FreeGlowPoints);
     }
-    TextureHolderEnsureLoaded(&glowTexture_);   // 00500970
+    TextureHolderEnsureLoaded(&glowTexture_);
     if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, glowTexture_)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
@@ -96,7 +96,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     SizeSprites();
     SizePoints();
 
-    // Towards the camera (0079B2C4), normalised unless zero.
+    // Towards the camera, normalised unless zero.
     const Vector3& camera = TheCamera()->localPosition_;
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
@@ -122,9 +122,9 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
 }
 EI_REWRITTEN(0x00467590, CLightning::DrawGlow);
 
-// 00467AD0. 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
+// 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::Draw(void* device) {
-    TextureHolderEnsureLoaded(&texture_);   // 00500970
+    TextureHolderEnsureLoaded(&texture_);
     auto* renderer = static_cast<CSceneRenderer*>(device);
     if (!renderer->SetTexture(0, texture_)) return 0;
     int visibility = renderer->pipeline_->ClipTest(&bounds_);

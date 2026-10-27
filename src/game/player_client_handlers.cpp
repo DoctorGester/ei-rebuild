@@ -39,9 +39,9 @@ constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
 const char* FixedViewZone() { return "gz20g"; }
-// 007C8388: an identity rotation (set by the static initialiser 00666CC0).
+// An identity rotation (set by the static initialiser 00666CC0).
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
-// pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
+// pi, 1/180 and 30: the fixed view's pitch, read from the exe.
 
 CUnit* FindClientUnit(int id) { return static_cast<CWorld*>(TheClientWorld())->FindUnit(id); }
 

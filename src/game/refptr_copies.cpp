@@ -74,9 +74,9 @@ EI_REWRITTEN(0x00439910, RefPtrRelease);
 EI_REWRITTEN(0x0059B4B0, RefPtrRelease);
 EI_REWRITTEN(0x0069FD50, RefPtrRelease);
 EI_REWRITTEN(0x004A5D70, RefPtrRelease);
-EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, 007C2F64's exit function (no Ghidra function; S16b)
+EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, 007C2F64's exit function (no Ghidra function)
 
-// 004AB960 (RET 4; S16a): counted_ptr<T>'s scalar deleting destructor (the release, then operator
+// Counted_ptr<T>'s scalar deleting destructor (the release, then operator
 // delete when bit 0 of `flags` is set). Returns the holder.
 RefPtr* RefPtr::DeleteScalar(unsigned flags) {
     RefPtrRelease(this);
@@ -190,7 +190,7 @@ EI_REWRITTEN(0x00429A50, RefPtr::ShareReturn);
 EI_REWRITTEN(0x00429AB0, RefPtr::ShareReturn);
 
 // Assignment of an owning pointer (the original inlines Destroy and Share): from another holder
-// (0042A770) and from a raw object (00438110). Nothing happens when it already holds the object.
+// and from a raw object. Nothing happens when it already holds the object.
 RefPtr* RefPtr::AssignHolder(const RefPtr* other) {
     if (other->ptr == ptr) return this;
     Destroy();
@@ -207,7 +207,7 @@ RefPtr* RefPtr::AssignObject(CRefObject* object) {
 EI_REWRITTEN(0x00438110, RefPtr::AssignObject);
 
 // Holders of engine objects (a dword reference count at +4, released through slot 4).
-// 00421350: release (a tail call of slot 4 when set).
+// Release (a tail call of slot 4 when set).
 void __fastcall ObjectHolderRelease(CEngineObject** self) {
     if (CEngineObject* object = *self) object->Release();
 }

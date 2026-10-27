@@ -1,4 +1,4 @@
-// The per-cell occluder words (CAIMap + 0x26AC): adding (005B61B0) and removing (005B6380) one
+// The per-cell occluder words (CAIMap + 0x26AC): adding and removing one
 // footprint cell's occluder. A word holds one occluder inline: bit 8 set = none, bits 5-6 the
 // transparency, 9-11 the kind, 12-21 the top and 22-31 the bottom height. With bit 7 set the
 // occluders are a chain of 8-byte records (SectorOccluder, sector_map.h) of the cell's 32x32

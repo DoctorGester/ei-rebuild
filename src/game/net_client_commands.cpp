@@ -1,6 +1,6 @@
-// The game client's timed entries and commands: an object kept on the timers list (0041D1A0), a
-// command message for the server (0041D260), the client's own server entry (0041D420, slot 16), the
-// start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
+// The game client's timed entries and commands: an object kept on the timers list, a
+// command message for the server, the client's own server entry (0041D420, slot 16), the
+// start of the game (0041D410, slot 15) and the ratio of a received buffer.
 // See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
@@ -41,7 +41,7 @@ void DestroyInline(RefPtr* p) {
 
 } // namespace
 
-// 0041D1A0: keeps `object` on the timers list for `seconds` (shared into the entry).
+// Keeps `object` on the timers list for `seconds` (shared into the entry).
 void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     ClientSession* self = this;
     RefPtr raw;
@@ -54,7 +54,7 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
 }
 EI_REWRITTEN(0x0041D1A0, ClientSession::AddTimed);
 
-// 0041D260: sends the server a command message, kept 60 seconds on the timers list.
+// Sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(int kind, const char* text) {
     ClientSession* self = this;
     auto* command = NewCounted<CommandMessage>();
@@ -75,7 +75,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
 }
 EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 
-// 0041D420 (slot 16): makes `*out` an empty server entry (no name or description, kind 4, no
+// Makes `*out` an empty server entry (no name or description, kind 4, no
 // players).
 void ClientSession::CreateEntry(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
@@ -95,7 +95,7 @@ void ClientSession::CreateEntry(RefPtr* out) {
 }
 EI_REWRITTEN(0x0041D420, ClientSession::CreateEntry);
 
-// 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
+// The game flow begins the multiplayer game.
 void ClientSession::OnJoined() { TheGameFlow()->BeginMultiplayerGame(); }
 EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 

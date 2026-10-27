@@ -1,8 +1,7 @@
 // Appending one variable set's values to another, one type at a time (004C2B70 floats, 004C2FE0
-// strings, 004C3450 objects, 004C3DC0 groups); ScriptVars::AppendFrom (004B3900) calls the four.
+// strings, 004C3450 objects, 004C3DC0 groups); ScriptVars::AppendFrom calls the four.
 // The loader uses it to add a file's GlobalVars to the globals. See script.h and
 // docs/notes/script.md.
-//
 // Each grows the values by the other set's value count (the inlined CArray::SetSize), the names
 // to old size + the other set's name count, then copies, for every one of the other set's names,
 // the name and the value with the same index into the new slots.
@@ -28,7 +27,7 @@ namespace {
 mfc::CString* StringAt(const void* array, void* out, int index) {
     return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
 }
-// 004CE1E0: a reference's destructor (__thiscall (flags)).
+// A reference's destructor (__thiscall (flags)).
 
 void Release(CEngineObject* object) {
     if (object) object->Release();
@@ -119,7 +118,7 @@ EI_REWRITTEN(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 namespace {
 
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-// 004B5EF0: a group's destructor body (references released, array freed).
+// A group's destructor body (references released, array freed).
 void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
@@ -187,9 +186,9 @@ EI_REWRITTEN(0x004C0020, ScriptVarsClear);
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
 void ScriptVars::AppendFrom(const ScriptVars* other) {
-    NamedValues(&floats)->Append(NamedValues(&other->floats));      // 004C2B70
-    NamedValues(&strings)->Append(NamedValues(&other->strings));    // 004C2FE0
-    NamedValues(&objects)->Append(NamedValues(&other->objects));    // 004C3450
-    NamedValues(&groups)->Append(NamedValues(&other->groups));      // 004C3DC0
+    NamedValues(&floats)->Append(NamedValues(&other->floats));
+    NamedValues(&strings)->Append(NamedValues(&other->strings));
+    NamedValues(&objects)->Append(NamedValues(&other->objects));
+    NamedValues(&groups)->Append(NamedValues(&other->groups));
 }
 EI_REWRITTEN(0x004B3900, ScriptVars::AppendFrom);

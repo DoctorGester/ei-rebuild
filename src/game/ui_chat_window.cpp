@@ -49,11 +49,11 @@ constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
 constexpr int kFaceWidth = 0x38;
 constexpr int kFirstFaceLeft = 0x2E8;
-constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers (006095FB)
+constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-// 0060A120: vector<counted pointer>::_M_insert_overflow(pos, x, n) (stlp::CountedRefVector's): a new
+// Vector<counted pointer>::_M_insert_overflow(pos, x, n) (stlp::CountedRefVector's): a new
 // block with the elements before `pos`, `n` counted copies of `x`, the rest; the old elements released.
 
 // The counted pointers' inlined helpers (16-bit count; released through CRefObject::Release).
@@ -87,7 +87,7 @@ bool SameText(const char* a, const char* b) {
 // game.exe's tables 00741478 / 00741444: its own update (24); the input side's click (2) and mouse move (4).
 CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     texts_.Construct();
-    // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
+    // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
     AddSurface(new CUiSurface(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1));
@@ -124,7 +124,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
         sprite->SetScale(0.3f);
         Vector3 axis{1.0f, 0.0f, 0.0f};
         Quaternion turn;
-        // pi (007410D0) * 1.05 (0073CEE0), passed as a float.
+        // pi * 1.05, passed as a float.
         sprite->localRotation_ =
             *turn.SetAxisAngle(axis, 3.1415927f /*007410D0*/ * 1.05f /*0073CEE0*/);
     } else {
@@ -193,7 +193,7 @@ void CChatWindow::ShowPlayers() {
         UnitPrototypeRecord* prototype;
         {
             prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
-            // EI_Plugin's Fixes (006093B7): an unknown prototype becomes the first one that is no creature.
+            // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
@@ -202,7 +202,7 @@ void CChatWindow::ShowPlayers() {
             stlp::string key(prototype->modelName.GetString());
             figure = unitdb::ModelNamed(key);
         }
-        const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (00609427): the model's fifth character
+        const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
         if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : SameText(figure->figureName, "unhuma"))
             sex = "m";
         else if (fixes || SameText(figure->figureName, "unhufe"))

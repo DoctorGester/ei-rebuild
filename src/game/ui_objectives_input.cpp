@@ -183,7 +183,7 @@ EI_REWRITTEN(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
 namespace {
 constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
 constexpr int kVisibleRows = 5;
-constexpr float kNearestScale = 1.2f;    // 0073CDF4
+constexpr float kNearestScale = 1.2f;
 constexpr float kOtherExitU = -0.125f;   // 0xBE000000
 constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 // The blink: (cos(rate x t) x amplitude + base) x 255 (0073CE18 2.5, 0073C54C 0.3, 0073B86C 0.5;

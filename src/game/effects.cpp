@@ -23,23 +23,23 @@
 namespace {
 
 constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;                                           // 0073B86C
-constexpr float kOne = 1.0f;                                            // 0073B84C
-constexpr double kHalfDouble = 0.5;                                     // 0073CC88
-// The 2^-32 scale of the random range helpers (0073C468); its last bit is set (sic).
+constexpr float kHalf = 0.5f;
+constexpr float kOne = 1.0f;
+constexpr double kHalfDouble = 0.5;
+// The 2^-32 scale of the random range helpers; its last bit is set (sic).
 constexpr double kRandomScale = std::bit_cast<double>(0x3DF0000000100000ull);
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);       // 0073C54C
-constexpr float kCloudAlpha = 4.5f;                                     // 0073CDAC
+constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);
+constexpr float kCloudAlpha = 4.5f;
 constexpr float kSmokeGrowth = std::bit_cast<float>(0x3F87AE14u);      // 0073CE38 (1.06)
 constexpr float kSmokeDrift = std::bit_cast<float>(0x3E19999Au);       // 0073CD18 (0.15)
 constexpr float kDebrisDamping = std::bit_cast<float>(0x3F59999Au);    // 0073CB1C (0.85)
 constexpr float kDebrisGravity = std::bit_cast<float>(0x3D6147AEu);    // 0073CB20 (0.055)
-constexpr float kDebrisFadeIn = 4.0f;                                   // 0073CB24
+constexpr float kDebrisFadeIn = 4.0f;
 constexpr float kDebrisGrowth = std::bit_cast<float>(0x3F90A3D7u);     // 0073CCF0 (1.13)
 constexpr float kTendrilDensity = std::bit_cast<float>(0x41649249u);   // 0073CE3C (14.285714)
-constexpr double kMushroomWidth = 0.2;                                  // 0073CCE0
+constexpr double kMushroomWidth = 0.2;
 constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0073CCC0 (0.12)
-constexpr double kOrbitMinRadius = 0.01;                                // 0073CE20
+constexpr double kOrbitMinRadius = 0.01;
 constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC80 (1.6)
 
 
@@ -53,7 +53,7 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// 004113A0: the camera's shake around a point (the camera object is 0079B2A8).
+// The camera's shake around a point (the camera object is 0079B2A8).
 // Arguments: camera, unused EDX, point, strength, range, duration.
 
 constexpr int kTypeFire = 0x2003;

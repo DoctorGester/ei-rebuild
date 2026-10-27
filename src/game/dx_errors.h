@@ -13,7 +13,7 @@ const char* __fastcall DirectXErrorText(long result);
 
 // The error object the device layer throws (0xC bytes on the game's heap), by pointer: this compiler's `throw` of a
 // CDXException* makes the game's throw information (00759908: the pointer to CDXException, to CGameException and
-// to void; C18e), a handler matches by the decorated names. WinMain catches it; every such throw ends the game.
+// to void), a handler matches by the decorated names. WinMain catches it; every such throw ends the game.
 class CGameException {
 public:
     // 004815D0 (deleting: 00481580; game.exe's vtable 0073CAB0): the message freed.
@@ -35,7 +35,7 @@ class CDXException final : public CGameException {
 public:
     // 00480250 (cdecl, variadic, in the original): the wvsprintf text of `format`.
     CDXException(const char* format, va_list args);
-    // 00480300: "<text> (0x<result>) <the result's text>" (DirectXErrorText), and the result kept.
+    // "<text> (0x<result>) <the result's text>" (DirectXErrorText), and the result kept.
     CDXException(long result, const char* format, va_list args);
     // 004815B0 (deleting; game.exe's vtable 0073CAB4).
     ~CDXException() override;

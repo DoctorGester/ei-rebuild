@@ -31,19 +31,19 @@ constexpr std::uint32_t kMove2Bit = 0x10000;
 constexpr std::uint32_t kMove4Bit = 0x8000;
 constexpr std::uint32_t kEntryIndex = 0xFF;
 
-const char* const kNoAnimationEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";   // 0078F918
-const char* const kBodyPart = "bd";             // 0078AD38
-const char* const kChestPart = "chest";         // 0078F954
-const char* const kMosquito = "unmosp";         // 0078F94C
-const char* const kRightHand = "rh3";           // 0078F95C
+const char* const kNoAnimationEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
+const char* const kBodyPart = "bd";
+const char* const kChestPart = "chest";
+const char* const kMosquito = "unmosp";
+const char* const kRightHand = "rh3";
 
-constexpr double kNoExtent = 0.0;               // 0073B858
-constexpr float kExtentScale = 1.0f;            // 0073B84C
-constexpr float kMosquitoExtentScale = 2.0f;    // 0073CDB8
+constexpr double kNoExtent = 0.0;
+constexpr float kExtentScale = 1.0f;
+constexpr float kMosquitoExtentScale = 2.0f;
 
 // A random animation entry of the figure matching `key` (005190C0: the entries whose kind equals
 // the key's and whose variant bits include the key's, or exactly none for a key without them, and
-// which virtual slot 18 accepts; one picked with rand()), or of the key's kind only (00519380);
+// which virtual slot 18 accepts; one picked with rand()), or of the key's kind only;
 // null when none (both RET 4).
 FigureAnimation* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return unit->RandomAnimation(key); }
 FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) { return unit->RandomAnimationOfKind(key); }

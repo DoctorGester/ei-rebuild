@@ -1,7 +1,6 @@
 // The weather's noise curves (004E3980 and the static initialisers 004E3AD0 / 004E3B20; A-E2). See
-// weather_noise.h. The curves are named globals (C18j): their zeros take the place of 004E3AD0's fills
+// weather_noise.h. The curves are named globals: their zeros take the place of 004E3AD0's fills
 // of the segments, and 004E3B20, ported on the names, builds them at its place in the initialiser list.
-//
 // The arithmetic is the original's x87 sequence: sums and products stay at the FPU's precision (53
 // bits at start-up) and are rounded to a float only where the original stores one.
 #include "weather_noise.h"

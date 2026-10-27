@@ -22,9 +22,9 @@ namespace {
 
 constexpr const char* kClassName = "CSkyObject";
 constexpr int kClassId = 0x20;
-constexpr float kColourScale = 255.0f;   // 0073C370
-constexpr float kLightScale = 150.0f;    // 0073D618
-constexpr float kHorizon = 1.0f;         // 0073B84C
+constexpr float kColourScale = 255.0f;
+constexpr float kLightScale = 150.0f;
+constexpr float kHorizon = 1.0f;
 
 // A vertex's row `row` (x 0, y 1, z 2) in its packet: of the positions, of the normals.
 float Row(const lib::AlignedArray<VertexPacket>& packets, int vertex, int row) {
@@ -86,7 +86,7 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
         colorsB_.data[i] = specular;
         colorsA_.data[i] = lit;
     }
-    render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
+    render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps
 }
 
 void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused) {
@@ -96,8 +96,8 @@ void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, Sky
 namespace {
 constexpr int kSkyTextureKind = 0x3D;
 const char* const kSkyTextureName = "sky00";
-constexpr float kSkyDrop = 16.0f;                // 0073CA98: the dome sits this far below the eye
-constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // 0073D61C: radians per world tick
+constexpr float kSkyDrop = 16.0f;                // the dome sits this far below the eye
+constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // radians per world tick
 // Two 16-byte statics the draw passes to renderer slot 14 (not read there).
 constexpr Quaternion kSkyDrawA = /*007AA890*/ {1.0f, 0.0f, 0.0f, 0.0f};   // static initialisers: the identity
 constexpr Vector3 kSkyDrawB = /*007AA8A0*/ {};               // and the origin
@@ -164,8 +164,8 @@ EI_REWRITTEN(0x004D9DE0, CSky::Light);
 EI_REWRITTEN(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
-// S13: more copies, of the scene loader's point block (00475F10), the unit skins' bytes (0056FCC0),
-// the figure factory's packets (0056FD00) and the terrain's arrays (0056FD30 the texture classes,
+// S13: more copies, of the scene loader's point block, the unit skins' bytes,
+// the figure factory's packets and the terrain's arrays (0056FD30 the texture classes,
 // frames and visible columns; 00570DE0 the wave phases; 00570E10 the page materials; 00570E40 the
 // water materials; 00570E70 the vertex tiles).
 EI_REWRITTEN(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);

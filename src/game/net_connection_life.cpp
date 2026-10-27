@@ -39,47 +39,47 @@ inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAlloca
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
-// The std::vector<int> of received sequences given back to the pool (0043A300).
+// The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) { c->received_.FreeStorage(); }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
     c->reliableIn_.~GrowingBuffer();
     c->reliableOut_.~GrowingBuffer();
-    c->incoming_.Release<ChunkElement>();   // 00439D40
+    c->incoming_.Release<ChunkElement>();
     c->headers_.Release<ChunkElement>();
     trees::Attached::Destroy(&c->attached_);
     trees::Records::Destroy(&c->records_);
-    c->acknowledged_.Release<PacketRecordElement>();   // 004399C0
+    c->acknowledged_.Release<PacketRecordElement>();
     c->history_.Release<PacketRecordElement>();
     libcrt::DestroyElements(c->priorities_, sizeof(Connection::EntryMap), 11, Element<trees::Entries::Destroy>);
     trees::Objects::Clear(&c->byObject_);
     trees::Objects::FreeHeader(&c->byObject_);
-    trees::SentIds::Clear(&c->bySentId_);   // 004394A0
-    trees::SentIds::FreeHeader(&c->bySentId_);   // 00439500
-    c->freedIds_.Clear<FreedIdsElement>();   // 0043BA20
-    stlp::deallocate(c->freedIds_.End(), sizeof(FreedBatch));   // 0043A410
+    trees::SentIds::Clear(&c->bySentId_);
+    trees::SentIds::FreeHeader(&c->bySentId_);
+    c->freedIds_.Clear<FreedIdsElement>();
+    stlp::deallocate(c->freedIds_.End(), sizeof(FreedBatch));
     libcrt::DestroyElements(c->idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(c);
 }
 
 } // namespace
 
-// 00432DA0: the constructor (id). Builds every container, then: the send sequence starts at the
+// The constructor (id). Builds every container, then: the send sequence starts at the
 // tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
 // The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    received_.ConstructEmpty();   // vector<int>() (00438CE0)
+    received_.ConstructEmpty();   // vector<int>()
     address_ = NetAddress{};
     libcrt::ConstructElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolConstruct>, Element<IdPoolDestruct>);
-    freedIds_.Construct();   // 00439120
-    bySentId_.ConstructWith(&tags[3], &tags[2]);   // 004393C0
+    freedIds_.Construct();
+    bySentId_.ConstructWith(&tags[3], &tags[2]);
     byObject_.ConstructWith(&tags[2], &tags[3]);
     libcrt::ConstructElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Construct>,
                               Element<trees::Entries::Destroy>);
-    history_.Construct();   // 00439960
+    history_.Construct();
     acknowledged_.Construct();
     // The trees' comparison byte is copied from the stack slot of the id argument.
     records_.ConstructBase(&tags[3]);
@@ -90,8 +90,8 @@ Connection::Connection(std::uint32_t id) {
     attached_.Compare() = static_cast<std::uint8_t>(id);
     attached_.Count() = 0;
     trees::Attached::EmptyInitialize(&attached_);
-    headers_.Construct();   // 00439CE0
-    // The list's allocator proxy (0043A980) holds null until the sentinel is made.
+    headers_.Construct();
+    // The list's allocator proxy holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
     incoming_.head = sentinel;
     sentinel->next = sentinel;
@@ -113,7 +113,7 @@ Connection::Connection(std::uint32_t id) {
     roundTripSquare_ = static_cast<float>(old * old);
     lastReceived_ = 0;
     sequenceHigh_ = 0x10000;
-    stlp::list<FreedIds>::InsertDefault<FreedIdsElement>(freedIds_.End());   // 00439000
+    stlp::list<FreedIds>::InsertDefault<FreedIdsElement>(freedIds_.End());
     stlp::list<FreedIds>::InsertDefault<FreedIdsElement>(freedIds_.End());
     id_ = id;
     Put32(&clock_, 0, 0);
@@ -126,7 +126,7 @@ Connection::Connection(std::uint32_t id) {
 }
 EI_REWRITTEN_SPECIAL(0x00432DA0, Connection::Connection);
 
-// 00433320 (slot 2): tears every container down (in the order the destructor's unwinding would)
+// Tears every container down (in the order the destructor's unwinding would)
 // and constructs the connection again with id 0 (the count and the flags kept).
 int Connection::OnShutdown() {
     DestroyForReset(this);
@@ -137,25 +137,25 @@ EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 // 004334E0 (deleting: 004334C0).
 // The reliable streams are members, destroyed after the body (the original frees them first).
 Connection::~Connection() {
-    incoming_.Clear<ChunkElement>();   // 0043D420
-    stlp::deallocate(incoming_.End(), sizeof(HeaderNode));   // 00439D80
+    incoming_.Clear<ChunkElement>();
+    stlp::deallocate(incoming_.End(), sizeof(HeaderNode));
     headers_.Clear<ChunkElement>();
     stlp::deallocate(headers_.End(), sizeof(HeaderNode));
     trees::Attached::Clear(&attached_);
     trees::Attached::FreeHeader(&attached_);
     trees::Records::Clear(&records_);
     trees::Records::FreeHeader(&records_);
-    acknowledged_.Clear<PacketRecordElement>();   // 0043CA40
-    stlp::deallocate(acknowledged_.End(), sizeof(HistoryNode));   // 0043AAF0
+    acknowledged_.Clear<PacketRecordElement>();
+    stlp::deallocate(acknowledged_.End(), sizeof(HistoryNode));
     history_.Clear<PacketRecordElement>();
     stlp::deallocate(history_.End(), sizeof(HistoryNode));
     libcrt::DestroyElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Destroy>);
     trees::Objects::Clear(&byObject_);
-    stlp::deallocate(byObject_.end(), 24);   // 0043A4E0
+    stlp::deallocate(byObject_.end(), 24);
     trees::SentIds::Clear(&bySentId_);
-    stlp::deallocate(bySentId_.end(), 24);   // 0043A480
+    stlp::deallocate(bySentId_.end(), 24);
     freedIds_.Clear<FreedIdsElement>();
-    stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));   // 0043B180
+    stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));
     libcrt::DestroyElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(this);
 }
@@ -166,7 +166,7 @@ EI_REWRITTEN_SPECIAL(0x004334C0, Connection::~Connection);
 
 namespace net {
 
-// 00433060 (slot 3): the copy below as a new connection.
+// The copy below as a new connection.
 Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 EI_REWRITTEN(0x00433060, Connection::Clone);
 
@@ -177,7 +177,7 @@ Connection::Connection(const Connection& other)
     sendSequence_ = other.sendSequence_;
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
-    // vector(const vector&): room for exactly size() sequences (00438D00), copied (0043B360).
+    // vector(const vector&): room for exactly size() sequences, copied.
     received_.ConstructWithCapacity(other.received_.size());
     received_.Finish() = stlp::CopyTrivial(other.received_.begin(), other.received_.end(), received_.begin());
     // id, round trips; timers, clock, budget: copied as dwords.
@@ -185,18 +185,18 @@ Connection::Connection(const Connection& other)
     address_ = other.address_;
     std::memcpy(&sendInterval_, &other.sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
     for (int i = 0; i < kMessageTypes; ++i) idPools_[i].CopyFrom(other.idPools_[i]);
-    freedIds_.CopyConstruct<FreedIdsElement>(other.freedIds_);   // 00437930
+    freedIds_.CopyConstruct<FreedIdsElement>(other.freedIds_);
     freedTimer_ = other.freedTimer_;
-    bySentId_.CopyConstruct(&other.bySentId_);   // 00437AA0
+    bySentId_.CopyConstruct(&other.bySentId_);
     byObject_.CopyConstruct(&other.byObject_);
     for (int i = 0; i < 11; ++i) priorities_[i].CopyConstruct(&other.priorities_[i]);
-    history_.CopyConstruct<PacketRecordElement>(other.history_);   // 00437F60
+    history_.CopyConstruct<PacketRecordElement>(other.history_);
     acknowledged_.CopyConstruct<PacketRecordElement>(other.acknowledged_);
     records_.CopyConstruct(&other.records_);
     attached_.CopyConstruct(&other.attached_);
     headerSequence_ = other.headerSequence_;
     incomingSequence_ = other.incomingSequence_;
-    headers_.CopyConstruct<ChunkElement>(other.headers_);   // 00438690
+    headers_.CopyConstruct<ChunkElement>(other.headers_);
     incoming_.CopyConstruct<ChunkElement>(other.incoming_);
     ackMask_ = other.ackMask_;
     ackBase_ = other.ackBase_;

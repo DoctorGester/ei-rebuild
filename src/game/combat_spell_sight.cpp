@@ -1,4 +1,4 @@
-// 0054BBC0: the spell line-of-sight test the world's spell casting (0058E850) asks per target.
+// The spell line-of-sight test the world's spell casting asks per target.
 #include "combat.h"
 
 #include "ai_map.h"

@@ -55,8 +55,8 @@ struct LinePacket {
 };
 static_assert(sizeof(LinePacket) == 0x40);
 
-// A line list (0x20 bytes; line_batch.cpp, A-E1): the figure parts' debug bounds (005A7290) and the
-// world client's lists (00569D60). The points sit four to a packet; the unused points of the last
+// A line list (0x20 bytes; line_batch.cpp, A-E1): the figure parts' debug bounds and the
+// world client's lists. The points sit four to a packet; the unused points of the last
 // packet repeat the last point.
 struct LineBatch {
     int spare00;                             // +0x00 -1 (the destructor, 005A75D0); nothing reads it
@@ -65,10 +65,10 @@ struct LineBatch {
     std::uint32_t colour;                    // +0x18
     int spare1C;                             // +0x1C nothing reads it
 
-    // 0049B140 (RET 4). Appends the point (x, y, z; w 1), with a new packet when the last one is
+    // Appends the point (x, y, z; w 1), with a new packet when the last one is
     // full, and repeats it through the rest of its packet. Returns the new count.
     int AddPoint(const float* point);
-    // 0049B780 (RET 8). Projects the packets with the top of the pipeline's clip stack (the
+    // Projects the packets with the top of the pipeline's clip stack (the
     // transform object's ProjectClipped into the work arrays below) and, when everything is on
     // screen (result 0), draws the strip in the list's colour (DeviceDrawLineStrip). Returns 1.
     int Draw(CTransformPipeline* pipeline, CTextureDevice* device);

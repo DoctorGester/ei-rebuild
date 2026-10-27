@@ -1,6 +1,6 @@
-// The server unit controller's constructor (00545580), its AI brain's constructor and destructor
-// (00545990, 005457E0) and the perception memory's destructor (00545CB0), and the plan taking a
-// step list (00545110). A-U7; see docs/notes/combat.md.
+// The server unit controller's constructor, its AI brain's constructor and destructor
+// and the perception memory's destructor, and the plan taking a
+// step list. A-U7; see docs/notes/combat.md.
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"
@@ -34,7 +34,7 @@ void InitSteps(AnimationSteps& steps) {
     steps.growBy = 0;
 }
 
-// An order's constructor (00545F70: kind 9, no target, flag18 clear), then its Clear (00545F40)
+// An order's constructor (00545F70: kind 9, no target, flag18 clear), then its Clear
 // and the rest of its fields.
 void InitAction(UnitAction& action) {
     action.target = nullptr;
@@ -52,7 +52,7 @@ void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.blockSize = kBlockSize;
 }
 
-// Its destructor: the vtable, each element released and cleared (0052CEC0 / 0052D030), then
+// Its destructor: the vtable, each element released and cleared, then
 // RemoveAll.
 void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.vtable = gameslots::VictimListClass::Vtable();
@@ -93,12 +93,12 @@ CUnitServer::CUnitServer() {
     InitSteps(moveAnimation);
     moveAnimation.SetSize(0, -1);
     moveAnimation.extra = -1;
-    // 00545FF0: the idle key and list (its SetSize(0) inlined on the empty list).
+    // The idle key and list (its SetSize(0) inlined on the empty list).
     idleKey = kNoAnimationKey;
     InitSteps(idleAnimation);
     idleAnimation.extra = -1;
     brain.Construct();
-    std::memset(&voice, 0, sizeof(voice));   // 005AEA50
+    std::memset(&voice, 0, sizeof(voice));
     ResetController();
 }
 EI_REWRITTEN_SPECIAL(0x00545580, CUnitServer::CUnitServer);
@@ -142,7 +142,7 @@ EI_REWRITTEN(0x00545110, OrderPlan::TakeSteps);
 AIBrain* AIBrain::Construct() {
     LooksInit(&move.looks);
     move.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-    move.Clear();   // 00545B20
+    move.Clear();
     target = nullptr;
     seen = nullptr;
     modes = {};
@@ -199,7 +199,7 @@ void AIBrain::Destruct() {
     DestroyAttackOptions(attention.weapons);
     alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();
     if (alarmRecords.data) {
-        AIAlarmRecordElements::Destruct(alarmRecords.data, alarmRecords.size);   // 005588F0
+        AIAlarmRecordElements::Destruct(alarmRecords.data, alarmRecords.size);
         gamecrt::operator_delete(alarmRecords.data);
     }
     if (current) current->Release();

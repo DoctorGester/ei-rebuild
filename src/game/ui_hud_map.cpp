@@ -1,7 +1,6 @@
 // The battle HUD's minimap markers (CHudMap::BuildMarkers, 00643DC0): every frame the map panel
 // rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
@@ -40,7 +39,7 @@ float AbsBits(float f) {
 }
 
 constexpr float kUnitRadius2 = 0.56f;    // 00742AC4 units further out (squared) are not shown
-constexpr double kTinyLength2 = 1e-6;     // 00742AB0
+constexpr double kTinyLength2 = 1e-6;
 constexpr float kArrowAhead = 0.07f;      // 0073CDB0 tip of a unit's arrow from its position
 constexpr float kArrowWing = 0.04f;       // 0073CE90 back corners of the arrow; size of a diamond
 constexpr float kDiagonal = 0.70710677f;  // 00742AC0 (00742ABC is its negation)
@@ -387,7 +386,7 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
         if (!cut(prev, cur, &cross)) continue;
         int size = points.size;
         if (i < size) {
-            points.SetSize(size + 1, -1);   // 00453100
+            points.SetSize(size + 1, -1);
             std::memmove(&points.data[i + 1], &points.data[i], (size - i) * sizeof(UiPointF));
         } else {
             points.SetSize(i + 1, -1);
@@ -519,7 +518,7 @@ void CHudMap::UpdateView() {
         UiPointF first = points.data[0];
         for (int k = 4 - count % 4; k > 0; --k) {
             int size = points.size;
-            points.SetSize(size + 1, -1);   // 00453100
+            points.SetSize(size + 1, -1);
             points.data[size] = first;
         }
     }
@@ -580,7 +579,7 @@ EI_REWRITTEN(0x00642E80, CHudMap::UpdateView);
 // --- 00645640 ----------------------------------------------------------------------------------
 
 namespace {
-// 2.5^(delta / 1200): _CIpow (006E81A0) of the double at 00742AD0 and delta * 0.00083333335f,
+// 2.5^(delta / 1200): _CIpow of the double at 00742AD0 and delta * 0.00083333335f,
 // left unrounded.
 double WheelZoomFactor(int delta) {
     return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);

@@ -1,4 +1,4 @@
-// 005ACE80: the main menu's and the escape menu's button rectangles from "menus.reg" (each entry
+// The main menu's and the escape menu's button rectangles from "menus.reg" (each entry
 // four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
 #include "figure_manager.h"
 #include "registry.h"
@@ -39,7 +39,7 @@ constexpr MenuRect kRects[] = {
     {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
 };
 
-// 00480080. game::FatalError(message); returns what the original returns to the caller.
+// Game::FatalError(message); returns what the original returns to the caller.
 
 } // namespace
 

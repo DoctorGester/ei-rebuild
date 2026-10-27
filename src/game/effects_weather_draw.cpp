@@ -1,5 +1,5 @@
 // The visibility fog's draw (004E1EB0: its cells as sprites through the scene renderer) and the
-// rain / snow layer's work arrays (004E3C20). A-S12; see docs/notes/renderer.md (section 12).
+// rain / snow layer's work arrays. A-S12; see docs/notes/renderer.md (section 12).
 #include "effects.h"
 #include "at_exit_functions.h"
 #include "figure_mesh.h"   // VertexPacket
@@ -36,18 +36,18 @@ using FogPointArray = lib::AlignedArray<ParticleVertex>;
 using FogSpriteArray = mfc::CArray<FogSprite>;
 constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
 lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
-void __cdecl FreePoints() { g_points.FreeData(); }   // 004E2260
+void __cdecl FreePoints() { g_points.FreeData(); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
 FogSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 004E2280 (00468D80)
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 004E2280
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;
 
 constexpr int kWorkRecords = 0x1000;      // the arrays' first size
 constexpr unsigned kBoundsCells = 12000;  // only a fog of more cells gets its bounds computed here
-constexpr float kFogSpriteSize = 0.4f;    // 0073D6B0
-constexpr float kColourScale = 255.0f;    // 0073C370
+constexpr float kFogSpriteSize = 0.4f;
+constexpr float kColourScale = 255.0f;
 constexpr int kOutOfView = 2;
 
 } // namespace
@@ -65,7 +65,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (!(g_workArrayGuards & kPointsConstructed)) {
         g_workArrayGuards |= kPointsConstructed;
         Points().Construct();
-        libcrt::AtExit(FreePoints);   // 004E2260
+        libcrt::AtExit(FreePoints);
     }
     Sprites().SetSize(kWorkRecords);
     Points().SetSize(kWorkRecords);
@@ -104,7 +104,7 @@ struct Corner {
     float u, v;
 };
 constexpr Corner kCorners[3] = {{0.02f, 0.02f}, {0.98f, 0.02f}, {0.5f, 0.98f}};
-constexpr float kTile = 0.25f;   // 0073C3B0
+constexpr float kTile = 0.25f;
 
 } // namespace
 

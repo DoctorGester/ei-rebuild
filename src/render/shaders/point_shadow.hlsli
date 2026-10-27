@@ -1,4 +1,4 @@
-// Point-light shadows (R16i1; render_point_shadows.cpp, PointShadowParams): the cubes of depth faces of
+// Point-light shadows (render_point_shadows.cpp, PointShadowParams): the cubes of depth faces of
 // the few point lights given a map this frame, a light a row of the atlas, a face a column. Included after
 // shadow_receiver.hlsli (shadow_disc); the includer defines POINT_SHADOW_B, POINT_SHADOW_T and
 // POINT_SHADOW_S, the registers of the parameters, the atlas and its comparison sampler.
@@ -18,7 +18,7 @@ static const float kNoPointFront = 1e29;        // MeshBatch::pointFront's none 
 
 // How much of the light with map `slot` reaches the landscape point `p`: 1 all .. 0 none. `n`: the unit
 // normal the point is moved along before the lookup (a texel's size at its distance times
-// kPointNormalOffset; zero: not moved). `front`: a unit's nearest distance to the light (R16i2's rule:
+// kPointNormalOffset; zero: not moved). `front`: a unit's nearest distance to the light (the sun map's unit rule:
 // the unit compares from there, so only what lies nearer the light than all of it shadows it; at or
 // inside the near distance: the light is the unit's own, nothing hides it), kNoPointFront for the rest.
 // The face is the one the point's direction from the light leaves the cube by, as render_point_shadows.cpp's

@@ -5,7 +5,7 @@
 // back stays consistent (the render and texture stage states set, fed to the new renderer's mirror as
 // well, render_state.h; state blocks recorded and applied; the capability, display mode and video
 // memory queries answered with fixed values, the old device's under dgVoodoo where the game's logic
-// depends on them). A method called through a token directly ends the run naming its caller (R9b2).
+// depends on them). A method called through a token directly ends the run naming its caller.
 #include "device.h"
 
 #include "render/render_state.h"
@@ -129,7 +129,7 @@ DDCAPS DirectDrawCaps() {
     DDCAPS c{};
     c.dwSize = sizeof(c);
     c.dwCaps = DDCAPS_3D | DDCAPS_BLT | DDCAPS_BLTCOLORFILL | DDCAPS_BLTSTRETCH | DDCAPS_COLORKEY | DDCAPS_CANBLTSYSMEM;
-    c.dwCaps2 = DDCAPS2_NONLOCALVIDMEM | DDCAPS2_WIDESURFACES;   // no DDCAPS2_PRIMARYGAMMA: no gamma ramp (R9c)
+    c.dwCaps2 = DDCAPS2_NONLOCALVIDMEM | DDCAPS2_WIDESURFACES;   // no DDCAPS2_PRIMARYGAMMA: no gamma ramp
     c.dwVidMemTotal = kVideoMemory;
     c.dwVidMemFree = kVideoMemory;
     c.ddsCaps.dwCaps = DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_MIPMAP | DDSCAPS_ZBUFFER | DDSCAPS_VIDEOMEMORY |
@@ -138,7 +138,6 @@ DDCAPS DirectDrawCaps() {
 }
 
 // ---- The switch-over device's state -------------------------------------------------------------
-//
 // What a Direct3D 7 device and its DirectDraw object would keep, without either: the render and
 // texture stage states, the state blocks, the bound textures, the scene bracket, the viewport and the
 // display mode. The code reaches it through device::SetRenderState and the other calls below.
@@ -392,7 +391,6 @@ HRESULT VideoMemory(LPDWORD total, LPDWORD free) {
 }
 
 // ---- The device object's interface pointers -------------------------------------------------------
-//
 // Tokens, not interfaces: the calls of device.h compare the pointer they are given with them. Each
 // slot of a token's method table ends the run naming its caller, so code that calls a method of the
 // old device directly instead of through device.h fails at once.
@@ -464,7 +462,6 @@ std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
 }
 
 // ---- The rewritten code's device calls (ticket R9b) ----------------------------------------------
-//
 // Every call answers from the switch-over's state: the device object holds tokens, never interfaces
 // (the interface argument, the object's +0x54 / +0x0C, is not used). game.exe's own runs build no
 // switch-over device and do not come here.

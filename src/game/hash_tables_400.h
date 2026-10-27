@@ -34,8 +34,8 @@ Table* AsTable(Map* map) {
 }
 
 // The id tables' members for an owner's hash_map of a one-dword key and a pointer: operator[]
-// (00406A10), the position table's RemoveKey (00405350; the value, null when there is none), the
-// objects table's RemoveKey (00404F20 / 00599A80) and find (00406950 / 00599AE0; the value's
+// the position table's RemoveKey (00405350; the value, null when there is none), the
+// objects table's RemoveKey and find (00406950 / 00599AE0; the value's
 // address or null). operator[] keeps the highest key in the word after the map, as the original.
 template <typename K, typename V, typename H>
 V& PositionAt(stlp::hash_map<K, V, H>& map, std::int32_t key) {

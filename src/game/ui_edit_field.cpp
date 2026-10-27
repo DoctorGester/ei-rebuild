@@ -1,5 +1,5 @@
-// The message box's edit field: its key handler (0065C610), constructor (0065C010) and character
-// handler (0065C930), and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
+// The message box's edit field: its key handler, constructor and character
+// handler, and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
 // docs/notes/items_spells.md (A-H19).
 #include "ui.h"
 #include "ui_screens.h"

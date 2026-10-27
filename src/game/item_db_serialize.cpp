@@ -90,7 +90,7 @@ void QuestItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
     // The original erases the list through 0051F970 and the element destructors instead of
-    // 0052E010; the result is the same.
+    // The result is the same.
     InlineStrings(ar, 0x16, &zones);
 }
 EI_REWRITTEN(0x0069F9C0, QuestItemRecord::Serialize);

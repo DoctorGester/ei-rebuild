@@ -4,7 +4,7 @@
 // +0xC; slot 14, or slot 9 with an outcode per vertex when clipping is asked for), then every
 // corner (position, colour and texture coordinate indices) becomes a TL vertex; meshes crossing the
 // screen edges go through the transform object's clipper (slot 37) and are projected again (slot
-// 34). Figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...) draw through them.
+// 34). Figures and the 3D library's meshes (004F3C60 ...) draw through them.
 // Buffers are globals at 007AEDE0..007AEE3C. See docs/notes/models.md ("Renderer"). The new
 // renderer (src/render) gets the mesh in model space once it is known to be visible
 // (docs/notes/renderer.md).
@@ -69,8 +69,8 @@ using devicebuffers::CornerOutcodes;
 using devicebuffers::Outcodes;
 
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
-// clipped TL vertices (004E86B0, the array and their outcodes); the draws with one (004EB550) or
-// two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
+// clipped TL vertices (004E86B0, the array and their outcodes); the draws with one or
+// two textures: primitive, FVF, vertices, count, indices, count, flags.
 
 TLVertex* VertexData() { return Vertices().data; }
 
@@ -124,7 +124,7 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
     }
 }
 
-// The TL vertices are read by nothing when the new renderer draws the mesh (R16k,
+// The TL vertices are read by nothing when the new renderer draws the mesh (
 // render::MeshCornersSkipped): the passes still go to the device with the same counts.
 void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) device->BoundsOfProjected(&Projected(), 0);
@@ -138,7 +138,7 @@ void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const M
 
 // Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the
 // transform object's clipper (slot 37) writes the clipped triangles to ClipIndices, then the
-// vertices are projected (slot 34). When the new renderer draws the mesh (R16k) the clip still runs
+// vertices are projected (slot 34). When the new renderer draws the mesh the clip still runs
 // (its counts go to the device's counters, an empty result draws no pass), the projection only for
 // draw flag 1's screen rectangle, the fog not at all.
 void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
@@ -154,8 +154,8 @@ void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const Me
     transform->ClipTriangles(Vertices().data, CornerOutcodes().data, a.indices, ClipIndices().data, &vertexCount,
                              &indexCount);
     if (indexCount == 0 || vertexCount == 0) return;
-    Vertices().SetSize(vertexCount);       // 004EC790
-    ClipIndices().SetSize(indexCount);     // 0044FA90
+    Vertices().SetSize(vertexCount);
+    ClipIndices().SetSize(indexCount);
     bool skipped = render::MeshCornersSkipped();
     if (!skipped || (a.flags & 1)) transform->ToScreenClipped(Vertices().data, Vertices().size);
     if (!skipped && device->distanceFog_) transform->FogVertices(Vertices().data, Vertices().size);
@@ -187,7 +187,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     m.distanceFog = device->distanceFog_ != 0;
     m.zScale = 1.0f;
     m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
-    // A figure part lit on the GPU (R16i) needs its normals.
+    // A figure part lit on the GPU needs its normals.
     m.normals = static_cast<const float*>(a.normals);
     m.normalCount = a.colourCount * 4;
     m.words = static_cast<const std::uint16_t*>(a.words);
@@ -223,7 +223,7 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
     return result;
 }
 
-// The harness build's renderstats time the draw ("device mesh draws", R16k).
+// The harness build's renderstats time the draw ("device mesh draws").
 int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     render::BeginDeviceMeshTime();
     int result = ProjectAndDraw(device, a, textures);
@@ -246,7 +246,7 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void
 }
 EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
-// 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw (004EB370).
+// 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw.
 int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, const void* normals, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,

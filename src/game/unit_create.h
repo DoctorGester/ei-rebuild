@@ -47,7 +47,7 @@ static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 struct NpcPrototypeTable {
     using NameIndex = stlp::hash_map<stlp::string, UnitNpcRecord*, stlp::StringHash>;
 
-    // 005145D0. As UnitPrototypeTable::FindByName (its own instantiation, 00514A20).
+    // As UnitPrototypeTable::FindByName (its own instantiation, 00514A20).
     UnitNpcRecord* FindByName(const char* name);
 
     UnitNpcRecord* begin;
@@ -59,11 +59,11 @@ static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
 
 // 00513DA0 (the original's ECX is not read). The statistics of an NPC of prototype `name` (a
-// fatal error without one; a debug message without its NPC record), then recomputed (00524CD0)
+// fatal error without one; a debug message without its NPC record), then recomputed
 // around a refill of the slots. Returns 1.
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 
-// 00513240. The object class (+0x04 of its model record) of prototype `name`; 0x33 without a
+// The object class (+0x04 of its model record) of prototype `name`; 0x33 without a
 // prototype or model.
 int __stdcall PrototypeObjectClass(const char* name);
 
@@ -71,9 +71,9 @@ int __stdcall PrototypeObjectClass(const char* name);
 // compiler makes its vtable, C19, game.exe's 0073DCD8 is retired). +0xAC is its map object context
 // (the world).
 struct CMapObjectManager : CResourceManager {
-    // 005125E0. CResourceManager's constructor.
+    // CResourceManager's constructor.
     CMapObjectManager();
-    // 00512650. CResourceManager's destructor.
+    // CResourceManager's destructor.
     ~CMapObjectManager() override;
     int Create() override;                                  // 2: CreateManager
     const char* GetClassName() override;                    // 11: 00512610 "CMapObjectManager"
@@ -97,37 +97,37 @@ struct CMapObjectManager : CResourceManager {
     // map_object_manager.cpp (A-U12). 00512660 (slot 2). The base manager's Create (00403020; 0 when it fails), then the archive
     // "<text folder>database.res" added (slot 16). Returns 1.
     int CreateManager();
-    // 00512A30 (slot 23, RET 8). The base manager's CreateObject (00403730); a new object gets an
+    // The base manager's CreateObject; a new object gets an
     // animation state (the figure manager's class 0x300D) and its side halves from the world's
     // specific manager: classes 0x46 and 0x47 (through the object's slot 19), then 0x48 for the
     // three unit classes (0x32-0x34) and 0x4B for classes 0x36-0x39. Returns the object or null.
     CEngineObject* CreateMapObject(int classId, int id);
-    // 00512B20 (RET 8). The entry of the animation database "<figure>.adb" (slot 19) matching
+    // The entry of the animation database "<figure>.adb" (slot 19) matching
     // `key`: the same bits above 0x7FFF and, of the low bits, none of the key's missing (a key
     // without low bits takes only an entry without). Null (with a debug message when there is no
     // database).
     FigureAnimation* FindAnimation(const mfc::CString* figure, std::uint32_t key);
-    // 00513630 (RET 4). The defaults of an object without a prototype (SetDefaults): a unit
+    // The defaults of an object without a prototype (SetDefaults): a unit
     // (class 0x50) gets the statistics (its slot 35), any other object the vitals (slot 36); then
     // slot 33 with 0 and no prototype index (+0x18). Returns 1.
     int GiveDefaults(CMapObject* object);
-    // 005143E0 (RET 0x14). The starting equipment's names of prototype `name`: the armour pieces,
+    // The starting equipment's names of prototype `name`: the armour pieces,
     // the two weapons and the spells. 1, or FatalError's result without the prototype.
     int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                            mfc::CString* secondWeapon, mfc::CStringArray* spells);
 
     // The builders of a creature's starting statistics from its prototype (unit_create_stats.cpp).
     // The map objects call them on their owner; they never read the manager.
-    // 005134F0. Defaults for an object without a prototype: with `stats`, the statistics (stats
+    // Defaults for an object without a prototype: with `stats`, the statistics (stats
     // 50, rates, values and body slots at 100, no layers); without, the vitals (1000 hit points
     // and mana, regeneration 10, protection 100). Returns 1.
     int SetDefaults(UnitVitals* vitals, UnitStats* stats);
-    // 005136D0. The vitals and statistics of a creature of prototype `name` (the NPC record of
+    // The vitals and statistics of a creature of prototype `name` (the NPC record of
     // the same name supplies stats, attributes, experience and skills when there is one).
     // Without a prototype: SetDefaults. Returns 0 when `vitals` or `stats` is null (after the
     // lookups), else 1.
     int BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name);
-    // 00513B60. Gives map object `object` the prototype `name`: units get their vitals and
+    // Gives map object `object` the prototype `name`: units get their vitals and
     // statistics (BuildFromPrototype, slots 36 and 35), their height offset, scale (00517700, the
     // base scale and slot 30) and second prototype; every object its prototype index (+0x18).
     // Without a prototype: defaults, slot 33 (0), index 0 and a debug message. Returns 1.

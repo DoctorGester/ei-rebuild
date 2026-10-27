@@ -1,5 +1,5 @@
-// MSVC 6's ostream inserters (S4c) and the streams themselves: streambuf's constructor, destructors and
-// default virtuals, ios's, ostream's (S4d). docs/notes/standalone.md; crt_iostream.h. Both builds: they
+// MSVC 6's ostream inserters and the streams themselves: streambuf's constructor, destructors and
+// default virtuals, ios's, ostream's. docs/notes/standalone.md; crt_iostream.h. Both builds: they
 // keep no state of their own (the streams are the game's; the shared lock and the count of live ios are
 // the exe's). opfx / osfx / writepad are the inserters' own helpers; the exe's other callers of them (put,
 // write, the streambuf inserter: not reached by the game's code) keep the exe's. The numbers go through
@@ -21,8 +21,8 @@ namespace {
 
 constexpr int kEof = -1;
 
-// The compiled tables (C19) the constructors and destructors write in place of game.exe's: ios's (007482E8) and
-// ostream's for its ios (00748280), one slot each (the deleting destructor); and game.exe's ostream virtual base table
+// The compiled tables the constructors and destructors write in place of game.exe's: ios's and
+// ostream's for its ios, one slot each (the deleting destructor); and game.exe's ostream virtual base table
 // (the ios 8 bytes in), which is data.
 struct IosTable final : ei::CompiledDeleter<IosTable, &Ios::DeletingDestruct> {};
 struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::DeleteOstream> {};
@@ -43,7 +43,7 @@ constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 gamecrt::CrtFile* GameStdout() { return GameStream(1); }
 gamecrt::CrtFile* GameStderr() { return GameStream(2); }
 
-// opfx (006FC1F9): the ios locked; a stream in error gets failbit and nothing is written (0); otherwise
+// opfx: the ios locked; a stream in error gets failbit and nothing is written (0); otherwise
 // the tie flushed and the streambuf locked too (1).
 int Prefix(Ostream* stream) {
     Ios& ios = stream->Base();
@@ -58,7 +58,7 @@ int Prefix(Ostream* stream) {
     return 1;
 }
 
-// osfx (006FC26D): the width cleared, the streambuf synced under unitbuf (failbit | badbit on failure,
+// osfx: the width cleared, the streambuf synced under unitbuf (failbit | badbit on failure,
 // assigned), stdout and stderr flushed under ios::stdio, both locks released.
 void Suffix(Ostream* stream) {
     Ios& ios = stream->Base();
@@ -82,7 +82,7 @@ void Write(Ios& ios, const char* text, unsigned length) {
     if (static_cast<unsigned>(ios.bp->Xsputn(text, static_cast<int>(length))) != length) ios.state |= Ios::kFail | Ios::kBad;
 }
 
-// writepad (006FC68E): `leader` (a sign or base prefix) and `value` padded to the width: before both
+// writepad: `leader` (a sign or base prefix) and `value` padded to the width: before both
 // (right, the default), between them (internal) or after (left). Once one padding has run, no other does.
 void WritePad(Ostream* stream, const char* leader, const char* value) {
     Ios& ios = stream->Base();

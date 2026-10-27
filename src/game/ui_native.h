@@ -6,7 +6,6 @@
 // beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 // truth (a lost device brings canvases back black). The blit 005FDA80 draws the canvas when
 // render::ui::DrawsCanvas says so.
-//
 // Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
 // greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
 // canvas back, which the code that reads or draws the memory on the CPU calls first (GetDC, PixelAt,

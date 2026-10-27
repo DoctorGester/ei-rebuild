@@ -58,42 +58,42 @@ struct PartyUnitRecordElements {
 // A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable(), in place of game.exe's
 // 00742FF4). Its SetSize (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
 struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
-    // The compiled table (C19, party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
+    // The compiled table (party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
     static void* Vtable();
     // 00664160 (party_lifetime.cpp). The array's destructor body: its vtable, the records destroyed
     // and the storage freed.
     void Destruct();
-    // 00664470: slot 0 (operator delete with flags bit 0; returns the array).
+    // Slot 0 (operator delete with flags bit 0; returns the array).
     PartyMembers* DeletingDestruct(unsigned flags);
 };
 using PartyMemberArray = PartyMembers;
 
 class CParty : public CManagerContext {
 public:
-    // 00661050. Empty record and item arrays, an empty variable map with NextPrime(100) buckets
+    // Empty record and item arrays, an empty variable map with NextPrime(100) buckets
     // (its functor bytes are the original's uninitialised stack byte, left alone here), an empty
     // zone name, no managers. The money and the entrance are left as they are.
     CParty();
-    // 006613C0. A copy of `source`, as Assign makes it (it reads its source non-const: saving it
+    // A copy of `source`, as Assign makes it (it reads its source non-const: saving it
     // makes its managers when it has none).
     explicit CParty(CParty& source);
     // 006611D0 (the deleting destructor 00661190). Clear(1, 1), Destroy, then the members.
     ~CParty() override;
     CParty& operator=(const CParty&) = delete;
 
-    // 006614F0. Makes and counts the party's own item manager and spell manager (attached to this
+    // Makes and counts the party's own item manager and spell manager (attached to this
     // party), item constructor and spell constructor (created), then Clear(1, 0). Returns 1.
     int Create() override;
-    // 00661640. Empties the record array, releases the items and frees their storage, then drops
+    // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;
     const char* GetClassName() override;   // 0065F560 "CParty"
     int GetClassId() override;             // 0065F570 9
 
-    CItemConstructor* ItemConstructor() override;     // 0065F540
-    CSpellConstructor* SpellConstructor() override;   // 0065F550
-    CItemManager* ItemFactory() override;             // 0065F520
-    CSpellManager* SpellManager() override;           // 0065F510
+    CItemConstructor* ItemConstructor() override;
+    CSpellConstructor* SpellConstructor() override;
+    CItemManager* ItemFactory() override;
+    CSpellManager* SpellManager() override;
     // The item factory under the party's name.
     CItemManager* ItemManager() { return ItemFactory(); }
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
@@ -123,7 +123,7 @@ public:
     // empty) as the key (+0x1C), `prototype` as text 5, `extra` as text 0; then
     // FillFromPrototype. Returns the record.
     PartyUnitRecord* AddMember(const char* name, const char* prototype, const char* extra);
-    // 006621F0 (RET 4). Gives `record` what its prototype (text 5) says: text 2 from its model,
+    // Gives `record` what its prototype (text 5) says: text 2 from its model,
     // the NPC statistics, the three scales (+0x724..+0x72C), copies (CItem::Clone) of the starting
     // armour, of the two weapons unless empty or "none", and of the spells; text 6 = text 5.
     // Returns 1. (The original reads the lists through 005143E0, whose only failure, a missing
@@ -139,7 +139,7 @@ public:
     BOOL EquipFromPrototype(PartyUnitRecord* record);
     // 006621B0 (player_messages.cpp). The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId) const;
-    // 006620F0 (RET 4). Destroys the first record whose key (+0x1C) is `key` and closes the gap;
+    // Destroys the first record whose key (+0x1C) is `key` and closes the gap;
     // 1 when there was one, else 0.
     BOOL RemoveMember(int key);
     // 006629D0 (party_members.cpp, A-H17; the single-player login). When the party's zone (+0x68)
@@ -147,7 +147,7 @@ public:
     // "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
     void OpenEdgeExits();
 
-    // 00661700 (RET 8). Releases the items and frees their storage, empties the item manager
+    // Releases the items and frees their storage, empties the item manager
     // (slot 15) and the spell manager (slot 3; attached again with slot 13 unless `keepSpells`),
     // empties the record array, the variables (with `clearVariables`) and the zone name, and
     // clears +0x50 and +0x6C.
@@ -160,7 +160,7 @@ public:
     // records (PartyUnitRecord::Load), the variables (with `loadVariables`), +0x50 (from version
     // 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
     void LoadParty(CStream* stream, int loadVariables);
-    // 00661C10 (RET 8). Create when there is no item manager; the zone name with its zero, +0x6C,
+    // Create when there is no item manager; the zone name with its zero, +0x6C,
     // both managers (slot 10, then SaveObjects), the item ids (-1 for an empty entry), the record
     // count and records, the variables (with `saveVariables`), then +0x50 xor an ISAAC key and
     // the key.
@@ -169,7 +169,7 @@ public:
     // SaveParty's output (with variables) as stream field 1, read back with the archive's version.
     // ArchivePartyThroughHook goes through the address (party_manager.cpp), so its check runs.
     void ArchiveParty(ChunkArchive* ar);
-    // 00661300 (RET 4). Clear(1, 0), then `source` saved into a memory stream and loaded back into
+    // Clear(1, 0), then `source` saved into a memory stream and loaded back into
     // this party (variables included). Returns this.
     CParty* Assign(CParty* source);
     // The money (+0x50; the camp's deals and the trade read it).

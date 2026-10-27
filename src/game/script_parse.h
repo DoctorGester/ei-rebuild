@@ -18,21 +18,21 @@ inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
 inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
 // Game CRT (locale-dependent ctype functions).
-int __cdecl IsDigit(int c);                                       // 006E9379
-int __cdecl IsSpace(int c);                                       // 006E93CE
-int __cdecl Mbscmp(const char* a, const char* b);                 // 006E848B
+int __cdecl IsDigit(int c);
+int __cdecl IsSpace(int c);
+int __cdecl Mbscmp(const char* a, const char* b);
 
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {
     StringOps* InitN(const char* text, int length);   // 006FD4DE CString(LPCTSTR, int) on raw memory
-    char* LockBuffer();                               // 00700E6A
-    void UnlockBuffer();                              // 00700E7C
+    char* LockBuffer();
+    void UnlockBuffer();
 };
 inline const StringOps& Ops(const mfc::CString& s) { return reinterpret_cast<const StringOps&>(s); }
 inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s); }
 
 
-// 004CF470: formats the error message into the CScript's error text and sets code and line;
+// Formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error is the same.)
 int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
 int __cdecl ScriptError(CScript* script, int line, int code, const char* format, ...);

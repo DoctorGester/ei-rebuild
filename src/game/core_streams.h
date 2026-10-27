@@ -3,7 +3,6 @@
 // The engine's byte streams (CStream, CMemoryStream), the constructors and destructors of the
 // reference-counted base classes, and two small allocation helpers (00410000-00430000,
 // 00470000-00480000). See docs/notes/core.md. Names are provisional.
-//
 // Class map (game.exe's vtables):
 //   0073BB68  CRefObject root: slot 0 deleting destructor, slot 1 empty (RET 4). Its destructor
 //             body only restores this vtable (two identical copies, 00412720 and 00413430).
@@ -11,7 +10,7 @@
 //             constructor body 00419720, deleting destructor 00412700.
 //   0073BDB0  CStream (below): abstract byte stream (slots 1-6 pure).
 //   0073BD90  CMemoryStream (below). 0073C960 is a second table with the same slots 1-7 and
-//             another copy of the deleting destructor (004790D0); the network queue's streams use
+//             another copy of the deleting destructor; the network queue's streams use
 //             it. Here they are all CMemoryStream.
 
 #include "core_refcount.h"
@@ -33,7 +32,7 @@ class CString;
 // (net_link.h).
 class CStream {
 public:
-    // 0047A200: version_ 2000000000, ok_ set.
+    // Version_ 2000000000, ok_ set.
     CStream();
     CStream(const CStream&) = delete;
     CStream& operator=(const CStream&) = delete;
@@ -52,27 +51,27 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    // 00461190. Reads bytes up to a zero or a failed read into a CString constructed at `out`;
+    // Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
     mfc::CString* ReadString(void* out);
     // 004E5840 (RET 4; exit_area.cpp). ReadString into a temporary, assigned to `out`.
     void ReadInto(mfc::CString* out);
 
-    // 004A51C0 (RET 4). Reads a block WriteSized wrote (a two-byte size word, two more bytes when
+    // Reads a block WriteSized wrote (a two-byte size word, two more bytes when
     // its bit 0 is set; the size is the word / 2) into `to`: `to` cleared (slot 6), sought to 0,
     // then given the block (slot 2).
     void ReadSized(CStream* to);
-    // 004A5250 (RET 4). Writes all of `from` with its size in front: size * 2 in two bytes, or
+    // Writes all of `from` with its size in front: size * 2 in two bytes, or
     // size * 2 + 1 in four bytes above 30000 (a signed compare). `from` is sought to 0 and read.
     void WriteSized(CStream* from);
     // core_stream_diff.cpp (A-S4): the save game's difference coding. A difference is a run
     // header byte (the run length, 0..255) followed by alternating runs: equal bytes (only the
     // length) and changed bytes (the length and the new bytes), starting with an equal run; a
     // full run (255) is followed by an empty run of the other kind; a zero byte ends it.
-    // 004A4DA0 (RET 8). Writes the difference from `base` to `current` (same size, else nothing);
+    // Writes the difference from `base` to `current` (same size, else nothing);
     // both are read from their start.
     void WriteDiff(CStream* base, CStream* current);
-    // 004A50D0 (RET 8). Rebuilds into this stream (from its start) `base` with the difference read
+    // Rebuilds into this stream (from its start) `base` with the difference read
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(CStream* base, CStream* diff);
     // core_stream_chunks.cpp (A-S4): tagged blocks (a four-byte tag, the size including these
@@ -88,14 +87,14 @@ public:
     // blocks, from its position, to `out` (reading_ cleared), the block with tag `id` replaced by all
     // of `replacement` (sought to 0, read); without one, `replacement` is appended under `id`.
     void ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out);
-    // 004A48F0 (RET 8). Reads bytes into `buffer` until a zero or `capacity` bytes;
+    // Reads bytes into `buffer` until a zero or `capacity` bytes;
     // buffer[capacity - 1] is always set to zero.
     void ReadText(char* buffer, int capacity);
     // 004A52D0 (RET 0xC, AL). Reads the magic number and the version (four bytes each, into one
     // variable); true and version_ set when the magic matches and oldest <= version <= newest
     // (signed).
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
-    // 004A5340 (RET 8). Writes the magic number and the version; version_ = version.
+    // Writes the magic number and the version; version_ = version.
     void WriteHeader(std::uint32_t magic, std::uint32_t version);
 
     // Back to the start for reading (inlined by the chunk archive): ok_ set, Seek(0), reading_ set.
@@ -124,42 +123,42 @@ public:
     // first.
     void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // 3: 004A5490 (then EndBits)
-    std::uint32_t Size() override { return size_; }                    // 4: 00417390
-    std::uint32_t Position() override { return position_; }           // 5: 004173A0
-    void Clear() override;                                             // 6: 00417350
+    std::uint32_t Size() override { return size_; }
+    std::uint32_t Position() override { return position_; }
+    void Clear() override;
     void CopyFrom(CStream* source) override;                           // 7: 004A55D0 (one Read into a resized buffer)
 
-    // 00468C20. Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
+    // Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
     // buffer (Clear, slot 6, is the same with the free).
     void Reset();
-    // 004A54D0. Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents
+    // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents
     // (the old size's bytes) and gets the pending bits byte (EndBits). Within the capacity the bits
     // state is left alone.
     void Resize(std::uint32_t size);
-    // 004A5570. Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
+    // Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
     // only bitMask_ is reset (bitsIndex_ stays).
     void SetSize(std::uint32_t size);
 
     // The bit writer / reader of the delta code (net_delta.cpp).
-    // 0047DFC0. Appends one bit (a new byte is started after eight).
+    // Appends one bit (a new byte is started after eight).
     // Several writers have an inline copy of it (same effect).
     void PutBit(bool bit);
     // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
     bool GetBit();
-    // 004A5610: stores bits_, appends a zero byte for the next bits (slot 2), bitMask_ = 1.
+    // Stores bits_, appends a zero byte for the next bits (slot 2), bitMask_ = 1.
     void StartByte();
-    // 004A5650: stores bits_, no pending byte, bitMask_ = 0x80.
+    // Stores bits_, no pending byte, bitMask_ = 0x80.
     void EndBits();
-    // 0047DA80 (RET 4). Writes the memory stream `from` into this stream (its slot 2): `from`'s
+    // Writes the memory stream `from` into this stream (its slot 2): `from`'s
     // pending bits stored first (EndBits), then its size times two, in one byte when that is below
     // 0x100 (a signed compare), otherwise in four bytes with bit 0 set; then its bytes.
     void WriteStream(CMemoryStream* from);
-    // 0047DAE0 (RET 4). Reads what WriteStream wrote (this stream's slot 1) into the memory stream
+    // Reads what WriteStream wrote (this stream's slot 1) into the memory stream
     // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
     // over 100000 (nothing more read) or a short read, else 1.
     int ReadStream(CMemoryStream* to);
     // 0047D7F0 / 0047D970 (RET 8). The whole of this memory stream (a fixed view over its bytes)
-    // compressed / decompressed by `coder` (00430450 / 00430960) into a growing buffer, which then
+    // compressed / decompressed by `coder` into a growing buffer, which then
     // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
     // to call (the client's and the server's message streams).
     void CompressTo(CoderState* coder, CMemoryStream* out);

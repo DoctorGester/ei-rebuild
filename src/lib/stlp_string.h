@@ -23,7 +23,7 @@ struct StringAbi : string {
     static void __fastcall ConstructAt(string* p, const string* from);
     // basic_string(const char*, const allocator&) (0040C5A0; RET 8).
     string* ConstructFromText(const char* text, const void* alloc);
-    // basic_string() (0041F460, 006B6CC0): empty, an 8-byte block.
+    // basic_string(): empty, an 8-byte block.
     static string* __fastcall ConstructDefault(string* self);
     // _String_base(const allocator&, n) (00421800; RET 8): a block of n bytes, nothing written in it
     // (no block for n 0).
@@ -57,7 +57,7 @@ struct StringAbi : string {
     // string empty at its start; the terminator is not written.
     void AllocateBlock(std::size_t n);
     // operator+(const string&, const char*) (00427D60; out in ECX, a in EDX, RET 4) and
-    // operator+(const string&, const string&) (00427E80): Join. Return out.
+    // operator+(const string&, const string&): Join. Return out.
     static string* __fastcall PlusText(string* out, const string* a, const char* text);
     static string* __fastcall PlusString(string* out, const string* a, const string* b);
     // operator==(a, b) (00427FA0; a in ECX, b in EDX): the same size and bytes.

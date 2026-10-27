@@ -1,5 +1,5 @@
 // The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
-// the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
+// the caches' trimming, the base Create and the icon window's
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "model.h"
@@ -30,9 +30,9 @@ inline double D(float f) { return f; }
 // rectangle, 005E7680 a strip of `count` framed cells.
 struct SpriteBuild {
     void Rectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-                   int v1);   // 005E70E0
+                   int v1);
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-               int v1, int count, int flag);   // 005E7680
+               int v1, int count, int flag);
 };
 void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
@@ -49,7 +49,7 @@ void ItemObjectCache::Construct(std::uint8_t compare) {
 }
 
 // While the cache holds more than its limit: the least recently used entry (used before now) has
-// its object released (slot 4) and is erased (005F3140 / 005F32A0). Spins while every entry was
+// its object released (slot 4) and is erased. Spins while every entry was
 // used at or after now.
 void __fastcall TrimItemCache(ItemObjectCache* cache) {
     while (cache->map.size() > cache->limit) {
@@ -159,7 +159,7 @@ EI_REWRITTEN_SPECIAL(0x005F6470, CItemScreen::~CItemScreen);
 EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);   // the input side's
 
-// 005F6620: the page titles, the heroes CArray (vtable 007402AC), then the item screen's.
+// The page titles, the heroes CArray (vtable 007402AC), then the item screen's.
 CCampPages::~CCampPages() {
     pageTitles_.Destruct();
     heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();

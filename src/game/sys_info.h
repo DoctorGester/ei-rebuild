@@ -19,14 +19,14 @@
 
 // What CPUID function 1 reported (the globals at 007CAED0; zeros on a processor without CPUID):
 // EAX, EBX, ECX as twelve bytes, a terminator, then EDX (the feature flags). Written by CSysInfo's
-// collector and again by the renderer base's creation (00500540).
+// collector and again by the renderer base's creation.
 struct ProcessorInfo {
-    std::uint32_t signature;   // 007CAED0
-    std::uint32_t brand;       // 007CAED4
-    std::uint32_t features2;   // 007CAED8
-    std::uint8_t terminator;   // 007CAEDC
+    std::uint32_t signature;
+    std::uint32_t brand;
+    std::uint32_t features2;
+    std::uint8_t terminator;
     std::uint8_t unused_0D[3];
-    std::uint32_t features;    // 007CAEE0
+    std::uint32_t features;
 };
 static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorInfo, features) == 0x10 &&
               sizeof(ProcessorInfo) == 0x14);
@@ -49,7 +49,7 @@ public:
     static constexpr std::uint32_t kWindows98 = 0x80;
     static constexpr std::uint32_t kWindowsNt = 0x100;
 
-    // 004DDD6F: the engine object's fields, the five empty texts, then Create (called directly).
+    // The engine object's fields, the five empty texts, then Create (called directly).
     CSysInfo();
     // 004DDE75 (deleting: 004DE8B0): the five texts from the last to the first.
     ~CSysInfo() override;
@@ -59,16 +59,16 @@ public:
     const char* GetClassName() override;    // 11: 004DE890 "CSysInfo"
     int GetClassId() override;              // 12: 004DE8A0 (0xD)
 
-    // 004DDF28: everything below filled from the system; returns 1.
+    // Everything below filled from the system; returns 1.
     int Collect();
-    // 004DE6F3: `version_` (GetVersionExA) and the platform's family name into systemName_ (Collect
+    // `version_` (GetVersionExA) and the platform's family name into systemName_ (Collect
     // replaces it with the exact name). Returns &version_.
     OSVERSIONINFOA* QueryVersion();
-    // 004DE6C2: `system_` (GetSystemInfo). Returns &system_.
+    // `system_` (GetSystemInfo). Returns &system_.
     SYSTEM_INFO* QuerySystem();
-    // 004DE687: `memory_` (GlobalMemoryStatus). Returns &memory_.
+    // `memory_` (GlobalMemoryStatus). Returns &memory_.
     MEMORYSTATUS* QueryMemory();
-    // 004DE789: the processor's CPUID report into the globals; kMmx and kSse set or cleared from it.
+    // The processor's CPUID report into the globals; kMmx and kSse set or cleared from it.
     void QueryProcessor();
 
     mfc::CString computerName_;    // +0x1C GetComputerNameA
@@ -90,7 +90,7 @@ inline CSysInfo* TheSysInfo() { return &*g_sysInfo; }
 // The translation unit's static initialisers (they run before WinMain; a start-up check compared
 // what they left, verify_static_initialisers.cpp until S21d). The four constants: 2 pi, pi / 2, pi / 4 and
 // 1 / pi (copies of a header's constants; nothing found reading these).
-void __cdecl SysInfoInitTwoPi();       // 004DDCBA
-void __cdecl SysInfoInitHalfPi();      // 004DDCD7
-void __cdecl SysInfoInitQuarterPi();   // 004DDCF8
-void __cdecl SysInfoInitInversePi();   // 004DDD19
+void __cdecl SysInfoInitTwoPi();
+void __cdecl SysInfoInitHalfPi();
+void __cdecl SysInfoInitQuarterPi();
+void __cdecl SysInfoInitInversePi();

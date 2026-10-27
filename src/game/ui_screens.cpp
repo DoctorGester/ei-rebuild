@@ -37,7 +37,7 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-// 0079BE84: the camp's tab keys are active.
+// The camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 } // namespace
 
@@ -241,7 +241,7 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     CItem* wanted = item;
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
     list_.SetSize(0, -1);
-    // The original inlines the array's SetSize (0062A390) in the second loop.
+    // The original inlines the array's SetSize in the second loop.
     auto append = [&](CItem* entry) {
         if (wanted->IsSameAsSlot(entry)) found = static_cast<float>(list_.size);
         int index = list_.size;

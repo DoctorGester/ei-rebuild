@@ -6,9 +6,9 @@
 // blend, alpha test, depth, culling, fog, the two texture stages' operations, filters and textures.
 // The material's state blocks are opaque to us, so the state is read back from the old device
 // rather than decoded; later the materials will be read from the game's data. A figure mesh drawn
-// through the figure part draws is kept on the GPU (render_mesh_cache.cpp, R16d) and its batches draw
+// through the figure part draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw
 // from that pool; every other mesh is built into the frame's stream. A figure part the game hands over
-// with its lighting (MeshSource::lighting, R16i) is lit in the shader from its normals.
+// with its lighting (MeshSource::lighting) is lit in the shader from its normals.
 #include "render.h"
 #include "render_internal.h"
 
@@ -37,11 +37,11 @@ struct Pending {
     float fogNear = 0.0f;
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
-    bool figure = false;            // ... a unit's (R16i2)
+    bool figure = false;            // ... a unit's
     bool boxed = false;             // its corners' box in model space taken (a caster's)
     float box[6] = {};
-    CachedMesh* cached = nullptr;   // kept on the GPU (R16d), else built into the frame's stream
-    int lighting = -1;              // Frame::meshLights (R16i)
+    CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
+    int lighting = -1;              // Frame::meshLights
 };
 Pending g_pending;
 int g_dropped = 0;
@@ -131,8 +131,8 @@ struct VsParams {
     float shift[4];
     Matrix4 light;
     float uvOffset[4];
-    float normalOffset[4];   // x: world units (R16i)
-    float landscape[3][4];   // model space to the landscape's: rows (point shadows, R16i1)
+    float normalOffset[4];   // x: world units
+    float landscape[3][4];   // model space to the landscape's: rows (point shadows)
 };
 static_assert(sizeof(VsParams) == 240);
 struct FsParams {
@@ -147,8 +147,8 @@ struct FsParams {
     float patchMap[4];
     float patchInside[4];
     ShadowParams shadow;
-    float shadowFigure[4];      // x: a unit's mesh (R16i2), y: its object's nearest map depth (MeshBatch::front)
-    MeshLightParams lighting;   // R16i; its lights' w: their point shadow + 1 (R16i1)
+    float shadowFigure[4];      // x: a unit's mesh, y: its object's nearest map depth (MeshBatch::front)
+    MeshLightParams lighting;   // its lights' w: their point shadow + 1
     float pointOn[4];           // x: point shadows taken (MeshBatch::landscape), y: a unit's mesh
     float pointFront[4];        // MeshBatch::pointFront
 };
@@ -351,7 +351,7 @@ bool CreateMeshShader() {
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;   // the point shadows (R16i1)
+    s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;   // the point shadows
     s.uniform_blocks[2].size = sizeof(PointShadowParams);
     s.uniform_blocks[2].hlsl_register_b_n = 1;
     for (int t = 0; t < 3; ++t) {   // the two stages and stage 0's patch
@@ -461,7 +461,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
         vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;
     if (batch.lighting >= 0) {
         fs.lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
-        // Its lights' scene light becomes their point shadow (R16i1), taken with the landscape's rows.
+        // Its lights' scene light becomes their point shadow, taken with the landscape's rows.
         for (int k = 0; k < kMostMeshLights; ++k) {
             float& w = fs.lighting.points[k][1][3];
             w = static_cast<float>(PointShadowSlot(f, static_cast<int>(w) - 1) + 1);
@@ -474,7 +474,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
             std::memcpy(fs.pointFront, batch.pointFront, sizeof(fs.pointFront));
         }
     }
-    if (batch.figure && batch.front <= 1.0f) {   // a unit's (R16i2): no shadow of its own to keep off
+    if (batch.figure && batch.front <= 1.0f) {   // a unit's: no shadow of its own to keep off
         fs.shadowFigure[0] = 1.0f;
         fs.shadowFigure[1] = batch.front;
         vs.normalOffset[0] = 0.0f;
@@ -557,10 +557,10 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
-    // A caster's box (its point shadows, R16i1), and a unit's (R16i2).
+    // A caster's box (its point shadows), and a unit's.
     g_pending.boxed = g_pending.caster && PositionBox(mesh, g_pending.box);
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
-    // A figure part lit on the GPU (R16i), unless the draw set its colours to the device's. Only its
+    // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
         MeshLightParams params;
@@ -592,7 +592,7 @@ bool MeshPass(void* device) {
         g_pending.built = true;
         ++Stats().meshes;
         if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
-        // A figure mesh kept on the GPU (R16d), else its vertices into the frame's stream.
+        // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {
             g_pending.firstIndex = 0;

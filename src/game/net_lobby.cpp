@@ -1,5 +1,5 @@
-// The client base's lobby (0073BE30): finding servers and joining one, and the server base's half
-// (0073BBB4) that answers. See net_classes.h (ClientBase, ServerBase) for the fields.
+// The client base's lobby: finding servers and joining one, and the server base's half
+// that answers. See net_classes.h (ClientBase, ServerBase) for the fields.
 // The packets (first byte): 3 ping (the session time), 4 join (magic, id, rate, extra data),
 // 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7 refused (id, reason).
 // Plain float maths (rule 7). See docs/notes/network.md.
@@ -129,11 +129,11 @@ ServerEntryBase::ServerEntryBase() {
 }
 EI_REWRITTEN_SPECIAL(0x004413E0, ServerEntryBase::ServerEntryBase);
 
-// 00441410: the query with `address`, or the end.
+// The query with `address`, or the end.
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 EI_REWRITTEN(0x00441410, ClientQueries::QueriesFind);
 
-// 00441640: a buffer's length (its highest position brought up to date first).
+// A buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
     return b->PositionOf(b->high);
@@ -188,7 +188,7 @@ EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
 // ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss (slot 2) ---------------------
 
-// 004418F0 (slot 3): updates count only once joined.
+// Updates count only once joined.
 bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (joinState_ != kJoined) {
         LogLine("ERROR: Normal update when not in active state");
@@ -316,13 +316,13 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     entry.Destroy();
 }
 
-// 004420E0 (slot 2): removes a connection; when none is left the connection to the host is lost.
+// Removes a connection; when none is left the connection to the host is lost.
 void ClientBase::RemoveClient(ClientNode* node) {
     if (node == clients_) return;
     SessionBase::RemoveClient(node);
     if (clients_->next != clients_) return;
     LogLine("CONNECTION LOST server link is lost, entering idle");
-    ei::Log("net: the client lost its connection to the host");   // not the game's (N0c)
+    ei::Log("net: the client lost its connection to the host");   // not the game's
     joinState_ = kNotJoined;
 }
 
@@ -508,9 +508,9 @@ ServerEntry* ClientBase::ServerAt(int index) {
 }
 EI_REWRITTEN(0x00442A40, ClientBase::ServerAt);
 
-// 00442AD0 (slot 14): counts the servers' timeouts down; a server whose time ran out is dropped
+// Counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
-// joining the request is repeated with a doubling interval until it passes the limit (0073BAA4).
+// joining the request is repeated with a doubling interval until it passes the limit.
 void ClientBase::Tick(double dt) {
     ServerNode* node = servers_.End()->next;
     while (node != servers_.End()) {
@@ -592,10 +592,10 @@ void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     SendInfo(from, echo);
 }
 
-// 00443050 (slot 16): admits everybody.
+// Admits everybody.
 bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
 
-// 004434F0 (slot 3): an update from a peer that is not connected yet but was told to join
+// An update from a peer that is not connected yet but was told to join
 // becomes a connection (with the id and rate of its join), then counts.
 bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (SessionBase::OnUpdate(from, cursor)) return true;
@@ -609,7 +609,7 @@ bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return SessionBase::OnUpdate(from, cursor);
 }
 
-// 00443590 (slot 14): ages the pending joins (dropping those older than 0073BF9C, logged), then
+// Ages the pending joins (dropping those older than 0073BF9C, logged), then
 // the session's receive step.
 void ServerBase::Tick(double dt) {
     JoinNode* node = joins_.End()->next;
@@ -643,7 +643,6 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 // that is connected already is ignored. One that was told to join before is told again (its id
 // and rate replaced). Anybody else is asked about (slot 16) and either put on the joins list and
 // accepted, or refused with the reason slot 16 gave.
-//
 // The original builds the new join on the stack and never sets its age (+0x18): the list gets
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
 // is not defined. Rebirth's FixProcessLogin (a jump at 004433D6 to a stub that clears it) is what
@@ -710,7 +709,7 @@ EI_REWRITTEN(0x00443590, ServerBase::Tick);
 
 // ---- Saving the queries -----------------------------------------------------------------------
 
-// 004414E0: the queries in a chunk archive (chunk 1 of chunks 1: field 1 the address, 2 the
+// The queries in a chunk archive (chunk 1 of chunks 1: field 1 the address, 2 the
 // reply's length, 3 the reply), then field 2 the extra dword.
 void ClientQueries::Serialize(ChunkArchive* archive) {
     if (archive->EnterChunk(1)) {

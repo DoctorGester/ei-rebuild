@@ -16,14 +16,14 @@
 class ChunkArchive;
 
 struct QuestRecord {
-    // 006AD7D0 (RET 4). Reads (archive loading) or writes the record: string field 0 the name,
+    // Reads (archive loading) or writes the record: string field 0 the name,
     // 1 exp, 2 +0x10, 3 the zone, string field 4 the text, 5 money, 6 the order, chunk 7 the
     // places (one field 1 per float; loading empties the vector and fills it with that many
     // zeros first).
     void Serialize(ChunkArchive* ar);
-    // 006AF4D0 (S13; the compiler's destructor). The text, the places' storage, the name.
+    // 006AF4D0 (the compiler's destructor). The text, the places' storage, the name.
     void Destruct();
-    // The copy constructor (006B1770; S10a): each member copied in order (the places
+    // The copy constructor: each member copied in order (the places
     // copy-constructed). operator= (inlined in 006B37E0): each member assigned. The vector's
     // resize(n) temporary: empty strings with room for 8 bytes, no places.
     void CopyConstruct(const QuestRecord* source);
@@ -44,14 +44,14 @@ static_assert(offsetof(QuestRecord, text) == 0x2C);
 static_assert(sizeof(QuestRecord) == 0x38);
 
 struct QuestBriefingRecord {
-    // 006AD900 (RET 4). Reads or writes the record: string field 0 the name, 1 exp, 2 money,
-    // chunk 3 the given items (0052DF40), string field 4 the text, chunks 5-9 the other lists
+    // Reads or writes the record: string field 0 the name, 1 exp, 2 money,
+    // chunk 3 the given items, string field 4 the text, chunks 5-9 the other lists
     // (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
-    // 006AF5A0 (S13; the compiler's destructor). The text, the lists from the last (each string,
+    // 006AF5A0 (the compiler's destructor). The text, the lists from the last (each string,
     // then the storage), the name.
     void Destruct();
-    // The copy constructor (006B1910; S10a), operator= (inlined in 006B2BA0) and the vector's
+    // The copy constructor, operator= (inlined in 006B2BA0) and the vector's
     // resize(n) temporary (empty strings with room for 8 bytes, empty lists), as the quest's.
     void CopyConstruct(const QuestBriefingRecord* source);
     void AssignBriefing(const QuestBriefingRecord* source);
@@ -89,7 +89,7 @@ struct QuestBriefingTable {
 };
 static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
-// The quest database (007C87A8): the quests and the briefings, each with its index by name.
+// The quest database: the quests and the briefings, each with its index by name.
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 

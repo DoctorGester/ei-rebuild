@@ -1,4 +1,4 @@
-// 006CCF20: the terrain part of a ground decal (the shadow projector 0056C750). The decal quad is
+// The terrain part of a ground decal (the shadow projector 0056C750). The decal quad is
 // slid along the builder's slope until its lowest point matches the lowest ground vertex under
 // its bounding cells; the ground cells of that rectangle then go to the builder as two triangles
 // each.
@@ -13,7 +13,7 @@
 
 namespace {
 
-constexpr float kMargin = 1.0f;   // 0073B84C: one cell around the quad
+constexpr float kMargin = 1.0f;   // one cell around the quad
 
 float CellSize() { return 1.0f /*007441D0*/; }
 

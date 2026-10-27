@@ -1,9 +1,9 @@
 // The sector spiral's tables (sector_map.h): the offsets of a 21 x 21 square of sectors ordered by distance
-// (007C2FF8), the number of offsets within each distinct distance (007C2FC0) and the tree that finds a distance's
-// place among them (007C2FD8). Each is built empty by a static initialiser in the list's order (the offsets first)
+// the number of offsets within each distinct distance and the tree that finds a distance's
+// place among them. Each is built empty by a static initialiser in the list's order (the offsets first)
 // and destroyed by the exit function the initialiser registers with the game's atexit; both are ported on the names
 // and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects"). The fourth
-// initialiser (005BF8E0) fills them through BuildSectorSpiral (sector_map.cpp). Here, not in sector_map.cpp, so the
+// initialiser fills them through BuildSectorSpiral (sector_map.cpp). Here, not in sector_map.cpp, so the
 // path vectors' replay (tests/vectors/replay_path.cpp) links the definitions.
 #include "sector_map.h"
 

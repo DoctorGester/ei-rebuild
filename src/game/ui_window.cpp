@@ -386,7 +386,7 @@ EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 // --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
 
 namespace {
-// 005AC1A0: a new object of the model manager by name, or null.
+// A new object of the model manager by name, or null.
 CEngineObject* NewModelObject(const char* name) {
     return TheFigureManager()->NewFigure(name);
 }
@@ -455,7 +455,7 @@ constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f}; 
 } // namespace
 
 namespace {
-// 0040CB20: the engine object's base constructor (thiscall).
+// The engine object's base constructor (thiscall).
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
 // MaterialCreateOriginal), 0068EAF0 registers it (RET 8, CMaterialManager::FillMaterial).
 

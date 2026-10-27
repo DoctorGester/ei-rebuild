@@ -1,12 +1,10 @@
-// CParticleSource set-up: Create (vtable slot 2, 00485540), Reset (004847E0) and Clear (vtable
+// CParticleSource set-up: Create (vtable slot 2, 00485540), Reset and Clear (vtable
 // slot 3, 00484710). Names are provisional.
-//
 // Create resets the source, then fills the per-type parameters by `type_` (0x2000-0x2052, the
 // script names are the table at 0078B120): emission rates, lifetime, spread, sizes, the three
 // callbacks (+0x1E0 emit, +0x1E4 update, +0x1E8 element), the element array some types keep, and
 // the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle per texture
 // frame (the frames are a grid of `frameColumns` columns).
-//
 // The callbacks are member pointers to our rewrites (CParticleSource's EmitCallback, UpdateCallback,
 // ElementCallback: plain code addresses, as in the original).
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
@@ -57,8 +55,8 @@ double Unsigned(std::uint32_t value) {
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
-// 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
-// of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
+// Releases the texture in `holder`, then finds (or creates) the texture resource `name`
+// of `kind` in the resource manager and keeps a reference in `holder`. __thiscall.
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
@@ -768,7 +766,7 @@ void BuildFrames(CParticleSource* s) {
 
 } // namespace
 
-// 004847E0. Back to the defaults: no position, attachment, callbacks or elements; the texture
+// Back to the defaults: no position, attachment, callbacks or elements; the texture
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
     std::memset(&localPosition_, 0, sizeof(Vector3));
@@ -820,7 +818,7 @@ void CParticleSource::Clear() {
     CTexture* held = texture;
     texture = nullptr;
     if (held) held->Release();
-    if (attachedTo)   // 00518AE0: detached from the object it is attached to
+    if (attachedTo)   // detached from the object it is attached to
         attachedTo->RemoveEffectSource(this);
     Reset();
 }
@@ -860,7 +858,7 @@ namespace {
 
 } // namespace
 
-// 004981B0. The class factory's creator (in the table at 0073F67C; the register arguments are not
+// The class factory's creator (in the table at 0073F67C; the register arguments are not
 // used, `type` is the source type): a new 0x1F0-byte source on the game's heap (null when that
 // fails) with the engine object and transform bases (two identity rotations at +0x34 / +0x44), an
 // empty element array, bounds, particle list (blocks of 10), frame rectangles and texture holder,
@@ -903,7 +901,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);
 }
 
-// 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the
+// The destructor body: Clear (particles back to the pool, detached, Reset), release the
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.
 CParticleSource::~CParticleSource() {
@@ -928,7 +926,7 @@ EI_REWRITTEN(0x004982D0, CParticleSource::GetClassName);
 EI_REWRITTEN(0x004982E0, CParticleSource::GetClassId);
 
 // 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
-// 004965D0: the element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that
+// The element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that
 // stores one (Stench and the spheres, ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration,
 // Silence, FeebleMind, Stun, CurseStars).
 void CParticleSource::TickNone(ParticleElement*) {}
@@ -938,7 +936,7 @@ void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
 } // namespace ei::short_functions
 using ei::short_functions::Ret4;
 // The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls
-// these any more; registered as before (S16a, S16c) so the image keeps code at the addresses.
+// these any more; registered as before so the image keeps code at the addresses.
 EI_REPLACE_SHORT(0x00485530, Ret4);
 EI_REPLACE_SHORT(0x00492FB0, Ret4);
 EI_REPLACE_SHORT(0x00493DD0, Ret4);

@@ -16,8 +16,8 @@ namespace {
 
 // The sound system (*007AF784), thiscall (006B8600 plays a sound: CSoundManager::Play3D). The
 // mover takes the volume and radius as the floats' bits.
-// 006B92F0: moves a playing sound.
-// 006B94A0: stops a sound.
+// Moves a playing sound.
+// Stops a sound.
 // 006BA5E0 / 006BA7C0: moves / stops a sound sequence.
 // 006B9950 / 006B9A30: starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
 // returns the handle to keep (-1).

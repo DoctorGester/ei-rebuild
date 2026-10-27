@@ -16,18 +16,18 @@ EI_REWRITTEN(0x004607B0, ZoneRecords::DestructElements);
 EI_REWRITTEN(0x0044F7E0, BlocksAt8::SetSize);
 EI_REWRITTEN(0x00452DF0, BlocksAt8::DestructElements);
 EI_REWRITTEN(0x00453700, BlocksAt4::DestructElements);
-// The destructors of global arrays only exit functions call (S3c): the vtable back, the elements
+// The destructors of global arrays only exit functions call: the vtable back, the elements
 // destroyed, the storage freed. Plain elements: the sector spiral's radius tree keys (CArray<float>,
-// 007C2FD8; the exit function 005BF860) and offsets (007C2FF8; 005BF830), the path smoother's node
-// pool (007C3038; 005C4480), the particles' draw order (007A9C50; 00498930). The script quest's
-// objectives (007AA608; 004B17E0): each objective's text.
+// The exit function 005BF860) and offsets, the path smoother's node
+// pool, the particles' draw order. The script quest's
+// objectives: each objective's text.
 EI_REWRITTEN(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
 EI_REWRITTEN(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
 EI_REWRITTEN(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
 EI_REWRITTEN(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
 EI_REWRITTEN(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
 EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical to 005C4490
-// Their constructors, which the static initialisers call (00498910, 004B17C0, 005BF810, 005BF840, 005C4460): the
+// Their constructors, which the static initialisers call: the
 // compiled table stored, the rest zero.
 EI_REWRITTEN(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
 EI_REWRITTEN(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
@@ -35,10 +35,10 @@ EI_REWRITTEN(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Constru
 EI_REWRITTEN(0x005BF890, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Construct);
 EI_REWRITTEN(0x005C44B0, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Construct);
 // Their tables' scalar deleting destructors.
-EI_REWRITTEN(0x00499040, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct>::Delete);   // 00498E80
-EI_REWRITTEN(0x004CB790, mfc::impl::ScalarDeleting<&Objectives::Destruct<ObjectiveArrayClass>>::Delete);   // 004C9DB0
-EI_REWRITTEN(0x005C1C30, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct>::Delete);   // 005C18E0
-EI_REWRITTEN(0x005C5830, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct>::Delete);   // 005C5850
+EI_REWRITTEN(0x00499040, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x004CB790, mfc::impl::ScalarDeleting<&Objectives::Destruct<ObjectiveArrayClass>>::Delete);
+EI_REWRITTEN(0x005C1C30, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct>::Delete);
+EI_REWRITTEN(0x005C5830, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct>::Delete);
 
 EI_REWRITTEN(0x005121B0, Particles::SetSize);
 EI_REWRITTEN(0x004C3980, Groups::SetSize);
@@ -135,7 +135,7 @@ EI_REWRITTEN(0x0059B8F0, EngineObjectPtrs::CopyFrom);
 template struct CountedPtrs<CEngineObject>;
 template struct CountedPtrs<CItem>;   // SharedObject::objects
 
-// The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
+// The lib templates over tags the game's headers define: the registrations that need the complete tag.
 namespace mfc::impl {
 
 EI_REWRITTEN(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);

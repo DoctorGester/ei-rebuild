@@ -1,8 +1,8 @@
 // Rebirth's console additions (addon.dll v0.12.4.2), reproduced behind their flags
 // (include/ei/rebirth.h, docs/notes/rebirth.md):
-// - AddNewConsoleCommands: the console executor (005DC620) also registers "help" (wrapped),
+// - AddNewConsoleCommands: the console executor also registers "help" (wrapped),
 //   "addon", "execs", "listgvar", "drawall" (after the cheat word) and "nogui" on every call, and
-//   the battle screen's drawing (00636020) applies nogui's GUI visibility to its panels.
+//   the battle screen's drawing applies nogui's GUI visibility to its panels.
 // - AutoExec: the "Console AutoExec" lines (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a
 //   REG_MULTI_SZ, then the lines of 2utoexec.cfg) run before each of three console executions
 //   (0057ABE1, 0057BD30, 0057C9A3; the host functions are not rewritten yet).
@@ -40,7 +40,7 @@ namespace console {
 namespace {
 
 // 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
-// 006002A0. CUiWindow::SetEnabled(enabled, notify).
+// CUiWindow::SetEnabled(enabled, notify).
 
 // The saved / console script (the world's command script).
 int* const kSpectator = &options::TheOptions()->drawVisibleOnly_;

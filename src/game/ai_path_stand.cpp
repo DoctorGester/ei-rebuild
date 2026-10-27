@@ -3,7 +3,7 @@
 // cell (position * 1 / (0073FD18 * 0.5)) with the flags {reached, -, -, 1}, the excluded regions
 // emptied, and the order starts at the unit's position facing the direction its orientation
 // quaternion (+0x34) gives, negated (computed on the FPU in the original's order). Then the
-// variants add a turn (005C7C00), a tracked object (005C7C20) or a turn with an end (005C7C40);
+// variants add a turn, a tracked object or a turn with an end;
 // 005B2190 starts at the order's own start time. See ai_map.h (AIPath) and docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
@@ -58,25 +58,21 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
 
 } // namespace
 
-// 005B1DE0 (RET 0x10).
 void AIPath::StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits) {
     StandAt(this, &time, unit);
     SetTurn(direction, rateBits);
 }
 
-// 005B1F10 (RET 0x14).
 void AIPath::StandAndTrack(int time, const CMapObject* unit, int id, int from, int to) {
     StandAt(this, &time, unit);
     SetTrack(id, from, to);
 }
 
-// 005B2050 (RET 0x14).
 void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b) {
     StandAt(this, &time, unit);
     SetTurnUntil(direction, a, b);
 }
 
-// 005B2190 (RET 4).
 void AIPath::StandStill(const CMapObject* unit) {
     StandAt(this, &motionOrder.startTime, unit);
 }

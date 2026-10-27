@@ -75,7 +75,7 @@ CCmdTarget::~CCmdTarget() {
 CWnd::CWnd(HWND handle) : window(handle) {}
 
 CWnd::~CWnd() {
-    // CWnd::DestroyWindow (007051A1) is not ported: the image makes MFC's four static windows only.
+    // CWnd::DestroyWindow is not ported: the image makes MFC's four static windows only.
     if (window && !IsStaticWindow(this)) ei::UnportedSlot(0x007051A1);
     delete controlContainer;
     if (controlSite && controlSite->windowControl == this) controlSite->windowControl = nullptr;

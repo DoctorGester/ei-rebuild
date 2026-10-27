@@ -2,7 +2,6 @@
 // in this range: the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
 // arrays, the four kinds of variables, script instances and runs. The mirror image of
 // script_save.cpp; see script.h and docs/notes/script.md.
-//
 // Every piece is read through the stream's Read (vtable slot 1) in the original's order and in the
 // original's pieces. The original inlines CArray::SetSize(n, -1) and CList::AddTail into most
 // loaders; both are written out here (InlineSetSize, AppendNode) with the instantiation's own
@@ -39,7 +38,7 @@ namespace {
 // bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
-// 00593AA0 the world's FindObject (007AFF60).
+// 00593AA0 the world's FindObject.
 CBaseManager* Registry() { return TheServerWorld()->manager48_; }
 
 // CArray template members (out of line), __thiscall (size, growBy).
@@ -248,14 +247,14 @@ EI_REWRITTEN(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
 
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
 
-// The mirror of SSCCmd::Save (004B6360). Object and group arguments are saved as counts only: the
+// The mirror of SSCCmd::Save. Object and group arguments are saved as counts only: the
 // slots are made and left null (the original inlines the object array's SetSize, not the group
 // array's). The called block is found with 004BFA50 in the lists of 007C27D4 (-1, an unset block,
 // finds a WorldScript block with id -1 if any).
 void SSCCmd::Load(ScriptStream* stream) {
     stream->Read(&id, 4);
 
-    floatArgs.SetSize(ReadInt(stream), -1);   // 004C4410
+    floatArgs.SetSize(ReadInt(stream), -1);
     for (int i = 0; i < floatArgs.size; ++i) stream->Read(&floatArgs.data[i], 4);
 
     stringArgs.SetSize(ReadInt(stream), -1);
@@ -266,10 +265,10 @@ void SSCCmd::Load(ScriptStream* stream) {
     for (int i = 0; i < objects; ++i) objectArgs.data[i] = nullptr;
 
     int groups = ReadInt(stream);
-    groupArgs.SetSize(groups, -1);   // 004C49F0
+    groupArgs.SetSize(groups, -1);
     for (int i = 0; i < groups; ++i) groupArgs.data[i] = nullptr;
 
-    localBindings.SetSize(ReadInt(stream), -1);   // 004C4CE0
+    localBindings.SetSize(ReadInt(stream), -1);
     for (int i = 0; i < localBindings.size; ++i) stream->Read(&localBindings.data[i], 12);
     globalBindings.SetSize(ReadInt(stream), -1);
     for (int i = 0; i < globalBindings.size; ++i) stream->Read(&globalBindings.data[i], 12);
@@ -354,7 +353,7 @@ EI_REWRITTEN(0x004BFA50, CScript::FindBlock);
 void ScriptVars::Load(ScriptStream* stream) {
     int slot = 0;
     stream->Read(&slot, 4);
-    floats.SetSize(slot, -1);   // 004C2880
+    floats.SetSize(slot, -1);
     floatNames.SetSize(slot, -1);
     for (slot = 0; slot < floats.size; ++slot) {
         stream->Read(&floats.data[slot], 4);
@@ -511,7 +510,7 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
             instance->index = temp.index;
             instance->name = temp.name;
             instance->params = temp.params;
-            instance->ifThen.Copy(temp.ifThen);   // 004CC4A0
+            instance->ifThen.Copy(temp.ifThen);
             instance->vars.ScriptVarsAssign(&temp.vars);
         });
         ScriptVarsDestruct(&temp.vars);
@@ -520,11 +519,11 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         ScriptDefinition* instance = &node->data;
         node = node->next;
         stream->Read(&instance->index, 4);
-        // The original reads each string (00461190) into a temporary and assigns it: 004B3D10.
+        // The original reads each string into a temporary and assigns it: 004B3D10.
         ScriptStringLoad(&instance->name, stream);
         ScriptStringLoad(&instance->params, stream);
         int pairs = ReadInt(stream);
-        instance->ifThen.SetSize(pairs, -1);   // 004C59C0
+        instance->ifThen.SetSize(pairs, -1);
         for (int k = 0; k < instance->ifThen.size; ++k) instance->ifThen.data[k].Load(stream);
         LoadVariables(&instance->vars, stream);
     }
@@ -578,13 +577,13 @@ EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 
 // ---- CScript::Load --------------------------------------------------------------------------------
 
-// Reads what ScriptSave (004C0F90) wrote, in the same order. Sets 007AA620 to the script while
+// Reads what ScriptSave wrote, in the same order. Sets 007AA620 to the script while
 // the runs are read. Areas are read only from stream version 0x57 on.
 void CScript::LoadState(ScriptStream* stream) {
     g_streamedScript = this;
 
     // Point lights (+0x00; 0x20-byte slots).
-    mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);   // 004C5CB0
+    mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < pointLights_.size; ++i) pointLights_.data[i].ScriptPointLightLoad(stream);
 
     ScriptParticlesLoad(&particles_, stream);
@@ -629,7 +628,7 @@ void CScript::LoadState(ScriptStream* stream) {
     for (int i = 0; i < areas.size; ++i) {
         ScriptArea* area = &areas.data[i];
         stream->Read(&area->id, 4);
-        area->parts.SetSize(ReadInt(stream), -1);   // 004CC640
+        area->parts.SetSize(ReadInt(stream), -1);
         for (int k = 0; k < area->parts.size; ++k) stream->Read(&area->parts.data[k], sizeof(ScriptAreaPart));
     }
 }

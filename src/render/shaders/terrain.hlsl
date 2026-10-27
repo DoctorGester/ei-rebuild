@@ -1,4 +1,4 @@
-// The landscape's pages (render_terrain.cpp), lit here (R16i, scene_lighting.hlsli): the vertices carry the
+// The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the
 // normal, the material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0
 // or more; below 0 on the water layer, whose specular word the game keeps: its specular lights and crests).
 #include "shadow_receiver.hlsli"
@@ -12,7 +12,7 @@ cbuffer params : register(b0) {
     float4 fog;     // rgb: the fog colour
     float4 flags;   // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels),
                     // y: fog on; zw: the half-pixel shift
-    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // to the shadow map (R16j)
+    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // to the shadow map
     float4 shadow_on;   // the shadow map (render_shadows.cpp, ShadowParams)
     float4 shadow_scale;
     float4 shadow_camera;
@@ -46,7 +46,7 @@ SamplerState smp : register(s0);
 Texture2D<float> shadow_map : register(t1);
 SamplerComparisonState shadow_smp : register(s1);
 Texture2D<float4> shadow_range : register(t2);
-SamplerState shadow_linear : register(s2);   // the range, filtered (R25)
+SamplerState shadow_linear : register(s2);   // the range, filtered
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);

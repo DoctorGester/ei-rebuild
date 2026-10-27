@@ -1,13 +1,12 @@
 #pragma once
 
-// The performance overlay (R21; docs/notes/renderer.md, section 15): frames a second, the frame time (average and
+// The performance overlay (docs/notes/renderer.md, section 15): frames a second, the frame time (average and
 // worst over the last second), the GPU time of the frame's passes (timestamp queries, read a few frames late
 // without waiting), the renderer's CPU time and the draws, as a few lines of text in the frame's top left corner.
 // Drawn by the present into the game window's back buffer after the frame and the cursor (render_window.cpp,
 // DrawToWindow), never into the frame target: captures, screenshots, the escape menu's and the save game's
 // pictures and every frame check read the frame target, so none of them holds it. Off unless the settings file
 // switches it on (render::SetPerfOverlay); the harness build never draws it.
-//
 // Its own text: a 5 x 7 pixel font of capitals, digits and a few signs, drawn into a one-channel image (0 the
 // box, else the text's brightness) and scaled up by whole pixels with the game's height (Scale).
 

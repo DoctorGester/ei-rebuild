@@ -43,16 +43,16 @@ constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
 // The panel surface's text draw [005FDE20, Rebirth-patched: text, rectangle, 0, colour, 0, 1].
-// The text manager (007AF788): the text of a key [004E0020: key, out].
+// The text manager: the text of a key [004E0020: key, out].
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
 // the prototype [00530930], the level [00532D40] (rewritten, called directly).
-// The world (007AF5B8): the time of day [0055FC50, ST0].
+// The world: the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
-// 004613A0: whether an id is a text key [__fastcall].
+// Whether an id is a text key [__fastcall].
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
-// The session (007AFE20): a multiplayer client [0057F440, AL].
+// The session: a multiplayer client [0057F440, AL].
 
 
 // The speed shown: (00742408 * speed) * 00742AEC unrounded, the speed from 0052FAF0 (mode 3) for a
@@ -95,7 +95,7 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 
 } // namespace
 
-// 00647040. Draws the info lines of `unit`.
+// Draws the info lines of `unit`.
 void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     CTextManager* texts = TheTextManager();
     UnitParams* params = unitIn->Params();

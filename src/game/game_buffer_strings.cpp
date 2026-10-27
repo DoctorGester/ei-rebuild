@@ -1,5 +1,5 @@
-// The byte buffer's length-prefixed strings (A-S4): GameBuffer::ReadString (004DA200) and
-// WriteString (004DA380). The format is in net_coder.h; the buffer's other members are
+// The byte buffer's length-prefixed strings (A-S4): GameBuffer::ReadString and
+// WriteString. The format is in net_coder.h; the buffer's other members are
 // game_buffer.cpp.
 #include "net_classes.h"
 #include "net_coder.h"

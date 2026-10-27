@@ -1,5 +1,5 @@
-// The battle screen panels' tooltips: the weapon bar's unit (0063C180), a quick item's tip
-// (0063CEE0) and the action column's unit (0063F800). See ui.h and docs/notes/ui.md ("Battle screen").
+// The battle screen panels' tooltips: the weapon bar's unit, a quick item's tip
+// and the action column's unit. See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 #include "game_strings.h"
 
@@ -30,7 +30,7 @@ namespace {
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
-// The spell's prototype record (0068BA20) of a spell's data block (an item's +0x44).
+// The spell's prototype record of a spell's data block (an item's +0x44).
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
     return spell->GetPrototype();
 }

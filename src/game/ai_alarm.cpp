@@ -23,10 +23,10 @@ namespace {
 
 // The game's ostream (MSVC 6 iostream).
 struct AiLogStream : libcrt::Ostream {
-    AiLogStream* Write(const char* text) { PutText(text); return this; }                       // 006FC31D
-    AiLogStream* Write(long value) { PutInt(value); return this; }                             // 006FC9C6
-    AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
-    AiLogStream* Apply(libcrt::Manipulator manipulator) {                                                    // 00434FE0
+    AiLogStream* Write(const char* text) { PutText(text); return this; }
+    AiLogStream* Write(long value) { PutInt(value); return this; }
+    AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
+    AiLogStream* Apply(libcrt::Manipulator manipulator) {
         libcrt::Ostream::Apply(manipulator);
         return this;
     }
@@ -39,7 +39,7 @@ AiLogStream* AlarmLog() { return console::StreamAs<AiLogStream>(*kAlarmLog); }
 
 static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     CUnitServer* server = owner;
-    CWorldServer* world = owner->ServerWorld();   // 00455940
+    CWorldServer* world = owner->ServerWorld();
     if (state->pending != 0) {
         if (state->pending > state->level) {
             state->active = state->pending;

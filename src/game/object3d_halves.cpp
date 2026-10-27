@@ -89,7 +89,7 @@ bool CObject3DClientSpecific::ShadowInView() {
 }
 EI_REWRITTEN(0x0051E300, CObject3DClientSpecific::ShadowInView);
 
-// 0051C110 (RET 4). The scene pipeline's pop (model.h; Draw and the decal projector call it).
+// The scene pipeline's pop (model.h; Draw and the decal projector call it).
 EI_REWRITTEN(0x0051C110, CTransformPipeline::PopMatrix);
 
 // 0051E1C0 (ECX = matrix). The identity matrix (DrawShadow's pixel matrix starts from it).
@@ -104,7 +104,7 @@ EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
-// 0051AC60 (slot 19, RET 8): nothing is drawn; 0.
+// Nothing is drawn; 0.
 int CObject3DSpecific::DrawParts(void* /*context*/, int* /*dirty*/) { return 0; }
 EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawParts);
 // 0051AC70 (slot 20) and 0051AC90 / 0051ACB0 / 0051ACA0 (slots 22-24), all RET 4: 0.
@@ -116,7 +116,7 @@ int CObject3DSpecific::PartsIntersectRect(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
-// 0051AC80 (slot 21): nothing. One byte, as 0051E830 (the empty destroy step the containers of
+// Nothing. One byte, as 0051E830 (the empty destroy step the containers of
 // plain elements call): too short to hook, registered so the address is known.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
 EI_REPLACE(0x0051AC80, SpecificBaseNothing);
@@ -129,7 +129,7 @@ EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 
-// 0051F240: the base half's (the engine object's fields, no object). 0051F300 (deleting: 0051F2E0): the
+// The base half's (the engine object's fields, no object). 0051F300 (deleting: 0051F2E0): the
 // base half's.
 CObject3DServer::CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F240, CObject3DServer::CObject3DServer);
@@ -137,7 +137,7 @@ CObject3DServer::~CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F300, CObject3DServer::~CObject3DServer);
 EI_REWRITTEN_SPECIAL(0x0051F2E0, CObject3DServer::~CObject3DServer);
 
-// 0051F320 (slot 2): 1. 0051F330 (slot 3): no object.
+// 1. 0051F330 (slot 3): no object.
 int CObject3DServer::Create() { return 1; }
 EI_REWRITTEN(0x0051F320, CObject3DServer::Create);
 void CObject3DServer::Destroy() { object = nullptr; }
@@ -173,14 +173,14 @@ WoundsMaterial::~WoundsMaterial() {
 EI_REWRITTEN_SPECIAL(0x0051C730, WoundsMaterial::~WoundsMaterial);
 EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 
-// 0051C800. A named texture's destructor: the texture released, the name freed.
+// A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {
     if (self->texture) self->texture->Release();
     self->name.~string();
 }
 EI_REWRITTEN(0x0051C800, NamedTextureDestruct);
 
-// 0051E430 (RET 4). A named texture's copy constructor: the name copied (a block of its length +
+// A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
 NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
     new (&name) stlp::string(other->name);

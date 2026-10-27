@@ -11,7 +11,7 @@
 
 #include <cstring>
 
-// 004BAEB0: an objective's destructor (its text).
+// An objective's destructor (its text).
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { objective->text.~CString(); }
 
 // 004BAA40 (QStart; __fastcall with the name in ECX). The old objectives are destroyed and freed, the
@@ -36,7 +36,7 @@ void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, floa
     copy = *text;
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;
-    mfc::impl::ArrayAs<gamearrays::Objectives>(objectives).SetSize(at + 1, -1);   // 004CDF40: new ones an empty text
+    mfc::impl::ArrayAs<gamearrays::Objectives>(objectives).SetSize(at + 1, -1);   // new ones an empty text
     ScriptQuestObjective& objective = objectives.data[at];
     objective.type = type;
     objective.text = copy;
@@ -47,11 +47,11 @@ EI_REWRITTEN(0x004BAEB0, ScriptQuestObjectiveDestruct);
 EI_REWRITTEN(0x004BAA40, ScriptQuestStart);
 EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
 
-// 004C9C90: the key, then a {key, null} pair copied from it; the pair is destroyed before the key.
+// The key, then a {key, null} pair copied from it; the pair is destroyed before the key.
 QuestRecord* QuestDatabase::FindQuest(const char* name) {
     stlp::string key(name);
     QuestIndex::Pair pair{key, nullptr};
-    return questsByName.FindOrInsert(pair)->value;   // 004CE110
+    return questsByName.FindOrInsert(pair)->value;
 }
 EI_REWRITTEN(0x004C9C90, QuestDatabase::FindQuest);
 EI_REWRITTEN(0x0064F550, QuestDatabase::FindQuest);

@@ -1,8 +1,8 @@
 // The multiplayer connection screen (CMpConnectScreen, 0061C2E0-0061D470), its master server request
 // box (CMasterRequestBox, 0061E2F0 / 0061E4E0) and the address list's vector members (0061E5A0-
 // 0061EE80). See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
-// reaches the screen but ui_mp_host. Its Create (0061B2C0) reproduces addon's ExtendedServerName
-// sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
+// reaches the screen but ui_mp_host. Its Create reproduces addon's ExtendedServerName
+// sites and EI_Plugin's NPlayers, as the list draw 0061D780 (ui_connect_list.cpp) does its
 // patches.
 #include "net_classes.h"
 #include "options.h"
@@ -117,7 +117,7 @@ struct LocalQueries {
     net::ClientQueries queries;
 };
 
-// Create's layout (0061B2C0).
+// Create's layout.
 const char* SaveLoadTexture() { return "saveload"; }
 const char* ScrollbarTexture() { return "scrollbar"; }
 const char* MenuModel() { return "unmoco2"; }
@@ -660,7 +660,7 @@ void CMpConnectScreen::CreateScreen() {
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    // ExtendedServerName (0061B5CE): the selection's right edge 370 -> 381.5.
+    // ExtendedServerName: the selection's right edge 370 -> 381.5.
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
@@ -674,7 +674,7 @@ void CMpConnectScreen::CreateScreen() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    CTextManager* texts = GameClientTexts();   // 00578E20: the client's text table
+    CTextManager* texts = GameClientTexts();   // the client's text table
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);
@@ -704,8 +704,8 @@ void CMpConnectScreen::CreateScreen() {
         AddChild(scroll_);
     }
     {
-        // EI_Plugin's NPlayers (0061BAF7, 0061BB82): the slider's maximum is max(players, 7) - 1 and its
-        // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName (0061BB51) makes the
+        // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
+        // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName makes the
         // right edge of the layout rectangle, set after the construction, and of the name's field 680.
         const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
         const int players = ei::rebirth::PluginNPlayers();
@@ -722,7 +722,7 @@ void CMpConnectScreen::CreateScreen() {
     {
         nameEdit_ = new CUiEditField(interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
         AddChild(nameEdit_);
-        // ExtendedServerName (0061BC09, 0061BC0B, 0061BC0E): the classes 15, font 0, at most 50
+        // ExtendedServerName: the classes 15, font 0, at most 50
         // characters (the name taken from the hero below still stops at 10).
         if (extended)
             nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, TextColour(), kCaretColour);
@@ -787,7 +787,7 @@ void CMpConnectScreen::CreateScreen() {
 }
 EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
-// 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
+// 0061BC0E) and EI_Plugin's NPlayers.
 
 // --- 0061E2F0 / 0061E4E0: the master request box --------------------------------------------------
 

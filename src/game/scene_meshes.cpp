@@ -45,8 +45,8 @@ using AssocIndex = IndexMap::Assoc;
 using Assoc32 = PairMap::Assoc;
 static_assert(sizeof(Assoc64) == 0x18 && sizeof(AssocIndex) == 0x14 && sizeof(Assoc32) == 0x10);
 
-// The sorted corner list (a CArray of 16-byte records, vtable 0073C19C): SetSize (00453CA0) and
-// SetAtGrow (00453E00).
+// The sorted corner list (a CArray of 16-byte records, vtable 0073C19C): SetSize and
+// SetAtGrow.
 struct CornerRecord {
     std::int32_t vertex, position, texture;
     std::int32_t index;
@@ -115,7 +115,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             r.position = static_cast<std::int32_t>(static_cast<std::uint32_t>(key >> 16) & 0xFFFF);
             r.texture = static_cast<std::int32_t>(static_cast<std::uint32_t>(key) & 0xFFFF);
             r.index = records.size;
-            records.SetAtGrow(records.size, r);   // 00453E00
+            records.SetAtGrow(records.size, r);
             Lookup(indices, key) = static_cast<std::uint32_t>(r.index);
         }
     }
@@ -200,14 +200,14 @@ void __fastcall IndexMeshCorners(MeshArray* meshes) {
         BuildPairs(&meshes->data[m]);
         DestroyMap(indices, mfc::impl::CornerMapBClass::Vtable());
         corners.vtable = mfc::impl::CornerMapAClass::Vtable();
-        corners.RemoveAll();   // 00453F80
+        corners.RemoveAll();
     }
     records.vtable = mfc::impl::MeshCornerArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REWRITTEN(0x0044CFF0, IndexMeshCorners);
 
-// 0044CF00 / 0044CF60 (no Ghidra functions; S16c): the two qsort comparators above (kCompareRecords,
+// 0044CF00 / 0044CF60 (no Ghidra functions): the two qsort comparators above (kCompareRecords,
 // kComparePairs; called through their addresses so the checks run). 1, -1 or 0 by the first field
 // that differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
 namespace {

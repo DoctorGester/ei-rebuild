@@ -1,5 +1,5 @@
-// The battle HUD's top panel (the message log's frame): its setup (00649AF0) and the lines it adds
-// to page 0 for picked-up items (0064A4E0) and money (0064A630). The page display and layout are
+// The battle HUD's top panel (the message log's frame): its setup and the lines it adds
+// to page 0 for picked-up items and money. The page display and layout are
 // in ui_hud_panels.cpp. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"

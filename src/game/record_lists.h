@@ -1,6 +1,6 @@
 #pragma once
 
-// The game's STLport list<T> instantiations over game records (S9a; the plain-data and reference
+// The game's STLport list<T> instantiations over game records (the plain-data and reference
 // holder ones are in src/lib/stlp_list.cpp): an element policy per record (how _M_create_node
 // copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the record's
 // ported constructors and destructors, and the ListAbi shims they are registered with
@@ -32,7 +32,7 @@ using ChunkRefElement = ChunkArchive::RefElement;
 // The client's finished trades (ClientSession::tradeRecords_, TradeRecordNode; 0x160-byte nodes from
 // operator new): two revisions and three parties. Copied member by member (CParty's copy
 // constructor, 006613C0), destroyed last party first (006611D0, as 00424DB0 does); T() constructs
-// the parties (00661050) and leaves the revisions as the stack held them.
+// the parties and leaves the revisions as the stack held them.
 using net::TradeRecord;
 struct TradeElement {
     static void Copy(TradeRecord* to, const TradeRecord& from) {
@@ -50,11 +50,11 @@ struct TradeElement {
     }
 };
 
-// The link queues' memory streams (QueueNode, 48-byte nodes). The copy (00479410) constructs a
+// The link queues' memory streams (QueueNode, 48-byte nodes). The copy constructs a
 // memory stream, sizes it as the source (SetSize) and calls its slot 1 (Read) with the source's
 // buffer: the original reads the new stream's fresh block into the source rather than writing the
-// source's bytes, so both hold the new block's bytes. Destroyed by the destructor (004790D0); T()
-// is an empty stream (0066C4F0).
+// source's bytes, so both hold the new block's bytes. Destroyed by the destructor; T()
+// is an empty stream.
 struct QueueStreamElement {
     static void Copy(CMemoryStream* to, const CMemoryStream& from) {
         new (to) CMemoryStream();
@@ -67,7 +67,7 @@ struct QueueStreamElement {
 static_assert(sizeof(stlp::list<CMemoryStream>::Node) == 0x30);
 
 // CLinkFigureLoader's archives (LinkArchiveNode, 24-byte nodes): pair<string, CMMIOResource*>.
-// The string copied into a block of its length + 1 (0042A2B0); T() is an empty string with room for
+// The string copied into a block of its length + 1; T() is an empty string with room for
 // 8 bytes and the resource as the stack held it (AddArchive sets it).
 struct LinkArchive {
     stlp::string name;
@@ -97,7 +97,7 @@ struct ScorchMarkElement {
 };
 
 // The titles' script lines (CCreditsScreen::lines_, 24-byte nodes; 0062C0C0): the flag byte, the
-// speed and both CStrings copied (007006E5).
+// speed and both CStrings copied.
 struct TitleLineElement {
     static void Copy(TitleLine* to, const TitleLine& from) {
         to->scroll = from.scroll;

@@ -1,6 +1,6 @@
 // The meshes (render_mesh.cpp): the fixed-function texture stages of the old device as the game sets them
 // (D3DTEXTUREOP and D3DTA values), evaluated per pixel; then specular, fog and the alpha test. A figure
-// part lit on the GPU (R16i, render::MeshLighting) takes its diffuse colour from `figure_light` instead of
+// part lit on the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of
 // the vertex colour (whose alpha it keeps).
 #include "shadow_receiver.hlsli"
 #define POINT_SHADOW_B b1
@@ -11,10 +11,10 @@ cbuffer vs_params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 distance_fog;   // x: on, y: start, z: 1 / (end - start); w: keep z inside the depth range
     float4 shift;          // xy: the half-pixel shift (render_internal.h); z: depth scale
-    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // model space to the shadow map (R16j)
-    float4 uv_offset;      // xy: added to the texture coordinates (a mesh kept on the GPU, R16d)
+    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // model space to the shadow map
+    float4 uv_offset;      // xy: added to the texture coordinates (a mesh kept on the GPU)
     float4 normal_offset;  // x: how far along its normal a receiver's point is looked up in the map
-    float4 wrow0; float4 wrow1; float4 wrow2;   // model space to the landscape's (point shadows, R16i1)
+    float4 wrow0; float4 wrow1; float4 wrow2;   // model space to the landscape's (point shadows)
 };
 cbuffer fs_params : register(b0) {
     float4 fog_colour;     // rgb
@@ -31,14 +31,14 @@ cbuffer fs_params : register(b0) {
     float4 shadow_scale;
     float4 shadow_camera;
     float4 shadow_soft;
-    float4 shadow_figure;  // x: a unit's mesh, y: its object's nearest depth in the map (R16i2)
+    float4 shadow_figure;  // x: a unit's mesh, y: its object's nearest depth in the map
     float4 light_on;      // x: lit here, y: the crown's pull, z: the lights (render_internal.h, MeshLightParams)
     float4 light_sun;      // xyz: towards the sun in model space
     float4 light_sun_colour;
     float4 light_ambient;
     float4 light_emissive;
     float4 light_points[16];   // per light: model-space position, 1 / range squared; lit colour, w: its
-                               // point shadow's map + 1, 0 none (R16i1)
+                               // point shadow's map + 1, 0 none
     float4 point_on;       // x: point shadows taken (the landscape rows set), y: a unit's mesh
     float4 point_front;    // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
 };
@@ -63,7 +63,7 @@ vs_out vs_main(vs_in i) {
     if (distance_fog.x > 0.5 && o.pos.w >= distance_fog.y)
         o.spec.a = min(o.spec.a, 1.0 - min((o.pos.w - distance_fog.y) * distance_fog.z, 1.0));
     o.uv = i.uv + uv_offset.xy;
-    // The normal offset (R16i): the point looked up in the map moved along its normal (a figure part's).
+    // The normal offset: the point looked up in the map moved along its normal (a figure part's).
     float len = length(i.normal);
     float4 q = len > 1e-6 ? float4(i.pos + i.normal * (normal_offset.x / len), 1.0) : p;
     o.shadow = float4(dot(lrow0, q), dot(lrow1, q), dot(lrow2, q), 1.0);
@@ -81,14 +81,14 @@ SamplerState smp2 : register(s2);
 Texture2D<float> shadow_map : register(t3);
 SamplerComparisonState shadow_smp : register(s3);
 Texture2D<float4> shadow_range : register(t4);
-SamplerState shadow_linear : register(s4);   // the range, filtered (R25)
+SamplerState shadow_linear : register(s4);   // the range, filtered
 // A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point
 // `p` with the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's
 // lit colour times the cosine to it and each light's lit colour times its cosine and falloff, plus the
 // emissive colour, at most 1. The crown: pulled towards its average colour, taken as the average over
 // every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over
 // -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before R16i.
-// A light with a point shadow (R16i1, point_shadow.hlsli) adds only what reaches `land` (the point in the
+// A light with a point shadow (point_shadow.hlsli) adds only what reaches `land` (the point in the
 // landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh compares from the
 // unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
 // `face`: the smoothed normals lean far from their faces), looked up moved along `face`.
@@ -167,12 +167,12 @@ bool passes(int func, float a, int reference) {
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     bool lit_here = light_on.x > 0.5;
-    // The face normal in the landscape's space, turned to the camera (point shadows, R16i1).
+    // The face normal in the landscape's space, turned to the camera (point shadows).
     float3 face = cross(ddx(i.land), ddy(i.land));
     float face_length = length(face);
     face = face_length > 1e-20 ? face / face_length : float3(0.0, 0.0, 1.0);
     if (dot(face, point_shadow_eye.xyz - i.land) < 0.0) face = -face;
-    // How much of the sun the shadow map hides. A unit's mesh (R16i2): the shadows other objects cast, on
+    // How much of the sun the shadow map hides. A unit's mesh: the shadows other objects cast, on
     // every face (none of its own: its sun side is shaded by the lighting's N.L; by face it flipped triangle
     // by triangle on a low-poly creature). Any other mesh: on faces turned to the sun only, by their face
     // normal (the smoothed vertex normals of many static meshes lean far from their faces: a plank's top read

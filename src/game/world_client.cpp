@@ -191,7 +191,7 @@ namespace {
 
 constexpr int kExitParticles = 0x2038;   // "ZoneExit" (particle_emitters.cpp EmitZoneExit)
 constexpr int kExitWarmUpTicks = 20;
-constexpr float kOneHalf = 0.5f;          // 0073B86C
+constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
@@ -330,7 +330,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     return flags | 0x2000;
 }
 
-// ---- Segment (005641F0) --------------------------------------------------------------------------
+// ---- Segment --------------------------------------------------------------------------
 
 namespace {
 
@@ -439,7 +439,7 @@ int CWorldClient::Segment() {
             int key = object->id_;
             mfc::CList<CEngineObject*>::Node* position = nullptr;
             if (dynamicNodes_.Lookup(reinterpret_cast<const std::uint32_t*>(&key), &position)) {
-                dynamicObjects_.RemoveAt(position);   // 005704A0
+                dynamicObjects_.RemoveAt(position);
                 hash400::PositionsRemoveKey(dynamicNodes_, key);
             }
         }

@@ -67,7 +67,7 @@ int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units
     return 1;
 }
 
-// The game flow (007AFE20).
+// The game flow.
 
 // A potion used from a quick slot is counted off at once.
 void SpendPotion(CUnit* user, int slot) {

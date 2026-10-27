@@ -28,10 +28,10 @@ constexpr console::GameOStream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
 console::GameOStream* AiLog() { return kAiLog; }
 
 namespace {
-constexpr float kDecayScale = 30.0f;                                    // 0073BAF0
-constexpr float kOne = 1.0f;                                            // 0073B84C
+constexpr float kDecayScale = 30.0f;
+constexpr float kOne = 1.0f;
 constexpr float kDecayDivisor = std::bit_cast<float>(0x3D042108u);      // 0073FFC0 (1 / 31)
-constexpr float kArrivedDistanceSq = 1.0f;                              // 0073FEF0
+constexpr float kArrivedDistanceSq = 1.0f;
 
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
@@ -41,9 +41,9 @@ int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
 // The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
 struct GameOstream : libcrt::Ostream {
-    GameOstream* Write(const char* text) { PutText(text); return this; }                      // 006FC31D
+    GameOstream* Write(const char* text) { PutText(text); return this; }
     GameOstream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }  // 006FC0B0 (operator<<(char))
-    GameOstream* Apply(libcrt::Manipulator manipulator) {                                                   // 00434FE0
+    GameOstream* Apply(libcrt::Manipulator manipulator) {
         libcrt::Ostream::Apply(manipulator);
         return this;
     }
@@ -52,13 +52,13 @@ struct GameOstream : libcrt::Ostream {
 constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
 
-// 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
+// DestructElements of counted references (gamearrays::ObjectRefs').
 template <typename T>
 void DestructRefs(T** refs, int count) {
     gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
 }
 
-// 006E79A0: the game's memmove.
+// The game's memmove.
 
 // The mode names of the "new motivation" message (the original pushes these addresses).
 const char* ModeName(int type) {
@@ -76,7 +76,7 @@ const char* ModeName(int type) {
     default: return nullptr;    // 9 and anything else: the name stays empty
     }
 }
-// 00791E20: "Unit %i new motivation %s with power of %i".
+// "Unit %i new motivation %s with power of %i".
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 } // namespace
 
@@ -90,7 +90,7 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vecto
     attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
 }
 
-// --- The corpse list (005D8D50) ---------------------------------------------------------------
+// --- The corpse list ---------------------------------------------------------------
 
 // RemoveHead of the corpse list returning the element as a counted reference (A-W12). The original
 // copies the head's object into a counted local, unlinks the node, destroys the element in place
@@ -413,7 +413,7 @@ void AIBrain::UpdateAttack() {
     }
     CUnitServer* o = owner;
     bool giveUp = false;
-    if (o->unit->player != nullptr) {      // 005301A0
+    if (o->unit->player != nullptr) {
         if (IsGone(target) != 0) {
             action = kActionNone;
             return;

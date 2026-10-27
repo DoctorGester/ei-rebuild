@@ -1,4 +1,4 @@
-// The briefing variables of the client (0057FC90, 0057FDE0, 0057FF40): which mercenary speaks a
+// The briefing variables of the client: which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "object_tables.h"
@@ -106,8 +106,8 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-// 004DEDD0 (RET 4). The briefing texts forget a loaded file.
-// 0040C720. STLport string destructor.
+// The briefing texts forget a loaded file.
+// STLport string destructor.
 
 using LoadedFiles = stlp::vector<stlp::string>;
 LoadedFiles& QuestFiles() { return g_questFiles; }
@@ -122,8 +122,8 @@ constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
 using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }       // 005809C0
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }   // 00581090
+void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
+void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 } // namespace
 
 EI_REPLACE(0x005809C0, DestroyQuestFiles);
@@ -283,7 +283,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         new (folders.Finish()) stlp::string(name);
         ++folders.Finish();
     } else {
-        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);   // 004DCE90
+        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);
     }
 }
 

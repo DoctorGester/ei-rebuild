@@ -36,7 +36,7 @@ void FreeVectorStorage(T* begin, T* capacity) {
 }
 
 // A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
-// erased (005FAFA0) and the header reset, the count 0; then the header freed.
+// erased and the header reset, the count 0; then the header freed.
 void DestroyPersonTexts(PersonTextMap& map) {
     PersonTextNode* header = map.end();
     if (map.size() != 0) {
@@ -61,11 +61,11 @@ void DestroyList(stlp::list<T>& list, F destroy) {
 void* UiInputSide::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void UiInputSide::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// 005EA850 (RET 4): the base input side's deleting destructor (slot 0 of 007401D0).
+// The base input side's deleting destructor (slot 0 of 007401D0).
 UiInputSide::~UiInputSide() {}
 EI_REWRITTEN_SPECIAL(0x005EA850, UiInputSide::~UiInputSide);
 
-// 00602BA0, deleting 00602B80: the inert extra side's (00741154), the base side's table back.
+// 00602BA0, deleting 00602B80: the inert extra side's, the base side's table back.
 UiInertInput::~UiInertInput() {}
 EI_REWRITTEN_SPECIAL(0x00602BA0, UiInertInput::~UiInertInput);
 EI_REWRITTEN_SPECIAL(0x00602B80, UiInertInput::~UiInertInput);
@@ -116,7 +116,7 @@ EI_REWRITTEN_SPECIAL(0x00634770, CMessageBox::~CMessageBox);   // deleting
 EI_REWRITTEN_SPECIAL(0x006345E0, CMessageBox::~CMessageBox);   // the input side's
 EI_REWRITTEN_SPECIAL(0x00634FD0, CMessageBox::~CMessageBox);   // the input side's
 
-// The link (00440D40), then the box's.
+// The link, then the box's.
 CMasterRequestBox::~CMasterRequestBox() = default;
 EI_REWRITTEN_SPECIAL(0x0061E460, CMasterRequestBox::~CMasterRequestBox);
 EI_REWRITTEN_SPECIAL(0x0061E440, CMasterRequestBox::~CMasterRequestBox);   // deleting
@@ -250,27 +250,26 @@ EI_REWRITTEN_SPECIAL(0x00635DD0, CUiWindow::~CUiWindow);
 
 // 005FE910 (the plain window, 00740F60) and the windows whose body is the window's.
 EI_REWRITTEN_SPECIAL(0x005FE910, CUiWindow::~CUiWindow);
-EI_REWRITTEN_SPECIAL(0x005EE020, CUiWindow::~CUiWindow);   // the item screens' icon window (00740444)
-EI_REWRITTEN_SPECIAL(0x0060E240, CUiWindow::~CUiWindow);   // 00741B58
-EI_REWRITTEN_SPECIAL(0x0060E260, CUiWindow::~CUiWindow);   // the item strip (00741A1C)
-EI_REWRITTEN_SPECIAL(0x0060E2E0, CUiWindow::~CUiWindow);   // the hero equipment (007418E0)
-EI_REWRITTEN_SPECIAL(0x0060E310, CUiWindow::~CUiWindow);   // the quick item strip (00741844)
-EI_REWRITTEN_SPECIAL(0x0060E5B0, CUiWindow::~CUiWindow);   // the constructors' first pages (0074170C)
-EI_REWRITTEN_SPECIAL(0x0060E650, CUiWindow::~CUiWindow);   // the item maker (007415D4)
-EI_REWRITTEN_SPECIAL(0x0060E680, CUiWindow::~CUiWindow);   // the repair grid (00741538)
-EI_REWRITTEN_SPECIAL(0x006157D0, CUiWindow::~CUiWindow);   // the figure strips (00741BF4)
-EI_REWRITTEN_SPECIAL(0x00635D80, CUiWindow::~CUiWindow);   // the game clock (007425C8)
-EI_REWRITTEN_SPECIAL(0x00635DB0, CUiWindow::~CUiWindow);   // the movement panel (00742530)
+EI_REWRITTEN_SPECIAL(0x005EE020, CUiWindow::~CUiWindow);   // the item screens' icon window
+EI_REWRITTEN_SPECIAL(0x0060E240, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E260, CUiWindow::~CUiWindow);   // the item strip
+EI_REWRITTEN_SPECIAL(0x0060E2E0, CUiWindow::~CUiWindow);   // the hero equipment
+EI_REWRITTEN_SPECIAL(0x0060E310, CUiWindow::~CUiWindow);   // the quick item strip
+EI_REWRITTEN_SPECIAL(0x0060E5B0, CUiWindow::~CUiWindow);   // the constructors' first pages
+EI_REWRITTEN_SPECIAL(0x0060E650, CUiWindow::~CUiWindow);   // the item maker
+EI_REWRITTEN_SPECIAL(0x0060E680, CUiWindow::~CUiWindow);   // the repair grid
+EI_REWRITTEN_SPECIAL(0x006157D0, CUiWindow::~CUiWindow);   // the figure strips
+EI_REWRITTEN_SPECIAL(0x00635D80, CUiWindow::~CUiWindow);   // the game clock
+EI_REWRITTEN_SPECIAL(0x00635DB0, CUiWindow::~CUiWindow);   // the movement panel
 
 // 00600B80 (the plain container, 00741008) and the containers whose body is the container's.
 EI_REWRITTEN_SPECIAL(0x00600B80, CUiContainer::~CUiContainer);
-EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7 (00740840)
-EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu (00740688)
-EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu (007412A4)
+EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7
+EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu
+EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu
 
 
-// 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
-// (00740D18).
+// 005F6450 / 005F6600 / 005F6FF0: the item screen, the camp, screen 9
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 

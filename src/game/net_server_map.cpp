@@ -1,4 +1,4 @@
-// The game server's map change (004186F0). A literal transcription: the helpers it calls are game
+// The game server's map change. A literal transcription: the helpers it calls are game
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
@@ -30,7 +30,7 @@ void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a
 
 } // namespace
 
-// 004186F0: SetMap(name). Empties the two lists at +0x25AC / +0x25B0, queues a map message (name +
+// SetMap(name). Empties the two lists at +0x25AC / +0x25B0, queues a map message (name +
 // suffix) on the first, replaces the counted message at +0x25A8 by a fresh 0073BD00 one and copies
 // the name into it and into +0x25D4, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's
@@ -45,8 +45,8 @@ void ServerSession::SetMap(const stlp::string* name) {
         auto* message = NewCounted<ZoneMessage>();
         message->text_.AssignFrom(messageName);
         RefPtr ref;
-        queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
-        RefPtrClear(&ref);   // 00421360
+        queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
+        RefPtrClear(&ref);
     }
 
     auto* mapMessage = NewCounted<MapMessage>();
@@ -107,7 +107,7 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     AwardHost(entry, false);
 }
-// 00418530: unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
+// Unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
 // 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
@@ -120,8 +120,8 @@ void ServerSession::QueueMapList() {
             auto* message = NewCounted<ZoneMessage>();
             message->text_.AssignFrom(key);
             RefPtr ref;
-            queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
-            RefPtrClear(&ref);   // 00421360
+            queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
+            RefPtrClear(&ref);
         }
         LoadZoneQuests(zone->data());
     }
@@ -129,7 +129,7 @@ void ServerSession::QueueMapList() {
     NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));
 }
 
-// 004193F0: when the held map message names `name`: drops it, empties the queued messages
+// When the held map message names `name`: drops it, empties the queued messages
 // (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
 bool ServerSession::FinishMap(const stlp::string* name) {
     auto* holder = &map_;
@@ -152,8 +152,8 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     auto* message = NewCounted<ZoneMessage>();
     message->text_.AssignFrom(messageName);
     RefPtr ref;
-    queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
-    RefPtrClear(&ref);   // 00421360
+    queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
+    RefPtrClear(&ref);
     return true;
 }
 

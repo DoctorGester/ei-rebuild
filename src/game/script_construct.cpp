@@ -1,6 +1,5 @@
-// The CScript constructor (004BDE40) and CScript::GetError (00456360). A-E1; see script.h and
+// The CScript constructor and CScript::GetError. A-E1; see script.h and
 // docs/notes/script.md.
-//
 // The constructor runs for the world's two scripts only (00589ED0, the world's constructor, which
 // the static initialiser 00589BE0 calls before the hooks are installed), so in the hooked game the
 // original's body has always run already; the rewrite is for the standalone build.
@@ -68,7 +67,7 @@ CScript* CScript::Construct() {
     // The evaluator's temporaries start with one empty group and one null reference.
     ScriptGroup group;
     ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), mfc::impl::ScriptGroupClass::Vtable());
-    // An empty group and a null reference at the temporary lists' heads (004C8CE0, 004C9210).
+    // An empty group and a null reference at the temporary lists' heads.
     tempGroups_.PushHead(&group);
     static_cast<ScriptGroup*>(&group)->DestructBody();
     ScriptObjectRef none{nullptr};

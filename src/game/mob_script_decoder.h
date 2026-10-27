@@ -15,7 +15,7 @@ struct MobScriptDecoder {
     stlp::vector<char> text;    // +0x00 decoded
     stlp::vector<char> input;   // +0x0C coded: the seed, then the bytes
 
-    // 004D8E10 (RET 4). `text` = the input after the seed, unscrambled; `out` = the text up to its
+    // `text` = the input after the seed, unscrambled; `out` = the text up to its
     // first zero byte (CString ReleaseBuffer(-1)).
     void Decode(mfc::CString* out);
 };

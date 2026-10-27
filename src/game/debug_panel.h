@@ -28,22 +28,22 @@ public:
     // 00444690 (at exit): every node destroyed and freed, then the header. Not virtual: game.exe's table has no
     // destructor.
     ~CDebugPanel();
-    // 004447E0 (RET 8; slot 0). panel[key] = value (a missing key is inserted first).
+    // Panel[key] = value (a missing key is inserted first).
     virtual void Set(const char* key, const char* value);
-    // 004449A0 (RET 4; slot 1). Removes `key`.
+    // Removes `key`.
     virtual void Remove(const char* key);
-    // 00444A70 (RET 4). Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
+    // Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
     void Init(CInterface3D* ui);
     // 00444BD0 (plain RET). Frees the panel surface and the font.
     void Release();
-    // 00444C10 (RET 4). The panel's rectangle: fitted by the interface, at least 100 x 15 and at most
+    // The panel's rectangle: fitted by the interface, at least 100 x 15 and at most
     // the screen; a shown panel is made again.
     void SetRect(const RECT* rect);
     // 00444CD0 (plain RET). Redraws at most every 500 ms, then blits the panel surface.
     void Tick();
     // 00444D00 (plain RET). Clears the panel and draws each entry.
     void Redraw();
-    // 00444F50 (RET 4). Shows the panel (its surface made when missing, drawn at once) or hides it.
+    // Shows the panel (its surface made when missing, drawn at once) or hides it.
     void Show(std::uint8_t show);
 
     StringMap entries_;          // +0x04 key -> value

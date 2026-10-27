@@ -613,11 +613,11 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
     }
 }
 
-// The shared buffer DrawOffset moves the vertices into (007C2E18), and the exit function its static initialiser
-// (005A0C80) registers: it frees the block.
+// The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
+// registers: it frees the block.
 constinit lib::AlignedArray<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
 lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
-void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }   // 005A0CB0
+void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
 } // namespace
 
 EI_REPLACE(0x005A0CB0, FreeOffsetVertices);
@@ -668,7 +668,7 @@ EI_REWRITTEN(0x005A6D40, CPlainFigureMesh::RefreshBuffers);
 EI_REWRITTEN(0x005EA150, CPlainFigureMesh::RefreshBuffers);
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
-    // The positions the new renderer keeps on the GPU move with new offsets (R16d): the animation's frame.
+    // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
     const bool same = offsets_.size == offsets->count &&
                       (offsets->count == 0 ||
                        std::memcmp(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3)) == 0);

@@ -26,20 +26,20 @@
 // are float locals.
 
 namespace {
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kHalf = 0.5f;                                       // 0073B86C
-constexpr float kOne = 1.0f;                                        // 0073EF24 / 0073EEE4
+constexpr float kZero = 0.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 / 0073EEC0 (0.1)
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
 constexpr float kMinusPointThree = std::bit_cast<float>(0xBE99999Au); // 0073CDFC (-0.3)
 constexpr float kPointNine = std::bit_cast<float>(0x3F666666u);     // 0073CD70 (0.9)
 constexpr float kRangeSlack = std::bit_cast<float>(0x3F866666u);    // 0073CEE0 (1.05)
-constexpr float kMeleeReach = 3.0f;                                 // 0073BAA4
-constexpr float kFifteen = 15.0f;                                   // 0073C518
-constexpr float kPi = std::bit_cast<float>(0x40490FDBu);            // 0073EEBC
+constexpr float kMeleeReach = 3.0f;
+constexpr float kFifteen = 15.0f;
+constexpr float kPi = std::bit_cast<float>(0x40490FDBu);
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
 constexpr float kNearSq = 10.0f;                                    // immediate 0x41200000
-constexpr double kFrontCosine = 0.5;                                // 0073CC88
+constexpr double kFrontCosine = 0.5;
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with flag18
 constexpr std::uint32_t kFarBits = 0x7E967699u;                     // 1e38: the plan's initial range
 constexpr std::uint32_t kBestStartBits = 0x7149F2CAu;               // 1e30
@@ -68,7 +68,7 @@ bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kC
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
-// _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
+// _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 

@@ -10,7 +10,7 @@
 #include "ei/hook.h"
 #include "render/render.h"
 
-// 004EF610. Returns the DirectDraw result: 0.
+// Returns the DirectDraw result: 0.
 long __fastcall DevicePresent(CTextureDevice* device) {
     present_window::Update(device);
     render::Present();

@@ -1,5 +1,5 @@
-// Text on the interface's surfaces: CUiSurface's DrawText (005FDE20) and the interface's text
-// extent (005F8340). Rebirth's WideScreen patches both (the rectangle scaled without the margin; the
+// Text on the interface's surfaces: CUiSurface's DrawText and the interface's text
+// extent. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the
 // extent scaled by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h).
 // See docs/notes/ui.md, section 3.
 #include "ui.h"

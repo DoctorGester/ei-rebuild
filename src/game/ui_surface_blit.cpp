@@ -19,7 +19,6 @@
 
 #include <cstdint>
 
-// 005FDA80.
 void CUiSurface::Blit() {
     CUiSurface* surface = this;
     CDXSurface* holder = surface->holder_;

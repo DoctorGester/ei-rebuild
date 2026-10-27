@@ -1,4 +1,4 @@
-// The performance overlay (R21; render_perf.h, docs/notes/renderer.md section 15): what a frame costs, measured
+// The performance overlay (render_perf.h, docs/notes/renderer.md section 15): what a frame costs, measured
 // while the game runs and drawn over the presented frame. Off unless switched on (render::SetPerfOverlay); when
 // off every entry point returns at once.
 #include "render_perf.h"

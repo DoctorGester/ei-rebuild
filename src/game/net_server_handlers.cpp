@@ -40,7 +40,7 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 
 } // namespace
 
-// 0041AA10. The record is built on the stack (two strings with room for 8 bytes first, as their
+// The record is built on the stack (two strings with room for 8 bytes first, as their
 // constructors make them), written into a growing buffer and sent from the session's socket to
 // the master's address; the result of the send is not looked at.
 void ServerSession::AnnounceToMaster() {
@@ -75,7 +75,7 @@ void ServerSession::AnnounceToMaster() {
 }
 EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 
-// 0041ACA0 (slot 10, RET 8). A packet of kind -1: only from the master server's address (all 16
+// A packet of kind -1: only from the master server's address (all 16
 // bytes compared; from any address with EI_Plugin's NewMaster, which NOPs the JNE at 0041ACB7 so the
 // answer of its second master server counts). Its first dword must be the session's +0x25FC; the
 // second is then kept at +0x2578 (the next announcement sends it back). The first dword is consumed
@@ -111,7 +111,7 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
 }
 EI_REPLACE(0x0041B1C0, ServerOnSay);
 
-// 0041BA20 (the server in ECX, the message in EDX; INC [EDX+8]; RET, no Ghidra function, S16c): the
+// 0041BA20 (the server in ECX, the message in EDX; INC [EDX+8]; RET, no Ghidra function): the
 // handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's
 // version moves on, so the connections send it again.
 void __fastcall ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }

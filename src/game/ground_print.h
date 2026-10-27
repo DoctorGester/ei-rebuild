@@ -29,44 +29,44 @@ struct NamedTexture {
 };
 static_assert(sizeof(NamedTexture) == 0x10);
 
-// A scorch mark and the base of the other two. 0x8C bytes. The vtables are the compiler's (C19;
+// A scorch mark and the base of the other two. 0x8C bytes. The vtables are the compiler's (
 // game.exe's 0073F76C, and 0073F778 with the same slots, which its copy constructor stores before
 // the lists' copies store their class's).
 class GroundPrint {
 public:
-    // 006CFEA0 (RET 0x20). A scorch mark ("fireprints") at (x, y): a random quarter of the 2 x 2
+    // A scorch mark ("fireprints") at (x, y): a random quarter of the 2 x 2
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
-    // 00571FC0 (RET 4). The copy constructor the lists' node copies start with (0056F880 /
+    // The copy constructor the lists' node copies start with (0056F880 /
     // 0056F940 / 0056F9F0, which then copy their own members): every member copied, the texture
     // name into a block of its own and the texture counted (NamedTexture::Copy), the three geometry
     // arrays' headers as they are (the copy shares their blocks).
     GroundPrint(const GroundPrint& other);
     GroundPrint& operator=(const GroundPrint&) = delete;
 
-    // 0: 006CECD0. One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
+    // One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.
     virtual int Tick();
-    // 1: 006CF4F0 (RET 4). Reads what Save writes (the texture looked up again by its name);
+    // Reads what Save writes (the texture looked up again by its name);
     // the geometry is made again (built_ cleared).
     virtual void Load(CStream* stream);
-    // 2: 006CF370 (RET 4). Writes the position, half sizes, growth, life (2 bytes), texture name
+    // Writes the position, half sizes, growth, life (2 bytes), texture name
     // (with its terminator), uv offset and scale, both angles, lit (1 byte), alpha scale,
     // lifetime and colour.
     virtual void Save(CStream* stream);
 
-    // 006CEDE0. Draws the print when visible: the first time, lays the quad on the ground (z from
+    // Draws the print when visible: the first time, lays the quad on the ground (z from
     // the client world's ground and platforms; the projector 0056C750 clips it to the terrain and
     // the platforms under it) and turns its texture coordinates; then the flat draw 004EA4A0 with
     // the colour's alpha from alpha_ and the lit flag as the specular alpha. Returns 1 when not
     // visible, else the draw's result.
     int Draw();
-    // 006CF960. The destructor (only reached from the constructors' unwinding): the arrays freed,
+    // The destructor (only reached from the constructors' unwinding): the arrays freed,
     // the texture released, the name freed. The client world's lists have three more copies of it
-    // (0056D080 blood, 0056D400 footprints, 0056D680 scorch marks; S13).
+    // (0056D080 blood, 0056D400 footprints, 0056D680 scorch marks).
     void Destruct();
-    // 00575560 / 00575580 (RET 4; S13): the footprint and scorch mark lists' scalar deleting
+    // 00575560 / 00575580 (RET 4): the footprint and scorch mark lists' scalar deleting
     // destructors: Destruct, the print freed when bit 0 of `flags` is set; returns this.
     GroundPrint* DeletingDestruct(unsigned flags);
 
@@ -90,7 +90,7 @@ public:
     Vector2 uvScale_;               // +0x38
     float uvAngle_;                 // +0x40 the texture's turn about its tile's centre
     float angle_;                   // +0x44 the quad's turn
-    std::uint8_t lit_;              // +0x48 the terrain's point test (006CB020); the specular alpha
+    std::uint8_t lit_;              // +0x48 the terrain's point test; the specular alpha
     float alpha_;                   // +0x4C
     float alphaScale_;              // +0x50
     std::uint32_t colour_;          // +0x54 its alpha byte is set from alpha_ every draw
@@ -108,16 +108,16 @@ static_assert(sizeof(GroundPrint) == 0x8C);
 // A footprint (slot 0 is GroundPrint's; game.exe's vtable 0073F760). 0x94 bytes.
 class Footprint : public GroundPrint {
 public:
-    // 006CFBA0 (RET 0x30). A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
+    // A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
     // across, bits 3..15 down; bit 16 the left foot's half); `kind` -1 "footprints", else
     // "footprints<kind + 1>" (a blood print's kind).
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
-    // 0056F940: the list nodes' copy (GroundPrint's, then its own members).
+    // The list nodes' copy (GroundPrint's, then its own members).
     Footprint(const Footprint& other);
 
-    void Load(CStream* stream) override;   // 1: 006CFE60 (RET 4): GroundPrint's, then scale_, kind_
-    void Save(CStream* stream) override;   // 2: 006CFE10 (RET 4): the same order
+    void Load(CStream* stream) override;   // GroundPrint's, then scale_, kind_
+    void Save(CStream* stream) override;   // the same order
 
     float scale_;                   // +0x8C the unit's footprint scale (only saved)
     int kind_;                      // +0x90 -1, or the blood print's kind it was made with
@@ -128,20 +128,20 @@ static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 // turning. 0x9C bytes.
 class BloodPrint : public GroundPrint {
 public:
-    // 006CF660 (RET 0x28). A blood print ("bloodprints") of `halfSize` growing to `fullSize` in
+    // A blood print ("bloodprints") of `halfSize` growing to `fullSize` in
     // min(life / 2, 45) ticks: `tile` bits 0 / 16 pick the quarter across, bits 1..15 / 17.. down;
     // tile >> 16 is the kind footprints take from it. A random quarter turn and a random start
     // angle (rand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
                std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh);
-    // 0056F880: the list nodes' copy (GroundPrint's, then its own members).
+    // The list nodes' copy (GroundPrint's, then its own members).
     BloodPrint(const BloodPrint& other);
 
-    // 0: 006CFA20. While spreading (spreadTicks_ counts down) the geometry is made again every
+    // While spreading (spreadTicks_ counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin_; then GroundPrint's tick.
     int Tick() override;
-    void Load(CStream* stream) override;   // 1: 006CFB40 (RET 4): GroundPrint's, then spin, spread, kind, fresh
-    void Save(CStream* stream) override;   // 2: 006CFAC0 (RET 4)
+    void Load(CStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
+    void Save(CStream* stream) override;
 
     float spin_;                    // +0x8C radians per tick: 30 / life degrees
     std::int16_t spreadTicks_;      // +0x90

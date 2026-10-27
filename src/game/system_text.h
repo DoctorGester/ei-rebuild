@@ -10,19 +10,14 @@
 //   - the direct calls of our own code: text::sys, the UTF-8 version with EI_UTF8 and the ANSI call itself
 //     without.
 // Without EI_UTF8 nothing is routed and text::sys is the ANSI calls: nothing changes.
-//
 // Text going in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI call took it (8-bit text
 // that has not crossed text::FromAssetText). Text coming out is UTF-8.
-//
-// The windows are Unicode ones (U4): RegisterClassExA registers the class wide, and DefWindowProcA,
+// The windows are Unicode ones: RegisterClassExA registers the class wide, and DefWindowProcA,
 // GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h,
 // "Typing").
-//
-// The interface's text is drawn and measured wide (U3): DrawTextA, GetTextExtentPoint32A and CreateFontIndirectA's
+// The interface's text is drawn and measured wide: DrawTextA, GetTextExtentPoint32A and CreateFontIndirectA's
 // slots lead to the wide calls.
-//
-// Case (U5): CharUpperA / CharLowerA's slots and text::sys change UTF-8 case by lib/text_case.h's table.
-//
+// Case: CharUpperA / CharLowerA's slots and text::sys change UTF-8 case by lib/text_case.h's table.
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
 // ASCII); SendMessageA to the titles' RichEdit control (RTF names its own code page).
@@ -80,7 +75,7 @@ LSTATUS WINAPI RegCreateKeyExA(HKEY key, LPCSTR subKey, DWORD reserved, LPSTR ke
 LSTATUS WINAPI RegQueryValueExA(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size);
 LSTATUS WINAPI RegSetValueExA(HKEY key, LPCSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD size);
 
-// The window class (registered wide: the window is a Unicode one, U4), the window title, the message box, key
+// The window class (registered wide: the window is a Unicode one), the window title, the message box, key
 // names, resource strings.
 ATOM WINAPI RegisterClassExA(const WNDCLASSEXA* windowClass);
 // The window's messages: the wide calls (a Unicode window's messages are taken and passed on wide; WM_CHAR then
@@ -96,7 +91,7 @@ int WINAPI MessageBoxA(HWND owner, LPCSTR text, LPCSTR caption, UINT type);
 int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size);
 int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size);
 
-// The interface's text draw and extent (U3; MFC's CDC::DrawText, CInterface3D::TextExtent 005F8340, the
+// The interface's text draw and extent (MFC's CDC::DrawText, CInterface3D::TextExtent 005F8340, the
 // console's prompt width) and its fonts: the wide calls, so text past the assets' code page draws as itself.
 // The lengths are in bytes, as the ANSI calls take them. The fonts keep their LOGFONT, DEFAULT_CHARSET (MFC's
 // CreatePointFont): with the wide calls a font's charset no longer decides which glyph a byte is.
@@ -104,7 +99,7 @@ int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format);
 BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size);
 HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font);
 
-// Case (U5): a UTF-8 string upper / lower cased in place by lib/text_case.h's table (a character in the
+// Case: a UTF-8 string upper / lower cased in place by lib/text_case.h's table (a character in the
 // pointer's low word: an ASCII one changed, any other byte as it is).
 LPSTR WINAPI CharUpperA(LPSTR text);
 LPSTR WINAPI CharLowerA(LPSTR text);

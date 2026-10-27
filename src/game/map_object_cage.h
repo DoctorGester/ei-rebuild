@@ -11,11 +11,11 @@
 
 // The interpolating object (only these fields): the result and the three parameters.
 struct CageInterpolator {
-    // 0050B8C0. The point at (t, u, w) in the cube of the next 8 points of `*stream` (0x60 bytes,
+    // The point at (t, u, w) in the cube of the next 8 points of `*stream` (0x60 bytes,
     // consumed): edges 0-1 and 2-3 at t, between them at u; edges 4-5 and 6-7 likewise; then
     // between the two at w.
     void InterpolateCube(const float** stream);
-    // 0050BC00. The same in the prism of the next 6 points (0x48 bytes): edge 0-1 at t, towards
+    // The same in the prism of the next 6 points (0x48 bytes): edge 0-1 at t, towards
     // point 2 at u; edge 3-4 at t, towards point 5 at u; then between the two at w.
     void InterpolatePrism(const float** stream);
 

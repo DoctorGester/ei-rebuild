@@ -36,8 +36,8 @@ static_assert(sizeof(MaterialEntry) == 0x10);
 // manager (*007AF740, CMaterialManager::NewMaterial) and by the scene loader for its helpers
 // (00454E40 constructs the array of them, FakeUnitScene::helpers in scene_loader.h; the file's
 // vectors are the ambient, diffuse and specular colours, the power and the diffuse alpha). It is
-// also the material a figure part is drawn with (005A7A70). Names provisional. A real virtual
-// class: the compiler makes its vtable (C19; game.exe's 00743BB4 is retired).
+// also the material a figure part is drawn with. Names provisional. A real virtual
+// class: the compiler makes its vtable (game.exe's 00743BB4 is retired).
 class CMaterial : public CEngineObject {
 public:
     void SetDiffuse(const Vector3* value);
@@ -47,16 +47,16 @@ public:
     // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
     std::uint32_t GpuLitColour() const;
 
-    // 0068DBC0. An engine object with empty names, alpha 1 and an empty deque (one node). The
+    // An engine object with empty names, alpha 1 and an empty deque (one node). The
     // colours stay as they were.
     CMaterial();
-    // 0068DE30. The deque emptied and freed, the names, the engine object.
+    // The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
     // The deleting destructor (slot 0, 0068DD20) frees into the game's heap.
 
-    // 2: 0068DF90. Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
+    // Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;
-    // 3: 0068E040. Empties the deque.
+    // Empties the deque.
     void Destroy() override;
     // 7: 0068DCF0 (short_functions.cpp). The name's text.
     const char* GetName() override;
@@ -77,36 +77,36 @@ static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) =
 
 // The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's *007AF740;
 // material.cpp): a resource manager of CMaterial objects with a table of colours by key (filled by
-// its Create, 0068E640, Rebirth-patched). A real virtual class: the compiler makes its vtable (C19,
+// its Create, 0068E640, Rebirth-patched). A real virtual class: the compiler makes its vtable (
 // game.exe's 00743C38 is retired).
 class CMaterialManager : public CResourceManager {
 public:
     using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
 
-    // 0068E3F0. CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
+    // CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
     // buckets).
     CMaterialManager();
-    // 0068E540. The colour table freed, then CResourceManager's destructor.
+    // The colour table freed, then CResourceManager's destructor.
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: 0068E500 "CMaterialManager"
     int GetClassId() override;               // 12: 0068E510 (0x27)
     const char* GetFolderName() override;    // 25: 0068E4F0 "materials"
 
     // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
-    // Create (0 when it fails); the archive "materials.res" of the text folder (007AF45C) added;
+    // Create (0 when it fails); the archive "materials.res" of the text folder added;
     // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
     // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the
     // file's colours (after its name: a 16-bit length and the text), or, without the file,
     // diffuse 0.3 (alpha 1), ambient 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's
     // emissive colour is 1 either way. Returns 1.
     int Create() override;
-    // 14: 0068E900. A new CMaterial with type_ = `type`; null when the allocation fails.
+    // A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    // 0068E970 (RET 4). A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
+    // A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
     // check) given the table's colours for its type_ (an absent key is entered first, its colours
     // the key's bits in every dword).
     CMaterial* NewMaterial(int type);
-    // 0068EAF0 (RET 8). The table's colours for `key` (entered as NewMaterial does when absent)
+    // The table's colours for `key` (entered as NewMaterial does when absent)
     // into `material`; 1, or 0 for a null material.
     int FillMaterial(CMaterial* material, unsigned key);
 

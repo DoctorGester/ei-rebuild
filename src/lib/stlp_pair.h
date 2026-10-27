@@ -57,7 +57,7 @@ static_assert(sizeof(StringPair) == 0x18);
 // are named key and mapped, as the hash_map values are).
 struct StringListPair {
     // pair(const string&, const list&) (0069C1C0; RET 8): the string copied, then list(const list&)
-    // inlined: a sentinel, then insert(end(), first, last) (0069D680), one node per element in order.
+    // inlined: a sentinel, then insert(end(), first, last), one node per element in order.
     StringListPair* Construct(const string& first, const list<void*>& second);
     // ~pair() (004AD640; plain RET): the list's nodes and sentinel back to the pool (the nodes in
     // order), then the string's block.

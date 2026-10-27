@@ -1,4 +1,4 @@
-// The battle screen's mouse-over (00639EF0): the unit under the mouse in the unit panel and the
+// The battle screen's mouse-over: the unit under the mouse in the unit panel and the
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
@@ -41,9 +41,9 @@ constexpr int kCursorOrder = 0x18;
 void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 
 
-// The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
+// The client world: the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
-// The local player glue (007AFEA5): 00578A40 an exit's zone name (RET 4), 00578B50 the local
+// The local player glue: 00578A40 an exit's zone name (RET 4), 00578B50 the local
 // player's variable `name` (RET 4, ST0).
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),

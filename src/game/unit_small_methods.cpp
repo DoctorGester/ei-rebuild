@@ -15,7 +15,7 @@ EI_REWRITTEN(0x0052E280, UnitClassName);
 int __fastcall UnitClassId(CUnit* self) { return self->CUnit::GetClassId(); }
 EI_REWRITTEN(0x0052E290, UnitClassId);
 
-// 0052E230: the constructor of the motion's segment part (+0x50; nothing to construct). Returns
+// The constructor of the motion's segment part (+0x50; nothing to construct). Returns
 // it. Three bytes (too short to hook).
 void* __fastcall MotionSegmentConstruct(void* self) { return self; }
 EI_REPLACE(0x0052E230, MotionSegmentConstruct);

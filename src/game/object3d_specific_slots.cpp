@@ -38,7 +38,7 @@ namespace {
 constexpr std::uint32_t kObjectShown = 0x20;    // CObject3D::flags_
 constexpr std::uint32_t kPartOwnMesh = 0x40;    // CFigureMesh::flags_: the part is drawn through its drawer
 constexpr int kClientClassId = 0x37;
-// 0078F47C: "CObject3DClientSpecific".
+// "CObject3DClientSpecific".
 const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
 POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
@@ -92,7 +92,7 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
 }
 EI_REWRITTEN(0x00516920, CObject3D::FindPartOfType);
 
-// Slots 11 / 12 (0051AD50 / 0051AD60): the class name and id 0x37.
+// Slots 11 / 12: the class name and id 0x37.
 const char* CObject3DClientSpecific::GetClassName() { return ClientClassName(); }
 EI_REWRITTEN(0x0051AD50, CObject3DClientSpecific::GetClassName);
 int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
@@ -107,7 +107,7 @@ namespace {
 constexpr float kNoScale = 1.0f;
 } // namespace
 
-// 0051AC30. The base half's slot 18 (the server's): the server draws nothing, so the extra scale is
+// The base half's slot 18 (the server's): the server draws nothing, so the extra scale is
 // 1, 1, 1.
 void CObject3DSpecific::GetScale(float* x, float* y, float* z) {
     *x = kNoScale;

@@ -1,5 +1,5 @@
 // Drawing slots (20) of the camp's and the hero screen's panels: the quick strip 00622C10, the
-// repair grid 00627C90, the constructors' spell maker 006284A0 and item maker 00628F80. See docs/notes/ui.md, section 5. The trade grid's (00627390) is in
+// repair grid 00627C90, the constructors' spell maker 006284A0 and item maker 00628F80. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_grid_draw.cpp.
 #include "ui.h"
 #include "ui_camp.h"

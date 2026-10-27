@@ -2,13 +2,11 @@
 // the function, so this is the vanilla body and it is installed in the vanilla launch only; the
 // Rebirth-patched callees (the archive's open 00671730 and destructor 006714A0, FatalError
 // 00480080, the AI events' Setup 005C9310) are called through their addresses.
-//
 // A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
 // animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33
 // vertices, the same again for the water when the sector has any, then 16 x 16 tile words, the
 // water's tile words and the water's material indices). The AI map has 2 x 2 cells per terrain
 // square and 4 x 4 per tile: 64 x 64 cells per sector.
-//
 // The original is one function; it is split here into LoadTerrain (everything read from the files)
 // and AttachTerrain (the rest), and its locals (archives, registry, strings) are destroyed at the
 // end of the step that uses them instead of at the very end. Nothing reads them in between.
@@ -116,7 +114,7 @@ struct MapDescription {
     lib::AlignedArray<std::uint32_t> tileTypes;
 };
 
-// A resource archive as a local: constructed in place (00671280), destroyed through the destructor
+// A resource archive as a local: constructed in place, destroyed through the destructor
 // body's address.
 struct Archive {
     Archive() { new (Get()) CMappedResource(); }
@@ -130,7 +128,7 @@ struct Archive {
     lib::InPlace<CMappedResource> storage;
 };
 
-// A registry as a local (00694520 / 00694540).
+// A registry as a local.
 struct Registry {
     Registry() { file.Construct(); }
     ~Registry() { file.Destroy(); }
@@ -277,8 +275,8 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* all
 // as allocated.
 void __fastcall AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
-constexpr float kHalf = 0.5f;               // 0073B86C
-constexpr float kQuarter = 0.25f;           // 0073C3B0
+constexpr float kHalf = 0.5f;
+constexpr float kQuarter = 0.25f;
 
 // The heights follow the original's x87 sequence value by value: a float below is one it stores
 // (FSTP to a float), a double one it keeps on the FPU stack. At the main thread's 24-bit precision

@@ -1,5 +1,5 @@
 // The plain scroll bar's constructor, position and layout (CUiScrollbar, 0065AEA0-0065B6F8) and the
-// options slider's constructor (0065BC30); A-H20: the thumb drags, the wheel and the slider's
+// options slider's constructor; A-H20: the thumb drags, the wheel and the slider's
 // position. See ui.h and docs/notes/items_spells.md (A-H19, A-H20).
 
 #include "ui.h"
@@ -15,7 +15,7 @@ namespace {
 constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
-// track's left edge (0073BF34).
+// track's left edge.
 float ThumbLift() { return 0.1f /*0073B850*/; }
 float ThumbInset() { return 5.0f /*0073BF34*/; }
 
@@ -107,7 +107,7 @@ constexpr int kSliderThumbHeight = 10;
 // The game's _ftol: the low half of a 64-bit truncation (NaN and overflow give 0, where a C++ cast
 // to int gives 0x80000000).
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-// The wheel's step per unit of delta: 1/120 (00742C84).
+// The wheel's step per unit of delta: 1/120.
 float WheelStep() { return 0.008333334f /*00742C84*/; }
 } // namespace
 

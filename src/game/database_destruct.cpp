@@ -1,4 +1,4 @@
-// The compiler-generated destructors of the global databases (S3c). Only the exit functions call
+// The compiler-generated destructors of the global databases. Only the exit functions call
 // them (src/standalone/static_exit.cpp: 0045E6E0, 00684380, 006ADF30, 006D00D0, 006D70A0), so
 // they run at a normal exit in the hook build too. Each destroys the members from the last: a
 // table's name index (hash_map::Destroy: every chain from its head, each node's key string then

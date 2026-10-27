@@ -14,7 +14,7 @@
 
 namespace {
 
-// A counted pointer's destructor and the counted pointer assignment of null (00683A90): the old
+// A counted pointer's destructor and the counted pointer assignment of null: the old
 // object loses a reference (slot 4).
 template <class T>
 void Drop(T*& field) {
@@ -106,7 +106,7 @@ EI_REWRITTEN_SPECIAL(0x0067E5B0, CSpellEffect::~CSpellEffect);   // deleting
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
                         CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
-    spell->CopyTo(Spell());   // 0068B370
+    spell->CopyTo(Spell());
     world = newWorld;
     position = *newPosition;
     caster.Assign(newCaster);

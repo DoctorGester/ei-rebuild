@@ -1,4 +1,4 @@
-// The item strips' setups (00621160, 00629A40): the camp's item, spell and part strips and the
+// The item strips' setups: the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
 // the forwarding strip's constructor, and the figure strips' draw, count and click (00629AF0,
 // 00629AD0, 00629DB0).
@@ -18,9 +18,9 @@
 
 namespace {
 
-constexpr const char* kTopTexture = "Inventory02";        // 00793CDC
-constexpr const char* kBottomTexture = "Inventory01";     // 00793CD0
-constexpr const char* kFigureTexture = "InventoryM01";    // 00793F58
+constexpr const char* kTopTexture = "Inventory02";
+constexpr const char* kBottomTexture = "Inventory01";
+constexpr const char* kFigureTexture = "InventoryM01";
 constexpr int kTextureKind = 3;
 
 // A text surface of the layout rectangle (left, top, right, bottom), format 5 (0x38 bytes; null

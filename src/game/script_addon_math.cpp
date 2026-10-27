@@ -1,6 +1,5 @@
 // AddNewScriptCommands: addon's arithmetic functions (handlers 10011200-10011A53). Each reads its
 // float arguments, works in the FPU and stores the result with FSTP (helpers in script_addon.cpp).
-//
 // sin, cos and pow are the C runtime's (addon's MSVC 2010 CRT takes its SSE2 code path under the
 // game's FPU control word; the hook DLL calls the modern CRT's, the same Intel library); their
 // double results are rounded to float, which hides any last-bit difference except at a float

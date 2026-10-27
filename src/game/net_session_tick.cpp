@@ -26,7 +26,7 @@ LogStream* LogStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::
 
 namespace {
 
-// 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
+// Reading past the buffer's end (zeroes the target, sets error bit 3).
 
 
 // "<text><address>\n" and a flush to the network log.
@@ -34,7 +34,7 @@ void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Pu
 
 } // namespace
 
-// 00419CC0: the buffer's highest written position follows the current one upwards.
+// The buffer's highest written position follows the current one upwards.
 void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
@@ -46,7 +46,7 @@ stlp::string* NetAddress::ToString(stlp::string* out) const {
 }
 EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
-// 00437370 (slot 14): advances the session clock by `dt`, then hands every datagram waiting on the
+// Advances the session clock by `dt`, then hands every datagram waiting on the
 // socket to the handler slot of its kind (its first byte) with the sender's address and a cursor
 // after that byte (an empty datagram is only logged). Then ticks every connection; one that timed
 // out is reported (slot 11) and removed (slot 2). Counts the call in `frame_`. The current session
@@ -108,7 +108,7 @@ EI_REWRITTEN(0x00437370, SessionBase::Tick);
 
 } // namespace net
 
-// ---- Session vtable slots (0073BF5C) ---------------------------------------------------------------
+// ---- Session vtable slots ---------------------------------------------------------------
 
 namespace net {
 
@@ -140,12 +140,12 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
     ClientNode* first = clients_->next;
     using netlists::ClientsNode;
     reinterpret_cast<netlists::ClientsIterator*>(out)->FindByAddress(reinterpret_cast<ClientsNode*>(first),
-                                                                      reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
+                                                                      reinterpret_cast<ClientsNode*>(last), address);
     return out;
 }
 EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);
 
-// 00436CF0 (slot 2): logs it, closes the connection and erases the node.
+// Logs it, closes the connection and erases the node.
 void SessionBase::RemoveClient(ClientNode* node) {
     if (node == clients_) return;
     if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
@@ -204,7 +204,7 @@ EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
-// 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns
+// Copies `size` bytes to the write position and moves it on (no room check); returns
 // the buffer.
 GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     std::memcpy(cur, from, size);
@@ -213,7 +213,7 @@ GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
 }
 EI_REWRITTEN(0x00436C30, GameBuffer::BufferWriteRaw);
 
-// 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
+// Writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
 // otherwise through slot 4. Returns `size` or what slot 4 left.
 unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
     if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
@@ -270,7 +270,7 @@ namespace {
 // The handler vectors' destructor (the vector base's: the storage freed), as the CRT's eh vector
 // destructor iterator takes it.
 constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<void*>::DestroyBase>;
-// The clients list: its nodes and sentinel go back to the pool (00439E60, 0043AB30).
+// The clients list: its nodes and sentinel go back to the pool.
 } // namespace
 
 SessionBase::~SessionBase() {
@@ -317,7 +317,7 @@ EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 namespace net {
 
 namespace {
-// 00439E30: the clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
+// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
 // another STLport string destructor.
 } // namespace
 

@@ -1,7 +1,6 @@
 // AddNewScriptCommands: addon's string functions and its two text commands (handlers
 // 10011051-10011C65, 1001170B, 1001177D). String results are assigned to the CString addon gets
 // (CString::operator=(const char*), 00700AF9) from a std::string addon builds first.
-//
 // FloatToStr formats with the C runtime's "%.<n>f" (addon's MSVC 2010 CRT; here the game's, the
 // same float formatting code) and StrToFloat parses with atof (likewise the game's).
 #include "net_classes.h"
@@ -27,7 +26,7 @@ namespace scriptaddon {
 namespace {
 
 // 0057F440 on 007AFE20: whether this is a network game.
-// 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
+// 0041A310 on the game server: sends a chat line from the server (second argument 0).
 
 
 const mfc::CString& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }

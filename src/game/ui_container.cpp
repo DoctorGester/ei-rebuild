@@ -10,7 +10,7 @@
 #include "game_data.h"
 
 namespace {
-// The scene renderer (00500960): the last frame's length in milliseconds.
+// The scene renderer: the last frame's length in milliseconds.
 std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 
 } // namespace

@@ -28,29 +28,29 @@ void FreeGrid(SearchGrid<T>& grid) {
 }
 
 // Allocate per element type (thiscall on the grid).
-void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid);            // 005B1470
-void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid);          // 005B14C0
-// 005B1550: the region map's edge words, eight per block, all -1.
+void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid);
+void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid);
+// The region map's edge words, eight per block, all -1.
 void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid);
-// 005B15F0: the region map's representative cells, zeroed.
+// The region map's representative cells, zeroed.
 void __fastcall AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid);
-void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);       // 005B1680
-// 005BD030: the map's cells: not passable, ground level 0, nothing on them, level 0 (the byte at
+void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);
+// The map's cells: not passable, ground level 0, nothing on them, level 0 (the byte at
 // +7 is left as allocated).
 void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
-// 005BD0B0: the map's occluder words: no occluder (bit 8), material 0, bit 7 clear; the other
+// The map's occluder words: no occluder (bit 8), material 0, bit 7 clear; the other
 // bits are left as allocated.
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
 // 005BD010 and its copies (00598400 .. 00598B00, 005B1450, 005BCC30, 005CD490): the destructor.
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
-// 005CD4B0: the event table's cells (the Rebirth-patched resize 005C9310 calls it).
+// The event table's cells (the Rebirth-patched resize 005C9310 calls it).
 struct AIEventCell;   // unit_ai.h
 // 005AF580 / 005AF590: the edge and representative-cell grids' default constructors (1 x 1, then
 // the allocator; the region map's constructor hands them to the vector constructor iterator).
 void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
 void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
-// 005AF5A0: the region grids' default constructor (1 x 1; the region map's constructor hands it
+// The region grids' default constructor (1 x 1; the region map's constructor hands it
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
@@ -59,7 +59,7 @@ void __fastcall FillAreaLists(CAIMap* map);
 
 // CAIMap's dirty rectangle (+0x004: dirtyMinX .. dirtyMaxY).
 struct AIDirtyRect {
-    // 005B40F0. Empty: the minimums 10000, the maximums 0.
+    // Empty: the minimums 10000, the maximums 0.
     void Reset();
 
     int minX, maxX;

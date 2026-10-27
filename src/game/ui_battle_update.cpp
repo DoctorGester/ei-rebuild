@@ -1,6 +1,6 @@
-// The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
-// its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
-// item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
+// The battle screen's every-frame update (00638280, slot 24), its left button release,
+// its quest variable notice (006369D0, slot 33), the selection's refresh and the quick
+// item panel's unit. See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
 #include "item.h"
 #include "player_client.h"
@@ -176,10 +176,10 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
-        stlp::ConstructAt(ids->Finish(), value);   // 0064B620
+        stlp::ConstructAt(ids->Finish(), value);
         ++ids->Finish();
     } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
 // The same with the construction inlined (as the original's third case).
@@ -188,7 +188,7 @@ void PushIdInline(IdVector* ids, const int* value) {
         if (ids->Finish()) *ids->Finish() = *value;
         ++ids->Finish();
     } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
 
@@ -245,7 +245,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 } else {
                     party->SetSize(n + 1, -1);
                     std::memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
-                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
+                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);
                 }
                 party->data[0] = unit;
                 cameraFirst = true;
@@ -258,7 +258,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();
         }
-        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
+        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);
         screen->clientParty_.camera = ids.camera;
         screen->clientParty_.without.AssignVector<stlp::PlainElement<int>>(ids.without);
     }
@@ -266,7 +266,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     ids.withUnit.FreeStorage();
 }
 
-// Frees a list's nodes (00404D70) and empties it (the header is freed by the caller).
+// Frees a list's nodes and empties it (the header is freed by the caller).
 template <typename L>
 void FreeListNodes(L* list) {
     auto* header = list->head;
@@ -321,7 +321,7 @@ void CBattleScreen::Update() {
         mfc::CArray<PartyUnitRecord*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
-            records.SetAtGrow(records.size, &data->members_.data[i]);   // 0059D2E0
+            records.SetAtGrow(records.size, &data->members_.data[i]);
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);
@@ -337,10 +337,10 @@ void CBattleScreen::Update() {
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         UnitList units;
-        units.Construct();   // 00411850
+        units.Construct();
         TheClientWorld()->UnitsInBox(&selectionBox_.left, &units);
         List inside;
-        inside.Construct();   // 00404A70
+        inside.Construct();
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
@@ -418,7 +418,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         POINT point = {x, y};
-        CUnit* unit = world->UnitAt(&point);   // 00565E40
+        CUnit* unit = world->UnitAt(&point);
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
         SelectUnit(unit, point.x, point.y);
         return;
@@ -428,10 +428,10 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     auto unitAt = [&](int i) { return party->data[i]; };
     int first = -1;
     UnitList units;
-    units.Construct();   // 00411850
+    units.Construct();
     world->UnitsInBox(&selectionBox_.left, &units);
     List inside;
-    inside.Construct();   // 00404A70
+    inside.Construct();
     if (units.head->next != units.head) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
@@ -532,7 +532,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             const char* dot = ".";
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable);
-            // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
+            // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);
             if (current == static_cast<double>(0.0f /*0073B858*/)) return;
         }

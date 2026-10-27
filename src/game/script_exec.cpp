@@ -1,6 +1,5 @@
-// Script command execution: ScriptRun::Execute (004B6760), the switch over every world script
+// Script command execution: ScriptRun::Execute, the switch over every world script
 // command. See script.h and docs/notes/script.md.
-//
 // Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
 // vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError, 005935C0,
 // Execute itself for For bodies).
@@ -55,7 +54,7 @@ namespace {
 
 // ---- x87 helpers --------------------------------------------------------------------------------
 
-// The game's _ftol (006E853C): truncating conversion, low 32 bits of the 64-bit result.
+// The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 // FCOMP against the constant 0.0 at 0073B858, the test every command uses for "flag argument is zero".
@@ -67,7 +66,6 @@ bool IsZero(float value) {
 int Round(float value) { return x87::fistp(value); }
 
 // ---- Original code reached by the commands ------------------------------------------------------
-//
 // The commands call the game's classes directly; what is left here are the container entry points
 // (MFC lists and arrays of script records) the original reaches out of line.
 
@@ -75,11 +73,11 @@ constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
 
 // Game texts.
-const char* const kKillScriptNotAllowed = "KillScript command not allowed here";   // 0078B904
+const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
-// 0073C36C: 1 / 255, the background colour scale.
+// 1 / 255, the background colour scale.
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
-// 0079BE5C: the configured world time speed (an int).
+// The configured world time speed (an int).
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
@@ -92,8 +90,8 @@ using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
 // The party records of `player` for a "party name" string (ECX player, EDX string).
 // Object id of a name (ECX = name).
-// 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
-// 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
+// Plays a movie file (ECX path, EDX 0, five flags).
+// The renderer (returns the object whose 004BA120 sets the background colour).
 void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
@@ -111,9 +109,9 @@ CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
 
 // The multiplayer game server's variables, named by STLport strings (the original builds them
-// two ways, (004217E0 + 00428F10) and 0040C5A0, with an empty allocator; the same string).
+// two ways, and 0040C5A0, with an empty allocator; the same string).
 net::ServerSession* ServerPointer() { return net::GameServer(); }
-// 004B9FD0: the server exists and is not shutting down.
+// The server exists and is not shutting down.
 bool ServerActive() {
     net::ServerSession* server = net::GameServer();
     return server && !(server->flags7_ & CRefCounted::kDetached);
@@ -135,7 +133,7 @@ using PtrList = mfc::CList<CUnit*>;
 using PartyArray = mfc::CArray<UnitPlacement>;
 using ObjectIterator = ObjectListIterator;
 
-// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo (00522B40).
+// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo.
 
 // ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
 
@@ -496,7 +494,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x23: {   // RemoveObject(group, object)
             ScriptGroup* group = cmd->groupArgs.data[0];
             int at = group->IndexOf(*cmd->objectArgs.data[0]);
-            if (at >= 0) mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*group).RemoveAt(at, 1);   // 004C2200
+            if (at >= 0) mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*group).RemoveAt(at, 1);
             break;
         }
 
@@ -518,7 +516,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 ParticleList::Node* current = node;
                 node = node->next;
                 if (current->data.id == id) {
-                    mfc::impl::RemoveAtAs<gamelists::ParticleSources>(&script->particles_, current);   // 004C6040
+                    mfc::impl::RemoveAtAs<gamelists::ParticleSources>(&script->particles_, current);
                     break;
                 }
             }
@@ -544,7 +542,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (LightningList::Node* node = script->lightning_.head; node;) {
                 LightningList::Node* current = node;
                 node = node->next;
-                if (current->data.id == Ftol(f[0])) mfc::impl::RemoveAtAs<gamelists::Lightnings>(&script->lightning_, current);   // 004C6680
+                if (current->data.id == Ftol(f[0])) mfc::impl::RemoveAtAs<gamelists::Lightnings>(&script->lightning_, current);
             }
             break;
         }
@@ -552,7 +550,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             int id = Round(f[0]);
             for (FxSourceList::Node* node = script->fxSources_.head; node; node = node->next) {
                 if (node->data.id == id) {
-                    mfc::impl::RemoveAtAs<gamelists::FxSources>(&script->fxSources_, node);   // 004C6370
+                    mfc::impl::RemoveAtAs<gamelists::FxSources>(&script->fxSources_, node);
                     break;
                 }
             }
@@ -602,7 +600,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->ChangeWind(&direction, f[3]);
             break;
         }
-        case 0x1F: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255 (0073C36C)
+        case 0x1F: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255
             const float scale = ColourScale();
             float b = f[2] * scale;
             float g = f[1] * scale;
@@ -1147,7 +1145,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
             for (CItem* item = it.First(list); item; item = it.Next()) item->Repair();
-            if (it.manager) {   // destructor (004BB050)
+            if (it.manager) {   // destructor
                 --it.manager->refCount_;
                 it.manager = nullptr;
             }

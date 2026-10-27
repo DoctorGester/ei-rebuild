@@ -96,7 +96,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     mfc::CString source(text);
     mfc::CString ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
-    // With EI_UTF8 a character is its whole UTF-8 sequence (U5), so a word wider than a line is broken
+    // With EI_UTF8 a character is its whole UTF-8 sequence, so a word wider than a line is broken
     // between characters and measured as text.
     for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
         console::Ops(ch).AssignChar(p[0]);
@@ -161,7 +161,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
     for (int i = 0; i < plain.GetSize(); ++i) {
-        // insert(end()) of an empty line (005E3A10).
+        // insert(end()) of an empty line.
         auto* node = stlp::allocate_as<Node>();
         new (&node->data.text) mfc::CString;
         new (&node->data.name) mfc::CString;
@@ -262,7 +262,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;
     handled_ = true;
     switch (key) {
-    case VK_BACK: {   // by character (U4), as Delete and the caret's steps
+    case VK_BACK: {   // by character, as Delete and the caret's steps
         if (caret_ <= 0) break;
         const int previous = text::PreviousCharacter(typed_, caret_);
         typed_ = typed_.Left(previous) + typed_.Mid(caret_);
@@ -339,7 +339,7 @@ void CChatOverlay::Update() {
     for (Node* node = head->next; node != head;) {
         Node* next = node->next;
         if (static_cast<int>(now - node->data.time) > kLineLifetime) {
-            // list::erase (005E3AD0): unlinked, destroyed, the node back to the pool.
+            // list::erase: unlinked, destroyed, the node back to the pool.
             node->prev->next = next;
             next->prev = node->prev;
             node->data.Destroy();

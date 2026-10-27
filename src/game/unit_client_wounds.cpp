@@ -1,5 +1,5 @@
 // A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level of each body part
-// (00536EA0) and the composed wounds texture the figure shows (005370F0, called by RefreshWounds
+// and the composed wounds texture the figure shows (005370F0, called by RefreshWounds
 // 00537360). See unit_client_models.h.
 #include "unit_client_models.h"
 
@@ -31,9 +31,9 @@
 namespace {
 constexpr int kBodyParts = 6;
 constexpr int kTypeHero = 0x32;
-constexpr float kFull = 1.0f;          // 0073B84C
-constexpr float kMedium = 0.33f;       // 0073D5A4
-constexpr float kLight = 0.75f;        // 0073C524
+constexpr float kFull = 1.0f;
+constexpr float kMedium = 0.33f;
+constexpr float kLight = 0.75f;
 constexpr int kLegsLeft = 4, kLegsRight = 5, kHandLeft = 2, kHandRight = 3, kBody = 1, kHead = 0;
 // armourIds: 0 the helmet, 1 the body armour, 2 the trousers.
 constexpr int kHelmetSlot = 0, kBodyArmourSlot = 1, kTrousersSlot = 2;
@@ -43,8 +43,8 @@ constexpr int kHeroTextureSize = 0x80;
 constexpr int kTextureSize = 0x40;
 constexpr int kMipCount = 3;
 constexpr int kFormat = 0x4444;
-constexpr const char* kWoundTexture = "%s%sw%d.mmp";   // 0078FB8C
-constexpr const char* kWoundCacheName = "mo%dw";       // 0078FB84
+constexpr const char* kWoundTexture = "%s%sw%d.mmp";
+constexpr const char* kWoundCacheName = "mo%dw";
 // The parts' texture names of a hero and of other units, each list ended by an empty name.
 constexpr const char* kHeroParts[kBodyParts + 1] = /*0078F974*/ {"hd", "bd", "lh", "rh", "ll", "rl", ""};
 constexpr const char* kParts[kBodyParts + 1] = /*0078F990*/ {"hd", "bd", "h", "h", "l", "l", ""};
@@ -110,7 +110,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         // The request lives in raw storage so that its parts go in the original's order.
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
         auto* request = new (storage) SkinRequest{{}, {}, 0};
-        // 004ECB50: six level bytes in 32-byte aligned storage (the block kept before them).
+        // Six level bytes in 32-byte aligned storage (the block kept before them).
         request->layers.SetSize(kBodyParts);
         if (WoundLevels(&request->layers.data)) {
             bool hero = unit->type_ == kTypeHero;
@@ -145,9 +145,9 @@ constexpr int kWoundsTextureKind = 6;
 constexpr unsigned kWoundsPreset = 4;
 constexpr int kSourceAlpha = 5;          // D3DBLEND_SRCALPHA
 constexpr int kInverseSourceAlpha = 6;   // D3DBLEND_INVSRCALPHA
-constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";   // 0078F54C
+constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
 
-// 004EBE60: *slot = texture with counted references; the old one released (its slot 4).
+// *slot = texture with counted references; the old one released (its slot 4).
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;
@@ -204,8 +204,8 @@ EI_REWRITTEN(0x0051C3D0, CObject3DClientSpecific::ShowWounds);
 
 namespace {
 constexpr int kFaceTextureKind = 0x3D;
-constexpr const char* kHeroFace = "%smouth_%.2d";      // 0078FC70
-constexpr const char* kFace = "%smouth";               // 0078FC68
+constexpr const char* kHeroFace = "%smouth_%.2d";
+constexpr const char* kFace = "%smouth";
 } // namespace
 
 bool CUnitClientSpecific::LoadFaceTexture() {
@@ -235,7 +235,7 @@ EI_REWRITTEN(0x00538DB0, CUnitClientSpecific::LoadFaceTexture);
 namespace {
 constexpr std::uint32_t kWeaponSlots = 4;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFF;
-constexpr const char* kHandNode = "baserh3";   // 0078FB04
+constexpr const char* kHandNode = "baserh3";
 } // namespace
 
 bool CUnitClientSpecific::WeaponPoint(Vector3* out) {

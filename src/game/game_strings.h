@@ -13,14 +13,14 @@ namespace game {
 // vanilla's and Rebirth's exe hold the same data (docs/notes/standalone.md, section 1).
 inline const char* Text(std::uintptr_t address) { return &ei::GameData<const char>(address); }
 
-// 0079B298: the exe's empty string (""). The game's text readers and CString constructors fall back
+// The exe's empty string (""). The game's text readers and CString constructors fall back
 // to it, and some loops compare against this address (not only against the contents).
 inline const char* EmptyText() { return &ei::GameData<const char>(0x0079B298); }
 
-// The texture manager's FatalError (00691D80).
+// The texture manager's FatalError.
 inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }
 
-// The window surfaces' FatalDirectX (005FCC00 / 005FD120).
+// The window surfaces' FatalDirectX.
 inline const char* CantGetSurfaceDescriptionText() { return "Can't get surface description.\n"; }
 // 005FCF80's picture file name.
 inline const char* MmpExtensionText() { return ".mmp"; }
@@ -67,7 +67,7 @@ inline const char* SpellContainerText() { return "spell container"; }
 inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
 inline const char* TutorialLineFormat() { return "%s %d\n"; }
 
-// The flying hit points' draw (005E18E0): the amount's format and its FatalError.
+// The flying hit points' draw: the amount's format and its FatalError.
 inline const char* DecimalFormat() { return "%d"; }
 inline const char* FlyingHitPointsTextureText() { return "CFlyingHitPoints::Draw.\n SetTexture failed.\n"; }
 

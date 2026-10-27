@@ -39,7 +39,7 @@ protected:
 // advances its animation, 005A7290 finishes a draw). It is an engine object of class 0x36,
 // "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory 0042D700 makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
-// class (C19): the compiler makes its vtable (game.exe's 0073FB10 is retired). flags_ gets the bits
+// class: the compiler makes its vtable (game.exe's 0073FB10 is retired). flags_ gets the bits
 // of 00790C0C when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
     // 0x005A7640 (figure_part_draw_plain.cpp).
@@ -61,9 +61,9 @@ struct FigureMeshDrawer : FigureDrawerBase {
     const char* GetClassName() override;   // 11: 005A7040 "CFigureClientSpecific" (world_class_slots.cpp)
     int GetClassId() override;             // 12: 005A7050 (0x36)
 
-    // 005A70E0 (slot 2). No flags; +0x30 becomes (1, 1, 1). Returns 1.
+    // No flags; +0x30 becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
-    // 005A7130 (slot 3). No mesh, no flags.
+    // No mesh, no flags.
     void DestroyDrawer();
 
     // 005A7160 (RET 4; figure_drawer.cpp; the draws call it through its address for the animated
@@ -129,14 +129,14 @@ public:
     // 0: the deleting destructor (CLinkMesh's 004F2E20; the base's 004F2E00). Counted users delete
     // the mesh when its last reference goes.
     virtual ~CLinkMeshBase();
-    // 1: 004F45E0. screenRect_ = the union of the parts' non-empty screen rectangles (inverted
+    // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
     virtual void UpdateScreenRect() = 0;
     // 2: 004F3040 (RET 4, AL). Whether `name` is a part.
     virtual bool HasPart(const stlp::string* name) = 0;
-    // 3: 004F2FB0 (RET 4). Appends the part names, in map order, to `out`.
+    // Appends the part names, in map order, to `out`.
     virtual void CollectPartNames(stlp::vector<stlp::string>* out) = 0;
-    // 4: 004F30D0 (RET 4, AL). The loader (004F7480) loads part `name` into this mesh.
+    // 4: 004F30D0 (RET 4, AL). The loader loads part `name` into this mesh.
     virtual bool LoadPart(const stlp::string* name) = 0;
     // 5: 004F3530 (RET 4, AL). Removes part `name`: false when there is none. The later elements of
     // each array move down over its elements; parts whose index range starts after the removed
@@ -147,8 +147,8 @@ public:
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount) = 0;
     // 7-12 (link_mesh_draw.cpp, A-S12): a figure mesh's part `name` drawn through this figure
-    // (CObject3D::figure; 005A7A70): 7 (004F3AD0) fills a flat part's colours and speculars, 8
-    // (004F3870) lights it (both AL: false when there is no such part), 9-12 (004F3C60, 004F3FA0,
+    // (CObject3D::figure; 005A7A70): 7 fills a flat part's colours and speculars, 8
+    // lights it (both AL: false when there is no such part), 9-12 (004F3C60, 004F3FA0,
     // 004F42D0, 004F4150) draw it (with the mesh's per-vertex offsets: 9 / 11; with two textures'
     // surfaces: 11 / 12). The draws return 2 when nothing was drawn. `u`, `v` are the mesh's
     // +0xCC / +0xD0.
@@ -168,7 +168,7 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
-    // 13 / 14 (004F4680, 004F4850): the shadow of part `name` (0051CE60): its points projected with
+    // 13 / 14: the shadow of part `name`: its points projected with
     // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
     // projected points `pixels` rasterised into the shadow target. Both return the point count (0
     // when there is no such part).
@@ -189,12 +189,12 @@ protected:
 };
 
 // A figure's mesh (0xB0 bytes; constructor 004F2C00, destructor 004F2E40): the parts' elements
-// concatenated in the arrays. A real virtual class (C19): the compiler makes its vtable (game.exe's
+// concatenated in the arrays. A real virtual class: the compiler makes its vtable (game.exe's
 // 0073D790 is retired). Slots 7-14 draw parts through the device
 // (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
-    // 004F2C00. The base's part, the coefficients stored, the arrays and the ranges map empty, the
+    // The base's part, the coefficients stored, the arrays and the ranges map empty, the
     // pipeline taken from the loader's renderer (+0xAC -> +0xC).
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
     // 004F2E40's work: the ranges map, the arrays (indices first), then the base's destructor.
@@ -235,7 +235,7 @@ public:
     // packets (unsigned) with `vertices`; false when there is no such part.
     bool SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count);
 
-    // 004F2F90 (RET 0xC). Sets the morph coefficients.
+    // Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
     // 004F7370 (RET 4, returns out; link_loader.cpp). Constructs a copy of the name in `out`.
     stlp::string* CopyName(stlp::string* out) const;

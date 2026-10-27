@@ -1,5 +1,5 @@
-// What learning a skill level (00528050) or raising a school (00527FF0) costs; the interface's
-// skill pages call them. With the level record lookup they use (0051FF00), so ei_vectors links
+// What learning a skill level or raising a school costs; the interface's
+// skill pages call them. With the level record lookup they use, so ei_vectors links
 // them without the rest of the skill database. See unit.h (UnitStats::SkillPrice) and
 // docs/notes/units.md ("Statistics in play"). Plain C++ float maths (rule 7).
 #include "logic_settings.h"
@@ -13,11 +13,11 @@
 #include <cstdint>
 
 namespace {
-constexpr double kWorthBase = 1.61;     // 0073E140
-constexpr float kTwoDigitsBelow = 4.0f; // 0073BAA0: a first digit below this keeps two digits
-constexpr float kRoundUpTo = 10.0f;     // 0073BAAC: ... unless the price is at most this
-constexpr float kTenth = 0.1f;          // 0073B850
-constexpr float kHalf = 0.5f;           // 0073B86C
+constexpr double kWorthBase = 1.61;
+constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two digits
+constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
+constexpr float kTenth = 0.1f;
+constexpr float kHalf = 0.5f;
 constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (+0x6D3..+0x6F6)
 
 // What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"

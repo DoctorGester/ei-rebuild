@@ -1146,7 +1146,14 @@ across runs; the goldens check the game state.
      mapped lights changes as the camera moves (a fifth light's shadows come and go). Frames: build\R16i1 on
      E: in the worktree of R16i1 (before = main's render_lighting run, after = this branch; light_town_night: the
      hero's shadow away from the campfire, the soldier's and the spit's legs' long shadows, the rack's posts;
-     zone1 at night unchanged: the hero holds his light). Cost: below.
+     zone1 at night unchanged: the hero holds his light). Cost (render_stats, vanilla 4K, per frame, the same
+     build with the point shadows off / on, two runs each, alternating; the shadow map's figures include the
+     point pass): shadow draws zone1 69 / 84-100, fight 226 / 386-404, town 183 / 351-387, town at night 162 /
+     316-358; the shadow map's CPU ms 0.42 / 0.41-0.49, 0.56 / 0.79-0.90, 0.97-1.02 / 1.19-1.25, 0.79-0.87 /
+     0.99-1.06; its GPU pass town at night 0.45-0.49 / 0.49-0.56 ms (the 3072 x 2048 atlas' clear and the faces'
+     draws), the frame's GPU time and the main thread's CPU within the runs' noise (town at night GPU frame
+     1.67-1.94 / 1.91-2.74, main CPU 4.3-4.7 / 4.4-4.7). The candidates are the lights in view at all, so by day
+     the town's lamps cast too (their shadows faint: the sun's light is the larger).
    Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
    bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
    (the digest's water hash, saves). Cost (render_stats, vanilla 4K, per frame; before = this branch's base,

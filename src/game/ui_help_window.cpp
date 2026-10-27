@@ -116,7 +116,7 @@ EI_REWRITTEN(0x0065A5E0, CHelpWindow::Update);
 void CHelpWindow::Finish() {
     interface_->PlaySound(OkSound(), 0);
     if (!message_)
-        interface_->helpTopics_.Subscript(text_) = page_;   // 0065A770
+        interface_->helpTopics_.Subscript(text_) = page_;
     else
         interface_->messageFlag_ = page_;
     interface_->SetPendingValue(0);

@@ -17,9 +17,9 @@
 #include "lib/nan_audit.h"
 
 namespace {
-constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";           // 00793A88
-constexpr const char* kSoundSelect = "buttons\\save\\select.wav";      // 00793A60
+constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
+constexpr const char* kSoundSelect = "buttons\\save\\select.wav";
 
 // Pending values a window hands the interface when it closes (CInterface3D::SetPendingValue):
 // the low word 1 closes the top window, the high word is the result its parent receives.
@@ -267,7 +267,7 @@ void COptionsWindow::OnDialogResult(int result) {
 }
 
 const char* COptionsWindow::HelpTopic() {
-    // "options" (00794848) unless a key binding waits for its key.
+    // "options" unless a key binding waits for its key.
     return waitingForKey_ ? nullptr : "options";
 }
 
@@ -279,8 +279,8 @@ constexpr int kSettingVolumeC = 2;     // /
 constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
 constexpr int kSettingGammaLast = 16;
 constexpr int kSettingCount = 26;
-constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
-constexpr float kSlideSeconds = 0.5f;  // 00742B74
+constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
+constexpr float kSlideSeconds = 0.5f;
 } // namespace
 
 void COptionsWindow::Update() {

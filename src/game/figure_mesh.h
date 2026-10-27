@@ -19,8 +19,8 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
-// loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2 (005A0CD0).
-// 0x40 bytes. Also the moved positions the part drawers build (007C2E48 / 007C2E60). `block` is
+// loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2.
+// 0x40 bytes. Also the moved positions the part drawers build. `block` is
 // four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
     float block[4][4];
@@ -82,7 +82,7 @@ struct FigureLights {
 // The figure meshes' base ("CFigure"): the layout the classes below share (0x1E0 bytes, class 0x41's
 // object; class 0x42 adds four arrays, CPlainFigureMesh). A CTransformObject (core_transform.h: the engine object's fields, the local
 // and world position and rotation). The parts of an object's figure (CObject3D::parts) are these.
-// A real virtual class (C19): the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43
+// A real virtual class: the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43
 // (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
 // vtables. Abstract: slots 20 and 21 are the derived classes'. game.exe's base vtable 0073C224 (20 slots) is
 // retired.
@@ -103,7 +103,7 @@ public:
     // then characters), each buffer (buffers_) as a count and its elements, a 0, then centre, box, radius and
     // +0x158 / +0x15C. CPlainFigureMesh::LoadTransform reads it back.
     void SaveTransform(mfc::CFileVirtuals* file) override;
-    // 18: 0059F0F0 (RET 4): copies another mesh's transform (00401490), name, the shared buffer
+    // Copies another mesh's transform, name, the shared buffer
     // descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
     virtual void CopyFigure(const CFigureMesh* other);
     // 19: 005A2490 / 005A4CF0 (classes 0x42-0x44 / 0x41, byte-identical; RET 0x10; figure_manager.cpp, A-W12).
@@ -115,7 +115,7 @@ public:
     virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // 21: the older format
     // The deleting destructors (slot 0) free into the game's heap.
 
-    // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
+    // Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the
     // figure's three morph coefficients; other versions hold one. Sets the box and centre of
     // `bounds_`. RET 0x14.
@@ -130,19 +130,19 @@ public:
 
     // 0059FDF0 (called by 00518100 for every part of a CObject3D): grows the world-space box
     // [min, max] by the 8 corners of this part's box (bounds_) transformed by its matrix
-    // (00401570); nothing when the position is 1e4 or more from the origin. RET 0x18.
+    // nothing when the position is 1e4 or more from the origin. RET 0x18.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
     // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
-    // again (render::MeshChanged, R16d).
+    // again (render::MeshChanged).
     void BuffersChanged();
-    // 005A0B10: copies `offsets` (any {Vector3* data; int count} pair) into offsets_. RET 4.
+    // Copies `offsets` (any {Vector3* data; int count} pair) into offsets_. RET 4.
     struct OffsetSpan {
         const Vector3* data;
         int count;
     };
     void SetOffsets(const OffsetSpan* offsets);
-    // 005A0CD0: projects the vertices flat through `pipeline`'s transform object (ProjectFlat,
+    // Projects the vertices flat through `pipeline`'s transform object (ProjectFlat,
     // slot 29: `matrix`, the points out, the bounds grown) with the vertices moved by offsets_ when
     // there are any (into the shared buffer at 007C2E18). Returns the vertex count (4 per packet).
     // RET 0x10.
@@ -159,10 +159,10 @@ public:
     // 0059F2B0 (slot 3 of vtable 0073C224): names and colour arrays emptied, the buffer descriptor
     // cleared, the drawer let go (released), no flags.
     void Clear();
-    // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
+    // Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
-    // 0059F3D0 (RET 4). The object whose part the mesh is (object_).
+    // The object whose part the mesh is (object_).
     void SetObject(CObject3D* object);
 
 protected:
@@ -208,14 +208,14 @@ public:
     Matrix4 poseMatrix_;
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
     mfc::CString directory_;            // +0x124 where its .fig file is (005AC2F0; NewFigure empties it)
-    lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
+    lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     // +0x158 from the file header (before meshType_): the material value of the scene's mesh
     // (SceneMesh::materialValue, the number in its material group's name; scene_registry.cpp). An
     // object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
     std::uint32_t materialValue_;
-    std::uint32_t meshType_;            // +0x15C from the file header; 13..16: animated (005A7A70)
+    std::uint32_t meshType_;            // +0x15C from the file header; 13..16: animated
     Vector3 center_;                    // +0x160
     Vector3 boxMin_;                    // +0x16C
     Vector3 boxMax_;                    // +0x178
@@ -268,7 +268,7 @@ public:
 // (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
 class CPlainFigureMesh : public CFigureMesh {
 public:
-    // The figure factory's class 0x42 (005AA8E0) and the scene's records (00453240) inline it:
+    // The figure factory's class 0x42 and the scene's records inline it:
     // CFigureMesh's constructor, then the six arrays empty.
     CPlainFigureMesh();
     // 00454510's work: the six arrays freed (last first), then CFigureMesh's destructor.
@@ -279,10 +279,10 @@ public:
     void Destroy() override;
     // 17: 0059F8F0 (RET 4; figure_mesh_file.cpp): reads the mesh SaveTransform wrote.
     void LoadTransform(mfc::CFileVirtuals* file) override;
-    // 20: 005A2500. Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices;
+    // Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices;
     // once only (flag 0x20). RET 0x10.
     void LoadFig(char** cursor, float s, float t, float u) override;
-    // 21: 005A3800. The older format without a FIG header, chosen by slot 19 (005A2490) when the data does
+    // The older format without a FIG header, chosen by slot 19 when the data does
     // not start with "FIG": 6 corner versions of the bounds and of every vertex, each array preceded by its
     // count. RET 0x10.
     void LoadOld(char** cursor, float s, float t, float u) override;
@@ -291,7 +291,7 @@ public:
     virtual void MirrorX();
     virtual void MirrorY();
 
-    // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
+    // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
     // (one per normal).
     void RefreshBuffers();
 
@@ -320,11 +320,11 @@ static_assert(sizeof(FigHeader) == 0x20);
 
 constexpr std::uint32_t kFig8Magic = 0x38474946;   // "FIG8"
 
-// 005AAE60. The figure loader's (005AC010) bounding volume of a FIG figure part: `data` holds the
+// The figure loader's bounding volume of a FIG figure part: `data` holds the
 // centre, box minimum, box maximum and radius, 8 versions each for FIG8 (morphed as in
 // CFigureMesh::LoadBounds, except that the radius keeps its lower blend on the FPU) or one
 // otherwise. Called with the loader in ECX, which it does not use. RET 0x18.
 void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic);
-// 005AB9A0. The same for figure parts without a FIG header: 6 corner versions of each value,
+// The same for figure parts without a FIG header: 6 corner versions of each value,
 // blended as the bones are. RET 0x14.
 void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u);

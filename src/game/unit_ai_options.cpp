@@ -1,5 +1,5 @@
 // The unit AI's attack options (AIAttention, unit_ai.h): listing them from the unit's weapon and
-// spells (005CEED0), the option helpers (005CEA30, 005CEA60, 005CEBD0, 005CEDC0, 005CE9B0) and the
+// spells, the option helpers and the
 // options array's SetSize (005D9250, registered on mfc::CArray).
 #include "unit_ai.h"
 
@@ -16,9 +16,9 @@ std::uint16_t __fastcall MaxDamage(const std::uint16_t*);
 namespace {
 constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
 constexpr int kNoKind = 8;
-constexpr float kAttackSpellWeight = 1.3f;  // 0073FF20
-constexpr float kHelpWeight = 1.0f;         // 0073B84C
-constexpr float kHealWeight = 10.0f;        // 0073BAAC
+constexpr float kAttackSpellWeight = 1.3f;
+constexpr float kHelpWeight = 1.0f;
+constexpr float kHealWeight = 10.0f;
 
 // The option kind per spell type (005CEDC0's byte table 005CEE4C through its jump table).
 constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6, 6, 6, 8, 8, 8,

@@ -1,6 +1,6 @@
-// CAIMap::PlanPath (005B9C90): the long-range path. The region map gives a chain of regions from
+// CAIMap::PlanPath: the long-range path. The region map gives a chain of regions from
 // the start to the target; the local search (+0x2594) walks from one region's representative cell
-// to the next, then to the target; the path builder (005B9A20) turns the search into cells. When a
+// to the next, then to the target; the path builder turns the search into cells. When a
 // leg fails the target moves to the best reachable cell (if it is far enough from the start) or,
 // with `retry`, the failing region is excluded and the plan starts again. See ai_map.h and
 // docs/notes/ai.md.
@@ -22,7 +22,7 @@ constexpr int kUnreachable = 0x7FFFFFFF;
 constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset (0x60AD78EC)
 
 // The chain of regions is a CList<PathCell> (block x, y); the waypoints a CList of {x, y, the
-// region node it belongs to} whose NewNode stays the instantiation's (005BEDB0).
+// region node it belongs to} whose NewNode stays the instantiation's.
 using RegionNode = PathCellList::Node;
 struct Waypoint {
     int x, y;
@@ -32,13 +32,13 @@ using WaypointList = mfc::CList<Waypoint, mfc::RawElements<Waypoint>>;
 using WaypointNode = WaypointList::Node;
 static_assert(sizeof(WaypointNode) == 0x14);
 
-// 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next): List12's (the element zeroed).
+// The waypoint list's NewNode(prev, next): List12's (the element zeroed).
 WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNode* next) {
     return mfc::impl::NewNodeAs<mfc::impl::List12>(list, prev, next);
 }
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
-// 006E727B. atexit, for the function-local spiral cache.
+// Atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache (guard bit 0 of g_spiralGuard, destructor 005BA3F0).
 SpiralCache g_spiral = /*007C2F58*/ {};
@@ -65,10 +65,10 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         Spiral()->radius = -1.0f;
         SpiralGuard() |= 1;
         Spiral()->length = 0;
-        libcrt::AtExit([] {});   // 005BA3F0: nothing to destroy
+        libcrt::AtExit([] {});   // nothing to destroy
     }
     int sizeClass = unit->sizeClass;
-    path->cells.RemoveAll();   // 00556D40
+    path->cells.RemoveAll();
     bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();

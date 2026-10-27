@@ -1,14 +1,12 @@
-// The save / load window's saving (00655550), its entry list (00655D40, with its tail 00656464)
-// and the selected save's picture (00656E10). See ui.h (CSaveLoadWindow) and
+// The save / load window's saving, its entry list (00655D40, with its tail 00656464)
+// and the selected save's picture. See ui.h (CSaveLoadWindow) and
 // docs/notes/renderer.md (section 11).
-//
 // The window shows two 256x256 5:6:5 textures made by 005FF0B0 (a CTexture with its holder at
 // +0x5C): objects_[1], into which ShowPicture reads the selected save's
 // shot.sav (256x192 pixels, 0x18000 bytes), and dialog_ (+0x184), which FillEntries fills from
 // the escape menu's 256x192 copy of the screen (interface +0x5C) for the new save of a save window
 // and SaveGame writes to the new save's shot.sav. Like the original, the 0x18000 bytes are one
 // block from the start of the pixels (a pitch of 512 bytes is taken for granted).
-//
 // Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per
 // holder, given by the texture manager's 00691D80; dx_surface.cpp, render::SurfaceMemory): written
 // into and read from that memory with no Lock (DirectPixels).
@@ -63,14 +61,14 @@ constexpr int kVisibleRows = 16;
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
-// _Construct(p, x) (00657C60).
+// _Construct(p, x).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the original calls it.
 BOOL IsDirectory(const mfc::CFileFind& find) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
 }
-mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }   // 006E6722
-mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }   // 006E684B
+mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
+mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
 
 // A file stream on the stack with the reads and writes the save list uses (net_link.h).
 struct LocalFileStream {
@@ -199,7 +197,7 @@ void SaveEntry::MakeTitle(int) {
     } else if (SameFolder(folder_, kAutoFolderB)) {
         title.Format(kPlainFormat, autoExit.GetString());
     } else {
-        // 00653BD0: the zone name ("zone" + zone_ in the texts, else "save_camp").
+        // The zone name ("zone" + zone_ in the texts, else "save_camp").
         const mfc::CString name = ZoneTitle();
         title.Format(kPlainFormat, name.GetString());
     }
@@ -216,7 +214,7 @@ void CSaveLoadWindow::SaveGame() {
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
-        int needed = CurrentSaveSize();   // 0057BC30
+        int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
             CUiWindow* box = new CMessageBox(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
             interface_->PushWindow(box, 1, 1);
@@ -244,7 +242,7 @@ void CSaveLoadWindow::SaveGame() {
     else
         entries_.begin()->title_ = entry->title_;
     mfc::impl::CTime now;
-    entries_.begin()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
+    entries_.begin()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;
     SaveEntry* first = entries_.begin();
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
@@ -452,7 +450,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString map;
     mfc::CString zone;
     mfc::impl::CTime now;
-    const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
+    const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     {
         mfc::CString current(mfc::CString::kUnset);
@@ -510,11 +508,11 @@ mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
     return line;
 }
 
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";            // 00793A88
-constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";       // 00794994
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
+constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
 constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
 constexpr const char* kFolderFormat = "%ssaves\\%s";
-constexpr const char* kEveryFile = "\\*.*";                             // 0078B054
+constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
@@ -525,14 +523,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone ", zone_);   // 007941F8: the key has a space
+    mfc::CString title = FirstLineOf("zone ", zone_);   // the key has a space
     if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    mfc::CString title = FirstLineOf("allod ", map_);  // 00794200: the key has a space
+    mfc::CString title = FirstLineOf("allod ", map_);  // the key has a space
     if (title.GetLength() == 0) title = "Unknown";
     return title;
 }

@@ -4,14 +4,14 @@
 // move the water surface that height queries read). The original's draw (the quarters' tiles as
 // 32-byte vertices and triangle lists in function-local statics at 007C8848..007C88C8, clipped and
 // transformed through the draw context's clipper and drawn by the context) is gone with the DirectDraw
-// fallback (R11a); render_terrain.cpp keeps its tile entries and index patterns. See
+// fallback; render_terrain.cpp keeps its tile entries and index patterns. See
 // docs/notes/models.md and docs/notes/renderer.md.
 #include "terrain_sector.h"
 
 #include "ei/hook.h"
 #include "render/render.h"
 
-// 006BFF40. Returns 1 (the original: 0 when the context fails to draw).
+// Returns 1 (the original: 0 when the context fails to draw).
 int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int /*unused*/) {
     if (clipMode == 2) return 1;
     if (hasWater) ApplyWaterLevels();

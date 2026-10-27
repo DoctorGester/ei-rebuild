@@ -65,7 +65,6 @@ const char g_chNil[1] = /*007C8BA8*/ {""};
 const char* ChNil() { return g_chNil; }
 
 // ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
-//
 // The game's FILE* is the host CRT's (crt_file.cpp): these are the host's.
 
 FILE* Host(gamecrt::CrtFile* stream) { return reinterpret_cast<FILE*>(stream); }
@@ -212,7 +211,7 @@ const void* __fastcall FileRuntimeClass(const void*) { return &kClassCFile; }
 const void* __fastcall StdioFileRuntimeClass(const void*) { return &kClassCStdioFile; }
 const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFind; }
 
-// ---- The compiled tables (C19) --------------------------------------------------------------------
+// ---- The compiled tables --------------------------------------------------------------------
 
 namespace {
 
@@ -222,7 +221,7 @@ template <typename Self, typename File, const CRuntimeClass* kClass>
 struct FileTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                       // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
-    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual void Serialize(void*) {}
     virtual unsigned long GetPosition() const { return This()->GetPosition(); }                  // 3
     virtual CString GetFileName() const { return This()->GetFileName(); }                         // 4
     virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5
@@ -267,7 +266,7 @@ struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdi
 struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }             // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
-    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual void Serialize(void*) {}
     virtual CString GetFileName() const { return This()->GetFileName(); }                         // 3
     virtual CString GetFilePath() const { return This()->GetFilePath(); }                         // 4
     virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5

@@ -1,5 +1,5 @@
 // The world's managers released (0055F8E0, the base world's slot 3; A-U7). Their creation is
-// world_create.cpp (0055EE40). See world.h and docs/notes/combat.md.
+// world_create.cpp. See world.h and docs/notes/combat.md.
 #include "world.h"
 
 #include "base_manager.h"

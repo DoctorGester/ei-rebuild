@@ -1,8 +1,7 @@
-// The Esc menu's save/load and options windows: their key handlers (006548A0, 00650E40) and the
-// save/load window's selection helpers (00655430, 00657820). See ui.h and docs/notes/ui.md.
-//
+// The Esc menu's save/load and options windows: their key handlers and the
+// save/load window's selection helpers. See ui.h and docs/notes/ui.md.
 // Both key handlers live on the window's input side (`this` = window + 0x94, ui_screens.h). They
-// pass the key to the base handler first (00601820), set the input side's handled flag for the
+// pass the key to the base handler first, set the input side's handled flag for the
 // keys they use, and ignore keys while the window slides in.
 #include "asset_text.h"
 #include "ui.h"
@@ -113,7 +112,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             name.Empty();
             cursor_ = 0;
         }
-        if (cursor_ > 0) {   // by character (U4), as Delete and the cursor's steps
+        if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
             const int previous = text::PreviousCharacter(name, cursor_);
             name = name.Left(previous) + console::Ops(name).Mid(cursor_);
             cursor_ = previous;

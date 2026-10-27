@@ -1,6 +1,6 @@
 // The figure meshes' lifetime (A-W13): the constructor body the figure classes share, Create and
 // Clear (vtable slots 2 and 3), the classes 0x41 and 0x42's constructors, destructors and virtual
-// slots (C19), the drawer and owner setters, and the figure manager's constructor and its
+// slots, the drawer and owner setters, and the figure manager's constructor and its
 // CreateObject (slot 23), which gives every new figure a drawer.
 // See figure_mesh.h, figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
 #include "ei/hook.h"

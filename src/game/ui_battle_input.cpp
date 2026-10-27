@@ -1,4 +1,4 @@
-// The battle screen's slot 1 (00638A10), double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
+// The battle screen's slot 1, double click, key release and wheel: its
 // input side slots 1, 7, 11 and 12. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "ui_camp.h"

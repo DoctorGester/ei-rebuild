@@ -1,6 +1,6 @@
 #pragma once
 
-// Compiled tags (C19; docs/notes/standalone.md, "Compiler-made vtables"): a class whose objects keep game.exe's
+// Compiled tags (docs/notes/standalone.md, "Compiler-made vtables"): a class whose objects keep game.exe's
 // layout with the vtable as a plain field (`void* vtable`) gets the compiler's table in place of game.exe's through
 // a tag, a C++ class declaring the same slots whose bodies call the class's functions. Its constructors and
 // destructors store `Tag::Vtable()`; the original's dispatch through the field reaches the tag's slots. The tag is

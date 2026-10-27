@@ -51,7 +51,7 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
 
 } // namespace net
 
-// 004263B0: a counted pointer copy (a reference added, no copy-on-share handling).
+// A counted pointer copy (a reference added, no copy-on-share handling).
 RefPtr* RefPtr::CopyPlain(const RefPtr* other) {
     CRefObject* object = other->ptr;
     ptr = object;
@@ -63,7 +63,7 @@ EI_REWRITTEN(0x004263B0, RefPtr::CopyPlain);
 EI_REWRITTEN(0x00429910, RefPtr::CopyPlain);
 EI_REWRITTEN(0x00609960, RefPtr::CopyPlain);
 EI_REWRITTEN(0x005BEF50, RefPtr::CopyPlain);
-// 00609D40: the counted pointer's assignment from another holder (the chat window's player list
+// The counted pointer's assignment from another holder (the chat window's player list
 // 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even
 // for the same object; no copy-on-share handling). Returns the holder.
 RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
@@ -74,7 +74,7 @@ RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
 namespace net {
 EI_REWRITTEN(0x00609D40, RefPtr::AssignCounted);
 
-// 0041ACF0: the trade between the two offers (in either order), or null.
+// The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
     for (RefNode* node = trades_.First(); node != trades_.End(); node = node->next) {
         TradeMessage* trade = trades_.At(node);
@@ -88,7 +88,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 // 0041B720 (removed file request): drops `message` from +0x259C.
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428060
+    const RefPtr* value = RefPtrFromRaw(&ref, message);
     RefNode* sentinel = self->fileRequests_.End();
     for (RefNode* node = sentinel->next; node != sentinel;) {
         RefNode* next = node->next;
@@ -101,7 +101,7 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
 // is made (both marked paired), else the partner is told of the offer.
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
+    const RefPtr* value = RefPtrFromRaw(&ref, message);
     self->offers_.Insert(self->offers_.End(), *value);
 
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
@@ -115,7 +115,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     trade->player_.Assign(message->player_.ptr);
     trade->partner_.Assign(message->partner_.ptr);
     RefPtr tradeRef;
-    value = RefPtrFromRaw(&tradeRef, trade);   // 00428080
+    value = RefPtrFromRaw(&tradeRef, trade);
     self->trades_.Insert(self->trades_.End(), *value);
     message->trading_ = 1;
     other->trading_ = 1;
@@ -145,7 +145,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 // Its trade, when live, is dropped, a done one first kept on +0x25C0 for 60 seconds.
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
+    const RefPtr* value = RefPtrFromRaw(&ref, message);
     RefNode* sentinel = self->offers_.End();
     for (RefNode* node = sentinel->next; node != sentinel;) {
         RefNode* next = node->next;

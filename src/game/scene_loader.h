@@ -1,10 +1,9 @@
 #pragma once
 
-// The scene file loader of CFakeUnit (00471B10): reads a binary .sc* scene (meshes with their
+// The scene file loader of CFakeUnit: reads a binary .sc* scene (meshes with their
 // vertex animation, the node hierarchy, helpers) into the arrays of the figure being built.
 // Called by 00446C10 (`LoadFakeUnitScene`, the CFakeUnit slot 62 loader) with the opened CFile.
 // Names are provisional; see docs/notes/objects.md ("Facts").
-//
 // File layout (all integers little endian, no padding):
 //   header (0x14): u32 version (0x1468FCCA: records carry an extra normal list), u32 record count,
 //                  u32 skipped record count, u32 helper count, u16 flags (returned to the caller)
@@ -105,7 +104,7 @@ struct MeshFace {
     std::uint32_t vertex[3];       // +00
     std::uint32_t vertex2[3];      // +0C
     std::uint32_t position[3];     // +18 the file's position indices
-    Vector3 normal;                // +24 unit normal of the plane (0049AEC0)
+    Vector3 normal;                // +24 unit normal of the plane
     float distance;                // +30 the plane's distance: dot(position[1]'s point, normal)
 };
 static_assert(sizeof(MeshFace) == 0x34);
@@ -116,10 +115,10 @@ struct FaceGroup {
     // 00474C50 (RET 4; S13, scene_loader.cpp; the compiler's operator=): the name, then the faces
     // (CDWordArray::Copy: SetSize to the source's, the indices copied).
     void Assign(const FaceGroup* from);
-    // 00454DB0 (ConstructElements, __stdcall RET 8; S7a): the zero fill, then each name empty and
+    // 00454DB0 (ConstructElements, __stdcall RET 8): the zero fill, then each name empty and
     // the faces' CDWordArray constructor.
     static void __stdcall ConstructElements(FaceGroup* groups, int count);
-    // The destructor (inlined by 00454CE0; S7a): the faces emptied (SetSize 0) and the name emptied,
+    // The destructor (inlined by 00454CE0): the faces emptied (SetSize 0) and the name emptied,
     // then both destroyed.
     void Destruct();
 
@@ -135,7 +134,7 @@ struct FaceGroupElements {
     }
 };
 using FaceGroupArray = mfc::CArray<FaceGroup, FaceGroupElements>;
-// 00454CE0 (S7a): CArray<FaceGroup>'s destructor (record_arrays.h's FaceGroupArrayClass): each group
+// CArray<FaceGroup>'s destructor (record_arrays.h's FaceGroupArrayClass): each group
 // destroyed, the storage freed.
 void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups);
 
@@ -183,7 +182,7 @@ struct NodeMorphKey {           // 0x14: the frame and the mesh's points at it
     lib::AlignedArray<Vector3> points;   // +0x04
 };
 static_assert(sizeof(NodeMorphKey) == 0x14);
-// The node's morph key array constructs (00454F30) and destroys (00453700) its keys out of line
+// The node's morph key array constructs and destroys its keys out of line
 // (scene_loader.cpp).
 struct NodeMorphKeyElements {
     static void Construct(NodeMorphKey* keys, int count);
@@ -205,10 +204,10 @@ using NodeFrameArray = mfc::CArray<NodeFrame, OriginalElements<NodeFrame, Constr
 // A node (the node:: offsets above). The loader fills the key arrays (their instantiations zero
 // new elements, the morph keys' construct them out of line); scene_skeleton.cpp names the rest.
 struct SceneNode {
-    // 004543E0 (S7a). The destructor: the arrays last to first (each its vtable back, then its
+    // The destructor: the arrays last to first (each its vtable back, then its
     // storage freed; the morph keys' point blocks first), then the parent's and the node's names.
     void Destruct();
-    // The constructor body ConstructElements 00454F80 inlines after its zero fill (S6b,
+    // The constructor body ConstructElements 00454F80 inlines after its zero fill (
     // scene_loader.cpp): the names empty, the four rotations identity, each array empty with its
     // vtable.
     void Construct();
@@ -260,12 +259,12 @@ static_assert(sizeof(MeshCornerKey) == 6);
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A mesh (mesh:: offsets; "CFakeFigure", class id 0x47): a transform object (an engine object whose
-// slot 7, GetName, gives its name). A real virtual class: the compiler makes its vtable (C19;
+// slot 7, GetName, gives its name). A real virtual class: the compiler makes its vtable (
 // game.exe's 0073C274 is retired). Only the members the scene code uses are declared.
 struct SceneMesh : CTransformObject {
-    // The constructor ConstructElements 004545C0 inlines after its zero fill (S6b,
-    // scene_loader.cpp): the transform object's fields (00453400), the name empty, the groups'
-    // array empty (00454A50).
+    // The constructor ConstructElements 004545C0 inlines after its zero fill (
+    // scene_loader.cpp): the transform object's fields, the name empty, the groups'
+    // array empty.
     SceneMesh();
     // 00454830's work: the face groups, the eleven aligned blocks from the last, then the name
     // (a member) and the engine object's destructor.
@@ -293,8 +292,8 @@ struct SceneMesh : CTransformObject {
     lib::AlignedArray<std::uint8_t> spareBlocks0C8;
     PointBuffer positions;              // +0x0D8 the file's bits
     UvBuffer texCoords;                 // +0x0E8
-    PointBuffer normals;                // +0x0F8 one per position (0044DCF0)
-    // +0x108 / +0x118 / +0x128 (0044CFF0): the distinct corners (sorted), the distinct (vertex,
+    PointBuffer normals;                // +0x0F8 one per position
+    // +0x108 / +0x118 / +0x128: the distinct corners (sorted), the distinct (vertex,
     // position) word pairs (sorted, padded to a multiple of four) and each face corner's index in
     // the corner table (three words per face).
     lib::AlignedArray<MeshCornerKey> corners;
@@ -329,7 +328,7 @@ static_assert(sizeof(SceneMesh) == mesh::kSize);
 
 // The scene's mesh and node arrays (record_arrays.h registers their instantiations). A mesh is built
 // by its C++ constructor (InitSceneMesh, scene_loader.cpp; ConstructElements 004545C0) and destroyed
-// through slot 0 (00476F50); a node by its bodies (00454F80 / 00477100).
+// through slot 0; a node by its bodies.
 void InitSceneMesh(SceneMesh* p);
 inline void InitSceneNode(SceneNode* p) { p->Construct(); }
 inline void DestroySceneNode(SceneNode* p) { p->Destruct(); }
@@ -348,17 +347,17 @@ struct SceneSkin {
     // (CAnimationNode::AttachMeshes).
     int BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
     // scene_skin_lifetime.cpp (A-U12).
-    // 00508700. The constructor: empty arrays and names, no root, the clock -1.
+    // The constructor: empty arrays and names, no root, the clock -1.
     SceneSkin();
-    // 005087B0. The destructor: the root bone destroyed and deleted (the bone list emptied), the
+    // The destructor: the root bone destroyed and deleted (the bone list emptied), the
     // names emptied and destroyed, the arrays' blocks freed (the name, a member, after them).
     ~SceneSkin();
-    // 00508870. The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
+    // The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
     // name "none", no names, +0x4C 0. Returns 1.
     int Create();
-    // 005088E0. The root bone destroyed and deleted (the bone list emptied), +0x00 0, no names.
+    // The root bone destroyed and deleted (the bone list emptied), +0x00 0, no names.
     void Clear();
-    // 00508930 (RET 4). The owner becomes `value`.
+    // The owner becomes `value`.
     void SetOwner(std::uint32_t value);
 
     // +0x00 the fake unit the skin belongs to (CFakeUnit's Create 00446AF0; 0 when the unit lets
@@ -384,14 +383,14 @@ static_assert(sizeof(SceneSkin) == 0x50);
 // its children) from `node`; the low word of `frames` is the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);
 
-// 007843AC: "ResolveNodesAMF. ..." (a first rotation key not at frame 0); 007843F0: "Can't find
+// "ResolveNodesAMF. ..." (a first rotation key not at frame 0); 007843F0: "Can't find
 // top-level object in hierarchy" (BuildSkeleton's fatal errors).
 inline const char* FirstKeyNotAtZeroText() { return "ResolveNodesAMF.\n This version requires start from position 0 !\n"; }
 inline const char* NoRootNodeText() { return "Can't find top-level object in hierarchy\n"; }
 
 // The scene code's zero vector (a static initialiser's stores).
 inline constexpr Vector3 kZeroVector = /*0079B9B0*/ {0.0f, 0.0f, 0.0f};
-// 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
+// "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
 // The helpers (+0x56C) are materials (material.h): built by CMaterial's constructor (InitHelper,
@@ -402,14 +401,14 @@ using HelperArray = mfc::CArray<CMaterial, HelperElements>;
 
 // The figures (+0x530): 0x220-byte class 0x42 figure meshes as the figure factory builds one
 // (InitFigurePart, figure_mesh_life.cpp: CPlainFigureMesh's constructor; ConstructElements 00453240,
-// SetSize 0044FCD0), destroyed through slot 0 (00453210).
+// SetSize 0044FCD0), destroyed through slot 0.
 void InitFigurePart(CPlainFigureMesh* p);
 using FigurePartElements =
     mfc::impl::EachElements<CPlainFigureMesh, InitFigurePart, mfc::impl::DeleteThroughFirst<CPlainFigureMesh>>;
 using FigurePartArray = mfc::CArray<CPlainFigureMesh, FigurePartElements>;
 
 // The bone links (+0x558): per figure, a copy of its node's frame records (sized by 00450F20 as key
-// frames), the arrays built empty (004534F0) and destroyed through slot 1 (004534C0); the unit's
+// frames), the arrays built empty and destroyed through slot 1; the unit's
 // array is sized by 00450370.
 using BoneLinkRecords = mfc::impl::KeyFrames::Array;
 inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
@@ -419,7 +418,7 @@ using BoneLinkArray = mfc::CArray<BoneLinkRecords, BoneLinkElements>;
 
 // The fake unit (CFakeUnit, GetClassName "CFakeUnit", 0x580 bytes; fake_unit.cpp): a unit (unit.h)
 // with the skin and the scene's arrays, which LoadFakeUnitScene fills. A real virtual class: the
-// compiler makes its vtable (C19; game.exe's 0073BFE8 is retired). No scenario makes one (class
+// compiler makes its vtable (game.exe's 0073BFE8 is retired). No scenario makes one (class
 // 0x39 in the map object factory): only the builds check it.
 class FakeUnitScene : public CUnit {
 public:
@@ -449,7 +448,7 @@ public:
 
 private:
     // The parts let go (the start of both the destructor and Destroy): the skin emptied and
-    // unowned, the unit's Destroy (0052E590).
+    // unowned, the unit's Destroy.
     void ReleaseParts();
 };
 static_assert(sizeof(FakeUnitScene) == 0x580);
@@ -457,7 +456,7 @@ static_assert(offsetof(FakeUnitScene, skin) == 0x4E0);
 static_assert(offsetof(FakeUnitScene, figures) == 0x530);
 static_assert(offsetof(FakeUnitScene, helpers) == 0x56C);
 
-// The figure's .reg file's records (0044B980): texture names and texture links by id.
+// The figure's .reg file's records: texture names and texture links by id.
 struct TextureNameRecord {
     std::uint32_t id;
     mfc::CString name;
@@ -467,7 +466,7 @@ struct TextureLinkRecord {
     std::uint32_t value;
 };
 // The loader's arrays of them (LoadFigureRegistry adds to both): the links plain (SetSize 00453A30;
-// vtable TextureLinkArrayClass), the names' strings set empty (004553F0) and each record destroyed
+// vtable TextureLinkArrayClass), the names' strings set empty and each record destroyed
 // (00454360; vtable TextureNameArrayClass).
 using TextureLinkArray = mfc::CArray<TextureLinkRecord>;
 struct TextureNameElements {
@@ -486,7 +485,7 @@ constexpr std::uint32_t kVersionWithNormals = 0x1468FCCA;
 // The loader's `this`: the caller's scene info; only its first word is written.
 class SceneInfo {
 public:
-    // 00471B10. Reads the scene from `file` (an open CFile; only slot 13, Read, is used). `meshes`
+    // Reads the scene from `file` (an open CFile; only slot 13, Read, is used). `meshes`
     // and `nodes` get one element per record, `helpers` one per helper. Returns 1.
     mfc::BOOL Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes);
 
@@ -504,7 +503,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes);
 void __fastcall PackMeshPositions(FakeUnitScene* unit);
 void __fastcall ComputeMeshBounds(SceneMesh* mesh);
 
-// 00446C10. Loads the scene file into a CFakeUnit (its slot 62, 00446BA0, calls this) and builds the
+// Loads the scene file into a CFakeUnit (its slot 62, 00446BA0, calls this) and builds the
 // unit's figures from it. See scene_loader.cpp.
 mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit);
 

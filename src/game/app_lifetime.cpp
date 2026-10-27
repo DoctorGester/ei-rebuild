@@ -1,10 +1,10 @@
-// Creators and destructors the application's start (00456440) registers or runs (A-E1):
-//  - the creators of the class registry at 0079B270: id 1 a class template (00457850), id 2 a named
-//    party record (00457740); the registry makes these objects when a saved party manager is loaded;
+// Creators and destructors the application's start registers or runs (A-E1):
+//  - the creators of the class registry at 0079B270: id 1 a class template, id 2 a named
+//    party record; the registry makes these objects when a saved party manager is loaded;
 //  - the party record's destructor (004577E0, its slot 0 004577C0);
 //  - the DirectInput mouse's destructor (004578D0, deleting 004578B0), run when the application
 //    drops the mouse at exit;
-//  - the party manager's destructor (004A5700), which the C runtime runs at exit on 007AA5A0.
+//  - the party manager's destructor, which the C runtime runs at exit on 007AA5A0.
 // Main thread. See docs/notes/app.md.
 #define DIRECTINPUT_VERSION 0x0700
 #include "class_templates.h"
@@ -28,7 +28,7 @@
 
 namespace {
 
-// A counted pointer's release (00439910): the object deleted with its last reference.
+// A counted pointer's release: the object deleted with its last reference.
 void ReleaseCounted(CRefCounted* object) {
     if (object && --object->refs_ == 0) delete object;
 }
@@ -98,7 +98,7 @@ void PartyManager::Destruct() {
     records.records.FreeStorage();
     for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
     entries.FreeStorage();
-    parties.Destroy();   // every node deleted (004ABA70), then the buckets freed
+    parties.Destroy();   // every node deleted, then the buckets freed
 }
 EI_REWRITTEN(0x004A5700, PartyManager::Destruct);
 
@@ -114,17 +114,17 @@ PartyManager* PartyManager::Construct() {
 EI_REWRITTEN(0x004A5870, PartyManager::Construct);
 
 // The manager, empty at the start: built by the static initialiser 004A56D0 in the list's order and destroyed by the exit
-// function it registers (004A56F0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 
 namespace {
-void __cdecl ConstructPartyManager() {   // 004A56D0
+void __cdecl ConstructPartyManager() {
     g_partyManager->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
 }
-void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }   // 004A56F0
+void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
 } // namespace
 
 EI_REPLACE(0x004A56D0, ConstructPartyManager);

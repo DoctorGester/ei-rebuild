@@ -1,14 +1,13 @@
 // The off-screen surface holder (CDXSurface, texture.h; 0x20 bytes, vtable 0073D774): its
 // constructor for a system-memory surface of the screen's pixel format (004EF7B0, thiscall: device
-// object, width, height; RET 0xC), its constructor from an .mmp picture (004EFC60) with the picture
-// loader it calls (004F0060) and its destructor body (004EFD20). Used for the interface windows'
-// surfaces (005FCC00 / 005FCDD0 / 005FD7A0), the software cursor's (005E60B0) and its images
-// (005E4EB0 -> 004EFC60), and the movies' (005DA400, 005DB3F0, 005DBA50).
-//
-// No holder has a DirectDraw surface (CDXSurface::surface stays null; R7, R11a, R11b): the pixels
+// object, width, height; RET 0xC), its constructor from an .mmp picture with the picture
+// loader it calls and its destructor body. Used for the interface windows'
+// surfaces, the software cursor's and its images
+// (005E4EB0 -> 004EFC60), and the movies'.
+// No holder has a DirectDraw surface (CDXSurface::surface stays null; R7): the pixels
 // live in memory the new renderer owns (render::NewSurfaceMemory, a DIB section), the game code works
 // on it directly (DirectPixels; GDI through a memory DC, ui_surface_dc.cpp) and the new renderer
-// reads it. Picture surfaces (004F0060) get the same memory; every texture the texture manager makes
+// reads it. Picture surfaces get the same memory; every texture the texture manager makes
 // for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
 // (NewMemoryTextureHolder), an .mmp texture one with none (NewDecodedTextureHolder). When that memory
 // cannot be made the original's "Can't create DDSurface" error is thrown, as when DirectDraw refused
@@ -173,7 +172,7 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
 
 CDXSurface::CDXSurface(CTextureDevice* deviceIn) : device(deviceIn) {}
 
-// 004EF7B0. When the surface cannot be made a C++ exception is thrown (as the original: an error object
+// When the surface cannot be made a C++ exception is thrown (as the original: an error object
 // by pointer). The holder gets the new renderer's memory and no DirectDraw surface; without that memory
 // the error ends the game.
 CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
@@ -256,7 +255,6 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
 // `flag` is set, with the screen's pixel format, and loads the picture into it: copied to a 32-bit
 // surface, converted row by row through the device's converter to a 16-bit one. 1 when done;
 // otherwise the result of the fatal error report (nonzero when the player goes on).
-//
 // The surface is the new renderer's memory (as 004EF7B0; also for a video-memory request: ticket
 // R9a2): no DirectDraw surface, and the picture is written straight into the memory, no Lock /
 // Unlock, its size and pixel format from that memory (DirectPixels). No memory: the original's
@@ -314,7 +312,7 @@ CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) 
 }
 EI_REWRITTEN_SPECIAL(0x004EFC60, CDXSurface::CDXSurface);
 
-// 004EFD20. Releases the new renderer's memory (the original: the surface).
+// Releases the new renderer's memory (the original: the surface).
 CDXSurface::~CDXSurface() {
     render::HolderGone(this);   // its memory, and a picture kept for it
     device = nullptr;

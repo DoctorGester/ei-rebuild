@@ -1,4 +1,4 @@
-// The GPU lighting (R16i; render_lighting.cpp, LightParams): the scene's sun, ambient colour and point
+// The GPU lighting (render_lighting.cpp, LightParams): the scene's sun, ambient colour and point
 // lights as render::SceneLighting kept them, and the game's lighting rules evaluated per pixel.
 cbuffer light_params : register(b1) {
     float4 sun_dir;        // xyz: the direction the sun's light travels
@@ -7,7 +7,7 @@ cbuffer light_params : register(b1) {
     float4 light_counts;   // x: the point lights
     float4 map_sun;        // xyz: the direction the shadow map's light travels (unit)
     float4 point_lights[32];   // per light: position, 1 / range squared; colour, w: 1 specular
-    float4 point_slots[4];     // per light (4 a vector): its point shadow's map + 1, 0 none (R16i1)
+    float4 point_slots[4];     // per light (4 a vector): its point shadow's map + 1, 0 none
 };
 
 // The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp: ShadeSun, then
@@ -25,7 +25,7 @@ cbuffer light_params : register(b1) {
 // and facing, dimmed under the water by the light's vertical part) take the largest per channel, darkened
 // by the same shade (the towns' lamps light the ground by day too: the units' shadows would vanish under
 // them; the point lights cast no shadow of their own), the specular ones (shaded alike) apart (`spec`,
-// added after the texture as the specular word was). A light with a point shadow (R16i1, `shadows`:
+// added after the texture as the specular word was). A light with a point shadow (`shadows`:
 // point_shadow.hlsli) adds only what reaches the point; the ground casts none, so the point is looked up
 // moved along its own normal. The colour word's light is returned.
 float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float hidden, float strength,

@@ -2,7 +2,6 @@
 // that may move each cell to a neighbour when that makes the path cheaper, counting step costs and
 // turns. CAIMap::FindPath runs it on every new path (through its address). See ai_map.h and
 // docs/notes/ai.md.
-//
 // Its transition tables (SmoothTables, 81 of them) are built once by a static initialiser, before
 // the hooks are installed: the builder at the end of this file is registered at the original's
 // addresses, but in a running game only its exit half (SmoothTable::Destruct) is ever called. What
@@ -24,8 +23,8 @@ namespace {
 
 constexpr int kUnreached = 0x7FFFFFFF;
 constexpr int kStates = 9;
-constexpr float kTurnCost = 60.0f;          // 0073F090
-constexpr float kDiagonalEndCost = 2048.0f; // 0073FE40
+constexpr float kTurnCost = 60.0f;
+constexpr float kDiagonalEndCost = 2048.0f;
 
 // A step's cost factor in 1/1024 by its turn against the previous step, in eighths: straight on
 // (1 or the diagonal's length), 1, 2 (again by whether the previous step was diagonal), 3; a full
@@ -167,7 +166,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         previousBest = best;
         // Rebuild the cells from the tail back along the chain. The original gives their speed
         // words and terrain bits two stack slots it never writes (the tail what the path's builder
-        // left: the join's open cost or the planner's list vtable); ours get the plain words (SV7d2).
+        // left: the join's open cost or the planner's list vtable); ours get the plain words.
         path->RemoveAll();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};
         path->AddHead(tail);
@@ -374,23 +373,23 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
-// 005C41C0: the tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
+// The tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
 void __cdecl ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
     RegisterExit(0x005C41F0);
 }
-// 005C41F0: the tables destroyed, the last one first (the `eh vector destructor iterator` 006E859F over 005C4250).
+// The tables destroyed, the last one first (the `eh vector destructor iterator` 006E859F over 005C4250).
 void __cdecl DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
 
-// 005C4460: the pool's node array built empty (005C44B0); the rest stays zero.
+// The pool's node array built empty; the rest stays zero.
 void __cdecl ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
     RegisterExit(0x005C4480);
 }
-// 005C4480: the node array's destructor (005C4490).
+// The node array's destructor.
 void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
 
 } // namespace

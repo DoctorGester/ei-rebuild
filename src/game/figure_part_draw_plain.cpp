@@ -31,12 +31,12 @@ using ColourArray = lib::AlignedArray<std::uint32_t>;
 // The moved positions (lib::AlignedArray; its inlined SetSize allocates through 00452E70).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A7A50
+void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-// 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
-// 004E9010: the device's mesh draw (device_mesh.cpp).
+// The node's animation at a time (float bits). 005A7290: after the draw (the renderer).
+// The device's mesh draw (device_mesh.cpp).
 
 // *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
@@ -78,7 +78,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        libcrt::AtExit(FreeMovedPositions);   // 005A7A50
+        libcrt::AtExit(FreeMovedPositions);
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;
@@ -107,7 +107,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (mesh_->offsets_.size != 0) positions = MovedPositionsOf(mesh_);
     CFigureMesh* m = mesh_;
     const MeshBuffers& b = m->buffers_;
-    // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
+    // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     const render::MeshSource source{m, nullptr, m->offsets_.size != 0, (meshFlags & 0x100) != 0};
     render::SetMeshSource(&source);
     int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data, m->colorsB_.data,

@@ -131,28 +131,25 @@ void DropEffect(T** slot) {
 // ---- Element destructors ----------------------------------------------------------------------------
 // One body for each element type: the effect object dropped (DropEffect).
 
-// 004B17F0
 void ScriptPointLight::ScriptPointLightDestruct() { DropEffect(&object); }
-// 004B1820
 void ScriptLightning::ScriptLightningDestruct() { DropEffect(&object); }
-// 004B1850
 void ScriptParticleSource::ScriptParticleSourceDestruct() { DropEffect(&object); }
 // 004B1880 (the name is the caller's to destroy)
 void ScriptFxSource::ScriptFxSourceDropSound() { DropEffect(&object); }
-// 004BD540: the FX source's destructor body (the sound dropped, then the name).
+// The FX source's destructor body (the sound dropped, then the name).
 void ScriptFxSource::ScriptFxSourceDestruct() {
     DropEffect(&object);
     name.~CString();
 }
 
-// 004CD690: DestructElements<ScriptLightning>.
+// DestructElements<ScriptLightning>.
 void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
     for (; count != 0; --count, ++first) DropEffect(&first->object);
 }
 
 // ---- Commands -----------------------------------------------------------------------------------------
 
-// 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
+// CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
     const float* f = cmd->floatArgs.data;
@@ -165,11 +162,11 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     TheServerWorld()->AddTimedObject(sound);
 }
 
-// 004BD310: CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
+// CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
 // list's NewNode's (zeroed, the name empty); the original then copies a stack temporary over it
 // whose object is null, whose name is empty and whose other fields were never written. Every field
 // is written below except, for CreateFXSource, spread, the delays and the countdown: the tick
-// (004BF000) counts such a source down and replaces its sound at zero, so a zero countdown would
+// counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
 void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
@@ -187,7 +184,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     if (source) {
         DropEffect(&source->object);
     } else {
-        auto* node = mfc::impl::NewNodeAs<mfc::impl::FxSourceList>(&list, list.tail, nullptr);   // 004CD5B0
+        auto* node = mfc::impl::NewNodeAs<mfc::impl::FxSourceList>(&list, list.tail, nullptr);
         node->data.object = nullptr;
         node->data.countdown = INT_MAX;
         if (list.tail) list.tail->next = node;
@@ -225,11 +222,11 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     ++source->object->refCount_;
 }
 
-// 004BCFF0: CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
+// CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
 void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     mfc::CList<ScriptLightning>& list = lightning_;
-    auto* node = mfc::impl::NewNodeAs<mfc::impl::LightningList>(&list, list.tail, nullptr);   // 004CD620
+    auto* node = mfc::impl::NewNodeAs<mfc::impl::LightningList>(&list, list.tail, nullptr);
     node->data.object = nullptr;
     node->data.id = -1;
     if (list.tail) list.tail->next = node;
@@ -249,7 +246,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     TheServerWorld()->AddTimedObject(bolt);
 }
 
-// 004BD9A0: CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
+// CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
 void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     mfc::CString name(cmd->stringArgs.data[0]);
@@ -280,7 +277,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
         DropEffect(&source->object);
     } else {
         // The original copies a temporary whose fields are all written below.
-        auto* node = mfc::impl::NewNodeAs<mfc::impl::ParticleSourceList>(&list, list.tail, nullptr);   // 004CD540
+        auto* node = mfc::impl::NewNodeAs<mfc::impl::ParticleSourceList>(&list, list.tail, nullptr);
         node->data.object = nullptr;
         if (list.tail) list.tail->next = node;
         else list.head = node;
@@ -304,7 +301,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     source->lifetime = lifetime;
 }
 
-// 004BDBB0: MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
+// MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
 void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
@@ -329,7 +326,6 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
 
 // ---- Saving ---------------------------------------------------------------------------------------
 
-// 004B1940
 void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
@@ -339,7 +335,6 @@ void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
     stream->Write(&step, 12);
 }
 
-// 004B1A80
 void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
@@ -350,7 +345,6 @@ void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const 
     WriteInt(stream, lifetime);
 }
 
-// 004B1C50
 void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
@@ -366,7 +360,6 @@ void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, countdown);
 }
 
-// 004B1DB0
 void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
@@ -374,7 +367,6 @@ void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
 
 // ---- Loading --------------------------------------------------------------------------------------
 
-// 004B18B0
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
     object = ReadObject<CEffectPointLight>(stream);
     stream->Read(&id, 4);
@@ -384,7 +376,6 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
     stream->Read(&step, 12);
 }
 
-// 004B1B40
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);

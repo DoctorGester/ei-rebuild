@@ -5,7 +5,6 @@
 // unordered counting as equal); a found value, or else a new object from the cache's slot 0 that
 // is stored under the handle (005BE090, the old value released as an owner and the new one
 // shared), becomes the handle's reference. Used for the unit shapes (007C2F70, ai_movement.cpp).
-//
 // The unit shapes' cache itself is constructed by a static initialiser (before the hooks are
 // installed) and destroyed at exit: UnitShapeCache::Construct and Destruct at the end of this file.
 #include "ai_shape_cache.h"
@@ -49,7 +48,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     }
 
     CRefObject* created = CreateShape(handle);
-    // 005BE090: the map's value slot for a handle, inserted (empty) when missing.
+    // The map's value slot for a handle, inserted (empty) when missing.
     RefPtr* slot = gamehash::ShapesOf(this)->At(handle);
     if (created != slot->ptr) {
         slot->Destroy();
@@ -81,8 +80,8 @@ void UnitShapeCache::Destruct() {
 EI_REWRITTEN(0x005B31F0, UnitShapeCache::Destruct);
 
 namespace {
-void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }   // 005B31E0
-void __cdecl ConstructUnitShapes() {   // 005B31C0
+void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }
+void __cdecl ConstructUnitShapes() {
     g_unitShapes->Construct();
     libcrt::AtExit(DestroyUnitShapes);
 }

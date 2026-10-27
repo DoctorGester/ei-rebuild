@@ -1,9 +1,8 @@
 // The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface
-// (005FD3D0), a 16-bit 5:6:5 copy of a surface at a given size (005FD440, the save game's picture)
+// a 16-bit 5:6:5 copy of a surface at a given size (005FD440, the save game's picture)
 // and greying a surface in place (005FE440, the escape menu's background). The escape menu's
 // drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md, "Item
 // descriptions, item view".
-//
 // These work on the surfaces' memory (the new renderer's; the holders have no DirectDraw surface)
 // directly (DirectPixels): no Lock, the screen copy from the new renderer's frame, the stretched
 // copy on the CPU. A holder without that memory (none is made) is left alone. A native surface
@@ -103,7 +102,7 @@ void CUiSurface::CaptureScreen() {
     if (device::SameSurface(screen, holder)) return;
     if (!ui_native::Capture(this, rect_)) return;
     // The copy is taken from the new renderer's frame (the original's Blt from the render target is
-    // gone with the DirectDraw fallback, R11a).
+    // gone with the DirectDraw fallback).
     render::CopyFrameTo(holder, render::Rect{rect_.left, rect_.top, rect_.right, rect_.bottom});
 }
 

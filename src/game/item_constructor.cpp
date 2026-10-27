@@ -1,5 +1,4 @@
 // Item construction: CItemConstructor (vtable 00744020) and the CItem methods it drives.
-//
 // The item manager's CreateItem paths run BeginCreateItem (the manager creates the empty item
 // object), SetPrototype / SetMaterial / SetSpellObject, then EndCreateItem, whose Build fills the
 // item from a temporary database record: the prototype's values combined with the material's.
@@ -30,8 +29,8 @@ namespace {
 constexpr int kClassWeapon = 0x11;
 constexpr int kClassArmor = 0x12;
 constexpr int kClassQuick = 0x13;
-constexpr int kClassQuest = 0x14;    // QuestItems() (007C8758)
-constexpr int kClassLoot = 0x15;     // Loot() (007C8778)
+constexpr int kClassQuest = 0x14;    // QuestItems()
+constexpr int kClassLoot = 0x15;     // Loot()
 constexpr int kClassSpell = 0x16;    // spell container; quick item table
 
 constexpr int kCategoryWand = 8;     // quick item category whose spell comes from the prototype
@@ -44,7 +43,6 @@ const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
-//
 // Build creates a record of the item's kind (item_db.h), fills only the fields the item's slot 13
 // reads, and destroys it again. The prototype and material records are read without a null check
 // where the original reads them without one (a missing record faults there, as in the original).
@@ -349,7 +347,7 @@ BOOL CItemConstructor::Build() {
 }
 EI_REWRITTEN(0x006A5D60, CItemConstructor::Build);
 
-// --- The item manager's CreateItem (006AC970) ----------------------------------------------------
+// --- The item manager's CreateItem ----------------------------------------------------
 
 namespace {
 
@@ -363,7 +361,7 @@ const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and mate
 
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {
-    int Find(char c) const;               // 00700E91
+    int Find(char c) const;
     void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // 006FE216 TrimLeft() (moves the text, memmove)
     void TrimSpaceRight() { mfc::CString::TrimRight(); }   // 006FE11F TrimRight()
 };
@@ -374,14 +372,14 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 
 // 004DBE40 (ECX text, EDX array, separator on the stack). Splits `text` at `separator`.
 
-// Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
-// 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
-// (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
+// Prototype lookups by name: weapons 004AB720, armors 004AB820, quick items
+// 00613820, the class-0x14 table 006AD580, the class-0x15 table 0069D380
+// materials 0069D290. Each returns the record or null.
 // (NamedRecordTable::Named.)
 
 // The string-keyed maps the loot item's table index comes from: operator[] of the weapon
-// (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
-// (007C851C, 004ABD00) maps, and the modifier map's find_or_insert (007C853C, 004ACC10) of a
+// armor, quick item and spell
+// maps, and the modifier map's find_or_insert of a
 // (name, null) pair.
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.

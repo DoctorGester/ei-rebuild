@@ -1,6 +1,6 @@
 // Small out-of-line accessors of 0x00455610-0x004BC1F0 (A-E1): a few instructions each. The script
-// ones (004B2520-004BC1F0) are called by SSCCmd::Execute (004B6760) and the script definition's
-// Save (004BBFE0) only; both are rewritten with the same work inline (script_exec.cpp,
+// ones (004B2520-004BC1F0) are called by SSCCmd::Execute and the script definition's
+// Save only; both are rewritten with the same work inline (script_exec.cpp,
 // script_save.cpp), so those hooks fire only for a caller still in the exe. All main thread.
 #include "base_manager.h"
 #include "combat.h"
@@ -24,7 +24,7 @@
 
 // ---- Scene loader ---------------------------------------------------------------------------------
 
-// 00471A90 (RET 0xC): a Vector3 from its three parts (a second copy of 00401DE0); returns it.
+// A Vector3 from its three parts (a second copy of 00401DE0); returns it.
 Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
     x = x_;
     y = y_;
@@ -58,7 +58,7 @@ EI_REWRITTEN(0x00471AF0, CMaterial::SetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 
-// 004981A0: the particle manager's own part of its constructor (the client world's manager set-up,
+// The particle manager's own part of its constructor (the client world's manager set-up,
 // 00561E50, calls it after the base manager's): quietStart cleared.
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
     manager->quietStart = 0;
@@ -78,7 +78,7 @@ void CEngineObject::ClearFlagBits(std::uint32_t bits) {
 }
 EI_REWRITTEN(0x004B9F60, CEngineObject::ClearFlagBits);
 
-// 004B9F90 (RET 4): the map object's position.
+// The map object's position.
 void CMapObject::SetScriptPosition(const Vector3* point) {
     localPosition_ = *point;
 }

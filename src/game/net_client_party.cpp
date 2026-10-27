@@ -48,7 +48,7 @@ void PushBack(RefVector* v, const RefPtr* value) {
 
 } // namespace
 
-// 00429FC0: the first element in [first, last) whose member stream holds the same bytes as
+// The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes through slot 4, then a byte compare). The last argument is not used.
 RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t) {
     CStream* stream = &message->stream_;
@@ -64,7 +64,7 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessa
 }
 EI_REWRITTEN(0x00429FC0, FindSameMessage);
 
-// 0041DA50: rebuilds the member messages of our offer (+0x260C) from our party (+0x2620): one per
+// Rebuilds the member messages of our offer (+0x260C) from our party (+0x2620): one per
 // item of the party. Each gives its spell's id, type and packed id and the spell's Save (slot 10),
 // or -1 without a spell, then the item's type and packed id and its own Save. A message equal to
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
@@ -107,7 +107,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         PartyMessage* current = state();
         if (same != previous.end()) {
             PushBack(&current->members_, same);
-            if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);   // 00429080
+            if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);
             --previous.Finish();
             RefPtrRelease(previous.end());   // 004292A0 with flags 0
         } else {
@@ -121,11 +121,11 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     ++state()->version_;
     for (RefPtr* p = previous.begin(); p != previous.end(); ++p)
         if (p->ptr) p->ptr->Release();
-    stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);   // 00426490
+    stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);
 }
 EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 
-// 0041E220: the received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
+// The received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
 // player and its player our partner, and it is live. Null without one.
 PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
@@ -139,7 +139,7 @@ PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
 }
 EI_REWRITTEN(0x0041E220, ClientFindParty);
 
-// 0041E180: an accepted offer is unaccepted with its version moved on, so it is sent again.
+// An accepted offer is unaccepted with its version moved on, so it is sent again.
 void __fastcall ClientCommitParty(ClientSession* self) {
     auto* state = self->party_.Get();
     if (!state || !state->accepted_) return;
@@ -148,7 +148,7 @@ void __fastcall ClientCommitParty(ClientSession* self) {
 }
 EI_REWRITTEN(0x0041E180, ClientCommitParty);
 
-// 0041DDC0: rebuilds the partner's party (+0x2690) from the paired offer, once every member message
+// Rebuilds the partner's party (+0x2690) from the paired offer, once every member message
 // of it holds data. Each message gives (when its first dword, the spell's id, is positive) a spell
 // made by the party's spell manager (slot 22; CreateObject with the stored type and that id, its
 // packed id set and its Load, slot 9) and an item made by the item manager (slot 18; CreateObject
@@ -168,7 +168,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     party->Clear(1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
-    items.ConstructEmpty();   // 00424B40
+    items.ConstructEmpty();
     for (std::uint32_t i = 0; i < count(); ++i) {
         CStream* stream = StreamOf(remote->members_.begin()[i].ptr);
         stream->Seek(0);
@@ -193,7 +193,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
             if (items.Finish()) HeldEngineObject::Of(items.Finish())->Construct(&held);
             ++items.Finish();
         } else {
-            items.InsertOverflow<recordvec::EngineObjectRefElement>(items.Finish(), held, 1);   // 00428A20
+            items.InsertOverflow<recordvec::EngineObjectRefElement>(items.Finish(), held, 1);
         }
         if (held) held->Release();
     }
@@ -209,7 +209,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
     for (CEngineObject** p = items.begin(); p != items.end(); ++p)
         if (*p) (*p)->Release();
-    stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);   // 004268A0
+    stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);
 }
 EI_REWRITTEN(0x0041DDC0, ClientApplyParty);
 

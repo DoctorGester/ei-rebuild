@@ -1,9 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
-// stream requests (006B5CD0-006BB240), and Play2D / Play3D (006B8250 / 006B8600). The Miles calls
-// go through game.exe's import table; the wave loader with its cache (006B89F0) too. The stream /
+// stream requests (006B5CD0-006BB240), and Play2D / Play3D. The Miles calls
+// go through game.exe's import table; the wave loader with its cache too. The stream /
 // MIDI threads stay original.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "sound.h"
@@ -47,22 +46,22 @@ float AbsBits(float f) {
     return f;
 }
 
-constexpr float kHeightFull = 30.0f;     // 007440DC: 2D height-faded sounds are full below
-constexpr float kHeightSilent = 70.0f;   // 007440E0: ... and silent above
-constexpr float kOne = 1.0f;             // 0073B84C
-constexpr float kHundred = 100.0f;       // 0073BAB0
+constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
+constexpr float kHeightSilent = 70.0f;   // ... and silent above
+constexpr float kOne = 1.0f;
+constexpr float kHundred = 100.0f;
 constexpr float kMilesScale = std::bit_cast<float>(0x3C5013A9u);  // 0074413C (0.0127)
-constexpr float kLevelMax = 127.0f;      // 0073D06C
+constexpr float kLevelMax = 127.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0073D09C (0.01)
 constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0073CCF4 (0.001)
-constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
+constexpr float kEmitterMaxScale = 255.0f;
 
-// pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
+// pi and pi / 2 (007C8808, set by a static initialiser).
 float Pi() { return 3.1415927f /*007440D8*/; }
 constexpr float kHalfPi = /*007C8808*/ 1.5707964f;   // a static initialiser: pi * 0.5
 // The fade step every fade request uses (007440E4, 1/96), copied as a dword.
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
-// StopStream's fade-out step (007440E8), loaded and tested as a float.
+// StopStream's fade-out step, loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
 // Miles Sound System through game.exe's import table (all __stdcall).
@@ -84,14 +83,14 @@ ReverbFn AilSetSampleReverb() { return ei::ImportAs<ReverbFn>(ei::Imports().AIL_
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
 void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
 
-// The cache's operator[] on the slot's wave name (006BBDF0): the slot of the wave's cache list
+// The cache's operator[] on the slot's wave name: the slot of the wave's cache list
 // node (its record's uses counts the voices playing it).
 WaveNode*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
 // The deferred record of `handle` set (find_or_insert 006BCFF0, which may rehash first).
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred.FindOrInsert({handle, nullptr})->value = rec;
 }
-// A deferred record freed: its name's storage (006B72E0), then the record.
+// A deferred record freed: its name's storage, then the record.
 void FreeDeferred(DeferredSound* rec) {
     rec->name.~string();
     gamecrt::operator_delete(rec);
@@ -149,7 +148,7 @@ SoundSlot* CSoundManager::SlotForHandle(int handle) const {
 
 // --- Volumes, listener ----------------------------------------------------------------------------
 
-// 006B7FC0. A 3D voice's volume and pan from the listener: full inside nearDistance, falling to 0
+// A 3D voice's volume and pan from the listener: full inside nearDistance, falling to 0
 // at farDistance, and the camera height fade; the pan from the angle between the listener axis and
 // the direction to the sound (0 ahead or behind, +-100 to the sides).
 void CSoundManager::UpdatePositional(SoundSlot* slot) {
@@ -219,7 +218,7 @@ void RefreshVoices(CSoundManager* m) {
 }
 } // namespace
 
-// 006B7740. Options: effects volume 0..100.
+// Options: effects volume 0..100.
 void CSoundManager::SetEffectsVolume(int volume) {
     if (enabled == 0) return;
     effectsVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
@@ -227,7 +226,7 @@ void CSoundManager::SetEffectsVolume(int volume) {
 }
 EI_REWRITTEN(0x006B7740, CSoundManager::SetEffectsVolume);
 
-// 006B78A0. Options: speech volume 0..100.
+// Options: speech volume 0..100.
 void CSoundManager::SetSpeechVolume(int volume) {
     if (enabled == 0) return;
     speechVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
@@ -235,7 +234,7 @@ void CSoundManager::SetSpeechVolume(int volume) {
 }
 EI_REWRITTEN(0x006B78A0, CSoundManager::SetSpeechVolume);
 
-// 006B9750. The camera's position and direction (CCamera::Update every frame).
+// The camera's position and direction (CCamera::Update every frame).
 void CSoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
     std::memcpy(&listener, position, sizeof(listener));
@@ -256,7 +255,7 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
 }
 EI_REWRITTEN(0x006B9750, CSoundManager::SetListener);
 
-// 006B7A00. Options: music volume 0..100 (0 stops the stream).
+// Options: music volume 0..100 (0 stops the stream).
 void CSoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
@@ -270,7 +269,7 @@ void CSoundManager::SetMusicVolume(int volume) {
 }
 EI_REWRITTEN(0x006B7A00, CSoundManager::SetMusicVolume);
 
-// 006B69E0. Reverb parameters for new voices (used when reverbOn).
+// Reverb parameters for new voices (used when reverbOn).
 void CSoundManager::SetReverb(float room, float level, float time) {
     std::memcpy(&reverb[0], &room, 4);
     std::memcpy(&reverb[1], &level, 4);
@@ -297,7 +296,7 @@ EI_REWRITTEN(0x006B7380, CSoundManager::ResumeAll);
 
 // --- Per-handle controls --------------------------------------------------------------------------
 
-// 006B7C10. The voice playing `handle`; a voice whose sample ended is freed and gives null.
+// The voice playing `handle`; a voice whose sample ended is freed and gives null.
 SoundSlot* CSoundManager::FindPlaying(int handle) {
     if (enabled == 0) return nullptr;
     SoundSlot* slot = SlotForHandle(handle);
@@ -308,7 +307,7 @@ SoundSlot* CSoundManager::FindPlaying(int handle) {
 }
 EI_REWRITTEN(0x006B7C10, CSoundManager::FindPlaying);
 
-// 006B7CB0. The deferred record of `handle`, or null.
+// The deferred record of `handle`, or null.
 DeferredSound* CSoundManager::FindDeferred(std::uint32_t handle) {
     if (enabled == 0) return nullptr;
     DeferredNode* node = deferred.Find(static_cast<std::int32_t>(handle));
@@ -316,7 +315,7 @@ DeferredSound* CSoundManager::FindDeferred(std::uint32_t handle) {
 }
 EI_REWRITTEN(0x006B7CB0, CSoundManager::FindDeferred);
 
-// 006B9100. Makes a sound 2D with the given volume (0..100) and pan.
+// Makes a sound 2D with the given volume (0..100) and pan.
 int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
@@ -347,7 +346,7 @@ int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
 }
 EI_REWRITTEN(0x006B9100, CSoundManager::SetSoundVolume);
 
-// 006B92F0. Makes a sound 3D at `position`.
+// Makes a sound 3D at `position`.
 int CSoundManager::SetSoundPosition(int handle, const float* position, float nearDist, float farDist) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
@@ -387,12 +386,12 @@ void DropDeferred(CSoundManager* m, int handle) {
     if (node == nullptr) return;
     DeferredSound* rec = node->value;
     if (rec == nullptr) return;
-    m->deferred.EraseKey(rec->handle);   // 006BD060
+    m->deferred.EraseKey(rec->handle);
     FreeDeferred(rec);
 }
 } // namespace
 
-// 006B94A0. Stops a sound (or forgets its deferred record); always -1, the "no sound" handle.
+// Stops a sound (or forgets its deferred record); always -1, the "no sound" handle.
 int CSoundManager::StopSound(int handle) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
@@ -418,7 +417,6 @@ SoundEmitter* EmitterAt(CSoundManager* m, int index) {
 }
 } // namespace
 
-// 006B9A30.
 void CSoundManager::MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
                                 int maxInterval) {
     if (index < 0 || index > 16) return;
@@ -432,7 +430,7 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
 }
 EI_REWRITTEN(0x006B9A30, CSoundManager::MoveEmitter);
 
-// 006B9950. Returns the emitter index or -1.
+// Returns the emitter index or -1.
 int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer,
                               int minInterval, int maxInterval) {
     if (enabled == 0 || names->size < 1) return -1;
@@ -448,7 +446,7 @@ int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position
 }
 EI_REWRITTEN(0x006B9950, CSoundManager::AddEmitter);
 
-// 006B9AA0. Always -1. The name list is kept.
+// Always -1. The name list is kept.
 int CSoundManager::RemoveEmitter(int index) {
     if (index < 0 || index > 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
@@ -468,7 +466,7 @@ EI_REWRITTEN(0x006B9AA0, CSoundManager::RemoveEmitter);
 
 // --- Sound sequences ------------------------------------------------------------------------------
 
-// 006BA140. Starts the sequence's next sound; false when it is over or the sound did not start.
+// Starts the sequence's next sound; false when it is over or the sound did not start.
 int SoundSequence::PlayNext(CSoundManager* manager) {
     if (chooser != nullptr) {
         int played = remaining;
@@ -493,7 +491,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
 }
 EI_REWRITTEN(0x006BA140, SoundSequence::PlayNext);
 
-// 006BA2D0. Returns the sequence id (generation << 8 | slot) or -1.
+// Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
                                float farDist, int randomOrder, int count, int(__fastcall* chooser)(int, int)) {
     if (enabled == 0 || names->size < 1) return -1;
@@ -557,7 +555,6 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
 }
 } // namespace
 
-// 006BA400.
 int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
@@ -568,7 +565,6 @@ int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
 }
 EI_REWRITTEN(0x006BA400, CSoundManager::MoveSequence);
 
-// 006BA5E0.
 int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count) {
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
@@ -582,7 +578,7 @@ int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float
 }
 EI_REWRITTEN(0x006BA5E0, CSoundManager::UpdateSequence);
 
-// 006BA7C0. Always -1.
+// Always -1.
 int CSoundManager::RemoveSequence(std::uint32_t id) {
     if (enabled == 0 || (id & 0xFF) >= 8) return -1;
     SoundSequence* s = SequenceForId(this, id);
@@ -606,7 +602,7 @@ EI_REWRITTEN(0x006BA7C0, CSoundManager::RemoveSequence);
 
 // --- The per-frame tick ---------------------------------------------------------------------------
 
-// 006B5CD0. Ends the voice if it plays (the sequences' check in Tick).
+// Ends the voice if it plays (the sequences' check in Tick).
 void SoundSlot::End(CSoundManager* manager) {
     if (playing == 0) return;
     manager->EndSlot(this);
@@ -617,7 +613,7 @@ EI_REWRITTEN(0x006B5CD0, SoundSlot::End);
 // highest-priority deferred sounds in free voices, starts the next sound of every sequence whose
 // sound is over, and every 100 ms (GetTickCount) lets the ambient emitters near the listener play a
 // random name of theirs. Emitters and random sequences draw from the game's random generator
-// (007A9D40) on the wall clock's schedule.
+// on the wall clock's schedule.
 void CSoundManager::Tick() {
     if (enabled == 0) return;
     for (int i = 0; i < 15; ++i) {
@@ -762,7 +758,7 @@ void CSoundManager::FadeInStream() {
 }
 EI_REWRITTEN(0x006BAFE0, CSoundManager::FadeInStream);
 
-// 006BB020. Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
+// Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
 // 4 at the current buffer position; anything else is ignored. Repeating the playing file only
 // cancels a fade out. Returns 0 only when the stream has no codec.
@@ -856,7 +852,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
 }
 EI_REWRITTEN(0x006BB020, CSoundManager::RequestStream);
 
-// 006BB240. Mode 4 stops the stream now (closing the file) and fades the volume back in over 2 s;
+// Mode 4 stops the stream now (closing the file) and fades the volume back in over 2 s;
 // other modes request silence ("") the RequestStream way.
 void CSoundManager::StopStream(int mode) {
     if (enabled == 0) return;
@@ -897,7 +893,7 @@ EI_REWRITTEN(0x006BB240, CSoundManager::StopStream);
 
 // --- Stopping everything, wave lengths (A-H14) -------------------------------------------------------
 
-// 006B71C0. Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
+// Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
 void CSoundManager::StopAll(bool stopStream) {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
@@ -953,7 +949,7 @@ EI_REWRITTEN(0x006B96E0, CSoundManager::WaveLength);
 
 // --- The volume envelope ----------------------------------------------------------------------------
 
-// 006B5E80. Sets the time at which a fade is cancelled; 0 cancels it now.
+// Sets the time at which a fade is cancelled; 0 cancels it now.
 void SoundFader::SetHold(std::uint32_t until) {
     holdUntil = until;
     if (until != 0) return;
@@ -966,7 +962,6 @@ void SoundFader::SetHold(std::uint32_t until) {
 }
 EI_REWRITTEN(0x006B5E80, SoundFader::SetHold);
 
-// 006B5FF0.
 void SoundFader::Recalc() {
     int v = x87::fistp(static_cast<float>(I(volume) * factor * kLevelMax * kPercent));
     level = v;
@@ -974,7 +969,7 @@ void SoundFader::Recalc() {
 }
 EI_REWRITTEN(0x006B5FF0, SoundFader::Recalc);
 
-// 006B5EE0. One step of the fade (the stream thread, every 100 ms, under the stream lock).
+// One step of the fade (the stream thread, every 100 ms, under the stream lock).
 void SoundFader::Update() {
     if (holdUntil != 0 && gameapi::timeGetTime() >= holdUntil) {
         holdUntil = 0;
@@ -1119,7 +1114,7 @@ int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
 }
 } // namespace
 
-// 006B8250. Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
+// Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
 // and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `compressed` an
 // MP3 to decompress (handed to the wave loader). Returns the sound handle, or -1 (sound off, no voice for a one-shot
 // sound, silent one-shot, or the wave did not load).
@@ -1147,7 +1142,7 @@ int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, i
 }
 EI_REWRITTEN(0x006B8250, CSoundManager::Play2D);
 
-// 006B8600. Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the
+// Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the
 // pan from the listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound
 // without a voice is deferred; the original leaves the record's volume, base volume, pan and length
 // as operator new returned them.
@@ -1284,7 +1279,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 }
 } // namespace
 
-// 006B89F0. Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
+// Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
 // voice without a new sample file), or the file from the first archive that has it, decompressed
 // from MP3 when `compressed` (kept at the cache's old end), else copied into Miles memory after
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
@@ -1353,7 +1348,7 @@ EI_REWRITTEN(0x006B89F0, CSoundManager::LoadSample);
 
 // --- Helpers ----------------------------------------------------------------------------------------
 
-void CSoundManager::StreamNotify(int /*mode*/) {}   // 006BBAC0: a shared RET 4
+void CSoundManager::StreamNotify(int /*mode*/) {}   // a shared RET 4
 
 WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
     data = from->data;

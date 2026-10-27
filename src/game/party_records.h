@@ -42,12 +42,12 @@ static_assert(offsetof(PartyRecord, name) == 0x78);
 
 // The named records (007AA5A0 +0x24): an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
-    // 004A5E10 (__thiscall). The party (+0x08) of the first record named `name` (_mbscmp), else of the
+    // The party (+0x08) of the first record named `name` (_mbscmp), else of the
     // last unnamed record, else null.
     CParty* Find(const char* name) const;
-    // 004A5E90 (__thiscall). Appends a new record named `name`.
+    // Appends a new record named `name`.
     void Add(const char* name);
-    // 004A5FA0 (__thiscall). Removes the records named `name`; after a removal the record moved into
+    // Removes the records named `name`; after a removal the record moved into
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
     stlp::vector<PartyRecord*> records;
@@ -59,10 +59,10 @@ struct NamedPartyRecords {
     void Serialize(ChunkArchive* ar);
     // The redeploy (004A8890 / 004A8880; party_manager.cpp), RET 4 each. The record a name picks is
     // found as PartyRecordsFind does (the unnamed one when no record has the name).
-    // 004A6050. The record named text10 gets a copy of `party` (SaveParty / LoadParty through a
+    // The record named text10 gets a copy of `party` (SaveParty / LoadParty through a
     // memory stream); then every record's party gets `party`'s variables, zone name and +0x6C.
     void BeginRedeploy(CParty* party);
-    // 004A6360. `party` gets a copy of the record named text0C, or is cleared (Clear(1, 0)) when
+    // `party` gets a copy of the record named text0C, or is cleared (Clear(1, 0)) when
     // there is none; then text10 = text0C.
     void EndRedeploy(CParty* party);
 };
@@ -74,12 +74,12 @@ static_assert(sizeof(NamedPartyRecords) == 0x14);
 void __fastcall PartyRecordsReset(NamedPartyRecords* list);
 
 // The party manager (007AA5A0, party_manager.h). __thiscall.
-// 004A88A0 / 004A88C0: new game; the records reset (004A5BD0), then five / four templates (004A7630).
+// 004A88A0 / 004A88C0: new game; the records reset, then five / four templates.
 struct PartyManager;
 void __fastcall PartyManagerNewGame(PartyManager* manager);
 void __fastcall PartyManagerNewGameFour(PartyManager* manager);
 // (004A8890 / 004A8880 are PartyManager::BeginRedeploy / EndRedeploy.)
-// 004A8910 (__stdcall): *out = the counter at 0078B0E8, then the counter is raised; returns it.
+// *out = the counter at 0078B0E8, then the counter is raised; returns it.
 int __stdcall PartyNextId(int* out);
 // (004A8790 / 004A8800 are PartyManager::LoadParty / StoreParty.)
 

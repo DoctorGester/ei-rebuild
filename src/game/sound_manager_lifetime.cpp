@@ -50,7 +50,7 @@ EI_REWRITTEN(0x006B6D70, CSoundManager::CreateBody);
 
 EI_REWRITTEN_SPECIAL(0x006B62B0, CSoundManager::~CSoundManager);   // deleting
 
-// 006B7060. The list's RemoveHead (inlined), then the archive's deleting destructor.
+// The list's RemoveHead (inlined), then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
     while (waveSources.count != 0) {
         CMappedResource* source = waveSources.RemoveHead();
@@ -59,7 +59,7 @@ void CSoundManager::ClearWaveSources() {
 }
 EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 
-// 006B7AB0. Called at startup (00456440) for the two sound archives. A failed allocation is not
+// Called at startup for the two sound archives. A failed allocation is not
 // tested (the open call goes through a null object, as in the original).
 int CSoundManager::AddWaveSource(const char* path) {
     if (enabled == 0) return 1;
@@ -74,7 +74,7 @@ int CSoundManager::AddWaveSource(const char* path) {
 }
 EI_REWRITTEN(0x006B7AB0, CSoundManager::AddWaveSource);
 
-// 006B8960. From the map's ambient sounds (006C68B0, 006CB390).
+// From the map's ambient sounds.
 void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source) {
     for (auto* node = waveSources.head; node != nullptr;) {
         CMappedResource* current = node->data;
@@ -90,7 +90,7 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
 // 006B7110 (A-H26; Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body,
-// hooked in the vanilla launch only). From the unit database's sound counts (0053A8E0), on the
+// hooked in the vanilla launch only). From the unit database's sound counts, on the
 // game's main thread.
 void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
     out->SetSize(0, -1);
@@ -106,7 +106,7 @@ void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
 }
 EI_REWRITTEN(0x006B7110, CSoundManager::ListWaveFiles);
 
-// 006BAE20. Called at startup (00456440).
+// Called at startup.
 int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     if (enabled == 0) return 1;
     soundPath = folder;
@@ -212,12 +212,12 @@ CSoundManager::CSoundManager() {
     midiArray1F4.Construct();
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
-    // The CRT's eh vector constructor iterator (006E8693) over the emitters and the sequences: each
+    // The CRT's eh vector constructor iterator over the emitters and the sequences: each
     // element's constructor in order.
     for (SoundEmitter& emitter : emitters) ConstructEmitter(&emitter);
     for (SoundSequence& sequence : sequences) ConstructSequence(&sequence);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
-    // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
+    // hashtable(n, hash, equal, allocator); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
     deferred.Construct(kMapBuckets);
@@ -238,7 +238,7 @@ CSoundManager::~CSoundManager() {
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
-    // The CRT's eh vector destructor iterator (006E859F): each element's destructor, last to first.
+    // The CRT's eh vector destructor iterator: each element's destructor, last to first.
     for (int i = kSequenceCount; --i >= 0;) DestructSequence(&sequences[i]);
     for (int i = kEmitterCount; --i >= 0;) DestructEmitter(&emitters[i]);
     gameapi::DeleteCriticalSection(&midiLock);
@@ -313,7 +313,7 @@ constexpr unsigned kPrefUseWaveOut = 0xF;
 int SoundOption() { return options::TheOptions()->audio_; }
 
 // The DirectSoundEnumerateA callback appending each device's GUID pointer to an aligned array
-// (006B68A0), the stream thread's entry (006B6A10 -> 006BB910).
+// the stream thread's entry (006B6A10 -> 006BB910).
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
@@ -461,7 +461,7 @@ void CSoundManager::StreamThread() {
 }
 EI_REWRITTEN(0x006BB910, CSoundManager::StreamThread);
 
-// 006B6A10: the stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached:
+// The stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached:
 // StreamThread ends the thread). S16, on the standalone boot path.
 unsigned __cdecl StreamThreadEntry(void* manager) {
     static_cast<CSoundManager*>(manager)->StreamThread();
@@ -469,7 +469,7 @@ unsigned __cdecl StreamThreadEntry(void* manager) {
 }
 EI_REWRITTEN(0x006B6A10, StreamThreadEntry);
 
-// 006B68A0 (kDeviceCallback; no Ghidra function, S16c): DirectSoundEnumerateA's callback in Open. The
+// 006B68A0 (kDeviceCallback; no Ghidra function): DirectSoundEnumerateA's callback in Open. The
 // device's GUID pointer is appended to the aligned array `devices` (its SetSize by one, inlined in the
 // original); the enumeration goes on (TRUE).
 int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedArray<int>* list) {
@@ -523,7 +523,7 @@ void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
 void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
     m->streamState = 0;
-    // Rebirth's StreamPatch (006BB628): the mod's Stream\ folder when it has the file.
+    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     mfc::CString path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (CompareText(m->nextName, game::EmptyText()) == 0 ||
@@ -718,7 +718,7 @@ void CSoundManager::Close() {
         }
         // operator delete[]: the count stands before the voices.
         std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
-        // The CRT's eh vector destructor iterator: each voice's name string (006B6D30), last to first.
+        // The CRT's eh vector destructor iterator: each voice's name string, last to first.
         for (int i = *block; --i >= 0;) slots[i].name.~string();
         gamecrt::operator_delete(block);
     }
@@ -730,7 +730,7 @@ void CSoundManager::Close() {
         WaveRecord record = cacheList.RemoveHead();
         record.Name().~string();
     }
-    cache.Clear();   // 006BCE00
+    cache.Clear();
     if (midiSequence != nullptr) {
         AilEndSequence()(midiSequence);
         AilReleaseSequence()(midiSequence);

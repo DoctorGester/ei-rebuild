@@ -1,4 +1,4 @@
-// CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
+// CWorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "core_refcount.h"
@@ -28,8 +28,8 @@
 namespace {
 
 
-// 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
-// 0040A3A0. CRefObject::Release (the missiles).
+// The full path of a map file (CString constructed into `out`). Patched by Rebirth.
+// CRefObject::Release (the missiles).
 
 // The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
 // walk stops at the first empty entry).
@@ -40,7 +40,7 @@ void EndTimedObjects(CWorldServer* world) {
         object->ClearState();
         object->Release();
     }
-    world->timedObjects_.map.Clear();   // 0059D7A0: nodes freed, buckets kept
+    world->timedObjects_.map.Clear();   // nodes freed, buckets kept
     world->timedObjects_.maxId = 0;
 }
 
@@ -56,7 +56,7 @@ void ClearMissiles(CWorldServer* world) {
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     CAIMap* aiMap = AIMap();
     if (gamecrt::mbsicmp(mapName_, map) != 0) {
-        aiMap->Reset();   // 005B5E10
+        aiMap->Reset();
         aiMap->BeginRefresh();
         bool failed;
         {
@@ -126,7 +126,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 namespace {
 
 // 0059DD90 (RET 4) with flags 0: a missile's counted pointer released in place (RefPtrRelease).
-// 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
+// Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {
@@ -169,7 +169,7 @@ void CWorldServer::ResetZone() {
     reinterpret_cast<ObjectIdMap*>(&objects_)->ReleaseAll();
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
-        map->map.Clear();   // 0059D6D0
+        map->map.Clear();
         map->maxId = 0;
     }
     ClearMissilePointers(this);

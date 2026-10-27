@@ -1,4 +1,4 @@
-// CObject3D::SetUpAnimatedFigure (005179E0): the figure of a model with an animation state (units,
+// CObject3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
 // levers, map objects with animations; called by the zone loader, the world's object setup,
 // Lever::SetState and the unit controller): the state takes the model, one box and one name per
 // animated part, and the object's bounds around the boxes. See map_object_figures.h and
@@ -29,7 +29,7 @@
 namespace {
 constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
 constexpr float kHeroHalfWidth = 0.5f;
-constexpr float kHalf = 0.5f;                    // 0073B86C
+constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kBoundsSphere = 1;       // boundsFlags: radius valid
 constexpr std::uint32_t kBoundsBox = 2;          // boundsFlags: box valid
 constexpr std::uint32_t kFlagFigureLoadedBits = 0x80;   // flags_: the figure is loaded
@@ -200,7 +200,7 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
         auto* part = parts.data[i];
         if (!startsWith(part)) continue;
         int index = out->size;
-        out->SetSize(index + 1, -1);   // 00519D70
+        out->SetSize(index + 1, -1);
         out->data[index] = part;
     }
     for (int i = 0; i < pendingParts.size; ++i) {
@@ -223,7 +223,7 @@ constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create 
 using PartNameArray = mfc::CStringArray;
 } // namespace
 
-// 00519A10: Add (SetAtGrow at the size; RET 4).
+// Add (SetAtGrow at the size; RET 4).
 EI_REWRITTEN(0x00519A10, AlignedPtrArray::Add);
 
 CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
@@ -245,7 +245,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         const LinkHeaderMap::Node* node;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            node = lib_trees::FindLinkHeader(&current->headers_, &key);   // 005197B0
+            node = lib_trees::FindLinkHeader(&current->headers_, &key);
         }
         const LinkPartHeader& piece = node->second;
         part->materialValue_ = piece.materialValue;
@@ -349,7 +349,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
             CLinkMesh* old = figure;
             figure = made;
             if (made) ++made->refCount_;
-            // 00457720: the old figure loses a reference and is deleted at the last one.
+            // The old figure loses a reference and is deleted at the last one.
             if (old && --old->refCount_ == 0) delete old;
         }
         FreePieceNames(pieces);

@@ -23,7 +23,7 @@
 namespace misc400 {
 
 
-// 0042D6F0: the destructor.
+// The destructor.
 void __fastcall ManagerDestruct(CBaseManager* self) {
     auto* manager = static_cast<CClientSpecificManager*>(self);
     manager->CClientSpecificManager::~CClientSpecificManager();
@@ -38,7 +38,7 @@ CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
 int CClientSpecificManager::GetClassId() { return 0x30; }
 
-// 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
+// A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
 // failed allocation. The constructors (005A7010 the figure drawer, 0051AB00, 00510450, 00533AD0,
 // 00666D10, 0052D0D0) each return this.
 CEngineObject* CClientSpecificManager::NewObject(int type) {
@@ -61,12 +61,12 @@ namespace misc400 {
 void* __fastcall AlignedWords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 2)); }
 void* __fastcall AlignedDwords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 4)); }
 
-// 00433F10: an exception cleanup step: the pointer ECX points at is cleared where it points.
+// An exception cleanup step: the pointer ECX points at is cleared where it points.
 void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullptr; }
 
 } // namespace misc400
 
-// 00430FC0: a cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
+// A cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
 // alone). The two other arguments are not used. Returns 0.
 std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint32_t) {
     p = first;

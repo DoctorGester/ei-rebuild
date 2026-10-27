@@ -64,7 +64,7 @@ void Resize(stlp::vector<T>* v, std::size_t count, const T& value) {
     v->Finish() += added;
 }
 
-// vector<T>(source) for plain elements (004FDDB0, 004FE9A0): a block of exactly the source's length.
+// vector<T>(source) for plain elements: a block of exactly the source's length.
 template <typename T>
 void CopyConstruct(stlp::vector<T>* v, const stlp::vector<T>& source) {
     const std::size_t count = source.size();
@@ -198,7 +198,7 @@ EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 
 // ---- State blocks -------------------------------------------------------------------------------------
 
-// 004FD2A0 (slot 1, RET 0xC). The first block sets the texture stages of the first `stages` states
+// The first block sets the texture stages of the first `stages` states
 // (as many as the device has, or one) and switches the next stage off; each state from there on gets
 // a block of its own with its blend factors (an empty block without them). The check of a stage's
 // operations ands the operation's number with the device's capability bits, as the original does;
@@ -293,7 +293,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
 
 EI_REWRITTEN(0x004FD2A0, CRenderHelper::Record);
 
-// 004FD9D0 (slot 3, RET 4). The preset's state blocks deleted, its place among the built-in presets
+// The preset's state blocks deleted, its place among the built-in presets
 // cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
 // nodes first, then its head). The record holds the preset, so this usually deletes it.
 void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
@@ -352,7 +352,7 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
 }
 EI_REWRITTEN_SPECIAL(0x004FCA60, CRenderHelper::CRenderHelper);
 
-// 004FCD50: the destructor body. Every record's preset goes through slot 3, which erases the record
+// The destructor body. Every record's preset goes through slot 3, which erases the record
 // the walk stands on: as in the original, the step to the next record then reads the freed node (its
 // link is the node allocator's free list by then), so the walk can stray and leave records behind.
 // Those are destroyed with the table (their presets deleted, but not their state blocks).
@@ -377,26 +377,23 @@ void CRenderHelper::operator delete(void* block) { gamecrt::operator_delete(bloc
 
 // ---- The helper's table slots -----------------------------------------------------------------------
 
-// 004FDB00 (slot 2, RET 4).
 void CRenderHelper::ReleasePreset(CRenderPreset* preset) {
     if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
 }
 EI_REWRITTEN(0x004FDB00, CRenderHelper::ReleasePreset);
 
-// 004FDB50 (slot 4, RET 4).
 void* CRenderHelper::PresetBlock(CRenderPreset* preset) {
     auto* node = records_.Find(preset);
     return node ? node->value.preset : nullptr;
 }
 EI_REWRITTEN(0x004FDB50, CRenderHelper::PresetBlock);
 
-// 004FDBA0 (slot 5, RET 4).
 CRenderPreset* CRenderHelper::Preset(unsigned index) {
     return index < CRenderHelper::kPresetCount ? presets_[index] : nullptr;
 }
 EI_REWRITTEN(0x004FDBA0, CRenderHelper::Preset);
 
-// 004FDBC0 (slot 6, RET 8). Only AL is the result.
+// Only AL is the result.
 bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
     auto* node = records_.Find(preset);
     if (!node) return false;
@@ -405,7 +402,7 @@ bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
 }
 EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStates);
 
-// 004FDD80 (slot 7, RET 8). Only AL is the result.
+// Only AL is the result.
 bool CRenderHelper::BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);
@@ -451,7 +448,7 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 
 } // namespace
 
-// 004F0B90. The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
+// The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
 // folder's string, the stacks (from the last) and the base, and `new` frees the memory, as in the original.
 CTransformPipeline::CTransformPipeline(const char* folder) {
     stlp::string path(folder);

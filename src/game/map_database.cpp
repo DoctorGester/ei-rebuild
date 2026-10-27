@@ -1,7 +1,6 @@
-// The map database loader (0045EA20): CMapDatabase's allods, maps and exits (object_tables.h) filled
+// The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled
 // from map.txt / map-LMP.txt.
-//
-// The file is read line by line through the text manager (007AF788) and split into words. Lines
+// The file is read line by line through the text manager and split into words. Lines
 // starting with a directive word set the current record:
 //   #allod <name>, then 5 lines with one word each (the allod's other names)
 //   #zone <name> <allod> <game|brief|edge>       a new map, the current one from here
@@ -36,10 +35,10 @@ namespace {
 
 // The text manager (item_db_text.h) as the loader uses it. Not rewritten.
 struct TextReader : CTextManager {
-    mfc::BOOL Open(const char* name);                          // 004DEFC0: finds the text, cursor at its start
+    mfc::BOOL Open(const char* name);                          // finds the text, cursor at its start
     mfc::BOOL NextHeader();                                    // 004DF030 (null key): the next "#" line; false at the end
-    int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
-    mfc::BOOL Close();                                         // 004DF020
+    int Split(console::CStringArray* words, int flag);         // the current line's words
+    mfc::BOOL Close();
 };
 mfc::BOOL TextReader::Open(const char* key) { return CTextManager::Open(key); }
 mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
@@ -49,8 +48,8 @@ int TextReader::Split(console::CStringArray* words, int flag) {
 mfc::BOOL TextReader::Close() { return TextClose(this); }
 TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
 
-// Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the
-// maps' (004607E0 / 004607B0) and the exits' (004606A0 / 00460670) instantiations.
+// Element constructors / destructors of the record arrays: the allods', the
+// maps' and the exits' instantiations.
 using ElementFn = void(__stdcall*)(void* elements, int count);
 constexpr ElementFn ConstructAllods = mfc::impl::ConstructElementsAt<mfc::impl::Allods>;
 constexpr ElementFn DestructAllods = mfc::impl::DestructElementsAt<mfc::impl::OwnedAllods>;
@@ -158,7 +157,7 @@ void Loader::AddMap() {
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
         if (gamecrt::mbsicmp(allod.name.GetString(), allodName) != 0) continue;
-        allod.maps.SetAtGrow(allod.maps.size, map_);   // 00460500
+        allod.maps.SetAtGrow(allod.maps.size, map_);
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
@@ -313,14 +312,14 @@ CMapDatabase* CMapDatabase::Construct() {
 EI_REWRITTEN(0x0045E820, CMapDatabase::Construct);
 
 // The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
-// the exit function it registers (0045E6E0); both ported on the name and registered at their addresses
+// the exit function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
 CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
-void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }   // 0045E6E0
-void __cdecl ConstructMapDatabase() {                              // 0045E6C0
+void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }
+void __cdecl ConstructMapDatabase() {
     g_mapDatabase->Construct();
     libcrt::AtExit(DestroyMapDatabase);
 }

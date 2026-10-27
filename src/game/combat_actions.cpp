@@ -34,9 +34,9 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                                   // 0073B858
-constexpr float kHitNoiseScale = 2.0f;                          // 0073EEF0
-constexpr float kSkillNoiseScale = 1.5f;                        // 0073EEF8
+constexpr float kZero = 0.0f;
+constexpr float kHitNoiseScale = 2.0f;
+constexpr float kSkillNoiseScale = 1.5f;
 constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared as a dword
 constexpr int kNoiseKind = 0x1A;
 
@@ -89,25 +89,25 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 
 } // namespace
 
-// 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
-// 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
+// Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
+// CWorldServer: applies the quick item `item` (a potion) to `unit`.
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
-// 00665470. Player: receives the items in `list` (a CPtrList).
-// 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
+// Player: receives the items in `list` (a CPtrList).
+// Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code) {
     static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
-// 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
+// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
-// 005AEA60. The controller's voice (+0xB10): says remark `what`.
+// The controller's voice (+0xB10): says remark `what`.
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
-// 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
-// 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
+// Map object base: drops all effects (+0x198), marks the object changed.
+// CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 // 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
-// 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
+// UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
 
 void CUnitServer::DropQueuedOrder() {
@@ -221,7 +221,7 @@ EI_REWRITTEN(0x0054F850, CUnitServer::TriggerWeaponSpell);
 void CUnitServer::TriggerItemSpells(char onHit) {
     ManagerContext();
     for (std::uint32_t slot = 0; slot < 7; ++slot) {
-        auto* item = unit->armor[slot];    // 00530830
+        auto* item = unit->armor[slot];
         if (!item) continue;
         auto* spell = item->spell_;
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
@@ -248,7 +248,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     CItem* copy = FindItem(items, link->value);
     if (!copy) return;
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
-    player->ItemUsed(copy);   // 00665BE0
+    player->ItemUsed(copy);
 }
 EI_REWRITTEN(0x00552C60, CUnitServer::UseItemCharge);
 
@@ -297,7 +297,7 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = other->ServerController();
-        AIEventsOf(world)->Update(controller, &controller->brain.memory);   // 005CAA00
+        AIEventsOf(world)->Update(controller, &controller->brain.memory);
         UnitList* watched = &controller->brain.memory.visible;
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
@@ -377,7 +377,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 
     // Dead.
     if (attacker) {
-        if (attacker->player) {     // 005301A0
+        if (attacker->player) {
             CUnit* killer = attacker->ServerController()->unit;
             if (killer->player)
                 PlayerMessage(killer->player->Server(), killer, kMessageKilled);
@@ -409,7 +409,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AIEventsOf(world)->ForgetUnit(this);
     if (CPlayer* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))
-            member->ServerController()->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
+            member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = mfc::impl::AnimationStepsClass::Vtable();

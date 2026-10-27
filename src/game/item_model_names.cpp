@@ -1,5 +1,5 @@
 // The armour and weapon model names by record indices (006A3480, 006A0AA0; unit skins and models
-// build the texture of a worn piece with them) and the weapon's from its records (006A0BF0). See
+// build the texture of a worn piece with them) and the weapon's from its records. See
 // item.h; the item classes' own name builders are item_names.cpp.
 #include "item.h"
 

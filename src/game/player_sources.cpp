@@ -1,5 +1,5 @@
 // The player sources' slot 6 (player_source.h; A-E1): the server world's AcceptNewPlayers
-// (0058DAF0) asks a source for its new connections, which the source appends to an MFC list of
+// asks a source for its new connections, which the source appends to an MFC list of
 // counted links. 00478880 is the counted helper's (CWorldHandle: its pending link, handed over
 // once), 0047A230 the network session's (netlink::DriverSession: the link of every live holder,
 // then the holders list is emptied). Main thread (the world's update). See docs/notes/network.md.

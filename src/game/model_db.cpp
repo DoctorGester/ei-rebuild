@@ -1,5 +1,5 @@
 // Databases read at startup from database.res (prints.db, acks.db; 006D0000-006E0000) and the
-// world's water level changes (006D4400).
+// world's water level changes.
 #include "acks_db.h"
 #include "model.h"
 #include "record_vectors.h"
@@ -21,7 +21,7 @@ namespace {
 // The body shared by the vector serialisers (one instantiation per record type in the original,
 // `Abi` the vector's instantiation: its element policy destroys a record, ResizeDefault is its
 // resize(n): 006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20). Loading destroys the old records
-// (006D29A0, 006D29E0, 006DC390, 006DC920, 006DCAF0), resizes to the number of record chunks and
+// resizes to the number of record chunks and
 // reads each; saving writes the records in order. prints.db records serialise through their
 // vtable, acks.db records by a direct call.
 template <typename Abi>

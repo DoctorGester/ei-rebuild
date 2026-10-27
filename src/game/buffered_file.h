@@ -15,12 +15,12 @@
 
 // The abstract stream (constructor 00580DD0, destructor body 00580DF0, slots 7 / 8 pure). 0x1C
 // bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error. BufferedStream
-// and BufferedFile are real virtual classes: the compiler makes their vtables (C19; game.exe's
+// and BufferedFile are real virtual classes: the compiler makes their vtables (game.exe's
 // 0073F8C8 and 0073F8A4 are retired). The slots' bodies keep their names (registered at their
 // addresses, rewrite-guide rule 4); the overrides call them.
 class BufferedStream : public GameBuffer {
 public:
-    // 00580DD0. No block, base 0, flags 0 (the other pointers are left).
+    // No block, base 0, flags 0 (the other pointers are left).
     BufferedStream() {
         base = 0;
         begin = nullptr;
@@ -37,35 +37,35 @@ public:
     int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }   // 3
     int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }   // 4
     std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }      // 6
-    // 004DB0F0 (slot 6, RET 4). Moves the cursor to file position `position`: inside the window in place,
+    // Moves the cursor to file position `position`: inside the window in place,
     // else Flush and Rebase. Returns the cursor as it was before (EAX of the in-window path; the other
     // path leaves no meaningful value and its callers ignore it).
     std::uint8_t* SeekWindow(std::int32_t position);
-    // 004DB420 (slot 4, RET 8). A write the window cannot take in place: one larger than the window
+    // A write the window cannot take in place: one larger than the window
     // goes straight to the file (returns slot 8's count); otherwise Rebase, then into the window
     // (unwritten bit) or through slot 4 again.
     int WriteMoreWindow(const void* from, std::uint32_t size);
-    // 004DB200 (slot 3, RET 8). A read the window cannot serve in place: one larger than the window goes
+    // A read the window cannot serve in place: one larger than the window goes
     // straight to the file (returns slot 7's count); otherwise Rebase, then from the window, or zeroes
     // past `high` (error bit; what is left before `high` is read through 00401340).
     int ReadMoreWindow(void* to, std::uint32_t size);
-    // 004DAFC0 (slot 1, RET 4). A new block of size + 0x400 bytes, unless the window is larger, with the
+    // A new block of size + 0x400 bytes, unless the window is larger, with the
     // old block's bytes (no file access).
     void ReserveWriteWindow(std::int32_t size);
-    // 004DAE30 (slot 0, RET 4). Room to read `size` bytes: a window smaller than `size` grows to
+    // Room to read `size` bytes: a window smaller than `size` grows to
     // size + 0x400 (when that is not smaller) and is reloaded at `base`; otherwise Rebase.
     void ReserveReadWindow(std::int32_t size);
     virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;           // 7
     virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;  // 8
 
-    // 004DAAF0. Writes the window's bytes up to the cursor back when they are unwritten (error bit on a
+    // Writes the window's bytes up to the cursor back when they are unwritten (error bit on a
     // short write); `high` follows the cursor upwards.
     void Flush();
-    // 004DAC80. Flush, then the block freed (begin = null; the other pointers left).
+    // Flush, then the block freed (begin = null; the other pointers left).
     void ReleaseBlock();
-    // BeginWrite (00580EE0) is GameBuffer's: the quest file loader calls it on a growing buffer.
+    // BeginWrite is GameBuffer's: the quest file loader calls it on a growing buffer.
 
-    // 004DB040 (slot 2). Moves the window so that it starts at the cursor's file position (Flush,
+    // Moves the window so that it starts at the cursor's file position (Flush,
     // then a reload there) unless it already does.
     void Rebase();
     // The reload the slots inline: min(capacity, high - cur) bytes at file position `position` into
@@ -95,9 +95,9 @@ public:
     // 004DB5E0 / 004DB630 (slots 7 / 8, RET 0xC). fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
     int ReadAtFile(std::int32_t position, void* to, std::uint32_t size);
-    // 004DB680. Flush, the block freed, the file closed.
+    // Flush, the block freed, the file closed.
     void Close();
-    // 004DB700 (RET 0xC). Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
+    // Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
 

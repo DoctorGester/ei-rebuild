@@ -56,7 +56,7 @@ EI_REWRITTEN(0x005DA270, DeletingDestructor<&RefPtr::Destroy>::Delete);
 EI_REWRITTEN(0x0042A5D0, DeletingDestructor<&RefPtr::Destroy>::Delete);
 EI_REWRITTEN(0x0042A5F0, DeletingDestructor<&RefPtr::Destroy>::Delete);
 EI_REWRITTEN(0x0042B880, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0042D6D0, DeletingDestructor<misc400::ManagerDestruct>::Delete);        // 0042D6F0
+EI_REWRITTEN(0x0042D6D0, DeletingDestructor<misc400::ManagerDestruct>::Delete);
 EI_REWRITTEN(0x0043DCA0, DeletingDestructor<&RefPtr::Destroy>::Delete);
 
 EI_REWRITTEN(0x004054F0, CleanupClear8);

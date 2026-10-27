@@ -35,14 +35,14 @@ using UnitList = mfc::CTypedPtrList<CUnit>;
 // SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
 // constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
 // 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
-// 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
+// CDiplomacy: `a` attacked `b` (strength).
 
 // The spell's type (the prototype index in the packed id). Its +0x34 is the radius (float bits) and +0x38
 // the number of targets.
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
 // Whether the spell type turns the target against the caster (the original's switch at
-// 0058E7DC: 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).
+// 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).
 bool IsHostileType(int type) {
     switch (type) {
     case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x26: return true;

@@ -19,9 +19,9 @@ namespace mfc::impl {
 // m_bAutoDelete (a positive value: Delete frees the object).
 class CException : public CObject {
 public:
-    // 00702053: auto-delete on.
+    // Auto-delete on.
     CException() : autoDelete(TRUE) {}
-    // 0070205D: auto-delete as given.
+    // Auto-delete as given.
     explicit CException(BOOL autoDeleteFlag) : autoDelete(autoDeleteFlag) {}
 
     virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
@@ -42,10 +42,10 @@ public:
     // AFX_IDS_RESOURCE_EXCEPTION ...).
     CSimpleException(BOOL autoDeleteFlag, unsigned id) : CException(autoDeleteFlag), resourceId(id) {}
 
-    // 006FE346 (slot 3): the message, loaded on first use, into `error` (empty when it did not load); help context
+    // The message, loaded on first use, into `error` (empty when it did not load); help context
     // 0. Returns whether it loaded.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
-    // 006FE31D: the message loaded from string `resourceId` (initialized and loaded set).
+    // The message loaded from string `resourceId` (initialized and loaded set).
     void InitString();
 
     BOOL reserved;              // +0x08 (no code of the exe's touches it)
@@ -133,27 +133,27 @@ static_assert(sizeof(CArchiveException) == 0x10);
 void __fastcall DestroyUserException(CUserException* self);
 
 // CFileException::OsErrorToException: a Win32 error code as a cause (generic for the rest).
-int __stdcall OsErrorToException(long osError);                                   // 00703296
+int __stdcall OsErrorToException(long osError);
 // AfxThrowFileException: a new CFileException thrown as a pointer.
-void __stdcall ThrowFileException(int cause, long osError, const char* fileName);  // 007031D5
+void __stdcall ThrowFileException(int cause, long osError, const char* fileName);
 // CFileException::ThrowOsError: nothing for 0, else the error's cause thrown.
-void __stdcall ThrowOsError(long osError, const char* fileName);                   // 007030F0
+void __stdcall ThrowOsError(long osError, const char* fileName);
 // AfxThrowArchiveException.
-void __stdcall ThrowArchiveException(int cause, const char* fileName);             // 0070A835
+void __stdcall ThrowArchiveException(int cause, const char* fileName);
 // AfxThrowNotSupportedException: MFC's one static CNotSupportedException (not auto-deleted).
-void __stdcall ThrowNotSupported();                                                // 006FE3A2
+void __stdcall ThrowNotSupported();
 // AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
-__declspec(noreturn) void __stdcall ThrowMemoryException();                         // 006FE389
+__declspec(noreturn) void __stdcall ThrowMemoryException();
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
-__declspec(noreturn) void __stdcall ThrowResourceException();                       // 0070A29E
+__declspec(noreturn) void __stdcall ThrowResourceException();
 
 } // namespace mfc::impl
 
 namespace mfc {
 
 // AFX_EXCEPTION_LINK's two library functions (the link is mfc_try.h's ExceptionLink).
-ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);   // 007020F1
-void __cdecl TryCleanup();                                               // 0070212F
+ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);
+void __cdecl TryCleanup();
 // The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop
 // in MFC's thread state, 00702107). The hook build shares the original's; the image has its own.
 ExceptionLink** __cdecl ExceptionLinkTop();

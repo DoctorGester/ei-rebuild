@@ -1,4 +1,4 @@
-// A spell effect's later states: the per-tick dispatch (0067E6D0), the missiles' flight and impact
+// A spell effect's later states: the per-tick dispatch, the missiles' flight and impact
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
 #include "ai_map.h"
@@ -303,7 +303,7 @@ void Possession(CSpellEffect* e) {
         CUnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         group->Insert(target);
-        group->InsertAll(&server->Brain()->memory.visible);   // 004B31D0
+        group->InsertAll(&server->Brain()->memory.visible);
         group->InsertAll(&server->Brain()->memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
         target->flags_ |= 0x2000000;

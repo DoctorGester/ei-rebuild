@@ -22,11 +22,11 @@ using terrain::SectorData;
 
 namespace {
 
-constexpr float kSectorCells = 32.0f;   // 0073CA90: a sector's width in cells
+constexpr float kSectorCells = 32.0f;   // a sector's width in cells
 constexpr std::uint32_t kLit = 4;       // SectorAt's stage: the sector is lit (and so built)
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
-// The squared-distance limits of the levels of detail 0 and 1 (0079BD2C / 0079BD30).
+// The squared-distance limits of the levels of detail 0 and 1.
 float DetailNear() { return options::TheOptions()->lod1_; }
 float DetailFar() { return options::TheOptions()->lod2_; }
 
@@ -74,7 +74,7 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 void SectorData::SetDetail(int level) { detail = level; }
 EI_REWRITTEN(0x006C1390, SectorData::SetDetail);
 
-// --- The sector's part of the passes (006BFB00-006BFC7B; A-Z1) -------------------------------------
+// --- The sector's part of the passes (006BFB00-006BFC7B) -------------------------------------
 
 int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing ? 1 : 0; }
 EI_REWRITTEN(0x006BFB00, SectorData::IsDrawn);

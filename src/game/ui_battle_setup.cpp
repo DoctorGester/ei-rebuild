@@ -1,6 +1,5 @@
 // The battle screen's Create (slot 25 of 00740764, 00635250): the HUD panels as children, the
 // screen's saved state, the "pers" text table. See docs/notes/ui.md ("Battle screen").
-//
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
 #include "core_streams.h"
@@ -56,7 +55,7 @@ CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_
     }
 }
 
-// --- Create (00635250) ---------------------------------------------------------------------------
+// --- Create ---------------------------------------------------------------------------
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
@@ -105,7 +104,7 @@ void CBattleScreen::CreateScreen() {
 
     // The screen's own input handler (0x0C bytes).
     UiInputSide* input = new UiInertInput(interface_);
-    AddInput(input);   // 00600CC0
+    AddInput(input);
 
     CreateTexture(0x100, 0x100, 0x20);
     CreateTexture(0x100, 0x100, 0x20);
@@ -227,7 +226,7 @@ BOOL CBattleScreen::Draw(int pass) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    CUiContainer::Draw(pass);   // 00600EF0
+    CUiContainer::Draw(pass);
     return 1;
 }
 

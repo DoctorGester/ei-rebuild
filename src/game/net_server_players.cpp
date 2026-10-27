@@ -1,8 +1,7 @@
 // The game server's players and their connections: lookups (0041A020, 0041A170, 0041A270,
 // 0041A2E0), admission and the password (0041A050 slot 16, 0041A140), kicking and banning
-// (0041A550, 0041A620), the departure reports (0041A700 slot 11, 0041A770 slot 12) and the lines to
-// every guest (0041A500). See net_classes.h and docs/notes/network.md.
-//
+// the departure reports (0041A700 slot 11, 0041A770 slot 12) and the lines to
+// every guest. See net_classes.h and docs/notes/network.md.
 // Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
 #include "net_messages.h"
 #include "net_connection.h"
@@ -42,7 +41,7 @@ void DropClient(ServerSession* self, Connection* connection) {
 
 } // namespace
 
-// 0041A020: the id of the first host player, -1 without one.
+// The id of the first host player, -1 without one.
 int ServerSession::LeaderId() {
     const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
@@ -51,13 +50,13 @@ int ServerSession::LeaderId() {
 }
 EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
 
-// 0041A050 (slot 16): whether a client from `from` may join. Refused when the address is banned
+// Whether a client from `from` may join. Refused when the address is banned
 // (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
 // moves past them either way), or when the clients and the pending joins reach the maximum
 // (reason 1).
 bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
     *reason = 2;
-    // find_if over the banned addresses (00427FF0): the host compared, not the port.
+    // find_if over the banned addresses: the host compared, not the port.
     auto* banned = banned_.First();
     while (banned != banned_.End() && banned->data.ip != from->ip) banned = banned->next;
     if (banned != banned_.End()) return false;
@@ -77,7 +76,7 @@ bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::
     return pending + clients < maxPlayers_;
 }
 
-// 0041A140: the join password (at most 20 bytes, zero-filled).
+// The join password (at most 20 bytes, zero-filled).
 void ServerSession::SetPassword(const char* text) {
     char* stored = password_;
     std::memset(stored, 0, kPasswordSize);
@@ -85,7 +84,7 @@ void ServerSession::SetPassword(const char* text) {
 }
 EI_REWRITTEN(0x0041A140, ServerSession::SetPassword);
 
-// 0041A170: the connection of the first player whose name starts with `name` (case-insensitive)
+// The connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
 Connection* ServerSession::FindGuestConnection(const stlp::string* name) {
     const std::size_t length = name->size();
@@ -114,7 +113,7 @@ Connection* ServerSession::FindGuestConnection(const stlp::string* name) {
 }
 EI_REWRITTEN(0x0041A170, ServerSession::FindGuestConnection);
 
-// 0041A270: the connection of the player with serial `serial`, or null.
+// The connection of the player with serial `serial`, or null.
 Connection* ServerSession::FindConnectionBySerial(int serial) {
     const auto& bindings = bindings_;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next)
@@ -123,7 +122,7 @@ Connection* ServerSession::FindConnectionBySerial(int serial) {
 }
 EI_REWRITTEN(0x0041A270, ServerSession::FindConnectionBySerial);
 
-// 0041A2E0: the player with id `id`, or null.
+// The player with id `id`, or null.
 PlayerMessage* ServerSession::FindPlayer(int id) {
     const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
@@ -132,7 +131,7 @@ PlayerMessage* ServerSession::FindPlayer(int id) {
 }
 EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);
 
-// 0041A500: a line (text `kind` with `text`) for every player that is not the host.
+// A line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
         PlayerMessage* player = players_.At(node);
@@ -141,7 +140,7 @@ void ServerSession::AnnounceToGuests(int kind, const char* text) {
 }
 EI_REWRITTEN(0x0041A500, ServerSession::AnnounceToGuests);
 
-// 0041A550: kicks the client on `connection` (unless it is the host's): its player is announced
+// Kicks the client on `connection` (unless it is the host's): its player is announced
 // (text 2), then the client is told to leave and removed.
 void ServerSession::Kick(Connection* connection) {
     if (!IsLive(connection)) return;
@@ -161,7 +160,7 @@ void ServerSession::Kick(Connection* connection) {
 }
 EI_REWRITTEN(0x0041A550, ServerSession::Kick);
 
-// 0041A620: bans the client on `connection` (unless it is the host's): its player is announced
+// Bans the client on `connection` (unless it is the host's): its player is announced
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
 void ServerSession::Ban(Connection* connection) {
     if (!IsLive(connection)) return;

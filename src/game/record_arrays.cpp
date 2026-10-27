@@ -129,7 +129,7 @@ EI_REWRITTEN(0x004CD770, Definitions::SetSize);
 EI_REWRITTEN(0x004CD900, Definitions::DestructElements);
 EI_REWRITTEN(0x004CEC80, Runs::DestructElements);
 EI_REWRITTEN(0x004CD740, Decls::DestructElements);
-// The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
+// The by-value GetAt wrappers: their bodies have the same arguments.
 EI_REWRITTEN(0x004CD450, ScriptCommands::CopyAt);
 EI_REWRITTEN(0x004C7510, ScriptSubCalls::CopyAt);
 
@@ -236,7 +236,7 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     int n = from.waypoints.size;
     if (n) {
         to.data = gamecrt::operator_new_array<mapspec::Waypoint>(static_cast<std::size_t>(n));
-        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);   // 0045E130
+        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);
     }
     to.maxSize = n;
     to.size = n;
@@ -265,7 +265,7 @@ void DeltaState::SetFieldCount(int count) {
     reinterpret_cast<recordarrays::DeltaFields::Array*>(this)->SetSize(count, -1);
 }
 
-// The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
+// The lib templates over tags the game's headers define: the registrations that need the complete tag.
 namespace mfc::impl {
 
 EI_REWRITTEN(0x005711C0, ArrayHeader<ClientMapArrayClass>::Construct);

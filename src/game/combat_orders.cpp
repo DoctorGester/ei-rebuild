@@ -19,7 +19,7 @@
 
 namespace {
 constexpr float kZero = 0.0f;                               // the dword 0 FinishCast compares with
-constexpr float kCastNoiseScale = 2.0f;                     // 0073EEF0
+constexpr float kCastNoiseScale = 2.0f;
 constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
@@ -30,7 +30,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
-constexpr float kReachHeight = 1.5f;    // 0073C51C
+constexpr float kReachHeight = 1.5f;
 
 // Party messages (0066D6E0 codes).
 constexpr int kMessageOutOfReach = 0x0C;
@@ -103,7 +103,7 @@ void CUnitServer::FinishCast() {
             return;
         }
         UseItemCharge(carrier, cost);
-    } else if (unit->player) {     // 005301A0
+    } else if (unit->player) {
         float cost = spell->manaCost_;
         UnitVitals* vitals = ServerStatsOf(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
@@ -170,7 +170,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
     SetTarget(&action2, target);
     action2.source = static_cast<std::uint32_t>(location);
     action2.modifier = static_cast<std::uint8_t>(calledShot);
-    // CanReachTarget (0054C800) inlined on the queued order.
+    // CanReachTarget inlined on the queued order.
     if (action2.kind == 3 || action2.kind == 6) {
         CUnit* other = UnitOrNull(action2.target);
         if (other && ObjectSlots(other)->IsDead() == 0 && other->sizeClass == 0) {
@@ -200,7 +200,7 @@ EI_REWRITTEN(0x00554B30, CUnitServer::OrderAttack);
 
 namespace {
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's
-// own spell (not an item) its skill requirement (+0x50) against the unit's skill (00527EB0).
+// own spell (not an item) its skill requirement (+0x50) against the unit's skill.
 // True when the order may be queued.
 bool MayCast(CUnitServer* self, std::uint32_t source) {
     CSpell* spell;

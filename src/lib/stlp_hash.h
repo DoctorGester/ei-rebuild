@@ -3,12 +3,10 @@
 // STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md,
 // section 2). stlp.h's older hash_map view keeps serving the game code that uses it; this is the
 // library body the instantiations' own addresses are registered to (stlp_hash.cpp).
-//
 // Layout (0x14 bytes): the hasher, key_equal and key extractor (empty, one byte each, then a pad
 // byte), the bucket vector (vector<Node*>, stlp_vector.h) and the element count, which STLport
 // keeps in the node allocator's proxy. A node is the next pointer followed by the value; its size
 // picks the pool's free list, so each instantiation's node type comes from its node-creation code.
-//
 // Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
 // below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the
 // head of its bucket, and iteration walks the buckets in order and each chain from its head. A
@@ -219,7 +217,7 @@ public:
         count_ = 0;
     }
 
-    // _M_initialize_buckets(n) on a table its owner zeroed (006729E0): NextPrime(n) null buckets in
+    // _M_initialize_buckets(n) on a table its owner zeroed: NextPrime(n) null buckets in
     // a fresh block, no elements.
     void InitZeroedBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
@@ -285,7 +283,7 @@ public:
         return node->value;
     }
 
-    // insert_unique(obj) (0066B400): resize(count + 1), then the node with obj's key in its bucket
+    // insert_unique(obj): resize(count + 1), then the node with obj's key in its bucket
     // (not inserted), else a copy of obj in a new node at the head of the bucket (inserted).
     Node* InsertUnique(const Value& obj, bool& inserted) {
         Resize(count_ + 1);
@@ -615,7 +613,7 @@ struct HashtableAbi : hashtable<Traits> {
     }
     // _Ht_iterator::_M_skip_to_next() (e.g. 004073C0): the node.
     static Node* __fastcall SkipToNext(const Iterator* self) { return self->table->SkipToNext(self->cur); }
-    // _Ht_iterator::operator++() (00404980): returns this.
+    // _Ht_iterator::operator++(): returns this.
     static Iterator* __fastcall Increment(Iterator* self) {
         self->cur = self->table->Next(self->cur);
         return self;

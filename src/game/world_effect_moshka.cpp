@@ -43,16 +43,16 @@ constexpr float kCircleRadius = 1.5f;         // 007433DC, around the followed o
 constexpr float kCircleHeight = 3.2f;         // 007433E0, above it
 constexpr float kAngularSpeed = 0.2f;         // 0073BAD4, radians per frame
 constexpr float kCircleStartHeight = 30.0f;
-constexpr double kAngleOffset = 1.5;          // 007438F0
-constexpr double kPerchSearchRadius = 50.0;   // 0073D0A0
+constexpr double kAngleOffset = 1.5;
+constexpr double kPerchSearchRadius = 50.0;
 constexpr float kHalfPi = 1.5707964f;         // 007C8430 (pi * 0.5, set at startup from 007433A8)
-constexpr float kClearance = 0.5f;            // 0073B86C: above the ground, the sight threshold, height step
+constexpr float kClearance = 0.5f;            // above the ground, the sight threshold, height step
 // The flight speed per frame: sqrt(distance to the followed object) * 0.03 + 0.3 (double
 // constants 007438E8 / 007438E0, the floats 0.03 and 0.3 widened).
 constexpr double kSpeedFactor = static_cast<double>(0.03f);
 constexpr double kSpeedBase = static_cast<double>(0.3f);
-// FindPerch: the eye 1.5 above the start (0073C51C), radius 50 (0074023C) less 5 (0073BF34) each
-// try but at least 4, height 30 rising by 3 (0073BAA4).
+// FindPerch: the eye 1.5 above the start, radius 50 less 5 each
+// try but at least 4, height 30 rising by 3.
 constexpr float kEyeHeight = 1.5f;
 constexpr float kPerchRadius = 50.0f;
 constexpr float kPerchRadiusStep = 5.0f;
@@ -81,7 +81,7 @@ CEffectMoshka::CEffectMoshka() {
 }
 
 // The original's first, inline reset clears the source through 0056F1A0 and the figure through
-// 0052B030; both end as Reset's.
+// Both end as Reset's.
 CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again through slot 18

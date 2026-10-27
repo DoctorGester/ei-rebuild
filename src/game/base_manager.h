@@ -34,71 +34,71 @@ public:
     using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
 
     // Slot 0 is the scalar deleting destructor 00402DD0.
-    // 2: 00403020. Empties the tables and sizes them for a new session; returns 1.
+    // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
-    // 3: 004031E0. Destroys, releases and deletes every object and clears the tables.
+    // Destroys, releases and deletes every object and clears the tables.
     void Destroy() override;
-    // 9: 004046E0. Frees the spares and creates the objects listed in the stream.
+    // Frees the spares and creates the objects listed in the stream.
     void Load(CStream* stream) override;
-    // 10: 00404760. Writes {id, type, prototypeId_} of every registered object.
+    // Writes {id, type, prototypeId_} of every registered object.
     void Save(CStream* stream) override;
 
-    // 13: 004031B0. Keeps the context and creates (slot 2); a failed create clears the context
+    // Keeps the context and creates (slot 2); a failed create clears the context
     // again. Returns 1 / 0.
     virtual BOOL Init(CManagerContext* context);
     // 14: a new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
-    // 15: 004034E0. Destroys and releases every object, then empties the registration tables.
+    // Destroys and releases every object, then empties the registration tables.
     virtual void DestroyAll();
     // 16-22: the archive interface of the managers that load from resource archives
     // (CResourceManager overrides them); here they do nothing and return 0 / null / false.
-    virtual BOOL AddArchive(const char* path);                     // 16: 00402D60
-    virtual BOOL RemoveArchive(const char* path);                  // 17: 00402D70
-    virtual BOOL RemoveAllArchives();                              // 18: 00402D80
-    virtual void* GetFile(const char* name, std::uint32_t* size);  // 19: 00402D90
-    virtual bool CloseFile(void* data);                            // 20: 00402DA0
-    virtual BOOL HasFile(const char* name);                        // 21: 00402DB0
-    virtual void FreeAllFiles();                                   // 22: 00402DC0
-    // 23: 00403730. A spare object of `type`, or a new one (slot 14), registered under `id` or,
+    virtual BOOL AddArchive(const char* path);
+    virtual BOOL RemoveArchive(const char* path);
+    virtual BOOL RemoveAllArchives();
+    virtual void* GetFile(const char* name, std::uint32_t* size);
+    virtual bool CloseFile(void* data);
+    virtual BOOL HasFile(const char* name);
+    virtual void FreeAllFiles();
+    // A spare object of `type`, or a new one (slot 14), registered under `id` or,
     // for -1, under a free id; the manager becomes its owner and it is created (slot 2). Null
     // when slot 14 fails.
     virtual CEngineObject* CreateObject(int type, int id);
     // CreateObject (slot 23) of a type whose objects are T's.
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
-    // 24: 00403AE0. An object without references leaves the manager: unregistered, destroyed
+    // An object without references leaves the manager: unregistered, destroyed
     // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (the original's EAX
     // is not meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
 
     // 00402DF0 (slot 0 00402DD0). Destroy (CBaseManager's, slot 3), the containers, the engine object.
     ~CBaseManager() override;
-    // 00403F40. Object registered under `id`, or null.
+    // Object registered under `id`, or null.
     CEngineObject* FindObject(unsigned id) const;
     // FindObject in a manager whose objects are T's.
     template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
-    // 00403720. Sets context_ (as Init does).
+    // Sets context_ (as Init does).
     void SetContext(CManagerContext* context);
-    // 004039B0. The object registered under `id` leaves the registration tables (it stays alive
+    // The object registered under `id` leaves the registration tables (it stays alive
     // and keeps its id); returns it, or null.
     CEngineObject* Unregister(int id);
-    // 00403BD0. Registers an object made elsewhere under a free id and becomes its owner; returns
+    // Registers an object made elsewhere under a free id and becomes its owner; returns
     // the id.
     int RegisterInstant(CEngineObject* object);
-    // 00404040. Unregisters the object (when registered under its id) and keeps it as a spare of
+    // Unregisters the object (when registered under its id) and keeps it as a spare of
     // its type with id -1. Returns 0.
     int RemoveObject(CEngineObject* object);
-    // 00404410. Deletes the spare objects and their lists and empties the spare tables.
+    // Deletes the spare objects and their lists and empties the spare tables.
     void FreeSpares();
     // 004047E0 / 00404860. The registered objects' own data (slots 9 / 10) by id, up to an end
     // mark.
     void LoadObjects(CStream* stream);
     void SaveObjects(CStream* stream);
-    // 004048F0. Every object without references gets one and releases it (slot 4), so the ones
+    // Every object without references gets one and releases it (slot 4), so the ones
     // nobody took go back to the spares.
     void ReleaseUnused();
 
 protected:
-    // 00402B20. Empty tables (the objects and spares sized 100), no context, ids up to 2000000000.
+    // Empty tables (the objects and spares sized 100), no context, ids up to 2000000000.
     CBaseManager();
 
 public:
@@ -139,8 +139,8 @@ struct ObjectListIterator {
     CBaseManager* manager;
     CBaseManager::ObjectList::Node* position;   // the node Next returns
 
-    CEngineObject* First(CBaseManager* list);   // 00404920
-    CEngineObject* Next();                      // 00404960
+    CEngineObject* First(CBaseManager* list);
+    CEngineObject* Next();
 };
 static_assert(sizeof(ObjectListIterator) == 8);
 
@@ -156,13 +156,13 @@ struct ObjectListIteratorOf : ObjectListIterator {
 // its vtable, C19, game.exe's 0073BECC with its tail 0073BF08 is retired).
 class CClientSpecificManager : public CBaseManager {
 public:
-    // 0042D690. CBaseManager's constructor.
+    // CBaseManager's constructor.
     CClientSpecificManager();
-    // 0042D6F0. CBaseManager's destructor.
+    // CBaseManager's destructor.
     ~CClientSpecificManager() override;
-    const char* GetClassName() override;     // 11: 0042D6B0 "CClientSpecificManager" (00783DD8)
+    const char* GetClassName() override;     // 11: 0042D6B0 "CClientSpecificManager"
     int GetClassId() override;               // 12: 0042D6C0 (0x30)
-    // 14: 0042D700. A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
+    // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
     // failed allocation.
     CEngineObject* NewObject(int type) override;
 
@@ -187,13 +187,13 @@ class CEffectManager : public CBaseManager {
 public:
     // CBaseManager's constructor (inlined in CWorld::Create 0055EE40).
     CEffectManager();
-    // 0055F3A0. CBaseManager's destructor.
+    // CBaseManager's destructor.
     ~CEffectManager() override;
-    // 0055F380: the deleting destructor (slot 0).
-    // 2: 0067E150. CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
+    // The deleting destructor (slot 0).
+    // CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
     int Create() override;
     const char* GetClassName() override;     // 11: 0055F360 "CEffectManager"
     int GetClassId() override;               // 12: 0055F370 (0x32)
-    // 14: 0067E170. A new effect of `type`.
+    // A new effect of `type`.
     CEngineObject* NewObject(int type) override;
 };

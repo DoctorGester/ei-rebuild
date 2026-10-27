@@ -1,6 +1,6 @@
 // A unit's path in the save stream (thiscall on the AIPath, RET 4): 005B2430 loads, 005B2570
 // saves. The stream's slot 1 reads and slot 2 writes (buffer, size). Layout: the cell count and
-// each remaining cell (8 bytes), the order (005C8230 / 005C8370), the target (8 bytes), the goal
+// each remaining cell (8 bytes), the order, the target (8 bytes), the goal
 // (12), the four flag bytes one by one, the excluded regions' count and each {x, y} as two
 // dwords, and the smoothing value. Loading appends the cells to the list (created as {0, 0} by
 // 005BD2A0, then read over). See ai_map.h (AIPath).
@@ -65,7 +65,7 @@ void AIPath::SavePath(CStream* stream) {
     stream->Write(&smoothingCopy, 4);
 }
 
-// ---- The order (005C8230 / 005C8370) ----------------------------------------------------------
+// ---- The order ----------------------------------------------------------
 
 void PathOrder::LoadOrder(CStream* stream) {
     MotionOrder* order = OrderOf(this);

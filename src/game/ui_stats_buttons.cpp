@@ -1,4 +1,4 @@
-// The statistics panel's -/+ buttons on the new hero's page (00624790, 00624A60) and its hero
+// The statistics panel's -/+ buttons on the new hero's page and its hero
 // arrows. See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_camp.h"

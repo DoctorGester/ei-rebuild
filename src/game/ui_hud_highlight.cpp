@@ -1,6 +1,6 @@
-// The HUD buttons' highlights: the quick item panel's slots (0063CD20), the spell and action
-// columns' buttons (0063E750 / 0063F730) and their clearing (0063E7C0 / 0063F7A0), and the
-// sprite scale they set (005E7060). The pending action (ui_hud_pick.cpp, SetPendingAction) and
+// The HUD buttons' highlights: the quick item panel's slots, the spell and action
+// columns' buttons and their clearing, and the
+// sprite scale they set. The pending action (ui_hud_pick.cpp, SetPendingAction) and
 // the panels' SetUnit drive them. See docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
@@ -34,7 +34,7 @@ void HighlightButton(CUiWindow* column, int* selected, int index, int on) {
     *selected = index;
 }
 
-// The columns' clearing (0063E7C0 and 0063F7A0): every button off, selected_ passing through
+// The columns' clearing: every button off, selected_ passing through
 // each index, then -1.
 void ClearButtons(CUiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {

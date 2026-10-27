@@ -62,7 +62,7 @@ EI_REWRITTEN(0x00575510, ScalarDeleting<&ObjectHolderRelease>::Delete);
 EI_REWRITTEN(0x005768A0, ScalarDeleting<&ObjectHolderRelease>::Delete);
 EI_REWRITTEN(0x0059DDB0, ScalarDeleting<&ObjectHolderRelease>::Delete);
 
-// ---- MFC collections (S13) ----------------------------------------------------------------------
+// ---- MFC collections ----------------------------------------------------------------------
 
 EI_REWRITTEN(0x00571E50, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::PlatformListClass>>::Delete);
 EI_REWRITTEN(0x00571ED0, ScalarDeleting<&recordarrays::WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>>::Delete);

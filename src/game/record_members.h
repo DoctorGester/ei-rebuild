@@ -1,9 +1,9 @@
 #pragma once
 
 // Memberwise copy construction, assignment and resize(n) defaults of game records, the way the
-// compiler wrote them for the records' STLport vectors (S10a; record_vectors.h). A record lists
+// compiler wrote them for the records' STLport vectors (record_vectors.h). A record lists
 // the members its copy constructor and operator= touch, in declaration order:
-//   CString            copy-constructed / assigned (007006E5 / 00700AA9), empty by default;
+//   CString            copy-constructed / assigned, empty by default;
 //   stlp::string       copy-constructed / AssignFrom, by default empty with room for 8 bytes
 //                      (00421800 / 0041F460 with 8);
 //   stlp::vector<T>    copy-constructed (room for exactly the size) / operator=, empty by default,

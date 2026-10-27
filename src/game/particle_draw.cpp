@@ -1,4 +1,4 @@
-// The particle manager's draw pass (00498940) and its draw order: every source's depth along the
+// The particle manager's draw pass and its draw order: every source's depth along the
 // camera's view axis goes into the array at 007A9C50, which is sorted far-to-near with STLport's
 // introsort (as instantiated in game.exe: median of three, unguarded partition, heap sort at the
 // depth limit, insertion sort below 16 elements) and drawn in that order. Names are provisional.
@@ -22,19 +22,19 @@ namespace {
 inline double D(float f) { return f; }
 
 // The particles' draw order: built empty by its static initialiser 00498910 (the constructor 00498E60), destroyed
-// at exit by 00498930 (00498E80).
+// at exit by 00498930.
 static_assert(sizeof(ParticleDepthArray) == 0x14);
 constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
 ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
-void __cdecl DestroyDrawOrder() {   // 00498930
+void __cdecl DestroyDrawOrder() {
     mfc::impl::DestructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
 }
-void __cdecl ConstructDrawOrder() {   // 00498910
+void __cdecl ConstructDrawOrder() {
     mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
     libcrt::AtExit(DestroyDrawOrder);
 }
 
-// The camera's orientation (0079B2DC).
+// The camera's orientation.
 const Quaternion& CameraRotation() { return TheCamera()->localRotation_; }
 
 // The sort's ordering: far (greater depth) first. x87 FCOMP / TEST AH,0x41: false for NaN.
@@ -184,10 +184,10 @@ void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int)
 }
 EI_REWRITTEN(0x004994E0, FinalSortByDepth);
 
-// 00499200. MFC CArray::SetAtGrow: grows the array (new entries zeroed) to hold `index`.
+// MFC CArray::SetAtGrow: grows the array (new entries zeroed) to hold `index`.
 EI_REWRITTEN(0x00499200, ParticleDepthArray::SetAtGrow);
 
-// 00484AE0. The attachment point plus the local position, or the local position alone.
+// The attachment point plus the local position, or the local position alone.
 Vector3* CParticleSource::WorldPosition(Vector3* out) {
     if (attachedTo) {
         Vector3 point;
@@ -205,7 +205,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 }
 EI_REWRITTEN(0x00484AE0, CParticleSource::WorldPosition);
 
-// 00498940. Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
+// Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
 // sources until the first empty entry), sorts it far to near and draws each source that is not
 // hidden (flag 0x40) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.

@@ -16,6 +16,6 @@ template itemdb::SpellModifierRecord* itemdb::SpellModifierTable::FindByCode(con
 EI_REWRITTEN(0x0068C820, itemdb::SpellTable::FindByCode);
 EI_REWRITTEN(0x0068C920, itemdb::SpellModifierTable::FindByCode);
 
-// The bounds-checked records as the spell book reads them (005F2EA0 / 005F2EE0).
+// The bounds-checked records as the spell book reads them.
 EI_REWRITTEN(0x005F2EA0, itemdb::SpellTable::At);
 EI_REWRITTEN(0x005F2EE0, itemdb::SpellModifierTable::At);

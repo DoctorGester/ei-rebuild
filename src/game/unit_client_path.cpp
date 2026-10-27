@@ -1,6 +1,5 @@
 // A party unit's client controller (CUnitClientSpecific, class 0x3D) placing its unit on the
-// motion it follows (00535850). See docs/notes/units.md ("Client path placement").
-//
+// motion it follows. See docs/notes/units.md ("Client path placement").
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
 // (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
@@ -30,11 +29,11 @@ namespace {
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
 
-constexpr float kCellScale = 1.0f;            // 0073EBF0
-constexpr float kHalf = 0.5f;                 // 0073B86C
-constexpr float kHalfTurn = 3.1416f;          // 0073CF80
-constexpr float kDecay = -0.3f;               // 0073CDFC
-constexpr float kAnimationRate = 15.0f;       // 0073C518
+constexpr float kCellScale = 1.0f;
+constexpr float kHalf = 0.5f;
+constexpr float kHalfTurn = 3.1416f;
+constexpr float kDecay = -0.3f;
+constexpr float kAnimationRate = 15.0f;
 constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: pi + pi
 
 } // namespace

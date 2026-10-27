@@ -26,7 +26,7 @@ namespace mfc::impl {
 CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 // 006FE90F CPlex::FreeDataChain (__thiscall, `this` may be null): every block of the chain freed.
 // Returns 0: the original leaves EAX as its caller had it for a null chain, and AIPath::Reset
-// (005C7D50) returns that EAX (0 there; its checks run on empty lists).
+// returns that EAX (0 there; its checks run on empty lists).
 int __fastcall FreePlexChain(CPlex* head);
 
 // ---- CList ----------------------------------------------------------------------------------------
@@ -180,13 +180,13 @@ struct NodeListClass;   // the AI map's node lists
 struct BlockCostListClass;   // the AI's block cost lists
 struct AiMapListClass;   // the AI map's lists
 struct WaypointListClass;   // the AI plan's waypoint lists
-struct StaticListClass;   // the list a static initialiser builds (005CDAD0)
+struct StaticListClass;   // the list a static initialiser builds
 struct DwordMapClass;   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
 struct ScriptCommandsClass;   // CArray<SSCCmd> (a script block, a CList element)
 
 // ---- Elements ------------------------------------------------------------------------------------
 
-// 8-byte lightning records: 0, then -1 (004CEAD0).
+// 8-byte lightning records: 0, then -1.
 struct Lightning8 {
     int object;
     int id;

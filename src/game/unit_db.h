@@ -1,7 +1,7 @@
 #pragma once
 
 // The records of the units database (units.udb, loaded at startup by 0053A200 into the tables at
-// 007AF358: prototypes, 007AF378 NPCs, 007AF398 models, 007AF3B8 skill levels) and how each one
+// Prototypes, 007AF378 NPCs, 007AF398 models, 007AF3B8 skill levels) and how each one
 // is read from / written to the tagged-chunk archive (model.h, ChunkArchive). Names provisional;
 // the field ids are the archive's. See docs/notes/units.md ("Database records").
 
@@ -50,7 +50,7 @@ static_assert(sizeof(UnitGoldRoll) == 0x10);
 struct UnitPrototypeRecord {
     // Body of the slot at 005407E0 (registered by member pointer).
     UnitPrototypeRecord* DeleteScalar(unsigned flags);
-    // 0052D740 (RET 4). Reads (archive loading) or writes the record's fields.
+    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0
@@ -61,8 +61,8 @@ struct UnitPrototypeRecord {
     Vector3 scale;                  // +0x14 5, 6, 7
     std::uint32_t panelViewSize;        // +0x20 0x22 the unit panel's model view size
     std::uint32_t height;               // +0x24 0x23 (float bits) its height: the panel view, reach and small-unit checks
-    float viewDistance;             // +0x28 0x25 how far before the unit a dialogue's camera may stand (00607BB0)
-    float viewHeight;               // +0x2C 0x26 the height of its eyes for a dialogue's camera (00607BB0)
+    float viewDistance;             // +0x28 0x25 how far before the unit a dialogue's camera may stand
+    float viewHeight;               // +0x2C 0x26 the height of its eyes for a dialogue's camera
     float shake;                    // +0x30 0x28 the camera shake of its steps and attacks
     mfc::CString soundFolder;       // +0x34 8 (when set, the action sounds come from here, not the model's)
     std::uint8_t unused_38[0x10];  // not serialised
@@ -110,7 +110,7 @@ static_assert(sizeof(UnitPrototypeRecord) == 0x120);
 // through 005145D0). unit_create_stats.cpp reads the experience, stats, attribute and skill bytes
 // and the skill names.
 struct UnitNpcRecord {
-    // 0052DA60 (RET 4). Reads (archive loading) or writes the record's fields.
+    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0 (the prototype's name)
@@ -121,11 +121,11 @@ struct UnitNpcRecord {
     std::uint8_t skills[8];         // +0x1B 7 (eight bytes)
     std::uint8_t unused_23;        // not serialised
     CStringVector skillNames;       // +0x24 8 (the skill level records it learns)
-    CStringVector startWeapons;     // +0x30 9: item names a multiplayer hero starts with (006625B0)
+    CStringVector startWeapons;     // +0x30 9: item names a multiplayer hero starts with
     CStringVector startQuickItems;  // +0x3C 10: its quick items
     CStringVector startSpells;      // +0x48 11: its spells
-    float experienceFloor;          // +0x54 12: its starting experience (006625B0), which it keeps when it dies in a network game (0066F4C0)
-    int startMoney;                 // +0x58 13: money its party starts with (006625B0)
+    float experienceFloor;          // +0x54 12: its starting experience, which it keeps when it dies in a network game
+    int startMoney;                 // +0x58 13: money its party starts with
     std::uint8_t voiced;                // +0x5C 14 (one byte): the multiplayer hero screen offers it as a voice
     std::uint8_t unused_5D[3];
 };
@@ -152,11 +152,11 @@ static_assert(sizeof(UnitModelSlot) == 0x10);
 
 // A unit model (0x168 bytes, table 007AF398).
 struct UnitModelRecord {
-    // 0052DC70 (RET 4). Reads (archive loading) or writes the record's fields.
+    // Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0
-    int objectClass;                // +0x04 1 (00513240)
+    int objectClass;                // +0x04 1
     float hitPointRegen;            // +0x08 2
     float manaRegen;                // +0x0C 3
     std::uint32_t field4;               // +0x10 4 (nothing reads it)
@@ -233,9 +233,9 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
 // 0053F010 (thiscall): a model slot's destructor (its level name).
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
-// 0053EFF0 (thiscall; S16a): a level record's destructor (its name; a jump to ~CString).
+// 0053EFF0 (thiscall): a level record's destructor (its name; a jump to ~CString).
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
-// 005214B0 (ECX first, EDX last; S16a): stlp::_Destroy over CStrings, first to last.
+// 005214B0 (ECX first, EDX last): stlp::_Destroy over CStrings, first to last.
 void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 } // namespace unitdb
 
@@ -275,7 +275,7 @@ static_assert(offsetof(UnitLevelTable, byName) == 0x0C && sizeof(UnitLevelTable)
 // The unit database (global 007AF358): four 0x20-byte tables.
 struct UnitDatabase {
     // 0053A8E0 (unit_sound_counts.cpp, RET 4). Lists the "*.wav" files of the sound system
-    // `sounds` (006B7110), lower-cases them, then gives each model's sound names (lower-cased in
+    // `sounds`, lower-cases them, then gives each model's sound names (lower-cased in
     // place) the number of files whose name starts with it (soundCounts, resized to the names).
     void CountSoundFiles(void* sounds);
     // 0053A200 (RET 8; unit_db_load.cpp, A-U12; Rebirth-patched: the vanilla behaviour). Reads
@@ -287,7 +287,7 @@ struct UnitDatabase {
     // unknown name). Returns 1, or what the fatal error report returns when the archive or the
     // file cannot be opened.
     int Load(const char* folder, const char* archive);
-    // 0057CBE0 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // 0057CBE0 (database_reset.cpp; the compiler's destruction and construction in place,
     // which the resource switch 0057CB50 runs). The tables from the last to the first, each the
     // name index (its nodes, then its buckets), then the records (in order) and their storage; then
     // the four from the first: no records, an index of 100 buckets (193).
@@ -336,9 +336,9 @@ static_assert(sizeof(DamageWords) == 0x10);
 
 // A skill (0x18 bytes).
 struct SkillRecord {
-    // 0051F3A0 (RET 4). Fields 0..2 and chunk 10 (the stat names, InlineStrings).
+    // Fields 0..2 and chunk 10 (the stat names, InlineStrings).
     void Serialize(ChunkArchive* ar);
-    // 00520D20 (S13; the compiler's destructor). The stat names and their storage, field1, name.
+    // 00520D20 (the compiler's destructor). The stat names and their storage, field1, name.
     void Destruct();
 
     mfc::CString name;              // +0x00 field 0
@@ -352,9 +352,9 @@ static_assert(offsetof(SkillRecord, statNames) == 0x0C && sizeof(SkillRecord) ==
 
 // A skill level record (0x44 bytes; the perks the trade panel offers, the level's value at +0x34).
 struct SkillLevelRecord {
-    // 0051F480 (RET 4). Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
+    // Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
-    // 00520DE0 (S13; the compiler's destructor). The strings +0x14, +0x0C, +0x04, +0x00.
+    // 00520DE0 (the compiler's destructor). The strings +0x14, +0x0C, +0x04, +0x00.
     void Destruct();
 
     mfc::CString field0;                // +0x00 field 0 (the trade panel's display name of the perk)
@@ -384,11 +384,11 @@ struct SkillLevelRecord {
 static_assert(offsetof(SkillLevelRecord, values) == 0x18 && sizeof(SkillLevelRecord) == 0x44);
 
 struct SkillDatabase {
-    // 0051FE00 (RET 4). The level record named `levelName` (_mbsicmp), or null.
+    // The level record named `levelName` (_mbsicmp), or null.
     SkillLevelRecord* FindLevel(const char* levelName);
-    // 0051FE80 (RET 4). The index of the level record named `levelName` (_mbsicmp), or -1.
+    // The index of the level record named `levelName` (_mbsicmp), or -1.
     int IndexOf(const char* levelName) const;
-    // 0051FF00 (RET 4). The index of `record` among the level records, or -1.
+    // The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
     // unit_stat_small.cpp (A-U12). 00526FF0 / 00524FA0 (RET 4): skill / level record `index`, or
     // null past the end.
@@ -399,8 +399,8 @@ struct SkillDatabase {
     // (chunk 2, one chunk 1 each). Returns 1, or what the fatal error report returns when the
     // archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
-    // 0057CD60 (S13; the compiler's destruction and construction in place, which the resource
-    // switch 0057CB50 runs): the level records destroyed (00520DE0) and their storage freed, then
+    // 0057CD60 (the compiler's destruction and construction in place, which the resource
+    // switch 0057CB50 runs): the level records destroyed and their storage freed, then
     // the skills (00520D20 through their deleting destructor 00521FA0 with 0); both vectors empty.
     void Reset();
     // 0051FB10 (database_construct.cpp; the static initialiser 0051FAF0). Both vectors empty.
@@ -425,7 +425,7 @@ inline SkillRecord* SkillAt(std::uint32_t index) {
     stlp::vector<SkillRecord>& skills = SkillDb()->skills;
     return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
 }
-// The models' level record `index` (007AF3B8), or null past the end.
+// The models' level record `index`, or null past the end.
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
     UnitLevelTable& levels = Database().levels;
     return index < static_cast<std::uint32_t>(levels.end - levels.begin) ? levels.begin + index : nullptr;

@@ -1,5 +1,5 @@
-// The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
-// (0063B920). See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+// The battle screen's mouse move, left button down and a unit's name line
+//. See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
 #include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -19,7 +19,7 @@
 namespace {
 constexpr int kCursorArrow = 0;
 constexpr int kCursorPickPlayer = 0xD;   // a portrait click picks a player
-constexpr const char* kUnitTextPrefix = "unit ";   // 00794498
+constexpr const char* kUnitTextPrefix = "unit ";
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
 } // namespace

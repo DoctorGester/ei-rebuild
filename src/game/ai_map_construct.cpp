@@ -1,4 +1,4 @@
-// The CAIMap constructor (005B3C30), destructor (0058A450) and reset (005B5E10: destroyed, then
+// The CAIMap constructor, destructor and reset (005B5E10: destroyed, then
 // constructed again in place). The unit layers and the sector map are C++ members; the inlined
 // constructors of the others (CArrays, CLists, the dirty rectangle) are stores.
 // The original's exception frames only matter when a member constructor throws, which ends the
@@ -25,7 +25,7 @@ CAIMap::CAIMap() {
     climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
     climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
     materials.Construct();
-    bridgeHeights.Construct(100);   // 005BCCD0
+    bridgeHeights.Construct(100);
     footprint.cells.Construct();
     footprint.hashed = true;
     bridges.cells.Construct();
@@ -36,9 +36,9 @@ CAIMap::CAIMap() {
     for (mfc::CArray<AreaOffset>& list : areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
     unitLayerSmall.map = this;
     unitLayerLarge.map = this;
-    ConstructRegionMap(&regionMap);   // 005AF3D0
+    ConstructRegionMap(&regionMap);
     forwardSearch.nodes.Construct(1, 1);
-    reinterpret_cast<SearchGrid<std::int8_t>*>(&forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
+    reinterpret_cast<SearchGrid<std::int8_t>*>(&forwardSearch.levels)->Construct(1, 1);
     mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
     forwardSearch.map = nullptr;
     backwardSearch.Construct(nullptr);
@@ -69,7 +69,7 @@ CAIMap::~CAIMap() {
     FreeGrid(forwardSearch.levels);
     FreeGrid(forwardSearch.nodes);
     CRegionMap& regions = regionMap;
-    // The CRT's eh vector destructor iterator (006E859F): each grid freed (00598480 / 00598460 /
+    // The CRT's eh vector destructor iterator: each grid freed (00598480 / 00598460 /
     // 00598440), last to first.
     for (int i = 8; --i >= 0;) FreeGrid(regions.regions[i]);
     for (int i = 8; --i >= 0;) FreeGrid(regions.cells[i]);
@@ -81,7 +81,7 @@ CAIMap::~CAIMap() {
     FreeGrid(waterDepth);
     bridges.cells.FreeData();
     footprint.cells.FreeData();
-    bridgeHeights.Destroy();   // 005984A0
+    bridgeHeights.Destroy();
     materials.FreeData();
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbSmall);
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbLarge);
