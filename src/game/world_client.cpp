@@ -43,8 +43,7 @@
 // ---- Heights -------------------------------------------------------------------------------------
 
 float CWorldClient::ClampedGroundHeight(float x, float y) {
-    // Branch-free (FCOM flags turned into a select mask); NaN picks the first
-    // operand of each comparison.
+    // Branch-free (FCOM flags turned into a select mask); NaN picks the first operand of each comparison.
     float cx = 0.0f >= x ? 0.0f : x;
     float maxX = static_cast<float>(terrain_->width - 1.0f);
     cx = maxX >= cx ? cx : maxX;
@@ -198,8 +197,7 @@ constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
-// Library: counted pointer assignment: references `object`, then
-// releases the slot's old one.
+// Library: counted pointer assignment: references `object`, then releases the slot's old one.
 template <class T>
 void AssignCounted(T** slot, T* object) {
     T* old = *slot;

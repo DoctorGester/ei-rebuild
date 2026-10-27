@@ -109,8 +109,7 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
-    // The discarding SetSize's out-of-line copies take a growth step
-    // too (-1 keeps it).
+    // The discarding SetSize's out-of-line copies take a growth step too (-1 keeps it).
     void SetSizeDiscardStep(int count, int newGrowBy) {
         if (newGrowBy != -1) growBy = newGrowBy;
         SetSizeDiscard(count);
@@ -156,8 +155,7 @@ struct AlignedArray {
         size = 0;
     }
 
-    // operator=: SetSize to the source's size (keeping the step), then its
-    // elements with memcpy.
+    // operator=: SetSize to the source's size (keeping the step), then its elements with memcpy.
     void Copy(const AlignedArray& source) {
         SetSize(source.size);
         std::memcpy(static_cast<void*>(data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));

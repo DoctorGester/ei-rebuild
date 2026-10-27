@@ -128,9 +128,8 @@ int __cdecl Isalpha(int c);
 int __cdecl Isdigit(int c);
 int __cdecl Isspace(int c);
 int __cdecl Isprint(int c);
-// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
-// first): equal elements end up in the same order as in the game (the host's qsort changed 105 image
-// goldens).
+// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
+// equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
 
 // memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath

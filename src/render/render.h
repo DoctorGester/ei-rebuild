@@ -97,15 +97,14 @@ void ShadowTerrainSector(const terrain::SectorData* sector);
 void BeginCaster(const void* object, bool figure);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
-// Casters the game does not draw this frame (or parts it left out) whose shadow can reach the visible
-// ground cast through ShadowCasterMesh, read by the world's draw from the objects' parts.
-// ShadowCasterArea: whether this frame gets a map, and the ground rectangle (landscape's space) a caster's
-// centre must stand in: the visible ground's box swept back towards the sun as far as a caster no higher
-// than `highestTop` reaches, widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the
-// bounds. CasterPartDrawn: `part` (MeshSource::owner) was drawn this frame as a caster's mesh.
-// CasterStrength: -1 when CastsShadow was not called for `object` this frame. SetOffscreenCasters (harness
-// "shadowcasters view|all|walked"): View, only what the game draws casts; Walked, every caster comes from the
-// walk.
+// Casters the game does not draw this frame (or parts it left out) whose shadow can reach the visible ground
+// cast through ShadowCasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
+// this frame gets a map, and the ground rectangle (landscape's space) a caster's centre must stand in: the
+// visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` reaches,
+// widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterPartDrawn:
+// `part` (MeshSource::owner) was drawn this frame as a caster's mesh. CasterStrength: -1 when CastsShadow was
+// not called for `object` this frame. SetOffscreenCasters (harness "shadowcasters view|all|walked"): View,
+// only what the game draws casts; Walked, every caster comes from the walk.
 struct ShadowCasterRect {
     float x0, y0, x1, y1;
 };

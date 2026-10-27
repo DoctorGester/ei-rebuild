@@ -87,8 +87,7 @@ void TryLightningStrike(CWorldServer* world) {
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }
 
-// Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy
-// otherwise.
+// Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
 void UpdateRain(CWorldServer* world) {
     if (--WeatherDelay() > 0) return;
     if (world->weather_ == 0) {

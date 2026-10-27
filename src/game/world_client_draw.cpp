@@ -1,8 +1,7 @@
-// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and
-// ObjectsDrawRadius behind their flags. See world.h and docs/notes/world.md.
-// Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7,
-// lastLoadResult_ the last state block result) and to the scene pipeline's matrix stacks (ScenePipeline()) with
-// the same calls in the same order as the original.
+// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
+// behind their flags. See world.h and docs/notes/world.md. Both talk to Direct3D 7 through the renderer
+// (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7, lastLoadResult_ the last state block result) and to
+// the scene pipeline's matrix stacks (ScenePipeline()) with the same calls in the same order as the original.
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -65,8 +64,7 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     render::state::Block(handle);
 }
 
-// The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world
-// draw's, 9 the views.
+// The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world draw's, 9 the views.
 constexpr int kStackScene1 = 1;
 constexpr int kStackScene2 = 2;
 constexpr int kStackWorld = 5;
@@ -93,9 +91,8 @@ void PopMatrix(MatrixStack& stack) {
     if (depth) --depth;
 }
 
-// A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
-// addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
-// settings when it loads).
+// A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as addon turns it
+// into the float it patches in: (float)(unsigned)value, read once (addon reads its settings when it loads).
 float StarterDrawRadius(const char* name) {
     DWORD value = 100;
     DWORD data = 0, size = sizeof(data), type = 0;

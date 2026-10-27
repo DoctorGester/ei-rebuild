@@ -99,8 +99,7 @@ float4 ps_copy(float4 pos : SV_Position) : SV_Target0 {
     return FromBytes(Quantise(Bytes(tex0.Load(int3(t, 0)).rgb)));
 }
 
-// A canvas onto the frame as blit.hlsl draws a window surface, the colour key compared on the
-// stored colour.
+// A canvas onto the frame as blit.hlsl draws a window surface, the colour key compared on the stored colour.
 float4 ps_blit(float4 pos : SV_Position) : SV_Target0 {
     float2 texel = (float2)source.xy + floor((pos.xy - (float2)dest.xy) * scale.xy);
     texel = clamp(texel, float2(0.0, 0.0), (float2)source.zw - 1.0);

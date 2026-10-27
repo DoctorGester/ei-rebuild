@@ -191,8 +191,7 @@ public:
         InitializeBuckets(n);
     }
 
-    // _M_initialize_buckets(n): reserve(NextPrime(n)), insert that many nulls at
-    // the end, no elements.
+    // _M_initialize_buckets(n): reserve(NextPrime(n)), insert that many nulls at the end, no elements.
     void InitializeBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
         buckets_.template Reserve<BucketElement>(buckets);
@@ -287,9 +286,8 @@ public:
         return node;
     }
 
-    // equal_range(key): the first node holding `key` and the first node after it
-    // that does not (its chain's next one, else the head of the next non-empty bucket, else null);
-    // both null when no node holds the key.
+    // equal_range(key): the first node holding `key` and the first node after it that does not (its chain's
+    // next one, else the head of the next non-empty bucket, else null); both null when no node holds the key.
     void EqualRange(const Key& key, Node*& first, Node*& last) const {
         std::size_t b = BucketOf(key);
         for (Node* cur = buckets_[b]; cur; cur = cur->next) {
@@ -450,8 +448,7 @@ public:
         count_ = 0;
         CopyFrom(ht);
     }
-    // operator=(ht): nothing for the table itself; else clear, ht's functor
-    // bytes, _M_copy_from(ht).
+    // operator=(ht): nothing for the table itself; else clear, ht's functor bytes, _M_copy_from(ht).
     void Assign(const hashtable& ht) {
         if (&ht == this) return;
         Clear();

@@ -1,9 +1,8 @@
 #pragma once
 
-// The constant virtuals of the engine's small tables that are still free functions
-// (world_class_slots.cpp): class names and ids and the interface objects' base. The worlds' own
-// virtuals are their classes' members (world.h), defined in world_class_slots.cpp too.
-// docs/notes/world.md.
+// The constant virtuals of the engine's small tables that are still free functions (world_class_slots.cpp):
+// class names and ids and the interface objects' base. The worlds' own virtuals are their classes' members
+// (world.h), defined in world_class_slots.cpp too. docs/notes/world.md.
 
 #include <cstdint>
 

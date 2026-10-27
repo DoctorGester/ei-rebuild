@@ -125,8 +125,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
 namespace {
 
-// A missile's counted pointer released in place (RefPtrRelease). Releases a range of counted object
-// pointers.
+// A missile's counted pointer released in place (RefPtrRelease). Releases a range of counted object pointers.
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {

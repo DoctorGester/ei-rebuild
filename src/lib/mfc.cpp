@@ -202,8 +202,7 @@ CString __stdcall operator+(char a, const CString& b) {
 }
 #endif
 
-// AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the
-// destructor.
+// AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
 ExceptionLink::ExceptionLink() { ConstructExceptionLink(this); }
 ExceptionLink::~ExceptionLink() { TryCleanup(); }
 

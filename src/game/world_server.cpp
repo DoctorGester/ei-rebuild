@@ -184,8 +184,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     auto* found = objects_.map.Find(id);
     CMapObject* const* slot = found ? &found->value : nullptr;
     // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
-    // pointer (and
-    // crashes).
+    // pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;

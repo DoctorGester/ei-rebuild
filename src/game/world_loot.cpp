@@ -150,9 +150,8 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 
 namespace {
 
-// STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the
-// constructor allocates the head node, the destructor frees the nodes and
-// the head. As in world_tick.cpp.
+// STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the constructor
+// allocates the head node, the destructor frees the nodes and the head. As in world_tick.cpp.
 class IdList {
 public:
     struct Node {
@@ -196,8 +195,7 @@ private:
 } // namespace
 
 void CWorldServer::LootDeadUnits() {
-    // The walk starts before the player is looked up; unlike most walks it does not stop at an
-    // empty entry.
+    // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
     auto* node = objects_.map.First();
     CEngineObject* object = node ? node->value : nullptr;
     CPlayer* local = nullptr;

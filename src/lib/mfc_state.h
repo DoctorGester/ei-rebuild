@@ -54,8 +54,7 @@ static_assert(offsetof(CThreadSlotData, section) == 0x1C);
 struct CThreadLocalObject {
     int slot;
 
-    // The slot freed
-    // when there is one and _afxThreadData exists, then the slot cleared.
+    // The slot freed when there is one and _afxThreadData exists, then the slot cleared.
     void Destruct();
 };
 
@@ -67,8 +66,7 @@ struct CProcessLocalObject {
     void Destruct();
 };
 
-// AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when
-// there is one.
+// AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when there is one.
 void __stdcall AfxDeleteObject(HGDIOBJ* object);
 
 // AUX_DATA (0x6C bytes): afxData (mfc_state.cpp).
@@ -121,8 +119,7 @@ AuxData& AfxData();
 
 // ---- Module state, runtime class list, global locks ----------------------------------------
 
-// CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset`
-// bytes in.
+// CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset` bytes in.
 struct CSimpleList {
     void* head;
     std::size_t nextOffset;
@@ -162,8 +159,7 @@ ModuleState* __cdecl ImageModuleState();
 constexpr int kLockTypes = 17;
 constexpr int kRuntimeClassListLock = 0;
 
-// Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
-// _afxCriticalInit.
+// Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns _afxCriticalInit.
 BOOL __cdecl AfxCriticalInit();
 // lock type `lockType` entered (its critical section made on first use) / left.
 void __stdcall AfxLockGlobals(int lockType);

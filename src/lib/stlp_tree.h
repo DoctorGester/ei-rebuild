@@ -58,9 +58,8 @@ inline RbNodeBase* Previous(RbNodeBase* n) {
 }
 } // namespace rb
 
-// How a node's value is copied in (_M_create_node) and destroyed (destroy_node): its own copy
-// constructor and destructor. Holders whose copy the game writes as functions of the holder get
-// policies of their own.
+// How a node's value is copied in (_M_create_node) and destroyed (destroy_node): its own copy constructor and
+// destructor. Holders whose copy the game writes as functions of the holder get policies of their own.
 template <typename T>
 struct TreeElement {
     static void Copy(T* to, const T& from) { new (to) T(from); }
@@ -241,9 +240,8 @@ public:
         count_ = from.count_;
     }
 
-    // _M_insert(x, y, v): a new node as y's left child when y is the
-    // header, x is set or v's key is less than y's, else as its right; leftmost / rightmost kept,
-    // then rebalanced from the new node and counted.
+    // _M_insert(x, y, v): a new node as y's left child when y is the header, x is set or v's key is less than
+    // y's, else as its right; leftmost / rightmost kept, then rebalanced from the new node and counted.
     template <typename E = Element>
     Node* Insert(Node* x, Node* y, const Value& v) {
         Node* z;

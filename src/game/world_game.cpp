@@ -243,10 +243,9 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 
-// The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
-// catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
-// around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
-// corrupt.
+// The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world catch up with
+// the time spent away (one tick per elapsed unit, at most 1000, waking the units around the entrance).
+// Returns LoadSave's result, 0 when the file cannot be opened or is corrupt.
 int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone, mfc::CString& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;

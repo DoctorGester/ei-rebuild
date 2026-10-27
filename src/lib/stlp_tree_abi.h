@@ -1,10 +1,9 @@
 #pragma once
 
-// The exe's calling conventions of the map<K, V> members (stlp_tree.h), for registering one
-// instantiation's bodies at its addresses. Thiscalls are __fastcall with an unused EDX; iterators
-// are node pointers, passed by value and returned through a hidden pointer (EAX = that pointer).
-// E is how a value is copied into a node and destroyed (the instantiation's pair copy and
-// destructor).
+// The exe's calling conventions of the map<K, V> members (stlp_tree.h), for registering one instantiation's
+// bodies at its addresses. Thiscalls are __fastcall with an unused EDX; iterators are node pointers, passed
+// by value and returned through a hidden pointer (EAX = that pointer). E is how a value is copied into a node
+// and destroyed (the instantiation's pair copy and destructor).
 
 #include "crt.h"
 #include "stlp_tree.h"
@@ -168,8 +167,7 @@ struct TreeAbi : Map {
 
     // The pair<const K, V> value's members at the instantiation's addresses.
     struct ValueAbi : Value {
-        // pair<const K, V>(const K&, const V&): the key, then the value
-        // copied as a node's value is.
+        // pair<const K, V>(const K&, const V&): the key, then the value copied as a node's value is.
         Value* MakeValue(const K& key, const V& value) {
             E::Make(this, key, value);
             return this;
@@ -186,8 +184,7 @@ struct TreeAbi : Map {
     };
 };
 
-// Members that only move node pointers, one body for every instantiation.
-// An iterator.
+// Members that only move node pointers, one body for every instantiation. An iterator.
 struct TreeIterator {
     // The copy constructor.
     TreeIterator* CopyConstruct(const TreeIterator& from) {
@@ -199,8 +196,7 @@ struct TreeIterator {
 };
 // pair<iterator, bool>: the iterator, then the flag byte.
 struct TreeInsertResult {
-    // pair<iterator, bool>(const iterator&, const bool&): the flag byte
-    // stored alone.
+    // pair<iterator, bool>(const iterator&, const bool&): the flag byte stored alone.
     TreeInsertResult* Construct(const TreeIterator& iterator, const bool& flag) {
         node = iterator.node;
         inserted = flag;
@@ -212,8 +208,7 @@ struct TreeInsertResult {
 };
 // A counter that distance() adds to (ECX is the counter).
 struct TreeDistanceCount {
-    // __distance(first, last, n&, tag) with n in ECX: n raised by the
-    // number of steps from first to last.
+    // __distance(first, last, n&, tag) with n in ECX: n raised by the number of steps from first to last.
     void DistanceTagged(RbNodeBase* first, RbNodeBase* last, std::uint32_t /*tag*/) {
         for (; first != last; first = rb::Next(first)) ++count;
     }

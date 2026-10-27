@@ -14,9 +14,8 @@ namespace libcrt {
 
 namespace {
 
-// The exception record _CxxThrowException raises (the template): the C++ exception code,
-// not continuable, three parameters: the magic 0x19930520 (VC6's frame handler version), the object and
-// its throw information.
+// The exception record _CxxThrowException raises (the template): the C++ exception code, not continuable,
+// three parameters: the magic 0x19930520 (VC6's frame handler version), the object and its throw information.
 constexpr unsigned long kCxxExceptionCode = 0xE06D7363;
 constexpr unsigned long kCxxMagic = 0x19930520;
 

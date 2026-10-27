@@ -46,9 +46,8 @@ void DropPlayer(CWorldServer* world, CPlayer* player) {
         ->Apply(libcrt::FlushManipulator);
 }
 
-// Every unit of a connected player wakes the units within its hearing range (as SyncPlayer
-// computes it, with another margin: the server half's movement factor 3 and statistics B0
-// values 0 and 2).
+// Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with
+// another margin: the server half's movement factor 3 and statistics B0 values 0 and 2).
 void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
     auto& units = player->units_;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {

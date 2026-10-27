@@ -1,12 +1,11 @@
 #pragma once
 
-// MSVC 6's old iostream library (<iostream.h>) as the game's streams use it: streambuf, ios and the
-// ostream inserters, the constructors, destructors and streambuf's default virtuals
-// (src/lib/crt_iostream.cpp). The game's streams are its own objects (the console's eight ostreams and
-// their streambufs); these are their layouts. streambuf is a real class; ios and ostream's ios carry
-// compiled stand-ins of the exe's tables, which the constructors write: the console's
-// ostreams are constant-initialised statics that game.exe's data points at, which a class with a virtual
-// base cannot be.
+// MSVC 6's old iostream library (<iostream.h>) as the game's streams use it: streambuf, ios and the ostream
+// inserters, the constructors, destructors and streambuf's default virtuals (src/lib/crt_iostream.cpp). The
+// game's streams are its own objects (the console's eight ostreams and their streambufs); these are their
+// layouts. streambuf is a real class; ios and ostream's ios carry compiled stand-ins of the exe's tables,
+// which the constructors write: the console's ostreams are constant-initialised statics that game.exe's data
+// points at, which a class with a virtual base cannot be.
 
 #include <cstddef>
 #include <cstdint>

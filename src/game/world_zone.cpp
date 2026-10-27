@@ -1,6 +1,5 @@
-// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map
-// objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
-// docs/notes/world.md.
+// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
+// script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
 #include "core_refcount.h"

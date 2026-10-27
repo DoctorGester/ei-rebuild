@@ -317,9 +317,8 @@ mfc::CString* NameString(CMapObject* object) { return &object->name; }
 } // namespace
 
 int CWorldServer::CreateObject(mapspec::Spec* message) {
-    // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec),
-    // 5 a unit record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle
-    // source.
+    // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec), 5 a unit
+    // record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle source.
     auto* spec = static_cast<ObjectSpec*>(message);
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
@@ -496,8 +495,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
                 index = static_cast<unsigned>(prototype->modelIndex);
             } else {
                 // Rebirth's FixAddMapObject (context hook): no prototype record is logged ("Invalid unit's
-                // prototype") and
-                // index 0 used. Vanilla reads +8 of the null record (and crashes).
+                // prototype") and index 0 used. Vanilla reads +8 of the null record (and crashes).
                 if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixAddMapObject))
                     index = *reinterpret_cast<const volatile unsigned*>(reinterpret_cast<std::uintptr_t>(prototype) + 8);
                 else

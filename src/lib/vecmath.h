@@ -102,8 +102,7 @@ static_assert(sizeof(Matrix4) == 64);
 struct MatrixRows {
     float m[12];
 
-    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no
-    // translation). Returns out.
+    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no translation). Returns out.
     Vector3* Transform(Vector3* out, const Vector3* v) const;
 };
 static_assert(sizeof(MatrixRows) == 48);
@@ -302,10 +301,9 @@ __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
             (q.y * q.z + q.w * q.x) * 2.0f};
 }
 
-// The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component
-// rounded to float as those store it (V3e). Precise for the same reason: inlined into /fp:fast code,
-// `(z * x + y * w) * 2` was regrouped into (2zx + yw) + yw. By reference: a precise inlined body
-// spills scalar arguments to memory.
+// The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component rounded to float as those store
+// it (V3e). Precise for the same reason: inlined into /fp:fast code, `(z * x + y * w) * 2` was regrouped into
+// (2zx + yw) + yw. By reference: a precise inlined body spills scalar arguments to memory.
 __forceinline Vector3 RotatedAxisX(const Quaternion& q) {
     float xx = q.x * q.x;   // a float temporary
     return {(q.w * q.w - ((q.z * q.z + q.y * q.y) + xx)) + xx * 2.0f, (q.y * q.x + q.w * q.z) * 2.0f,

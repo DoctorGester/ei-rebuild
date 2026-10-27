@@ -496,8 +496,7 @@ void CWorldClient::ClearMaps() {
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
 
-    // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no
-    // destruction).
+    // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no destruction).
     platforms_.list.RemoveAll();
     dynamicObjects_.RemoveAll();
     dynamicNodes_.Clear();

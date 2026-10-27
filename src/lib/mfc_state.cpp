@@ -1,5 +1,4 @@
-// MFC 4.2's thread and process locals and AUX_DATA, registered at their library addresses
-// (mfc_state.h).
+// MFC 4.2's thread and process locals and AUX_DATA, registered at their library addresses (mfc_state.h).
 #include "mfc_state.h"
 
 #include "crt.h"

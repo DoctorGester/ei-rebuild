@@ -107,16 +107,14 @@ public:
         eos_ = start_ + n;
     }
 
-    // vector(const vector& x): room for exactly x.size elements (none when
-    // empty) holding copies of x's.
+    // vector(const vector& x): room for exactly x.size elements (none when empty) holding copies of x's.
     template <typename E>
     void CopyConstruct(const vector& x) {
         ConstructWithCapacity(x.size());
         finish_ = UninitializedCopy<E>(x.start_, x.finish_, start_);
     }
 
-    // _M_allocate_and_copy(n, first, last): a block of n elements holding copies
-    // of [first, last).
+    // _M_allocate_and_copy(n, first, last): a block of n elements holding copies of [first, last).
     template <typename E>
     static T* AllocateAndCopy(std::size_t n, const T* first, const T* last) {
         T* block = Allocate(n);
@@ -140,9 +138,8 @@ public:
         eos_ = fresh + len;
     }
 
-    // _M_fill_insert(pos, n, x): n copies of x before pos, in place when the room
-    // allows (x copied first by the policy, as it may be an element, and destroyed last), else
-    // through InsertOverflow.
+    // _M_fill_insert(pos, n, x): n copies of x before pos, in place when the room allows (x copied first by
+    // the policy, as it may be an element, and destroyed last), else through InsertOverflow.
     template <typename E>
     void FillInsert(T* pos, std::size_t n, const T& x) {
         if (n == 0) return;
@@ -205,8 +202,7 @@ public:
         eos_ = fresh + len;
     }
 
-    // erase(first, last): the tail assigned down, the left-over elements destroyed;
-    // returns first.
+    // erase(first, last): the tail assigned down, the left-over elements destroyed; returns first.
     template <typename E>
     T* EraseRange(T* first, T* last) {
         T* end = Copy<E>(last, finish_, first);
@@ -221,8 +217,7 @@ public:
         if (n < size()) EraseRange<E>(start_ + n, finish_);
         else FillInsert<E>(finish_, n - size(), x);
     }
-    // resize(n): resize(n, T) with a temporary the policy makes first and
-    // destroys last.
+    // resize(n): resize(n, T) with a temporary the policy makes first and destroys last.
     template <typename E>
     void ResizeDefault(std::size_t n) {
         alignas(T) unsigned char storage[sizeof(T)];
@@ -384,8 +379,7 @@ struct VectorAbi : vector<T> {
     void FillInsert(T* pos, std::size_t n, const T& x) {
         Vector::template FillInsert<E>(pos, n, x);
     }
-    // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (the last argument
-    // is not read).
+    // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (the last argument is not read).
     void RangeInsert(T* pos, const T* first, const T* last, const void*) {
         Vector::template RangeInsert<E>(pos, first, last);
     }

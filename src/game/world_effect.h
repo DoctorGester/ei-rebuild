@@ -353,9 +353,8 @@ public:
     ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
     int RunTick() override;                                   // Update(game tick), returns 0
-    // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at
-    // least 4) and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5.
-    // Returns out.
+    // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at least 4)
+    // and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5. Returns out.
     Vector3* FindPerch(Vector3* out, const Vector3* from);
     // The frame's step: `now` is the animation time (frames).
     void Update(float now);

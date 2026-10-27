@@ -22,8 +22,7 @@ static_assert(sizeof(DwordPair) == 8);
 
 // pair<const string, V> with a dword V (a pointer or an int).
 struct StringDwordPair {
-    // pair(const string&, const V&): the
-    // string copied (a block of size + 1), then the dword.
+    // pair(const string&, const V&): the string copied (a block of size + 1), then the dword.
     StringDwordPair* Construct(const string& first, const std::uint32_t& second);
 
     string first;
@@ -31,9 +30,8 @@ struct StringDwordPair {
 };
 static_assert(sizeof(StringDwordPair) == 0x10);
 
-// The list element policy (stlp_list.h) of pair<const string, dword> (the link loader's archive
-// list: _M_create_node, clear): copied by the pair's constructor, destroyed by
-// freeing the string's block.
+// The list element policy (stlp_list.h) of pair<const string, dword> (the link loader's archive list:
+// _M_create_node, clear): copied by the pair's constructor, destroyed by freeing the string's block.
 struct StringDwordElement {
     static void Copy(StringDwordPair* to, const StringDwordPair& from);
     static void Destroy(StringDwordPair* p) { p->first.~string(); }

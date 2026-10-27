@@ -343,8 +343,7 @@ double Weight(CUnitServer* controller) {
     return std::sqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
 }
 
-// Without a player: the single heroes of every player share `amount` in proportion to their
-// weights.
+// Without a player: the single heroes of every player share `amount` in proportion to their weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.Size() == 0) return;
     ShareList list{mfc::impl::ExperienceListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};

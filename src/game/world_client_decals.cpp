@@ -1,8 +1,7 @@
-// The client world's decal projector (object shadows, ground prints).
-// The decal builder (ground_decal.h) is a function-local static of the original game, as is the work
-// array of transformed part points; both are made on first use and freed at exit by the original's
-// handlers. The builder's members are called through their addresses. See docs/notes/models.md
-// ("Ground prints").
+// The client world's decal projector (object shadows, ground prints). The decal builder (ground_decal.h) is a
+// function-local static of the original game, as is the work array of transformed part points; both are made
+// on first use and freed at exit by the original's handlers. The builder's members are called through their
+// addresses. See docs/notes/models.md ("Ground prints").
 #include "world.h"
 #include "at_exit_functions.h"
 

@@ -52,8 +52,7 @@ constexpr float kClearance = 0.5f;            // above the ground, the sight thr
 // the floats 0.03 and 0.3 widened).
 constexpr double kSpeedFactor = static_cast<double>(0.03f);
 constexpr double kSpeedBase = static_cast<double>(0.3f);
-// FindPerch: the eye 1.5 above the start, radius 50 less 5 each
-// try but at least 4, height 30 rising by 3.
+// FindPerch: the eye 1.5 above the start, radius 50 less 5 each try but at least 4, height 30 rising by 3.
 constexpr float kEyeHeight = 1.5f;
 constexpr float kPerchRadius = 50.0f;
 constexpr float kPerchRadiusStep = 5.0f;

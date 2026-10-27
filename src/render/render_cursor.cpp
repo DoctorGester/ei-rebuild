@@ -189,10 +189,9 @@ bool Refused(Refusal why) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// Verify build: the back buffer the cursor thread drew, read back and checked against the frame, the
-// cursor's texels where their alpha is a half or more and the gamma ramp as uploaded (one to one
-// placement only; a channel off by more than one counts as a difference); kept for the harness
-// (ReadCursorPresent).
+// Verify build: the back buffer the cursor thread drew, read back and checked against the frame, the cursor's
+// texels where their alpha is a half or more and the gamma ramp as uploaded (one to one placement only; a
+// channel off by more than one counts as a difference); kept for the harness (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
 ID3D11Texture2D* g_readback[2] = {nullptr, nullptr};   // the back buffer and the frame

@@ -1,10 +1,9 @@
-// The smooth option's multisampling (docs/notes/renderer.md section 11): render.cpp draws the
-// world view's commands into a multisampled colour and depth target and resolves the colour into the
-// frame target at the end of each such pass; the interface draws into the frame target as without the
-// option. Here: the sample count the device gives and the two copies between the targets where the
-// frame changes from one to the other (the frame target's colour and depth into every sample before a
-// world run that follows interface draws; sample 0 of the multisampled depth into the frame target's
-// depth after a world run).
+// The smooth option's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
+// commands into a multisampled colour and depth target and resolves the colour into the frame target at the
+// end of each such pass; the interface draws into the frame target as without the option. Here: the sample
+// count the device gives and the two copies between the targets where the frame changes from one to the other
+// (the frame target's colour and depth into every sample before a world run that follows interface draws;
+// sample 0 of the multisampled depth into the frame target's depth after a world run).
 #include "render.h"
 #include "render_internal.h"
 
