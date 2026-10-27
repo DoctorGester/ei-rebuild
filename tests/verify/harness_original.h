@@ -37,13 +37,6 @@ F OriginalCode(std::uintptr_t address) {
     return reinterpret_cast<F>(address);
 }
 
-// The game's function at game.exe's `address` in either run: in the image the code its registration gives the address
-// (ei::Code, src/standalone/image_code.cpp), in game.exe the original itself.
-template <class F>
-F GameCode(std::uintptr_t address) {
-    return ei::Standalone() ? ei::Code<F>(address) : OriginalCode<F>(address);
-}
-
 // game.exe's CRT rand() seed of the calling thread: _tiddata::_holdrand, +0x14 of what game.exe's _getptd
 // (006F00D1, which allocates the block on first use) returns. game.exe's runs only.
 inline unsigned& OriginalRandState() {

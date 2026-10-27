@@ -279,7 +279,8 @@ void __fastcall CaptureThenCursorLock(void* cursor) {
         if (g_skip > 0) --g_skip;
         else Capture();
     }
-    ei::verify::GameCode<void(__fastcall*)(void*)>(kCursorLock)(cursor);
+    if (ei::Standalone()) ei::verify::image::CursorLock(cursor);
+    else ei::verify::OriginalCode<void(__fastcall*)(void*)>(kCursorLock)(cursor);
 }
 
 } // namespace

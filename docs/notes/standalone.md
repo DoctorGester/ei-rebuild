@@ -1677,7 +1677,8 @@ the `--no-hooks` suite) keeps the registry.
   CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
   from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN), 434 after C20f (the code literals now take the function by name: the exit functions
   `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`),
-  287 after C20 batch 2 (gen_static_init calls by name: static_exit.cpp's 26 became EI_REWRITTEN, 121 more dropped).
+  287 after C20 batch 2 (gen_static_init calls by name: static_exit.cpp's 26 became EI_REWRITTEN, 121 more dropped), 282
+  after C20h (the harness's image side calls by name).
 - **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
   | reader | registrations | needs game.exe's code addresses? |
   |---|---|---|
@@ -1685,7 +1686,7 @@ the `--no-hooks` suite) keeps the registry.
   | static init / exit (static_init.cpp's calls and d.AtExit by address) | 178; 29 after batch 2 (the anonymous-namespace initialisers of the files C14a held) | yes, until those have a name too; batch 2's generator calls every other port by name |
   | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
   | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 3 (was 129; C20f) | yes: GameMain (the hook's entry, HasCode / kGameWinMain), DestroyScriptQuestName (script_exec_helpers.cpp, C14a holds it); GameInfoRecord::Write is no literal (its address is the text section's first byte, kGameTextBegin) |
-  | the harness's image side (GameCode<F> of FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, the cursor lock) | 5 | yes, until those become hook points or tests/verify/image calls |
+  | the harness's image side (ei::Code / CodeAddress / HasCode in tests/verify) | 0 (was 5; C20h) | no: the five calls the harness's hooks end with (FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, CCursor::TakeLock) call ours by name in the image (tests/verify/image, image_side.h's ServerUpdate .. CursorLock) and game.exe's by address in its runs (OriginalCode) |
   | the harness's game.exe side (OriginalCode, JumpTo / RedirectCall, address tables), tests/vectors' recorders | 0 | no: they patch / record game.exe's own code; replays call by name |
   | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |
   | check_registrations, check_thunks, standalone_gaps | 0 | no: they check the registrations themselves; they shrink with them |

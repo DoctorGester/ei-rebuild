@@ -3387,7 +3387,7 @@ title = "Registrations: the harness's 5 GameCode calls (FrameStep, CCamera::Upda
 group = "cleanup"
 model = "opus"
 depends = ["C19"]
-note = "C20 batch 1's plan, batch 4: the harness's image side calls these five by game.exe address (GameCode); give them hook points or by-name calls so their registrations can drop. Needs the original suite once."
+note = "Done (review): the harness's hooks that end with FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update and CCursor::TakeLock call ours by name in the image (tests/verify/image/image_side.h ServerUpdate, ClientSegment, CameraUpdate, FrameStep, CursorLock; harness_objects_image.cpp) and game.exe's by address in its runs (OriginalCode); GameCode is gone. Registrations 434 -> 429 (the five EI_REWRITTEN); registration_readers' harness reader 5 -> 0. Left: static init 178 (C20 batch 2), code literals 3 (GameMain, DestroyScriptQuestName), unread 248 (210 short C20e, particle_create 11, C14a's files). Image suite 121 same, original suite 114 same."
 
 [[ticket]]
 id = "S"

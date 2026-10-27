@@ -515,7 +515,7 @@ void CCamera::Update(float dt) {
     }
     localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }
-EI_REPLACE_METHOD(0x0040FB30, CCamera::Update);
+EI_REWRITTEN(0x0040FB30, CCamera::Update);
 
 void CCamera::ZoomBy(float steps) {
     double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance_;
