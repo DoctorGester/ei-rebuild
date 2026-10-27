@@ -35,7 +35,6 @@ inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
 inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 namespace console { class ConsoleWindow; }
-class CFigureManager;
 class CItem;
 class CParty;
 class CUnit;
@@ -735,7 +734,6 @@ constexpr int kKeyActionCount = 0x200;
 // The battle screen owns a row of panel windows and forwards mouse events to the panel whose rectangle
 // holds the point. Coordinates are the 800x600 layout (Rebirth moves some panels).
 
-class CItem;
 class CHudQuickItems;
 class CHudSpellColumn;
 class CHudActionColumn;

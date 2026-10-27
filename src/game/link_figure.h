@@ -18,8 +18,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CLight;
-
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {

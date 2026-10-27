@@ -165,32 +165,11 @@ void DestructArrayOf(CArray<T, E>& a) {
 // CompiledCollection); the element policies and aliases below only name them. What each is: mfc_slots.h.
 
 struct IntArrayClass;
-struct UnitPtrArrayClass;
-struct FloatArrayClass;
-struct ArgFloatArrayClass;
-struct ObjectRefArrayClass;
-struct ScriptGroupClass;
-struct ScriptFloatsClass;
 struct ScriptAreaClass;
-struct ScriptIfThenArrayClass;
-struct PartySlotArrayClass;
 struct AiLookArrayClass;
-struct SpriteArrayClass;
 struct BoneLinkArrayClass;
 struct WaypointArrayClass;
-struct ExitArrayClass;
-struct MapRecordItemsClass;
-struct PointArrayClass;
-struct AttackOptionArrayClass;
-struct AnimationStepsClass;
-struct AnimationStepsCopyClass;
-struct ClientMapArrayClass;
-struct ObjectPtrArrayClass;
-struct SectorArrayClass;
-struct CellRowArrayClass;
-struct AreaListClass;
 struct ScriptAreaPartsClass;
-struct StringArrayClass;
 struct ArrayBaseClass;
 struct AiLookRecordArrayClass;
 

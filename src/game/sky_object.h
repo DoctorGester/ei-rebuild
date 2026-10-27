@@ -17,8 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTexture;
-
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.

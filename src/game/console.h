@@ -18,7 +18,6 @@
 namespace libcrt { class Streambuf; }
 namespace mfc::impl { struct CStdioFile; }
 namespace mfc::impl { class CFont; }
-struct SpeechRecord;
 class CInterface3D;
 class CUiContainer;
 class CUiSurface;

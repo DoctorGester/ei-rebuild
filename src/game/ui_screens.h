@@ -724,7 +724,6 @@ static_assert(offsetof(CMainMenu, hour_) == 0x170);
 static_assert(sizeof(CMainMenu) == 0x17C);
 
 // Trading between two players (screen 9, Xch_* texts). Multiplayer only.
-class CParty;
 class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:

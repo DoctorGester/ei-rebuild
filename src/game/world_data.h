@@ -13,7 +13,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-class CInterface3D;
 class CLight;
 struct QuestBriefingRecord;
 

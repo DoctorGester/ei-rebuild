@@ -14,7 +14,6 @@ const mfc::CString* GameBasePathString();
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
 int __stdcall FinishQuestMap(const char* name);
 
-class CScript;
 struct NamedFloatTable;
 
 // A script's last error as callers take it (copied out of the script): the text, the code and the line.
@@ -42,7 +41,6 @@ void __cdecl StoreStartFolder();
 #include <cstdint>
 #include <string>
 
-class CEngineObject;
 class CPlayerClient;
 class CUnit;
 struct PartyUnitRecord;

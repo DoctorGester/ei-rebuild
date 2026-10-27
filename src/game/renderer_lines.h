@@ -11,7 +11,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CSceneRenderer;
 class CTextureDevice;
 class CTransformPipeline;
 

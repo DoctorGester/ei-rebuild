@@ -21,7 +21,6 @@ class CMapObjectClientSpecific;
 class CMapObjectCompanion;
 struct DeltaState;
 class CMemoryStream;
-class Terrain;
 
 // An active effect (CArray).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
@@ -72,7 +71,6 @@ constexpr int kShrink = 0x26;          // scale down
 } // namespace mapeffect
 
 struct DamageInfo;
-struct AttackParams;
 struct UnitStats;
 struct LockKey;
 

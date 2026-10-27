@@ -54,7 +54,6 @@ struct MeshBuffers {
 static_assert(sizeof(MeshBuffers) == 0x30);
 
 class CObject3D;
-class CBaseManager;
 class CFigureMesh;
 class CPixelConverter;
 

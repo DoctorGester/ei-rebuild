@@ -271,7 +271,6 @@ static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(Particle
 
 class CParticleSource;
 class CObject3D;
-class CTexture;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class CParticleManager;

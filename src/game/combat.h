@@ -207,7 +207,6 @@ struct ArmourSpell {
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = mfc::CList<ArmourSpell>;
 
-class CWorldServer;
 class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);

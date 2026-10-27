@@ -23,7 +23,6 @@ class CItem;
 class CItemConstructor;
 struct CItemManager;
 class CParty;
-class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
 class ChunkArchive;

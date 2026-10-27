@@ -161,23 +161,6 @@ void InitMap(CMap<std::uint32_t, std::uint32_t>* p) {
 
 // ---- The instantiations' vtables (game data) ------------------------------------------------------
 
-struct PtrListClass;
-struct ItemListClass;
-struct TempListClass;
-struct CellListClass;
-struct LootListClass;
-struct PlatformListClass;
-struct ClientListClass;
-struct ClientList2Class;
-struct ClientList3Class;
-struct NodeListClass;
-struct BlockCostListClass;
-struct AiMapListClass;
-struct WaypointListClass;
-struct StaticListClass;
-struct DwordMapClass;
-struct ScriptCommandsClass;
-
 // ---- Elements ------------------------------------------------------------------------------------
 
 // 8-byte lightning records: 0, then -1.

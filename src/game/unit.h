@@ -33,7 +33,6 @@ struct UnitModelRecord;
 struct SkillLevelRecord;
 struct SkillDatabase;
 struct DamageInfo;
-struct FootprintPart;
 
 constexpr int kClassUnit = 0x50;
 
@@ -109,7 +108,6 @@ static_assert(offsetof(UnitParams, attributes) == 0xD8);
 static_assert(offsetof(UnitParams, flags) == 0x107);
 static_assert(sizeof(UnitParams) == 0x108);
 
-struct AIPath;
 struct PathOrder;
 struct SpeechRecord;
 class CObject3D;
@@ -563,8 +561,6 @@ struct UnitStatPair {
 };
 static_assert(sizeof(UnitStatPair) == 8 && offsetof(UnitStatPair, current) == 4);
 
-struct UnitStats;
-
 // The hit points, mana and protection of a unit as the server keeps them (party records keep one too).
 struct UnitVitals {
     // Every 15th call mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns 1 when
@@ -891,7 +887,6 @@ static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 static_assert(sizeof(UnitStats) == 0x704);
 
-struct DamageInfo;
 // Resets a hit: all weights 1, multiplier 1, attackRoll and amount 3.4e36, location 6, the rest 0.
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info);
 // Has the hit a non-zero weight for damage type 3, 4 or 5 (NaN counts as zero)?

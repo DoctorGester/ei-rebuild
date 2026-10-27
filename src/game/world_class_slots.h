@@ -6,14 +6,7 @@
 
 #include <cstdint>
 
-class CBaseManager;
-class CMaterialManager;
 class CEngineObject;
-class CFigureManager;
-class CLightningManager;
-struct CItemManager;
-class CParticleManager;
-class CTextureManager;
 
 // GetClassName / GetClassId of the vtable named in the comment.
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // "CI3DFigure"

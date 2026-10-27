@@ -44,7 +44,6 @@ struct CItemManager;
 class CParty;
 class CParticleSource;
 class CAIMap;
-class CPlayerServer;
 class CPlayerConnection;
 class CPlayerClient;
 class CScript;
