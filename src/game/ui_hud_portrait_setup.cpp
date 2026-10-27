@@ -238,14 +238,10 @@ void CHudPortraits::Rebuild(int wide) {
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
-        FigurePrototypeRecord* figure;
-        {
-            figure = reinterpret_cast<FigurePrototypeRecord*>(
-                unitdb::ModelNamed(stlp::string(prototype->modelName.c_str())));
-        }
-        SexOf(figure->model, sex);
+        const UnitModelRecord* figure = unitdb::ModelNamed(stlp::string(prototype->modelName.c_str()));
+        SexOf(figure->figureName.c_str(), sex);
         build = "me";
-        model = str::Format("infa%s%s%dface", figure->model.GetString(), build.c_str(), prototype->hair + 1);
+        model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
         picture = str::Format("face%s%02d", sex.GetString(), prototype->skin);
         AddPortrait(model.c_str(), picture.c_str(), wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];

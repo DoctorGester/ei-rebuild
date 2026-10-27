@@ -348,6 +348,13 @@ to which template:
   compiles silently through a cast or a `void*` parameter and is then read as a CString
   (`reinterpret_cast<StringOps*>(&text)` in Tokenize, caught by the script-load vectors; `ComposeSkin(1, &name)`'s
   `void*` target, a crash in every scenario with a hero).
+- A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
+  error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
+  member: `CMapObjectManager::NewObject`'s factory allocated 0x4DC / 0x238 / ... bytes for each class id (now
+  sizeof(T); heap corruption C0000374 about a second into every run once CUnit and CMapObject grew), and
+  `FigurePrototypeRecord` read a model record's figure name as a CString at +0xE8 (the multiplayer HUD portraits;
+  now the UnitModelRecord itself). Structs that pad up to an offset (`unused_000[0xE8]`) over another class are the
+  same hazard.
 - Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
   with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
