@@ -182,7 +182,7 @@ public:
     void Destroy() override;
     int RunTick() override;   // 1
 
-    // The manager context's getters (slots 13-23; their short functions keep the registrations).
+    // The manager context's getters (their short functions keep the registrations).
     CWorld* ThisWorld() override { return this; }
     CBaseManager* TimedObjectManager() override { return manager48_; }
     CBaseManager* FigureManager() override { return manager3C_; }
@@ -633,7 +633,7 @@ public:
     // world_party.cpp
     // Moves quest items (class 0x14) from `itemArray` (a CArray of item pointers) to `list` (CPtrList):
     // in single player only those whose description names this zone or whose id an object of the zone
-    // asks for (object slots 38/40); otherwise all.
+    // asks for (the object's quest-item virtuals); otherwise all.
     void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
@@ -1260,7 +1260,7 @@ public:
     int LoadNewItemsAndSpells(CStream* block);
     // Takes the object `id` out of the maps: the platform-set face entries for it, its dynamicObjects_
     // node and dynamicNodes_ entry, then (when it is in objects_) the heroes_ entries of a hero with a
-    // text-key id (and its controller's slot in a session of kind 3), its grid cell and objects_; the
+    // text-key id (and its controller's entry in a session of kind 3), its grid cell and objects_; the
     // object is released.
     void RemoveObject(int id);
     // Empties the maps: both sector grids' cells, the platform faces and dynamicObjects_, dynamicNodes_,

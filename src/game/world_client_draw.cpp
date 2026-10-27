@@ -606,7 +606,7 @@ int CWorldClient::DrawPass() {
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;
-                        // The side half's slots 25 (empty) and 26 with 0: the marker light goes off.
+                        // The side half's empty virtual and SetLit with 0: the marker light goes off.
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);
                     }

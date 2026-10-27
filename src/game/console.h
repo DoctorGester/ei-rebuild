@@ -46,8 +46,8 @@ public:
 };
 static_assert(sizeof(CStringArray) == 0x14);
 
-// The virtual slots of a CStdioFile for code that writes through the file's
-// vtable (generateacks' line writers). Declared only.
+// The virtuals of a CStdioFile for code that writes through the file's vtable (generateacks' line
+// writers). Declared only.
 class __declspec(novtable) CStdioFileVirtuals : public mfc::CFileVirtuals {
 public:
     virtual void WriteString(const char* text);

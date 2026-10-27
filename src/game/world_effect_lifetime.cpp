@@ -59,7 +59,7 @@ EI_REWRITTEN_SPECIAL(0x0067B430, CEffect::~CEffect);
 int CEffect::RunTick() { return 1; }
 EI_REWRITTEN(0x00676900, CEffect::RunTick);
 
-// --- The class names and ids (slots 11 / 12; the exe's strings) ------------------------------------
+// --- The class names and ids (GetClassName / GetClassId; the exe's strings) ------------------------------------
 
 const char* CEffectSound::GetClassName() { return "CEffectSound"; }
 int CEffectSound::GetClassId() { return 0x48; }

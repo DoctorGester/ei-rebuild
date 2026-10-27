@@ -1,5 +1,5 @@
-// Lights and the light manager (A-H23): CLight's lifetime and setters, CLightFactory
-// ("CLightManager") lifetime and object creation. See spell.h and docs/notes/items_spells.md.
+// Lights and the light manager: CLight's lifetime and setters, CLightFactory ("CLightManager")
+// lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "spell.h"
 
 #include "core_transform.h"

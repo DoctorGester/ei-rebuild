@@ -1,12 +1,12 @@
 #pragma once
 
-// The shadow rasteriser's target (texture.h's CPixelConverter slots 8 / 9, CFigureMesh::Rasterise),
-// without the Windows headers texture.h brings.
+// The shadow rasteriser's target (texture.h's CPixelConverter triangle rasterisers,
+// CFigureMesh::Rasterise), without the Windows headers texture.h brings.
 
 #include <cstddef>
 #include <cstdint>
 
-// The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
+// The start of the target the pixel converter's triangle rasterisers read: a shadow
 // triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed
 // texture's texels; the surface follows (RasterTarget).
 struct RasterTriangle {

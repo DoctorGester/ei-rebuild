@@ -1,5 +1,5 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
-// drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
+// drawing and update, and the small virtuals. See ui.h and docs/notes/ui.md.
 #include "model.h"
 #include "options.h"
 #include <bit>

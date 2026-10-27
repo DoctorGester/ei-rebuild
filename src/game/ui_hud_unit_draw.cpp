@@ -6,7 +6,7 @@
 // addresses. The function drives
 // the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
 // made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
-// See ui.h (CHudUnitPanel) and docs/notes/items_spells.md ("A-H26").
+// See ui.h (CHudUnitPanel) and docs/notes/items_spells.md.
 #include "device.h"   // the old device's calls
 #include "ui.h"
 

@@ -995,8 +995,8 @@ void CWorldClient::ResetZoneObjects() {
 // ---- The selection --------------------------------------------------------------------
 
 namespace {
-// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's slots 25 (empty) and
-// 26 with 0 (its light goes off).
+// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
+// with 0 (its light goes off).
 void Unhighlight(CEngineObject* object) {
     object->flags_ &= ~0x110u;
     CObject3DSpecific* half = ObjectSlots(object)->attached;
