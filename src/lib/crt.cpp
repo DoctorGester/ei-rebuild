@@ -25,7 +25,6 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-// The image's heap.
 void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
 void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
 void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
@@ -368,8 +367,6 @@ unsigned char* __cdecl Mbslwr(unsigned char* text) {
 }
 EI_REWRITTEN(0x006EC8A8, libcrt::Mbslwr);
 
-// ---- rand / srand ----
-
 namespace {
 // The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
 unsigned& RandSeed() {
@@ -631,7 +628,6 @@ EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 namespace libcrt::imports {
 
 namespace {
-// The import as the thunk's function type.
 template <typename F>
 F Slot(F, FARPROC import) { return ei::ImportAs<F>(import); }
 } // namespace

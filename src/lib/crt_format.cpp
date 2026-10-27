@@ -24,7 +24,6 @@ namespace {
 
 // The locale state is crt_locale_data.h's (the host CRT's): ei_vectors replays the conversions with the decimal
 // point and class words recorded in the game (tests/vectors/crt_format_vectors.h).
-// _pctype: the class word of a byte; a negative char indexes the words before.
 unsigned short CharClass(int c) { return CharClasses()[c]; }
 constexpr unsigned short kDigit = 0x4;
 constexpr unsigned short kLeadByte = 0x8000;
@@ -57,7 +56,6 @@ void ShiftRight(Ld12& x) {
     Set32(x, 2, med >> 1 | hi << 31);
     Set32(x, 4, hi >> 1);
 }
-// ___add_12: x += y modulo 2^96.
 void Add(Ld12& x, const Ld12& y) {
     std::uint64_t sum = static_cast<std::uint64_t>(Get32(x, 0)) + Get32(y, 0);
     Set32(x, 0, static_cast<std::uint32_t>(sum));
@@ -69,7 +67,6 @@ void Add(Ld12& x, const Ld12& y) {
 
 void PutZero(Ld12& x) { x = Ld12{}; }
 void PutInfinity(Ld12& x, std::uint16_t sign) { x = Ld12{{0, 0, 0, 0, 0x8000, static_cast<std::uint16_t>(0x7FFF | sign)}}; }
-// ISZERO_12: the mantissa and exponent, not the sign.
 bool IsZero(const Ld12& x) { return (Get32(x, 4) & 0x7FFFFFFF) == 0 && Get32(x, 2) == 0 && Get32(x, 0) == 0; }
 
 // __ld12mul: x *= y. Only the partial products of the upper 96 bits are summed, a carry out
@@ -366,7 +363,6 @@ Decimal ToDecimal(double value, char* digits) {
     return Decimal{out.sign, out.exponent, digits};
 }
 
-// _shift: moves the string `distance` places right.
 void ShiftText(char* text, int distance) {
     if (distance) std::memmove(text + distance, text, std::strlen(text) + 1);
 }
@@ -526,7 +522,6 @@ int WideToBytes(char* to, wchar_t c) {
 
 // ---- _output ----
 
-// FL_* flags.
 constexpr unsigned kSignPlus = 0x1;
 constexpr unsigned kSignSpace = 0x2;
 constexpr unsigned kLeft = 0x4;
@@ -552,7 +547,6 @@ constexpr unsigned char kFormatLookup[89] = {
 };
 enum State { kNormal, kPercent, kFlag, kWidth, kDot, kPrecision, kSize, kType };
 
-// ANSI_STRING / UNICODE_STRING (%Z).
 struct CountedString {
     short length;
     short maximum;
