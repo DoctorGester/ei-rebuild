@@ -2791,7 +2791,7 @@ title = "Registrations: drop the unread ones C20c left in C19's files and the ge
 group = "cleanup"
 model = "sonnet"
 depends = ["C19"]
-note = "After C20 batch 1: registration_readers counts only run-time readers (the short-generator reader is gone). 210 EI_REPLACE_SHORT of short_functions.cpp and 11 hand ones in particle_create.cpp are unread: make gen_short_functions.py write a short function only where something reads its address (registration_readers' static init / code literal readers: 13 today) and drop the rest. Also --drop the 38 unread registrations C20 batch 1 left in the files C14a held (script_*, console_streams, mfc_string, string_map, mfc_coll) once C14a is merged."
+note = "Done: gen_short_functions.py writes EI_REPLACE_SHORT only where registration_readers.read_addresses() finds a run-time reader (none today) and an EI_REWRITTEN line otherwise (the map keeps all 199); the 11 hand ones in particle_create.cpp are EI_REWRITTEN. Registrations 287 -> 72 (63 EI_REPLACE, 9 EI_REPLACE_METHOD; 282 after C20h merged). check_signatures skips templated names (LoadDword<0x24>). Left: the 40 unread in C14a's files (script_parse*, script_exec_helpers, script_unit_modes, console_streams, string_map, mfc_string, mfc_coll): run registration_readers.py --drop on them after C14a merges."
 
 [[ticket]]
 id = "C20f"
