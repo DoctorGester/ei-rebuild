@@ -645,7 +645,6 @@ EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 namespace {
 // The lists RefreshItemSpells uses.
 using UnitItems = mfc::CTypedPtrList<CItem>;
-using SpellList = mfc::CTypedPtrList<CSpell>;
 using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
@@ -653,7 +652,7 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 
 void CUnitServer::RefreshItemSpells() {
     UnitItems items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    SpellList others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    mfc::CTypedPtrList<CSpell> others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     unit->CollectItems(&items, &others);
     // Weapons other than the one in use do not count.
     for (UnitItems::Node* node = items.head; node;) {

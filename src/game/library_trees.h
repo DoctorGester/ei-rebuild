@@ -71,13 +71,11 @@ using ItemCache = stlp::TreeAbi<ItemObjectCache::Map>;
 // The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
 // The interface's help topics (0x18-byte nodes, CString keys by _mbscmp).
-using HelpTopicMap = stlp::map<mfc::CString, int, stlp::CStringLess>;
-using HelpTopics = stlp::TreeAbi<HelpTopicMap>;
+using HelpTopics = stlp::TreeAbi<stlp::map<mfc::CString, int, stlp::CStringLess>>;
 // The "pers" texts by text key (ui_camp.h; 0x18-byte nodes).
 using PersonTexts = stlp::TreeAbi<PersonTextMap>;
 // The global map's arrival times by exit (CGlobalMap::arrivals_; 0x18-byte nodes).
-using ArrivalMap = stlp::map<int, float>;
-using Arrivals = stlp::TreeAbi<ArrivalMap>;
+using Arrivals = stlp::TreeAbi<stlp::map<int, float>>;
 static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 

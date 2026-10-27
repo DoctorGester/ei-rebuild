@@ -43,9 +43,6 @@ using mfc::impl::Map32;   // CMap<DWORD, DWORD>: GetAssocAt, operator[], the des
 struct FileUv {
     std::uint32_t v[3];   // u, v, unused
 };
-using FilePointArray = mfc::CArray<PointBits>;                // A: 12-byte positions
-using FileUvArray = mfc::CArray<FileUv>;                      // B
-using FileFaceArray = mfc::CArray<FileFace>;                  // C
 using GroupRecordArray = recordarrays::FaceGroups::Array;     // D
 // The file's key records: the frame word, then the values (the loader copies them through the
 // FPU into the node's keys).
@@ -141,9 +138,9 @@ static_assert(sizeof(GroupHeader) == 6);
 
 // The arrays of one record, local to the loader.
 struct RecordArrays {
-    FilePointArray points;       // A
-    FileUvArray texCoords;       // B
-    FileFaceArray faces;         // C
+    mfc::CArray<PointBits> points;       // A
+    mfc::CArray<FileUv> texCoords;       // B
+    mfc::CArray<FileFace> faces;         // C
     GroupRecordArray groups;     // D
     RotKeyRecords rotKeys;       // E
     PosKeyRecords posKeys;       // F

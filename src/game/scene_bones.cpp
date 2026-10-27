@@ -30,7 +30,6 @@ using PointArray = lib::AlignedArray<Vector3>;
 constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
 // Out-of-line SetSize [size, growth or -1]: the morph frames'; the aligned arrays' (a frame's points, the children;
 // a frame's points copied) are their members.
-using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
 
 
 // (a - b) / (c - b) as FILD (a - b), FIDIV (c - b), FSTP: one rounded division of exact integers.
@@ -79,7 +78,7 @@ const PointArray& KeyPoints(const SceneNode* node, int key) { return node->morph
 // first), at a key the points from it towards the next one through the out-of-line vector helpers
 // (or a copy of the last key).
 void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
-    MorphFrames& frames = bone->morphFrames_;
+    mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>& frames = bone->morphFrames_;
     int key = 0;
     int previousFrame = 0;
     float t = 0.0f;

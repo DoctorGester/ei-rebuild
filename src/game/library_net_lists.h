@@ -16,7 +16,6 @@ namespace netlists {
 // ---- list<SentItem> (a packet's items, 20-byte nodes from the pool) --------------------------------
 
 using SentRecord = net::SentItem;
-using SentItems = stlp::list<SentRecord>;
 
 // _M_create_node's copy: the action and version, the entry with one more reference (its 16-bit count; a null
 // entry stays null). Destroyed with the entry's release. insert(pos) copies a default item: the game leaves
@@ -42,7 +41,6 @@ struct SentRecordElement {
 // operator new) -------------------------------------------------------------------------------------
 
 using PacketRecord = net::SentPacket;
-using SentPackets = stlp::list<PacketRecord>;
 
 // _M_create_node's copy: the time, the sequence (not the word after it), the items by
 // the list's copy constructor (a sentinel, then a copy of each item), the header's 0x104 bytes and
@@ -59,7 +57,6 @@ struct PacketRecordElement {
 // ---- list<vector<FreedId>> (the freed-id batches, 20-byte nodes from the pool) ---------------------
 
 using FreedIds = net::FreedIds;
-using FreedBatches = stlp::list<FreedIds>;
 
 // _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none when empty). Destroyed
 // with its storage back to the pool, by its capacity. insert(pos) copies an empty vector.
@@ -82,13 +79,6 @@ struct ChunkElement {
     static void Destroy(net::ReliableChunk*) {}
     static void Default(net::ReliableChunk* p) { *p = net::ReliableChunk{}; }
 };
-
-// ---- The members -----------------------------------------------------------------------------------
-
-using SentItemAbi = stlp::ListAbi<SentRecord, SentRecordElement>;
-using SentPacketAbi = stlp::ListAbi<PacketRecord, PacketRecordElement>;
-using FreedBatchAbi = stlp::ListAbi<FreedIds, FreedIdsElement>;
-using ChunkAbi = stlp::ListAbi<net::ReliableChunk, ChunkElement>;
 
 // ---- The session's clients (list<Connection*>, counted) ---------------------------------------------
 

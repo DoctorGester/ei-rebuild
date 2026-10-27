@@ -255,10 +255,9 @@ static_assert(sizeof(HandlerVector) == 12);
 // The message type registry of a session.
 struct TypeRegistry {
     using ByVtable = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
-    using ByType = stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash>;
 
     ByVtable byVtable;     // message vtable -> type id (100 buckets)
-    ByType byType;         // type id -> factory (100 buckets)
+    stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash> byType;         // type id -> factory (100 buckets)
 
     // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {

@@ -3,8 +3,8 @@
 // The game's STLport list<T> instantiations over game records (the plain-data and reference
 // holder ones are in src/lib/stlp_list.cpp): an element policy per record (how _M_create_node
 // copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the record's
-// constructors and destructors, and the ListAbi adapters they are registered with
-// (record_lists.cpp). Node sizes read from each instantiation's node creation.
+// constructors and destructors; callers pass them to stlp::list<T>'s members (`Insert<TitleLineElement>`).
+// Node sizes read from each instantiation's node creation.
 
 #include "chunk_archive.h"
 #include "core_streams.h"
@@ -104,14 +104,5 @@ struct TitleLineElement {
         std::construct_at(&to->style, from.style);
     }
 };
-
-using ChunkStack = stlp::ListAbi<ChunkRef, ChunkRefElement>;
-using Trades = stlp::ListAbi<TradeRecord, TradeElement>;
-using StreamQueue = stlp::ListAbi<CMemoryStream, QueueStreamElement>;
-using LinkArchives = stlp::ListAbi<LinkArchive, LinkArchiveElement>;
-using BloodPrints = stlp::ListAbi<BloodPrint, BloodPrintElement>;
-using Footprints = stlp::ListAbi<Footprint, FootprintElement>;
-using ScorchMarks = stlp::ListAbi<GroundPrint, ScorchMarkElement>;
-using TitleLines = stlp::ListAbi<TitleLine, TitleLineElement>;
 
 } // namespace recordlist

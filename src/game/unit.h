@@ -963,7 +963,6 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
                                 const char* suffix);
 
 using EffectParticleArray = mfc::CArray<EffectParticle>;
-using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.
@@ -1019,7 +1018,7 @@ public:
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
     EffectParticleArray particles;  // the effect particles
-    EffectSoundArray sounds;        // the looping effect sounds
+    mfc::CArray<EffectSoundRecord> sounds;        // the looping effect sounds
     HeldObject<CLight> light;       // counted
     int endSound;           // the end sound's handle (-1 none)
 };
