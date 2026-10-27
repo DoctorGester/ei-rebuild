@@ -9,34 +9,33 @@
 #undef GetClassName
 
 class CBaseManager;
-class CManagerContext;   // manager_context.h
-class CStream;   // core_streams.h
+class CManagerContext;
+class CStream;
 class CWorld;
-class CWorldClient;   // world.h
-class CWorldServer;   // world.h
+class CWorldClient;
+class CWorldServer;
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
-// Name provisional; 13 slots (slots 2, 3, 11 and 12 are _purecall
-// in the base). No C++ constructor is declared: the derived classes' constructors call ClearFields, as
+// No C++ constructor is declared: the derived classes' constructors call ClearFields, as
 // the base's is inlined elsewhere. The default slots are defined in engine_object.cpp.
 class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
 
-    virtual ~CEngineObject();                          // 0: deleting (the body: no owner)
-    virtual void CopyFrom(const CEngineObject& other); // 1: flags_, type_, prototypeId_
-    virtual int Create() = 0;                          // 2
-    virtual void Destroy() = 0;                        // 3
-    virtual void Release();                            // 4: refcount; the owner releases it at 0
-    virtual void ClearState();                         // 5: empty; CUnitServer ResetController
-    virtual int RunTick();                             // 6: 0; world objects' per-tick update
-    virtual const char* GetName();                     // 7: "noname"
-    virtual const char* GetDescription();              // 8: "nodesc"
-    virtual void Load(CStream* stream);                 // 9: empty
-    virtual void Save(CStream* stream);                 // 10: empty
-    virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
-    virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
+    virtual ~CEngineObject();                          // deleting (the body: no owner)
+    virtual void CopyFrom(const CEngineObject& other); // flags_, type_, prototypeId_
+    virtual int Create() = 0;
+    virtual void Destroy() = 0;
+    virtual void Release();                            // refcount; the owner releases it at 0
+    virtual void ClearState();                         // empty; CUnitServer ResetController
+    virtual int RunTick();                             // 0; world objects' per-tick update
+    virtual const char* GetName();                     // "noname"
+    virtual const char* GetDescription();              // "nodesc"
+    virtual void Load(CStream* stream);                 // empty
+    virtual void Save(CStream* stream);                 // empty
+    virtual const char* GetClassName() = 0;            // e.g. "CTexture"
+    virtual int GetClassId() = 0;                      // e.g. 6 for CTexture
 
     // The owning manager's context_ (the world, for the world's managers).
     CManagerContext* ManagerContext() const;
@@ -47,10 +46,10 @@ public:
     template <class World = CWorld> World* WorldContext() const { return static_cast<World*>(ManagerContext()); }
     template <class World = CWorldServer> World* ServerWorld() const { return WorldContext<World>(); }
     template <class World = CWorldClient> World* ClientWorld() const { return WorldContext<World>(); }
-    // The world the object belongs to (app_helpers.cpp): the manager context's slot 13
+    // The world the object belongs to: the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
     CWorld* World() const;
-    // Drops one reference (app_helpers.cpp); at zero the object is deleted (slot 0 with 1).
+    // Drops one reference; at zero the object is deleted (slot 0 with 1).
     void ReleaseAndDelete();
     // Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
@@ -65,12 +64,12 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    int refCount_;          // +0x04
-    std::uint32_t flags_;   // +0x08
-    int id_;                // +0x0C -1 until a manager registers the object
-    int type_;              // +0x10 class-specific kind (texture usage for CTexture)
-    CBaseManager* owner_;   // +0x14 manager that owns the object
-    // +0x18 the database prototype: items pack its index (high word) with the material (low word;
+    int refCount_;
+    std::uint32_t flags_;
+    int id_;                // -1 until a manager registers the object
+    int type_;              // class-specific kind (texture usage for CTexture)
+    CBaseManager* owner_;   // manager that owns the object
+    // the database prototype: items pack its index (high word) with the material (low word;
     // PrototypeIndex / MaterialIndex, item.h), spells keep the index in the high word, units the plain
     // index. Saved and loaded with id and type by CBaseManager::Save / Load.
     std::uint32_t prototypeId_;
@@ -129,7 +128,7 @@ struct AIRefTo {
     // Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, CWorld* world);
     void Save(CStream* stream);
-    // AIRef only (world_deleting_destructors.cpp).
+    // AIRef only.
     AIRefTo* DeleteScalar(unsigned flags);
     // A counted object pointer kept in a container of plain pointers (a unit list's element) seen
     // as the reference it is.

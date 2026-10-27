@@ -77,8 +77,8 @@ CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
-int& QueueTime(CUnitServer* self) { return Queue(self).extra; }       // +0x38
-int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }   // +0x15C
+int& QueueTime(CUnitServer* self) { return Queue(self).extra; }
+int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }
 OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
 
 // A queue that has no start time yet starts now.

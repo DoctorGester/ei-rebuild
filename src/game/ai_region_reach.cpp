@@ -82,7 +82,7 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)
     grid.height = height;
     allocate(&grid);
 }
-// The region map's two block searches: BlockSearch (ai_map.h).
+// The region map's two block searches: BlockSearch.
 
 
 // ConstructElements<PathCell> (zero-fills `count`).
@@ -238,7 +238,6 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     if (bx < 0) bx = 0;
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
-    // The inlined RemoveAll.
     out->count = 0;
     out->free = nullptr;
     out->tail = nullptr;
@@ -426,7 +425,6 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
             best = counts[i];
             region = seen[i];
         }
-    // The block list's inlined destructor.
     blocks.vtable = BlockCostListVtable();
     blocks.RemoveAll();
     return region;
@@ -474,7 +472,6 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
 
 static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellList* path) {
     auto& search = *searchIn;
-    // The inlined RemoveAll.
     path->count = 0;
     path->free = nullptr;
     path->tail = nullptr;
@@ -636,7 +633,6 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
     std::int16_t** edgeRows = edges[sizeClass].rows;
     std::uint16_t** regionRows = regions[sizeClass].rows;
     for (;;) {
-        // The inlined RemoveAll of the next frontier.
         if (next->data) {
             gamecrt::operator_delete(next->data);
             next->data = nullptr;

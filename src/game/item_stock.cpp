@@ -351,7 +351,7 @@ namespace {
 
 // The spell recipe map (+0x50): clear, find-or-insert of a {name, list} pair, begin and the next non-empty bucket.
 // Its lists: constructor, destructor, end, insert; the pair: constructor (the record, whose name starts it, and
-// &list), destructor (stlp_pair.cpp). The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
+// &list), destructor. The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
 // spell prototypes by name (thiscall on the spell table) and the spell manager's builder (prototype, modifier
 // list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
@@ -661,7 +661,7 @@ int ModifierIndex(const Modifier* record) {
 
 // The common body of the spell and modifier instruction generators: the source copied to its scratch
 // vector, then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record,
-// +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
+// its index, +0x48 a random count. The scratch is emptied at the end.
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& source, stlp::vector<Record*>& taken,
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
@@ -775,7 +775,7 @@ void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, in
 }
 EI_REWRITTEN(0x00699260, ItemStock::AddMaterial);
 
-// ---- The scratch vectors (item_stock.h) ---------------------------------------------------------------------------
+// ---- The scratch vectors ---------------------------------------------------------------------------
 
 // Empty at the start; the exit functions that the static initialisers register free their storage
 // (docs/notes/standalone.md, "The static initialisers' objects").

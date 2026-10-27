@@ -8,12 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 using BOOL = int;
 
-struct FigureAnimation;   // map_object_figures.h
-class CManagerContext;    // manager_context.h
+struct FigureAnimation;
+class CManagerContext;
 
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
@@ -22,7 +22,7 @@ class CManagerContext;    // manager_context.h
 // base_manager.cpp, base_manager_core.cpp.
 class CBaseManager : public CEngineObject {
 public:
-    // (combat_order_setters.cpp). The animation `name` (case-insensitive) in the
+    //. The animation `name` (case-insensitive) in the
     // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
     // database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
@@ -33,7 +33,6 @@ public:
     using SpareMap = stlp::hash_map<int, ObjectList*, stlp::IntHash>;
     using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
 
-    // Slot 0 is the scalar deleting destructor.
     // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
     // Destroys, releases and deletes every object and clears the tables.
@@ -102,21 +101,21 @@ protected:
     CBaseManager();
 
 public:
-    ObjectMap objects_;             // +0x1C registered objects by id
-    int maxId_;                     // +0x30 highest id registered
-    ObjectList objectList_;         // +0x34 registered objects in registration order (saved so)
-    PositionMap positions_;         // +0x50 id -> its node in objectList_
-    int maxPositionId_;             // +0x64 highest key of positions_ (kept by RegisterInstant)
-    SpareMap spares_;               // +0x68 type -> list of spare objects (allocated per type)
-    int maxSpareType_;              // +0x7C highest key of spares_
-    SpareCountMap spareCounts_;     // +0x80 type -> number of spares
-    int maxSpareCountType_;         // +0x94 highest key of spareCounts_
-    int idLow_;                     // +0x98 automatic ids come from [idLow_, idHigh_)
-    int idHigh_;                    // +0x9C 2000000000
-    int reservedA_;                 // +0xA0 -1 when constructed, 0 after Create; nothing reads it
-    int reservedB_;                 // +0xA4 -1 when constructed, 300 after Create; nothing reads it
-    int lastId_;                    // +0xA8 id most recently registered (-1 when constructed)
-    CManagerContext* context_;      // +0xAC set by Init / SetContext (the world for its managers, a party for its own)
+    ObjectMap objects_;             // registered objects by id
+    int maxId_;                     // highest id registered
+    ObjectList objectList_;         // registered objects in registration order (saved so)
+    PositionMap positions_;         // id -> its node in objectList_
+    int maxPositionId_;             // highest key of positions_ (kept by RegisterInstant)
+    SpareMap spares_;               // type -> list of spare objects (allocated per type)
+    int maxSpareType_;              // highest key of spares_
+    SpareCountMap spareCounts_;     // type -> number of spares
+    int maxSpareCountType_;         // highest key of spareCounts_
+    int idLow_;                     // automatic ids come from [idLow_, idHigh_)
+    int idHigh_;                    // 2000000000
+    int reservedA_;                 // -1 when constructed, 0 after Create; nothing reads it
+    int reservedB_;                 // -1 when constructed, 300 after Create; nothing reads it
+    int lastId_;                    // id most recently registered (-1 when constructed)
+    CManagerContext* context_;      // set by Init / SetContext (the world for its managers, a party for its own)
     // context_ as the world, for the world's managers (a party's item manager has the party).
     template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
 };
@@ -160,8 +159,8 @@ public:
     CClientSpecificManager();
     // CBaseManager's destructor.
     ~CClientSpecificManager() override;
-    const char* GetClassName() override;     // 11: "CClientSpecificManager"
-    int GetClassId() override;               // 12: 0x30
+    const char* GetClassName() override;     // "CClientSpecificManager"
+    int GetClassId() override;               // 0x30
     // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
     // failed allocation.
     CEngineObject* NewObject(int type) override;
@@ -169,19 +168,18 @@ public:
     // The registered constructor: in place; returns this.
 };
 namespace misc400 {
-// (misc_400.cpp): the destructor (slot 0 adds the delete).
+//: the destructor (slot 0 adds the delete).
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
 // T's constructor on `memory` as the plain `void* (__fastcall*)(void*)` the map object factory takes
-// (unit_create_stats.cpp). Returns the object.
+//. Returns the object.
 template <typename T>
 void* __fastcall ConstructOn(void* memory) {
     return new (memory) T();
 }
 
-// The effect manager (the world's timed objects, +0x48; world_effect_lifetime.cpp /
-// world_managers.cpp; a real virtual class: the compiler makes its vtable).
+// The effect manager (the world's timed objects).
 class CEffectManager : public CBaseManager {
 public:
     // CBaseManager's constructor (inlined in CWorld::Create).
@@ -191,8 +189,8 @@ public:
     // The deleting destructor (slot 0).
     // CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
     int Create() override;
-    const char* GetClassName() override;     // 11: "CEffectManager"
-    int GetClassId() override;               // 12: 0x32
+    const char* GetClassName() override;     // "CEffectManager"
+    int GetClassId() override;               // 0x32
     // A new effect of `type`.
     CEngineObject* NewObject(int type) override;
 };

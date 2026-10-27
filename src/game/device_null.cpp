@@ -23,8 +23,8 @@
 #pragma intrinsic(_ReturnAddress)
 
 namespace ei {
-void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
-void ReportImageFailure(const char* what);                                // hook/standalone.cpp
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
+void ReportImageFailure(const char* what);
 } // namespace ei
 
 namespace {

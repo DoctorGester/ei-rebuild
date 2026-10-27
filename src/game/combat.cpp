@@ -102,7 +102,7 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
-// The map objects' virtual slots (map_object.h) and the server controller's.
+// The map objects' virtual slots and the server controller's.
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { static_cast<CUnitController*>(controller)->GetAttackParams(out); }
@@ -188,7 +188,7 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
     double factor = Combat().rate;    // stays on the FPU stack
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
-    // +0x4C of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
+    // of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
     float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->actionValue_) * factor);
     return x87::fistp(value);
 }

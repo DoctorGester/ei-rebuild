@@ -15,14 +15,14 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
-namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
-namespace mfc::impl { class CFont; }   // lib/mfc_gdi.h
-struct SpeechRecord;            // unit_client_models.h
-class CInterface3D;             // ui.h
-class CUiContainer;             // ui.h
-class CUiSurface;               // ui.h
-namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
+namespace libcrt { class Streambuf; }
+namespace mfc::impl { struct CStdioFile; }
+namespace mfc::impl { class CFont; }
+struct SpeechRecord;
+class CInterface3D;
+class CUiContainer;
+class CUiSurface;
+namespace acks { struct Speeches; struct EnvironmentSpeeches; }
 
 namespace console {
 
@@ -99,7 +99,7 @@ public:
         floatUsed = 1;
         return *this << d;
     }
-    // The same, out of line, for a float argument (script_runtime_helpers.cpp).
+    // The same, out of line, for a float argument.
     GameOStream& PutFloatArgument(float f);
 };
 static_assert(sizeof(GameOStream) == 8);
@@ -107,7 +107,7 @@ static_assert(sizeof(GameOStream) == 8);
 // One of the console's eight static ostreams (0x58 bytes): the ostream part and its ios, the virtual
 // base, right after it. Zero until its static initialiser constructs it on its streambuf
 // (ostream(streambuf*, 1)); the exit function that initialiser registers destroys it
-// (console_streams.cpp).
+//.
 struct OStreamObject : GameOStream {
     libcrt::Ios ios;
 };
@@ -179,7 +179,7 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 // the surface is redrawn from them.
 class ConsoleWindow {
 public:
-    // Made by CInterface3D::Create (console_window_create.cpp). The members
+    // Made by CInterface3D::Create. The members
     // constructed, `screen` kept, no surface, no command shown (-1), caret, selection, scroll and
     // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
     // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
@@ -188,7 +188,7 @@ public:
     void SetRect(const RECT* rect);   // 800x600 coordinates
     void SetHistory(int lines);
     void AddText(const char* text);  // continues the last line; '\n' starts a new one
-    // Drawing and input (ui_console_window.cpp):
+    // Drawing and input:
     void Show(bool shown);                     // creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys
     void OnChar(int key, int repeat, int flags);      // typed characters, Enter, Escape
@@ -258,7 +258,7 @@ extern const CommandRegistration kCommandRegistrations[27];
 
 // Runs one console line.
 void __fastcall Execute(const char* text);
-// Rebirth's console additions (console_addon.cpp). AddNewConsoleCommands: the executor registers
+// Rebirth's console additions. AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
 void RegisterAddonCommands();
@@ -275,7 +275,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out);
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix);
 
-// Command handlers (console_commands.cpp).
+// Command handlers.
 namespace commands {
 void __fastcall Help(CStringArray* args);          // help
 void __fastcall DebugInfo(CStringArray* args);     // debuginfo

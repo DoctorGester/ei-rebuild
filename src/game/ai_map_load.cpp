@@ -50,14 +50,14 @@ constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 // The .mp file's header (0x26 bytes).
 struct MapHeader {
     std::uint32_t magic;                // kMapMagic
-    float maxZ;                         // +0x04 the highest point: a vertex's altitude is a fraction of it
-    std::int32_t sectorsX, sectorsY;    // +0x08
-    std::uint32_t textureCount;         // +0x10 tile textures of 64 tiles each
+    float maxZ;                         // the highest point: a vertex's altitude is a fraction of it
+    std::int32_t sectorsX, sectorsY;
+    std::uint32_t textureCount;         // tile textures of 64 tiles each
     std::uint32_t textureSize;
-    std::uint32_t tileCount;            // +0x18 the tile type words
+    std::uint32_t tileCount;            // the tile type words
     std::uint32_t tileSize;
-    std::uint16_t materialCount;        // +0x20
-    std::uint32_t animatedTileCount;    // +0x22
+    std::uint16_t materialCount;
+    std::uint32_t animatedTileCount;
 };
 // A material of the map (0x2C bytes); the AI map only asks whether it is water.
 struct MapMaterial {
@@ -71,7 +71,7 @@ struct SectorHeader {
 };
 struct SectorFileVertex {
     std::int8_t offsetX, offsetY;
-    std::uint16_t altitude;             // +0x02 in kAltitudeUnit of the map's highest point
+    std::uint16_t altitude;             // in kAltitudeUnit of the map's highest point
     std::uint32_t normal;
 };
 #pragma pack(pop)

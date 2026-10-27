@@ -20,11 +20,11 @@
 class CRefObject;
 class ClassTemplate;
 struct LeverRecord;
-namespace gamehash { struct PartyTable; }   // party_manager.h
+namespace gamehash { struct PartyTable; }
 struct PartyManagerEntry;
-struct PrintRecord;    // model.h
+struct PrintRecord;
 struct PrintRecord2;
-struct SpeechRecord;   // unit_client_models.h
+struct SpeechRecord;
 struct QuestBriefingRecord;
 struct QuestRecord;
 struct SkillLevelRecord;
@@ -36,7 +36,7 @@ struct UnitPrototypeRecord;
 namespace mfc {
 class CString;
 }
-namespace acks {   // acks_db.h
+namespace acks {
 struct UnitAcks;
 struct ModelAcks;
 struct ExtraAcks;
@@ -85,10 +85,10 @@ public:
     struct ClassRegistry {
         using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
         using FactoryMap = stlp::hash_map<std::uint32_t, Factory, stlp::IntHash>;
-        ClassIdMap classIds;     // +0x00 vtable -> class id
-        FactoryMap factories;    // +0x14 class id -> factory
+        ClassIdMap classIds;     // vtable -> class id
+        FactoryMap factories;    // class id -> factory
     };
-    static ClassRegistry& Registry();   // g_classRegistry (chunk_archive.cpp)
+    static ClassRegistry& Registry();   // g_classRegistry
 
     // The current chunk: the top of the stack.
     Ref* Current() { return &stack_.End()->prev->data; }
@@ -126,7 +126,7 @@ public:
     // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
     void Close(CStream* stream);
 
-    // Database arrays (model_db.cpp). Each is a vector of records serialised as chunk `id` holding
+    // Database arrays. Each is a vector of records serialised as chunk `id` holding
     // one chunk 1 per record (`occurrence` selects the record); loading replaces the vector's
     // contents. The third argument (the callers pass the database file's data) is unused but
     // popped: RET 0xC.
@@ -136,7 +136,7 @@ public:
     void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);
     void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);
 
-    // The party manager's chunks (party_manager.cpp). The third argument is unused but
+    // The party manager's chunks. The third argument is unused but
     // popped. Loading empties the container first and takes one record per chunk 1.
     // Hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
     // (CParty::ArchiveParty); loading inserts each key (operator[]).
@@ -149,13 +149,13 @@ public:
     // Field(id, value, 4).
     void IntField(int id, int* value);
 
-    // The ack records' helpers (acks_db.cpp): an acks::SpeechRecord as chunk `id`.
+    // The ack records' helpers: an acks::SpeechRecord as chunk `id`.
     void SerializeSpeech(int id, SpeechRecord* speech);
     // (the third argument, the archive again, is unused): an
     // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
     void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
     void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
-    // The lever records as chunk `id` (app_device_list.cpp), one chunk 1 per
+    // The lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
 
@@ -214,22 +214,22 @@ public:
     ChunkArchive(const ChunkArchive&) = delete;
     ChunkArchive& operator=(const ChunkArchive&) = delete;
 
-    CMemoryStream indexStream_;    // +0x00 chunk 0
-    CMemoryStream dataStream_;     // +0x28 the chunk data (chunk 2 while loading the records)
-    Stack stack_;                  // +0x50 the last chunk is the current one
-    std::int32_t version_;         // +0x54 1 when constructed; field 2 of the root chunk
-    std::uint8_t loading_;         // +0x58 Open stores the low byte of its argument (+0x59..0x5B unused)
-    ObjectMap objects_;            // +0x5C
-    SavedList saved_;              // +0x70 the objects whose records Close writes
+    CMemoryStream indexStream_;    // chunk 0
+    CMemoryStream dataStream_;     // the chunk data (chunk 2 while loading the records)
+    Stack stack_;                  // the last chunk is the current one
+    std::int32_t version_;         // 1 when constructed; field 2 of the root chunk
+    std::uint8_t loading_;         // Open stores the low byte of its argument (+0x59..0x5B unused)
+    ObjectMap objects_;
+    SavedList saved_;              // the objects whose records Close writes
 };
 static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
 // Whole chunks of a stream (the archive's top-level chunks).
-// (__fastcall: in, id; one stack argument): reads one chunk header and its bytes into `to`
+// Reads one chunk header and its bytes into `to`
 // (at most 10,000,000). True when all of it was read.
 bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
-// (__fastcall: in, id in DL; two stack arguments): from the start of the stream, the
+// From the start of the stream, the
 // `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is cleared and false.
 bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
-// (__fastcall: out, id in DL; one stack argument): writes `from` as a chunk.
+// Writes `from` as a chunk.
 bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from);

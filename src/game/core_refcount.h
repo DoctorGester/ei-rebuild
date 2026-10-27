@@ -6,8 +6,8 @@
 class ChunkArchive;
 
 // The root of the reference-counted classes: the count and the flags, slot 0 the
-// scalar deleting destructor, slot 1 Serialize (empty). The network sessions (net_classes.h) and the cast
-// spells (spell.h) derive from it directly; everything else through CRefObject below.
+// scalar deleting destructor, slot 1 Serialize (empty). The network sessions and the cast
+// spells derive from it directly; everything else through CRefObject below.
 class CRefCounted {
 public:
 
@@ -23,18 +23,18 @@ public:
     // 0: the scalar deleting destructor (1 when the last reference goes). The out-of-line bodies and
     // its copies are in core_streams.cpp.
     virtual ~CRefCounted() {}
-    virtual void Serialize(ChunkArchive*) {}   // 1: empty in the root class; chunk_archive.h
+    virtual void Serialize(ChunkArchive*) {}   // empty in the root class; chunk_archive.h
 
-    // Counted objects live on the game's heap (core_refcount.cpp): null without memory, and then
+    // Counted objects live on the game's heap: null without memory, and then
     // no constructor runs.
     static void* operator new(std::size_t size) noexcept;
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    std::int16_t refs_;         // +0x04
-    std::uint8_t flags6_;       // +0x06
-    std::uint8_t flags7_;       // +0x07
+    std::int16_t refs_;
+    std::uint8_t flags6_;
+    std::uint8_t flags7_;
 };
 static_assert(sizeof(CRefCounted) == 8);
 
@@ -52,8 +52,8 @@ public:
     CRefObject() = default;
     ~CRefObject() override = default;
 
-    virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
-    virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
+    virtual int OnShutdown() = 0;           // the object is still shared and about to lose its owner
+    virtual CRefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
 
     // Drops one reference; destroys the object at zero.
     void Release();
@@ -85,7 +85,7 @@ struct RefPtr {
     // Initialises to share `object`: null for a null or detached object, a clone for a
     // copy-on-share one. The result is marked copy-on-share.
     void Share(CRefObject* object);
-    // Eight identical copies (refptr_copies.cpp). The same, returning this.
+    // Eight identical copies. The same, returning this.
     RefPtr* ShareReturn(CRefObject* object);
     // The owner's release: a still-shared object is detached and shut down first. The
     // pointer itself is left as it was.

@@ -45,7 +45,7 @@ int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
 // The drawer's animation at a time (float bits), and the call after the draw (the renderer).
 
 // The mesh's name: CEngineObject::GetName.

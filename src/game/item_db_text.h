@@ -6,7 +6,7 @@
 // text is looked up by key ("string format_item1", "weapon SWORD IRON", ...): the first archive whose
 // GetFile knows the key wins, and the cursor is set to the start of the file's data. Then one line is read
 // from the cursor (the name) or up to a '#' (the description). Keys of items are built from the database
-// records (item_db.h): the record's name CString, spaces replaced by '_' and upper-cased, after a prefix
+// records: the record's name CString, spaces replaced by '_' and upper-cased, after a prefix
 // that depends on the item kind.
 
 #include "item.h"
@@ -20,8 +20,8 @@ namespace console { class CStringArray; }
 
 // An archive the texts are looked up in: the pair<string, CMappedResource*> of the archive list.
 struct TextSource {
-    stlp::string name;          // +0x00
-    CMappedResource* source;    // +0x0C
+    stlp::string name;
+    CMappedResource* source;
 };
 static_assert(sizeof(TextSource) == 0x10);
 
@@ -37,7 +37,7 @@ struct TextSources : stlp::list<TextSource> {
     Node* CreateNode(const TextSource* value);
     // Insert(pos, value): a new node linked before `pos`; *out = the new node. Returns out.
     Node** Insert(Node** out, Node* pos, const TextSource* value);
-    // text_sources.cpp. Add: unless an archive of that exact name is listed (then 1), appends a new
+    // Add: unless an archive of that exact name is listed (then 1), appends a new
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
     // every archive, then frees the nodes.
@@ -48,7 +48,7 @@ struct TextSources : stlp::list<TextSource> {
     void DestructList();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindText (ours): the same, as text: with
-    // EI_UTF8 its UTF-8 copy (asset_text.h), the size that copy's. CTextManager::Open reads through
+    // EI_UTF8 its UTF-8 copy, the size that copy's. CTextManager::Open reads through
     // FindText, OpenData through Find (the archives also hold binary files: the quest registries). Lists
     // the files: `out` emptied, then the names matching `pattern` of every archive appended in list order
     // (ListFiles; a name in two archives is listed twice). Rebirth patches ListFiles (ResOverride redirects
@@ -62,16 +62,16 @@ static_assert(sizeof(TextSources) == 4);
 
 class CTextManager : public CEngineObject {
 public:
-    // The constructor as the client world's Setup inlines it (text_sources.cpp): the engine
+    // The constructor as the client world's Setup inlines it: the engine
     // object's fields, the archive list, then Create.
     CTextManager();
-    // Deleting destructor (text_sources.cpp). ClearSources, then the archive list's own clear and
+    // Deleting destructor. ClearSources, then the archive list's own clear and
     // destruction (the sentinel back to the node pool).
     ~CTextManager() override;
 
     int Create() override;                  // below
     void Destroy() override { ClearSources(); }
-    const char* GetClassName() override;    // "CTextManager" (world_class_slots.cpp)
+    const char* GetClassName() override;    // "CTextManager"
     int GetClassId() override;              // class id 0x2A
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a
@@ -95,7 +95,7 @@ public:
     // when the item's +0x48 is above 1) applied to the kind and the name.
     BOOL FormatItemName(CItem* item, mfc::CString* out);
 
-    // The line reader (text_reader.cpp).
+    // The line reader.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
     BOOL Open(const char* key);
@@ -116,7 +116,7 @@ public:
     // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).
     BOOL FindLine(const char* key);
 
-    // The archive list (text_sources.cpp): sources_.Add(path, 0), sources_.Remove(path), sources_.Clear().
+    // The archive list: sources_.Add(path, 0), sources_.Remove(path), sources_.Clear().
     BOOL AddSource(const char* path);
     void RemoveSource(const char* path);
     void ClearSources();
@@ -125,10 +125,10 @@ public:
     // "english" by default), then the C runtime's multibyte code page set to the locale's; returns 1.
     void ListKeys(mfc::CStringArray* out, const char* pattern);
 
-    TextSources sources_;   // +0x1C
-    const char* cursor_;    // +0x20 read position in the current text
-    const char* text_;      // +0x24 start of the current text (null: none)
-    std::uint32_t length_;  // +0x28 size of the current text, written by GetFile
+    TextSources sources_;
+    const char* cursor_;    // read position in the current text
+    const char* text_;      // start of the current text (null: none)
+    std::uint32_t length_;  // size of the current text, written by GetFile
 };
 static_assert(offsetof(CTextManager, sources_) == 0x1C);
 static_assert(offsetof(CTextManager, length_) == 0x28);

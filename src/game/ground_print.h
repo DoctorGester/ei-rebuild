@@ -1,9 +1,9 @@
 #pragma once
 
 // Ground prints: footprints, blood and scorch marks lying on the ground. The
-// client world keeps them by value in three lists (CWorldClient +0x1B8 blood, +0x1BC footprints,
-// +0x1C0 scorch marks), ticks them (slot 0; a print
-// whose life reaches 0 is erased), draws them (Draw) and saves / loads them (slots 1 / 2). A print
+// client world keeps them by value in three lists (blood, footprints,
+// scorch marks), ticks them (a print
+// whose life reaches 0 is erased), draws them (Draw) and saves / loads them. A print
 // is a textured quad around its point, rotated by `angle_`, its texture tile picked by the uv
 // offset and scale and turned by `uvAngle_`; Draw lays it on the ground once (the decal projector)
 // and draws it with an alpha that fades over the print's life. See docs/notes/models.md.
@@ -17,15 +17,15 @@
 
 class CStream;
 class CTexture;
-struct VertexPacket;    // figure_mesh.h
-struct DecalTexCoord;   // ground_decal.h
+struct VertexPacket;
+struct DecalTexCoord;
 
 // A texture by name (0x10 bytes; constructed in place with an empty name with room for 8
 // bytes). The device binds it by looking the texture up again by name.
 struct NamedTexture {
     NamedTexture* Copy(const NamedTexture* other);
-    stlp::string name;      // +0x00
-    CTexture* texture;      // +0x0C counted
+    stlp::string name;
+    CTexture* texture;      // counted
 };
 static_assert(sizeof(NamedTexture) == 0x10);
 
@@ -77,26 +77,26 @@ protected:
     void SetTexture(const char* name);
 
 public:
-    bool built_;                   // +0x04 the ground geometry is made
-    std::uint8_t visible_;          // +0x05 drawn only when nonzero (a footprint: the caller's low byte)
-    Vector2 position_;              // +0x08
-    float halfWidth_;               // +0x10
-    float halfLength_;              // +0x14
-    float growth_;                  // +0x18 added to both half sizes every tick
-    std::int16_t life_;             // +0x1C ticks left
-    NamedTexture texture_;          // +0x20
-    Vector2 uvOffset_;              // +0x30 the tile in the texture
-    Vector2 uvScale_;               // +0x38
-    float uvAngle_;                 // +0x40 the texture's turn about its tile's centre
-    float angle_;                   // +0x44 the quad's turn
-    std::uint8_t lit_;              // +0x48 the terrain's point test; the specular alpha
-    float alpha_;                   // +0x4C
-    float alphaScale_;              // +0x50
-    std::uint32_t colour_;          // +0x54 its alpha byte is set from alpha_ every draw
-    int lifetime_;                  // +0x58
-    lib::AlignedArray<VertexPacket> positions_;     // +0x5C the ground geometry (blocks of four)
-    lib::AlignedArray<DecalTexCoord> texCoords_;    // +0x6C one per vertex
-    lib::AlignedArray<std::uint16_t> indices_;      // +0x7C
+    bool built_;                   // the ground geometry is made
+    std::uint8_t visible_;          // drawn only when nonzero (a footprint: the caller's low byte)
+    Vector2 position_;
+    float halfWidth_;
+    float halfLength_;
+    float growth_;                  // added to both half sizes every tick
+    std::int16_t life_;             // ticks left
+    NamedTexture texture_;
+    Vector2 uvOffset_;              // the tile in the texture
+    Vector2 uvScale_;
+    float uvAngle_;                 // the texture's turn about its tile's centre
+    float angle_;                   // the quad's turn
+    std::uint8_t lit_;              // the terrain's point test; the specular alpha
+    float alpha_;
+    float alphaScale_;
+    std::uint32_t colour_;          // its alpha byte is set from alpha_ every draw
+    int lifetime_;
+    lib::AlignedArray<VertexPacket> positions_;     // the ground geometry (blocks of four)
+    lib::AlignedArray<DecalTexCoord> texCoords_;    // one per vertex
+    lib::AlignedArray<std::uint16_t> indices_;
 };
 static_assert(offsetof(GroundPrint, position_) == 0x08 && offsetof(GroundPrint, life_) == 0x1C);
 static_assert(offsetof(GroundPrint, texture_) == 0x20 && offsetof(GroundPrint, uvOffset_) == 0x30);
@@ -118,8 +118,8 @@ public:
     void Load(CStream* stream) override;   // GroundPrint's, then scale_, kind_
     void Save(CStream* stream) override;   // the same order
 
-    float scale_;                   // +0x8C the unit's footprint scale (only saved)
-    int kind_;                      // +0x90 -1, or the blood print's kind it was made with
+    float scale_;                   // the unit's footprint scale (only saved)
+    int kind_;                      // -1, or the blood print's kind it was made with
 };
 static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 
@@ -142,10 +142,10 @@ public:
     void Load(CStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
     void Save(CStream* stream) override;
 
-    float spin_;                    // +0x8C radians per tick: 30 / life degrees
-    std::int16_t spreadTicks_;      // +0x90
-    int kind_;                      // +0x94 tile >> 16
-    std::uint8_t fresh_;            // +0x98 a hit's blood (not a death's): footprints ignore it
+    float spin_;                    // radians per tick: 30 / life degrees
+    std::int16_t spreadTicks_;
+    int kind_;                      // tile >> 16
+    std::uint8_t fresh_;            // a hit's blood (not a death's): footprints ignore it
 };
 static_assert(offsetof(BloodPrint, spin_) == 0x8C && offsetof(BloodPrint, kind_) == 0x94);
 static_assert(offsetof(BloodPrint, fresh_) == 0x98 && sizeof(BloodPrint) == 0x9C);

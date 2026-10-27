@@ -43,7 +43,7 @@ const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
-// Build creates a record of the item's kind (item_db.h), fills only the fields the item's InitFromRecord reads, and
+// Build creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 

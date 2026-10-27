@@ -79,7 +79,7 @@ AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
 AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
 std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
 std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
-int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x974
+int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }
 
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
 int TickOf(const CWorld* world) { return world->tick_; }
@@ -305,7 +305,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     } else {
         key |= kKeyMoveLoop;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = stats.loadFactor;   // +0x238
+            float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
             if (stamina <= HeroWalkLimit()) key |= 0x800000;
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
@@ -341,7 +341,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     } else {
         key |= 0x140000;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = stats.loadFactor;   // +0x238
+            float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
             if (stamina <= HeroWalkLimit()) key |= 0x800000;
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
@@ -545,7 +545,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     Motion(this)->Clear();
     std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
-    Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
+    Motion(this)->flag6E = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
     bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
@@ -559,7 +559,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
-    Motion(this)->goal.z = range;   // +0xA4: the range (Replan reads it back)
+    Motion(this)->goal.z = range;   // : the range (Replan reads it back)
     sneakWait = 0;
     unit->RefreshMotion();
     if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
@@ -791,7 +791,7 @@ void CUnitServer::ResetController() {
     plan.notSkill = 0;
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
-    pendingHit.multiplier = 1.0f;   // +0x130
+    pendingHit.multiplier = 1.0f;
     savedQueue.SetSize(0, -1);
     savedQueue.extra = -1;
     state = kStateChasing;

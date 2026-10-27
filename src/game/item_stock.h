@@ -14,10 +14,10 @@
 #include "item_db.h"
 #include "game_data.h"
 
-class CItem;     // item.h
-class CParty;    // party.h
-class CSpell;    // spell.h
-class CStream;   // core_streams.h
+class CItem;
+class CParty;
+class CSpell;
+class CStream;
 
 // STLport vectors of record pointers: the item prototypes (weapons, armours, quick items), the spells,
 // the modifiers.
@@ -29,10 +29,10 @@ using StockModifierVector = stlp::vector<itemdb::SpellModifierRecord*>;
 // and the units left for weapons and armors (the weapon / armor generation takes the prototype's +0x4C
 // units from it).
 struct StockMaterial {
-    itemdb::MaterialRecordHead* record;   // +0x00 (soundName its class name, unitPrice its unit price)
-    int minCount;       // +0x04
-    int maxCount;       // +0x08
-    int left;           // +0x0C
+    itemdb::MaterialRecordHead* record;   // (soundName its class name, unitPrice its unit price)
+    int minCount;
+    int maxCount;
+    int left;
 };
 static_assert(sizeof(StockMaterial) == 0x10);
 
@@ -54,7 +54,7 @@ constexpr int kSpellRecipeSize = 0x34;
 using StockStringVector = stlp::vector<stlp::string>;
 
 // A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector): the spell database's
-// list record (item_db.h).
+// list record.
 using SpellRecipe = itemdb::SpellListRecord;
 static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
 
@@ -72,7 +72,7 @@ using RecordNameMap = stlp::NameMap;
 
 // The globals of the stock generation (the exe's data).
 namespace stock {
-// Scratch vectors (item_stock.cpp): the prototypes taken, the candidate materials of one prototype (pointers into
+// Scratch vectors: the prototypes taken, the candidate materials of one prototype (pointers into
 // the stock's material entries), the material entries taken, the spells and modifiers taken.
 using CandidateVector = stlp::vector<StockMaterial*>;
 extern StockPrototypeVector g_takenPrototypes;
@@ -99,18 +99,18 @@ inline float FifthFactor() { return 0.2f /*0073BAD4*/; }
 } // namespace stock
 
 struct ItemStock {
-    CParty* context;                // +0x00 the template's party object (its item constructor and item manager)
-    int classIndex;                 // +0x04 bit of the records' class masks
-    StockPrototypeVector armors;    // +0x08
-    StockPrototypeVector weapons;   // +0x14
-    StockPrototypeVector quickItems;   // +0x20
-    StockMaterialVector materials;  // +0x2C
-    StockSpellVector spells;        // +0x38
-    StockModifierVector modifiers;  // +0x44
-    StockRecipeMap spellMap;        // +0x50 recipes by spell name
-    RecordNameMap modifierMap;      // +0x64 modifiers by kind key
-    float baseLevels[8];            // +0x78 8 floats, set with +0x98
-    float scrollLevels[8];          // +0x98 the spell level per school for the scrolls
+    CParty* context;                // the template's party object (its item constructor and item manager)
+    int classIndex;                 // bit of the records' class masks
+    StockPrototypeVector armors;
+    StockPrototypeVector weapons;
+    StockPrototypeVector quickItems;
+    StockMaterialVector materials;
+    StockSpellVector spells;
+    StockModifierVector modifiers;
+    StockRecipeMap spellMap;        // recipes by spell name
+    RecordNameMap modifierMap;      // modifiers by kind key
+    float baseLevels[8];            // 8 floats, set with +0x98
+    float scrollLevels[8];          // the spell level per school for the scrolls
 
     // Constructor body: `context`, class index 0, the six vectors empty, both maps empty with
     // NextPrime(100) buckets (their functor bytes left as they are; an uninitialised stack byte is copied).
@@ -128,7 +128,7 @@ struct ItemStock {
     // entry is appended when the record has none.
     void AddMaterial(itemdb::MaterialRecordHead* record, int minCount, int maxCount);
 
-    // +0x78 and +0x98 each set from 8 floats.
+    // and +0x98 each set from 8 floats.
     void SetLevels(const float* base, const float* scroll);
 
     // Thunks onto the common generator with +0x14 weapons / +8 armors / +0x20 quick items and kind 0 / 1 / 2.

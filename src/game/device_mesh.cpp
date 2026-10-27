@@ -3,7 +3,7 @@
 // (+0xAC -> +0xC; its projection, or the one with an outcode per vertex when clipping is asked for), then every
 // corner (position, colour and texture coordinate indices) becomes a TL vertex; meshes crossing the
 // screen edges go through the transform object's clipper and are projected again. Figures and the 3D library's
-// meshes draw through them. Buffers are globals (device_buffers.h). See docs/notes/models.md ("Renderer"). The new
+// meshes draw through them. Buffers are globals. See docs/notes/models.md ("Renderer"). The new
 // renderer (src/render) gets the mesh in model space once it is known to be visible (docs/notes/renderer.md).
 #include "clip.h"
 
@@ -206,7 +206,7 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);
     // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
-    // with; each pass the old path draws below hands over the device's state (device_draw.cpp).
+    // with; each pass the old path draws below hands over the device's state.
     HandOver(device, a);
     int result = visibility;
     if (visibility == 0) {

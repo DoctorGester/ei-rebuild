@@ -12,7 +12,7 @@
 
 #include <type_traits>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -76,7 +76,7 @@ ObjectNode* AddTail(ObjectList* list, CEngineObject* object) {
     return node;
 }
 
-// The id tables' operator[] that keeps the highest key (hash_tables_400.cpp).
+// The id tables' operator[] that keeps the highest key.
 template <typename Map>
 typename Map::Node* InsertKey(Map& table, int& maxKey, int key) {
     if (key > maxKey) maxKey = key;
@@ -294,7 +294,6 @@ int CBaseManager::ReleaseObject(CEngineObject* object) {
 
 EI_REWRITTEN(0x00403020, CBaseManager::Create);
 EI_REWRITTEN(0x004031E0, CBaseManager::Destroy);
-// The compiler's jump thunks to it (functions.csv "thunk" rows).
 EI_REWRITTEN(0x0066C100, CBaseManager::Destroy);
 EI_REWRITTEN(0x0067E160, CBaseManager::Destroy);
 EI_REWRITTEN(0x004046E0, CBaseManager::Load);

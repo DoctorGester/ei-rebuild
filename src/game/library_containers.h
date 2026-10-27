@@ -36,8 +36,8 @@ static_assert(sizeof(StreamQueue::Node) == 0x30);
 // as a pair destroys them, the second first.
 struct KeyedTexts {
     std::uint32_t key[2];
-    mfc::CString first;    // +0x08
-    mfc::CString second;   // +0x0C
+    mfc::CString first;
+    mfc::CString second;
 };
 struct KeyedTextsElement {
     static void Destroy(KeyedTexts* p) {
@@ -82,13 +82,13 @@ void __fastcall DestroyCString(mfc::CString* self);
 // A record with a CString at +0x0C (the text tokenizer's word): its destructor.
 struct TokenWord {
     std::uint8_t unused_00[0x0C];
-    mfc::CString text;   // +0x0C
+    mfc::CString text;
 };
 
 // A local of the .mob loader whose third dword an unwind funclet clears.
 struct LoaderLocal {
     std::uint8_t unused_00[8];
-    std::uint32_t cleared;   // +0x08
+    std::uint32_t cleared;
 };
 
 // Two vectors of pointers (+0x00, +0x10), a local two unwind funclets end with: frees the second's
@@ -96,7 +96,7 @@ struct LoaderLocal {
 struct PointerVectorsPair {
     stlp::vector<void*> first;
     std::uint32_t unused_0C;
-    stlp::vector<void*> second;   // +0x10
+    stlp::vector<void*> second;
 };
 
 

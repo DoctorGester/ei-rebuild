@@ -91,7 +91,7 @@ bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kC
 bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
 
-// The map objects' virtuals (map_object.h). The movement-state virtual is 1 while a unit moves.
+// The map objects' virtuals. The movement-state virtual is 1 while a unit moves.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }

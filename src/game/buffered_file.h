@@ -31,12 +31,12 @@ public:
     // The deleting destructor (slot 5) frees into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }                  // 0
-    void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }                // 1
-    std::uint32_t Commit() override;                                                          // 2
-    int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }   // 3
-    int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }   // 4
-    std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }      // 6
+    void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }
+    void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }
+    std::uint32_t Commit() override;
+    int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }
+    int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }
+    std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }
     // Moves the cursor to file position `position`: inside the window in place,
     // else Flush and Rebase. Returns the cursor as it was before (the in-window path's result; the other
     // path leaves no meaningful value and its callers ignore it).
@@ -55,8 +55,8 @@ public:
     // Room to read `size` bytes: a window smaller than `size` grows to
     // size + 0x400 (when that is not smaller) and is reloaded at `base`; otherwise Rebase.
     void ReserveReadWindow(std::int32_t size);
-    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;           // 7
-    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;  // 8
+    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;
+    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;
 
     // Writes the window's bytes up to the cursor back when they are unwritten (error bit on a
     // short write); `high` follows the cursor upwards.
@@ -86,13 +86,13 @@ public:
     // The destructor body: Close, then BufferedStream's.
     ~BufferedFile() override { Close(); }
 
-    int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }   // 7
-    int WriteAt(std::int32_t position, const void* from, std::uint32_t size) override {   // 8
+    int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }
+    int WriteAt(std::int32_t position, const void* from, std::uint32_t size) override {
         return WriteAtFile(position, from, size);
     }
 
     int WriteAtFile(std::int32_t position, const void* from, std::uint32_t size);
-    // Slots 7 / 8: fseek to `position` from the start, then fread / fwrite
+    // Fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
     int ReadAtFile(std::int32_t position, void* to, std::uint32_t size);
     // Flush, the block freed, the file closed.
@@ -101,7 +101,7 @@ public:
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
 
-    gamecrt::CrtFile* file;   // +0x1C
+    gamecrt::CrtFile* file;
 };
 static_assert(offsetof(BufferedFile, file) == 0x1C);
 static_assert(sizeof(BufferedFile) == 0x20);

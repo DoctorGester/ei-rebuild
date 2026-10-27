@@ -40,7 +40,6 @@ struct SpellRecord {
     // Fields 0-2 the strings, 3-15 +0x0C..+0x40 (not +0x14), 16 / 17 the id lists, 18 +0x60, 19 the school,
     // 20 the five bytes +0x78, 21 the skill, 22 +0x80, 23-27 +0x64..+0x74.
     void Serialize(ChunkArchive* ar);
-    // The destructor: the id lists +0x54, +0x48 (storage only), then the strings +0x08, +0x04, +0x00.
     void Destruct();
     // The copy constructor (the spell vector's copies): the strings, +0x0C..+0x47, the id lists
     // copy-constructed, +0x60..+0x7C and +0x80 (+0x7D..+0x7F are not copied).
@@ -50,37 +49,37 @@ struct SpellRecord {
     // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;                  // +0x00
-    // +0x04 the spell's code ( the trader stock's spell instructions, item_stock.cpp).
+    mfc::CString name;
+    // the spell's code ( the trader stock's spell instructions, item_stock.cpp).
     mfc::CString code;
-    mfc::CString text08;                // +0x08
-    float price;                        // +0x0C a loot item's price when it stands for the spell (CItemLoot::GetPrice)
-    int castType;                       // +0x10 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
-    int school;                         // +0x14
-    float mana;                         // +0x18
-    // +0x1C..+0x3C fields 6-14: what CSpell::InitFromPrototype / CSpellContainer::Build copy into the
+    mfc::CString text08;
+    float price;                        // a loot item's price when it stands for the spell (CItemLoot::GetPrice)
+    int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
+    int school;
+    float mana;
+    // ..+0x3C fields 6-14: what CSpell::InitFromPrototype / CSpellContainer::Build copy into the
     // spell (CSpell's names), and the item info shows.
-    std::uint32_t complexity;           // +0x1C +1 per modifier in the spell
-    float speed;                        // +0x20 missile speed (the item info's "power")
-    float range;                        // +0x24
-    float area;                         // +0x28 the spell's radius_ (sqrt(area / pi) once built with modifiers)
-    float damage;                       // +0x2C the effect's power (the item info's level)
-    std::uint32_t targetKind;           // +0x30 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
-    std::uint32_t targetCount;          // +0x34
-    std::uint32_t duration;             // +0x38 ticks
-    std::uint32_t value3C;              // +0x3C copied, loaded and saved, not read
-    int needsSight;                    // +0x40 needs a line of sight to its target
-    int skill;                          // +0x44 the school skill it needs
-    stlp::vector<int> list48;           // +0x48 (chunk 16)
-    stlp::vector<int> list54;           // +0x54 (chunk 17)
-    std::uint32_t icon;                 // +0x60 the number of its picture and figure ("spell%04d", "prototype%04d")
-    std::uint32_t extraValues[5];       // +0x64..+0x74 fields 23-27 (nothing reads them)
-    // +0x78 which modifiers it accepts, one byte per kind (SpellModifierRecord::kind; by code letter
+    std::uint32_t complexity;           // +1 per modifier in the spell
+    float speed;                        // missile speed (the item info's "power")
+    float range;
+    float area;                         // the spell's radius_ (sqrt(area / pi) once built with modifiers)
+    float damage;                       // the effect's power (the item info's level)
+    std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
+    std::uint32_t targetCount;
+    std::uint32_t duration;             // ticks
+    std::uint32_t value3C;              // copied, loaded and saved, not read
+    int needsSight;                    // needs a line of sight to its target
+    int skill;                          // the school skill it needs
+    stlp::vector<int> list48;           // (chunk 16)
+    stlp::vector<int> list54;           // (chunk 17)
+    std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
+    std::uint32_t extraValues[5];       // ..+0x74 fields 23-27 (nothing reads them)
+    // which modifiers it accepts, one byte per kind (SpellModifierRecord::kind; by code letter
     // 'r' +0x78, 't' +0x79, 'a' +0x7A, 'e' +0x7B, 'd' +0x7C); the item info shows the level when the
     // 'e' byte is set.
     std::uint8_t bytes78[5];
     std::uint8_t unused_7D[3];
-    std::uint32_t classMask;            // +0x80 bit (class - 1): the class templates that may use it (class_templates.cpp)
+    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
 static_assert(offsetof(SpellRecord, code) == 0x04);
 static_assert(offsetof(SpellRecord, price) == 0x0C);
@@ -102,7 +101,6 @@ struct SpellListRecord {
     // String 1, the lists as chunks 2 / 3 (one string field 1 per entry; loading erases the list and
     // resizes it first), string 4, field 5.
     void Serialize(ChunkArchive* ar);
-    // The destructor: text24, the lists +0x18 and +0x0C (each string, then the storage), the name.
     void Destruct();
     // The copy constructor (the list vector's copies): each member copied in order (the lists
     // copy-constructed).
@@ -112,11 +110,11 @@ struct SpellListRecord {
     // The list vector's resize(n) temporary: empty strings with room for 8 bytes, empty lists.
     void ConstructDefault();
 
-    stlp::string spell;                     // +0x00 the spell's name
-    stlp::vector<stlp::string> required;    // +0x0C modifier names
-    stlp::vector<stlp::string> optional;    // +0x18 modifier names
-    stlp::string repeated;                  // +0x24 the modifier repeated while it fits
-    std::uint32_t classMask;                // +0x30 bit per ItemStock::classIndex
+    stlp::string spell;                     // the spell's name
+    stlp::vector<stlp::string> required;    // modifier names
+    stlp::vector<stlp::string> optional;    // modifier names
+    stlp::string repeated;                  // the modifier repeated while it fits
+    std::uint32_t classMask;                // bit per ItemStock::classIndex
 };
 static_assert(offsetof(SpellListRecord, required) == 0x0C);
 static_assert(offsetof(SpellListRecord, repeated) == 0x24);
@@ -127,26 +125,24 @@ static_assert(sizeof(SpellListRecord) == 0x34);
 struct SpellModifierRecord {
     // String 0, fields 1-6 the dwords +0x04..+0x18, string 7, field 8.
     void Serialize(ChunkArchive* ar);
-    // The destructor: the strings +0x1C, +0x00.
     void Destruct();
-    // The copy constructor: the strings copied, +0x04..+0x1B and +0x20 copied.
     void CopyConstruct(const SpellModifierRecord* source);
     // operator=: the same fields assigned.
     void AssignModifier(const SpellModifierRecord* source);
     // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;                  // +0x00
-    // +0x04 the modifier's code inline; its first one or two letters are the kind the trader stock keys it
+    mfc::CString name;
+    // the modifier's code inline; its first one or two letters are the kind the trader stock keys it
     // by (item_stock.cpp: a, d, e, m, r, t; fi, ii).
     char code[4];
-    float price;                        // +0x08 a loot item's price when it stands for the modifier (CItemLoot::GetPrice)
-    std::uint32_t kind;                 // +0x0C
-    float mana;                         // +0x10 added to the spell's
-    float strength;                     // +0x14 the trader stock keeps the strongest per kind; kind 'm' scales the cost
-    int skill;                          // +0x18 added to the spell's
-    mfc::CString text1C;                // +0x1C
-    std::uint32_t classMask;            // +0x20 bit (class - 1): the class templates that may use it
+    float price;                        // a loot item's price when it stands for the modifier (CItemLoot::GetPrice)
+    std::uint32_t kind;
+    float mana;                         // added to the spell's
+    float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
+    int skill;                          // added to the spell's
+    mfc::CString text1C;
+    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
 static_assert(offsetof(SpellModifierRecord, code) == 0x04);
 static_assert(offsetof(SpellModifierRecord, price) == 0x08);
@@ -157,7 +153,7 @@ static_assert(sizeof(SpellModifierRecord) == 0x24);
 
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items; the base has
 // a pure virtual). The values +0x34..+0x48 go to the item (CItem::InitFromRecord), with the item offset
-// noted. The records live in the databases' vectors (record_vectors.h) and, one at a time, in the item
+// noted. The records live in the databases' vectors and, one at a time, in the item
 // constructor (on the game's heap).
 class ItemRecordHead {
 public:
@@ -168,8 +164,7 @@ public:
     // then the strings +0x10, +0x08, +0x04. Not virtual: the records' tables have only Kind.
     ~ItemRecordHead();
 
-    // operator= of the head: the three strings, +0x0C, +0x14..+0x1C, +0x34..+0x4C, the byte +0x68 and the
-    // string array +0x20 (CStringArray::Copy). +0x50, +0x64 and +0x6C are not copied. Returns this.
+    // operator= of the head (the string array list50, classMask and the category are not copied).
     ItemRecordHead* Assign(const ItemRecordHead* source);
     // The head's fields in an archive: the strings 0, 1, 3, +0x0C, +0x14..+0x1C, +0x34..+0x4C (fields
     // 7-13), +0x64 and the byte +0x68 (14, 15).
@@ -182,31 +177,31 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    mfc::CString text04;                // +0x04 the name the tables file the record under
-    mfc::CString text08;                // +0x08
-    int type;                           // +0x0C weapon / armour class
-    // +0x10 the class of material it is made of ("none": a potion, without a material).
+    mfc::CString text04;                // the name the tables file the record under
+    mfc::CString text08;
+    int type;                           // weapon / armour class
+    // the class of material it is made of ("none": a potion, without a material).
     mfc::CString materialClass;
-    std::uint32_t field4;               // +0x14 archive field 4 (nothing reads it)
-    int number;                         // +0x18 the number in the item's text keys and names ("item%04d")
-    int variant;                        // +0x1C the model variant
+    std::uint32_t field4;               // archive field 4 (nothing reads it)
+    int number;                         // the number in the item's text keys and names ("item%04d")
+    int variant;                        // the model variant
     console::CStringArray list20;       // the first list name (FirstListName)
-    float price;                        // +0x34 item +0x38 (plus materialUnits times the material's unitPrice)
-    // +0x38 item +0x34 (CItem::Weight), times the material's factor38; also what WeaponAttack
+    float price;                        // item +0x38 (plus materialUnits times the material's unitPrice)
+    // item +0x34 (CItem::Weight), times the material's factor38; also what WeaponAttack
     // returns, which the unit's attack info shows as the weapon's speed.
     float value38;
-    std::uint32_t value3C;              // +0x3C item +0x3C
-    float charge;                       // +0x40 item charge and maximum
-    std::uint32_t magicLevel;           // +0x44 item +0x40 (plus the material's magicLevel)
-    float condition;                    // +0x48 item condition and maximum (times the material's conditionFactor)
-    std::uint32_t materialUnits;        // +0x4C units of material (the price; the trader stock takes them)
-    console::CStringArray list50;       // +0x50
-    std::uint32_t classMask;            // +0x64 bit (class - 1): the class templates that may use it
-    // +0x68 archive field 15, 1 after construction: 0 keeps the item out of the camp's item
+    std::uint32_t value3C;              // item +0x3C
+    float charge;                       // item charge and maximum
+    std::uint32_t magicLevel;           // item +0x40 (plus the material's magicLevel)
+    float condition;                    // item condition and maximum (times the material's conditionFactor)
+    std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
+    console::CStringArray list50;
+    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
+    // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).
     std::uint8_t buildable;
     std::uint8_t unused_69[3];
-    // +0x6C the category (5 wands, 8 quick items whose prototype names their spell), a quest
+    // the category (5 wands, 8 quick items whose prototype names their spell), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
 
@@ -237,7 +232,7 @@ Record* RecordAs(ItemRecordHead* record) { return static_cast<Record*>(record); 
 template <class Record>
 const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const Record*>(record); }
 
-// The record kinds (item_db_records.cpp). Their copy constructors are what STLport's uninitialized_copy
+// The record kinds. Their copy constructors are what STLport's uninitialized_copy
 // (first, last, dest) and uninitialized_fill_n (dest, n, x) of each vector inline: the head constructed
 // (empty strings and string arrays, +0x68 = 1), the kind's own members, the head's Assign, then the kind's
 // own fields. Bytes that are not copied are left as constructed (or as they were, for bytes no constructor
@@ -246,7 +241,7 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
-    WeaponRecord();                             // +0x78..+0x82 zero
+    WeaponRecord();
     WeaponRecord(const WeaponRecord& from);
     int Kind() override;                        // 0x3004
     // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
@@ -257,16 +252,16 @@ struct WeaponRecord : ItemRecordHead {
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
-    std::uint8_t field16[8];            // +0x70 archive field 0x16 (nothing reads it)
-    std::uint8_t field1B[3];            // +0x78 archive field 0x1B (nothing reads it)
-    std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)
+    std::uint8_t field16[8];            // archive field 0x16 (nothing reads it)
+    std::uint8_t field1B[3];            // archive field 0x1B (nothing reads it)
+    std::uint8_t skillBonus[2];         // the wielder's weapon skill bonus (skill 0 / 1)
     std::uint8_t unused_7D[0x84 - 0x7D];
-    float attackBonus;                  // +0x84 added to the wielder's attack (WeaponStat84)
-    float defenceBonus;                 // +0x88 added to the wielder's defence (WeaponStat88; 0 for types 5, 6)
-    std::uint32_t reach;                // +0x8C item +0x58: the wielder's reach (float bits)
-    float damage;                       // +0x90 minimum damage (times the material's damageFactor)
-    float damageSpread;                 // +0x94 maximum damage = damage + spread
-    float damageTypes[7];               // +0x98 weight of each damage type
+    float attackBonus;                  // added to the wielder's attack (WeaponStat84)
+    float defenceBonus;                 // added to the wielder's defence (WeaponStat88; 0 for types 5, 6)
+    std::uint32_t reach;                // item +0x58: the wielder's reach (float bits)
+    float damage;                       // minimum damage (times the material's damageFactor)
+    float damageSpread;                 // maximum damage = damage + spread
+    float damageTypes[7];               // weight of each damage type
 };
 static_assert(offsetof(WeaponRecord, reach) == 0x8C);
 static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
@@ -293,16 +288,16 @@ struct ArmorRecord : ItemRecordHead {
     // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
-    float absorbFirst[7];               // +0x70 item absorb_[0]
-    std::uint32_t firstFlags;           // +0x8C
-    float othersFactor;                 // +0x90
-    float absorbOthers[7];              // +0x94 item absorb_[1]
-    std::uint32_t othersFlags;          // +0xB0
-    std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers
+    float absorbFirst[7];               // item absorb_[0]
+    std::uint32_t firstFlags;
+    float othersFactor;
+    float absorbOthers[7];              // item absorb_[1]
+    std::uint32_t othersFlags;
+    std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint8_t unused_B5[3];
-    std::uint32_t layer;                // +0xB8 the lower one's texture goes first (ArmorFieldB8)
-    std::uint8_t field19[3];            // +0xBC archive field 0x19 (nothing reads it)
-    std::uint8_t field1A[8];            // +0xBF archive field 0x1A (nothing reads it)
+    std::uint32_t layer;                // the lower one's texture goes first (ArmorFieldB8)
+    std::uint8_t field19[3];            // archive field 0x19 (nothing reads it)
+    std::uint8_t field1A[8];            // archive field 0x1A (nothing reads it)
     std::uint8_t unused_C7[kArmorSize - 0xC7];
 };
 static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
@@ -313,9 +308,8 @@ static_assert(sizeof(ArmorRecord) == kArmorSize);
 
 // A quick item prototype (potions, wands, scrolls; kQuickItemSize bytes).
 struct QuickItemRecord : ItemRecordHead {
-    QuickItemRecord();                          // +0x80..+0x8A zero
+    QuickItemRecord();
     QuickItemRecord(const QuickItemRecord& from);
-    // The string +0x7C, then the head's members.
     ~QuickItemRecord();
     int Kind() override;                        // 0x3006
     // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
@@ -325,12 +319,12 @@ struct QuickItemRecord : ItemRecordHead {
     // The head, then +0x6C..+0x7B, the string +0x7C and +0x80..+0x8A.
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t value70;              // +0x70 item +0x4C
-    std::uint8_t field17[4];            // +0x74 archive field 0x17 (nothing reads it)
-    std::uint8_t field18[4];            // +0x78 archive field 0x18 (nothing reads it)
-    mfc::CString text7C;                // +0x7C the spell text of a category 8 item (CItemConstructor::Build)
-    std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
-    std::uint8_t field1B[8];            // +0x83 archive field 0x1B (nothing reads it)
+    std::uint32_t value70;              // item +0x4C
+    std::uint8_t field17[4];            // archive field 0x17 (nothing reads it)
+    std::uint8_t field18[4];            // archive field 0x18 (nothing reads it)
+    mfc::CString text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
+    std::uint8_t field1B[8];            // archive field 0x1B (nothing reads it)
     std::uint8_t unused_8B[kQuickItemSize - 0x8B];
 };
 static_assert(offsetof(QuickItemRecord, value70) == 0x70);
@@ -350,7 +344,7 @@ struct QuestItemRecord : ItemRecordHead {
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
-    stlp::vector<mfc::CString> zones;   // +0x70 the zone names
+    stlp::vector<mfc::CString> zones;   // the zone names
 };
 static_assert(offsetof(QuestItemRecord, zones) == 0x70);
 static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
@@ -366,14 +360,14 @@ struct LootItemRecord : ItemRecordHead {
     // The head, then +0x6C, +0x70, +0x74.
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t recordType;           // +0x70
-    std::uint32_t index;                // +0x74
+    std::uint32_t recordType;
+    std::uint32_t index;
 };
 static_assert(offsetof(LootItemRecord, index) == 0x74);
 static_assert(sizeof(LootItemRecord) == kLootSize);
 
-// Per record kind (item_db_records.cpp): uninitialized_copy of [first, last) to `dest` and uninitialized_fill_n of
-// `count` copies of `value`, both __fastcall. The last argument is STLport's unused type tag. Null destinations
+// Per record kind: uninitialized_copy of [first, last) to `dest` and uninitialized_fill_n of
+// `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
 // are skipped; the result is the end of the destination.
 template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int tag);
@@ -382,34 +376,29 @@ R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
-    mfc::CString key;                   // +0x00 (the camp's "material.<key>" loot items)
-    mfc::CString soundName;             // +0x04 the material of hit sounds ("Metal", "Bone", ...)
-    mfc::CString name;                  // +0x08
-    std::uint32_t number;               // +0x0C its index (the packed item id's low half; loot kind 1)
-    // +0x10 the price per unit of the prototype's materialUnits; the trader stock's material draw
-    // (item_stock.cpp); a loot item of kind 1's price.
+    mfc::CString key;                   // (the camp's "material.<key>" loot items)
+    mfc::CString soundName;             // the material of hit sounds ("Metal", "Bone", ...)
+    mfc::CString name;
+    std::uint32_t number;               // its index (the packed item id's low half; loot kind 1)
+    // the price per unit of the prototype's materialUnits; the trader stock's material draw
+    //; a loot item of kind 1's price.
     float unitPrice;
-    float factor38;                     // +0x14 multiplies the prototype's value38 (WeaponAttack)
-    float magicPower;                   // +0x18 added to the prototype's charge (CItemConstructor::MagicCapacity)
-    std::uint32_t magicLevel;           // +0x1C added to the prototype's +0x44
-    float conditionFactor;              // +0x20 multiplies the prototype's condition
-    std::uint32_t field9;               // +0x24 archive field 9 (nothing reads it)
-    float damageFactor;                 // +0x28 multiplies a weapon's damage and spread
-    float absorbFactors[7];             // +0x2C multiply an armour's absorption per damage type (one field)
-    std::uint32_t armourFlags;          // +0x48 or'ed into the flag dwords of an armour's rows
-    std::uint32_t classMask;            // +0x4C bit (class - 1): the class templates that may use it
+    float factor38;                     // multiplies the prototype's value38 (WeaponAttack)
+    float magicPower;                   // added to the prototype's charge (CItemConstructor::MagicCapacity)
+    std::uint32_t magicLevel;           // added to the prototype's +0x44
+    float conditionFactor;              // multiplies the prototype's condition
+    std::uint32_t field9;               // archive field 9 (nothing reads it)
+    float damageFactor;                 // multiplies a weapon's damage and spread
+    float absorbFactors[7];             // multiply an armour's absorption per damage type (one field)
+    std::uint32_t armourFlags;          // or'ed into the flag dwords of an armour's rows
+    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 
     // The three strings, then +0x0C..+0x4C.
     void Serialize(ChunkArchive* ar);
-    // The copy constructor (the material vector's resize and growth): the three strings copy-constructed,
-    // +0x0C..+0x4F copied. Returns this.
     MaterialRecordHead* CopyConstruct(const MaterialRecordHead* source);
-    // operator= (as the material vector's copies inline it): the three strings assigned, +0x0C..+0x4F
-    // copied.
     void AssignMaterial(const MaterialRecordHead* source);
     // The material vector's resize(n) temporary: three empty strings, the rest left as it is.
     void ConstructDefault();
-    // The destructor: the strings +0x08, +0x04, +0x00.
     void Destruct();
 };
 static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
@@ -425,18 +414,18 @@ inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "b
 inline constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
 
 // A table of the item database (0x20 bytes: materials, weapons, armors, quick items, quest items, loot) as
-// its load (Rebirth-patched) fills it: the STLport vector of records and the name index (+0x0C,
-// hash_map<string, record*>; records with the same name: the last one). item_db_load.cpp.
+// its load (Rebirth-patched) fills it: the STLport vector of records and the name index
+// (hash_map<string, record*>; records with the same name: the last one).
 template <typename Record>
 struct NamedRecordTable {
     // For the quick item, quest item and loot tables: the records of chunk `field` read from `source`
     // through an archive built on the stack (Open for loading, the vector's chunk serialiser, Close), then
-    // every record filed in the index under its name (+0x04).
+    // every record filed in the index under its name.
     void Load(CStream* source, int field);
-    // The constructor (inlined; database_construct.cpp): no records, an empty index of 100 buckets (193).
+    // The constructor: no records, an empty index of 100 buckets (193).
     void Construct();
 
-    // The name index (hash_map<string, record*>; the materials are filed under their key, +0x00).
+    // The name index (hash_map<string, record*>; the materials are filed under their key).
     using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
@@ -454,8 +443,8 @@ struct NamedRecordTable {
     // filed under a new name).
     Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, stlp::string(name)); }
 
-    stlp::vector<Record> records;   // +0x00 begin, end, end of storage
-    NameIndex names;                // +0x0C record by name
+    stlp::vector<Record> records;   // begin, end, end of storage
+    NameIndex names;                // record by name
 };
 static_assert(sizeof(NamedRecordTable<ItemRecordHead>) == 0x20);
 static_assert(sizeof(NamedRecordTable<ItemRecordHead>::NameIndex) == 0x14);
@@ -466,14 +455,14 @@ using QuickItemTable = NamedRecordTable<QuickItemRecord>;
 using QuestItemTable = NamedRecordTable<QuestItemRecord>;
 using LootItemTable = NamedRecordTable<LootItemRecord>;
 
-// The spell and spell modifier tables (0x20 bytes each): the records and the index by code (+0x0C; filled
-// by the Rebirth-patchedload).
+// The spell and spell modifier tables: the records and the index by code (filled
+// by the Rebirth-patched load).
 template <typename Record>
 struct CodeIndexedTable {
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
     Record* FindByCode(const char* code);
-    // The constructor (inlined; database_construct.cpp): no records, an empty index of 100 buckets (193).
+    // The constructor: no records, an empty index of 100 buckets (193).
     void Construct();
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
@@ -487,8 +476,8 @@ struct CodeIndexedTable {
 
     // The index by code (hash_map<string, record*>; stlp::NamedSlot).
     using CodeIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
-    stlp::vector<Record> records;   // +0x00 begin, end, end of storage
-    CodeIndex byCode;               // +0x0C
+    stlp::vector<Record> records;   // begin, end, end of storage
+    CodeIndex byCode;
 };
 static_assert(sizeof(CodeIndexedTable<SpellRecord>) == 0x20);
 using SpellTable = CodeIndexedTable<SpellRecord>;
@@ -496,32 +485,32 @@ using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 
 // The spell database: the spells and the modifiers by code, and the three lists of spells.sdb's chunks 3-5.
 struct SpellDatabase {
-    // Rebirth-patched (hooked in the vanilla launch only). "spells.sdb" of the archive `folder` +
+    // Rebirth-patched. "spells.sdb" of the archive `folder` +
     // `archive`: the spells (chunk 1) and the modifiers (chunk 2), each read through an archive of its own
     // and filed under its code, then the three lists through a third. 1; FatalError's result when the
     // archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
-    // Run by the static initialiser, the resource switch and the reload (database_construct.cpp). Both
+    // Run by the static initialiser, the resource switch and the reload. Both
     // tables (CodeIndexedTable::Construct), the three lists empty. Returns this.
     SpellDatabase* Construct();
-    // Destruction and construction in place (database_reset.cpp), which the resource switch runs. The three
+    // Destruction and construction in place, which the resource switch runs. The three
     // lists from the last (records in order, then the storage), the modifiers and the spells (the index's
     // nodes and buckets, then the records and their storage); then Construct.
     void Reset();
-    // Run at exit (database_destruct.cpp). The destruction half of Reset: the three lists from the last,
+    // Run at exit. The destruction half of Reset: the three lists from the last,
     // the modifiers, the spells.
     void Destruct();
 
-    SpellTable spells;                          // +0x00
-    SpellModifierTable modifiers;               // +0x20
-    stlp::vector<SpellListRecord> lists[3];     // +0x40, +0x4C, +0x58
+    SpellTable spells;
+    SpellModifierTable modifiers;
+    stlp::vector<SpellListRecord> lists[3];     // +0x4C, +0x58
 };
 static_assert(offsetof(SpellDatabase, lists) == 0x40);
 static_assert(sizeof(SpellDatabase) == 0x64);
 
 // The item database.
 struct ItemDatabase {
-    // Rebirth-patched (hooked in the vanilla launch only). "items.idb" of the archive `folder` + `archive`:
+    // Rebirth-patched. "items.idb" of the archive `folder` + `archive`:
     // the materials (chunk 1, filed under their key), the weapons (2) and the armour (3), each through an
     // archive of its own and filed under its name, then the quick items, quest items and loot (chunks 4-6,
     // their loads). 1; FatalError's result when the archive or the file cannot be opened.
@@ -529,24 +518,24 @@ struct ItemDatabase {
     // The tables from the last to the first: the name index emptied and its buckets freed, every record
     // destroyed, the record storage freed.
     void DestructBody();
-    // Run by the static initialiser, the resource switch and the reload (database_construct.cpp). The six
+    // Run by the static initialiser, the resource switch and the reload. The six
     // tables from the first (NamedRecordTable::Construct). Returns this.
     ItemDatabase* Construct();
-    // Destruction and construction in place (database_reset.cpp), which the resource switch runs. The
+    // Destruction and construction in place, which the resource switch runs. The
     // tables from the last to the first as DestructBody destroys them, but through the library's
     // containers; then Construct.
     void Reset();
 
-    MaterialTable materials;        // +0x00 kMaterialSize records
-    WeaponTable weapons;            // +0x20 kWeaponSize
-    ArmorTable armors;              // +0x40 kArmorSize
-    QuickItemTable quickItems;      // +0x60 kQuickItemSize
-    QuestItemTable questItems;      // +0x80 kQuestItemSize (QuestItems())
-    LootItemTable loot;             // +0xA0 kLootSize (Loot())
+    MaterialTable materials;        // kMaterialSize records
+    WeaponTable weapons;            // kWeaponSize
+    ArmorTable armors;              // kArmorSize
+    QuickItemTable quickItems;      // kQuickItemSize
+    QuestItemTable questItems;      // kQuestItemSize (QuestItems())
+    LootItemTable loot;             // kLootSize (Loot())
 };
 static_assert(sizeof(ItemDatabase) == 0xC0);
 
-// The databases (database_globals.cpp): built empty by their static initialisers, destroyed by the exit functions
+// The databases: built empty by their static initialisers, destroyed by the exit functions
 // those register (docs/notes/standalone.md, "The static initialisers' objects").
 } // namespace itemdb
 extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;

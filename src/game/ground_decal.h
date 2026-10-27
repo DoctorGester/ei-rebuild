@@ -63,23 +63,23 @@ public:
     // Appends one vertex; returns its index (AX only).
     std::uint16_t AddVertex(const DecalVertex* v);
 
-    lib::AlignedArray<VertexPacket>* points_;       // +0x00 x[4], y[4], z[4] per packet (w untouched)
-    lib::AlignedArray<DecalTexCoord>* texCoords_;   // +0x04
-    lib::AlignedArray<std::uint16_t>* indices_;     // +0x08
-    Vector3 uAxis_;          // +0x0C the u edge across the direction, over its squared length
-    Vector3 vAxis_;          // +0x18 the same for v
-    Vector3 normal_;         // +0x24 the (normalised) direction
-    Vector3 origin_;         // +0x30 the origin corner
-    Vector3 slope_;          // +0x3C direction / |direction.z|
-    Vector3 direction_;      // +0x48
-    Vector3 point_;          // +0x54
-    float uOffset_;          // +0x60 u of a point p = uAxis . p + uOffset
-    float vOffset_;          // +0x64
-    float planeOffset_;      // +0x68 plane distance = normal . p + planeOffset
-    float uLength_;          // +0x6C |uAxis|
-    float vLength_;          // +0x70 |vAxis|
-    int vertexCount_;        // +0x74
-    int indexCount_;         // +0x78
+    lib::AlignedArray<VertexPacket>* points_;       // x[4], y[4], z[4] per packet (w untouched)
+    lib::AlignedArray<DecalTexCoord>* texCoords_;
+    lib::AlignedArray<std::uint16_t>* indices_;
+    Vector3 uAxis_;          // the u edge across the direction, over its squared length
+    Vector3 vAxis_;          // the same for v
+    Vector3 normal_;         // the (normalised) direction
+    Vector3 origin_;         // the origin corner
+    Vector3 slope_;          // direction / |direction.z|
+    Vector3 direction_;
+    Vector3 point_;
+    float uOffset_;          // u of a point p = uAxis . p + uOffset
+    float vOffset_;
+    float planeOffset_;      // plane distance = normal . p + planeOffset
+    float uLength_;          // |uAxis|
+    float vLength_;          // |vAxis|
+    int vertexCount_;
+    int indexCount_;
 
 private:
     void AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c);

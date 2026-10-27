@@ -5,7 +5,7 @@
 // No holder has a DirectDraw surface (CDXSurface::surface stays null): the pixels live in memory the new renderer
 // owns (render::NewSurfaceMemory, a DIB section), the game code works on it directly (DirectPixels; GDI through a
 // memory DC, ui_surface_dc.cpp) and the new renderer reads it. Picture surfaces get the same memory; every texture
-// the texture manager makes for the CPU (texture_blank.cpp) gets a holder with only such memory
+// the texture manager makes for the CPU gets a holder with only such memory
 // (NewMemoryTextureHolder), an .mmp texture one with none (NewDecodedTextureHolder). When that memory cannot be
 // made the "Can't create DDSurface" error is thrown, as when DirectDraw refused the surface. See
 // docs/notes/renderer.md (sections 6, 7).

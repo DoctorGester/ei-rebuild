@@ -10,8 +10,8 @@
 #include "party_storage.h"
 #include "lib/stlp.h"
 
-class CParty;   // party.h
-struct PartyManager;   // party_manager.h
+class CParty;
+struct PartyManager;
 class ChunkArchive;
 
 #include <cstddef>
@@ -24,7 +24,7 @@ public:
     // inlined there): both parties created (slot 2), class -1, both flags 0, flag38 1.
     // weightsTail is zeroed too (the game never sets it, and saves it).
     ClassTemplate();
-    // The deleting destructor (class_template_stock.cpp): both parties destroyed (slot 3), the
+    // The deleting destructor: both parties destroyed (slot 3), the
     // stocks' maps and vectors freed (the magic stock first, each stock's context cleared), both
     // parties' destructors (spells first).
     ~ClassTemplate() override;
@@ -36,29 +36,29 @@ public:
     // The constructor run on `this` (the registration's; the harness's zeroing patch calls it,
     // tests/verify/harness_leftovers.cpp). Returns this.
     ClassTemplate* Construct();
-    // (class_template_stock.cpp). Both stocks take the 8 base and 8 scroll
+    //. Both stocks take the 8 base and 8 scroll
     // levels (ItemStock::SetLevels).
     void SetLevels(const float* base, const float* scroll);
 
     CParty* ItemsParty() { return items.Get(); }
     CParty* SpellsParty() { return spells.Get(); }
 
-    int type;                       // +0x08 class 1..5; bit (type - 1) of the records' class masks
-    std::uint8_t flag0C;            // +0x0C
-    std::uint8_t flag0D;            // +0x0D
+    int type;                       // class 1..5; bit (type - 1) of the records' class masks
+    std::uint8_t flag0C;
+    std::uint8_t flag0D;
     std::uint8_t unused_0E[2];
-    float weights[9];               // +0x10..+0x30
-    std::uint8_t weightsTail[4];        // +0x34 field 4's tenth dword (archived with weights)
-    std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion
+    float weights[9];               // ..+0x30
+    std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
+    std::uint8_t flag38;            // set by the constructor and by a quest completion
     std::uint8_t unused_39[3];
-    // +0x3C / +0xAC the party objects (CParty; party_storage.h): ItemsParty /
+    // / +0xAC the party objects (CParty; party_storage.h): ItemsParty /
     // SpellsParty.
     PartyStorage items;
     PartyStorage spells;
-    ItemStock allowed;              // +0x11C everything the class may use (vectors at +0x08 armors,
-                                    //   +0x14 weapons, +0x20 quick items, +0x2C the fourth kind
-                                    //   (16-byte entries), +0x38 spells, +0x44 modifiers)
-    ItemStock magic;                // +0x1D4 the same layout: spells and modifiers only
+    ItemStock allowed;              // everything the class may use (vectors at +0x08 armors,
+                                    // weapons, +0x20 quick items, +0x2C the fourth kind
+                                    // (16-byte entries), +0x38 spells, +0x44 modifiers)
+    ItemStock magic;                // the same layout: spells and modifiers only
 };
 static_assert(sizeof(ClassTemplate) == 0x28C);
 // A new template with no references (operator new and Construct; app_lifetime.cpp).
@@ -89,10 +89,10 @@ static_assert(sizeof(ClassTemplateVector) == 12);
 void __fastcall ClassTemplateFill(ClassTemplate* t);
 
 // Run on the party manager (the script's quest completion): sets byte
-// +0x38 of every template (+0x38 vector). Leaves the template count in EAX.
+// of every template (+0x38 vector). Leaves the template count in EAX.
 unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager);
 
-// class_template_stock.cpp: the trader stock of a camp's constructor record.
+// The trader stock of a camp's constructor record.
 // With flag +0x0C: the items party (+0x3C) is emptied and refilled from the
 // "allowed" stock (its class index type - 1; the "magic" stock's spells and modifiers, fresh
 // material units): 40-50 weapons, armors and quick items, 1-3 instructions of each, 20-50

@@ -27,7 +27,7 @@ inline void ReleaseObjectAndValue(ObjectAndValue* p) { gamearrays::ReleaseAndCle
 // A map object client's 16-byte effect records: an engine object at +8 (released, left).
 struct EffectObjectRecord {
     std::uint32_t head[2];
-    CEngineObject* object;   // +0x08
+    CEngineObject* object;
     std::uint32_t tail;
 };
 static_assert(sizeof(EffectObjectRecord) == 0x10);

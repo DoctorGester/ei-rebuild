@@ -68,7 +68,7 @@ using options::GameOptions;
 namespace app {
 std::uint32_t __cdecl GetDxVersion();
 
-// ---- The application's globals that the static initialisers set (app.h) ------------------------------------
+// ---- The application's globals that the static initialisers set ------------------------------------
 
 // The command line's CStrings, built by static initialisers in the list's order and destroyed
 // by the exit functions they register with the game's atexit; the mouse object's pointer, null at the start,
@@ -139,7 +139,7 @@ EI_REPLACE(0x00455D90, DestroyCommandLineMap);
 EI_REPLACE(0x00455DC0, DestroyMovieFolder);
 EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
 
-// The application's flags and handles (app.h).
+// The application's flags and handles.
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};
 HWND g_mainWindow = /*0079BC28*/ {};

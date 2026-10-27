@@ -47,7 +47,7 @@ Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), 
 Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
-//   lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
+// lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
 // `keepZ`: the original keeps the z component of the upper blend unrounded on the FPU for the
 // final difference (centre and box minimum; FST then FSUB), while the box maximum goes through
 // the out-of-line Vector3 helpers and rounds it.
@@ -66,7 +66,7 @@ Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
 }
 
 // The older 6-corner layout (non-FIG files), as for the bones (figure.h, BoneMorphBox):
-//   lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
+// lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
 // with the same unrounded upper z when `keepZ`.
 Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
     Vector3 lower = LerpStored(LerpStored(Load(c), Load(c + 3), s), Load(c + 6), t);
@@ -84,12 +84,12 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
 // One component of a 6-corner value (corner k at c[3 * k]), in the four roundings the original's
 // register allocation produced in the old-format loaders (each was read off the instruction
 // stream; see the notes):
-//   PerOp: every operation rounded (the inlined Vector3 operators).
-//   Kept:  the two s-blends stored, everything else on the FPU.
-//   StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
-//          FPU; then per operation.
-//   PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
-//   PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
+// PerOp: every operation rounded (the inlined Vector3 operators).
+// Kept:  the two s-blends stored, everything else on the FPU.
+// StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
+// FPU; then per operation.
+// PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
+// PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
 float LerpP(float a, float b, float s) { return static_cast<float>(static_cast<float>(static_cast<float>(b - a) * s) + a); }
 
 float CornerPerOp(const float* c, float s, float t, float u) {
