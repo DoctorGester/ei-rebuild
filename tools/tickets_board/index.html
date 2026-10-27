@@ -107,8 +107,11 @@ const LANES = [
   ['later', 'Later', 'Not before its phase.'],
   ['done', 'Done', 'Merged or finished.']];
 const state = { q: '', group: null, lanes: new Set(['running', 'review', 'ready', 'waiting', 'watch', 'later', 'done']) };
-try { const s = JSON.parse(localStorage.getItem('ei-board') || 'null'); if (s) { state.group = s.group; state.lanes = new Set(s.lanes); } } catch (e) {}
-const save = () => { try { localStorage.setItem('ei-board', JSON.stringify({ group: state.group, lanes: [...state.lanes] })); } catch (e) {} };
+// Saved lane choices only cover the lanes that existed when they were saved: a lane added later starts shown.
+try { const s = JSON.parse(localStorage.getItem('ei-board') || 'null'); if (s) { state.group = s.group;
+  const known = s.known || ['running', 'ready', 'waiting', 'watch', 'later', 'done'];
+  state.lanes = new Set([...s.lanes, ...LANES.map(([k]) => k).filter(k => !known.includes(k))]); } } catch (e) {}
+const save = () => { try { localStorage.setItem('ei-board', JSON.stringify({ group: state.group, lanes: [...state.lanes], known: LANES.map(([k]) => k) })); } catch (e) {} };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const code = s => esc(s).replace(/`([^`]+)`/g, '<code class="mono">$1</code>');
 let data;
