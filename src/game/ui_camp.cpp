@@ -44,30 +44,25 @@ namespace {
 
 
 
-// The local player's items (the party the client glue's returns).
 CParty* PlayerParty() { return LocalPlayerData(); }
 
-// Item `i` of a party's item list, and the list's count.
 CItem* ItemOf(CParty* list, int i) { return list->items_.data[i]; }
 int CountOf(CParty* list) { return list->items_.size; }
 
-// An item a constructor made: it turns with the flag a move into a list shown turning sets
-// (ItemTurn +0x10 at the item's +0x1C).
+// An item a constructor made: a move into a list shown turning sets its turn's flag.
 bool IsMade(CItem* item) {
     const ItemTurn* turn = ItemTurnOf(item);
     return turn && turn->flag;
 }
 
-// Moves `item` from `from` to `to`; returns
-// the item now held.
+// Returns the item now held.
 CItem* MoveBetween(CCampPages* camp, CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     return camp->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
 }
-// (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
 
-// Takes the made items out of `results` (re-read every time): a made item
-// goes to `owner` and into `strip`, the others to the local player and into the item strip.
+// `results` is re-read every time: a made item goes to `owner` and into `strip`, the others to the local
+// player and into the item strip.
 void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiItemStrip* strip) {
     for (CParty* list = results; list->items_.size != 0; list = results) {
         CItem* item = ItemOf(list, 0);
@@ -80,14 +75,14 @@ void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiIte
     }
 }
 
-// A page button's or an action button's shade: the three colour factors (1 full, 0.5 half).
+// 1 full, 0.5 half.
 void SetShade(CUiMesh* mesh, float shade) {
     mesh->tint_[0] = shade;
     mesh->tint_[1] = shade;
     mesh->tint_[2] = shade;
 }
 
-// A white centred line on a surface between GetDC and ReleaseDC (is Rebirth-patched).
+// A white centred line on a surface between GetDC and ReleaseDC (Rebirth-patched).
 void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
@@ -257,7 +252,7 @@ namespace {
 constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
 
-// Slot 16 of an item: its base price, left unrounded.
+// The item's base price, left unrounded.
 double ItemPrice(const CItem* item) {
     using PriceFn = double(__thiscall*)(const CItem*);
     void** vtable;
@@ -376,8 +371,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (mode != 1 && mode != 3) return mode == 7;
         if (IsPart(item) || IsBlueprint(item)) return CountOf(itemResults_) <= 0;
         if (IsKindOne(item)) {
-            // The list's item manager and spell manager are asked for (slots 18 and 22; the
-            // answers are not used).
+            // The answers are not used.
             itemResults_->ItemManager();
             itemResults_->SpellManager();
             std::uint32_t kindOnes = 0;
@@ -440,7 +434,7 @@ void CCampPages::UpdateAction() {
     cost_ = 0;
     actionEnabled_ = false;
     actionShown_ = false;
-    // Slot 54 (Rebirth-patched): the price of `item` for deal `kind`.
+    // Rebirth-patched.
     auto price = [this](CItem* item, int kind) { return Price(item, kind); };
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
@@ -602,8 +596,7 @@ BOOL CCampPages::Draw(int pass) {
     case 11: topic = 0x6B; break;
     default: break;
     }
-    // The items under the mouse (each panel's slot 25), panel by panel until one is found or a
-    // topic is set.
+    // Panel by panel until an item is found or a topic is set.
     auto probe = [&](CUiItemPanel* panel) {
         if (!hoveredItem_ && topic == 0) hoveredItem_ = panel->ItemAt(x, y, &topic);
     };
@@ -664,7 +657,6 @@ void ReleaseObject(CEngineObject* object) {
 } // namespace
 
 bool CCampPages::CanMakeSpell() {
-    // The slot list's spell constructor, item factory and spell manager (its slots 17, 18, 22).
     CSpellConstructor* constructor = spellResults_->SpellConstructor();
     CItemManager* factory = spellResults_->ItemManager();
     CSpellManager* manager = spellResults_->SpellManager();
@@ -714,7 +706,6 @@ bool CCampPages::CanMakeSpell() {
 EI_REWRITTEN(0x00612290, CCampPages::CanMakeSpell);
 
 bool CCampPages::CanMakeItem() {
-    // The slot list's item constructor, item factory and spell manager (its slots 16, 18, 22).
     CItemConstructor* constructor = itemResults_->ItemConstructor();
     CResourceManager* factory = itemResults_->ItemManager();
     CSpellManager* manager = itemResults_->SpellManager();
@@ -783,11 +774,10 @@ constexpr std::uint32_t kRecordBias = 100000000;
 } // namespace
 
 void CCampPages::Close() {
-    GameSetServerPaused(0);   // (on the game glue)
+    GameSetServerPaused(0);
     device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
-    // The local player's unit records, as the record array the client glue takes (a
-    // CArray of record pointers, SetSize), their keys raised meanwhile.
+    // The local player's unit records, their keys raised meanwhile.
     RecordPtrArray records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
     auto* player = LocalPlayerData();
     for (int i = 0; i < player->members_.size; ++i) {
@@ -800,7 +790,6 @@ void CCampPages::Close() {
     GameRemoveUnitsOf(&records);
     for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
 
-    // The heroes array emptied (the CArray's SetSize(0) without elements to destroy).
     if (heroes_.data) {
         gamecrt::operator_delete(heroes_.data);
         heroes_.data = nullptr;
@@ -813,14 +802,12 @@ void CCampPages::Close() {
     itemMade_ = nullptr;
     helpPanel_->Describe(nullptr);
     descPanel_->Describe(nullptr);
-    // The part lists emptied and deleted (the deleting destructor); the first of
-    // each constructor's lists (the class template's) is not touched here.
+    // The first of each constructor's lists (the class template's) is not touched here.
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
                           &itemResults_, &itemExtra_}) {
         (*list)->Destroy();
-        delete *list;   // slot 0 with 1 (the virtual destructor), when the re-read field is set
+        delete *list;
     }
-    // The record array's destructor.
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
@@ -855,7 +842,6 @@ EI_REWRITTEN_SPECIAL(0x00613DB0, CTradePanel::~CTradePanel);   // the input side
 namespace {
 
 
-// The hero's statistics (UnitStats at the record's +0x20).
 UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // The hero's statistics with the armour it wears as their outer layers again.
@@ -1142,7 +1128,7 @@ EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
 namespace {
 // fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
-constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;   // a static initialiser: pi + pi
+constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;
 float TurnedBy(double seconds, float turn, bool backwards) {
     const double twice = seconds + seconds;
     const double turned = backwards ? turn - twice : twice + turn;
@@ -1153,7 +1139,7 @@ constexpr int kHeroClass = 0x32;
 } // namespace
 
 void CCampPages::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();   // the container's update
+    static_cast<CUiContainer*>(this)->UpdateBase();
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
@@ -1169,9 +1155,8 @@ void CCampPages::Update() {
 EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 
 namespace {
-// The search both directions share: from the current hero, step until a record of the hero
-// class (fatal after more steps than there are records). on the map objects manager
-// A prototype's object class.
+// From the current hero, step until a record of the hero class (fatal after more steps than there are
+// records).
 template <typename Step>
 int FindHero(int start, Step step) {
     CParty* party = PlayerParty();
@@ -1210,8 +1195,6 @@ EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
-    // The text table (returns []): whether it has a key,
-    // its text into a CString.
     CTextManager* table = GameClientTexts();
     mfc::CString name;
     std::string own = unit->GetName();

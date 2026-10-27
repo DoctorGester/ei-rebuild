@@ -1,7 +1,7 @@
 #pragma once
 
-// Shared by spell_effect_start.cpp and spell_effect_update.cpp(missile flight, lasting effects): helpers,
-// the x87 sequences repeated inline, and small accessors. See docs/notes/items_spells.md.
+// Shared by the spell effects' start and update: helpers, the x87 sequences repeated inline, and small
+// accessors. See docs/notes/items_spells.md.
 
 #include "game_strings.h"
 #include "spell.h"
@@ -41,7 +41,6 @@ constexpr int kClassShowVisibility = 0x5E;
 constexpr int kClassSoundSequence = 99;
 constexpr int kClassUnit = 0x50;
 
-// The world's height slots the x87 helpers below call through (27 the grid height, 28 the ground).
 constexpr int kWorldSlotGridHeight = 27;
 constexpr int kWorldSlotGroundHeight = 28;
 
@@ -60,16 +59,9 @@ constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fire
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
 
-// Effect setters (world_effect*.cpp).
-// The missile's target object id.
-// CEffectShowVisibility's two object ids (+0x14C, +0x150).
-// CPtrList constructor (block size) and destructor.
-// The unit controller: says remark `what`; tries to be tamed by `tamer` with skill `skill` (0 when it
-// failed).
-// Footprints of the walls and clouds in the global cell set (thiscall on the set): along a direction or a
-// disc; then
-// stamped into / cleared from the AI map (ai_footprint.cpp).
-extern lib::StaticObject<FootprintCellSet> g_spellFootprint;   // ai_footprint.cpp
+// Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
+// map.
+extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
 inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
 
 // --- x87 sequences ------------------------------------------------------------------------------
@@ -224,8 +216,7 @@ inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController();
 // The target as a unit (the callers checked its class, or the game does not).
 inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.object); }
 
-// A new object of class `classId` (whose objects are T's) from the world's timed object manager
-// (key -1).
+// From the world's timed object manager.
 template <class T>
 T* CreateObject(CSpellEffect* e, int classId) {
     return e->world->TimedObjectManager()->CreateObjectAs<T>(classId, -1);
@@ -270,7 +261,7 @@ inline float PowerScaled(CSpellEffect* e, const float& scale) {
     return out;
 }
 
-// The lights' rise speed: range / max(prototype +0x74, 1) (the larger picked on C0: 1 < v or NaN).
+// The lights' rise speed: range / max(extraValues[4], 1) (the larger picked on C0: 1 < v or NaN).
 inline float LightRise(CSpellEffect* e) {
     float value;
     std::memcpy(&value, &Prototype(e)->extraValues[4], 4);

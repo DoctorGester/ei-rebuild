@@ -1,8 +1,7 @@
 #pragma once
 
-// Sound and music: the sound manager (CSoundManager, one instance) built on the Miles Sound System
-// (mss32.dll), its MP3 music stream and MIDI threads, and the music state machine (CMusicSystem). See
-// docs/notes/sound.md for the map of the range.
+// Sound and music: the sound manager built on the Miles Sound System (mss32.dll), its MP3 music stream and
+// MIDI threads, and the music state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
 
@@ -18,14 +17,13 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>   // CRITICAL_SECTION
+#include <windows.h>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName
 
-// A volume envelope: the music stream's and the MIDI sequence's. `level` is the Miles volume 0..127 derived
-// from `volume` (0..100) and the fade `factor`.
 namespace mfc::impl { struct WinThread; }
 
+// A volume envelope: the music stream's and the MIDI sequence's.
 struct SoundFader {
     std::int32_t volume;        // 0..100
     std::int32_t level;         // 0..127, round(volume * factor * 127 * 0.01)
@@ -36,7 +34,7 @@ struct SoundFader {
     std::uint32_t holdUntil;    // timeGetTime() at which the fade is cancelled (0: none)
 
     void SetHold(std::uint32_t until);
-    void Update();                      // stream thread
+    void Update();                      // on the stream thread
     void Recalc();
 };
 static_assert(sizeof(SoundFader) == 0x1C);
@@ -50,13 +48,13 @@ struct SoundSlot {
     std::int32_t pan;           // -100..100
     std::int32_t priority;
     std::int32_t playing;
-    std::int32_t looping;       // keep as a deferred record when the voice is stolen
+    std::int32_t looping;       // kept as a deferred record when the voice is stolen
     std::int32_t speech;        // scaled by the speech volume instead of effects
     float length;               // seconds
     std::int32_t finished;      // set by the end-of-sample callback (Miles thread)
     std::int32_t flat;          // 2D: volume from baseVolume, not from the listener distance
     std::int32_t heightFade;    // 2D sounds fading out as the camera rises (30..70)
-    Vector3 position;           // 3D position
+    Vector3 position;
     float nearDistance;         // full volume inside
     float farDistance;          // silent outside
     std::int32_t handle;        // sound handle (-1: free)
@@ -66,8 +64,7 @@ struct SoundSlot {
 static_assert(sizeof(SoundSlot) == 0x54);
 static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handle) == 0x50);
 
-// A sound that lost its voice to a higher priority one and waits to be restarted (allocated with operator new
-// and kept in the hash map keyed by handle).
+// A looping sound that lost its voice to a higher priority one and waits to be restarted.
 struct DeferredSound {
     stlp::string name;
     std::int32_t volume;
@@ -81,7 +78,7 @@ struct DeferredSound {
     Vector3 position;
     float nearDistance;
     float farDistance;
-    std::int32_t handle;        // (the map key)
+    std::int32_t handle;        // the map key
     std::int32_t samplePosition;
 };
 static_assert(sizeof(DeferredSound) == 0x48);
@@ -101,15 +98,16 @@ struct SoundEmitter {
 };
 static_assert(sizeof(SoundEmitter) == 0x38);
 
-// A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one position.
 struct SoundSequence;
 unsigned __cdecl StreamThreadEntry(void* manager);
-// The elements' constructors (return this) and destructors, handed to the CRT's eh vector iterators.
+// Handed to the CRT's eh vector iterators.
 SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter);
 void __fastcall DestructEmitter(SoundEmitter* emitter);
 SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence);
 void __fastcall DestructSequence(SoundSequence* sequence);
 
+// A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one
+// position.
 struct SoundSequence {
     std::int32_t active;
     SoundNameArray names;
@@ -131,8 +129,6 @@ struct SoundSequence {
 };
 static_assert(sizeof(SoundSequence) == 0x4C);
 
-// The STLport hash_map<int, DeferredSound*>. Find is the inlined bucket walk, Clear the inlined clear() (nodes
-// freed, buckets kept).
 using DeferredMap = stlp::hash_map<std::int32_t, DeferredSound*, stlp::IntHash>;
 using DeferredNode = DeferredMap::Node;
 static_assert(sizeof(DeferredMap) == 0x14);
@@ -145,24 +141,19 @@ struct WaveRecord {
     std::uint32_t name[3];      // STLport string (Name())
     std::uint32_t lastUsed;     // GetTickCount()
     std::int32_t size;          // bytes
-    std::int32_t uses;          // voices playing it (CacheEntry's +0x20 is this field of the node)
+    std::int32_t uses;          // voices playing it
 
-    // operator= (sound_manager.cpp): the data pointer, the name by STLport's assign (unless it is the same
-    // string), the three counters.
     WaveRecord* Assign(const WaveRecord* from);
 
     stlp::string& Name() { return *reinterpret_cast<stlp::string*>(name); }
     const stlp::string& Name() const { return *reinterpret_cast<const stlp::string*>(name); }
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
-// CList<WaveRecord>. Its NewNode / FreeNode stay the instantiation's (sound_manager.cpp),
-// which copy and destroy the record themselves.
+// Its NewNode / FreeNode copy and destroy the record themselves.
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
-// CSoundManager (class id 0xE). Only the fields used by the rewritten code are named.
-// Miles' ASISTAGE (mss.h), the codec stage of a sample's pipeline as the stream uses it: the ASI
-// codec's stream functions (all __stdcall) and the handles of the attributes it reports.
+// Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
     int(__stdcall* process)(void* stream, void* buffer, int bytes); // ASI_stream_process: bytes decoded
@@ -188,23 +179,22 @@ struct CSoundManager : CEngineObject {
     int Create() override { return CreateBody(); }
     void Destroy() override { Close(); }
     const char* GetClassName() override;
-    int GetClassId() override;                        // class id 0xE
+    int GetClassId() override;
 
-    void* waveDriver;                   // HDIGDRIVER (Open)
+    void* waveDriver;                   // HDIGDRIVER
     void* midiDriver;                   // HMDIDRIVER (closed by Close; not opened here)
-    CResourceStream streamReader;       // reads the music stream's files (StreamRead)
-    mfc::CString soundPath;             // the sound folder, ending in a backslash (SetPath)
-    CFileRegistry soundRegistry;        // opened by SetPath
+    CResourceStream streamReader;       // reads the music stream's files
+    mfc::CString soundPath;             // ending in a backslash
+    CFileRegistry soundRegistry;
     CMappedResource archive074;
     CFileRegistry registry0CC;
-    // The archives LoadSample looks in (CTypedPtrList), filled by AddWaveSource.
-    mfc::CTypedPtrList<CMappedResource> waveSources;
+    mfc::CTypedPtrList<CMappedResource> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
     void* streamSample;                 // HSAMPLE
     void* streamFile;                   // ASI stream
     AsiStage* streamCodec;              // the decoder sample's codec stage
-    void* streamBuffers[3];             // Miles memory, streamBufferSize bytes each (OpenStream)
+    void* streamBuffers[3];             // Miles memory, streamBufferSize bytes each
     std::int32_t streamBufferSize;      // twice Miles' minimum buffer; -1 after ResetStream
     std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes
     // Which buffer each half of Miles' double buffer plays (the first two) and the third one (taken next, and
@@ -227,12 +217,12 @@ struct CSoundManager : CEngineObject {
     lib::AlignedArray<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
     lib::AlignedArray<std::int32_t> markers2;
     CRITICAL_SECTION nameLock;          // guarding streamName
-    std::int32_t switchMode;            // how nextName was requested (RequestStream mode)
-    std::uint32_t streamFileSize;       // bytes of the open stream file (StreamRead)
+    std::int32_t switchMode;            // RequestStream's mode
+    std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
     void* streamDecoder;                // HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
     CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
-    mfc::impl::WinThread* streamThread; // the stream thread (Open), when the MP3 stream opened
+    mfc::impl::WinThread* streamThread; // when the MP3 stream opened
     // The MIDI sequence.
     std::int32_t midiState;
     void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
@@ -246,7 +236,7 @@ struct CSoundManager : CEngineObject {
     SoundFader midiFader;
     std::uint8_t unused_228[4];
     CRITICAL_SECTION midiLock;
-    mfc::impl::WinThread* midiThread;   // the MIDI thread
+    mfc::impl::WinThread* midiThread;
     volatile std::int32_t threadsQuit;  // set by Close; both threads end on it
     SoundSlot* slots;                   // 15 voices (an operator new[] block: the count before them)
     Vector3 listener;                   // listener position (z: camera height)
@@ -297,27 +287,22 @@ struct CSoundManager : CEngineObject {
     int RequestStream(const char* name, int mode);
     void StopStream(int mode);
 
-    // Every voice ended (its cached wave released), handles restart at 0, the deferred sounds deleted; with
-    // `stopStream` the stream stops too (StopStream(4)).
+    // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
-    // A wave's length in seconds (AIL_WAV_info): the IMA ADPCM sample count, else data bytes * 8 / (bits *
-    // channels), divided by the rate. 0 when bits * channels is 0. `this` and `size` are unused.
+    // In seconds: the IMA ADPCM sample count, else data bytes * 8 / (bits * channels), divided by the rate. 0
+    // when bits * channels is 0. `this` and `size` are unused.
     double WaveLength(const void* data, int size);
 
-    // sound_manager_lifetime.cpp. The engine object's Create (named so, rule 4): Reset, then 1.
+    // Reset, then 1.
     int CreateBody();
     void ClearWaveSources();
-    // Opens the archive `path` and appends it to the wave sources. 1 (also when sound is off), 0 when it
-    // cannot be opened (the archive is deleted again).
+    // 1 (also when sound is off), 0 when the archive cannot be opened.
     int AddWaveSource(const char* path);
-    // The first wave source holding `name`: its data (GetFile, size into *size), the source into *source when
-    // not null. Null when none has it.
+    // The first wave source holding `name`; `source` may be null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
-    // Rebirth-patched. `out` emptied, then the names matching `pattern` of every wave source appended, source
-    // by source.
+    // Rebirth-patched. Source by source.
     void ListWaveFiles(mfc::CStringArray* out, const char* pattern);
-    // The sound folder (a backslash appended when missing) and the sound registry opened. 1 when sound is off;
-    // else whether the registry opened.
+    // 1 when sound is off; else whether the registry opened.
     int SetPath(const char* folder, const char* registryPath);
 
     int FlatVolume(int level, int heightFade, int speech) const;
@@ -325,52 +310,35 @@ struct CSoundManager : CEngineObject {
     void EndSlot(SoundSlot* slot);
     SoundSlot* SlotForHandle(int handle) const;
 
-    // The playing stream's name under the name lock, empty unless the stream plays or switches.
+    // Empty unless the stream plays or switches.
     mfc::CString CurrentStreamName();
 
-    // The stream state reset: no sample, file or codec, the positions -1, both names empty, switch mode 4, no
-    // read position, the music fader at volume 100 with no fade.
+    // Switch mode 4, the music fader at volume 100 with no fade.
     void ResetStream();
-    // Opens the MP3 stream on `driver`: Miles' ASI codec for ".mp3", a sample to play (16-bit stereo, 44100 Hz,
-    // silent) and one to decode with, three zeroed buffers, the buffer order 0 / 1 / 2, no position, state 0,
-    // the music fader at its volume with no fade. 1; or CloseStream's 0 when the codec or a sample cannot be
-    // had.
+    // 16-bit stereo at 44100 Hz. 0 when the codec or a sample cannot be had.
     int OpenStream(void* driver);
-    // OpenStream's failure: the stream file closed through the codec, both samples released, the buffers
-    // freed, ResetStream. Returns 0.
+    // OpenStream's failure. Returns 0.
     int CloseStream();
-    // The stream thread's body. Until Close sets threadsQuit, every 100 ms under the stream lock: a step of
-    // the music fader, its level as the sample's volume, and for every half Miles has played out the spare
-    // buffer loaded into it (the two change places, the position moves on by streamBufferFrames) and the
-    // next one read. Ends the thread (AfxEndThread), so it does not return.
+    // Every 100 ms until Close sets threadsQuit: a fader step, and every half Miles has played out gets the
+    // spare buffer. Ends the thread (AfxEndThread), so it does not return.
     void StreamThread();
-    // The stream thread's reader (Rebirth-patched): fills the spare buffer with the next streamBufferFrames
-    // frames: silence when idle; else the playing file's frames up to its loop point or the switch point, and
-    // the rest from the next file (looked up in the sound folder, its markers read from the sound registry, the
-    // decoder opened on it). No next file (or it does not open): silence, the stream idle and its name empty.
-    // Details: docs/notes/sound.md, "Header comments moved from sound.h".
+    // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
+    // or the switch point, and the rest from the next file. No next file (or it does not open): silence, the
+    // stream idle. Details: docs/notes/sound.md, "Header comments moved from sound.h".
     void ReadStreamVanilla(void* stream);
 
-    // For Play2D / Play3D: the first free voice; else the voice with the lowest priority (the first of
-    // equals) when `priority` is above it: a looping sound there goes to the deferred map (its state, Miles
-    // sample position and handle) and the voice is ended. -1 when no voice can be had.
+    // The first free voice; else the lowest priority one (the first of equals) when `priority` is above it (a
+    // looping sound there is deferred). -1 when no voice can be had.
     int AllocateVoice(int priority);
 
-    // Called at startup: Close, then Miles on the DirectSound device `deviceIndex` (DirectSoundEnumerateA's
-    // order; the default device when out of range or negative; the wave mapper when the sound option is 2),
-    // 16-bit stereo at `rate` (at most 44100), reverb when `useReverb`; the MP3 stream and its thread, 15
-    // voices with their Miles samples, `enabled` 1. 0 when the driver cannot be opened (Miles' error to the
-    // debug log). `bits` is not read.
+    // The DirectSound device `deviceIndex` (DirectSoundEnumerateA's order; the default device when out of
+    // range or negative; the wave mapper when the sound option is 2), 16-bit stereo at `rate` (at most
+    // 44100). 0 when the driver cannot be opened. `bits` is not read.
     int Open(void* window, int useReverb, int deviceIndex, unsigned rate, int bits);
-    // The engine object's Destroy (DestructBody). The stream and MIDI threads told to quit and waited for,
-    // every voice ended and its sample released, the deferred sounds deleted, the wave cache freed, the MIDI
-    // sequence, memory and both drivers closed, the wave sources deleted, the stream file, archive and sound
-    // registry closed, then Reset.
+    // Waits for the threads to quit and frees everything Open made, then Reset.
     void Close();
-    // Every field Open / Close manage zeroed: no drivers, threads or voices, the stream reset, emitters and
-    // sequences free, volumes 100, no sound folder, sound off.
+    // Volumes 100, sound off.
     void Reset();
-    // StopAll's and Close's loop: every deferred record deleted, the map emptied.
     void DeleteDeferred();
 
     void StreamNotify(int mode);                                                          // empty
@@ -378,9 +346,8 @@ struct CSoundManager : CEngineObject {
                int speech);
     int Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
-    // Puts wave `name` into the voice (from the cache, or read from the archives; with
-    // `compressed` an MP3 decompressed through the ASI codec), sets its length, marks it playing
-    // and gives it a new handle. 0 when the wave is nowhere.
+    // From the cache, or read from the archives (with `compressed` an MP3 decompressed through the ASI codec);
+    // a new handle. 0 when the wave is nowhere.
     int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
 };
 static_assert(offsetof(CSoundManager, streamState) == 0x100);
@@ -420,7 +387,7 @@ struct MusicTheme {
 };
 static_assert(sizeof(MusicTheme) == 0x38);
 
-// CMusicSystem (class id 0xE): picks the music for the game state.
+// Picks the music for the game state.
 struct CMusicSystem : CEngineObject {
     CMusicSystem();
     ~CMusicSystem() override;
@@ -429,7 +396,7 @@ struct CMusicSystem : CEngineObject {
     void Destroy() override { ResetThemes(); }
     int RunTick() override { return UpdateMusic(); }
     const char* GetClassName() override;
-    int GetClassId() override;                           // class id 0xE
+    int GetClassId() override;
 
     void* themesVtable;                 // CArray<MusicTheme>
     MusicTheme* themes;
@@ -447,10 +414,8 @@ struct CMusicSystem : CEngineObject {
     std::int32_t jinglePlaying;
     std::uint32_t calmDue;              // timeGetTime() for the next calm track (0: not chosen)
 
-    // The engine object's Create: reads music.reg from the text path: Common\Credits and Common\MainMenu,
-    // then for every other section an open land theme (CalmOpen) and a dungeon theme (CalmDungeon), both
-    // with the section's Briefing, Constructor and Combat. Returns 1, or FatalError's result when the file
-    // cannot be opened.
+    // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
+    // and a dungeon theme (CalmDungeon). Returns 1, or FatalError's result when the file cannot be opened.
     int LoadThemes();
     void SetZoneMode(const char* allod, int dungeon);
     void Stop();
@@ -461,10 +426,8 @@ struct CMusicSystem : CEngineObject {
     void PlayJingle(const char* name);
     int UpdateMusic();
 
-    // State 0, the themes destroyed and freed, credits / main menu / jingle / combat track "none",
-    // jinglePlaying, calmDue, inCombat and holding 0.
+    // Credits / main menu / jingle / combat track "none".
     void ResetThemes();
-    // The sound manager's stream fades out / in.
     void FadeOut();
     void FadeIn();
 };
@@ -472,13 +435,10 @@ static_assert(offsetof(CMusicSystem, credits) == 0x30);
 static_assert(offsetof(CMusicSystem, holding) == 0x44);
 static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
 static_assert(sizeof(CMusicSystem) == 0x58);
-// The music stream file's read callback (handed to the ASI decoder by the stream reader; stream thread):
-// seeks to `offset` unless it is negative, then reads up to `size` bytes, cut at the end of the file. Returns
-// the byte count (0 when the read fails); the read position advances by it.
+// The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
+// byte count (0 when the read fails).
 int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);
-// The callback the speech and sound loader hands to Miles's AIL_decompress_ASI (its .mp3 path): at state 1
-// it asks the decoder through `set` (name, value) for "Requested bit width" 16, "Requested sample rate"
-// 44100 and "Requested # of channels" 2. Returns 1.
+// AIL_decompress_ASI's callback: at state 1 it asks for 16 bits, 44100 Hz, 2 channels. Returns 1.
 using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
 

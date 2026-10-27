@@ -1,8 +1,5 @@
-// Script command execution: ScriptRun::Execute, the switch over every world script
-// command. See script.h and docs/notes/script.md.
-// Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
-// vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError,
-// Execute itself for For bodies).
+// ScriptRun::Execute, the switch over every world script command. See docs/notes/script.md.
+// Rebirth patches Execute (it adds commands), CalcParameters and FatalError.
 #include "ai_map.h"
 #include "options.h"
 #include "object_tables.h"
@@ -73,11 +70,7 @@ const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
-// Script helpers (script.h types, original addresses).
-// CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
-// new node before the head): returns the new node.
 using InstanceList = mfc::CList<ScriptDefinition>;
-// CList RemoveAt for the particle, FX source and lightning lists.
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
@@ -87,7 +80,6 @@ CWorldServer* TheWorld() { return TheServerWorld(); }
 
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
-// The named party records (party_records.h): find (a party), add, remove.
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 
@@ -138,14 +130,13 @@ ScriptParticleSource* FindParticle(CScript* script, int id) {
     return nullptr;
 }
 
-// The quest objective commands' text argument when they take none: an empty CString.
+// For the quest objective commands that take no text.
 void QuestObjectiveNoText(int id, float value) {
     mfc::CString text(game::EmptyText());
     ScriptQuestAddObjective(id, &text, value);
 }
 
-// Runs a For body in the same ScriptRun: the first four fields are saved, the body block run from
-// its start, and the fields restored (the variables are shared).
+// Runs a For body in the same ScriptRun (the variables are shared).
 void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
     ScriptDecl* block = run->block;
     int index = run->index;
@@ -501,7 +492,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetSize(f[1]);
             break;
         }
-        case 0x1A: {   // DeleteLightning(id): every lightning with the id (list +0x4C, head +0x50)
+        case 0x1A: {   // DeleteLightning(id): every lightning with the id
             for (LightningList::Node* node = script->lightning_.head; node;) {
                 LightningList::Node* current = node;
                 node = node->next;
@@ -509,7 +500,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             }
             break;
         }
-        case 0x19: {   // DeleteFXSource(id) (list +0x30, head +0x34; the id at node +0x0C)
+        case 0x19: {   // DeleteFXSource(id): the first one with the id
             int id = Round(f[0]);
             for (FxSourceList::Node* node = script->fxSources_.head; node; node = node->next) {
                 if (node->data.id == id) {
@@ -526,7 +517,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x3A:   // SendStringEvent(type, text)
             TheEvents()->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
             break;
-        case 0x97: {   // GodMode(player, on): player +0x108
+        case 0x97: {   // GodMode(player, on)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (player) player->godMode_ = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
@@ -713,9 +704,9 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (unit) unit->SetPlayer(nullptr);
             break;
         }
-        case 0x42:   // SetSpellAggression(unit, value): reads the unit's +0x170 and does nothing
+        case 0x42:   // SetSpellAggression(unit, value): does nothing
             break;
-        case 0xAE: {   // RemoveQuestItem(unit, id): the first quest item (+0x4A0, count +0x4A4) with the id
+        case 0xAE: {   // RemoveQuestItem(unit, id): the first quest item with the id
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
             int count = unit->carriedCount;
@@ -1057,7 +1048,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Remove(Text(cmd, 0));
             break;
         }
-        case 0x9C: {   // SetCurrentParty(player, name): the party list's +0x0C
+        case 0x9C: {   // SetCurrentParty(player, name)
             if (TheWorld()->GetPlayer(Ftol(f[0])))
                 Parties()->text0C = cmd->stringArgs.data[0];
             break;
@@ -1068,7 +1059,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCB:   // CopyLoot(player, from, to)
             CopyLoot(cmd, true);
             break;
-        case 0xA7: {   // GiveMoney(player, amount): player +0xC0
+        case 0xA7: {   // GiveMoney(player, amount)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CTypedPtrList<CItem> items;
@@ -1097,7 +1088,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (player) player->TakeLoot(Ftol(f[1]));
             break;
         }
-        case 0xDF: {   // FixItems: every object of the world's list copies +0x24 to +0x20
+        case 0xDF: {   // FixItems: every item repaired
             auto* list = TheServerWorld()->itemManager_;
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
