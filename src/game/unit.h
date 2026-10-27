@@ -1,8 +1,7 @@
 #pragma once
 
-// Units (creatures; GetClassName "CUnit", class id 0x50, the CFakeUnit vtable
-// derives from it). Field and method names are provisional, from how the code uses them.
-// The AI map (ai_map.h) and the sector map use the position, sector cell and size class fields.
+// Units (creatures; GetClassName "CUnit", class id 0x50; the CFakeUnit vtable derives from it). The AI map (ai_map.h)
+// and the sector map use the position, sector cell and size class fields.
 
 #include "core_streams.h"
 #include "engine_object.h"
@@ -36,13 +35,13 @@ struct SkillDatabase;
 struct DamageInfo;
 struct FootprintPart;
 
-constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (creatures)
+constexpr int kClassUnit = 0x50;
 
 // CEngineObject::type_ of the player's own units (other kinds: 0x33 ...).
 constexpr int kUnitTypeHero = 0x32;
 
-// Class id of the unit's controller (CUnit + 0x240) for the units in a player's party
-// (GetClassName "CUnitClientSpecific"); their items live in the player's inventory records.
+// Class id of the unit's controller for the units in a player's party (GetClassName "CUnitClientSpecific"); their
+// items live in the player's inventory records.
 constexpr int kClassPartyController = 0x3D;
 
 // A body slot as UnitParams keeps it (UnitStatSlot rounded).
@@ -59,10 +58,8 @@ struct UnitParamsSlot {
 };
 static_assert(sizeof(UnitParamsSlot) == 0x1C);
 
-// The unit's parameter block (CUnit + 0x330): UnitStats rounded to bytes and
-// shorts (writes it), what the client and the saved games see. Names provisional.
+// The unit's parameter block: UnitStats rounded to bytes and shorts, what the client and the saved games see.
 struct UnitParams {
-    // 25 / attackRate.
     double Period();
     // Zeroes the block; the slot types become 4 and +0x20 7.
     int Reset();
@@ -80,8 +77,7 @@ struct UnitParams {
     std::uint8_t stat18;
     std::uint8_t attackRate;        // (UnitStats::stat20 rounded)
     std::uint8_t movementKind;      // 2: moves on the water surface
-    // +0x10 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats +0x34.. * 255 / 2,
-    // at most 255)
+    // Speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats mode speeds * 255 / 2, at most 255).
     std::uint8_t modeSpeeds[4];
     std::uint8_t baseSpeed;         // (UnitStats::speed * 25.5, at most 255)
     std::uint8_t rate;
@@ -105,10 +101,9 @@ struct UnitParams {
     // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). Unrounded.
     double VisionRange(float daylight);
 
-    // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) each body
-    // slot whose kind is above 1 adds its protection times its type's weight (kSlotWeights), the sums are
-    // divided by the weights' total (0 when none) and the packed vitals' protection added; others get the
-    // packed protection times the difficulty factor.
+    // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) the body slots'
+    // protection weighted by kSlotWeights and the packed vitals' protection added; others get the packed protection
+    // times the difficulty factor.
     void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
 };
 static_assert(offsetof(UnitParams, attackRate) == 0x0E);
@@ -127,25 +122,19 @@ class CUnit;
 class CUnitServer;
 class CUnitClientSpecific;
 
-// The unit's controller (CUnit + 0x240): CUnitServer (class id 0x3E, combat.h) on the
-// server, CUnitClientSpecific (0x3D, unit_client_models.h) for party units on the client; this
-// abstract base has the small slots (unit_controller_slots.cpp). Names and evidence of the slots:
-// docs/notes/map_objects.md ("Virtual slot names"). A slot that does nothing leaves the result register as the
-// caller had it; CUnit passes the EAX of 23, 44, 49 and 53 on, which nothing reads, so they are void.
+// The unit's controller: CUnitServer (class id 0x3E, combat.h) on the server, CUnitClientSpecific (0x3D,
+// unit_client_models.h) for party units on the client; this abstract base has the small defaults
+// (unit_controller_slots.cpp). Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
 class CUnitController : public CEngineObject {
 public:
-    // The base constructor both controllers inline: the engine object's fields, no unit.
     CUnitController() {
         ClearFields();
         unit = nullptr;
     }
-    // No unit.
     ~CUnitController() override;
     int Create() override;    // no unit; 1
     void Destroy() override;  // no unit
 
-    // The shared empty bodies the controllers' tables pointed at (unit_controller_slots.cpp; registered at
-    // their addresses).
     void IgnoreThreeArguments(int, int, int);
     void IgnoreTwoArguments(int, int);
     void IgnoreArgument(int);
@@ -157,8 +146,8 @@ public:
     virtual PathOrder* Path() = 0;               // server +0x3C, client +0x38
     virtual void Unused17() = 0;                 // empty (server, client)
     virtual void PlayerChanged(void*) {}         // client, base empty
-    // Server (1), base (0). CUnit's slot 33 (ScaleEffectChanged)
-    // passes its whole dword argument on; the bodies read the low byte.
+    // Server (1), base (0). CUnit's ScaleEffectChanged passes its whole dword argument on; the bodies read the low
+    // byte.
     virtual int RefreshVitals(char withHitPoints);
     // Server (CUnitServer::TakeHit), base (0); either unit may be null.
     virtual int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
@@ -187,14 +176,12 @@ public:
     virtual void HostileMaskChanged() {}         // server (the brain), base empty
     virtual int TamingStage() { return 0; }      // server (+0x908, the taming stage), base 0
     virtual void AdvanceTime(float) {}           // client
-    // The unit's path was replaced; client places the unit on it at its +0x34 time
-    // (with (+0x34, 0)), base empty.
+    // The unit's path was replaced; client places the unit on it, base empty.
     virtual void MotionChanged() {}
-    // Server (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
-    // brain and +0x1DC forget it); base and client empty.
+    // Server: `object` is going away (its targets, the brain and +0x1DC forget it); base and client empty.
     virtual void ObjectDeleted(CEngineObject*) {}
-    // Client (unit_client_models.h): the fade-in starts again (+0x78 and every part's
-    // alpha 0); base empty. The client world's AddObject calls it for units joining a session.
+    // Client: the fade-in starts again (alpha 0 on every part). The client world's AddObject calls it for units
+    // joining a session.
     virtual int RestartFadeIn() { return 0; }
     virtual void Resettle() {}                   // server (combat.h)
     virtual void UpdateMoveFactors() {}          // server (combat.h)
@@ -206,79 +193,68 @@ public:
     // (the argument is not read), base empty
     virtual void Wound(float) {}
     virtual void Died() {}                       // client (death: the light goes out, blood), base empty
-    // Server (UpdateSpellBlockFlag), base empty; CUnit's slot 28
-    // (EffectsChanged) tail-jumps here.
+    // Server (UpdateSpellBlockFlag), base empty.
     virtual void EffectsChanged() {}
     virtual void GetAttackParams(struct AttackParams* out) = 0;   // server, client
     // Client (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
     // base empty.
     virtual void Say(const SpeechRecord*, int) {}
     virtual void StopSpeech() {}                 // client, base empty
-    // Server, base empty. CUnit's slot 57
-    // tail-jumps here.
+    // Server, base empty.
     virtual void MoveFactorsChanged() {}
 
     CUnit* unit;   // the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
 static_assert(offsetof(CUnitController, unit) == 0x1C);
 
-// CUnit derives from the map object (map_object.h; CObject3D holds the first 0x170 bytes, CMapObject
-// the rest up to +0x238): the prototype name is CObject3D::name, the figure's build its
-// scale.y, the packed vitals (hit points, mana) CMapObject::packedVitals. A real
-// virtual class. CFakeUnit (scene::FakeUnitScene, scene_loader.h) derives from it; the fake unit's
-// slots share these bodies, which stay registered at their addresses.
+// CUnit derives from the map object (map_object.h): the prototype name is CObject3D::name, the figure's build its
+// scale.y, the packed vitals (hit points, mana) CMapObject::packedVitals. CFakeUnit (scene::FakeUnitScene,
+// scene_loader.h) derives from it and shares these bodies.
 class CUnit : public CMapObject {
 public:
-    // Builds the map object, the script name (a member), the motion and the carried array, no controller or
-    // player, then Reset. The factory constructs in place (Construct); so does the fake unit's constructor.
+    // Builds the map object, the script name, the motion and the carried array, no controller or player, then Reset.
+    // The factory constructs in place (Construct); so does the fake unit's constructor.
     CUnit();
-    // The release (slot 5's body, called directly), the map object's Destroy, Reset, the carried and
-    // motion arrays freed; then the script name (a member) and the map object's destructor.
-    // The deleting destructor frees into the game's heap.
+    // The release, the map object's Destroy, Reset, the carried and motion arrays freed; then the script name and the
+    // map object's destructor.
     ~CUnit() override;
 
     CItem* CarriedItem(int index) const;
 
-    // Every slot changes is declared; calls that meant this body and not the slot
-    // are qualified (CUnit::...). Some slots call bodies named otherwise (unit_update.cpp).
-    int Create() override;                   // CreateUnit
-    void Destroy() override;                 // DestroyUnit
-    void ClearState() override;              // ReleaseUnit
-    int RunTick() override;                  // Tick
+    int Create() override;
+    void Destroy() override;
+    void ClearState() override;
+    int RunTick() override;
     const char* GetName() override;          // the script name
-    void Load(CStream* stream) override;        // LoadUnit
-    void Save(CStream* stream) override;        // SaveUnit
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
     const char* GetClassName() override;
     int GetClassId() override;               // (0x50)
     bool IsSynchronised() override;          // (true)
     // The controller's TakeHit.
     void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) override;
     Vector3* EyePoint(Vector3* out) override;              // StandPoint
-    std::uint32_t ReadNetState(int first) override;        // (net_state.cpp)
-    void WriteNetState() override;                         // (net_state.cpp)
-    // (The two above: the map object's fields, then the unit's own.)
-    // 52 / 53 (unit_points.cpp): the position predicted along the path at
-    // world time `time`, the point the animation acts on.
+    std::uint32_t ReadNetState(int first) override;
+    void WriteNetState() override;
+    // The position predicted along the path at world time `time`, the point the animation acts on.
     Vector3* PositionAt(Vector3* out, int time) override;
     Vector3* AimPoint(Vector3* out) override;
-    int IsLargeUnit() override;              // obstacle
-    int IsDead() override;                   // dead
-    // The controller's slot 42. Nothing reads the result (0).
+    int IsLargeUnit() override;
+    int IsDead() override;
+    // The controller's ForgetObject; nothing reads the result (0).
     int ForgetObject(CEngineObject* object) override;
-    void UpdateMoveFactors() override;       // the controller's slot 53
-    void RefreshWounds() override;           // the controller's slot 31
+    void UpdateMoveFactors() override;
+    void RefreshWounds() override;
     double MoveSpeed() override;             // the forward speed (GetMoveSpeeds)
-    float Radius() override;                 // unitRadius
-    void SetScriptName(const char* newName) override;   // (class_slots.cpp)
+    float Radius() override;
+    void SetScriptName(const char* newName) override;
 
     // The world time moved on to `time`. The controller's slot 40 runs; a text-key (party) unit then marks
     // its sight on the client world (its VisionRange at the world's daylight, around its position).
     void AdvanceTime(float time) override;
 
-    // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
-    // Returns the new mask. (sets the mask and tells the controller.)
+    // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows. Returns the new mask.
     std::uintptr_t AddHostileMask(std::uint32_t mask);
-    // Sets relationsB; marks part 11.
     std::uintptr_t SetRelationsB(std::uint32_t mask);
     // Sets the side; flags_ bit 0x80000; marks part 11 when the unit has a controller.
     std::uintptr_t SetSide(int side);
@@ -315,7 +291,6 @@ public:
     // Movement speeds for the current movement mode: `forward` and `backward`
     // (the latter scaled by the global).
     void GetMoveSpeeds(float* forward, float* backward);
-    // The speed of movement mode 2.
     double MoveSpeed2();
     // The speed of movement mode `mode` (0..4; other values: the base speed).
     double MoveSpeedFor(int mode);
@@ -333,14 +308,12 @@ public:
     // Sum of +0x34 (weight) over all carried items.
     double TotalItemWeight();
 
-    // The unit's prototype record (index prototypeId_), or null.
     UnitPrototypeRecord* GetPrototype();
     // The record the prototype's +0x08 indexes, or null.
     UnitModelRecord* GetPrototypeModel();
     // The prototype record of index unknown_23C, or null.
     UnitPrototypeRecord* GetPrototype23C();
-    // Stores the index of prototype record `record` in unknown_23C.
-    // Returns 1 when `record` lies before the table (the old result register's value).
+    // Stores the index of prototype record `record` in unknown_23C. Returns 1 when `record` lies before the table.
     std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
 
     // Is the active weapon of type 5 or 6 (ranged)?
@@ -352,8 +325,7 @@ public:
     int AddWeapon(CItem* item);
     int AddQuickItem(CItem* item);
     int AddSpell(CItem* item);
-    // Empty weapon / quick item slot `slot` (releasing the item); part 5.
-    // Returns the slot when out of range (the old result register's value).
+    // Empties weapon / quick item slot `slot` (releasing the item); part 5. Returns the slot when out of range.
     std::uintptr_t RemoveWeapon(std::uint32_t slot);
     std::uintptr_t RemoveQuickItem(std::uint32_t slot);
 
@@ -362,7 +334,6 @@ public:
     CItemWeapon* GetWeapon(std::uint32_t slot);
     CItem* GetQuickItem(std::uint32_t slot);
     CItem* GetSpell(std::uint32_t slot);
-    // The CSpell of the spell item in slot `slot`, or null.
     CSpell* GetSpellObject(std::uint32_t slot);
 
     // The unit's speed factor for the action of animation `entry` (its key's bits
@@ -377,40 +348,33 @@ public:
     // Ratio of the animation factors of the scale's and the base scale's z.
     double AnimationRatio();
 
-    // The per-tick update (another name, so it is no override): the controller's
-    // update (its slot 6), then the map object's. Returns 1.
+    // The per-tick update (another name, so it is no override): the controller's update, then the map object's.
+    // Returns 1.
     int Tick();
-    // The map object's scale recomputation, then the controller's
-    // slot 44. Returns what that leaves in EAX.
+    // The map object's scale recomputation, then the controller's.
     std::uintptr_t RecomputeScale() override;
-    // The controller's slot 49.
+    // Effects changed: the controller's EffectsChanged.
     std::uintptr_t EffectsChanged() override;
-    // The figures take the base scale again. Returns what
-    // that leaves in EAX.
+    // The figures take the base scale again.
     std::uint32_t ApplyBaseScale() override;
-    // Loads the figures (unless flags_ has 0x80) and tells the
-    // controller (its slot 13). Returns the loader's result, or 1.
+    // Loads the figures (unless flags_ has 0x80) and tells the controller. Returns the loader's result, or 1.
     std::uintptr_t LoadFigures() override;
     // A companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     std::uintptr_t AttachObject(CEngineObject* object) override;
-    // The map object's (packs the server
-    // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
+    // Statistics changed: the map object's (packs the server object's vitals), then the controller's.
     int StatsChanged() override;
-    // The controller's slot 19 with `value` (0 without a controller).
+    // The controller's RefreshVitals with `value` (0 without a controller).
     std::uintptr_t ScaleEffectChanged(int value) override;
-    // A server controller (class 0x3E) copies `stats` in. Returns
-    // what is left in EAX (the controller's class id when it is not one).
+    // A server controller (class 0x3E) copies `stats` in.
     std::uintptr_t SetStats(const UnitStats* stats) override;
-    // The controller's slot 23.
+    // The controller's UpdateSizeClasses.
     std::uintptr_t UpdateSizeClasses() override;
-    // `out` = the position with z =
-    // the ground (or water surface) height plus the mode speed (ModeSpeed as a float). Returns `out`.
+    // `out` = the position with z = the ground (or water surface) height plus the mode speed. Returns `out`.
     float* StandPoint(float* out);
     // Stores `offset` and puts the unit on the ground (or, for
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
-    // Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
     // The unit's level: the controller's for text-key units, else the
@@ -432,32 +396,26 @@ public:
     // Releases every item (weapons, armour with the controller's slots 27 and 28, quick
     // items, spells, the carried ones) and frees the carried array.
     void ReleaseAllItems();
-    // Adds `item` (referenced) to the carried items (an MFC CArray grown like
-    // CArray::SetSize).
+    // Adds `item` (referenced) to the carried items.
     void AddCarried(CItem* item);
-    // Releases carried item `index` and closes the gap.
-    // Returns the new count.
+    // Releases carried item `index` and closes the gap. Returns the new count.
     int RemoveCarried(int index);
     // Empties both lists, then adds every item the
     // unit holds to `items` (weapons, armour, quick items, spells, the carried ones; empty slots
     // skipped) and each one's spell to `spells` when it has one.
     void CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells);
-    // Fresh vitals and statistics (reset,
-    // then the owner's BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
+    // Fresh vitals and statistics (reset, then the owner's BuildFromPrototype for `prototype`), packed into the
+    // vitals and parameters.
     void TakePrototype(const char* prototype) override;
-    // Sends the equipment ids to the controller (slot 32: the 7 armour ids, then
-    // the 4 weapon ids). Returns what slot 33 leaves in EAX.
+    // Sends the equipment ids to the controller (the 7 armour ids, then the 4 weapon ids).
     std::uintptr_t SendEquipment();
     // Unknown_23C = the index of the unit prototype named `name`, or -1.
-    // Returns -1, or the low half of the division product (the old result register's value).
     std::uint32_t SetPrototype23CByName(const char* prototypeName);
-    // Unknown_23C = `index`. Returns `index`.
     int SetPrototype23CIndex(int index);
 
-    // Back to a blank unit: no name, prototypes, controller (released), relations,
-    // player, side, items (the slots cleared without releasing) or carried array; standard
-    // sizes and movement modes, the parameter block cleared, the network records
-    // reset and +0x438 = 1.
+    // Back to a blank unit: no name, prototypes, controller (released), relations, player, side, items (the slots
+    // cleared without releasing) or carried array; standard sizes and movement modes, the parameter block cleared,
+    // the network records reset.
     void Reset();
 
     // After a hit: armour pieces and weapons whose condition rounds to 0 or
@@ -488,9 +446,7 @@ public:
     // item, null when there is none (nothing changes then).
     CItem* TakeRandomItem();
 
-    // The map object's
-    // Create, Reset, then 14 network fields (the DeltaState at +0x1C4, SetSize
-    // inlined). Returns 1.
+    // The map object's Create, Reset, then 14 network fields. Returns 1.
     int CreateUnit();
 
     // An animation entry of the unit's figure for `key` (bits as docs/notes/combat.md
@@ -499,8 +455,8 @@ public:
     // 0x8000 (alone among 0x38000) one without movement bits or with 0x10000 in place of 0x8000;
     // then, when `anyOfKind`, a random entry of the key's kind. Null when none.
     FigureAnimation* FindAnimation(std::uint32_t key, bool anyOfKind);
-    // The figure's animation entry `key & 0xFF` (the key is passed whole). When
-    // there is none, logs "Can't find animation entry index" through the DebugLog stub. Null then.
+    // The figure's animation entry `key & 0xFF`; when there is none, logs "Can't find animation entry index" through
+    // the DebugLog stub. Null then.
     FigureAnimation* AnimationEntry(std::uint32_t key);
     // The horizontal extent of the body: the box maximum's (x, y) length of the figure
     // part "bd" (else "chest"), doubled for the mosquito (type_ 0x33, prototype "unmosp"); 0 when
@@ -516,46 +472,36 @@ public:
     // and a hero without the part rotate uninitialised stack (see the notes).
     Vector3* EffectPoint(Vector3* out);
 
-    // Sets the hostile mask (relationsA), tells the controller, sets flags_
-    // 0x80000 and marks part 11 changed.
+    // Sets the hostile mask (relationsA), tells the controller, sets flags_ 0x80000 and marks part 11 changed.
     void SetHostileMask(std::uint32_t mask);
-    // After the controller's path changed: the path forgets this unit as a
-    // tracked object, the motion takes the movement speeds (GetMoveSpeeds:
-    // +0x3C / +0x40), its segment -1, and is rebuilt for the path; marks part 10.
+    // After the controller's path changed: the path forgets this unit as a tracked object, the motion takes the
+    // movement speeds, its segment -1, and is rebuilt for the path; marks part 10.
     void RefreshMotion();
-    // Moves the unit to `newPlayer` (nothing when it is the current one): the old
-    // player loses it, the new one gains it, part 11 is marked and the
-    // controller hears of it.
+    // Moves the unit to `newPlayer` (nothing when it is the current one): the old player loses it, the new one gains
+    // it, part 11 is marked and the controller hears of it.
     void SetPlayer(CPlayer* newPlayer);
     // As RefreshMotion with the speeds given
     // (the motion's speed scale and base turn rate) and no part marked.
     void SetMotionSpeeds(float speed, float turnRate);
-    // Whether a player owns the unit.
     int HasPlayer() const;
     // Twice above.z, unrounded.
     double DoubleHeight() const;
-    // The armour piece worn in `slot` (armor[slot], unchecked).
     CItemArmor* WornItem(int slot) const;
-    // SetPlayer(null), the controller's slot 5, every
-    // item slot released and emptied (quick items, weapons, spells, armour), the carried items
-    // released (no null test) and their array freed (grow-by kept).
+    // SetPlayer(null), the controller's release, every item slot released and emptied (quick items, weapons, spells,
+    // armour), the carried items released and their array freed.
     void ReleaseUnit();
-    // The object's slot 5,
-    // the map object's Destroy, then Reset.
+    // The object's release, the map object's Destroy, then Reset.
     void DestroyUnit();
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
-    // The controller as the server unit (combat.h; class 0x3E). Defined in combat.h.
+    // The controller as the server unit (combat.h; class 0x3E).
     CUnitServer* ServerController() const;
-    // The controller as a party unit's client half (unit_client_models.h; class 0x3D). Defined there.
+    // The controller as a party unit's client half (unit_client_models.h; class 0x3D).
     CUnitClientSpecific* ClientController() const;
-    // The parameter block at +0x330.
     UnitParams* Params() { return &params; }
-    // The unit as the map object it is (map_object.h).
     CMapObject* MapObject() { return this; }
     UnitMotion* Motion() { return &motion; }
 
-    // +0x000-0x237: CMapObject.
     mfc::CString scriptName;        // (virtual slot 61 sets it; network field 9; GetName)
     int prototype23C;              // a second prototype index (-1 none)
     CEngineObject* controller;      // (the script code calls it the perception object)
@@ -563,8 +509,8 @@ public:
     std::uint32_t relationsB;       // / bit s set
     CPlayer* player;                // the player that owns the unit (null: none)
     int side;
-    // +0x254 / +0x255 the animation entries (FigureAnimation::index) the unit shows: -1 none; the
-    // second -2 for the special idle. The client's RestartAnimation (controller slot 14) plays them.
+    // The animation entries (FigureAnimation::index) the unit shows: -1 none; the second -2 for the special idle. The
+    // client's RestartAnimation plays them.
     std::int8_t animationEntry;
     std::int8_t secondEntry;
     std::int8_t actionSound;        // a hero's action sound (CUnitClientSpecific's sounds)
@@ -583,9 +529,8 @@ public:
     int sizeClass;                  // selects the 4-bit passability field in each AI map cell
     float unitRadius;               // virtual slot 60 (Radius); 0.75 after Reset
     float standingHeight;           // ; deeper water or higher ground than (2 - height) * 16 blocks it
-    // +0x330 the parameter block (UnitStats rounded): the attack rate, the movement kind
-    // (+0x33F; 2 moves on the water surface), the mode and base speeds (+0x340 / +0x344) and the six
-    // body slots (+0x360; the unit panel's parts are their kind / current / maximum).
+    // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
+    // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
     int fightAtWill;                    // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts;         // set: path searches use the AI map's alternative cost table
@@ -627,15 +572,15 @@ static_assert(offsetof(CUnit, obstacle) == 0x278);
 static_assert(offsetof(CUnit, motion) == 0x27C);
 static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
-static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC)
+static_assert(sizeof(CUnit) == 0x4DC);
 
-// The object as a unit when it is one (class id kClassUnit; one GetClassId call), else null.
+// The object as a unit when it is one (class id kClassUnit), else null.
 inline CUnit* UnitOrNull(CEngineObject* object) {
     return object && object->GetClassId() == kClassUnit ? static_cast<CUnit*>(object) : nullptr;
 }
 
-// The object `objects` registered under a unit's id (the party's and the players' unit ids, a
-// unit's speech), or null; it is taken as a unit without a class test.
+// The object registered under a unit's id (the party's and the players' unit ids, a unit's speech), or null; taken as
+// a unit without a class test.
 inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return objects->FindObjectAs<CUnit>(id); }
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
@@ -646,19 +591,15 @@ constexpr int kPrototypeSize = 0x120;
 constexpr int kModelSize = 0x168;
 constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
-// Prototype record `index` of the unit database, or null past the end (UnitPrototypeTable::At).
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);
-// Model record `index`, or null past the end (UnitModelTable::At).
 UnitModelRecord* ModelRecord(std::uint32_t index);
 // The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.
 inline constexpr int kSlotTypes = 5;
 inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15.0f, 15.0f, 15.0f};
 } // namespace unitdb
 
-// One of the three protection layers of a body slot: what each of the seven damage
-// types loses to it.
+// One of the three protection layers of a body slot: what each of the seven damage types loses to it.
 struct UnitStatLayer {
-    // Zeroes it but spareAbsorb.
     int Reset();
 
     int layerMask;                      // the layer mask bits of the pieces added (AddArmourLayer)
@@ -670,8 +611,7 @@ struct UnitStatLayer {
 };
 static_assert(sizeof(UnitStatLayer) == 0x48);
 
-// One of the six body slots of UnitStats (0 head, 1 body, 2/3 hands, 4/5 legs, as
-// the hit locations). Names provisional.
+// One of the six body slots of UnitStats (0 head, 1 body, 2/3 hands, 4/5 legs, as the hit locations).
 struct UnitStatSlot {
     // Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0.
     int Reset();
@@ -697,8 +637,7 @@ static_assert(sizeof(UnitStatPair) == 8 && offsetof(UnitStatPair, current) == 4)
 
 struct UnitStats;
 
-// The hit points, mana and protection of a unit as the server keeps them (CMapObjectServer +
-// 0x20, 0x58 bytes; party records keep one at +0x20 of theirs too). Names provisional.
+// The hit points, mana and protection of a unit as the server keeps them (party records keep one too).
 struct UnitVitals {
     // Called every world update for living units: every 15th call
     // mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns 1 when
@@ -707,9 +646,9 @@ struct UnitVitals {
     // A hit on a map object that is not a creature: each damage type
     // beyond the protection comes off the hit points, not below -5 times the maximum. Returns 1.
     BOOL TakeHit(const DamageInfo* hit);
-    // Zeroes everything but the dword at +0. Returns the end of the block (the leftover register value).
+    // Zeroes everything but the first dword.
     void* Reset();
-    // The rounded (FISTP) values into `out`. Returns the end of `out`'s protection block.
+    // The rounded (FISTP) values into `out`.
     void* Pack(UnitVitalsPacked* out);
 
     int builtFlags;                     // bit 0 set when built from the prototype
@@ -726,8 +665,8 @@ static_assert(offsetof(UnitVitals, hitPoints) == 0x08);
 static_assert(offsetof(UnitVitals, protection) == 0x20);
 static_assert(sizeof(UnitVitals) == 0x58);
 
-// A creature's computed statistics (built from the unit's parameters, often
-// as a stack copy). Only the fields read here; names provisional.
+// A creature's computed statistics (built from the unit's parameters, often as a stack copy). Only the fields read
+// here.
 struct UnitStats {
     // The float results below are returned unrounded (declared double: the FPU runs above 24-bit precision
     // under Rebirth, see CItemWeapon::RollDamage). 25 / unknown_20.
@@ -739,27 +678,21 @@ struct UnitStats {
     // pendingExperience 0, then the block read raw, as long as the stream's format version knew it (below
     // 0x45: 0x6F8 bytes, below 0x50: 0x6FC, below 0x63: 0x700, else 0x704). Returns the stream's result.
     int LoadFrom(CStream* stream);
-    // The whole block written raw.
     void SaveTo(CStream* stream);
-    // Attribute byte `index` as a float.
     float AttributeBase(int index);
     // Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).
     double AttributeWithBonus(int index);
-    // Skill byte `index` as a float.
     float SkillBase(int index);
     // Skill `index` plus (stat - 25) of the stat its name starts with ('s', 'd', 'i').
     double SkillWithBonus(std::uint32_t index);
     // The weapon skill for weapon type `type`.
     float WeaponSkill(int type);
-    // +0x34 of the level record of skill `index` (0 without one), exact.
     double SkillLevelValue(int index);
-    // The level record of skill `index` (level byte at +0x6D3), or null.
     ::SkillLevelRecord* SkillLevelRecord(int index);
     // Stat10 * 12 scaled by (1 + 0.01 * level value) of the level byte at +0x6E8.
     double Value6E8();
     // Global + 0.01 * level value of the byte at +0x6E9.
     double Value6E9();
-    // The same with an unused argument.
     double Value6E9Arg(int unused);
     // `value` minus what the six slots take from it (by their kind, current, maximum
     // and factor).
@@ -767,32 +700,28 @@ struct UnitStats {
     // `value` minus value * factor of each slot record of kind 1.
     double ReduceKind1(float value);
     // Two factors from stat10 and stat18 (relative to 15, over 20).
-    // The third argument is not used.
     void GetFactors(float* a, float* b, int unused);
 
-    // Recomputes the current values from the bases, the skill levels, the unit's
-    // effects (`unit` may be null for some; the text-key test reads its id), the carried weight
-    // and the slots; writes the maxima and hit points into `vitals`.
+    // Recomputes the current values from the bases, the skill levels, the unit's effects, the carried weight and the
+    // slots; writes the maxima and hit points into `vitals`.
     void Recompute(UnitVitals* vitals, CUnit* unit);
     // Only the hit point maximum and the hit points (and flag 8 when alive).
     void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
-    // Heals the working-or-disabled slots below their maximum by `amount`, spread by
-    // their factors over `scale` (the unit's maximum); a slot back above 0.001 works again.
-    // Returns 1.
+    // Heals the working-or-disabled slots below their maximum by `amount`, spread by their factors over `scale` (the
+    // unit's maximum); a slot back above 0.001 works again. Returns 1.
     bool HealSlots(float scale, float amount);
     // HealSlots(vitals' maximum, amount), then the hit points. Returns 1.
     BOOL Heal(UnitVitals* vitals, float amount);
-    // Working slots regenerate vitals' rate of their maximum; then the hit points.
-    // Returns 1.
+    // Working slots regenerate vitals' rate of their maximum; then the hit points. Returns 1.
     BOOL RegenerateSlots(UnitVitals* vitals);
     // Each used slot's maximum becomes `maxHitPoints` times its share relative to the
     // body's; the current value is clamped to it.
     void SetSlotMaxima(float maxHitPoints);
     // The same, keeping each slot's current value in proportion.
     void ScaleSlotMaxima(float maxHitPoints);
-    // Slots of kind 2 or more are healed fully. Returns EAX (the end of the slots).
+    // Slots of kind 2 or more are healed fully.
     void* RefillSlots();
-    // Every used slot works again at its maximum. Returns EAX (the end of the slots).
+    // Every used slot works again at its maximum.
     void* RestoreSlots();
     // The lowest current / maximum ratio of the used leg (type 3) / arm
     // (type 2) slots mapped to a factor: <= gives, <= gives,
@@ -811,9 +740,7 @@ struct UnitStats {
     // Adds `amount` to the pending experience; a positive total moves into the
     // experience.
     void AddExperience(float amount);
-    // The same with `amount` scaled by 1.04 ^ (intelligence - 25).
     void AddScaledExperience(float amount);
-    // Takes `amount` off the pending experience.
     void TakePendingExperience(float amount);
     // For a unit with a server object: AddScaledExperience, then the maxima of its
     // vitals from the curves (the slots scaled along) and its hit points.
@@ -824,14 +751,12 @@ struct UnitStats {
     // maxima and Recompute. False (AL) when the unit has no server object.
     bool RaiseSkill(int skill, int amount, CUnit* unit);
     bool RaiseAttribute(int index, int amount, CUnit* unit);
-    // GiveStrength / GiveDexterity / GiveIntelligence: the base
-    // value grows by `amount`, the maxima are recomputed (each its own way), strength makes the
-    // unit 0.2 wider and dexterity 0.2 less high (base scale +0x1AC and figure scale +0xC4), then
-    // Recompute. False (AL) when the unit has no server object.
+    // GiveStrength / GiveDexterity / GiveIntelligence: the base value grows by `amount`, the maxima are recomputed
+    // (each its own way), strength makes the unit 0.2 wider and dexterity 0.2 less high, then Recompute. False when
+    // the unit has no server object.
     bool RaiseStrength(int amount, CUnit* unit);
     bool RaiseDexterity(int amount, CUnit* unit);
     bool RaiseIntelligence(int amount, CUnit* unit);
-    // A copy of SkillLevelValue (exact).
     double SkillLevelValueCopy(int skill);
 
     // Applies `hit` (from `weapon`'s attack, may be null): flags 2 (head) / 4, the
@@ -876,7 +801,6 @@ struct UnitStats {
 
     // The rounded values into `params`. The first argument is not used.
     void Pack(CUnit* unused, UnitParams* params);
-    // Resets the values that the builders fill.
     int Reset();
     // Clears layers 1 and 2 of every slot.
     int ClearOuterLayers();
@@ -924,7 +848,7 @@ struct UnitStats {
     float loadFactor;               // LegsFactor when +0x60 is 1, else 1
     float armsFactor;
     int movementKind;                   // the model's: 1 legs (load factor), 2 on the water (no size classes)
-    // +0x064..+0x0AF: the combat values (combat.h's CombatStats overlay names them too).
+    // The combat values (combat.h's CombatStats overlay names them too).
     std::uint32_t modelField8;      // from the model (UnitModelRecord::field8)
     std::int16_t sizeClass;         // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
     std::int16_t unused_06A;
@@ -960,21 +884,15 @@ static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
 static_assert(sizeof(UnitStats) == 0x704);
 
-// The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
-// A party's record array, party.h). Each item list is an aligned pointer array (data,
-// count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
+// The record the player keeps for each unit of the party (found by unit id through a party's record array, party.h).
+// Each item list is an aligned pointer array of the record's own copies of the items.
 struct PartyUnitRecord {
-    // Constructor body: seven empty strings, empty item lists, the
-    // defaults below (stats left as they are), ClearItems, the defaults again. Returns this.
+    // Constructor body: empty strings and item lists, the defaults, ClearItems. Returns this.
     PartyUnitRecord* Construct();
-    // Destructor body: ClearItems, the defaults, the lists' storage freed (none is left),
-    // the strings destroyed (the last first).
     void Destruct();
-    // Scalar deleting destructor: Destruct, then operator delete
-    // when flags bit 0 is set. Returns this.
+    // Destruct, then operator delete when flags bit 0 is set. Returns this.
     PartyUnitRecord* DeletingDestruct(unsigned flags);
-    // Releases every item of the four lists, then empties them (SetSize(0, -1),
-    // inlined for the first two).
+    // Releases every item of the four lists, then empties them.
     void ClearItems();
 
     // A copy of `item` (its Clone with the world's spell manager), counted and appended to the weapons / quick items /
@@ -983,22 +901,19 @@ struct PartyUnitRecord {
     CItem* AddQuickItem(CItem* item);
     CItem* AddArmor(CItem* item);
     CItem* AddSpell(CItem* item);
-    // Releases `entry` and takes it out of the
-    // list (nothing when it is not there).
+    // Releases `entry` and takes it out of the list (nothing when it is not there).
     void RemoveWeapon(CItem* entry);
     void RemoveQuickItem(CItem* entry);
     void RemoveArmor(CItem* entry);
     void RemoveSpell(CItem* entry);
 
-    // ClearItems, then each of the four lists sized to
-    // `source`'s and filled with `party`'s copies (CParty slot 24) of its items, each with the
-    // source item's count and a reference.
+    // ClearItems, then each of the four lists sized to `source`'s and filled with `party`'s copies of its items, each
+    // with the source item's count and a reference.
     void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
     // Operator=: the strings assigned, everything else copied (the item lists'
     // pointers too: the lists are shared, not copied). Returns this.
     PartyUnitRecord* Assign(const PartyUnitRecord* source);
-    // The weights of the entries of the four
-    // lists added up: weapons, quick items, spells, armour (empty entries skipped). In ST0.
+    // The weights of the entries of the four lists added up (empty entries skipped).
     float CarriedWeight() const;
 
     // ClearItems and the defaults, then texts 0, 2-5 (text 6
@@ -1007,8 +922,7 @@ struct PartyUnitRecord {
     // and counted), then text 1; from version 0x51 +0x770, +0x774 and the byte +0x778, from 0x5B
     // +0x77C, from 0x61 +0x780, from 0x6B text 6.
     void Load(CStream* stream);
-    // Writes what Load reads (newest version): strings with their zero, item
-    // ids (-1 for an empty entry).
+    // Writes what Load reads (newest version).
     void Save(CStream* stream);
 
     mfc::CString texts[7];          // names (empty when constructed)
@@ -1063,12 +977,11 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<
 // Text-key units: the armour pieces covering hit location
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
-// (__stdcall; ECX is not read). The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
+// The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
-// `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1:
-// (1 + strengthen * k) / (1 + weaken * k), 1 without a unit. __stdcall (some callers set ECX to
-// the stats, which is not read).
+// `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1: (1 +
+// strengthen * k) / (1 + weaken * k), 1 without a unit.
 float __stdcall ScaleDamageByEffects(CUnit* unit, float value);
 // The scale itself with k = 0.005, unrounded.
 double __stdcall HitPointEffectScale(CUnit* unit);
@@ -1079,23 +992,17 @@ static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 static_assert(sizeof(UnitStats) == 0x704);
 
 struct DamageInfo;
-// Resets a hit: all weights 1, multiplier 1, +0x20/+0x24 = 3.4e36, +0x2C = 6,
-// the rest 0. Returns 0x7C23D70A (a leftover register value).
+// Resets a hit: all weights 1, multiplier 1, +0x20/+0x24 = 3.4e36, +0x2C = 6, the rest 0.
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info);
 // Has the hit a non-zero weight for damage type 3, 4 or 5 (NaN counts as
 // zero)?
 BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 
-// The server-side state object of map objects GetClassName "CMapObjectServer", class id 0x39,
-// Only the hit points.
+// The server-side state object of map objects (GetClassName "CMapObjectServer", class id 0x39). Only the hit points.
 class CMapObjectServer : public CMapObjectCompanion {
 public:
-    // The two names, the string array, the vitals reset. The
-    // factory allocates it zeroed (CServerSpecificManager).
     CMapObjectServer();
-    // The vitals reset, the string array emptied and freed, no map object.
     ~CMapObjectServer() override;
-    // (slots 11 / 12): "CMapObjectServer", 0x39.
     const char* GetClassName() override;
     int GetClassId() override;
 
@@ -1104,10 +1011,9 @@ public:
     // Hit points below -5 times the maximum.
     BOOL IsOverkilled() override;
 
-    // (+0x1C is the map object it belongs to, map_object.h.) Virtual slot 6, the per-tick update: counts down
-    // the owner's effects and removes the expired ones. Returns 0.
+    // Per-tick update: counts down the owner's effects and removes the expired ones. Returns 0.
     int RunTick() override;
-    // Copies 0x58 bytes of `data` to +0x20 and marks the owner's part 0 changed.
+    // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
     std::uintptr_t SetData(const void* data);
     // Applies a hit to +0x20; a dead object
     // loses its effects and gets flags_ bit 1. Returns 1 (0 if refuses).
@@ -1117,12 +1023,10 @@ public:
     // array (a count, then each string with its terminator; Load appends to the array).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // No map object, the vitals reset. Returns 1. Slot 3 (Destroy): the vitals
-    // reset, the string array emptied, no map object.
+    // No map object, the vitals reset. Returns 1.
     int Create() override;
     void Destroy() override;
 
-    // +0x1C owner (CMapObjectCompanion)
     UnitVitals vitals;      // hit points +0x28, maximum +0x2C
     mfc::CString name78;
     mfc::CString name7C;
@@ -1136,10 +1040,9 @@ inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cas
 
 class CParticleSource;
 
-// One effect particle record of the client companion (CArray at +0x28).
+// One effect particle record of the client companion.
 struct EffectParticle {
-    // The assignment (the source referenced, the old one released). Returns this. ReleaseSource is the
-    // destructor's work (the source released; the array's SetSize calls it).
+    // The assignment (the source referenced, the old one released). Returns this.
     EffectParticle* Assign(const EffectParticle* other);
     void ReleaseSource();
 
@@ -1151,7 +1054,7 @@ struct EffectParticle {
 };
 static_assert(sizeof(EffectParticle) == 0x10);
 
-// One looping effect sound record (CArray at +0x3C).
+// One looping effect sound record.
 struct EffectSoundRecord {
     int kind;                   // the effect type
     int spareHandle;                    // -1 when made; nothing reads it
@@ -1168,33 +1071,25 @@ static_assert(sizeof(EffectSoundRecord) == 0x14);
 void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
-// The two MFC CArrays of the client companion (data, size, capacity, grow by).
 using EffectParticleArray = mfc::CArray<EffectParticle>;
 using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
-// The client-side companion of a map object GetClassName "CMapObjectClientSpecific";
-// +0x1C is the object it belongs to (a unit for IsDead / IsOverkilled).
+// The client-side companion of a map object (GetClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
+// / IsOverkilled.
 class CMapObjectClientSpecific : public CMapObjectCompanion {
 public:
-    // The particle and sound arrays, no light.
     CMapObjectClientSpecific();
-    // The particles and the light removed, the arrays freed.
     ~CMapObjectClientSpecific() override;
-    // (slots 11 / 12): "CMapObjectClientSpecific", 0x3A.
     const char* GetClassName() override;
     int GetClassId() override;
 
-    // The unit's hit points <= 0.
     BOOL IsDead() override;
-    // The unit's hit points below -5 times its maximum.
     BOOL IsOverkilled() override;
     // A hit of `damage` with the hit-kind bits `kind` on a
     // living object flagged 0x400000 shows its number over it (the client world's).
     void Hit(int damage, int kind) override;
 
-    // No light state (+0x20 /
-    // +0x24), the particle array emptied, no end sound (+0x54 = -1), no map object.
-    // Returns 1.
+    // No light state, the particle array emptied, no end sound, no map object. Returns 1.
     int Create() override;
 
     // The client's per-tick update: effect
@@ -1205,12 +1100,10 @@ public:
     // the list arrives with the object (no sounds; particles run 30 ticks ahead, the scale effects' one-shot
     // rings are left out).
     void EffectsChanged(bool first) override;
-    // One particle record per effect (types 9-0x0E, 0x10, 0x13, 0x19, 0x1A, 0x1D-0x22 merged
-    // to the highest power); records still matching are kept (a power change rescales the
-    // source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
-    // 0x10000 / 0x40000 on the object; 0x11 / 0x1D / 0x1E only spawn a ring); records whose effect is
-    // gone stop their source and undo their flag (the parts' alpha / tint reset) when no other
-    // record of the type is left.
+    // One particle record per effect (types merged to the highest power); records still matching are kept (a power
+    // change rescales the source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
+    // 0x10000 / 0x40000 on the object; 0x11 / 0x1D / 0x1E only spawn a ring); records whose effect is gone stop their
+    // source and undo their flag when no other record of the type is left.
     void UpdateEffectParticles(bool first);
     // One sound record per effect type: a new type plays its "<sound>\start.wav", a
     // vanished one its "<sound>\end.wav" (unless the object is dead) and is removed.
@@ -1229,11 +1122,9 @@ public:
     // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
     // list; mode 2: a light is hidden, its id removed from the list and the light released.
     void SetLightMode(int mode) override;
-    // +0x20 / +0x24 cleared, no particles, the light hidden,
-    // its id removed and released, no object.
+    // Everything released: particles, light, no object.
     void Destroy() override;
 
-    // The owner as the unit it is where the client reads hit points.
     CUnit* Unit() const { return static_cast<CUnit*>(owner); }
 
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
