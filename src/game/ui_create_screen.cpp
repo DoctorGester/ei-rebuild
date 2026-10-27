@@ -92,8 +92,8 @@ void CInterface3D::CreateScreen(int id) {
     case 9:
         screen = new CExchangeScreen(this);
         break;
-    default:   // 6 and above 9: the id itself
-        screen = reinterpret_cast<CUiWindow*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
+    default:   // 6 and above 9: the original activates the id itself as a window pointer (a crash), here the
+               // fatal error of a missing screen
         break;
     }
     Activate(screen);

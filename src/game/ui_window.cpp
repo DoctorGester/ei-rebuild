@@ -398,7 +398,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         CEngineObject* made = NewModelObject(name);
         if (!made) return nullptr;
         ++made->refCount_;
-        static_cast<CFigureMesh*>(made)->SetObject(reinterpret_cast<CObject3D*>(this));
+        static_cast<CFigureMesh*>(made)->SetObject(this);
         auto* sprite = AsUiMesh(made);
         auto* old = AsUiMesh(object);
         sprite->material_ = blackMaterial_;
@@ -438,7 +438,7 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
     if (!listed) {
         sceneObjects_.SetAtGrow(sceneObjects_.size, object);
         ++object->refCount_;
-        static_cast<CFigureMesh*>(object)->SetObject(reinterpret_cast<CObject3D*>(this));
+        static_cast<CFigureMesh*>(object)->SetObject(this);
     }
     auto* sprite = AsUiMesh(object);
     sprite->material_ = blackMaterial_;

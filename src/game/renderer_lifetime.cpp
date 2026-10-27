@@ -216,7 +216,7 @@ EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineList);
 int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                                tagRECT* screen) {
     if (mesh->flags_ & kFigureHidden) return 1;
-    return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
+    return mesh->drawer_->DrawPlain(device_, unknownA, unknownB, material, alpha, screen);
 }
 EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigure);
 

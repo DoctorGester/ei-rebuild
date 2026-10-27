@@ -273,9 +273,9 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     CFigureMesh* mesh = mesh_;
     mesh->flags_ &= ~0x40u;
     if (mesh_->flags_ & 0x80) return 1;
-    CObject3D* owner = mesh_->object_;
+    CTransformObject* owner = mesh_->object_;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
-              owner ? static_cast<CLinkMesh*>(owner->figure) : nullptr, 0};
+              owner ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(owner)->figure) : nullptr, 0};
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};

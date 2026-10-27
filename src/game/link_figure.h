@@ -35,7 +35,7 @@ protected:
 // class. flags_ gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
+    int DrawPlain(CTextureDevice* device, const void*, const void*, CMaterial*, int alpha, RECT* rect);
     int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
     void DrawBounds(CSceneRenderer* renderer);

@@ -160,14 +160,6 @@ void CSaveLoadWindow::OnDialogResult(int result) {
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }
 
-namespace {
-template <typename W>
-W* FromInput(void* input) {
-    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
-}
-
-} // namespace
-
 EI_REWRITTEN(0x00654660, CSaveLoadWindow::OnMouseDown);
 EI_REWRITTEN(0x006547B0, CSaveLoadWindow::OnDoubleClick);
 EI_REWRITTEN(0x006544A0, CSaveLoadWindow::Draw);
@@ -359,7 +351,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 void CUiScrollbar::Update() {
     if (state_ == 2 || state_ == 3) {
         // The container's FrameTime does not use the window.
-        double step = reinterpret_cast<CUiContainer*>(this)->FrameTime() * speed_ * 16.0f;
+        double step = CUiContainer::FrameTime() * speed_ * 16.0f;
         if (state_ == 2) step = -step;
         accumulated_ = static_cast<float>(step + accumulated_);
     }

@@ -191,7 +191,7 @@ void CGlobalMap::SetWeather() {
     } else if (index < 16) {
         Marker(markerCount_ + 2)->flatColour_ = Argb(&weatherTable_[12]);
     } else {
-        reinterpret_cast<CCloudNoise*>(weather_)->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
+        weather_->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
     }
 }
 EI_REWRITTEN(0x0062EE90, CGlobalMap::SetWeather);
