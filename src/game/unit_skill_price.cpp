@@ -18,7 +18,7 @@ constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two di
 constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
 constexpr float kTenth = 0.1f;
 constexpr float kHalf = 0.5f;
-constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (+0x6D3..+0x6F6)
+constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitStats::skillLevels)
 
 // What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
 // (the scale) and "Skill Val 2" (the divisor), read at the time of the call.
@@ -54,7 +54,7 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     } else {
         below = Worth(0);
     }
-    float cost = static_cast<float>(static_cast<int>(worth - below));   // _ftol, then FILD; FSTP float
+    float cost = static_cast<float>(static_cast<int>(worth - below));   // truncated, then stored as a float
 
     std::uint8_t known = 0;   // a byte sum (wraps)
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
@@ -62,7 +62,7 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     // 24-bit precision before either store).
     float price = static_cast<float>(std::pow(static_cast<double>(GameLogicSettings().perkPowerBase), known) * cost);
 
-    // The power of ten of the first digit (FLDLG2; FYL2X, the CRT's floor and _CIpow).
+    // The power of ten of the first digit (log10, the CRT's floor and _CIpow).
     float power = static_cast<float>(std::pow(10.0, std::floor(x87::flog10(static_cast<double>(price)))));
     float leading = price / power;
     if (leading >= kTwoDigitsBelow) return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);

@@ -1,4 +1,4 @@
-// The AI's eye (the world server's +0x2838): what a unit sees each brain tick, the
+// The AI's eye (the world server's aiEvents_): what a unit sees each brain tick, the
 // nearby units, seeing new ones and the eye's height and facing.
 #include "ai_map.h"
 #include "combat.h"
@@ -27,8 +27,8 @@
 namespace {
 constexpr float kOne = 1.0f;
 constexpr float kZero = 0.0f;
-constexpr float kNoCone = -1.0f;                // pushed as 0xBF800000: every direction
-constexpr float kNoLineOfSight = -1000.0f;      // pushed as 0xC47A0000: below -100, no line-of-sight test
+constexpr float kNoCone = -1.0f;                // every direction
+constexpr float kNoLineOfSight = -1000.0f;      // below -100, no line-of-sight test
 constexpr int kNoGridOrigin = 0x7FFFFFFF;
 constexpr float kHalf = 0.5f;
 constexpr float kNonPlayerReach = 1.05f;        // units without a player keep sight a little longer
@@ -45,14 +45,13 @@ constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
-// FCOMP 0; TEST AH,0x40: zero.
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
     return v == 0.0;
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    os.PutInt(value);   // returns the stream itself
+    os.PutInt(value);
     return os;
 }
 
@@ -61,8 +60,7 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
     return PutLong(PutLong(*AiLog() << "Unit ", self->id_) << text, other->id_);
 }
 
-// The noticed point taken over inline (Notice's copy), through CopyPoint2's
-// address so its verify wrapper counts it (AIMemory::Update's check relies on that).
+// The noticed point taken over inline (Notice's copy).
 void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
     float copy[2];
     const float* point = CopyPoint2(copy, &at->localPosition_.x);

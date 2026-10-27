@@ -22,9 +22,9 @@ constexpr float kOne = 1.0f;
 
 } // namespace
 
-// The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B for weapon types 0-4 and 8, +0x7C for
-// 5 and 6; ST0. An unknown prototype reads its type from address 0x0C (it faults), other types index
-// 0x7FFFFFFF bytes on (kept).
+// The skill bonus byte of the weapon prototype `itemId >> 16`: skillBonus[0] for weapon types 0-4 and 8,
+// skillBonus[1] for 5 and 6; unrounded. An unknown prototype reads its type from address 0x0C (it faults),
+// other types index 0x7FFFFFFF bytes on (kept).
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     const auto* weapon =
         itemdb::WeaponAt(itemId >> 16);
@@ -55,7 +55,6 @@ EI_REWRITTEN(0x0052FC40, CUnit::AdvanceTime);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = ObjectSlots(this);
-    // FCOMP; TEST AH,0x40: C3, set for equal.
     EI_NAN_AUDIT(level);
     if (level == 0.0f) return slots->SetVisibilityMode(0);
     if (level == kOne) return slots->SetVisibilityMode(1);

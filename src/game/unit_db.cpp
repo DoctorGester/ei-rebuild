@@ -14,12 +14,7 @@
 
 namespace {
 
-// The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of `size` bytes
-// (missing
-// ones read as zero), a CString field, entering / leaving chunk `id`. The CString vector's archive; four dwords as
-// fields 0..3; a model's body slot as fields 0..3. The pieces of the vector archive that the NPC serialiser
-// inlines:
-// counting the fields `id` of the current chunk (chunk_archive.cpp), emptying a vector<CString> and resizing it.
+// Emptying a vector<CString> (a piece of the vector archive the NPC serialiser inlines).
 void StringsClear(CStringVector* strings) {
     strings->EraseRange<stlp::ObjectElement<mfc::CString>>(strings->begin(), strings->end());
 }

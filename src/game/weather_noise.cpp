@@ -68,7 +68,7 @@ void WeatherNoiseCurve::Build(float amplitude) {
 }
 EI_REWRITTEN(0x004E3980, WeatherNoiseCurve::Build);
 
-// A static initialiser (cdecl): the five curves built one after another with the amplitude 0.5.
+// A static initialiser: the five curves built one after another with the amplitude 0.5.
 void BuildWeatherNoise() {
     constexpr float kAmplitude = 0.5f /*0073D728*/;
     g_swayXByHeight.Build(kAmplitude);

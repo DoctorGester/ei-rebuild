@@ -11,19 +11,19 @@
 
 namespace {
 constexpr double kStatBase = 25.0;
-constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus (+0x7B / +0x7C)
+constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus
 constexpr int kWeaponSkill1Bonus = 1;
 
-// The level value (+0x34, unsigned) of the skill level record of skill `type` at the packed level byte, or
-// null without one. The byte is read unchecked (`type` may be negative).
+// The level value (unsigned) of the skill level record of skill `type` at the packed level byte, or null
+// without one. The byte is read unchecked (`type` may be negative).
 const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
     std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
     return unitdb::SkillLevelAt(static_cast<std::uint32_t>(type * 3 - 1 + level));
 }
 
-// The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd', 'i'). The
-// record is read unchecked (an empty skill table faults).
+// The first letter of skill `skill`'s name: which stat counts ('s', 'd', 'i'). The record is read unchecked
+// (an empty skill table faults).
 char StatLetter(int skill) {
     const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
     const char* name = record->statNames.begin()[0];
@@ -48,7 +48,7 @@ double WeaponByte(const itemdb::WeaponRecord* weapon, int skill) {
 double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon) {
     double term;
     if (type < 5) {
-        // The level value stays on the FPU (FILD qword); the sums follow the x87 order.
+        // The level value stays on the FPU (an exact 64-bit load); the sums follow the x87 order.
         const SkillLevelRecord* record = LevelRecord(this, type);
         double level = record ? record->Value() : 0.0;
         double bonus = WeaponByte(weapon, kWeaponSkill0Bonus);
@@ -57,7 +57,7 @@ double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon
         return level + (skill + bonus);
     }
     if (type == 5 || type == 6) {
-        // Here the level value is stored to a float first (FSTP float).
+        // Here the level value is stored to a float first.
         const SkillLevelRecord* record = LevelRecord(this, type);
         float level = record ? static_cast<float>(record->Value()) : 0.0f;
         double bonus = WeaponByte(weapon, kWeaponSkill1Bonus);
