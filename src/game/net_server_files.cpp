@@ -1,4 +1,4 @@
-// The game server's shared files (00419A00, called by the world for the saved zone data): a file
+// The game server's shared files (called by the world for the saved zone data): a file
 // message split into 64-byte chunk messages, queued on +0x2598. See net_classes.h and
 // docs/notes/network.md.
 #include "net_coder.h"

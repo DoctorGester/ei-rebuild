@@ -3,7 +3,7 @@
 // Delta replication of object state. Every replicated object (units at
 // +0x1C4, ...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
 // channels, the bytes last sent (the snapshot) and the bits and bytes to send now (the output).
-// The object's serialiser (a virtual slot; 0050EAF0 for one family) calls BeginField(i) for each
+// The object's serialiser (a virtual) calls BeginField(i) for each
 // dirty field and writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and
 // only the changed words follow. Reading (the client) mirrors it through two globals set by
 // BeginField in the read modes. Names provisional; see docs/notes/network.md.
@@ -58,9 +58,9 @@ struct DeltaField {
     BitStream snapshot[2];   // +0x00, +0x28: per channel, the bytes last sent
     BitStream out[2];        // +0x50, +0x78: per channel, what is sent now
 
-    // 00677EC0, 0066A300 (identical copies): four empty memory streams.
+    // Identical copies: four empty memory streams.
     DeltaField() = default;
-    // 00510340 (also inlined): the four streams destroyed, the last first.
+    // Also inlined: the four streams destroyed, the last first.
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;
@@ -69,11 +69,11 @@ struct DeltaField {
     void Empty();
 
     // Rewinds the snapshots, empties the outputs; both channels keep their
-    // snapshots unless `channel1Only`. 0047DB70 returns `channel1Only` or 1, 0047FA40 this.
+    // snapshots unless `channel1Only`.
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
     // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
-    // 0047DBD0 returns `second` or the reader, 0047FAA0 this.
+    //
     std::uintptr_t BeginReadA(int second, BitStream* reader);
     DeltaField* BeginReadB(int second, BitStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,

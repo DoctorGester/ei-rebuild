@@ -1,4 +1,4 @@
-// The game server's awards: the zone completion command (00418ED0, "<zone>_3"), the host's item
+// The game server's awards: the zone completion command ("<zone>_3"), the host's item
 // awards and the queued award message, plus the counted pointer copy they
 // use. See net_classes.h and docs/notes/network.md.
 
@@ -163,7 +163,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 // The zone leaving command ("<zone>_2"). When a map message is held: announces the
 // map's title (text 6) and, when the map registry knows "<map>_1", queues the host's items with
 // the final award. Then drops the map message, empties the queued messages (+0x25AC), +0x25B0
-// and +0x2598, queues the following zones and clears the world's map (0057ED60 with
+// and +0x2598, queues the following zones and clears the world's map (with
 // null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;

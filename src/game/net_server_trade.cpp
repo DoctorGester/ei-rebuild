@@ -1,6 +1,6 @@
 // The game server's trades between players: offers arrive as replicated objects (created, updated,
-// removed: 0041B7A0, 0041B970, 0041BA30), two matching offers make a trade (a TradeMessage,
-// 0041ACF0 finds it), and 0041B720 drops a removed file request. The offers are PartyMessages
+// removed), two matching offers make a trade (a TradeMessage,
+// finds it), and a removed file request is dropped a removed file request. The offers are PartyMessages
 // (net_messages.h). See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
@@ -64,7 +64,7 @@ EI_REWRITTEN(0x00429910, RefPtr::CopyPlain);
 EI_REWRITTEN(0x00609960, RefPtr::CopyPlain);
 EI_REWRITTEN(0x005BEF50, RefPtr::CopyPlain);
 // The counted pointer's assignment from another holder (the chat window's player list
-// 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even
+// RefPtr::Assign of the other's object (a reference added, the old one released, even
 // for the same object; no copy-on-share handling). Returns the holder.
 RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
     Assign(other->ptr);
@@ -85,7 +85,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
     return nullptr;
 }
 
-// 0041B720 (removed file request): drops `message` from +0x259C.
+// Removed file request: drops `message` from +0x259C.
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);
@@ -97,7 +97,7 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     }
 }
 
-// 0041B7A0 (offer created): lists the offer; when the partner's offer is listed, a trade of the two
+// Offer created: lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
@@ -121,7 +121,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     other->trading_ = 1;
 }
 
-// 0041B970 (offer updated): the offer's version moves on; when both offers of its trade are live,
+// Offer updated: the offer's version moves on; when both offers of its trade are live,
 // accepted and agree crosswise (each one accepted the other's current revision), the trade is
 // done with the two revisions.
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
@@ -141,7 +141,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
     ++trade->version_;
 }
 
-// 0041BA30 (offer removed): drops the offer; an unpaired offer's partner is told it was withdrawn.
+// Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
 // Its trade, when live, is dropped, a done one first kept on +0x25C0 for 60 seconds.
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;

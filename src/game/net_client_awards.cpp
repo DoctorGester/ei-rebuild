@@ -51,7 +51,7 @@ void InitList(GivenItems& list, void* vtable) {
 } // namespace
 
 // Applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
-// to player 0 and empties the list. Kind 0: experience (005911C0 with the value's bits); 1: money
+// to player 0 and empties the list. Kind 0: experience; 1: money
 // (the party's, the value truncated), then an empty item list given; 2: the item named by the text,
 // given; 3: the first given item whose IsSameAs (slot 14) with the named item returns 0 is taken
 // (by id); 4: the party's quest items removed and every given quest item (class 0x14) taken.
@@ -129,7 +129,7 @@ EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 
 // The client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
-// mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
+// mode 3 when player 0 exists with its connection in state 1 and the game-flow flag is set.
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     self->ClientBase::Tick(dt);

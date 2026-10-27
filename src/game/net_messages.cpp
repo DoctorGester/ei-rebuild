@@ -142,7 +142,7 @@ void LoginMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// TextMessage: SayMessage 0073BC28, ZoneMessage 0073BCD0, MapMessage 0073BD00.
+// TextMessage: SayMessage, ZoneMessage, MapMessage.
 
 TextMessage::TextMessage() { StringEmpty(text_); }
 TextMessage::TextMessage(const TextMessage& other) : Message(other), text_(other.text_) {}
@@ -212,7 +212,7 @@ void CommandMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// PairMessage: BindingMessage 0073BCB8, FileRequestMessage 0073BC58.
+// PairMessage: BindingMessage, FileRequestMessage.
 
 PairMessage::PairMessage(const PairMessage& other) : Message(other) {
     CopyCounted(first_, other.first_);
@@ -389,7 +389,7 @@ FileMessage::FileMessage(const FileMessage& other)
     chunks_.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);
 }
 FileMessage::~FileMessage() {
-    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
+    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
 }
 EI_REWRITTEN_SPECIAL(0x00416640, FileMessage::~FileMessage);
@@ -601,7 +601,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
 
 // ================================================================================================
 // 0073BB40 ServerEntryBase and 0073BB28 ServerEntry (net_classes.h): made by 0041A7E0, 0041D420 and 0041D600 (the
-// server list). Slot 1 is the empty 00412580.
+// server list).
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
     std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied as dwords

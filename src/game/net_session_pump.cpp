@@ -21,8 +21,8 @@ namespace netlink {
 
 namespace {
 
-// list<RefPtr>::insert of the drivers (0047A450, shared) and the holders (0047A480, counted), the
-// drivers' erase; the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
+// list<RefPtr>::insert of the drivers (shared) and the holders (counted), the
+// drivers' erase; the nodes' deallocation (12 bytes back to the pool) and the
 // pool's free.
 using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
@@ -63,7 +63,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         if (!server->PlayerStateIs3(node->connection)) continue;
         player = node->connection;
         DriverLink* driver = NewDriver(this, player);
-        // The original then destroys the emptied temporary holder (00413270 on null: nothing).
+        // The original then destroys the emptied temporary holder.
         RefPtr held{driver};
         RefList::Insert<stlp::CountedRef>(stlp::AsRefNode(holders_), held);
     }

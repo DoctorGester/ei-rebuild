@@ -120,7 +120,7 @@ bool Connection::Tick(double dt) {
                 pool.InsertOverflow<stlp::PlainElement<std::uint16_t>>(pool.end(), id, 1);
             }
         }
-        oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end), 0043DC80
+        oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end)
         Batches::Erase<FreedIdsElement>(freedIds_.First());
         Batches::InsertDefault<FreedIdsElement>(freedIds_.End());
     }

@@ -25,7 +25,7 @@ namespace {
 // The queue's members with recordlist::StreamQueue's element (record_lists.h): its constructors
 // insert of a default element, erase, clear
 // and range insert; the node pool and the header's deallocation
-// (00479530, n nodes).
+//.
 using QueueElement = recordlist::QueueStreamElement;
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The game's memmove.
@@ -37,7 +37,7 @@ void ReleaseCounted(CRefObject* object) {
     if (object->refs_ == 0) delete object;
 }
 
-// A counted pointer assignment as 004782E0 inlines it (the new object counted first).
+// A counted pointer assignment as it is inlined (the new object counted first).
 void AssignPeer(LoopbackLink** slot, LoopbackLink* object) {
     LoopbackLink* previous = *slot;
     *slot = object;
@@ -163,7 +163,7 @@ EI_REWRITTEN(0x004780E0, NetLink::CloseRecording);
 
 LoopbackLink::LoopbackLink() {
     queue_.Construct();
-    peer_ = nullptr;   // 00478FB0, the null counted pointer
+    peer_ = nullptr;
 }
 
 LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
@@ -177,7 +177,7 @@ LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
     if (peer_) ++peer_->refs_;
 }
 
-// The queue's destructor as 004787A0 inlines it: every element's deleting destructor (flags 0),
+// The queue's destructor as it is inlined: every element's deleting destructor (flags 0),
 // the node back to the pool; then the header.
 void LoopbackLink::DestroyQueue() {
     QueueNode* head = queue_.head;
@@ -399,7 +399,7 @@ int FramedLink::IncomingCount() {
     for (;;) {
         std::uint32_t at = inbox->Position() + 4;
         if (at > inbox->Size()) break;
-        std::int32_t length = 0;   // as in 0047B9F0: always filled
+        std::int32_t length = 0;
         inbox->Read(&length, 4);
         std::uint32_t end = inbox->Position() + static_cast<std::uint32_t>(length);
         if (end > inbox->Size()) break;

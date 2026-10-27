@@ -48,7 +48,7 @@ void ServerSession::Describe(RefPtr* out) {
         out->Share(entry);
     }
 }
-// When announced, the master's address is set from the host name at 0079BED8 and port
+// When announced, the master's address is set from the host name and port
 // 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;

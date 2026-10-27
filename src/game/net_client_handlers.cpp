@@ -1,7 +1,7 @@
-// The game client's message handlers (registered by the constructor 0041BC40, __fastcall with the
+// The game client's message handlers (registered by the constructor,
 // client in ECX and the message in EDX) and the three party-screen entry points around them
 //. Each keeps the replicated objects the server sends in one of the
-// client's lists and tells the interface or the game flow. 0041ECC0 (the file chunk handler for
+// client's lists and tells the interface or the game flow. The file chunk handler for
 // channel 0) is patched by Rebirth: ours installs in the vanilla launch only. The messages are
 // declared in net_messages.h. See docs/notes/network.md.
 #include "address_order.h"
@@ -277,8 +277,8 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
 // chunks of the file as the file message announces, they are sorted by index, their 64 bytes each
 // joined in a growing buffer cut to the file's size, the game flow writes the buffer as the map
 // file of that name, and the requests for the file leave +0x25E8. A file without a name (the text
-// at 0079B298) is only collected. Rebirth's MQClient (the JNE at 0041ED35 aimed at the next
-// instruction, the JE at 0041ED40 made a JMP) returns after collecting every chunk: no file from the
+// at 0079B298) is only collected. Rebirth's MQClient (two jumps patched so that
+// it) returns after collecting every chunk: no file from the
 // server is written. The constructor registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
@@ -352,7 +352,7 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {
 void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
-    reinterpret_cast<CParty*>(&self->parties_[0])->Clear(1, 0);   // parties (00661050 class)
+    reinterpret_cast<CParty*>(&self->parties_[0])->Clear(1, 0);
     reinterpret_cast<CParty*>(&self->parties_[1])->Clear(1, 0);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,

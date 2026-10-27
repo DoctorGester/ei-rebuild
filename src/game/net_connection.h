@@ -1,7 +1,7 @@
 #pragma once
 
-// A connection of a network session to one peer (vtable 0073BF38, 0x1168 bytes; constructor
-// 00432DA0, created by SessionBase::AddClient 00436DD0) and the object replication it runs.
+// A connection of a network session to one peer (0x1168 bytes; constructor
+// created by SessionBase::AddClient) and the object replication it runs.
 // Names are provisional; see docs/notes/network.md.
 // Replication: every replicated object (a Message, whose version changes with it) is tracked by a
 // ReplicaEntry in one of 11 priority maps. Each update packet carries, highest priority first, the
@@ -36,7 +36,7 @@ struct IdPool {
 };
 static_assert(sizeof(IdPool) == 0x10);
 
-// The tracking record of one replicated object (game.exe's vtable 0073BF4C, 0x14 bytes).
+// The tracking record of one replicated object (0x14 bytes).
 class ReplicaEntry final : public CRefObject {
 public:
     // As Track inlines it: no object, no version and no id yet (the type and the flags are the
@@ -44,11 +44,11 @@ public:
     ReplicaEntry();
     // Clone's copy: the same object, one more reference.
     ReplicaEntry(const ReplicaEntry& other);
-    // 004344C0 (deleting: 004344A0): the object released.
+    // The object released (the deleting destructor).
     ~ReplicaEntry() override;
     // 1: Serialize (empty).
-    int OnShutdown() override;              // 2: 00434430 reset: the object let go, version and id cleared
-    ReplicaEntry* Clone() override;         // 3: 004343C0 a copy sharing the object
+    int OnShutdown() override;              // Reset: the object let go, version and id cleared
+    ReplicaEntry* Clone() override;         // A copy sharing the object
 
     Message* Object() const { return static_cast<Message*>(object_.ptr); }
 
@@ -138,7 +138,7 @@ namespace trees {
 struct CountedValue : stlp::CountedRef {
     using Type = RefPtrTo<ReplicaEntry>;
 };
-// A record copied as the pair constructor 0043A090 and _M_create_node 0043DF00 copy it: shared,
+// A record copied as the pair constructor and _M_create_node copy it: shared,
 // then the version; destroyed with the owner's detach.
 struct RecordValue {
     using Type = Record;
@@ -170,13 +170,13 @@ public:
     explicit Connection(std::uint32_t id);
     // Clone's copy: every container copied.
     Connection(const Connection& other);
-    // 004334E0 (deleting: 004334C0; net_connection_life.cpp).
+    // The deleting destructor (net_connection_life.cpp).
     ~Connection() override;
 
     // 1: Serialize (empty).
-    // 2: 00433320 (net_connection_life.cpp). Torn down and built again with id 0; returns this.
+    // (net_connection_life.cpp). Torn down and built again with id 0; returns this.
     int OnShutdown() override;
-    // 3: 00433060 (net_connection_life.cpp). A copy of the connection.
+    // (net_connection_life.cpp). A copy of the connection.
     Connection* Clone() override;
 
     // Builds and sends one update packet of at most `budget` entry bytes. False when

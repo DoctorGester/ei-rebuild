@@ -1,5 +1,5 @@
-// A connection's construction, reset, clone and destruction (00432DA0, 00433320, 00433060, 004334E0,
-// 004334C0), the id pools' copy and the replica entries' slots.
+// A connection's construction, reset, clone and destruction 
+// the id pools' copy and the replica entries' slots.
 // The containers are STLport instantiations (library), called through their original addresses.
 // See net_connection.h and docs/notes/network.md.
 #include "net_coder.h"
@@ -66,7 +66,7 @@ void DestroyForReset(Connection* c) {
 } // namespace
 
 // The constructor (id). Builds every container, then: the send sequence starts at the
-// tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
+// tick count, the round trip at the session's maxRoundTrip_ (or a constant without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
 // The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
@@ -134,7 +134,7 @@ int Connection::OnShutdown() {
 }
 EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 
-// 004334E0 (deleting: 004334C0).
+// The deleting destructor.
 // The reliable streams are members, destroyed after the body (the original frees them first).
 Connection::~Connection() {
     incoming_.Clear<ChunkElement>();
@@ -170,7 +170,7 @@ namespace net {
 Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 EI_REWRITTEN(0x00433060, Connection::Clone);
 
-// The copy as 00433060 builds it, field by field.
+// The copy, field by field.
 // The reliable streams are members, copied before the body (the original copies them last).
 Connection::Connection(const Connection& other)
     : CRefObject(), reliableOut_(other.reliableOut_), reliableIn_(other.reliableIn_) {
@@ -244,11 +244,11 @@ ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
     if (object_.ptr) ++object_.ptr->refs_;
 }
 
-// 004343C0 (entry slot 3): a copy of the entry sharing the object.
+// Entry copy: a copy of the entry sharing the object.
 ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
 EI_REWRITTEN(0x004343C0, ReplicaEntry::Clone);
 
-// 00434430 (entry slot 2): releases the object, then built again in place as the constructor
+// Entry reset: releases the object, then built again in place as the constructor
 // would (object, version and id cleared; type and flags kept). Returns what EAX held (nothing in
 // particular).
 int ReplicaEntry::OnShutdown() {
@@ -260,7 +260,7 @@ int ReplicaEntry::OnShutdown() {
 }
 EI_REWRITTEN(0x00434430, ReplicaEntry::OnShutdown);
 
-// 004344C0 (deleting: 004344A0).
+// The entry's deleting destructor.
 ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
 EI_REWRITTEN_SPECIAL(0x004344C0, ReplicaEntry::~ReplicaEntry);
 EI_REWRITTEN_SPECIAL(0x004344A0, ReplicaEntry::~ReplicaEntry);

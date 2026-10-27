@@ -1,4 +1,4 @@
-// The game client session (vtable 0073BDEC, client base 0073BE30; pointer at 0079B5D8). See
+// The game client session. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"

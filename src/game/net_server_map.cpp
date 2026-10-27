@@ -31,11 +31,11 @@ void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a
 } // namespace
 
 // SetMap(name). Empties the two lists at +0x25AC / +0x25B0, queues a map message (name +
-// suffix) on the first, replaces the counted message at +0x25A8 by a fresh 0073BD00 one and copies
+// suffix) on the first, replaces the counted message at +0x25A8 by a fresh one and copies
 // the name into it and into +0x25D4, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
-// (SetVariable), and queues the host's item awards (004191C0, without the final award).
+// (SetVariable), and queues the host's item awards (without the final award).
 void ServerSession::SetMap(const stlp::string* name) {
     queuedMaps_.Clear();
     variables_.Clear();
@@ -108,7 +108,7 @@ void ServerSession::SetMap(const stlp::string* name) {
     AwardHost(entry, false);
 }
 // Unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
-// 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
+// ) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();

@@ -431,7 +431,7 @@ EI_REWRITTEN(0x0047EE00, DeltaField::ReadPosition2D);
 // Ranged values.
 namespace {
 constexpr float kRangeSteps = 65535.0f;
-const float kRangeStep = std::bit_cast<float>(0x37800080u);      // 0073CAAC (1 / 65535)
+const float kRangeStep = std::bit_cast<float>(0x37800080u);      // (1 / 65535)
 } // namespace
 
 void DeltaField::WriteRanged(float value, float min, float max) {

@@ -41,8 +41,8 @@ EI_REWRITTEN(0x00429F40, TypeRegistry::TypeOf);
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
     if (prototype) ++prototype->refs_;
-    // operator[] as inlined: find_or_insert of {key, value()} (resize 0042B9C0 / 0042AA90, new
-    // node 0042B8A0 / 0042AA00).
+    // operator[] as inlined: find_or_insert of {key, value()} (resize, new
+    // node).
     byVtable.FindOrInsert({KeyOf(prototype), 0})->value = type;
     byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
@@ -61,11 +61,11 @@ SessionBase::SessionBase() {
     clients_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    // hashtable(100, hash, equal, allocator): 00438B70, 00439F20 (the functors empty, 0 here).
+    // hashtable(100, hash, equal, allocator) (the functors empty, 0 here).
     types_.byVtable.Construct(100);
     types_.byType.Construct(100);
     socket_.Construct();
-    // 3 x 256 empty handler vectors (the element constructor 00436A30 only zeroes them).
+    // 3 x 256 empty handler vectors (the element constructor only zeroes them).
     for (auto& channel : handlers_)
         for (HandlerVector& v : channel) v = HandlerVector{};
     reinterpret_cast<std::uint32_t*>(&time_)[0] = 0;

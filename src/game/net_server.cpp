@@ -1,4 +1,4 @@
-// The game server session (vtable 0073BB70, server base 0073BBB4; pointer at 0079B5DC). See
+// The game server session. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
