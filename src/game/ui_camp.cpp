@@ -83,7 +83,7 @@ void SetShade(CUiMesh* mesh, float shade) {
 }
 
 // A white centred line on a surface between GetDC and ReleaseDC (Rebirth-patched).
-void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
+void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
 
@@ -392,7 +392,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
-            return gamecrt::mbsicmp(part->materialClass.c_str(), own->soundName.c_str()) == 0;
+            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -570,7 +570,7 @@ void CCampPages::UpdateAction() {
     texts->GetString(label.c_str(), &text);
     line = str::Format("%s %d", text.GetString(), amount);
     RECT top = {0, 10, 200, 30};
-    DrawLine(draw, line.c_str(), &top);
+    DrawLine(draw, line, &top);
     UiSurfaceReleaseDC(draw);
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
@@ -745,7 +745,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(part->materialClass.c_str(), blueprint->soundName.c_str()) != 0)
+    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {

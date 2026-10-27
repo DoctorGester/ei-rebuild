@@ -39,7 +39,7 @@ namespace {
 
 
 bool IsEmpty(const std::string& s) {
-    return gamecrt::mbscmp(s.c_str(),
+    return gamecrt::mbscmp(s,
                            game::EmptyText()) == 0;
 }
 
@@ -196,7 +196,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
         std::string pattern = folder.GetString() + file;
-        found = find.FindFile(pattern.c_str(), 0) != 0;
+        found = find.FindFile(pattern, 0) != 0;
     }
     if (!found) return false;
     stlp::string path = MapFilePath(file);
@@ -222,7 +222,7 @@ void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node)
     bool quest;
     {
         std::string prefix = name.Left(2).GetString();
-        quest = gamecrt::mbscmp(prefix.c_str(),
+        quest = gamecrt::mbscmp(prefix,
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {

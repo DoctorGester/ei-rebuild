@@ -748,7 +748,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
     int m = 4;
     if (streamState != 0) {
         m = mode;
-        if (gamecrt::mbscmp(streamName.c_str(),
+        if (gamecrt::mbscmp(streamName,
                             name) == 0 &&
             *name != '\0') {
             streamState = 1;
@@ -764,7 +764,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         }
     }
     if (streamState == 2 &&
-        gamecrt::mbscmp(nextName.c_str(),
+        gamecrt::mbscmp(nextName,
                         name) == 0 &&
         switchMode >= m) {
         gameapi::LeaveCriticalSection(lock);

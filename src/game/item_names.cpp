@@ -155,7 +155,7 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureName() {
     std::string name;
     const ItemRecordHead* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(prototype->materialClass.c_str(),
+    if (prototype && gamecrt::mbsicmp(prototype->materialClass,
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
         const char* materialName = material ? material->name.c_str() : kUnknownMaterial;

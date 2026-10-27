@@ -67,13 +67,16 @@ struct LocalFileStream {
     netlink::FileStream s;
 
     // The stream's direction byte, then the CFile's virtual Open.
-    void Open(const char* path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
+    void Open(std::string_view path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
     void Close() { s.Close(); }
     unsigned Read(void* buffer, unsigned size) { return Stream()->Read(buffer, size); }
     void Write(const void* buffer, unsigned size) { Stream()->Write(buffer, size); }
     CStream* Stream() { return &s; }
     // A string with its terminating zero.
-    void WriteText(const char* text) { Write(text, static_cast<unsigned>(std::strlen(text) + 1)); }
+    void WriteText(std::string_view text) {
+        const gamecrt::TerminatedText terminated(text);
+        Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
+    }
 };
 
 // An entry being built (the original's stack temporaries): empty strings and string arrays; the other fields
@@ -136,7 +139,7 @@ void CSaveLoadWindow::ShowPicture() {
     BOOL found;
     {
         std::string path = folder + game::savewords::ShotFile();
-        found = find.FindFile(path.c_str(), 0);
+        found = find.FindFile(path, 0);
     }
     if (!found) return;
     CDXSurface* holder = HolderOf(objects_.data[1]);
@@ -146,7 +149,7 @@ void CSaveLoadWindow::ShowPicture() {
     mfc::CFile file;
     {
         std::string path = folder + game::savewords::ShotFile();
-        file.Open(path.c_str(), 0, nullptr);
+        file.Open(path, 0, nullptr);
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
@@ -221,7 +224,7 @@ void CSaveLoadWindow::SaveGame() {
     LocalFileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
-        info.Open(path.c_str(), kOpenWrite, 0);
+        info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
         entries_.begin()->title_ = name_;
@@ -235,11 +238,11 @@ void CSaveLoadWindow::SaveGame() {
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
-    info.WriteText(first->map_.c_str());
-    info.WriteText(first->zone_.c_str());
+    info.WriteText(first->map_);
+    info.WriteText(first->zone_);
     std::int32_t savedAt = first->savedAt_;
     info.Write(&savedAt, 4);
-    info.WriteText(first->title_.c_str());
+    info.WriteText(first->title_);
     info.Close();
 
     // shot.sav: the game's picture.
@@ -255,7 +258,7 @@ void CSaveLoadWindow::SaveGame() {
         mfc::CFile shot;
         {
             std::string path = folder + game::savewords::ShotFile();
-            shot.Open(path.c_str(), kOpenWrite, nullptr);
+            shot.Open(path, kOpenWrite, nullptr);
         }
         shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
@@ -274,7 +277,7 @@ void CSaveLoadWindow::FillEntries() {
     entries_.EraseRange<recordvec::SaveEntryElement>(entries_.begin(), entries_.end());
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
-    BOOL more = find.FindFile(pattern.c_str(), 0);
+    BOOL more = find.FindFile(pattern, 0);
     while (more) {
         found = find.FindNext();
         more = found;
@@ -293,7 +296,7 @@ void CSaveLoadWindow::FillEntries() {
         {
             std::string folderPath = FilePath(find).GetString();
             std::string path = folderPath + game::savewords::InfoInFolder();
-            hasInfo = infoFind.FindFile(path.c_str(), 0);
+            hasInfo = infoFind.FindFile(path, 0);
         }
         if (!hasInfo) {
             entry->broken_ = true;
@@ -447,11 +450,11 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         map = record->allod;
     std::string folder = SlotFolder(slot).GetString();
     LocalFileStream info;
-    info.Open((folder + game::savewords::InfoFile()).c_str(), kOpenWrite, 0);
+    info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
-    info.WriteText(map.c_str());
-    info.WriteText(zone.c_str());
+    info.WriteText(map);
+    info.WriteText(zone);
     info.Write(&savedAt, 4);
     info.WriteText(title);
     info.Close();
@@ -459,7 +462,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
-    shot.Open((folder + game::savewords::ShotFile()).c_str(), kOpenWrite, nullptr);
+    shot.Open((folder + game::savewords::ShotFile()), kOpenWrite, nullptr);
     shot.Write(pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
@@ -599,7 +602,7 @@ void CSaveLoadWindow::DeleteSave() {
     std::string folder;
     folder = str::Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.c_str());
     mfc::CFileFind find;
-    BOOL more = find.FindFile((folder + kEveryFile).c_str(), 0);
+    BOOL more = find.FindFile((folder + kEveryFile), 0);
     while (more) {
         more = find.FindNext();
         gameapi::DeleteFileA(FilePath(find));

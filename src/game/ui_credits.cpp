@@ -60,7 +60,7 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
                 UiSurfaceGetDC(headerSurface_);
                 headerSurface_->Clear();
                 RECT rect = {0, 0, 0, 0};
-                headerSurface_->DrawTextIn(line.text.c_str(), &rect, 2, kHeaderColour, 1, 1);
+                headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {

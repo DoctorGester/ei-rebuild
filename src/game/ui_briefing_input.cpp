@@ -192,7 +192,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
     std::string zone = GameExitTarget(exit_);
-    if (gamecrt::mbsicmp(zone.c_str(),
+    if (gamecrt::mbsicmp(zone,
                         NoZone()) == 0)
         return;
     std::string variable = ZoneVariablePrefix();
@@ -261,7 +261,7 @@ void CBriefingScreen::DrawTopics() {
         std::string text = prefix.GetString();
         text += TopicSeparator();
         text += title;
-        surface->DrawTextIn(text.c_str(), &rect, kTextFormat, colour, 0, 1);
+        surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

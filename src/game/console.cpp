@@ -36,8 +36,8 @@ mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::C
 CStdioFile::CStdioFile() { Impl()->Construct(); }
 CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }
 CStdioFile::~CStdioFile() { Impl()->Destruct(); }
-mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, void* error) {
-    return Impl()->Open(name, flags, static_cast<mfc::impl::CFileException*>(error));
+mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, void* error) {
+    return Impl()->Open(std::string(name).c_str(), flags, static_cast<mfc::impl::CFileException*>(error));
 }
 mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return Impl()->ReadLine(reinterpret_cast<mfc::impl::CString&>(line)); }
 char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadString(buffer, size); }

@@ -66,7 +66,7 @@ void CBriefingScreen::FindTopics(int personId) {
         bool isConstructor;
         {
             std::string start = str::Left(name, kConstructorPrefixLength);
-            isConstructor = gamecrt::mbsicmp(start.c_str(),
+            isConstructor = gamecrt::mbsicmp(start,
                                             ConstructorTopic()) == 0;
         }
         if (isConstructor) {
@@ -97,7 +97,7 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     bool isConstructor;
     {
         std::string start = str::Left(key, kConstructorPrefixLength);
-        isConstructor = gamecrt::mbscmp(start.c_str(), ConstructorTopic()) == 0;
+        isConstructor = gamecrt::mbscmp(start, ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
     CTextManager* texts = TheTextManager();

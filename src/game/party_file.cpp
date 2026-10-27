@@ -77,7 +77,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 EI_REWRITTEN(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(folder_.c_str(), game::EmptyText()) == 0)
+    if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
         return;
     ClearSaveFolder(folder_.c_str());
     // The count is read again after each write.

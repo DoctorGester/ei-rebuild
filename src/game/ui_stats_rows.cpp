@@ -56,7 +56,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
         number = str::Format(kValueFormat, value);
     CUiSurface* surface = surfaces_.data[0];
     surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
@@ -89,6 +89,6 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     CUiSurface* surface = surfaces_.data[0];
     surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
     number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
-    surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x00624590, CHeroStatsPanel::DrawPart);

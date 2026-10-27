@@ -82,8 +82,8 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
         if (nodes.data[i].parent.size() == 0) root = i;
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* child = &nodes.data[j];
-            if (gamecrt::mbscmp(child->parent.c_str(),
-                                nodes.data[i].name.c_str()) != 0)
+            if (gamecrt::mbscmp(child->parent,
+                                nodes.data[i].name) != 0)
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
             int n = children.size;
@@ -135,7 +135,7 @@ int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int fra
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* candidate = &nodes.data[j];
             const char* meshName = mesh->GetName();
-            if (gamecrt::mbscmp(candidate->name.c_str(),
+            if (gamecrt::mbscmp(candidate->name,
                                 meshName) == 0) {
                 node = candidate;
                 break;

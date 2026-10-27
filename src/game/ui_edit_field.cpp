@@ -199,7 +199,7 @@ void CUiEditField::DrawContentsVanilla() {
     const int width = area_.right - area_.left;
     const int height = area_.bottom - area_.top;
     RECT box{0, 0, width, height};
-    surface->DrawTextIn(text.c_str(), &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
     int caretX = TextWidth(interface_, str::Left(text, caret_).c_str(), font_);

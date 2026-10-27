@@ -451,7 +451,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         else
             object = created(std::type_identity<CMapObject>{});
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(spec->model.c_str(),
+        if (gamecrt::mbscmp(spec->model,
                             game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);

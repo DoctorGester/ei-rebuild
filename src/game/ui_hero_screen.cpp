@@ -99,7 +99,7 @@ void CMpHeroScreen::DrawExperience() {
     TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
     line = str::Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
-    surface->DrawTextIn(line.c_str(), &current, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 }
 
@@ -314,7 +314,7 @@ void CMpHeroScreen::DrawVoices() {
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
             SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(voices.begin()[index].name.c_str(), &rect, 0, kListColour, kListFormat, 1);
+        surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
     UiSurfaceReleaseDC(surface);

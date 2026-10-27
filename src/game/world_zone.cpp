@@ -74,10 +74,10 @@ void CWorldServer::SetZoneExits(const ZoneExits* source) {
     exits->size = 0;
     for (int i = 0; i < source->size; ++i) {
         const ZoneExit* from = &source->data[i];
-        if (gamecrt::mbscmp(from->target.c_str(),
+        if (gamecrt::mbscmp(from->target,
                             game::EmptyText()) == 0)
             continue;   // leads nowhere
-        if (from->entrance < 0 && gamecrt::mbscmp(from->target.c_str(),
+        if (from->entrance < 0 && gamecrt::mbscmp(from->target,
                                                   kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;

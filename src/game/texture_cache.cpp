@@ -34,7 +34,7 @@ const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 void __cdecl DeleteComposedTextures() {
     mfc::CFileFind find;
     std::string pattern = (mfc::CString(TheDataFolder()) + ComposedTexturePattern()).GetString();
-    if (!find.FindFile(pattern.c_str(), 0)) return;
+    if (!find.FindFile(pattern, 0)) return;
     int more;
     do {
         more = find.FindNext();

@@ -63,6 +63,7 @@ public:
     int Find(char c, int start) const;
 
     operator const char*() const { return data_; }
+    operator std::string_view() const { return std::string_view(data_, static_cast<std::size_t>(GetLength())); }
     // The characters (LPCTSTR), for printf-style arguments and other places the conversion is not
     // implicit (MFC 7's name).
     const char* GetString() const { return data_; }
@@ -86,7 +87,7 @@ public:
 
     CFile();
     ~CFile();
-    BOOL Open(const char* path, unsigned flags, void* error);
+    BOOL Open(std::string_view path, unsigned flags, void* error);
     unsigned GetLength();
     unsigned Read(void* buffer, unsigned count);
     void Write(const void* buffer, unsigned count);
@@ -145,7 +146,7 @@ class CFileFind {
 public:
     CFileFind();
     ~CFileFind();
-    BOOL FindFile(const char* pattern, unsigned long flags);
+    BOOL FindFile(std::string_view pattern, unsigned long flags);
     unsigned long GetLength() const;                                // (the found file's size, low dword)
     CString GetFilePath() const;
     CString GetFileName() const;

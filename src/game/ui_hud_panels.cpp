@@ -120,7 +120,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         std::string name;
         name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
-            if (gamecrt::mbscmp(name.c_str(),
+            if (gamecrt::mbscmp(name,
                                 kPartNames[k]) == 0) {
                 name = partLabels_[k];
                 break;

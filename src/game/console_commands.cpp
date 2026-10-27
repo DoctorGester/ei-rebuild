@@ -417,7 +417,7 @@ void __fastcall GenerateAcks(CStringArray*) {
     CStdioFile file;
     {
         std::string path = (*GameDataPathString() + "scenack.txt").GetString();
-        if (!file.Open(path.c_str(), CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
     }
     CStdioFileVirtuals* out = file.Virtuals();
     acks::AckDatabase& database = acks::Database();

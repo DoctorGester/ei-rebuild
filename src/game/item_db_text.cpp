@@ -122,7 +122,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         KeyName(recordName, QuickItemAt(prototypeIndex)->text04.c_str());
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
-        if (prototype && gamecrt::mbsicmp(prototype->materialClass.c_str(),
+        if (prototype && gamecrt::mbsicmp(prototype->materialClass,
                                          kNoMaterial) == 0) {
             ReadItemText(this, (mfc::CString(kQuickItem) + recordName).GetString(), name, description);
             kindKey = "item_potion";

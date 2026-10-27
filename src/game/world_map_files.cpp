@@ -50,7 +50,7 @@ bool __stdcall MapFileExists(const char* name) {
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     MapsFolder(&folder);
     std::string path = (folder + name).GetString();
-    return find.FindFile(path.c_str(), 0) != 0;
+    return find.FindFile(path, 0) != 0;
 }
 EI_REWRITTEN(0x005812F0, MapFileExists);
 
@@ -61,7 +61,7 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         MapsFolder(&folder);
         std::string path = (folder + name).GetString();
-        file.Open(path.c_str(), netlink::FileStream::kOpenWrite, 0);
+        file.Open(path, netlink::FileStream::kOpenWrite, 0);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));

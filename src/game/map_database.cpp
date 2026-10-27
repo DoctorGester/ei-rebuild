@@ -98,7 +98,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
-        if (gamecrt::mbsicmp(allod.name.c_str(), allodName) != 0) continue;
+        if (gamecrt::mbsicmp(allod.name, allodName) != 0) continue;
         allod.maps.SetAtGrow(allod.maps.size, map_);
         break;
     }

@@ -64,7 +64,7 @@ void CWorldServer::UpdateMercBriefings() {
             std::string merc;
             merc = str::Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKeyFromName(merc.c_str());
-            bool briefedHere = gamecrt::mbsicmp(zoneName_.c_str(),
+            bool briefedHere = gamecrt::mbsicmp(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
             b.n8.Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);

@@ -226,7 +226,7 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 }
 
 void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
-    draw->DrawLine(school->name.c_str(), row, 0, kBright, 0, 1);
+    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
     value->Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
@@ -273,7 +273,7 @@ void CTradePanel::DrawLists() {
     for (int shown = 0; shown < 10; ++shown, ++index) {
         if (index >= static_cast<unsigned>(static_cast<int>(perks_.size()))) break;
         TradeRow* perk = &perks_[index];
-        draw->DrawLine(perk->name.c_str(), &row, 0, kBright, 0, 1);
+        draw->DrawLine(perk->name, &row, 0, kBright, 0, 1);
         if (perk->nextKey.size() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
             FormatPrice(perk->price, &value);
@@ -294,7 +294,7 @@ void CTradePanel::DrawLists() {
             textColour = kBright;
             priceColour = PriceColour(perk->price, experience_);
         }
-        draw->DrawLine(perk->name.c_str(), &row, 0, textColour, 0, 1);
+        draw->DrawLine(perk->name, &row, 0, textColour, 0, 1);
         FormatPrice(perk->price, &value);
         draw->DrawLine(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);

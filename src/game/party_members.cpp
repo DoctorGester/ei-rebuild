@@ -49,7 +49,7 @@ CItem* MakeItem(CParty* party, const char* name) {
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
 bool Named(const std::string& name) {
     return name.size() != 0 &&
-           gamecrt::mbsicmp(name.c_str(),
+           gamecrt::mbsicmp(name,
                            game::NoneText()) != 0;
 }
 

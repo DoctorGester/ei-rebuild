@@ -164,7 +164,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         if (count == 1) continue;
         text = str::Format(kNumber, count);
         RECT rect = cellRect(i);
-        counts->DrawLine(text.c_str(), &rect, 1, 0xA7D7E4, 2, 1);
+        counts->DrawLine(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     counts->ReleaseDC();
     CUiSurface* numbers = surfaces_.data[1];
@@ -176,7 +176,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         if (!owner_->CanEquip(item, mode_)) continue;     // whether the strip's mode takes the item
         text = str::Format(kNumber, owner_->Price(item, slots_));   // the number shown under it
         RECT rect = cellRect(i);
-        numbers->DrawLine(text.c_str(), &rect, 1, 0xA7D7E4, 1, 1);
+        numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
     }
     numbers->ReleaseDC();
     return 1;
