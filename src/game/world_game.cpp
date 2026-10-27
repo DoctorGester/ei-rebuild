@@ -181,7 +181,7 @@ int GameFlow::SaveGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_)->allod;
+    currentMap = FindZone(records.Party()->zone_.c_str())->allod;
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
     ThePartyManager()->BeginRedeploy(records.Party());
@@ -211,7 +211,7 @@ int GameFlow::SaveGame(const char* slot) {
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
-    int kind = FindZone(records.Party()->zone_)->kind;
+    int kind = FindZone(records.Party()->zone_.c_str())->kind;
     if (kind == 0 || kind == 2) {
         {
             std::string path = slotFolder + kMissionFile;
@@ -1013,10 +1013,10 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
         // The group of the first pending entry's second name, in table order.
-        const char* key = pending.items[0]->second;
+        const char* key = pending.items[0]->second.c_str();
         group.count = 0;
         for (int i = 0; i < pending.count;) {
-            if (SameText(pending.items[i]->second, key)) {
+            if (SameText(pending.items[i]->second.c_str(), key)) {
                 group.items[group.count++] = pending.items[i];
                 pending.RemoveAt(i);
             } else {
@@ -1026,10 +1026,10 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
         // With a choice, never the excluded first name.
         if (group.count > 1)
             for (int i = 0; i < group.count;)
-                if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
+                if (SameText(group.items[i]->first.c_str(), exclude)) group.RemoveAt(i);
                 else ++i;
         unsigned pick = ((&IsaacRandom::Global()))->Next() % static_cast<unsigned>(group.count);
-        stlp::string name(group.items[pick]->first);
+        stlp::string name(group.items[pick]->first.c_str());
         if (out->Finish() != out->EndOfStorage()) {
             new (out->Finish()) stlp::string(name);
             ++out->Finish();
@@ -1204,7 +1204,7 @@ void GameFlow::StartNewGame() {
     ClearSaveFolder(folder);
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
-    StartZone(records.Party()->zone_, 0);
+    StartZone(records.Party()->zone_.c_str(), 0);
 }
 
 // ---- The flow's requests -------------------------------------------------------------
@@ -1406,7 +1406,7 @@ int GameFlow::LoadGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_)->allod;
+    currentMap = FindZone(records.Party()->zone_.c_str())->allod;
     NamedFloatTable* variables = &records.Party()->variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
@@ -1441,10 +1441,10 @@ int GameFlow::LoadGame(const char* slot) {
     ThePartyManager()->BeginRedeploy(records.Party());
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
-    MapRecord* zoneRecord = FindZone(records.Party()->zone_);
+    MapRecord* zoneRecord = FindZone(records.Party()->zone_.c_str());
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
-        StartZone(records.Party()->zone_, 0);
+        StartZone(records.Party()->zone_.c_str(), 0);
     } else {
         {
             std::string path = slotFolder + kMissionFile;

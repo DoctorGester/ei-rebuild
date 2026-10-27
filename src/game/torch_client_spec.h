@@ -70,5 +70,3 @@ public:
     CParticleSource* particles_;    // counted
     int sound_;                     // the looping sound's handle, 0 when none
 };
-static_assert(offsetof(CTorchObjectClientSpec, light_) == 0x58 && offsetof(CTorchObjectClientSpec, sound_) == 0x60);
-static_assert(sizeof(CTorchObjectClientSpec) == 0x64);

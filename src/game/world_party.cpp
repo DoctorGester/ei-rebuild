@@ -194,7 +194,7 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;
     const ZoneExit* exit = nullptr;
-    const MapRecord* zone = FindZone(party->zone_);
+    const MapRecord* zone = FindZone(party->zone_.c_str());
     int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < zone->exits.size) {
         exit = &zone->exits.data[entrance];

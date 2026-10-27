@@ -179,7 +179,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (words.GetSize() > 2 && (number = std::atoi(words[2])) > 0) {
                 std::string file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
-                file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.GetString(), number);
+                file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
                 voice_ = TheSoundManager()->Play2D(file.c_str(), kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(
@@ -197,7 +197,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         state_ = kStateRewards;
         QuestBriefingRecord* record;
         {
-            stlp::string key(topic_);
+            stlp::string key(topic_.c_str());
             record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
         }
         if (record) {
@@ -244,7 +244,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
-            if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
+            if (IsMultiplayerClient() && !topic_.empty() && Compare(str::Left(topic_, 1).c_str(), ZonePrefix()) == 0) {
                 if (auto* player = TheServerWorld()->GetPlayer(0)) {
                     for (auto* node = player->items_.head; node; node = node->next) {
                         CItem* item = node->data;
@@ -276,7 +276,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
-            if (Compare(speakers_[i].name, named()) != 0) continue;
+            if (Compare(speakers_[i].name.c_str(), named()) != 0) continue;
             if (view) {
                 CUnit* target;
                 switch (preset) {
@@ -310,7 +310,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (!skip && spoke) {
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
             CUnit* unit = speakers_[i].unit;
-            if (Compare(speakers_[i].name, named()) != 0) {
+            if (Compare(speakers_[i].name.c_str(), named()) != 0) {
                 PlaySpeakerAnimation(unit, 0, 0);
                 SetBlink(unit, 0);
                 continue;
@@ -334,7 +334,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     firstPhrase_ = false;
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
-        text_->SetText(dialogueText_);
+        text_->SetText(dialogueText_.c_str());
         text_->SetPosition(text_->maxPosition_);
         text_->moved_ = true;
         for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {

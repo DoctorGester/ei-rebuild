@@ -177,7 +177,7 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     const Vector3& pivot = node->offset;
     EI_NAN_AUDIT(pivot.x, pivot.y, pivot.z);
     if (pivot.x != 0.0f || pivot.y != 0.0f || pivot.z != 0.0f) {
-        game::FatalError(NonNullPivotText(), bone->name_.GetString(), static_cast<double>(pivot.x),
+        game::FatalError(NonNullPivotText(), bone->name_.c_str(), static_cast<double>(pivot.x),
                          static_cast<double>(pivot.y), static_cast<double>(pivot.z));
     }
 }

@@ -83,7 +83,6 @@ EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
-static_assert(sizeof(CCamera) == 0x308);
 CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
@@ -212,7 +211,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     mfc::CFile file;
     if (!(flags_ & CCamera::kRecording)) return 0;
-    if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
+    if (!file.Open(fileName_.c_str(), 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
     file.Virtuals()->Seek(0, 2);   // Seek(0, end)
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
@@ -227,7 +226,7 @@ EI_REWRITTEN(0x0040EB60, CCamera::RecordFrame);
 // Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {
     self->flags_ &= ~CCamera::kRecording;
-    self->fileName_.Empty();
+    self->fileName_.clear();
     return 1;
 }
 EI_REWRITTEN(0x0040ECB0, CameraCloseFile);

@@ -233,7 +233,7 @@ constexpr float kOpened = 1.0f;
 
 void CParty::OpenEdgeExits() {
     std::string variable;
-    MapRecord* zone = TheMapDatabase()->FindMap(zone_);
+    MapRecord* zone = TheMapDatabase()->FindMap(zone_.c_str());
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
     for (int i = 0; i < zone->exits.size; ++i) {

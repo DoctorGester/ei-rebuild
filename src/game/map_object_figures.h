@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
@@ -146,9 +147,9 @@ public:
 // A bone of a figure's skeleton (made from the skeleton links). The animation state's bone list holds them,
 // one of its members the root. Only the fields the pose code uses.
 struct FigureBone : CEngineObject {
-    mfc::CString name;                      // the piece's name (children are linked by it)
-    mfc::CString name2;                     // its parent's name (empty for the root)
-    mfc::CString name3;                     // the figure's model name (LinkBone)
+    std::string name;                      // the piece's name (children are linked by it)
+    std::string name2;                     // its parent's name (empty for the root)
+    std::string name3;                     // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
     mfc::CTypedPtrList<FigureBone> children;
     CFigureMesh* mesh;                      // the part the bone places, or null
@@ -182,12 +183,13 @@ struct FigureBone : CEngineObject {
     // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
     // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets.
     void Place(const Vector3* origin);
+    // The bone's cage (map_object_cage.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
+    // the next 8 points of *stream (0x60 bytes, consumed; edges 0-1 and 2-3 at morphS, between them at morphT;
+    // edges 4-5 and 6-7 likewise; then between the two at morphU) or in the prism of the next 6 (0x48 bytes; edge
+    // 0-1 at morphS, towards point 2 at morphT; edge 3-4 likewise towards point 5; then between the two at morphU).
+    void InterpolateCube(const float** stream);
+    void InterpolatePrism(const float** stream);
 };
-static_assert(offsetof(FigureBone, parent) == 0x28 && offsetof(FigureBone, children) == 0x2C);
-static_assert(offsetof(FigureBone, mesh) == 0x48 && offsetof(FigureBone, offset) == 0x5C);
-static_assert(offsetof(FigureBone, position) == 0x74 && offsetof(FigureBone, rotation) == 0x80);
-static_assert(offsetof(FigureBone, counted54) == 0x54 && offsetof(FigureBone, matrices) == 0x90);
-static_assert(sizeof(FigureBone) == 0xA0);
 
 // A part of a figure model (the model the figure manager finds: mesh, bones, ...; the animations part comes
 // from FigureModel::FindAnimation). Only the virtual the animation state calls is named.

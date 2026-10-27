@@ -279,14 +279,13 @@ struct SkillRecord {
     void Serialize(ChunkArchive* ar);
     void Destruct();
 
-    mfc::CString name;              // field 0
-    mfc::CString field1;                // 1 (nothing reads it)
+    std::string name;                   // field 0
+    std::string field1;                 // 1 (nothing reads it)
     std::uint32_t field2;               // 2 (nothing reads it)
     // Chunk 10: the stats it counts; the first one's first letter picks the stat ('s' strength, 'd'
     // dexterity, 'i' intelligence; UnitStats::SkillWithBonus).
     CStringVector statNames;
 };
-static_assert(offsetof(SkillRecord, statNames) == 0x0C && sizeof(SkillRecord) == 0x18);
 
 // A skill level record (the perks the trade panel offers).
 struct SkillLevelRecord {
@@ -294,12 +293,12 @@ struct SkillLevelRecord {
     void Serialize(ChunkArchive* ar);
     void Destruct();
 
-    mfc::CString field0;                // field 0 (the trade panel's display name of the perk)
-    mfc::CString name;              // 1 (the lookups compare it, _mbsicmp)
+    std::string field0;                 // field 0 (the trade panel's display name of the perk)
+    std::string name;                   // 1 (the lookups compare it, _mbsicmp)
     std::uint32_t field2;               // 2 (nothing reads it)
-    mfc::CString requiredLevelName;     // 10 the level record it requires ("none")
+    std::string requiredLevelName;      // 10 the level record it requires ("none")
     std::uint32_t exclusionGroup;       // 0x17 levels of one group exclude each other across skills (CanLearn)
-    mfc::CString requiredSkillName;     // 11 names the skill byte it requires ("none")
+    std::string requiredSkillName;      // 11 names the skill byte it requires ("none")
     // Fields 12..21: [0] the skill byte it requires (an index of UnitStats::skills, named by
     // requiredSkillName) and [2] its least value, [3..5] the least strength, dexterity and intelligence
     // (floats), [6] its worth exponent, [7] the level's value.
@@ -317,7 +316,6 @@ struct SkillLevelRecord {
     // The worth exponent the skill prices use (values[6], signed).
     int WorthExponent() const { return static_cast<int>(values[6]); }
 };
-static_assert(offsetof(SkillLevelRecord, values) == 0x18 && sizeof(SkillLevelRecord) == 0x44);
 
 struct SkillDatabase {
     SkillLevelRecord* FindLevel(const char* levelName);

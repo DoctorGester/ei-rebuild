@@ -24,6 +24,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -116,12 +117,12 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         briefingStarted_ = false;
         return;
     }
-    if (Compare(topic_, GoodbyeTopic()) == 0) {
+    if (Compare(topic_.c_str(), GoodbyeTopic()) == 0) {
         state_ = 0;
         return;
     }
-    if (Compare(topic_.Left(kConstructorPrefix), ConstructorTopic()) == 0) {
-        int constructor = std::atoi(console::Ops(topic_).Mid(kConstructorNumber));
+    if (Compare(str::Left(topic_, kConstructorPrefix).c_str(), ConstructorTopic()) == 0) {
+        int constructor = std::atoi(str::Mid(topic_, kConstructorNumber).c_str());
         if (ClassTemplates()->Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);
@@ -284,7 +285,7 @@ void CBriefingScreen::FinishDialogue() {
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         text::Split(node->value.key, &parts, '.');
-        if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
+        if (parts.GetSize() != kTopicNameParts || Compare(topic_.c_str(), parts[2]) != 0) continue;
         TheServerWorld()->CompleteBriefing(0, node->value.key);
         break;
     }

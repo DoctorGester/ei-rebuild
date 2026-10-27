@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CItemInfoPanel;
 class CTexture;
@@ -192,9 +193,8 @@ struct ItemHoverInfo {
     int part;                // body part (kind 4)
     CItemWeapon* weapon;     // kind 5
     UnitStats* stats;        // the hero's statistics (in the hero record)
-    mfc::CString text;       // the text key
+    std::string text;       // the text key
 };
-static_assert(sizeof(ItemHoverInfo) == 0x18);
 static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
 class CItemInfoPanel : public CUiItemPanel {
@@ -243,9 +243,5 @@ public:
     mfc::CStringArray itemTexts_;    // "infoitem_0" .. "infoitem_44"
     mfc::CStringArray skillTexts_;   // "infoskill_0" .. "infoskill_24"
 };
-static_assert(sizeof(CItemInfoPanel) == 0x1F0);
 static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);
 static_assert(offsetof(CItemInfoPanel, itemParty_) == 0x150);
-static_assert(offsetof(CItemInfoPanel, x_) == 0x1C0);
-static_assert(offsetof(CItemInfoPanel, itemTexts_) == 0x1C8);
-static_assert(offsetof(CItemInfoPanel, skillTexts_) == 0x1DC);

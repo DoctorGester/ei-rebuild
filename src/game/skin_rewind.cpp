@@ -66,7 +66,7 @@ EI_REWRITTEN(0x005081C0, CAnimationNode::Rewind);
 int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
     for (int i = 0; i < parts->size; ++i) {
         CFigureMesh* part = parts->data[i];
-        if (std::strcmp(part->GetName(), name_) != 0) continue;
+        if (std::strcmp(part->GetName(), name_.c_str()) != 0) continue;
         mesh_ = part;
         ++mesh_->refCount_;
         if (mesh_) {

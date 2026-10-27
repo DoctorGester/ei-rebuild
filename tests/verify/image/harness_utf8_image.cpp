@@ -122,12 +122,11 @@ std::string CheckConsoleLine(const std::string& argument) {
         }
         const console::ConsoleWindow* console = TheInterface()->console_;
         if (!console) return "consoleline: no console window";
-        const mfc::CString& input = console->input_;
-        const std::string line(static_cast<const char*>(input), static_cast<std::size_t>(input.GetLength()));
+        const std::string& line = console->input_;
         if (line != expected || console->caret_ != static_cast<int>(caret)) {
             char failure[512];
             std::snprintf(failure, sizeof(failure), "consoleline: the line is \"%s\" (%d bytes), caret at byte %d; expected \"%s\" (%u bytes), caret at byte %u",
-                          line.c_str(), input.GetLength(), console->caret_, expected.c_str(), static_cast<unsigned>(expected.size()),
+                          line.c_str(), static_cast<int>(line.size()), console->caret_, expected.c_str(), static_cast<unsigned>(expected.size()),
                           static_cast<unsigned>(caret));
             return failure;
         }

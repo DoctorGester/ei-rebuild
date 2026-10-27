@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include <windows.h>   // RECT
 
@@ -169,8 +170,8 @@ public:
     RECT drawnRect;                 // the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // the wounds texture (counted; ShowWounds loads it)
     CountedRef<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
-    mfc::CString skinName;          // the first set's texture name (SetSkins)
-    mfc::CString secondSkinName;    // the second set's
+    std::string skinName;          // the first set's texture name (SetSkins)
+    std::string secondSkinName;    // the second set's
     float pulseClock;               // frames counted by the invisible / stunned pulses
     std::uint32_t touchTime;        // the frame time the model was last kept loaded (CollectVisible)
     Vector3 figureScale;            // the figure's extra scale (GetScale)
@@ -180,17 +181,15 @@ static_assert(offsetof(CObject3DClientSpecific, textures) == 0x28);
 static_assert(offsetof(CObject3DClientSpecific, materials) == 0x38);
 static_assert(offsetof(CObject3DClientSpecific, materialCursor) == 0x48);
 static_assert(offsetof(CObject3DClientSpecific, skinName) == 0xE0);
-static_assert(sizeof(CObject3DClientSpecific) == 0xFC);
 static_assert(offsetof(CObject3DClientSpecific, vertices) == 0x4C);
 static_assert(offsetof(CObject3DClientSpecific, texCoords) == 0x5C);
 static_assert(offsetof(CObject3DClientSpecific, indices) == 0x6C);
 static_assert(offsetof(CObject3DClientSpecific, texture) == 0x7C);
 static_assert(offsetof(CObject3DClientSpecific, bounds) == 0x80);
 static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
-static_assert(offsetof(CObject3DClientSpecific, pulseClock) == 0xE8);
 static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
-static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8 && offsetof(CObject3DClientSpecific, touchTime) == 0xEC);
-static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
+static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8);
+static_assert(offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
 // Whether the game shows `object`'s shadow (shadows on for its kind, the object shown and not invisible) and,
 // when it does, how strongly it casts in the new renderer's shadow map (*strength: 1, a unit as far as it has

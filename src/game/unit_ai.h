@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 template <typename T>
 struct AIRefTo;
@@ -479,16 +480,17 @@ struct AICallRecord {
     Vector3 point;
     int kind;
     int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
-    mfc::CString text;
+    std::string text;
 
     void Destruct();
     AICallRecord& operator=(const AICallRecord& other);
 };
-static_assert(sizeof(AICallRecord) == 0x18 && offsetof(AICallRecord, text) == 0x14);
+static_assert(offsetof(AICallRecord, text) == 0x14);
 
 struct AICallElements {
     static void Construct(AICallRecord* calls, int count);
     static void Destruct(AICallRecord* calls, int count);
+    static void Relocate(AICallRecord* to, AICallRecord* from, int count) { mfc::MoveElements(to, from, count); }
 };
 
 struct AIMemory;

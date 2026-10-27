@@ -84,8 +84,8 @@ int ConsoleStreambuf::Underflow() { return -1; }
 int ConsoleStreambuf::Overflow(int c) {
     if (filter_ == 0 || (g_filterMask & filter_) != 0) {
         const char* end = pptr;
-        for (const char* p = pbase; p < end; ++p) Ops(line_).AppendChar(*p);
-        if (c != -1) Ops(line_).AppendChar(static_cast<char>(c));
+        for (const char* p = pbase; p < end; ++p) line_ += *p;
+        if (c != -1) line_ += static_cast<char>(c);
         pbase = base;
         pptr = base;
         epptr = ebuf;
@@ -97,8 +97,8 @@ EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 // Overflow(EOF), the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
     Overflow(-1);
-    if (g_consoleLineObserver) g_consoleLineObserver(line_);
-    TheInterface()->ConsoleAddText(line_);
+    if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
+    TheInterface()->ConsoleAddText(line_.c_str());
     line_ = game::EmptyText();
     return 0;
 }

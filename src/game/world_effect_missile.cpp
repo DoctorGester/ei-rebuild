@@ -150,7 +150,7 @@ void CEffectArrow::Start(int update) {
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
     light_.SetVelocity(&drift);
     light_.lightFlags_ = kLightFlags;
-    const char* name = soundName_;
+    const char* name = soundName_.c_str();
     std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, like the original
     sound_.radius_ = kSoundRadius;
     sound_.looping_ = 1;
@@ -195,7 +195,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
     value = casterId_;
     field->WriteDelta(&value, 4);
-    field->WriteStringBoth(soundName_);
+    field->WriteStringBoth(soundName_.c_str());
     field->WriteFloat16x3(&lightColor_.x);
     field->WriteFloat16(Bits(lightRange_));
     field->WriteDelta(&particleType_, 4);
@@ -228,7 +228,7 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&velocity_, 12);
     std::memcpy(&copy, &arrived_, 4);
     s->Write(&copy, 4);
-    const char* name = soundName_;
+    const char* name = soundName_.c_str();
     s->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     s->Write(&lightColor_, 12);
     std::memcpy(&copy, &lightRange_, 4);

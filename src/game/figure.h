@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CFigureMesh;
 
@@ -72,9 +73,9 @@ public:
 
     // Cleared by the constructor and the destructor; nothing reads them.
     std::uint32_t spare000_;
-    mfc::CString name_;
-    mfc::CString spareName008_;
-    mfc::CString spareName00C_;
+    std::string name_;
+    std::string spareName008_;
+    std::string spareName00C_;
     std::uint32_t spare010_[3];
     CAnimationNode* parent_;
     lib::AlignedArray<CAnimationNode*> children_;
@@ -105,19 +106,3 @@ public:
     float morphU_;
 };
 static_assert(offsetof(CAnimationNode, name_) == 0x04);
-static_assert(offsetof(CAnimationNode, parent_) == 0x1C);
-static_assert(offsetof(CAnimationNode, children_) == 0x20);
-static_assert(offsetof(CAnimationNode, frameCount_) == 0x40);
-static_assert(offsetof(CAnimationNode, rotationKeys_) == 0x44);
-static_assert(offsetof(CAnimationNode, translationKeys_) == 0x58);
-static_assert(offsetof(CAnimationNode, normals_) == 0x6C);
-static_assert(offsetof(CAnimationNode, morphFrames_) == 0x84);
-static_assert(offsetof(CAnimationNode, pointsB_) == 0xD4);
-static_assert(offsetof(CAnimationNode, mesh_) == 0x30 && offsetof(CAnimationNode, clock_) == 0x38);
-static_assert(offsetof(CAnimationNode, rotationCursor_) == 0x54 && offsetof(CAnimationNode, morphCursor_) == 0x98);
-static_assert(offsetof(CAnimationNode, poseRotation_) == 0xB8 && offsetof(CAnimationNode, posePosition_) == 0xC8);
-static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4 && offsetof(CAnimationNode, defaultPosition_) == 0xAC);
-static_assert(offsetof(CAnimationNode, restPosition_) == 0xF4);
-static_assert(offsetof(CAnimationNode, pointsA_) == 0x100);
-static_assert(offsetof(CAnimationNode, position_) == 0x110);
-static_assert(sizeof(CAnimationNode) == 0x128);

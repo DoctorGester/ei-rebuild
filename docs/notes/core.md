@@ -359,11 +359,32 @@ to which template:
   `ElementFn`s went); ExitArrayClass's destructor is gamearrays::Exits' (the `ExitTargets` byte-offset policy went),
   AllodArrayClass moved to game_arrays.h over the typed records, and the instantiations' registrations (0x004606A0,
   0x00460720, 0x004606F0, 0x0045FBD0, 0x004600F0, 0x0045FCB0) name the typed functions.
+  Batch 7: the skill database's SkillRecord / SkillLevelRecord names (tests/vectors/record_stats.cpp reads game.exe's
+  skill database through its own `OriginalSkillRecord` / `OriginalSkillLevelRecord` / `OriginalSkillDatabase`, 0x18 /
+  0x44-byte records; replay_stats.cpp maps IndexOfLevel's recorded byte offset from game.exe's 0x44-byte records to
+  ours), CSysInfo's five, CIniFile::path_, CParty::zone_, CCamera::fileName_, CEffectArrow::soundName_,
+  CEffectSoundSeq::name_, CTorchObjectSpec::name_, CSpellContainer::name_, the briefing's BriefingSpeaker /
+  BriefingShownItem names and CBriefingScreen's topic_ / dialogueText_, Terrain's textF8 / textFC / textAE0,
+  PartyRecord::name, NamedPartyRecords' text0C / text10, PartyManagerEntry's two, CMapObjectServer's name78 / name7C,
+  AICallRecord::text (AICallElements relocates by MoveElements), ConsoleStreambuf::line_, ConsoleWindow::input_,
+  the zone table's ZoneTableEntry first / second, ItemHoverInfo::text and CObject3DClientSpecific's skinName /
+  secondSkinName, CAnimationNode's name_ and spare names and FigureBone's three names (the figure factory allocates
+  by sizeof; the classes' own sizes stay asserted in their headers). FigureBone was read through the
+  `CageInterpolator` overlay (`unused_00[0x5C]`, then the point and t / u / w: the bone's offset and morph
+  coefficients); with the bigger names it wrote the cage point over the bone's parent pointer (a crash in
+  FigureBone::Place in every scenario with a figure). The interpolations are FigureBone's members now.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
-  BuiltStringsAt / NamedStrings policies: texture names, memory records, lever_table.cpp's DestroyString at
-  offsets), stlp::vector<CString> (CStringVector) members, and members of objects
-  the vector recorders read in game.exe through our headers (record_script*.cpp read CScript; its error goes through
-  tests/vectors/script_original.h, game.exe's layout at errorText_'s offset).
+  BuiltStringsAt / NamedStrings policies: texture names (CTexture::name_, also handed out as `mfc::CString*` by
+  Name()), memory records, lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector)
+  members, and members of objects the vector recorders read in game.exe through our headers (record_script*.cpp
+  read CScript, its token list and defines; its error goes through tests/vectors/script_original.h, game.exe's
+  layout at errorText_'s offset). The fake unit's arrays still destroy their elements by byte stride
+  (record_arrays.h: `SceneRecords` = Bytes<0x18C> for SceneMesh, `FakeUnitRecords9C` for CMaterial, `FigureParts` =
+  Bytes<0x220> for CPlainFigureMesh), so SceneMesh::name, CMaterial's names and CFigureMesh's name_ / directory_
+  wait for those instantiations to be typed (no scenario makes a fake unit: only the build would notice).
+  TextTokenizer::word is read through `TokenWord` (a CString at +0x0C) by an unwind helper.
+  To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
+  (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride.
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
   holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
   needs; `mfc::MoveElements` does it for any element type): bytes are fine for MSVC's std::string at
@@ -376,6 +397,8 @@ to which template:
   `GameFlow::SetNetworkZone(nullptr)`, which crashed net_pair_leave once zone7C_ was a std::string (it stores "" for
   null now). The credits' script tokenizer gave null past a line's last word (`WordOrNull`), which TitleLine's
   style / text took as "" while they were CStrings (now `WordOrEmpty`; every titles run crashed in between).
+  `CObject3DClientSpecific::SetSkins(first, nullptr)` (ApplyMaterials with the second skin "none") stores "" for a
+  null name now.
 - While both types exist, `mfc.h` bridges them: `CString(const std::string&)` and `operator+` of a CString and a
   std::string (the std::string side's type). A `const mfc::CString&` parameter given a std::string binds a temporary
   copy, which is the same text. The rewrite does not retype a variable whose address is taken: a `std::string*`
@@ -404,6 +427,15 @@ to which template:
 - c14_strings.py has no rule for an overload set that took the CString through its conversion (`gamecrt::mbscmp`'s
   C2665): it keeps the member. Retype such a member by hand and add the `.c_str()`s, then run the tool with it (a
   member already declared std::string gets the rules).
+- A class held by value grows with its member: CParty (zone_) sits in CPlayer, ClassTemplate, PartyRecord,
+  CItemInfoPanel, ClientSession, TradeRecord and MpHeroRecord (all through `lib::InPlace<CParty>`, so their
+  sizes follow), and their layout asserts after it went too. Grep the class's embedders (`InPlace<T>`, members of
+  type T) as well as its own sizes.
+- c14_strings.py keys a kept member by its name and remembers it in build/c14_strings/excluded.json across runs: a
+  later run with another `X::name_` keeps that one too ("1 excluded"). Run with `--fresh` after retyping the kept one
+  by hand. It has no rule for a std::string streamed into the console's ostream (`<<`, C2679: add `.c_str()`) or for
+  the console.h `Ops(x)` cast views (retype by hand: `str::Mid(x, ...)`, `x += c`), and a `const mfc::CString& r =
+  member;` local binds a bridge temporary silently (harness_utf8_image.cpp read the console input so).
 - c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
   manual.txt says "already converted"; the next line gets a stray `.c_str()`). Read the diff of every run.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors

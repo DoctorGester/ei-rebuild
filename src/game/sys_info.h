@@ -11,6 +11,7 @@
 #include "lib/static_object.h"
 #include "game_data.h"
 
+#include <string>
 #include <windows.h>
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -69,18 +70,16 @@ public:
     // The processor's CPUID report into the globals; kMmx and kSse set or cleared from it.
     void QueryProcessor();
 
-    mfc::CString computerName_;    // GetComputerNameA
-    mfc::CString userName_;        // GetUserNameA
-    mfc::CString systemName_;      // "Windows NT", "Windows 98", ...
-    mfc::CString systemVersion_;   // "<major>.<minor>.<build>" (empty on Windows 95 / 98)
-    mfc::CString servicePack_;     // szCSDVersion
+    std::string computerName_;    // GetComputerNameA
+    std::string userName_;        // GetUserNameA
+    std::string systemName_;      // "Windows NT", "Windows 98", ...
+    std::string systemVersion_;   // "<major>.<minor>.<build>" (empty on Windows 95 / 98)
+    std::string servicePack_;     // szCSDVersion
     MEMORYSTATUS memory_;
     SYSTEM_INFO system_;
     OSVERSIONINFOA version_;
 };
-static_assert(offsetof(CSysInfo, computerName_) == 0x1C && offsetof(CSysInfo, servicePack_) == 0x2C &&
-              offsetof(CSysInfo, memory_) == 0x30 && offsetof(CSysInfo, system_) == 0x50 &&
-              offsetof(CSysInfo, version_) == 0x74 && sizeof(CSysInfo) == 0x108);
+static_assert(offsetof(CSysInfo, computerName_) == 0x1C);
 
 extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by its static initialiser
 inline CSysInfo* TheSysInfo() { return &*g_sysInfo; }

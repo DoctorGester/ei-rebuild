@@ -64,11 +64,10 @@ void CEffectSoundSeq::Start(int update) {
         return;
     }
     console::CStringArray list;
-    mfc::CString& first = name_;
+    const std::string& first = name_;
     const mfc::CStringArray& others = names_;
-    bool withFirst = gamecrt::mbscmp(first.GetString(),
-                                     "") != 0;
-    if (withFirst) list.SetAtGrow(list.GetSize(), first);
+    bool withFirst = gamecrt::mbscmp(first.c_str(), "") != 0;
+    if (withFirst) list.SetAtGrow(list.GetSize(), first.c_str());
     Chooser chooser = ChooserFor(others.GetSize(), withFirst);
     for (int i = 0; i < others.GetSize(); ++i) list.SetAtGrow(list.GetSize(), others[i]);
     sound_ = sounds->AddSequence(&list, noFade_ != 0 ? 1000 : 0,

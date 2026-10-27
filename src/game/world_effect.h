@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 struct ScriptGroup;
 
@@ -103,7 +104,7 @@ public:
     void Save(CStream* stream) override;
     double Radius() override;
 
-    mfc::CString name_;        // the first sound
+    std::string name_;         // the first sound
     mfc::CStringArray names_;  // the others
     float volume_;
     float radius_;
@@ -279,7 +280,7 @@ public:
     CEffectParticle particle_;
     CEffectPointLight light_;
     CEffectSound sound_;
-    mfc::CString soundName_;
+    std::string soundName_;
     Vector3 lightColor_;
     float lightRange_;
     int particleType_;

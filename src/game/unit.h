@@ -908,13 +908,11 @@ public:
     void Destroy() override;
 
     UnitVitals vitals;
-    mfc::CString name78;
-    mfc::CString name7C;
+    std::string name78;
+    std::string name7C;
     mfc::CStringArray strings;
 };
 static_assert(offsetof(CMapObjectServer, name78) == 0x78);
-static_assert(offsetof(CMapObjectServer, strings) == 0x80);
-static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
 inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }
 

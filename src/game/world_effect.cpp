@@ -204,7 +204,7 @@ int CEffectSoundSeq::RunTick() {
 void CEffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
-    field->WriteStringBoth(name_);
+    field->WriteStringBoth(name_.c_str());
     int count = names_.size;
     field->WriteDelta(&count, 4);
     for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
@@ -229,7 +229,7 @@ void CEffectSoundSeq::Load(CStream* stream) {
 void CEffectSoundSeq::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &velocity_, 12);
-    Write(stream, name_, static_cast<std::uint32_t>(std::strlen(name_) + 1));
+    Write(stream, name_.c_str(), static_cast<std::uint32_t>(std::strlen(name_.c_str()) + 1));
     int count = names_.size;
     Write(stream, &count, 4);
     for (int i = 0; i < names_.size; ++i) {

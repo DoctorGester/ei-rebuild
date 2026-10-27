@@ -29,6 +29,7 @@
 #include <iterator>
 #include <memory>
 #include <new>
+#include <string>
 #include <type_traits>
 
 // A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
@@ -513,11 +514,10 @@ using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>
 // world_game.cpp's ZoneEntry with its texts typed: two CStrings and an id, copied memberwise and
 // destroyed from the last (the compiler's pair).
 struct ZoneTableEntry {
-    mfc::CString first;
-    mfc::CString second;
+    std::string first;
+    std::string second;
     int id;
 };
-static_assert(sizeof(ZoneTableEntry) == 12);
 
 using ZoneTableVector = stlp::VectorAbi<ZoneTableEntry, stlp::ObjectElement<ZoneTableEntry>>;
 

@@ -46,7 +46,7 @@ void Release(PartyRecord* record) {
     if (record && --record->refs_ == 0) delete record;
 }
 
-const char* NameOf(const PartyRecord* record) { return record->name.GetString(); }
+const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
 
 } // namespace
 

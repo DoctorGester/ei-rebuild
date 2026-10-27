@@ -89,7 +89,7 @@ void CBriefingScreen::StartPhrases() {
     lookAt_.y = static_cast<float>(savedCamera_.y + axisY);
     lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
-    dialogueText_.Empty();
+    dialogueText_.clear();
     text_->SetText(game::EmptyText());
     state_ = kStatePhrases;
     firstPhrase_ = true;
@@ -288,7 +288,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(node->name.GetString(),
+            if (gamecrt::mbsicmp(node->name.c_str(),
                                 name) != 0)
                 continue;
             if (node->item) {

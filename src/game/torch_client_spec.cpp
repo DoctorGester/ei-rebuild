@@ -106,7 +106,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float farRadius = values_[1] * kShowFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_.c_str(), 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 EI_REWRITTEN(0x0052D580, CTorchObjectClientSpec::ShowEffects);
 
@@ -178,7 +178,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float farRadius = values_[1] * kSetFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_.c_str(), 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 EI_REWRITTEN(0x0052D520, CTorchObjectClientSpec::SetSound);
 
