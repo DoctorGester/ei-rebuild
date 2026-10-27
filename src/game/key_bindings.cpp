@@ -95,8 +95,8 @@ void __cdecl LoadKeyBindings() {
 }
 EI_REWRITTEN(0x00462C10, LoadKeyBindings);
 
-// One line per scan code with an action, when both the key and the action are known
-// (format: key name, action name).
+// One line per scan code with an action, when both the key and the action are known:
+// key name, action name.
 void __cdecl SaveKeyBindings() {
     mfc::CString line;
     console::CStdioFile file;

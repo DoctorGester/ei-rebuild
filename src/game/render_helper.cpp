@@ -423,8 +423,8 @@ EI_REWRITTEN_SPECIAL(0x004FD880, CRenderPreset::~CRenderPreset);
 void* CRenderPreset::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// (The helper's and the preset's abstract bases, have no fields: their deleting destructors
-// which no object reaches, are not modelled.)
+// The helper's and the preset's abstract bases have no fields; their deleting destructors,
+// which no object reaches, are not modelled.
 
 // ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
 

@@ -85,5 +85,5 @@ inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProject
 extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 
-// (fastcall: the device object, the points; the colour on the stack).
+// Draws the points as a connected line strip in `colour`.
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

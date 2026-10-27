@@ -421,7 +421,7 @@ struct VectorAbi : vector<T> {
     void Reserve(std::size_t n) { Vector::template Reserve<E>(n); }
     // push_back(x).
     void PushBack(const T& x) { Vector::template PushBack<E>(x); }
-    // push_back(T) out of line .
+    // push_back of a default-constructed element, out of line.
     static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
     // operator=(x): returns this.
     Vector* Assign(const Vector& x) {
