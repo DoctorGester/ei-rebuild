@@ -42,7 +42,7 @@
 // ---- Heights -------------------------------------------------------------------------------------
 
 float CWorldClient::ClampedGroundHeight(float x, float y) {
-    // Branch-free in the original (FCOM flags turned into a select mask); NaN picks the first
+    // Branch-free (FCOM flags turned into a select mask); NaN picks the first
     // operand of each comparison.
     float cx = 0.0f >= x ? 0.0f : x;
     float maxX = static_cast<float>(terrain_->width - 1.0f);
@@ -339,12 +339,12 @@ namespace {
 // CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 
-// FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
+// FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (a bit trick).
 float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }
 
-// One effect list: the records whose slot 0 returns 0 are erased (through the list's own erase).
+// One effect list: the records whose tick returns 0 are erased (through the list's own erase).
 template <typename T>
 using EraseFn = void**(__fastcall*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
 template <typename T>
@@ -360,7 +360,7 @@ void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
     }
 }
 
-// The original's inlined iterator destructor: the manager's count drops without a release.
+// The inlined iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) {
         --it.manager->refCount_;
@@ -431,7 +431,7 @@ int CWorldClient::Segment() {
     }
     if (!paused_) {
         ++tick_;
-        // The objects (list +0xBC) whose update returns 0 leave the pending map (+0xD8) and list.
+        // The objects (dynamicObjects_) whose update returns 0 leave dynamicNodes_ and the list.
         for (auto* node = dynamicObjects_.head; node;) {
             auto* current = node;
             node = node->next;
@@ -462,7 +462,7 @@ int CWorldClient::Segment() {
     }
     if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
     if (!paused_) {
-        // The three print lists (std::list, sentinel head): finished ones (slot 0 returns 0) go.
+        // The three print lists (std::list, sentinel head): finished ones (tick returns 0) go.
         RunEffects(bloodPrints_, &EraseBloodPrint);
         RunEffects(footprints_, &EraseFootprint);
         RunEffects(scorchMarks_, &EraseScorchMark);

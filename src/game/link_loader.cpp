@@ -60,7 +60,7 @@ void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::stri
         loader->LoadOldPart(mesh, name, &cursor, s, t, u);
 }
 
-// The bytes of file `name` in `archive` (its slot 5), or null.
+// The bytes of file `name` in `archive`, or null.
 const char* FileData(CMappedResource* archive, const char* name) {
     return static_cast<const char*>(archive->GetFile(name, nullptr));
 }
@@ -266,7 +266,7 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const stlp::string* name
 
 FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     if (auto* found = figureSets_.Find(*name)) return found->value;
-    // "<name>" plus each suffix in a 512-byte buffer, as the original builds them (strcpy / strcat,
+    // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat,
     // no length check).
     char path[512];
     const char* files[3];
@@ -281,7 +281,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
     auto* set = memory ? ConstructFigureModel(memory) : nullptr;
     figureSets_[*name] = set;
-    // The original indexes the map a second time (resize for one more element included).
+// The map is indexed a second time (resize for one more element included), like the original.
     figureSets_[*name]->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;
@@ -320,7 +320,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     }
     CLinkFigureLoader::ClearCache();
     stlp::deallocate(cache_.end(), sizeof(Cache::Node));
-    // The original releases renderer_ here once more; it is null by now.
+// renderer_ is released here once more, like the original; it is null by now.
     figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));

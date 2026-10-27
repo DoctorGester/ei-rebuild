@@ -41,9 +41,9 @@ float* StackTop(CTransformPipeline* device, int index) {
     return stack.matrices[stack.count - 1].m;
 }
 
-// Terrain::HeightAt declared double: the original adds the unrounded ST0.
+// Terrain::HeightAt declared double: the unrounded ST0 is added.
 
-// Also inlined by the original: push_back.
+// Also inlined: push_back.
 void PushBack(FrameQueue& v, CEngineObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
         if (v.Finish()) *v.Finish() = value;
@@ -67,7 +67,7 @@ ObjectList* DeferredUnits() { return FrameDeferredUnits(); }
 const int& g_multiplayerView = options::TheOptions()->drawVisibleOnly_;
 const int& g_modelTouchDelay = options::TheOptions()->shadowLightingFreq_;
 
-// Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top), as the original inlines it.
+// Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
 void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {
     MatrixStack& stack = device->stacks_[index];
     if (stack.count == 0) {
@@ -192,7 +192,7 @@ int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4
 
 namespace {
 
-// Clamp used by the picking: negative or NaN becomes +0 (the original's branch-free select).
+// Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
 __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
 // The two draws share everything but the height function (which returns ST0 unrounded).
@@ -207,7 +207,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
     PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
     const float* m = StackTop(Device(), CTransformPipeline::kPickStack);
 
-    // The values the original keeps on the FPU stack are doubles here (no rounding to float).
+    // The values kept on the FPU stack are doubles here (no rounding to float).
     double sx = screenX;
     double sy = screenY;
     float outX = 0.0f, outY = 0.0f, pz = 0.0f;

@@ -28,7 +28,7 @@
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 
-// The game's data folder (a CString global) and the strings the original passes by address.
+// The game's data folder (a CString global) and the strings passed by address.
 const char* ConfigFolder() { return "config\\"; }
 const char* SunlightSection() { return "sunlight"; }
 const char* AmbientSection() { return "ambient"; }

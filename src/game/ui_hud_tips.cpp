@@ -21,18 +21,10 @@
 #include "lib/str.h"
 
 namespace {
-
-
-
-
-// Makes the text `key` current; non-zero when found.
-// Rebirth-patched: the weapon bar's next slot (model `model`, picture
-// `image`), counted in +0x14C.
-
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
-// The spell's prototype record of a spell's data block (an item's +0x44).
+// The spell's prototype record of a spell's data block.
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
     return spell->GetPrototype();
 }

@@ -157,7 +157,7 @@ public:
 static_assert(sizeof(ConsoleStreambuf) == 0x454);
 
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
-// console window gets it. In the original-game run the harness takes the original's sync instead.
+// console window gets it. In the original-game run the harness hooks the original's sync instead.
 extern void (*g_consoleLineObserver)(const char* line);
 
 // The streambufs, one per message filter (console_streams.cpp; zero until their static initialisers construct them).

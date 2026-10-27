@@ -188,7 +188,7 @@ void SetShade(CUiMesh* sprite, float grey) {
     sprite->tint_[2] = grey;
 }
 
-// The renderer's Direct3D device (+0x54): SetRenderState (slot 20).
+// The renderer's Direct3D device: SetRenderState.
 void SetSpecular(int on) {
     device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
@@ -308,7 +308,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         SetShade(mark, cell->mode == 9 ? 0.5f : 1.0f);
         float step = static_cast<float>(D(scale) * D(550.0f /*007403DC*/));
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
-            int code = spell->modifiers_[i] - 1;   // the modifier's index (+0x54: index + 1 each)
+            int code = spell->modifiers_[i] - 1;// the modifier's index (stored as index + 1)
             double cellSize = D(0.125f /*0073C520*/);
             mark->textureOffsetU_ = static_cast<float>(static_cast<double>(code & 7) * cellSize);
             mark->textureOffsetV_ = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);
@@ -448,9 +448,8 @@ namespace {
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // The texture's pixels for one fill: the texture manager's textures have only the new renderer's
-// memory, written directly (DirectPixels; the original: a Lock with flags 0
-// and the Unlock after). 0, or the error the original's report gets when there is no memory (none
-// is made without it).
+// memory, written directly (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0,
+// or the error the original's report gets when there is no memory (none is made without it).
 long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
     return DirectPixels(holder, pixels) ? 0 : E_FAIL;
 }

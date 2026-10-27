@@ -1081,7 +1081,7 @@ T* MakeCounted() {
     return object;
 }
 
-// A new object (its class's operator new and constructor), stored and referenced (the original does not
+// A new object (its class's operator new and constructor), stored and referenced (the pointer is not
 // test the pointer before counting).
 template <typename T>
 T* NewCounted() {

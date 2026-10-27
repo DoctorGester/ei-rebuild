@@ -190,7 +190,7 @@ void CHeroStatsPanel::DrawStats() {
         } else {
             draw->DrawLine(texts_[3], &rect, 0, kBright, 0, 1);
             Down(&rect);
-            // The weapon's figures (the controller's slot 50 fills them).
+            // The weapon's figures (the controller's attack-parameters virtual fills them).
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
             line = str::Format("     %s", texts_[0].GetString());
@@ -374,7 +374,7 @@ void CHeroStatsPanel::Build() {
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
-    // The texts the panel draws (CStringArray at +0x15C).
+    // The texts the panel draws.
     CTextManager* texts = TheTextManager();
     mfc::CString text;
     mfc::CStringArray* array = &texts_;
@@ -518,7 +518,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddMakerPictures(this);
     AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
     pulse_ = 0.0f;
-    // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
+    // The cost line's texts: "infoitem_35", "infoitem_36".
     CTextManager* texts = TheTextManager();
     mfc::CStringArray* array = &texts_;
     mfc::CString text;

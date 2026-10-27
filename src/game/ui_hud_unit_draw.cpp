@@ -33,7 +33,7 @@
 
 namespace {
 
-// The constants the original reads at run time.
+// The constants read at run time.
 float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 0.0025: 1 / 400, half the layout's width
 float One() { return 1.0f /*0073B84C*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
@@ -60,9 +60,9 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 IDirect3DDevice7* D3DDevice(UiRenderer* renderer) { return reinterpret_cast<IDirect3DDevice7*>(renderer->device_); }
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
-// The quaternion product a * b as the original inlines it twice: w = a.w b.w - a.b (the dot's sum
-// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms
-// the other way round.
+// The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
+// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
+// other way round.
 Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
     const Vector3 av = {a.x, a.y, a.z};
     const Vector3 bv = {b.x, b.y, b.z};

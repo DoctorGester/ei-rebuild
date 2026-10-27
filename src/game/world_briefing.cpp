@@ -143,7 +143,7 @@ void UnloadQuestTexts() {
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
     for (stlp::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
-    // The original's inlined erase(begin(), end()) moves nothing and destroys them all.
+    // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
 

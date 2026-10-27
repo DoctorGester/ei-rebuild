@@ -68,7 +68,7 @@ const char* const kIntroMovie = "Movies\\Intro.bik";
 // The stone animation each region plays while hovered.
 constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};
 
-// A random word scaled to [0, scale) as the original loads it (FILD qword of the unsigned word).
+// A random word scaled to [0, scale), loaded as FILD qword of the unsigned word.
 double RandomScaled(double scale) { return x87::FromUnsigned(IsaacRandom::Global().Next()) * scale; }
 
 } // namespace
@@ -125,7 +125,7 @@ void CMainMenu::CreateScreen() {
     savedEdgeFade_ = MapEdgeFade();
     MapEdgeFade() = kMenuEdgeFade;
     rain_ = (IsaacRandom::Global().Next() & 1) == 1;
-    // The hour is read three times (the original compares the unrounded result each time).
+    // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
     if (GameServerTimeOfDay() < kDawn && rain_)

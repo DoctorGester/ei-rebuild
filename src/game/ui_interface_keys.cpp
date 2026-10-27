@@ -1,6 +1,5 @@
 // The interface's key-down handler (CInterface3D). See ui.h and docs/notes/ui.md.
-// The modifier flags it sets are +0x7C Ctrl (scan codes 0x1D, 0x11D), +0x7D Shift (0x2A, 0x36) and
-// +0x7E Alt (0x38, 0x138).
+// The modifier flags it sets are Ctrl (scan codes 0x1D, 0x11D), Shift (0x2A, 0x36) and Alt (0x38, 0x138).
 #include "ui.h"
 
 #include "console.h"

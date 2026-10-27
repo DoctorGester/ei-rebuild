@@ -36,8 +36,8 @@ void CInterface3D::LoadState(CStream* stream) {
     if (Version(stream) < 0x47) return;
     Read(stream, &fastGame_, 4);
     if (Version(stream) < 0x56) return;
-    // An obsolete list: each name and value read and dropped (the last name is kept until the
-    // end, as the original's local CString).
+    // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
+    // the original's local CString).
     mfc::CString last;
     int count;
     Read(stream, &count, 4);

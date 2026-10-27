@@ -124,8 +124,7 @@ void CInterface3D::Update() {
 namespace {
 
 // A number from the text (its characters' upper-case codes mixed).
-// The tutorial queue (+0x84, an STLport list of CStrings): end() and insert(position,
-// value).
+// The tutorial queue (an STLport list of CStrings): end() and insert(position, value).
 // Rebirth's game over message: the menu object (with 1, then another call), the
 // message window (0x180 bytes, constructor: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (window, 1, 1).

@@ -87,8 +87,8 @@ constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
 
-// A multiplayer hero's name: the text 0 of its party's first member record (the original reads
-// the members' data pointer at +0x30 and takes the CString there).
+// A multiplayer hero's name: the text 0 of its party's first member record (read through the members'
+// data pointer, taking the CString there).
 mfc::CString& MpHeroName(int index) {
     auto* hero = SavedHero(index);
     return hero->Party()->members_.data->texts[0];
@@ -231,7 +231,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             rotate(2);
             return;
         case 4: {
-            // Back to the defaults: the attributes 25, +0x72C 0.7.
+            // Back to the defaults: the attributes 25, the speed factor 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             ChooseFigure(defaults_[0]);
             PartyUnitRecord* hero = HeroRecord();
@@ -410,8 +410,8 @@ void CMpHeroScreen::PlayVoice() {
         set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }
     if (!set) return;
-    // The original gathers the voice entries in a temporary vector; here they are counted and
-    // found again by their rank (no allocation).
+    // The voice entries are counted and found again by their rank (no allocation; the original gathers
+    // them in a temporary vector).
     int count = 0;
     for (const UnitSoundEntry* e = set->entries.begin(); e != set->entries.end(); ++e)
         if (IsVoice(*e)) ++count;

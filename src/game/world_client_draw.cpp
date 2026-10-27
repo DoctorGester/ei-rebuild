@@ -153,7 +153,7 @@ bool Less(float a, float b) {
 float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
-// The original copies a float through the FPU (FLD / FSTP); here the value as it is.
+// A float copied through the FPU (FLD / FSTP) in the original; here the value as it is.
 float Reload(float v) { return v; }
 // The game's _ftol of a float.
 int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }

@@ -103,7 +103,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     voiceTop_ = 0;
     voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
     MpVoiceVector& voices = Voices();
-    // The first entry's file (read even when the list is empty, as the original does).
+    // The first entry's file (read even when the list is empty, like the original).
     hero->texts[6] = voices.begin()->file;
     // The entry count compared unsigned (the subtraction shifted arithmetically).
     std::uint32_t count = static_cast<std::uint32_t>(

@@ -24,7 +24,7 @@ constexpr int kKindPoint = 1;
 constexpr int kKindDirectional = 3;
 constexpr std::uint32_t kFlagChanged = 0x08;
 constexpr std::uint32_t kFlagCreatedLight = 0x80;   // cleared by the manager's CreateObject
-constexpr std::uint32_t kFlagDestroyed = 0x20;      // cleared by slot 3
+constexpr std::uint32_t kFlagDestroyed = 0x20;   // cleared by Destroy
 
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 

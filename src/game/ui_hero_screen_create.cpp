@@ -1,8 +1,7 @@
-// The multiplayer hero screen's Create. Rebirth's WideScreen
-// replaces the function with the original followed by two hidden curtain sprites over the screen's
-// margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
-// (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
-// code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
+// The multiplayer hero screen's Create. Rebirth's WideScreen adds two hidden curtain sprites over the
+// screen's margins (widescreen::AddCurtains), which this does after the original's body; EI_Plugin.asi
+// patches it too (EiPluginFixes, reproduced: the figures' sex test). Nothing in the code calls it but
+// the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "party.h"
 #include "stl_sorts.h"
@@ -77,7 +76,7 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollba
 
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
-// std::sort(begin, end) as the original inlines it (its first level of the introsort loop does
+// std::sort(begin, end) (its first level of the introsort loop does
 // the same steps as the out-of-line loop).
 void SortNames(NameList& names) {
     mfc::CString* first = names.begin();
@@ -245,7 +244,7 @@ void CMpHeroScreen::CreateScreen() {
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
     const int count = static_cast<int>(creatures.end - creatures.begin);
     for (int i = 0; i < count; ++i) {
-        // The vector's checked access, repeated as the original does.
+// The vector's checked access, repeated like the original.
         auto creature = [&creatures, i]() {
             const UnitNpcRecord* first = creatures.begin;
             const UnitNpcRecord* last = creatures.end;
@@ -259,7 +258,7 @@ void CMpHeroScreen::CreateScreen() {
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
-            // The original inlines operator[] (a pair of the name and null through).
+// operator[] inlined (a pair of the name and null through).
             stlp::string key(prototype->modelName.GetString());
             figure = unitdb::ModelNamed(key);
         }
@@ -369,7 +368,7 @@ void CMpHeroScreen::CreateScreen() {
     DrawHeroList();
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
     SetModeVanilla(kModeHeroList);
-    // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
+// Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
 EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);

@@ -112,8 +112,8 @@ public:
         Next();
     }
 
-    // Map coordinates of a world point, as the original computes them: x stays on the FPU
-    // stack, y is stored (after the negation; map y grows downwards).
+    // Map coordinates of a world point: x stays on the FPU stack, y is stored (after the negation; map y
+    // grows downwards).
     double MapX(float worldX) const { return (D(worldX) - D(map_->centreX_)) * D(map_->scale_); }
     float MapY(float worldY) const { return static_cast<float>(-((D(worldY) - D(map_->centreY_)) * D(map_->scale_))); }
     double Zoom() const { return D(map_->zoom_); }
@@ -206,8 +206,8 @@ std::int16_t UnitFrame(const CUnit* unit) {
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
 void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
     const Quaternion* rotation = &unit->localRotation_;
-    // The original computes the rotated Y axis twice and takes x from the first, y from the
-    // second (the function is pure).
+    // The rotated Y axis is computed twice, x taken from the first, y from the second (the function is
+    // pure).
     Vector3 first;
     rotation->AxisY(&first);
     float dirX = -first.x;
@@ -313,8 +313,8 @@ void CHudMap::BuildMarkers() {
         }
     }
 
-    // The zone exits that lead somewhere: squares. (The original copies the exit record and
-    // reads the target from the copy, which shares the string.)
+    // The zone exits that lead somewhere: squares. (The exit record is copied and the target read from
+    // the copy, which shares the string.)
     CWorldClient* world = TheClientWorld();
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
@@ -354,7 +354,7 @@ EI_REWRITTEN(0x00643DC0, CHudMap::BuildMarkers);
 
 namespace {
 
-// The client world's view camera (its rotation at +0x34) and the ground point the camera looks at, as float bits.
+// The client world's view camera and the ground point the camera looks at, as float bits.
 const CTransformObject* Camera() { return TheClientWorld()->camera_; }
 std::uint32_t Bits(const float& f) {
     std::uint32_t bits;
@@ -373,7 +373,7 @@ bool Crosses(float prev, float cur, float edge) {
     return (prev < edge && cur > edge) || (prev > edge && cur < edge);
 }
 
-// One Sutherland-Hodgman step as the original does it in place: walking the polygon, the point
+// One Sutherland-Hodgman step in place: walking the polygon, the point
 // where an edge crosses the line is inserted before the edge's end (which is then skipped);
 // afterwards the points outside are removed.
 template <typename Cut, typename Outside>

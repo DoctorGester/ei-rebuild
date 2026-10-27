@@ -68,8 +68,7 @@ void CUiModel::Play(int animation) {
 }
 EI_REWRITTEN(0x005FC3B0, CUiModel::Play);
 
-// The rest pose: the object named like the figure (+0xA4) of kind 0x80590000 from the
-// object manager, played.
+// The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void CUiModel::Stop() {
     CObject3D* object = Figure();
     mfc::CString name(object->name);
@@ -83,16 +82,16 @@ void CUiModel::ShowPart(const char* name, int show) {
 }
 EI_REWRITTEN(0x005FC4C0, CUiModel::ShowPart);
 
-// Every part (+0xD0) shown or hidden; null entries skipped.
+// Every part shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
         if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
 }
 EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 
-// Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
-// afterwards) at the interface clock, with flag 0x800 set during the draw. The original builds
-// the white from three FISTPs of 255.0.
+// Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface
+// clock, with flag 0x800 set during the draw. The original builds the white from three FISTPs of
+// 255.0.
 void CUiModel::Draw(CSceneRenderer* pass) {
     std::uint32_t saved = pass->colour_;
     pass->SetColour(0xFFFFFFFF);

@@ -1,13 +1,13 @@
 // The item description panel: what the camp, the multiplayer hero screen and
 // the exchange window write about the item or statistic under the mouse. See ui_item_info.h and
 // docs/notes/ui.md ("Item descriptions").
-// Each function draws text lines into the panel's surface 0 between Begin and End
-// Text (Rebirth-patched, called through its address) for single lines and
-// DrawWrappedText for the wrapped title and description. Values the original game truncates
-// with the game's _ftol are converted the same way; values of the statistics functions (UnitStats,
-// WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated as they come back in ST0: the ones the
-// original leaves unrounded are declared double there, so no rounding happens in between. Compiled
-// with precise floating point so that products keep the original's order.
+// Each function draws text lines into the panel's surface 0 between Begin and End Text
+// (Rebirth-patched, called through its address) for single lines and DrawWrappedText for the wrapped
+// title and description. Values the game truncates with its _ftol are converted the same way; values
+// of the statistics functions (UnitStats, WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated
+// as they come back in ST0: the ones the original leaves unrounded are declared double there, so no
+// rounding happens in between. Compiled with precise floating point so that products keep the
+// original's order.
 #include "party.h"
 #include "ui_screens.h"
 #include "text_reader.h"
@@ -120,8 +120,7 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
 
-// The panel's item list (+0x150) is a party object: emptied by
-// (PartyResetOriginal), filled by CParty::AddItem.
+// The panel's item list is a party object: emptied by PartyResetOriginal, filled by CParty::AddItem.
 
 } // namespace
 
@@ -237,7 +236,7 @@ private:
     RECT rect_;
 };
 
-// The kinds of items (CEngineObject +0x10).
+// The kinds of items (CEngineObject::type_).
 constexpr int kWeapon = 0x3004;
 constexpr int kArmor = 0x3005;
 constexpr int kQuick = 0x3006;
@@ -247,7 +246,7 @@ constexpr int kLoot = 0x3009;
 
 int KindOf(CItem* item) { return item->type_; }
 std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
-// The loot and quest items' kind (+0x4C), record type (+0x50) and record index (+0x54).
+// The loot and quest items' kind, record type and record index.
 const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
@@ -339,7 +338,7 @@ void CItemInfoPanel::DescribeItem() {
     mfc::CString text;
     w.Head(name, kindText);
 
-    // The material and count, unless a quick item whose prototype's +0x10 is "none"; then the price.
+    // The material and count, unless a quick item whose prototype's field is "none"; then the price.
     bool materialLine;
     if (kind == kQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
@@ -357,7 +356,7 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));   // +0x34
+    if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));
 
     if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
         // The charge and the carried spell's level.
@@ -408,7 +407,7 @@ void CItemInfoPanel::DescribeItem() {
         }
     }
     if (kind == kArmor) {
-        // Armour: the seven values at +0x4C against their threshold.
+        // Armour: the seven values against their threshold.
         float values[7];
         std::memcpy(values, static_cast<const CItemArmor*>(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
@@ -491,9 +490,9 @@ EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = Item();
     Texts* texts = TextManager();
-    // The record by the blueprint's kind (+0x50): weapons, armour, quick items. The dispatcher
-    // calls this only for kinds 0-2; the original leaves the record and kind uninitialised
-    // otherwise (here: none, and it faults reading the record like a missing one).
+    // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
+    // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
+    // faults reading the record like a missing one).
     int sort = 3;
     const itemdb::ItemRecordHead* head = nullptr;
     std::uint32_t index = LootOf(item)->index_;
@@ -508,8 +507,8 @@ void CItemInfoPanel::DescribeBlueprint() {
     Writer w(this);
     w.Draw()->GetDC();
     w.Head(name, kindText);
-    // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
-    // (The weapon and armour views are read only for their own sort.)
+    // The material type ("mattype_<NAME>" of the record) and the count. (The weapon and armour views
+    // are read only for their own sort.)
     const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(head);
     const auto* armor = itemdb::RecordAs<itemdb::ArmorRecord>(head);
     mfc::CString text = head->materialClass;
@@ -552,7 +551,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         else
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
-        // Armour: the seven values scaled by +0x6C (a float here) and 10, stored as floats.
+        // Armour: the seven values scaled by a float field and 10, stored as floats.
         float values[7];
         for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 10.0f /*0073BAAC*/);
         w.DamageLines(values, 4);
@@ -655,7 +654,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     CSpell* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        surfaces_.data[0]->ReleaseDC();   // without a Begin, as the original game does
+        surfaces_.data[0]->ReleaseDC();   // without a Begin, like the game
         return;
     }
     Texts* texts = TextManager();
@@ -1033,7 +1032,7 @@ void CItemInfoPanel::Describe(CItem* item) {
 }
 EI_REWRITTEN(0x005EE6C0, CItemInfoPanel::Describe);
 
-// --- Input side (window + 0x94): slot 1, key down, key up ------------------
+// --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
 void CItemInfoPanel::OnKeyDown(int key, int, int flags) {
     // Not a repeat: bit 14 of the flags is the key's previous state.

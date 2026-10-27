@@ -305,7 +305,7 @@ void __fastcall Give(CStringArray* args) {
     }
     if (ArgIs(args, 1, "exp") && args->GetSize() > 2) {
         int count = player->Party()->members_.size;
-        // Rounded to float once, as the original stores it.
+        // Rounded to float once.
         float share = static_cast<float>(std::atof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             player->Party()->members_.data[i].stats.AddScaledExperience(share);

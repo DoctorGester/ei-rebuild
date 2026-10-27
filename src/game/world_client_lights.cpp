@@ -39,7 +39,7 @@ constexpr float kHalf = 0.5f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
-// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (not the folded double).
+// pi * (1 / 180) as FLD / FMUL leaves it at 24-bit precision (not the folded double).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
 const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).
@@ -107,7 +107,7 @@ double SunElevation(float hour) {
     return night * kNightSpan + kBaseElevation;
 }
 
-// The time of day in hours, unrounded as the original keeps it (fmod of the game time by 24).
+// The time of day in hours, unrounded (fmod of the game time by 24).
 double HourOfDay(const CWorld* world) {
     return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
 }
@@ -217,7 +217,7 @@ int CWorldClient::UpdateLighting() {
     if (skyDome_) {
         const SkyColour ambient = {skyAmbient_.r, skyAmbient_.g, skyAmbient_.b, skyAmbient_.a};
         const SkyColour sunlight = {frameSun_.r, frameSun_.g, frameSun_.b, frameSun_.a};
-        const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};   // the original's fourth float is stack garbage
+        const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};// the fourth float is stack garbage in the original
         skyDome_->Light(&direction.x, ambient, sunlight, skyColour);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);

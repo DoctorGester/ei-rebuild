@@ -1,6 +1,6 @@
 // The HUD buttons that start or drop a pending action on the battle screen: a spell button
-// an action button, a quick item slot, and the battle screen's
-// pending action they share (inlined by the original). See ui.h and docs/notes/ui.md ("Battle screen").
+// an action button, a quick item slot, and the battle screen's pending action they share. See ui.h
+// and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
 #include "item.h"
@@ -37,7 +37,7 @@ enum PendingAction : int {
 // The spell (+0x44) an item carries, or null.
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
-// The shared tail of the quick item and the spell use: `spell` (an item's +0x44) used at once by `unit`'s
+// The shared tail of the quick item and the spell use: `spell` (an item's spell) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the
 // pending action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at
 // a unit, else UseAtPoint at the target's position (both through their addresses), with `quick`.

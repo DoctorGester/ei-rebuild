@@ -1,6 +1,6 @@
 // Drawing a lightning bolt (CLightning's renderer virtual; called by DrawAll) and its
 // glow: the segments as textured strips through the render device (slot 16), then a
-// glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
+// glow: the segments as textured strips through the render device, then a
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 #include "at_exit_functions.h"
@@ -27,8 +27,8 @@
 
 namespace {
 
-// The visibility of a bounds record for the device's view (+8): 2 is outside.
-// The world an engine object belongs to (its frame counter at +0x64).
+// The visibility of a bounds record for the device's view: 2 is outside.
+// The world an engine object belongs to (its frame counter).
 // The glow's static arrays: CArray constructor, its exit-time destructor, the points' exit-time free,
 // the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
 // The sprite records are zero filled.
@@ -156,7 +156,7 @@ int CLightning::Draw(void* device) {
     float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);   // 0.11
     int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
-        // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).
+        // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
         size = low >= size ? low : size;
         size = size >= high ? high : size;

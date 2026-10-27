@@ -130,7 +130,7 @@ void CInterface3D::CloseAll() {
     shiftDown_ = 0;
     rightDown_ = false;
     doubleClick_ = false;
-    // The original deactivates the top window here too, which cannot exist any more.
+    // No top window to deactivate here (the original deactivates it, but none can exist any more).
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;

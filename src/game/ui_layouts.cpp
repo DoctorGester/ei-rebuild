@@ -1,7 +1,7 @@
-// Layout builders of the windows opened from the Esc menu (their slot 25, "Create"): the regions,
+// Layout builders of the windows opened from the Esc menu (their Create virtual): the regions,
 // sprites, surfaces, scroll bar and 3D model each window is made of. See docs/notes/ui.md.
-// The builders call the sprite placement functions and CUiRegion::SetRect
-// through their original addresses: Rebirth patches them for its widescreen layout.
+// The builders call the sprite placement functions and CUiRegion::SetRect through their registered
+// addresses: Rebirth patches them for its widescreen layout.
 #include "app_helpers.h"
 #include "asset_text.h"
 #include "options.h"
@@ -502,8 +502,8 @@ void CDifficultyBox::CreateScreen() {
     UiSurfaceReleaseDC(surface);
     easy_ = 0;
 
-    // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted
-    // by +0xCC, as the button handler does).
+    // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
+    // the sprite's U offset, as the button handler does).
     int boxLeft = 400 - half;
     int boxRight = 0x1A5 - half;
     AddSprite(0)->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
@@ -557,7 +557,7 @@ void CCreditsScreen::CreateScreen() {
     TheCursor()->ShowImage(0);
     app::PlayMovies(mfc::operator+(name, "fin"), true, false, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
-    // (As the original: the field's address goes in as uiParam, so it is never written; then font
+    // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
     gameapi::SystemParametersInfoA(0x4A, static_cast<UINT>(reinterpret_cast<std::uintptr_t>(&fontSmoothing_)), nullptr,
                                    0);   // SPI_GETFONTSMOOTHING

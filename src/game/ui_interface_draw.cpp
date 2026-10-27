@@ -138,7 +138,7 @@ void CInterface3D::DrawOverlays() {
         stackEnd_[-1]->Redraw();       // its surfaces blit themselves
         stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
     }
-    // (The original calls an empty function on the fade here.)
+    // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface_) statusSurface_->Blit();
 
     if (backdropMode_ == 1) {

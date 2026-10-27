@@ -142,9 +142,8 @@ EI_REWRITTEN(0x005EDD80, CItemScreen::CreateBase);
 // --- The item screens' destructor bodies -----------------------------------
 
 namespace {
-// A cache's objects released (slot 4), in key order, then its map destroyed: the nodes erased
-// (a loop over the left spine, or a call on the root), the
-// header back to the pool.
+// A cache's objects released (Release), in key order, then its map destroyed: the nodes erased (a loop
+// over the left spine, or a call on the root), the header back to the pool.
 void DestroyCache(ItemObjectCache& cache) {
     ReleaseCachedObjects(&cache);
     cache.map.Destroy();
@@ -171,8 +170,8 @@ EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);   // the input side's
 
 // --- Screen 9's destructor ------------------------------------------
 
-// The figure names (vector<CString> at +0x1AC): the strings, then the storage through STLport's
-// node allocator; then the item screen's.
+// The figure names (vector<CString>): the strings, then the storage through STLport's node allocator;
+// then the item screen's.
 CExchangeScreen::~CExchangeScreen() {
     for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) at->~CString();
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
@@ -221,7 +220,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     CItem* moved = AddItemAt(to, item, whole, merge);
     RemoveItemAt(from, item, whole);
     if (static_cast<std::uint8_t>(turning)) {
-        ItemTurn*& slot = ItemTurnOf(moved);   // a null result faults here, as in the original
+        ItemTurn*& slot = ItemTurnOf(moved);// a null result faults here, like the original
         if (!slot) {
             auto* turn = new ItemTurn();
             turn->angle = 0.0f;

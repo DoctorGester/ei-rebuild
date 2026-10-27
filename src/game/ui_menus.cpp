@@ -357,7 +357,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 
 void CUiScrollbar::Update() {
     if (state_ == 2 || state_ == 3) {
-        // The container's FrameTime does not use the window; the original calls it the same way.
+        // The container's FrameTime does not use the window.
         double step = reinterpret_cast<CUiContainer*>(this)->FrameTime() * speed_ * 16.0f;
         if (state_ == 2) step = -step;
         accumulated_ = static_cast<float>(step + accumulated_);
@@ -380,7 +380,7 @@ void CUiScrollbar::Update() {
             rest = accumulated_ + 1.0;
             --steps;
             accumulated_ = static_cast<float>(rest);
-        } while (rest <= -1.0f);   // ends on a NaN (the original's did not)
+        } while (rest <= -1.0f);// ends on a NaN (the original's did not)
     }
     if (steps != 0) SetPosition(position_ + steps);
 }
