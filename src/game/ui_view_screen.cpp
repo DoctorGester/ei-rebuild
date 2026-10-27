@@ -22,7 +22,7 @@
 
 namespace {
 
-// The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
+// The orders' unit list (CArray<CUnit*>).
 void* OrderUnitsVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }
 // CDWordArray's vtable.
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }
@@ -33,8 +33,8 @@ constexpr int kCursorNormal = 0;
 constexpr int kCursorCtrl = 1;
 constexpr int kAttackHow = 6;
 
-// The view's turn: 225 degrees (pi 00741F30 * 1/180 0073BA30 * 225 00741F48, formed at run time
-// as the original's FMULs and stored as float) about x.
+// The view's turn: 225 degrees (pi * 1/180 * 225, formed at run time as the original's FMULs and stored as
+// float) about x.
 float TurnAngle() {
     volatile double pi = 3.141592653589793;
     volatile double perDegree = 1.0 / 180.0;

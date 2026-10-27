@@ -1,6 +1,5 @@
-// The camp's trade panel (the level-up page, vtable 007417A8): its layout, its lists of
-// schools and perks and their drawing. See docs/notes/ui.md ("Camp, global map,
-// hero screens").
+// The camp's trade panel (the level-up page): its layout, its lists of schools and perks and their drawing.
+// See docs/notes/ui.md ("Camp, global map, hero screens").
 #include "item_db_text.h"
 #include "world.h"
 #include "ui_camp.h"
@@ -28,15 +27,14 @@
 int __fastcall SchoolPrice(int /*from*/, int /*to*/);
 namespace {
 
-// The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
-// values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
-// skill record's price (UnitStats::SkillPrice); 00527FF0 (__fastcall) the price of a school from one level to the next.
+// The hero's statistics (UnitStats in the hero record): reset to the base values, whether a skill record can
+// be learned, a skill record's price (UnitStats::SkillPrice), the price of a school from one level to the
+// next.
 
-// The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
-// CString (RET 8), 004E0020 the text of a key (RET 8).
+// The text table (GameClientTexts): whether it has a key, the found text into a CString, the text of a key.
 
 
-// vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
+// vector<TradeRow> pieces (library): the insert that reallocates (recordvec::TradeRowVector's).
 
 
 
@@ -86,7 +84,7 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 
 } // namespace
 
-// --- 00613CF0 / 0062A7C0: a row destroyed ------------------------------------------------------
+// --- A row destroyed ----------------------------------------------------------------------------------
 
 void TradeRow::Destroy() {
     nextKey.~CString();
@@ -113,7 +111,6 @@ TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
 }
 EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 
-// --- 00625880 -----------------------------------------------------------------------------------
 
 void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->HeroRecord()->stats;
@@ -216,7 +213,6 @@ void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
 } // namespace
 EI_REWRITTEN(0x00625880, TradeBuildLists);
 
-// --- 006261A0 -----------------------------------------------------------------------------------
 
 namespace {
 
@@ -314,12 +310,11 @@ void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
 } // namespace
 EI_REWRITTEN(0x006261A0, TradeDrawLists);
 
-// --- 00624F10 -----------------------------------------------------------------------------------
 
 namespace {
-// Vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); 00626F10
-// (__fastcall): fills record +0x150 from the local player's unit records; LocalPlayerData:
-// the local player's data (+0x34 the number of unit records).
+// Vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); the record filler
+// (__fastcall) fills a record from the local player's unit records; LocalPlayerData: the local player's data
+// (its member holds the number of unit records).
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 
 int PartyRecordCount() { return LocalPlayerData()->members_.size; }
@@ -383,7 +378,7 @@ void CTradePanel::Build() {
         table->CTextManager::GetString("perks_av", &text);
         texts_.SetAtGrow(texts_.size, text);
 
-        // One statistics record per party member (inlined in the original; 00625430's body).
+        // One statistics record per party member (inlined in the original).
         ResetRecords();
         heldRegion_ = -1;
         holdTime_ = 0.0f;
@@ -394,11 +389,11 @@ void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
 } // namespace
 EI_REWRITTEN(0x00624F10, TradeBuild);
 
-// --- 00625430: the records again ----------------------------------------------------------------
+// --- The records again --------------------------------------------------------------------------------
 
 void CTradePanel::ResetRecords() {
-    // The vector emptied first (the records hold no resources). The original pushes uninitialised
-    // stack bytes; 00626F10 writes all but +0x2B and +0x39..+0x3B. Ours pushes zeros.
+    // The vector emptied first (the records hold no resources). The original pushes uninitialised stack bytes;
+    // its record filler writes all but a few bytes. Ours pushes zeros.
     records_.Finish() = records_.Start();
     const TradeRecord blank{};
     for (int i = 0; i < PartyRecordCount(); ++i) {
@@ -412,7 +407,7 @@ void __fastcall TradeResetRecords(CTradePanel* self) { self->ResetRecords(); }
 } // namespace
 EI_REWRITTEN(0x00625430, TradeResetRecords);
 
-// --- 00626F10: the record from the hero ---------------------------------------------------------
+// --- The record from the hero ------------------------------------------------------------------------
 
 namespace {
 
@@ -440,7 +435,7 @@ void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord();
 } // namespace
 EI_REWRITTEN(0x00626F10, TradeSnapshotRecord);
 
-// --- 00626FA0: the hero's statistics back from the record ---------------------------------------
+// --- The hero's statistics back from the record -------------------------------------------------------
 
 void CTradePanel::RestoreRecord() {
     if (recordIndex_ < 0) return;
@@ -470,7 +465,7 @@ void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
 } // namespace
 EI_REWRITTEN(0x00626FA0, TradeRestoreRecord);
 
-// --- 006255A0 / 00625860: settling and choosing the hero --------------------------------------------
+// --- Settling and choosing the hero ------------------------------------------------------------------
 
 void CTradePanel::Settle(int keep, int all) {
     bool keepIt = static_cast<std::uint8_t>(keep) != 0;
@@ -504,7 +499,7 @@ void CTradePanel::SelectHero(int index) {
 }
 EI_REWRITTEN(0x00625860, CTradePanel::SelectHero);
 
-// --- 00626090: a price as text -------------------------------------------------------------------
+// --- A price as text ----------------------------------------------------------------------------------
 
 void CTradePanel::FormatPrice(int price, mfc::CString* out) {
     constexpr float kThousandth = 0.001f;

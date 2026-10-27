@@ -39,7 +39,7 @@ int TextLength(const char* text) { return reinterpret_cast<const int*>(text)[-2]
 
 } // namespace
 
-// --- 00626D70: the scroll positions clamped ----------------------------------------------------------
+// --- The scroll positions clamped ----------------------------------------------------------------------
 
 void CTradePanel::ClampScroll() {
     if (perkTop_ > static_cast<int>(perks_.size()) - kHeldRows) perkTop_ = static_cast<int>(perks_.size()) - kHeldRows;
@@ -57,7 +57,7 @@ void __fastcall TradeClampScroll(CTradePanel* self) { self->ClampScroll(); }
 } // namespace
 EI_REWRITTEN(0x00626D70, TradeClampScroll);
 
-// --- 00626920: the left button (input slot 2) --------------------------------------------------------
+// --- The left button (input click) ---------------------------------------------------------------------
 
 void CTradePanel::OnLButtonDown(int, int x, int y) {
     int region = RegionAt(x, y);
@@ -110,7 +110,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
 }
 EI_REWRITTEN(0x00626920, CTradePanel::OnLButtonDown);
 
-// --- 00626C30: the left button released (input slot 3) ---------------------------------------------
+// --- The left button released (input release) -----------------------------------------------------------
 
 void CTradePanel::OnLButtonUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
@@ -119,7 +119,7 @@ void CTradePanel::OnLButtonUp(int, int, int) {
 }
 EI_REWRITTEN(0x00626C30, CTradePanel::OnLButtonUp);   // through LeftUp (input slot 3, RET 0xC; 0 in EAX)
 
-// --- 00626C50: the held school / science button (slot 24) -------------------------------------------
+// --- The held school / science button (update) ---------------------------------------------------------
 
 void CTradePanel::UpdateHeld() {
     if (heldRegion_ < 0) return;

@@ -21,7 +21,7 @@ constexpr int kRectSlack = 2;           // pixels added to a scaled rectangle's 
 constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
 } // namespace
 
-// --- 005FDE20 ----------------------------------------------------------------------------------------------
+// --- DrawLine -----------------------------------------------------------------------------------------
 
 int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
     return DrawTextIn(text, rect, font, colour, format, shadow);
@@ -35,7 +35,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
     } else {
         frame = *rect;
-        // WideScreen (005FDE94: XOR ECX,ECX over MOV ECX,[EDI+4]): without the margin.
+        // WideScreen (addon replaces the interface argument by 0): without the margin.
         interface_->CallScaleRectToScreenNoMargin(&frame);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
@@ -65,7 +65,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
 }
 EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 
-// --- 005F8340 ----------------------------------------------------------------------------------------------
+// --- TextExtent ---------------------------------------------------------------------------------------
 
 SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     auto* dc = mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow));
@@ -76,7 +76,7 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     dc->SelectFont(oldFont);
     gameapi::ReleaseDC(app::g_mainWindow, dc->hdc);
     if (widescreen::Active()) {
-        // WideScreen (addon's 80 bytes at 005F83CF): by the 4:3 part's width and the mode's height.
+        // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
         *out = widescreen::TextExtentToLayout(size);
         return out;
     }
