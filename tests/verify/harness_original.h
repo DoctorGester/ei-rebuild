@@ -15,6 +15,18 @@
 #define EI_ORIGINAL(addr) \
     { __asm { push addr } __asm { ret } }
 
+namespace ei {
+
+// game.exe's own copy of an object at its address, for the harness in game.exe's runs (--no-hooks, EI_VECTORS=1): there
+// the game uses its copy and our named global is never touched. Not in the image (nothing of game.exe is there).
+// named_data.py lets a literal through only as this call's argument, and only in tests/.
+template <typename T>
+T& OriginalGameData(std::uintptr_t address) {
+    return *reinterpret_cast<T*>(address);
+}
+
+} // namespace ei
+
 namespace ei::verify {
 
 // game.exe's function at `address` as F (a __thiscall member as `R(__thiscall*)(T*, ...)`). game.exe's runs only.

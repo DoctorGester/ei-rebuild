@@ -123,7 +123,7 @@ target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
 set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
                             OBJECT_DEPENDS ${EI_IMAGE_DATA})
 if(EI_HARNESS)
-    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
+    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).
     file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
     target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)

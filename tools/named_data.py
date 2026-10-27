@@ -785,7 +785,7 @@ def check(img, update, img_path):
         for m in LITERAL.finditer(code):
             a = int(m.group(1), 16)
             d = inside(a)
-            # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
+            # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (tests/verify/harness_original.h).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
             if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
                 line = raw.count('\n', 0, m.start()) + 1

@@ -5,6 +5,8 @@
 // which is what game.exe's run (golden recording) has at the window's +0, as the digest names the AI modes
 // (harness_digest.cpp, ModeKinds). Verify build only.
 
+#include "harness_original.h"
+
 #include <cstdint>
 
 namespace ei::verify {

@@ -1,5 +1,6 @@
 // The "netstate" step: the sessions' state as console lines (harness_pair.h, SV5d4).
 #include "harness_pair.h"
+#include "harness_original.h"
 
 #include "../../src/game/game_data.h"
 #include "../../src/game/net_classes.h"

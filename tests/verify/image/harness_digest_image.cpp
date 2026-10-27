@@ -1,0 +1,68 @@
+// The digest's reader of the image's objects (harness_digest_read.h): the reading code over our classes. The image's
+// side of the harness only (tests/verify/image): run_all's reference key leaves it out.
+#include "../harness_digest_read.h"
+#include "../harness_heap.h"
+
+#include "game/ai_motion.h"
+#include "game/combat.h"
+#include "game/game_data.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/party.h"
+#include "game/player_manager.h"
+#include "game/player_messages.h"
+#include "game/random.h"
+#include "game/script.h"
+#include "game/spell.h"
+#include "game/terrain.h"
+#include "game/terrain_sector.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
+#include "game/world_effect.h"
+#include "lib/crt.h"
+
+#include <typeinfo>
+
+namespace ei::verify::digest::image_side {
+
+namespace {
+
+CWorldClient* ClientWorld() { return TheClientWorld(); }
+
+// The generators: ours (named globals, C18l).
+void ReadRandom(Builder& b) {
+    const IsaacRandom& r = IsaacRandom::Global();
+    b.Unsigned("isaac.seeded", r.seeded_);
+    b.Unsigned("isaac.count", r.count_);
+    b.Bits("isaac.a", r.a_);
+    b.Bits("isaac.b", r.b_);
+    b.Bits("isaac.c", r.c_);
+    b.Bits("isaac.results", HashWords(r.results_, 256));
+    b.Bits("isaac.memory", HashWords(r.memory_, 256));
+    b.Bits("crt.rand", libcrt::RandState());
+}
+
+// An AI mode's id: its kind's (ModeKindId, by GetType: the kinds' order with Follow's 10 last), else its table's
+// address (none: 0).
+std::uint32_t ModeId(AIMode* mode) {
+    if (!mode) return 0;
+    const int type = mode->GetType();
+    if (type >= kModeGuard && type <= kModeTamed) return ModeKindId(static_cast<std::size_t>(type));
+    if (type == kModeFollow) return ModeKindId(9);
+    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(*reinterpret_cast<const void* const*>(mode)));
+}
+
+std::uint32_t MissileVtable(const CSpellEffect* e) {
+    std::uint32_t vtable;
+    std::memcpy(&vtable, static_cast<const void*>(e), 4);
+    return static_cast<std::uint32_t>(ei::OriginalAddress(vtable));
+}
+
+bool IsSpellEffect(const CSpellEffect* e) { return typeid(*e) == typeid(CSpellEffect); }
+
+} // namespace
+
+#include "../harness_digest_read.inc"
+
+} // namespace ei::verify::digest::image_side

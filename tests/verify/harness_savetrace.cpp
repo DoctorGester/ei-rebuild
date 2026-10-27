@@ -1,5 +1,6 @@
 // The save trace (harness_savetrace.h; ticket SV7a).
 #include "harness_savetrace.h"
+#include "harness_original.h"
 
 #include "../../src/game/core_streams.h"
 #include "../../src/hook/log.h"

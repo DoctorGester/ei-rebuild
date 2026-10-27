@@ -5,6 +5,7 @@
 #include <iphlpapi.h>
 
 #include "harness_net.h"
+#include "harness_original.h"
 #include "harness_pair.h"
 
 #include "../../src/hook/log.h"
