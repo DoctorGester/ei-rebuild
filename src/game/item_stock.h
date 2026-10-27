@@ -52,8 +52,7 @@ constexpr int kSpellRecipeSize = 0x34;
 
 using StockStringVector = stlp::vector<stlp::string>;
 
-// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector): the spell database's
-// list record.
+// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector): the spell database's list record.
 using SpellRecipe = itemdb::SpellListRecord;
 static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
 
@@ -154,13 +153,12 @@ struct ItemStock {
     // `out`. The counts are not used.
     void GenerateScrolls(int minCount, int maxCount, StockList* out);
 
-    // Up to a random count in [minCount, maxCount] of the prototypes (all of
-    // them when there are not more; otherwise the vector is shuffled in place and its first ones
-    // taken), each built as an item into `out`: wands are skipped; a prototype with a material
-    // class gets a material of that class with enough units left (a quality-weighted draw, else a
-    // random one; none at all cancels the item); weapons and armors (kind 0 / 1, 3 also) get a
-    // random spell half the time when the material allows magic; potions (category 8) come in
-    // stacks of 20..49.
+    // Up to a random count in [minCount, maxCount] of the prototypes (all of them when there are not more;
+    // otherwise the vector is shuffled in place and its first ones taken), each built as an item into `out`:
+    // wands are skipped; a prototype with a material class gets a material of that class with enough units
+    // left (a quality-weighted draw, else a random one; none at all cancels the item); weapons and armors
+    // (kind 0 / 1, 3 also) get a random spell half the time when the material allows magic; potions (category
+    // 8) come in stacks of 20..49.
     void GenerateItems(StockPrototypeVector* prototypes, int minCount, int maxCount, StockList* out, int kind);
 
     // A random count in [minCount, maxCount] of the material entries (the

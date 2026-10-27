@@ -72,8 +72,7 @@ using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullp
 using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, ReleaseOnly>>;
 using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 
-// The script's areas (each area's parts array: its base vtable back, the storage freed) and
-// definitions.
+// The script's areas (each area's parts array: its base vtable back, the storage freed) and definitions.
 inline void DestroyArea(ScriptArea* p) {
     mfc::impl::ArrayHeader<mfc::impl::ScriptAreaClass>::Destruct(reinterpret_cast<mfc::CArray<Bytes<1>>*>(&p->parts));
 }
@@ -81,9 +80,8 @@ inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p)
 using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea>>;
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
 
-// CScript's arrays' vtables.
-// +0x00: the compiler's vtable. The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
-// recordarrays::DefinitionArrayClass.
+// CScript's arrays' vtables. +0x00: the compiler's vtable. The areas (+0x194) are
+// mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C) recordarrays::DefinitionArrayClass.
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
 

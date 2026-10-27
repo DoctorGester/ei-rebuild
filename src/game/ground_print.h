@@ -1,12 +1,11 @@
 #pragma once
 
-// Ground prints: footprints, blood and scorch marks lying on the ground. The
-// client world keeps them by value in three lists (blood, footprints,
-// scorch marks), ticks them (a print
-// whose life reaches 0 is erased), draws them (Draw) and saves / loads them. A print
-// is a textured quad around its point, rotated by `angle_`, its texture tile picked by the uv
-// offset and scale and turned by `uvAngle_`; Draw lays it on the ground once (the decal projector)
-// and draws it with an alpha that fades over the print's life. See docs/notes/models.md.
+// Ground prints: footprints, blood and scorch marks lying on the ground. The client world keeps them by value
+// in three lists (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased),
+// draws them (Draw) and saves / loads them. A print is a textured quad around its point, rotated by `angle_`,
+// its texture tile picked by the uv offset and scale and turned by `uvAngle_`; Draw lays it on the ground
+// once (the decal projector) and draws it with an alpha that fades over the print's life. See
+// docs/notes/models.md.
 
 #include "lib/containers.h"
 #include "lib/stlp.h"
@@ -38,10 +37,9 @@ public:
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
-    // The copy constructor the lists' node copies start with (the three
-    // classes' then copy their own members): every member copied, the texture
-    // name into a block of its own and the texture counted (NamedTexture::Copy), the three geometry
-    // arrays' headers as they are (the copy shares their blocks).
+    // The copy constructor the lists' node copies start with (the three classes' then copy their own
+    // members): every member copied, the texture name into a block of its own and the texture counted
+    // (NamedTexture::Copy), the three geometry arrays' headers as they are (the copy shares their blocks).
     GroundPrint(const GroundPrint& other);
     GroundPrint& operator=(const GroundPrint&) = delete;
 
@@ -51,16 +49,14 @@ public:
     // Reads what Save writes (the texture looked up again by its name);
     // the geometry is made again (built_ cleared).
     virtual void Load(CStream* stream);
-    // Writes the position, half sizes, growth, life (2 bytes), texture name
-    // (with its terminator), uv offset and scale, both angles, lit (1 byte), alpha scale,
-    // lifetime and colour.
+    // Writes the position, half sizes, growth, life (2 bytes), texture name (with its terminator), uv offset
+    // and scale, both angles, lit (1 byte), alpha scale, lifetime and colour.
     virtual void Save(CStream* stream);
 
-    // Draws the print when visible: the first time, lays the quad on the ground (z from
-    // the client world's ground and platforms; the projector clips it to the terrain and
-    // the platforms under it) and turns its texture coordinates; then the flat draw with
-    // the colour's alpha from alpha_ and the lit flag as the specular alpha. Returns 1 when not
-    // visible, else the draw's result.
+    // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
+    // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
+    // texture coordinates; then the flat draw with the colour's alpha from alpha_ and the lit flag as the
+    // specular alpha. Returns 1 when not visible, else the draw's result.
     int Draw();
     // The destructor (only reached from the constructors' unwinding): the arrays freed,
     // the texture released, the name freed. The client world's lists have three more copies of it.
@@ -106,9 +102,8 @@ static_assert(sizeof(GroundPrint) == 0x8C);
 
 class Footprint : public GroundPrint {
 public:
-    // A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
-    // across, bits 3..15 down; bit 16 the left foot's half); `kind` -1 "footprints", else
-    // "footprints<kind + 1>" (a blood print's kind).
+    // A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits across, bits 3..15 down; bit 16
+    // the left foot's half); `kind` -1 "footprints", else "footprints<kind + 1>" (a blood print's kind).
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
     Footprint(const Footprint& other);
@@ -121,8 +116,7 @@ public:
 };
 static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 
-// A blood print. Spreads for half its life (at most 45 ticks),
-// turning. 0x9C bytes.
+// A blood print. Spreads for half its life (at most 45 ticks), turning. 0x9C bytes.
 class BloodPrint : public GroundPrint {
 public:
     // A blood print ("bloodprints") of `halfSize` growing to `fullSize` in

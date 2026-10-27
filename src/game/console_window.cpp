@@ -1,5 +1,4 @@
-// The console window's text and placement. See
-// docs/notes/console.md.
+// The console window's text and placement. See docs/notes/console.md.
 #include "console.h"
 #include "ui.h"
 

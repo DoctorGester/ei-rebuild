@@ -1,10 +1,9 @@
 #pragma once
 
-// The camera (CCamera, class id 0x43, a real virtual class), the settings record it
-// reads, its saved views, shakes and recorded paths, and the engine globals and containers its code uses.
-// Update, view placement, focus, zoom, saved views, shakes, recorded-path playback.
-// Aiming, turning upright, keeping above objects. camera_object.cpp: the
-// object's construction, vtable slots, camera files and saving. Names are provisional.
+// The camera (CCamera, class id 0x43, a real virtual class), the settings record it reads, its saved views,
+// shakes and recorded paths, and the engine globals and containers its code uses. Update, view placement,
+// focus, zoom, saved views, shakes, recorded-path playback. Aiming, turning upright, keeping above objects.
+// camera_object.cpp: the object's construction, vtable slots, camera files and saving. Names are provisional.
 
 #include "angles.h"
 #include "core_streams.h"
@@ -115,17 +114,11 @@ static_assert(sizeof(ViewStack) == 0x28);
 void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
-// The camera ("CCamera"). Flags (+0x08): 0x8 following the target, 0x10 a camera
-// file is open, 0x20 playing a camera file, 0x40 free (scripted) placement, 0x100 focus kept
-// inside a circle, 0x200 the alternate limits.
+// The camera ("CCamera"). Flags (+0x08): 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
+// camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.
 class CCamera final : public CTransformObject {
 public:
-    // Construct. Identity rotations, eight saved views (distance 30, pitch 45
-    // degrees), the shake list and view stack, no camera file, the focus at (10, 10, 2), the
-    // response rates, no target.
     CCamera();
-    // The deleting destructor. No target, the path keys freed, the view stack and shake list
-    // destroyed.
     ~CCamera() override;
 
     int Create() override;
@@ -150,8 +143,7 @@ public:
     static constexpr std::uint32_t kBounded = 0x100;
     static constexpr std::uint32_t kAlternate = 0x200;
 
-    // Per-frame update: listener, target tracking, pan / turn / tilt / zoom motion,
-    // limits, ApplyView, shake.
+    // Per-frame update: listener, target tracking, pan / turn / tilt / zoom motion, limits, ApplyView, shake.
     void Update(float dt);
     // Places the camera at `distance_` from the focus along the view rotation tilted by
     // the pitch, then lifts it over objects and re-aims at the focus when it was lifted.
@@ -163,8 +155,7 @@ public:
     void StopMotion();
     // Zoom by 1.05^steps, clamped to the current limits.
     void ZoomBy(float steps);
-    // Saved views 0-7 (false for other slots). Restore sets distance and
-    // pitch only.
+    // Saved views 0-7 (false for other slots). Restore sets distance and pitch only.
     bool SaveView(unsigned slot);
     bool RestoreView(unsigned slot);
     void SetDistancePitch(const CameraView* view);
@@ -178,8 +169,7 @@ public:
     void SetBounds(const Vector3* center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3* source, float duration, float amplitude, float decay);
-    // Recorded camera path: jump to the first key / interpolate at `time`
-    // (0 when finished or not playing).
+    // Recorded camera path: jump to the first key / interpolate at `time` (0 when finished or not playing).
     int PlaybackStart();
     int PlaybackStep(float time);
 
@@ -272,8 +262,7 @@ static_assert(offsetof(CCamera, keyIndex_) == 0x304);
 using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
-// The point the camera is placed by: its own position when playing a
-// file or placed freely, else the focus.
+// The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self);
 
 // Names for the game's globals and constants the camera code uses. The floating-point constants

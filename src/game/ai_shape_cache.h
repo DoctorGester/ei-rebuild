@@ -39,8 +39,6 @@ public:
     // The static initialiser calls it on the global; returns this. An empty map with the first prime number of
     // buckets from 100 up (193), then the vtable (constructed in place).
     UnitShapeCache* Construct();
-    // Registered with atexit by the initialiser. Every node's shape released as its owner and its handle's
-    // reference dropped, the nodes and the buckets freed.
     void Destruct();
 
     std::uint32_t unused_04;
@@ -51,13 +49,10 @@ static_assert(offsetof(UnitShapeCache, shapes) == 8 && sizeof(UnitShapeCache) ==
 
 // The map's pair, pair<const handle, RefPtr> (ai_movement.cpp; compiler-written).
 struct ShapePair : UnitShapeCache::Map::Pair {
-    // Constructed from a handle (copied, its reference added) and a RefPtr
-    // (shared: RefPtr::Share). Returns this.
     ShapePair* Construct(const ShapeCacheHandle* from, const RefPtr* shared);
 };
 static_assert(sizeof(ShapePair) == 0x14);
-// Destroyed, the value released as its owner (RefPtr::Destroy), then the handle's
-// reference dropped.
+// Destroyed, the value released as its owner (RefPtr::Destroy), then the handle's reference dropped.
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 
 // The cache: built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).

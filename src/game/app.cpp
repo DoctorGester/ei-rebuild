@@ -318,10 +318,9 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 
 } // namespace
 
-// Formats the error (wvsprintfA, 1 KB), shows it in a message box, hands it to the error hook and
-// exits the game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport
-// replaces the message box with a line in addon.log (not reproduced) and removes the exit, so the
-// game carries on. Returns 0.
+// Formats the error (wvsprintfA, 1 KB), shows it in a message box, hands it to the error hook and exits the
+// game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
+// with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
 } // namespace app
 
 int __cdecl game::FatalError(const char* format, ...) {

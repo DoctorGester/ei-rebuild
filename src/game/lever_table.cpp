@@ -1,9 +1,8 @@
-// The global lever table that levers look up (by the lever's +0xA4; loaded from WinMain by
-// the Rebirth-patched loader): an STLport vector of 0x2C-byte records (CStrings at +0,
-// +0x20, +0x24, +0x28) and a hash map whose 0x14-byte nodes hold a vector at +4. Its constructor
-// runs from a static initializer, before the hooks are installed; the destructor
-// (registered with atexit through a thunk) is defined here. The STL members
-// it inlines are library code. See docs/notes/app.md.
+// The global lever table that levers look up (by the lever's +0xA4; loaded from WinMain by the
+// Rebirth-patched loader): an STLport vector of 0x2C-byte records (CStrings at +0, +0x20, +0x24, +0x28) and a
+// hash map whose 0x14-byte nodes hold a vector at +4. Its constructor runs from a static initializer, before
+// the hooks are installed; the destructor (registered with atexit through a thunk) is defined here. The STL
+// members it inlines are library code. See docs/notes/app.md.
 #include "lever.h"
 
 #include "ei/hook.h"
@@ -37,8 +36,7 @@ static_assert(sizeof(Table) == 0x20);
 
 constexpr std::size_t kRecordSize = 0x2C;
 
-// The node allocator's deallocate (thiscall on the count's allocator proxy); the bucket
-// storage's deallocate.
+// The node allocator's deallocate (thiscall on the count's allocator proxy); the bucket storage's deallocate.
 void BucketsDeallocate(HashNode** buckets, std::size_t n) { stlp::deallocate(buckets, n * sizeof(HashNode*)); }
 
 void DestroyString(std::uint8_t* p) { reinterpret_cast<mfc::CString*>(p)->~CString(); }

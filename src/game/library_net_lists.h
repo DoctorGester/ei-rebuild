@@ -22,10 +22,9 @@ namespace netlists {
 using SentRecord = net::SentItem;
 using SentItems = stlp::list<SentRecord>;
 
-// _M_create_node's copy: the action and version, the entry with one more reference (its
-// 16-bit count; a null entry stays null). Destroyed with the entry's release. insert(pos)
-// copies a default item: the game leaves action and version as its stack had them (every caller
-// overwrites them); ours are zero.
+// _M_create_node's copy: the action and version, the entry with one more reference (its 16-bit count; a null
+// entry stays null). Destroyed with the entry's release. insert(pos) copies a default item: the game leaves
+// action and version as its stack had them (every caller overwrites them); ours are zero.
 struct SentRecordElement {
     static void Copy(SentRecord* to, const SentRecord& from) {
         to->action = from.action;
@@ -66,9 +65,8 @@ struct PacketRecordElement {
 using FreedIds = net::FreedIds;
 using FreedBatches = stlp::list<FreedIds>;
 
-// _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none
-// when empty). Destroyed with its storage back to the pool, by its capacity. insert(pos)
-// copies an empty vector.
+// _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none when empty). Destroyed
+// with its storage back to the pool, by its capacity. insert(pos) copies an empty vector.
 struct FreedIdsElement {
     static void Copy(FreedIds* to, const FreedIds& from) {
         to->CopyConstruct<stlp::PlainElement<net::FreedId>>(from);

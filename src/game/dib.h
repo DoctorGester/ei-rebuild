@@ -28,9 +28,8 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    // A new header for `width` x `height` pixels of `bitCount` bits, without a
-    // colour table and without bits (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three
-    // channel masks after the header.
+    // A new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
+    // (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three channel masks after the header.
     void Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
     void Empty();
     // The header's width and height, 0 x 0 without a header. Returns `out`.
@@ -40,10 +39,9 @@ public:
     // padding, while `imageSize` (what Write writes) counts rows padded to four bytes. Returns
     // `bits` (unchanged without a header).
     std::uint8_t* AllocateBits();
-    // The bitmap emptied, then the file header, the info header
-    // with what follows it up to the bits (masks or colours), the bits; the colour count and the
-    // palette. A short or non-"BM" file, or an MFC exception from the reads (inside TRY / CATCH): a
-    // message box and 0. Returns 1.
+    // The bitmap emptied, then the file header, the info header with what follows it up to the bits (masks or
+    // colours), the bits; the colour count and the palette. A short or non-"BM" file, or an MFC exception
+    // from the reads (inside TRY / CATCH): a message box and 0. Returns 1.
     int Read(mfc::CFile* file);
     // The file header, the info header with the masks, `imageSize`
     // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.

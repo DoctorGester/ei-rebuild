@@ -13,9 +13,8 @@ struct CDXSurface;
 extern std::uint8_t g_loadingMovieOff;
 
 void __fastcall ShowLoadingMovie(int progress);
-// Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space
-// end it, Space skips frames, the screen cleared first, a loading screen step first, unused).
-// Returns 0 when Esc ended it.
+// Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space end it, Space skips
+// frames, the screen cleared first, a loading screen step first, unused). Returns 0 when Esc ended it.
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
 // Closes the loading screen's movie once loading is over (game start and zone load):
@@ -45,8 +44,6 @@ struct CBinkVideo {
     // Closes the movie when one is open, lets the
     // holder go, takes the cursor's background from the primary surface again and shows the cursor.
     void Close();
-    // The destructor: the same steps (the holder member's own destructor then finds it
-    // gone).
     void Destruct();
 
     CDXSurface* holder;

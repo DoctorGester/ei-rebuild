@@ -1,13 +1,11 @@
 #pragma once
 
-// The tagged-chunk serialisation archive the databases of database.res are stored
-// in. Opened by Open. Reading and writing go through the same
-// Serialize functions; loading_ selects the direction. Names provisional; see
-// docs/notes/core.md.
-// A chunk's content is a run of children, each an id byte, a length byte (len << 1) or, when bit 0
-// is set, a dword (len << 1 | 1), and len bytes. A stream holding an archive has three top-level
-// chunks of the same form: 0 the index (per object: its class id and the key its record is stored
-// under), 1 the data of the archive's root chunk, 2 the object records.
+// The tagged-chunk serialisation archive the databases of database.res are stored in. Opened by Open. Reading
+// and writing go through the same Serialize functions; loading_ selects the direction. Names provisional; see
+// docs/notes/core.md. A chunk's content is a run of children, each an id byte, a length byte (len << 1) or,
+// when bit 0 is set, a dword (len << 1 | 1), and len bytes. A stream holding an archive has three top-level
+// chunks of the same form: 0 the index (per object: its class id and the key its record is stored under), 1
+// the data of the archive's root chunk, 2 the object records.
 
 #include "core_streams.h"
 
@@ -92,8 +90,7 @@ public:
     Ref* Current() { return &stack_.End()->prev->data; }
     void PushChunk() { Stack::InsertDefault<RefElement>(stack_.End()); }
     std::uint8_t* Data() { return dataStream_.data_; }
-    // Drops the current chunk (the stack's erase(--end()), STLport), as LeaveChunk does
-    // after a load.
+    // Drops the current chunk (the stack's erase(--end()), STLport), as LeaveChunk does after a load.
     void PopChunk();
 
     bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);
@@ -122,20 +119,18 @@ public:
     // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
     void Close(CStream* stream);
 
-    // Database arrays. Each is a vector of records serialised as chunk `id` holding
-    // one chunk 1 per record (`occurrence` selects the record); loading replaces the vector's
-    // contents. The third argument (the callers pass the database file's data) is unused but
-    // popped: RET 0xC.
+    // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
+    // (`occurrence` selects the record); loading replaces the vector's contents. The third argument (the
+    // callers pass the database file's data) is unused but popped: RET 0xC.
     void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);      // vector<PrintRecord>
     void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);     // vector<PrintRecord2>
     void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);
     void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);
     void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);
 
-    // The party manager's chunks. The third argument is unused but
-    // popped. Loading empties the container first and takes one record per chunk 1.
-    // Hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
-    // (CParty::ArchiveParty); loading inserts each key (operator[]).
+    // The party manager's chunks. The third argument is unused but popped. Loading empties the container
+    // first and takes one record per chunk 1. Hash_map<int, CParty>: per party a chunk 1 (field 1: the key)
+    // and a chunk 2 (CParty::ArchiveParty); loading inserts each key (operator[]).
     void SerializeParties(int id, gamehash::PartyTable* parties, void* unused);
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
@@ -153,21 +148,18 @@ public:
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
 
-    // The item database's vectors (item_db_load.cpp; the third
-    // argument unused): quick items (0x8C bytes), loot (0x7C), quest
-    // items (0x78), one chunk 1 per record.
+    // The item database's vectors (item_db_load.cpp; the third argument unused): quick items (0x8C bytes),
+    // loot (0x7C), quest items (0x78), one chunk 1 per record.
     void SerializeQuickItems(int id, void* records, void* unused);
     void SerializeLoot(int id, void* records, void* unused);
     void SerializeQuestItems(int id, void* records, void* unused);
-    // The same for materials (0x50), weapons (0xB4) and armor
-    // (0xC8).
+    // The same for materials (0x50), weapons (0xB4) and armor (0xC8).
     void SerializeMaterials(int id, void* records, void* unused);
     void SerializeWeapons(int id, void* records, void* unused);
     void SerializeArmors(int id, void* records, void* unused);
 
-    // The spell database's vectors (item_db_load.cpp; the third argument unused),
-    // as the item database's: the spells (0x84), the modifiers (0x24) and
-    // the three lists of 0x34-byte records.
+    // The spell database's vectors (item_db_load.cpp; the third argument unused), as the item database's: the
+    // spells (0x84), the modifiers (0x24) and the three lists of 0x34-byte records.
     void SerializeSpells(int id, void* records, void* unused);
     void SerializeSpellModifiers(int id, void* records, void* unused);
     void SerializeSpellLists(int id, void* records, void* unused);
@@ -181,9 +173,8 @@ public:
     void SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void* unused);
     void SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void* unused);
 
-    // The skill database's vectors (unit_db.cpp; the third argument unused): one
-    // chunk 1 per record (its Serialize); loading destroys the records and
-    // resizes the vector to the record chunks first. The skills,
+    // The skill database's vectors (unit_db.cpp; the third argument unused): one chunk 1 per record (its
+    // Serialize); loading destroys the records and resizes the vector to the record chunks first. The skills,
     // the skill levels.
     void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
     void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
@@ -199,8 +190,6 @@ public:
     // A vector<CString> as chunk `id` (InlineStrings; unit_db.cpp).
     void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
 
-    // The constructor (also inlined elsewhere): two empty memory streams, the
-    // containers, version 1.
     ChunkArchive();
     ~ChunkArchive();
     ChunkArchive(const ChunkArchive&) = delete;

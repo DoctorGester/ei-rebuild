@@ -15,11 +15,10 @@ using BOOL = int;
 struct FigureAnimation;
 class CManagerContext;
 
-// Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
-// type, registers them by id, saves and loads the registered ones, and keeps the objects released
-// to it as spares of their type for reuse. Name from the game's own error strings
-// ("CBaseManager::RegisterInstant"). 25 slots (0-12 as CEngineObject's).
-// base_manager.cpp, base_manager_core.cpp.
+// Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by type,
+// registers them by id, saves and loads the registered ones, and keeps the objects released to it as spares
+// of their type for reuse. Name from the game's own error strings ("CBaseManager::RegisterInstant"). 25 slots
+// (0-12 as CEngineObject's). base_manager.cpp, base_manager_core.cpp.
 class CBaseManager : public CEngineObject {
 public:
     //. The animation `name` (case-insensitive) in the
@@ -39,8 +38,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    // Keeps the context and creates (slot 2); a failed create clears the context
-    // again. Returns 1 / 0.
+    // Keeps the context and creates (slot 2); a failed create clears the context again. Returns 1 / 0.
     virtual BOOL Init(CManagerContext* context);
     // 14: a new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
@@ -55,14 +53,12 @@ public:
     virtual bool CloseFile(void* data);
     virtual BOOL HasFile(const char* name);
     virtual void FreeAllFiles();
-    // A spare object of `type`, or a new one (slot 14), registered under `id` or,
-    // for -1, under a free id; the manager becomes its owner and it is created (slot 2). Null
-    // when slot 14 fails.
+    // A spare object of `type`, or a new one (slot 14), registered under `id` or, for -1, under a free id;
+    // the manager becomes its owner and it is created (slot 2). Null when slot 14 fails.
     virtual CEngineObject* CreateObject(int type, int id);
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
-    // An object without references leaves the manager: unregistered, destroyed
-    // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (its EAX
-    // is not meaningful when nothing is done).
+    // An object without references leaves the manager: unregistered, destroyed (slot 3), without owner, then
+    // kept as a spare. Returns RemoveObject's 0 (its EAX is not meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
 
     // The destructor (slot 0 adds the delete). Destroy (CBaseManager's, slot 3), the containers, the engine object.
@@ -73,15 +69,13 @@ public:
     // The object registered under `id` leaves the registration tables (it stays alive
     // and keeps its id); returns it, or null.
     CEngineObject* Unregister(int id);
-    // Registers an object made elsewhere under a free id and becomes its owner; returns
-    // the id.
+    // Registers an object made elsewhere under a free id and becomes its owner; returns the id.
     int RegisterInstant(CEngineObject* object);
     // Unregisters the object (when registered under its id) and keeps it as a spare of
     // its type with id -1. Returns 0.
     int RemoveObject(CEngineObject* object);
     void FreeSpares();
-    // The registered objects' own data (slots 9 / 10) by id, up to an end
-    // mark.
+    // The registered objects' own data (slots 9 / 10) by id, up to an end mark.
     void LoadObjects(CStream* stream);
     void SaveObjects(CStream* stream);
     // Every object without references gets one and releases it (slot 4), so the ones
@@ -123,9 +117,8 @@ static_assert(offsetof(CBaseManager, lastId_) == 0xA8);
 static_assert(offsetof(CBaseManager, context_) == 0xAC);
 static_assert(sizeof(CBaseManager) == 0xB0);
 
-// Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ +
-// 1); the owner drops it afterwards with `--manager->refCount_` (the inlined
-// destructor). base_manager.cpp.
+// Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
+// owner drops it afterwards with `--manager->refCount_` (the inlined destructor). base_manager.cpp.
 struct ObjectListIterator {
     CBaseManager* manager;
     CBaseManager::ObjectList::Node* position;   // the node Next returns
@@ -151,8 +144,7 @@ public:
     ~CClientSpecificManager() override;
     const char* GetClassName() override;
     int GetClassId() override;               // 0x30
-    // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
-    // failed allocation.
+    // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation.
     CEngineObject* NewObject(int type) override;
 
 };

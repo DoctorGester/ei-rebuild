@@ -1,8 +1,7 @@
-// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map
-// changed: per standing level the cell marks over the rectangle grown by 3 cells, packed
-// as nibbles into the cells, the level's special areas, the second pass, the
-// map border, and with the sector map on (+2) the objects around it are taken out and put back
-// around the region map's update. See ai_map.h and docs/notes/ai.md.
+// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing
+// level the cell marks over the rectangle grown by 3 cells, packed as nibbles into the cells, the level's
+// special areas, the second pass, the map border, and with the sector map on (+2) the objects around it are
+// taken out and put back around the region map's update. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "core_maths.h"
@@ -270,8 +269,7 @@ constexpr int kSteepOffsets[34] = /*007916BC*/ {
     0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
 const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
 
-// The largest climbable step of a climb table: the run of non-negative costs from the middle,
-// less one.
+// The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
 int MaxStep(const ClimbTable& table) {
     int n = 0;
     while (table.data[table.size / 2 + n] > -1) ++n;

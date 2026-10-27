@@ -69,8 +69,7 @@ struct MapRecordArrayClass final
 // ABIs below where game_lists.h's build the element otherwise).
 
 // Engine object pointers: the temporary null; the holder's assignment (the new object gains a reference, the
-// old one
-// released); a virtual release.
+// old one released); a virtual release.
 inline void InitObjectPtr(CEngineObject** p) { *p = nullptr; }
 inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { HeldEngineObject::Of(to)->Assign(*from); }
 // Script object references: the old one released and cleared, then the copy constructor.

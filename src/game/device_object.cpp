@@ -1,9 +1,8 @@
-// The device object itself (CTextureDevice, texture.h): its constructor, its destructor body and the texture format
-// table. IDirect3DDevice7 is called through device.h (the switch-over device answers). The Direct3D device
-// enumeration callback and the depth buffer are gone (config/dead_code.csv). The base class is in
-// See docs/notes/renderer.md (sections 9, 12).
-// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends the game in
-// WinMain.
+// The device object itself (CTextureDevice, texture.h): its constructor, its destructor body and the texture
+// format table. IDirect3DDevice7 is called through device.h (the switch-over device answers). The Direct3D
+// device enumeration callback and the depth buffer are gone (config/dead_code.csv). The base class is in See
+// docs/notes/renderer.md (sections 9, 12). A failed call throws the game's error object (ThrowGameError,
+// dx_errors.h); every such throw ends the game in WinMain.
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -76,11 +75,10 @@ void RecordStageBlocks(CTextureDevice* device) {
     }
 }
 
-// The rest of the constructor in the switch-over: no Direct3D object, device list,
-// depth formats, depth buffer or render target; the IDirect3DDevice7 token in their place (with the
-// HAL device's id). The texture formats come from the switch-over's fixed table, the state blocks
-// are recorded on it (their handles tokens the new renderer's mirror knows), the viewport is the
-// screen's.
+// The rest of the constructor in the switch-over: no Direct3D object, device list, depth formats, depth
+// buffer or render target; the IDirect3DDevice7 token in their place (with the HAL device's id). The texture
+// formats come from the switch-over's fixed table, the state blocks are recorded on it (their handles tokens
+// the new renderer's mirror knows), the viewport is the screen's.
 void ConstructWithoutDirect3D(CTextureDevice* device) {
     device->d3dDevice_ = device::Direct3DDeviceToken();
     device->deviceGuid_ = device::kIidHalDevice;

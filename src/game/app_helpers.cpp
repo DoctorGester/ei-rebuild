@@ -33,9 +33,8 @@ int Scaled(int n) { return gamecrt::rand() * n / 0x7FFF; }
 
 } // namespace
 
-// The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it
-// (looked up on every call), else sectors per cluster x bytes per sector x free clusters.
-// 0 when the call fails.
+// The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it (looked up on
+// every call), else sectors per cluster x bytes per sector x free clusters. 0 when the call fails.
 double __fastcall DiskFreeSpace(const char* path) {
     auto getEx = reinterpret_cast<GetDiskFreeSpaceExFn>(
         gameapi::GetProcAddress(gameapi::GetModuleHandleA(Kernel32Text()), GetDiskFreeSpaceExText()));

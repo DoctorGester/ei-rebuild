@@ -1,7 +1,6 @@
-// The region map's block searches (BlockSearch, ai_map.h): Dijkstra over the 8x8-cell blocks of
-// one size class along the edge words, open records in eight buckets by x & 7 sorted by cost. And
-// the region map's block update, which re-measures the blocks after the AI map changed.
-// See docs/notes/ai.md.
+// The region map's block searches (BlockSearch, ai_map.h): Dijkstra over the 8x8-cell blocks of one size
+// class along the edge words, open records in eight buckets by x & 7 sorted by cost. And the region map's
+// block update, which re-measures the blocks after the AI map changed. See docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "ei/hook.h"

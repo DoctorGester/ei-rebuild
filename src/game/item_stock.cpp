@@ -30,10 +30,9 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether
-// the prototype and material allow a spell (not for kinds 0x11 / 0x12 without a material), with the
-// level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
-// material +0x18).
+// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether the prototype and
+// material allow a spell (not for kinds 0x11 / 0x12 without a material), with the level (prototype +0x44 +
+// material +0x1C, as a float) and the power limit (prototype +0x40 + material +0x18).
 
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
@@ -611,8 +610,7 @@ void ItemStock::SaveLists(CStream* out) {
     for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code);
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
-    // fifth byte
-    // is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
+    // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
     WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
     for (Modifier** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char code[5] = {};

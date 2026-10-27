@@ -17,10 +17,9 @@
 
 #undef GetClassName   // CEngineObject::GetClassName
 
-// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
-// loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2.
-// 0x40 bytes. Also the moved positions the part drawers build. `block` is
-// four rows of lanes, not a matrix (check_cleanup skips the name).
+// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w
+// to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. 0x40 bytes. Also the moved positions the
+// part drawers build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
     float block[4][4];
 };
@@ -146,8 +145,7 @@ public:
     // Clear: names and colour arrays emptied, the buffer descriptor cleared, the drawer let go (released), no
     // flags.
     void Clear();
-    // Lets the old drawer go (released) and takes `drawer` (one more reference,
-    // its mesh_ set).
+    // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
     void SetObject(CObject3D* object);
 
@@ -160,9 +158,8 @@ protected:
     ~CFigureMesh() override;
 
 private:
-    // The constructor's work: the engine object's fields, identity
-    // rotations, no object, empty offset and colour arrays, no bounds (the names are constructed
-    // before it).
+    // The constructor's work: the engine object's fields, identity rotations, no object, empty offset and
+    // colour arrays, no bounds (the names are constructed before it).
     void SetUpFigure();
     // The destructors' shared work: Clear, then the colour and offset arrays freed.
     void TearDownFigure();
@@ -188,8 +185,7 @@ public:
     std::uint32_t flatColour_;
     std::uint32_t flatSpecular_;
     std::uint32_t spareDC_;             // cleared by Create, copied by CopyFrom; nothing reads it
-    // the pose matrix (row-major): UpdateWorld's rotation, its translation row (+0x110) the
-    // moved position.
+    // the pose matrix (row-major): UpdateWorld's rotation, its translation row (+0x110) the moved position.
     Matrix4 poseMatrix_;
     mfc::CString name_;                 // (the scene loader names it after its mesh)
     mfc::CString directory_;            // where its .fig file is (NewFigure empties it)
@@ -205,10 +201,9 @@ public:
     Vector3 boxMin_;
     Vector3 boxMax_;
     float radius_;
-    // the part's box: with boxPivot_ a FootprintPart, copied whole from the
-    // piece's LinkPartHeader (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" /
-    // "EMPTY", 0x800 "EMPTY"; the centre is the piece's place in the figure, the radius the blood's
-    // size.
+    // the part's box: with boxPivot_ a FootprintPart, copied whole from the piece's LinkPartHeader
+    // (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
+    // is the piece's place in the figure, the radius the blood's size.
     ClipBounds bounds_;
     Vector3 boxPivot_;                  // the part's position when it was loaded; cleared with the bounds
     lib::AlignedArray<VertexPacket> vertices_;
@@ -272,8 +267,7 @@ public:
     virtual void MirrorX();
     virtual void MirrorY();
 
-    // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
-    // (one per normal).
+    // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays (one per normal).
     void RefreshBuffers();
 
     lib::AlignedArray<MeshCorner> corners_;

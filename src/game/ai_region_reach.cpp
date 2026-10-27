@@ -598,8 +598,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     // it cannot be set up the cell is taken.
     if (!search->BeginInRectForClass(sizeClass, left, top, right, bottom, xx + left, yy + top)) return true;
     search->ExpandAll();
-    // Suitable when it reaches both the left and the right edge, or else both the top and the
-    // bottom edge.
+    // Suitable when it reaches both the left and the right edge, or else both the top and the bottom edge.
     bool first = false, second = false;
     for (int y = top; y < top + 9; ++y) {
         if (search->CostAt(left, y) < kUnreached) first = true;

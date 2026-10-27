@@ -55,8 +55,7 @@ void ChunkArchive::Ref::Reset() {
 EI_REWRITTEN(0x00409E80, ChunkArchive::Ref::Reset);
 
 // The class registry, zero at the start: built by its static initialiser in the list's order and destroyed by
-// the exit function it registers
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
@@ -315,8 +314,7 @@ bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 EI_REWRITTEN(0x00409EA0, ReadStreamChunk);
 
-// ReadStreamChunk is inlined here; Open inlines all of this for the index and the
-// records.
+// ReadStreamChunk is inlined here; Open inlines all of this for the index and the records.
 bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
     in->Rewind();
     char readId;

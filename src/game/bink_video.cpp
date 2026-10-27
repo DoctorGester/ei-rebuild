@@ -79,8 +79,7 @@ int MovieSound() { return options::TheOptions()->audio_; }
 int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
 
 // The movie's surface holder: null at the start (set by its static initialiser); the exit function that
-// initialiser registers releases it once. docs/notes/standalone.md, "The static initialisers'
-// objects".
+// initialiser registers releases it once. docs/notes/standalone.md, "The static initialisers' objects".
 CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
 std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
 
@@ -113,8 +112,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
     if (!binkHandle) return 0;
     if (BinkWait()(binkHandle) == 0) {
         BinkDoFrame()(binkHandle);
-        // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X
-        // type).
+        // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X type).
         static std::vector<std::uint8_t> frame;
         CopyFrame(binkHandle, &frame);
         render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
@@ -144,8 +142,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
     return holder;
 }
 
-// A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the
-// present.
+// A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
 void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
@@ -246,10 +243,9 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
 }
 EI_REWRITTEN(0x005DB3F0, PlayMovie);
 
-// (fastcall: the loading progress as a frame number). The loading screen's movie
-// (the file named by a global, opened once into globals with its surface holder,
-// surface type and screen rectangle) is decoded up to that frame and its
-// frame stretched over the screen of the primary surface. Nothing when the off switch is set.
+// (fastcall: the loading progress as a frame number). The loading screen's movie (the file named by a global,
+// opened once into globals with its surface holder, surface type and screen rectangle) is decoded up to that
+// frame and its frame stretched over the screen of the primary surface. Nothing when the off switch is set.
 void __fastcall ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
@@ -313,14 +309,13 @@ EI_REWRITTEN(0x005DA400, ShowLoadingMovie);
 
 // --- Opening a movie for the frame's player ----------------------------------------------
 
-// Open (thiscall; the titles' Create starts Titles.bik with it). The movie open
-// before is closed (its handle stays in +0x18 when movies are off), the loading screen steps when
-// asked, Bink gets the Miles driver when movie sound is on; then the movie is opened, the cursor
-// hidden, the decode surface's holder made (NewMovieHolder: one without a DirectDraw
-// surface, so BinkDDSurfaceType is not asked) and the
-// screen rectangle set: movies mode 1 centred at the movie's size, otherwise stretched to the screen's
-// width with the height trunc(height / width * screen width), centred vertically (divisions by 2
-// round towards zero). The game adds two zero offsets to the centring (kept out).
+// Open (thiscall; the titles' Create starts Titles.bik with it). The movie open before is closed (its handle
+// stays in +0x18 when movies are off), the loading screen steps when asked, Bink gets the Miles driver when
+// movie sound is on; then the movie is opened, the cursor hidden, the decode surface's holder made
+// (NewMovieHolder: one without a DirectDraw surface, so BinkDDSurfaceType is not asked) and the screen
+// rectangle set: movies mode 1 centred at the movie's size, otherwise stretched to the screen's width with
+// the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
+// The game adds two zero offsets to the centring (kept out).
 char CBinkVideo::Open(const char* name, char loadingStep) {
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;

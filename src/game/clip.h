@@ -1,10 +1,9 @@
 #pragma once
 
-// Screen-space triangle clipping, used by the mesh renderer's software clip
-// path for triangles whose vertices fall outside the
-// viewport. Vertices are Direct3D TL vertices; the clipped polygon is re-triangulated as a fan
-// into the caller's index list, and new vertices are appended to the caller's vertex array.
-// Names provisional; see docs/notes/core.md.
+// Screen-space triangle clipping, used by the mesh renderer's software clip path for triangles whose vertices
+// fall outside the viewport. Vertices are Direct3D TL vertices; the clipped polygon is re-triangulated as a
+// fan into the caller's index list, and new vertices are appended to the caller's vertex array. Names
+// provisional; see docs/notes/core.md.
 
 #include <cstddef>
 #include <cstdint>
@@ -31,12 +30,11 @@ inline float g_lastRatio = /*0079B664*/ {};
 // per byte, each step rounded through a float and FISTP. a is in ECX, b in EDX.
 void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out);
 
-// The six plane clippers. Each clips the polygon `indices[0..*count)` (vertex indices) against one
-// plane and writes the result back to `indices` and `*count`; intersection vertices are appended
-// at `vertices[*vertexCount]`. Returns the new count. ECX carries the triangle's combined
-// outcode and is not used.
-// KeepBelow (x, y, z): keeps vertices with coordinate <= limit.
-// KeepAbove (x, y, z): keeps vertices with coordinate > limit.
+// The six plane clippers. Each clips the polygon `indices[0..*count)` (vertex indices) against one plane and
+// writes the result back to `indices` and `*count`; intersection vertices are appended at
+// `vertices[*vertexCount]`. Returns the new count. ECX carries the triangle's combined outcode and is not
+// used. KeepBelow (x, y, z): keeps vertices with coordinate <= limit. KeepAbove (x, y, z): keeps vertices
+// with coordinate > limit.
 int __fastcall ClipXBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 int __fastcall ClipXAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 int __fastcall ClipYBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);

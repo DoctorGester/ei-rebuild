@@ -1,8 +1,7 @@
-// The console's static objects: its two command maps, the eight
-// streambufs (one per message filter) and the eight ostreams on them. Each is built by its static initialiser at the
-// list's place and destroyed by the exit function that initialiser registers with the game's atexit
-// (docs/notes/standalone.md, "The static initialisers' objects").
-// See docs/notes/console.md.
+// The console's static objects: its two command maps, the eight streambufs (one per message filter) and the
+// eight ostreams on them. Each is built by its static initialiser at the list's place and destroyed by the
+// exit function that initialiser registers with the game's atexit (docs/notes/standalone.md, "The static
+// initialisers' objects"). See docs/notes/console.md.
 #include "console.h"
 #include "library_trees.h"
 

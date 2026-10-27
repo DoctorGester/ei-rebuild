@@ -21,9 +21,8 @@ FootprintCellSet* FootprintCellSet::Construct() {
 }
 EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
-// The spells' footprint set, empty at the start: built by a static initialiser in the
-// list's order and freed by the exit function it registers (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The spells' footprint set, empty at the start: built by a static initialiser in the list's order and freed
+// by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 namespace spellfx {
 constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {};
 }
@@ -134,9 +133,8 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     matrix[12] = 0.0f;
     matrix[15] = 1.0f;
 
-    // Part names: the server companion's string array (+0x80) if it has any, else the object's own.
-    // The AI map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58
-    // bytes).
+    // Part names: the server companion's string array (+0x80) if it has any, else the object's own. The AI
+    // map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58 bytes).
     auto* server = mapObject->ServerCompanion();
     const mfc::CStringArray* names = &server->strings;
     if (names->size == 0) names = &mapObject->partNames;

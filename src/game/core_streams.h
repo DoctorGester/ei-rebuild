@@ -46,9 +46,8 @@ public:
     mfc::CString* ReadString(void* out);
     void ReadInto(mfc::CString* out);
 
-    // Reads a block WriteSized wrote (a two-byte size word, two more bytes when
-    // its bit 0 is set; the size is the word / 2) into `to`: `to` cleared (slot 6), sought to 0,
-    // then given the block (slot 2).
+    // Reads a block WriteSized wrote (a two-byte size word, two more bytes when its bit 0 is set; the size is
+    // the word / 2) into `to`: `to` cleared (slot 6), sought to 0, then given the block (slot 2).
     void ReadSized(CStream* to);
     // Writes all of `from` with its size in front: size * 2 in two bytes, or
     // size * 2 + 1 in four bytes above 30000 (a signed compare). `from` is sought to 0 and read.
@@ -63,11 +62,10 @@ public:
     // Rebuilds into this stream (from its start) `base` with the difference read
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(CStream* base, CStream* diff);
-    // Tagged blocks (a four-byte tag, the size including these
-    // eight bytes, then the content).
-    // Reads the next block's tag into *tag and its content into `out`
-    // (emptied, reading_ cleared, written, sought to 0). False when the tag, the size or the
-    // content cannot be read (`out` is then already emptied once the size was read).
+    // Tagged blocks (a four-byte tag, the size including these eight bytes, then the content). Reads the next
+    // block's tag into *tag and its content into `out` (emptied, reading_ cleared, written, sought to 0).
+    // False when the tag, the size or the content cannot be read (`out` is then already emptied once the size
+    // was read).
     bool ReadTagged(std::uint32_t* tag, CStream* out);
     // From the start (reading_ set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
@@ -79,9 +77,8 @@ public:
     // Reads bytes into `buffer` until a zero or `capacity` bytes;
     // buffer[capacity - 1] is always set to zero.
     void ReadText(char* buffer, int capacity);
-    // Reads the magic number and the version (four bytes each, into one
-    // variable); true and version_ set when the magic matches and oldest <= version <= newest
-    // (signed).
+    // Reads the magic number and the version (four bytes each, into one variable); true and version_ set when
+    // the magic matches and oldest <= version <= newest (signed).
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
     // Writes the magic number and the version; version_ = version.
     void WriteHeader(std::uint32_t magic, std::uint32_t version);
@@ -98,16 +95,14 @@ public:
     std::uint32_t version_;         // format version (the save game's); 2000000000 when constructed
 };
 
-// A growable memory stream that can also pack bits. The bit writer
-// assembles bits in bits_ and stores the byte at data_[bitsIndex_] when a new one starts; Seek,
-// Resize and SetSize flush and reset that state.
+// A growable memory stream that can also pack bits. The bit writer assembles bits in bits_ and stores the
+// byte at data_[bitsIndex_] when a new one starts; Seek, Resize and SetSize flush and reset that state.
 class CMemoryStream : public CStream {
 public:
     CMemoryStream();
     ~CMemoryStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok_
-    // 2: grows to (capacity + size) * 2. The harness's observer (verify builds) is told
-    // first.
+    // 2: grows to (capacity + size) * 2. The harness's observer (verify builds) is told first.
     void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // then EndBits
     std::uint32_t Size() override { return size_; }
@@ -118,9 +113,8 @@ public:
     // Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
     // buffer (Clear, slot 6, is the same with the free).
     void Reset();
-    // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents
-    // (the old size's bytes) and gets the pending bits byte (EndBits). Within the capacity the bits
-    // state is left alone.
+    // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents (the old size's bytes)
+    // and gets the pending bits byte (EndBits). Within the capacity the bits state is left alone.
     void Resize(std::uint32_t size);
     // Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
     // only bitMask_ is reset (bitsIndex_ stays).
@@ -144,10 +138,9 @@ public:
     // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
     // over 100000 (nothing more read) or a short read, else 1.
     int ReadStream(CMemoryStream* to);
-    // The whole of this memory stream (a fixed view over its bytes)
-    // compressed / decompressed by `coder` into a growing buffer, which then
-    // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
-    // to call (the client's and the server's message streams).
+    // The whole of this memory stream (a fixed view over its bytes) compressed / decompressed by `coder` into
+    // a growing buffer, which then replaces `out`'s contents; `out` is left at position 0. The coder keeps
+    // its window from call to call (the client's and the server's message streams).
     void CompressTo(CoderState* coder, CMemoryStream* out);
     void DecompressTo(CoderState* coder, CMemoryStream* out);
 

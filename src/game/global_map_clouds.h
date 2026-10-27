@@ -1,11 +1,9 @@
 #pragma once
 
-// The global map's moving cloud layer: an abstract noise texture
-// (CCloudNoise: two pure slots and its deleting destructor) whose only
-// class is the global map's (CGlobalMapClouds); both real
-// classes. Three greyscale frames of
-// `size` x `size` (the map uses 256) are kept: the one shown fades from the first into the second
-// while the third is built a slice per step from four layers of value noise; every 16 steps they
+// The global map's moving cloud layer: an abstract noise texture (CCloudNoise: two pure slots and its
+// deleting destructor) whose only class is the global map's (CGlobalMapClouds); both real classes. Three
+// greyscale frames of `size` x `size` (the map uses 256) are kept: the one shown fades from the first into
+// the second while the third is built a slice per step from four layers of value noise; every 16 steps they
 // rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
 
 #include "game_data.h"

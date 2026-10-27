@@ -1,8 +1,7 @@
-// CCamera helpers the per-frame update uses: aiming along a direction, turning the
-// camera upright towards its target and keeping it above nearby objects.
-// See camera.h and docs/notes/core.md.
-// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// CCamera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
+// target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point follows the
+// game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
+// a float.
 #include "camera.h"
 
 #include "map_object_figures.h"
@@ -22,10 +21,9 @@ using camera::D;
 
 } // namespace
 
-// Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points
-// the camera's X axis along the horizontal part (identity when that is straight along Y), then the
-// local rotation tilts by -(90 degrees + elevation) about its own X axis. False (and nothing done)
-// for a direction shorter than 1e-9.
+// Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
+// along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
+// degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool CCamera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     EI_NAN_AUDIT(lengthSquare);

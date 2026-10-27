@@ -113,8 +113,7 @@ struct MapDescription {
     lib::AlignedArray<std::uint32_t> tileTypes;
 };
 
-// A resource archive as a local: constructed in place, destroyed through the destructor
-// body's address.
+// A resource archive as a local: constructed in place, destroyed through the destructor body's address.
 struct Archive {
     Archive() { new (Get()) CMappedResource(); }
     ~Archive() { Get()->CMappedResource::Destroy(); }
@@ -250,9 +249,8 @@ int ReadTerrainTypes(CAIMap& map) {
 
 // A vertex's altitude as a fraction of the map's highest point. The game's constant (which the landscape's
 // sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not 1 / 65535 (with that the ground levels
-// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds
-// `1.0f / 65534.0f` at double precision wherever the constant meets a double, and the heights below are
-// doubles.
+// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds `1.0f /
+// 65534.0f` at double precision wherever the constant meets a double, and the heights below are doubles.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
 static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);

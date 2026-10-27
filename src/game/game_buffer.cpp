@@ -128,8 +128,7 @@ std::uint32_t GameBuffer::ReadPastEnd(void* to, std::uint32_t size) {
         return 0;
     }
     // The rest is read through the inline read, whose own past-`high` branch (a call back into this function)
-    // cannot be
-    // taken for exactly the rest.
+    // cannot be taken for exactly the rest.
     std::uint32_t left = Distance(cur, high);
     if (cur + left > end) return static_cast<std::uint32_t>(ReadMore(to, left));
     std::memcpy(to, cur, left);

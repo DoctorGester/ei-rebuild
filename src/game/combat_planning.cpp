@@ -57,8 +57,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The server's AI map's refreshUnits, cleared around path searches, and its sector
-// map.
+// The server's AI map's refreshUnits, cleared around path searches, and its sector map.
 std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }

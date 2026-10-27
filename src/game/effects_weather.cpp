@@ -303,8 +303,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
                 continue;
             }
             // The pair template is filled with an overlapping REP MOVSD from the key, so every dword of the
-            // new value starts as
-            // the key.
+            // new value starts as the key.
             std::uint32_t pair[7];
             for (std::uint32_t& d : pair) d = key;
             FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);

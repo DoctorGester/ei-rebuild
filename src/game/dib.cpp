@@ -17,8 +17,7 @@ constexpr std::uint16_t kPaletteVersion = 0x300;
 
 bool HasMasks(int bitCount) { return bitCount == 16 || bitCount == 32; }
 
-// The bytes of the header's pixels: its biSizeImage, or (when that is 0) its rows padded to four
-// bytes.
+// The bytes of the header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
 std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     if (header->biSizeImage != 0) return header->biSizeImage;
     const std::uint32_t rowBits = static_cast<std::uint32_t>(header->biBitCount) * header->biWidth;

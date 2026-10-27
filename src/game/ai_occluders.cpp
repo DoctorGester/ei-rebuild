@@ -1,9 +1,8 @@
-// The per-cell occluder words (CAIMap + 0x26AC): adding and removing one
-// footprint cell's occluder. A word holds one occluder inline: bit 8 set = none, bits 5-6 the
-// transparency, 9-11 the kind, 12-21 the top and 22-31 the bottom height. With bit 7 set the
-// occluders are a chain of 8-byte records (SectorOccluder, sector_map.h) of the cell's 32x32
-// sector (0x54-byte sectors at +0x138) whose head index sits in bits 9-28. See ai_map.h and
-// docs/notes/ai.md.
+// The per-cell occluder words (CAIMap + 0x26AC): adding and removing one footprint cell's occluder. A word
+// holds one occluder inline: bit 8 set = none, bits 5-6 the transparency, 9-11 the kind, 12-21 the top and
+// 22-31 the bottom height. With bit 7 set the occluders are a chain of 8-byte records (SectorOccluder,
+// sector_map.h) of the cell's 32x32 sector (0x54-byte sectors at +0x138) whose head index sits in bits 9-28.
+// See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "sector_map.h"
 

@@ -53,8 +53,7 @@ static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkH
 // (`headers_.Subscript<LinkHeaderElement>(name)`).
 using LinkHeaderElement = stlp::PairElement<LinkHeaderMap::Value, ZeroedHeader>;
 static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeaderElement>>);
-// Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the
-// header for none.
+// Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the header for none.
 inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) { return map->find(*key); }
 // A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
 using LinkRanges = stlp::TreeAbi<LinkRangeMap>;

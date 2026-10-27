@@ -96,8 +96,7 @@ void SampleCurve(LightningSegment* segment, const NoiseKey* keys, const float* b
     }
 }
 
-// The noise amplitude a segment animates with: 1.5 for positive power, 1 for negative, 2 for 0
-// (and NaN).
+// The noise amplitude a segment animates with: 1.5 for positive power, 1 for negative, 2 for 0 (and NaN).
 float NoiseAmplitude(float power) {
     if (power > 0.0f) return 1.5f;
     return power < 0.0f ? 1.0f : 2.0f;

@@ -18,8 +18,7 @@ namespace {
 
 using Node = Table::Map::Node;
 
-// operator[] as these instantiations inline it: the highest key kept, then find_or_insert of
-// {key, 0}.
+// operator[] as these instantiations inline it: the highest key kept, then find_or_insert of {key, 0}.
 Node* FindOrInsert(Table* t, const std::int32_t* key) {
     if (*key > t->maxKey) t->maxKey = *key;
     return t->map.FindOrInsert({static_cast<std::uint32_t>(*key), 0});

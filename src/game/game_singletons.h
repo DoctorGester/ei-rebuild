@@ -69,8 +69,7 @@ CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer
 CTextureDevice* TheRenderDevice();
 _RTL_CRITICAL_SECTION* TheDeviceLock();   // g_deviceLock
 
-// The cursor. The map database. The server world's mission script and sector map. The
-// camera.
+// The cursor. The map database. The server world's mission script and sector map. The camera.
 CCursor* TheCursor();   // g_cursor
 CMapDatabase* TheMapDatabase();   // g_mapDatabase
 CScript* TheMissionScript();

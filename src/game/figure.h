@@ -49,8 +49,7 @@ struct AnimationMorphFrame {
     lib::AlignedArray<Vector3> points;
 };
 static_assert(sizeof(AnimationMorphFrame) == 0x18);
-// The morph frames' CArray instantiation constructs and destroys them out of
-// line.
+// The morph frames' CArray instantiation constructs and destroys them out of line.
 struct AnimationMorphFrameElements {
     static void Construct(AnimationMorphFrame* frames, int count);
     static void Destruct(AnimationMorphFrame* frames, int count);
@@ -115,8 +114,7 @@ public:
     Quaternion restRotation_;                            // the node's rest rotation
     Vector3 restPosition_;                               // the node's rest pivot
     lib::AlignedArray<Vector3> pointsA_;                 // one per morph point, zeroed
-    // the bone position (SetMorph); the skeleton code keeps the rest position in the
-    // parent's frame here.
+    // the bone position (SetMorph); the skeleton code keeps the rest position in the parent's frame here.
     Vector3 position_;
     float morphS_;
     float morphT_;

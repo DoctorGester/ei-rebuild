@@ -1,9 +1,8 @@
-// CAIMap::PlanPath: the long-range path. The region map gives a chain of regions from
-// the start to the target; the local search (+0x2594) walks from one region's representative cell
-// to the next, then to the target; the path builder turns the search into cells. When a
-// leg fails the target moves to the best reachable cell (if it is far enough from the start) or,
-// with `retry`, the failing region is excluded and the plan starts again. See ai_map.h and
-// docs/notes/ai.md.
+// CAIMap::PlanPath: the long-range path. The region map gives a chain of regions from the start to the
+// target; the local search (+0x2594) walks from one region's representative cell to the next, then to the
+// target; the path builder turns the search into cells. When a leg fails the target moves to the best
+// reachable cell (if it is far enough from the start) or, with `retry`, the failing region is excluded and
+// the plan starts again. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "core_maths.h"

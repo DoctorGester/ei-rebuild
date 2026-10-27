@@ -1,10 +1,9 @@
-// The loot of a dead unit (the server's world calls it on its CHoover, +0x140, which the
-// function does not use): the prototype's items (new objects from the item manager, put on both
-// lists), the gold (two rolls of the prototype: an amount between a minimum and a maximum, kept
-// when a percent roll is within the chance), the quick items and carried items, and for units with
-// a text key also the armour and weapons, all taken off the unit and put on the drop list. A unit
-// is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
-// docs/notes/objects.md ("Rewritten").
+// The loot of a dead unit (the server's world calls it on its CHoover, +0x140, which the function does not
+// use): the prototype's items (new objects from the item manager, put on both lists), the gold (two rolls of
+// the prototype: an amount between a minimum and a maximum, kept when a percent roll is within the chance),
+// the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
+// the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
+// (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "item.h"
 #include "object.h"
 #include "object_tables.h"
@@ -28,8 +27,7 @@ namespace {
 using PtrList = mfc::CTypedPtrList<CItem>;
 using PtrListNode = PtrList::Node;
 
-// CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it
-// (with the same effects).
+// CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
 
 void Append(PtrList* list, CItem* object) {
@@ -49,9 +47,8 @@ void AppendShared(PtrList* list, CItem* object) {
     list->tail = node;
 }
 
-// One gold roll of the prototype: the amount (the minimum rounded, or a random value between the
-// minimum and a larger maximum, truncated), kept when the percent roll (CRT rand) is within the
-// chance.
+// One gold roll of the prototype: the amount (the minimum rounded, or a random value between the minimum and
+// a larger maximum, truncated), kept when the percent roll (CRT rand) is within the chance.
 void RollGold(const UnitGoldRoll& roll, int* gold) {
     float low = roll.minimum;
     float high = roll.maximum;

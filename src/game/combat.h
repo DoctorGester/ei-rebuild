@@ -65,8 +65,7 @@ struct AnimationSteps : mfc::impl::AnimationStepListAbi {
     void SetStepFlags(int value);
     // The sum of the durations; -1 when one is negative (open-ended).
     int Duration() const;
-    // The same steps as `other` (count, then each step's bytes 0..2, duration
-    // and +8).
+    // The same steps as `other` (count, then each step's bytes 0..2, duration and +8).
     bool SameAs(const AnimationSteps* other) const;
     // Load: the count (into the argument's stack slot: a failed read leaves the stream pointer as the count),
     // SetSize, each step (12 bytes), extra. Save: the same fields.
@@ -75,9 +74,8 @@ struct AnimationSteps : mfc::impl::AnimationStepListAbi {
     // Copy construction: the steps (SetSize to the source's count, then each step) and extra. Returns this.
     AnimationSteps* CopyConstruct(const AnimationSteps& source);
     void Assign(const AnimationSteps& source);
-    // The steps' array, CArray<AnimationStep> (the instantiation mfc::impl::AnimationSteps; extra
-    // is left alone by each).
-    // SetSize(count, growBy); new steps are blank.
+    // The steps' array, CArray<AnimationStep> (the instantiation mfc::impl::AnimationSteps; extra is left
+    // alone by each). SetSize(count, growBy); new steps are blank.
     void SetSize(int newCount, int newGrowBy = -1);
     int Add(const AnimationStep& step);
     void SetAtGrow(int index, const AnimationStep& step);
@@ -92,9 +90,8 @@ struct AnimationSteps : mfc::impl::AnimationStepListAbi {
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 
-// A step list from / to a save: the count (Load: SetSize to it, growth step kept; a count the
-// stream did not deliver is the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not
-// part of it.
+// A step list from / to a save: the count (Load: SetSize to it, growth step kept; a count the stream did not
+// deliver is the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not part of it.
 void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream);
 void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream);
 
@@ -129,10 +126,9 @@ void __fastcall OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
 
 class CWorldServer;
-// Whether the spell may hit: spells whose prototype has
-// needsSight need a line of sight of at least 0.1 from `from` (z = the caster's ground + BaseSpeed, a height)
-// to the target (z = its ground + ModeSpeed), or to `at` one unit above the water surface when there is no
-// target.
+// Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
+// `from` (z = the caster's ground + BaseSpeed, a height) to the target (z = its ground + ModeSpeed), or to
+// `at` one unit above the water surface when there is no target.
 bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
                                     CUnit* target, const Vector3* at);
 
@@ -240,11 +236,7 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream);
 
 class CUnitServer : public CUnitController {
 public:
-    // The members (empty lists, orders of kind 9, the AI brain, the voice), then
-    // ResetController. The factory allocates it zeroed (CServerSpecificManager).
     CUnitServer();
-    // The deleting destructor: ResetController, the orders and the AI brain's members
-    // destroyed, the referenced objects released, the arrays freed.
     ~CUnitServer() override;
 
     // The controller's slots (unit.h's CUnitController) the server's table changes; the bodies are
@@ -325,9 +317,8 @@ public:
     // roll (+0x20), damage (+0x24), location (+0x2C), backstab multiplier (+0x34) and the called
     // shot flag (+0x38). Draws from rand() and the ISAAC generator. Returns 1.
     BOOL BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
-    // Builds the hit of an attack on `target` into pendingHit: a backstab when the unit
-    // is behind the target, unless the target's controller has noBackstab or the
-    // weapon is ranged. Returns 1.
+    // Builds the hit of an attack on `target` into pendingHit: a backstab when the unit is behind the target,
+    // unless the target's controller has noBackstab or the weapon is ranged. Returns 1.
     BOOL PrepareAttack(CMapObject* target, int location, char calledShot);
     // The unit is hit by `hit` from `attacker` (may be null) on behalf of `source` (whose player gets the
     // experience for a kill; may be null). Resolves the hit if that has not been done, logs it ("Unit 12 was
@@ -343,8 +334,7 @@ public:
     // refills the body slots between two calls of the stats virtual and sets the server companion's hit points
     // and mana to their maxima. Returns the companion.
     std::uintptr_t SetStats(const UnitStats* stats);
-    // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a
-    // player.
+    // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a player.
     void Shout(std::uint32_t code);
     // The three size classes from the unit's load and size (times the model's factor; heroes capped at 1.89).
     void UpdateSizeClasses() override;
@@ -362,8 +352,7 @@ public:
     // target's hit virtual (CUnit TakeHit) directly; then the weapon's spell, and noise when the hit was not a
     // backstab.
     void DeliverAttack(CMapObject* target, DamageInfo* hit);
-    // Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers
-    // the cost.
+    // Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers the cost.
     void TriggerWeaponSpell(CMapObject* target);
     // Casts the spells of the armour pieces that trigger on being hit (`onHit`; spell
     // prototype 0x18 triggers when not hit) and have the charge for it.
@@ -372,10 +361,9 @@ public:
     void UseItemCharge(CItem* item, float cost);
     // Heals `amount`, recomputes and logs "Unit 12 was healed". Returns 1.
     BOOL Heal(float amount) override;
-    // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility
-    // claims and the hit direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to
-    // death", the death animation, the AI notification and the party's reaction. Units of types
-    // outside 0x32..0x36 only get flags_ bit 1.
+    // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
+    // direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to death", the death animation,
+    // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // For each unit in `witnesses` (a CList of units) allied with this unit's side that
     // saw `victim` (is in its controller's +0xA90 list): adds `murderer` to that list (logging
@@ -402,9 +390,8 @@ public:
     // 0..maximum); the spell goes at the target (its aim point) or the order's point, with noise
     // unless the spell's prototype +0x10 is 1. The order's source becomes -1.
     void FinishCast();
-    // Order setters: each replaces the queued order (+0x1B4), as the AI and the player's commands
-    // ask for them (unit_ai.h names them from the caller's side).
-    // Kind 2 (turn) towards `direction`; +0x1C = `time`.
+    // Order setters: each replaces the queued order (+0x1B4), as the AI and the player's commands ask for
+    // them (unit_ai.h names them from the caller's side). Kind 2 (turn) towards `direction`; +0x1C = `time`.
     void OrderTurn(const float* direction, std::uint32_t time);
     // Kind 1 (move) to `point`: source = `walk` != 0 (low byte), +0x20 = `run` (low
     // byte), the point's z replaced by `range` (sic). A party unit with a real point (z not -1313)
@@ -421,11 +408,10 @@ public:
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
 
-    // The other setters, as the AI, scripts and the player's
-    // commands call them.
-    // Would the unit fit its cell in movement mode `mode` (3 counts as 2)? True at once
-    // for the current mode (+0x168); else the unit's mode (+0x264) becomes `mode` for the test (the
-    // unit off the sector map, its size class updated) and is put back.
+    // The other setters, as the AI, scripts and the player's commands call them. Would the unit fit its cell
+    // in movement mode `mode` (3 counts as 2)? True at once for the current mode (+0x168); else the unit's
+    // mode (+0x264) becomes `mode` for the test (the unit off the sector map, its size class updated) and is
+    // put back.
     bool FitsMoveMode(int mode);
     // The unit's wanted movement style (0 lie, 1 crawl, 2 walk, 3 run). When it fits (FitsMoveMode), a party unit
     // hears message 9, unless running and out of breath. Other than walking and running the current order's run
@@ -488,20 +474,17 @@ public:
     // the stats copy, movement factors, the brain, the voice, the effect object and the attackers list), version
     // dependent from 0x44 on. Save: the same in the same order, at the current version.
 
-    // What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
-    // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
-    // that is not a unit.
+    // What a cast (kinds 4, 5) or an order on a unit must see: false for a point order with flag18, a missing
+    // spell, a spell whose prototype +0x40 is 0, or (other kinds) a target that is not a unit.
     bool FindSightTarget(const AIOrder* order, struct SightTarget* out);
-    // Can the unit carry out `order` at `time` with its target at `point`: in range for
-    // AI units, no living unit in the way of a melee or skill order, and a line of sight when the
-    // order needs one.
+    // Can the unit carry out `order` at `time` with its target at `point`: in range for AI units, no living
+    // unit in the way of a melee or skill order, and a line of sight when the order needs one.
     bool CanActFrom(const AIOrder* order, const float* point, int time);
     // Plans `order`: builds its animation (which draws random numbers), then looks for the first moment at which
     // the target is in reach, the unit can turn to it in time, and CanActFrom holds; fills `plan` and returns true
     // then.
     bool PlanAction(const AIOrder* order, struct OrderPlan* plan);
-    // PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
-    // meanwhile.
+    // PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set meanwhile.
     bool CanPlanAction(const AIOrder* order);
     // combat_tick.cpp (the AI's and the players' order checks). False for an attack without a ranged weapon, or a
     // skill, on a living unit of size class 0 that is too high to reach (its prototype's height plus its z at 1.5
@@ -576,9 +559,8 @@ public:
     // Plays the reaction to a hit from hitDirection (BuildDeathAnimation without dying),
     // saving the queue (+0x148), unless the unit is idle or the reaction would delay the next attack.
     void PlayHitReaction();
-    // Ends the current order: aborted (or not started, or with an open-ended animation)
-    // the state becomes 6, else 3 with what is left of a three-step plan played; the plan is reset
-    // and the unit stands still.
+    // Ends the current order: aborted (or not started, or with an open-ended animation) the state becomes 6,
+    // else 3 with what is left of a three-step plan played; the plan is reset and the unit stands still.
     void EndOrder(char abort);
     // State 5: the planned action starts at its time (animation, a cast's effect), the
     // unit follows its motion meanwhile, and at the end the action is finished (FinishAction).
@@ -590,8 +572,7 @@ public:
     // countdown runs out and the item's charge covers it (type 0x18: one a tick, when hurt).
     void TickItemSpells();
 
-    // False while an attack turns (state 2) and `ticks` from now would pass the next
-    // attack's time (+0x184).
+    // False while an attack turns (state 2) and `ticks` from now would pass the next attack's time (+0x184).
     bool CanReactFor(int ticks);
     // Play `steps` (taken by value and destroyed) as an animation order (state 3) / an emote (state 4): the queue
     // takes it, the unit stops facing its direction.
@@ -616,14 +597,12 @@ public:
     // taken on a cheap cell when not out of breath (and, without a player's permission, with
     // stamina); dropped after 5 updates otherwise; out of breath drops the second's too (remark).
     void UpdateSneak();
-    // Takes the second movement record (+0x170) as the first: back with message 0x0D
-    // when the unit no longer fits its cell; an idle unit changing mode stops facing its way; a
-    // transition animation plays (not while attacking); an empty queued order becomes the current
-    // one. True when the mode changed.
+    // Takes the second movement record (+0x170) as the first: back with message 0x0D when the unit no longer
+    // fits its cell; an idle unit changing mode stops facing its way; a transition animation plays (not while
+    // attacking); an empty queued order becomes the current one. True when the mode changed.
     bool ChangeMoveMode();
-    // Plans the motion to `point` within `range` (FindPath): no path stands the unit still
-    // (state 6, +0x145 from the path's +0xA9); a path makes it idle (state 0) with its movement
-    // animation going on.
+    // Plans the motion to `point` within `range` (FindPath): no path stands the unit still (state 6, +0x145
+    // from the path's +0xA9); a path makes it idle (state 0) with its movement animation going on.
     bool PathTo(const Vector3* point, float range);
     // Fills the CList `list` with the units lifted off the sector map for a path: away
     // from `point`, those near it outside the player's group; the party members that move (with
@@ -635,10 +614,9 @@ public:
     // The controller's reset (constructor and Load): orders, queue, plan, hit, records,
     // effect object, brain, alarm, factors, stats, animation caches, the armour spell list.
     void ResetController();
-    // Drops the current order (and the queued one unless an animation or emote), takes
-    // the movement records from the unit's modes, stops facing its way (state 6), takes up the
-    // wanted weapon and, unless turning, plays the idle animation (a random phase on an empty
-    // queue) and turns (state 2).
+    // Drops the current order (and the queued one unless an animation or emote), takes the movement records
+    // from the unit's modes, stops facing its way (state 6), takes up the wanted weapon and, unless turning,
+    // plays the idle animation (a random phase on an empty queue) and turns (state 2).
     void ResyncWithUnit();
     // A tame attempt by `tamer` with `roll`: above 10 x the taming virtual plus the taming
     // skill (stats value 2) it moves the unit a stage along (1 not hostile to the tamer's side, 2 on that side, 3

@@ -46,8 +46,7 @@ constexpr float kMilli = 0.001f;
 constexpr float kAngleMilli = 1000.0f;
 constexpr float kSpinDegrees = 30.0f;
 
-// Globals.
-// pi / 2 and 2 pi as floats (set by static initialisers).
+// Globals. pi / 2 and 2 pi as floats (set by static initialisers).
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;   // static initialisers: pi * 0.5 and pi + pi
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).

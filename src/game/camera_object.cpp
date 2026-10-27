@@ -33,9 +33,6 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
 EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
-// The constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
-// the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,
-// response rates 2/15 (pan) and 1/3, no target.
 CCamera::CCamera() {
     ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
@@ -76,8 +73,6 @@ CCamera::CCamera() {
 }
 EI_REWRITTEN_SPECIAL(0x0040C8B0, CCamera::CCamera);
 
-// The destructor: no target, the camera path keys freed, the view stack and shake list
-// destroyed (the file name, a member, goes after them: the game freed it before the view stack).
 CCamera::~CCamera() {
     targetId_ = -1;
     if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
@@ -122,10 +117,9 @@ EI_REWRITTEN(0x0040D190, CCamera::Create);
 void CCamera::Destroy() { targetId_ = -1; }
 EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 
-// Init(settings, near, far, fov). Takes the views and the start distance and focus from
-// the settings, keeps the three distances / angle (as the dword bit patterns of floats) at
-// +0x2E0..+0x2E8, switches to free placement, and resets views 6 and 7 to the start distance at 45
-// degrees (the pitch too). Returns 1.
+// Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps
+// the three distances / angle (as the dword bit patterns of floats) at +0x2E0..+0x2E8, switches to free
+// placement, and resets views 6 and 7 to the start distance at 45 degrees (the pitch too). Returns 1.
 int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
     ViewsFromSettings(settings);
     settings_ = settings;
@@ -154,8 +148,7 @@ void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) con
 }
 EI_REWRITTEN(0x0040D380, CCamera::GetRange);
 
-// The point the camera is placed by: its own position when playing a file or placed
-// freely, else the focus.
+// The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
 }
@@ -216,9 +209,8 @@ int CCamera::OpenFile(const char* name) {
 }
 EI_REWRITTEN(0x0040E910, CCamera::OpenFile);
 
-// While recording (flag 0x10), appends a frame {time, -, local position, local rotation}
-// to the file named at +0x2EC. Returns 1 when written, 0 when not recording or the file does not
-// open.
+// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to the file named at
+// +0x2EC. Returns 1 when written, 0 when not recording or the file does not open.
 int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     mfc::CFile file;
@@ -273,8 +265,7 @@ void CCamera::Load(CStream* stream) {
 }
 EI_REWRITTEN(0x00410AB0, CCamera::Load);
 
-// Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and
-// views 4..7).
+// Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and views 4..7).
 void CCamera::Save(CStream* stream) {
     stream->Write(&focus_, 12);
     stream->Write(&focusHeight_, 4);

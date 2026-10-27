@@ -1,6 +1,5 @@
-// Tagged blocks and text in a stream: CStream::ReadTagged, FindTagged
-// ReplaceTagged and ReadText. Every stream access goes through the virtual functions, in
-// the game's order.
+// Tagged blocks and text in a stream: CStream::ReadTagged, FindTagged ReplaceTagged and ReadText. Every
+// stream access goes through the virtual functions, in the game's order.
 #include "core_streams.h"
 
 #include "ei/hook.h"

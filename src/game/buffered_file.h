@@ -13,11 +13,10 @@
 #include <cstddef>
 #include <cstdint>
 
-// The abstract stream (slots 7 / 8 pure). 0x1C
-// bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error. BufferedStream
-// and BufferedFile are real virtual classes: the compiler makes their vtables.
-// The slots' bodies keep their names (registered at their
-// addresses, rewrite-guide rule 4); the overrides call them.
+// The abstract stream (slots 7 / 8 pure). 0x1C bytes. Flag bits as GameBuffer's: 0 the window holds unwritten
+// bytes, 3 an error. BufferedStream and BufferedFile are real virtual classes: the compiler makes their
+// vtables. The slots' bodies keep their names (registered at their addresses, rewrite-guide rule 4); the
+// overrides call them.
 class BufferedStream : public GameBuffer {
 public:
     BufferedStream() {
@@ -38,9 +37,8 @@ public:
     // else Flush and Rebase. Returns the cursor as it was before (the in-window path's result; the other
     // path leaves no meaningful value and its callers ignore it).
     std::uint8_t* SeekWindow(std::int32_t position);
-    // A write the window cannot take in place: one larger than the window
-    // goes straight to the file (returns slot 8's count); otherwise Rebase, then into the window
-    // (unwritten bit) or through slot 4 again.
+    // A write the window cannot take in place: one larger than the window goes straight to the file (returns
+    // slot 8's count); otherwise Rebase, then into the window (unwritten bit) or through slot 4 again.
     int WriteMoreWindow(const void* from, std::uint32_t size);
     // A read the window cannot serve in place: one larger than the window goes
     // straight to the file (returns slot 7's count); otherwise Rebase, then from the window, or zeroes

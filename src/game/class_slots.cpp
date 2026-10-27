@@ -80,8 +80,7 @@ EI_REWRITTEN(0x004468B0, UnitForwardSpeed);
 void CUnit::SetScriptName(const char* newName) { scriptName = newName; }
 EI_REWRITTEN(0x00446830, CUnit::SetScriptName);
 
-// A tail jump to the controller's slot 31 (RefreshWounds: 1 from the client's,
-// 0 from the base's).
+// A tail jump to the controller's slot 31 (RefreshWounds: 1 from the client's, 0 from the base's).
 int __fastcall UnitRefreshWounds(CUnit* unit) { return unit->Controller()->RefreshWounds(); }
 EI_REWRITTEN(0x00446810, UnitRefreshWounds);
 

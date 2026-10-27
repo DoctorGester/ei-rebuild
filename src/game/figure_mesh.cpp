@@ -271,8 +271,7 @@ __declspec(noinline) void MorphBlock(float* out, const float* v, float s, float 
     }
 }
 
-// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on
-// the FPU.
+// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on the FPU.
 __declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
     for (int k = 0; k < 4; ++k) {
         double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];

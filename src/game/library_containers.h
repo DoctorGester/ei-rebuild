@@ -1,9 +1,8 @@
 #pragma once
 
-// Library code over game types (docs/notes/standalone.md): STLport members of
-// lists, vectors and algorithms whose elements are the game's (streams, CStrings, counted pointers,
-// the briefing's records), the CString destructor's out-of-line copies and the compiler's unwind
-// helpers. Registered in library_containers.cpp.
+// Library code over game types (docs/notes/standalone.md): STLport members of lists, vectors and algorithms
+// whose elements are the game's (streams, CStrings, counted pointers, the briefing's records), the CString
+// destructor's out-of-line copies and the compiler's unwind helpers. Registered in library_containers.cpp.
 // Thiscalls are __fastcall with an unused EDX.
 
 #include "core_refcount.h"
@@ -69,8 +68,7 @@ static_assert(sizeof(ShownItemNodes::Node) == sizeof(BriefingShownItem));
 
 // ---- Algorithms -----------------------------------------------------------------------------------
 
-// _Construct(p, value) of a RefPtr (ECX p, EDX value): a copy with one more reference,
-// nothing for a null p.
+// _Construct(p, value) of a RefPtr (ECX p, EDX value): a copy with one more reference, nothing for a null p.
 void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
 // (_Construct(p, value) of a held engine object is HeldEngineObject::Construct.)
 
@@ -99,9 +97,8 @@ struct PointerVectorsPair {
 };
 
 
-// CTime::operator-(CTimeSpan) (library.csv: a pointer iterator's operator-(n)): the time
-// less a span of seconds into `out` (thiscall; called after a CTime
-// constructor); returns out.
+// CTime::operator-(CTimeSpan) (library.csv: a pointer iterator's operator-(n)): the time less a span of
+// seconds into `out` (thiscall; called after a CTime constructor); returns out.
 
 // ---- The party file entries' vector ------------------------------------------------------
 
@@ -114,10 +111,9 @@ struct HeroRecordElement {
     static void Assign(MpHeroRecord& to, const MpHeroRecord& from) { to.Assign(&from); }
     static void Destroy(MpHeroRecord* p) { p->Destruct(); }
 };
-// _M_insert_overflow(pos, x, n): a block of size + max(size, n) records (the
-// node allocator's pool for one record), [start, pos), n copies of x, [pos, finish); the old
-// records destroyed in order, the old block freed.
-// (Registered as HeroRecordAbi::InsertOverflow.)
+// _M_insert_overflow(pos, x, n): a block of size + max(size, n) records (the node allocator's pool for one
+// record), [start, pos), n copies of x, [pos, finish); the old records destroyed in order, the old block
+// freed. (Registered as HeroRecordAbi::InsertOverflow.)
 using HeroRecordAbi = stlp::VectorAbi<MpHeroRecord, HeroRecordElement>;
 
 // ---- The last library code our rewrites called ------------------------------------------------
@@ -132,8 +128,7 @@ struct SpeakerElement {
 using Speakers = stlp::vector<BriefingSpeaker>;
 // _Construct(p, value) (ECX p, EDX value, plain return): nothing for a null p.
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
-// _M_insert_overflow(pos, x, n).
-// (Registered as SpeakerAbi::InsertOverflow.)
+// _M_insert_overflow(pos, x, n). (Registered as SpeakerAbi::InsertOverflow.)
 using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
 // find_if(first, last, pred) over the server's banned addresses (out in ECX): the

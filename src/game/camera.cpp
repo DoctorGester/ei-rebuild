@@ -1,8 +1,7 @@
-// The camera (CCamera, camera.h): the per-frame update and view placement, focus and
-// terrain sampling, panning / zoom / saved views, shakes and recorded camera paths
-// Names are provisional.
-// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// The camera (CCamera, camera.h): the per-frame update and view placement, focus and terrain sampling,
+// panning / zoom / saved views, shakes and recorded camera paths. Floating point
+// follows the game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where
+// it stores to a float.
 #include "camera.h"
 
 #include "base_manager.h"
@@ -46,8 +45,7 @@ float AbsBits(float f) {
 
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
-// Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN
-// limit wins.
+// Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
     float low = v >= 0.0f ? v : 0.0f;
     float limit = static_cast<float>(last - 1.0f);

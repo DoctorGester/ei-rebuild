@@ -1,6 +1,5 @@
-// The server unit controller's constructor, its AI brain's constructor and destructor
-// and the perception memory's destructor, and the plan taking a
-// step list. A-U7; see docs/notes/combat.md.
+// The server unit controller's constructor, its AI brain's constructor and destructor and the perception
+// memory's destructor, and the plan taking a step list. A-U7; see docs/notes/combat.md.
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"
@@ -51,8 +50,7 @@ void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.blockSize = kBlockSize;
 }
 
-// Its destructor: the vtable, each element released and cleared, then
-// RemoveAll.
+// Its destructor: the vtable, each element released and cleared, then RemoveAll.
 void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.vtable = gameslots::VictimListClass::Vtable();
     for (auto* node = list.head; node; node = node->next) {

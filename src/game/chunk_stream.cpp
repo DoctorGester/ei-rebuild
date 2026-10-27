@@ -242,8 +242,7 @@ EI_REWRITTEN(0x0042D020, Chunk::ReadBytes);
 
 // --- Text ----------------------------------------------------------------------------------------
 
-// The characters are read one at a time, each counted; the text ends at the first NUL
-// (ReleaseBuffer(-1)).
+// The characters are read one at a time, each counted; the text ends at the first NUL (ReleaseBuffer(-1)).
 mfc::CString* Chunk::ReadString(mfc::CString* out) {
     mfc::CString text;
     int length = size_ - kHeader;

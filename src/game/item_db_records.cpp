@@ -267,8 +267,7 @@ void LootItemRecord::CopyOwn(const LootItemRecord* source) {
     CopyBytes(this, source, offsetof(LootItemRecord, category), sizeof(LootItemRecord));
 }
 
-// The kinds' default and copy constructors (the extra members constructed between the head and the
-// Assign).
+// The kinds' default and copy constructors (the extra members constructed between the head and the Assign).
 WeaponRecord::WeaponRecord() { std::memset(field1B, 0, 0x83 - offsetof(WeaponRecord, field1B)); }
 QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus)); }
 

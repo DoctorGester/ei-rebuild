@@ -52,8 +52,7 @@ struct Particle {
     std::uint32_t prevColor;
     int dead;                   // set by the tick when the update returned 0
 
-    // The emitters' Vector4::FromPoint on the particle's first 16 bytes: the position
-    // `at` and the size 1.
+    // The emitters' Vector4::FromPoint on the particle's first 16 bytes: the position `at` and the size 1.
     void PlaceAt(const Vector3& at) {
         pos = at;
         size = 1.0f;
@@ -61,9 +60,8 @@ struct Particle {
 };
 static_assert(sizeof(Particle) == 0x64);
 
-// One element of a source's own array (0x38 bytes, 32-byte aligned). What the slots
-// hold depends on the source type (the views below); code indexes element 0 and reads element 1
-// through it.
+// One element of a source's own array (0x38 bytes, 32-byte aligned). What the slots hold depends on the
+// source type (the views below); code indexes element 0 and reads element 1 through it.
 struct ParticleElement {
     Vector3 pos;
     union {
@@ -210,8 +208,7 @@ struct ParticleElement {
             float bend;         // 0: the rings sway with the source's motion, else they lean
             float damping;      // the particles' spin damping
         } funnel;
-        // Cylinder1 / Cylinder2 (0x203F, 0x2040): a star (pos relative to the source, ticks its
-        // countdown).
+        // Cylinder1 / Cylinder2 (0x203F, 0x2040): a star (pos relative to the source, ticks its countdown).
         struct {
             Vector3 step;        // its last step
             float rotation[2];  // the cosine and sine of its turn per tick
@@ -277,13 +274,12 @@ class CParticleSource;
 class CObject3D;
 class CTexture;
 
-// The particle manager (a real virtual class; each CParticleSource points
-// to it): a CBaseManager whose objects are the sources (objectList_). It keeps a pool of free particles, an MFC
-// list (taken from the head, returned to the tail), and holds one reference on every source made through
-// CreateSource (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it
-// (ReleaseUnheld).
-// The particle manager's own part of its constructor (small_accessors.cpp; the client world's manager set-up calls
-// it after the base manager's): quietStart cleared.
+// The particle manager (a real virtual class; each CParticleSource points to it): a CBaseManager whose
+// objects are the sources (objectList_). It keeps a pool of free particles, an MFC list (taken from the head,
+// returned to the tail), and holds one reference on every source made through CreateSource (`held_`, by id)
+// until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld). The particle
+// manager's own part of its constructor (small_accessors.cpp; the client world's manager set-up calls it
+// after the base manager's): quietStart cleared.
 class CParticleManager;
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 
@@ -291,11 +287,7 @@ class CParticleManager : public CBaseManager {
 public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
 
-    // CBaseManager's constructor, an empty pool (blocks of 10), an empty held table (Construct(100)), maxHeldId_ 0, then
-    // quietStart cleared. Inlined in the client world's manager set-up.
     CParticleManager();
-    // Destroy, the members last to first (`held_`'s nodes and buckets, the free
-    // particles' list emptied), then CBaseManager's destructor.
     ~CParticleManager() override;
     const char* GetClassName() override;
     int GetClassId() override;                     // class id 0x2C
@@ -623,12 +615,9 @@ using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 // Room for `count` elements, 32-byte aligned, the allocated block stored just below;
 ParticleElement* __fastcall AllocateElements(int count);
 
-// The world's rain/snow layer (an engine object). Only the fields its
-// rewritten members use.
+// The world's rain/snow layer (an engine object). Only the fields its rewritten members use.
 class CRainSnow final : public CEngineObject {
 public:
-    // The client world's constructor builds it inline: the engine object's
-    // fields, no texture, empty work arrays, no world or sound, then Clear.
     CRainSnow();
     // Deleting destructor: Clear, the work arrays freed (last member first), the texture released.
     ~CRainSnow() override;
@@ -696,9 +685,8 @@ struct FogCell {
 };
 static_assert(sizeof(FogCell) == 0x18);
 
-// The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's
-// Create fills them, the fog's draw hands them to the renderer): a tile's u range, and its v range
-// counted down from 1 a row.
+// The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's Create fills them,
+// the fog's draw hands them to the renderer): a tile's u range, and its v range counted down from 1 a row.
 struct FogTile {
     float u0;   // column / 4
     float v1;   // v0 + 1/4
@@ -729,8 +717,6 @@ class CVisibilityFog final : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
 
-    // The construction: the engine object's fields, everything up to the cell map zero, an empty
-    // cell map (100 buckets asked).
     CVisibilityFog();
     ~CVisibilityFog() override;
     int Create() override;                          // ClearCells, 1

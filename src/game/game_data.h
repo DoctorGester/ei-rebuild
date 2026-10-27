@@ -18,8 +18,7 @@
 namespace ei {
 
 // A game address of a data object, kept as a name in a table or constant: resolve it with GameAddress (or
-// GameData /
-// GamePointer) before use.
+// GameData / GamePointer) before use.
 constexpr std::uintptr_t DataId(std::uintptr_t address) { return address; }
 
 // What the image moves, whole: game.exe's .rdata (its import address table first) and .data with its zero-filled

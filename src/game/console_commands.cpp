@@ -135,8 +135,7 @@ void __fastcall History(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DDF80, History);
 
-// Filter (prints the shown categories), filter <type> (shows only that one),
-// filter <type> 1|on|0|off.
+// Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
 void __fastcall Filter(CStringArray* args) {
     if (args->GetSize() == 0) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
@@ -326,16 +325,14 @@ void RequestWithParty(CStringArray* args, const char* extra) {
 }
 } // namespace
 
-// join <map>: the flow's request 5 with a party of one
-// ("Hercules").
+// join <map>: the flow's request 5 with a party of one ("Hercules").
 void __fastcall Join(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
 EI_REWRITTEN(0x005DF3A0, Join);
 
-// server <map>: "Starting up a server", then the flow's
-// request 6 with a party of one ("Serv").
+// server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
 void __fastcall HostServer(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, map name");
     PrintLine("Starting up a server");
@@ -346,8 +343,7 @@ EI_REWRITTEN(0x005DF490, HostServer);
 void __fastcall MemUsage(CStringArray*) {}
 EI_REWRITTEN(0x005DF5A0, MemUsage);
 
-// disconnect, any arguments: the
-// client world's local player disconnects.
+// disconnect, any arguments: the client world's local player disconnects.
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
 EI_REWRITTEN(0x005DFC10, Disconnect);
 

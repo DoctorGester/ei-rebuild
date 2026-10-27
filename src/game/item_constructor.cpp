@@ -372,10 +372,8 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name (NamedRecordTable::Named): weapons, armors, quick items, the class-0x14 table, the
 // class-0x15 table, materials. Each returns the record or null.
 
-// The string-keyed maps the loot item's table index comes from: operator[] of the weapon
-// armor, quick item and spell
-// maps, and the modifier map's find_or_insert of a
-// (name, null) pair.
+// The string-keyed maps the loot item's table index comes from: operator[] of the weapon armor, quick item
+// and spell maps, and the modifier map's find_or_insert of a (name, null) pair.
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 template <typename Table, typename Record>
@@ -471,8 +469,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     CItem* item = constructor->EndCreateItem();
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
-        // with the null
-        // item (and crashes).
+        // with the null item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
         game::FatalError(kCantCreate, name);
     }

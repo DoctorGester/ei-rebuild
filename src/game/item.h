@@ -79,9 +79,8 @@ public:
     virtual LockKey GetUse();
     BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
-    // A new item of the same kind from the owning manager, given this one's values through the copy
-    // virtual with the spell manager `spells`; when that fails the new item is released and the result is
-    // null.
+    // A new item of the same kind from the owning manager, given this one's values through the copy virtual
+    // with the spell manager `spells`; when that fails the new item is released and the result is null.
     CItem* Clone(CSpellManager* spells);
 
     // The prototype record for the item's kind and index; null for spell containers,
@@ -282,13 +281,11 @@ public:
     // of another database (recordType_).
     float GetPrice() override;
 
-    // By kind_: a record's name ("<type>_<number>.<variant>" for weapons and
-    // armors, "qitem", "prototype" (spells, +0x60), "modifier" + number), "material<index>", or
-    // "litem<number>" for the loot itself.
+    // By kind_: a record's name ("<type>_<number>.<variant>" for weapons and armors, "qitem", "prototype"
+    // (spells, +0x60), "modifier" + number), "material<index>", or "litem<number>" for the loot itself.
     mfc::CString FigureName() override;
-    // "initwe..." / "initar..." / "initqi..." for records,
-    // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
-    // "initlitr<number>item" for the loot itself.
+    // "initwe..." / "initar..." / "initqi..." for records, "initqi1item" for spells and modifiers,
+    // "initlimt<index>item" for materials, "initlitr<number>item" for the loot itself.
     mfc::CString PictureName() override;
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // The base's, then kind_, recordType_ and index_ (prototype +0x6C..+0x74).
@@ -380,9 +377,8 @@ public:
     BOOL Build();
 
     // Whether the item being built can hold a spell: not a weapon or armour (class 0x11 / 0x12) without a
-    // material. `level` gets the prototype's +0x44 plus the material's +0x1C (unsigned, as a float),
-    // `power` the prototype's charge plus the material's +0x18; without a material the prototype's values
-    // alone.
+    // material. `level` gets the prototype's +0x44 plus the material's +0x1C (unsigned, as a float), `power`
+    // the prototype's charge plus the material's +0x18; without a material the prototype's values alone.
     bool MagicCapacity(float* level, float* power);
 
     CBaseManager* manager_;   // the item manager; counted (+4) but never released
@@ -431,8 +427,7 @@ struct CItemManager : CResourceManager {
 
     int Create() override;
     // The item factory: a new constructed item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007
-    // loot, 0x3008 scroll, 0x3009 quest, its type_ set to the kind; null for another kind or without
-    // memory.
+    // loot, 0x3008 scroll, 0x3009 quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind` and `key`)

@@ -47,10 +47,9 @@ struct DrawArgs {
     int flags;
 };
 
-// DrawIndexedPrimitive under the device lock, the result in lastLoadResult_, and the
-// vertex, triangle and call counters. A mesh handed over to the new renderer (src/render,
-// device_mesh.cpp) gets this pass with the device's current state; the old draw is skipped when the
-// old path no longer draws meshes.
+// DrawIndexedPrimitive under the device lock, the result in lastLoadResult_, and the vertex, triangle and
+// call counters. A mesh handed over to the new renderer (src/render, device_mesh.cpp) gets this pass with the
+// device's current state; the old draw is skipped when the old path no longer draws meshes.
 void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
         gameapi::EnterCriticalSection(TheDeviceLock());
@@ -172,8 +171,7 @@ void BindStage0(CTextureDevice* device, CDXSurface* holder) {
 
 } // namespace
 
-// Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material.
-// Returns 1.
+// Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material. Returns 1.
 int CTextureDevice::DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount,
                                  const std::uint16_t* indices, unsigned indexCount, int flags) {
     DrawArgs args = {primitive, fvf, vertices, vertexCount, indices, indexCount, flags};

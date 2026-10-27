@@ -1,10 +1,8 @@
-// The device object's DirectDraw base class (CDXDirectDraw, texture.h; the
-// members up to +0x50). IDirectDraw7 is called through device.h
-// (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
-// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
-// the game in WinMain.
-// The image builds the base without DirectDraw: no driver list, DirectDraw object,
-// display mode change or primary and back surfaces (config/dead_code.csv).
+// The device object's DirectDraw base class (CDXDirectDraw, texture.h; the members up to +0x50). IDirectDraw7
+// is called through device.h (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md
+// (sections 9, 12). A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such
+// throw ends the game in WinMain. The image builds the base without DirectDraw: no driver list, DirectDraw
+// object, display mode change or primary and back surfaces (config/dead_code.csv).
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -39,8 +37,7 @@ bool HasCpuid() {
     return (static_cast<std::uint32_t>(__readeflags()) ^ before) != 0;
 }
 
-// IDirectDraw7::EnumDisplayModes's callback: the mode appended
-// to the list `context`.
+// IDirectDraw7::EnumDisplayModes's callback: the mode appended to the list `context`.
 HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
     static_cast<stlp::list<DDSURFACEDESC2>*>(context)->PushBack(*mode);
     return DDENUMRET_OK;
@@ -152,11 +149,10 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     game::DebugLog("Acquiring graphics processor from graphics library.\n");   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
 
-    // The switch-over: the new renderer presents; no DirectDraw object, display mode or
-    // surfaces. The switch-over takes the cooperative level (the flags and the screen rectangle are
-    // kept) and lists the one display mode; the primary and the render target are holders without
-    // a surface; no video formats. Without the new renderer the game cannot run (no DirectDraw
-    // fallback): the error ends it in WinMain.
+    // The switch-over: the new renderer presents; no DirectDraw object, display mode or surfaces. The
+    // switch-over takes the cooperative level (the flags and the screen rectangle are kept) and lists the one
+    // display mode; the primary and the render target are holders without a surface; no video formats.
+    // Without the new renderer the game cannot run (no DirectDraw fallback): the error ends it in WinMain.
     if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());

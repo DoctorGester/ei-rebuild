@@ -1,9 +1,8 @@
 #pragma once
 
-// The old renderer's device layer: what the device object (CTextureDevice, texture.h), its
-// DirectDraw base and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their
-// COM interfaces: they are the boundary the new renderer sits behind (docs/notes/renderer.md,
-// sections 10 and 12).
+// The old renderer's device layer: what the device object (CTextureDevice, texture.h), its DirectDraw base
+// and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their COM interfaces: they are
+// the boundary the new renderer sits behind (docs/notes/renderer.md, sections 10 and 12).
 
 #include "game_strings.h"
 #include "device_switchover.h"   // device::SwitchOverRenderState

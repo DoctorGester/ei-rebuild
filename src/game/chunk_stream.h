@@ -1,14 +1,12 @@
 #pragma once
 
-// Chunked files: the format of the .mob zone files (read when a
-// zone loads) and of the map-editor object specs. A chunk is an id and a size
-// (header included), followed by its content; chunks nest. A Chunk object tracks one chunk being
-// read or written and passes every byte it consumes up to its parent. The file is reached through
-// virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
-// embeds. Names provisional; see docs/notes/core.md.
-// Chunk and RootChunk are real virtual classes: the compiler makes their vtables.
-// The map specs' records and child
-// chunks (map_spec.h, map_spec_unit.cpp) derive from Chunk.
+// Chunked files: the format of the .mob zone files (read when a zone loads) and of the map-editor object
+// specs. A chunk is an id and a size (header included), followed by its content; chunks nest. A Chunk object
+// tracks one chunk being read or written and passes every byte it consumes up to its parent. The file is
+// reached through virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
+// embeds. Names provisional; see docs/notes/core.md. Chunk and RootChunk are real virtual classes: the
+// compiler makes their vtables. The map specs' records and child chunks (map_spec.h, map_spec_unit.cpp)
+// derive from Chunk.
 
 #include "maths.h"
 #include "lib/mfc.h"
@@ -55,11 +53,10 @@ public:
     void WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std::uint32_t z);
     void WriteQuaternion(std::uint32_t id, Quaternion value);
     void WriteBlob(std::uint32_t id, const void* data, int size);
-    // Text. A string chunk's content is its characters (no terminator); the string arrays are a
-    // count followed by one string chunk per element (all with the array chunk's id). CStrings are
-    // returned and passed by value as the game does (hidden return pointer, callee-destroyed
-    // argument). The arrays are MFC CStringArrays (console::CStringArray; the map specs pass their
-    // mfc::CStringArray in their layouts).
+    // Text. A string chunk's content is its characters (no terminator); the string arrays are a count
+    // followed by one string chunk per element (all with the array chunk's id). CStrings are returned and
+    // passed by value as the game does (hidden return pointer, callee-destroyed argument). The arrays are MFC
+    // CStringArrays (console::CStringArray; the map specs pass their mfc::CStringArray in their layouts).
     mfc::CString* ReadString(mfc::CString* out);                             // returns out
     mfc::CString* ReadEncodedString(mfc::CString* out);                      // returns out
     void WriteString(std::uint32_t id, mfc::CString text);

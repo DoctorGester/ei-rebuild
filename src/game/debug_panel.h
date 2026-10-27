@@ -25,8 +25,7 @@ class CDebugPanel {
 public:
     // the static initialiser runs it before WinMain: the empty map.
     CDebugPanel();
-    // At exit: every node destroyed and freed, then the header. Not virtual: the table has no
-    // destructor.
+    // At exit: every node destroyed and freed, then the header. Not virtual: the table has no destructor.
     ~CDebugPanel();
     virtual void Set(const char* key, const char* value);
     virtual void Remove(const char* key);

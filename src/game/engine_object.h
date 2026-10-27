@@ -50,8 +50,6 @@ public:
     CWorld* World() const;
     void ReleaseAndDelete();
     CBaseManager* SetOwner(CBaseManager* owner);
-    // The fields the (mostly inlined) constructor sets, in its order: no
-    // references, id -1, no flags, kind 0, no owner.
     void ClearFields();
 
     // Engine objects live on the game's heap (engine_object.cpp: gamecrt::operator_new / delete).
@@ -142,6 +140,5 @@ using AIRef = AIRefTo<CEngineObject>;
 template <>
 AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
-// CEngineObject::World, for the callers that name the object's base (CMapObject::World
-// hides it).
+// CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

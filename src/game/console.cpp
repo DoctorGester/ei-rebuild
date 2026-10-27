@@ -153,8 +153,7 @@ void __fastcall Execute(const char* text) {
     command = args[0];
     args.RemoveAt(0, 1);
     bool local = !NetworkGame();
-    // Rebirth's AddNewConsoleCommands: addon's commands, registered
-    // again on every call like the game's own.
+    // Rebirth's AddNewConsoleCommands: addon's commands, registered again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = command.GetString()[0];
     if (first == '@' || first == '#' || first == '$') {

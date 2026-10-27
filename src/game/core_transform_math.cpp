@@ -1,9 +1,8 @@
-// CTransformObject's rotation helpers: the world matrix, turning the local
-// rotation towards a direction (three variants), rotating about an axis and setting a heading.
-// See core_transform.h and docs/notes/core.md.
-// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
-// stack, static_cast<float> where it stores to a float (including the floats it pushes to the
-// Vector3 constructor).
+// CTransformObject's rotation helpers: the world matrix, turning the local rotation towards a direction
+// (three variants), rotating about an axis and setting a heading. See core_transform.h and
+// docs/notes/core.md. Floating point follows the game's x87 code: `double` for values the game keeps on the
+// FPU stack, static_cast<float> where it stores to a float (including the floats it pushes to the Vector3
+// constructor).
 #include "core_maths.h"
 #include "core_transform.h"
 
@@ -227,9 +226,8 @@ void CTransformObject::Rotate(const Vector3& axis, float angle) {
     q.x = static_cast<float>(x);
 }
 
-// As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns
-// towards `dir`; an angle above pi becomes 2 pi - angle about the opposite axis, and `reduced`
-// scales the angle by 0.4.
+// As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns towards `dir`; an angle
+// above pi becomes 2 pi - angle about the opposite axis, and `reduced` scales the angle by 0.4.
 void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     const Quaternion& q = localRotation_;
     Vector3 up = MakeVector(static_cast<float>(UpX(q)), static_cast<float>(UpY(q)), static_cast<float>(UpZ(q)));
@@ -253,8 +251,7 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     Rotate(axis, angle);
 }
 
-// The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the
-// heading offset, pi / 2).
+// The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the heading offset, pi / 2).
 void CTransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;

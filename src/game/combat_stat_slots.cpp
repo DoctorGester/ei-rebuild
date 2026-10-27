@@ -1,6 +1,5 @@
-// CUnitServer's statistics slots: the vitals and the protection recomputed, the
-// statistics repacked, the armour layers, the equipment's AI options, experience. See combat.h
-// and docs/notes/combat.md.
+// CUnitServer's statistics slots: the vitals and the protection recomputed, the statistics repacked, the
+// armour layers, the equipment's AI options, experience. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
 #include "item.h"

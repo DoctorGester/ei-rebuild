@@ -1,5 +1,4 @@
-// CBaseManager and the object list iterator. See base_manager.h and
-// docs/notes/core.md.
+// CBaseManager and the object list iterator. See base_manager.h and docs/notes/core.md.
 #include "base_manager.h"
 #include "hash_tables_400.h"
 
@@ -53,8 +52,7 @@ void ResetTable(Map& table, int& maxKey, std::size_t size) {
     maxKey = 0;
 }
 
-// The objects table's walk as Destroy does it: from begin, until the end or an entry without an
-// object.
+// The objects table's walk as Destroy does it: from begin, until the end or an entry without an object.
 template <typename F>
 void ForEachObject(ObjectMap& objects, F f) {
     for (ObjectMap::Node* node = objects.First(); node; node = objects.After(node)) {
@@ -216,9 +214,8 @@ BOOL CBaseManager::Init(CManagerContext* context) {
     return 0;
 }
 
-// Every object gets a reference, then is destroyed (slot 3), then released (slot 4; objects nothing
-// else holds go back to the spares). Then the objects table, the object list and the positions are
-// emptied.
+// Every object gets a reference, then is destroyed (slot 3), then released (slot 4; objects nothing else
+// holds go back to the spares). Then the objects table, the object list and the positions are emptied.
 void CBaseManager::DestroyAll() {
     ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
     ForEachObject(objects_, [](CEngineObject* o) { o->Destroy(); });

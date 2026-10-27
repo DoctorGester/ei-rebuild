@@ -1,9 +1,8 @@
 #pragma once
 
-// Class templates (0x28C bytes, a counted object): one per
-// hero class a new game offers, each with the weapons, armors, items, spells and modifiers that class
-// may use (the records' class masks). Built at new game into the vector at +0x38 of the
-// party manager object. Names are provisional.
+// Class templates (0x28C bytes, a counted object): one per hero class a new game offers, each with the
+// weapons, armors, items, spells and modifiers that class may use (the records' class masks). Built at new
+// game into the vector at +0x38 of the party manager object. Names are provisional.
 
 #include "core_refcount.h"
 #include "item_stock.h"
@@ -19,19 +18,12 @@ class ChunkArchive;
 
 class ClassTemplate : public CRefCounted {
 public:
-    // Construct (class_template_stock.cpp; the count is the creator's): the two parties (CParty's
-    // constructor), the stocks (ItemStock::Construct on the items / spells party; the first one
-    // inlined there): both parties created (slot 2), class -1, both flags 0, flag38 1.
     // weightsTail is zeroed too (the game never sets it, and saves it).
     ClassTemplate();
-    // The deleting destructor: both parties destroyed (slot 3), the
-    // stocks' maps and vectors freed (the magic stock first, each stock's context cleared), both
-    // parties' destructors (spells first).
     ~ClassTemplate() override;
-    // Serialize (slot 1; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the flags (1 byte
-    // each), 4 the weights and the 4 bytes after them (0x28), stream field 5 (both parties without
-    // variables, then both stocks' lists: SaveLists / LoadLists), field 6 flag38
-    // (1 byte).
+    // Serialize (slot 1; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the flags (1 byte each), 4 the
+    // weights and the 4 bytes after them (0x28), stream field 5 (both parties without variables, then both
+    // stocks' lists: SaveLists / LoadLists), field 6 flag38 (1 byte).
     void Serialize(ChunkArchive* ar) override;
     // The constructor run on `this` (the registration's; the harness's zeroing patch calls it,
     // tests/verify/harness_leftovers.cpp). Returns this.
@@ -51,8 +43,7 @@ public:
     std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // set by the constructor and by a quest completion
     std::uint8_t unused_39[3];
-    // / +0xAC the party objects (CParty; party_storage.h): ItemsParty /
-    // SpellsParty.
+    // / +0xAC the party objects (CParty; party_storage.h): ItemsParty / SpellsParty.
     PartyStorage items;
     PartyStorage spells;
     ItemStock allowed;              // everything the class may use (vectors at +0x08 armors,
@@ -82,9 +73,8 @@ struct TemplateTable : stlp::vector<ClassTemplate*> {
 using ClassTemplateVector = TemplateTable;
 static_assert(sizeof(ClassTemplateVector) == 12);
 
-// Adds to the template's lists every weapon, armor, quick item, fourth-kind
-// record, spell and modifier whose class mask has the template's bit (spells and modifiers to
-// both lists).
+// Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose
+// class mask has the template's bit (spells and modifiers to both lists).
 void __fastcall ClassTemplateFill(ClassTemplate* t);
 
 // Run on the party manager (the script's quest completion): sets byte

@@ -20,13 +20,10 @@ public:
     CRefCounted() = default;
     CRefCounted(const CRefCounted&) = delete;
     CRefCounted& operator=(const CRefCounted&) = delete;
-    // 0: the scalar deleting destructor (1 when the last reference goes). The out-of-line bodies and
-    // its copies are in core_streams.cpp.
     virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}   // empty in the root class; chunk_archive.h
 
-    // Counted objects live on the game's heap: null without memory, and then
-    // no constructor runs.
+    // Counted objects live on the game's heap: null without memory, and then no constructor runs.
     static void* operator new(std::size_t size) noexcept;
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
@@ -41,10 +38,9 @@ static_assert(sizeof(CRefCounted) == 8);
 // The test the network code inlines before using a counted object: set and not detached.
 inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
-// Reference-counted objects of the engine core (script values, network records and messages, AI
-// shapes). Names provisional. The header and the slots below
-// are what the engine's helpers use; the game mostly inlines these helpers, the
-// out-of-line copies are rewritten here.
+// Reference-counted objects of the engine core (script values, network records and messages, AI shapes).
+// Names provisional. The header and the slots below are what the engine's helpers use; the game mostly
+// inlines these helpers, the out-of-line copies are rewritten here.
 class CRefObject : public CRefCounted {
 public:
     // The vtable has 2 / 3 `_purecall`: the out-of-line constructor; the deleting destructor
@@ -70,8 +66,7 @@ struct RefPtr {
     RefPtr* DeleteReleased(unsigned flags);
     RefPtr* DeleteDestroyed(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
-    // counted_ptr<T>'s copy constructor: from's object, one more
-    // reference. Returns this.
+    // counted_ptr<T>'s copy constructor: from's object, one more reference. Returns this.
     RefPtr* CopyCounted(const RefPtr* from);
     RefPtr* AssignHolder(const RefPtr* other);
     RefPtr* AssignObject(CRefObject* object);
@@ -100,10 +95,9 @@ struct RefPtrTo : RefPtr {
 };
 static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
 
-// A counted reference: the pointer slot is the `this` of the 3D object's figure (a
-// CLinkMesh) and of its byte-identical copies, the client half's wounds material and
-// that material's helper preset. T's count is at +0x04 and its
-// slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types. Reads see the
+// A counted reference: the pointer slot is the `this` of the 3D object's figure (a CLinkMesh) and of its
+// byte-identical copies, the client half's wounds material and that material's helper preset. T's count is at
+// +0x04 and its slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types. Reads see the
 // object (the conversion and ->); a plain store (`ref = p`) neither takes nor drops a reference.
 template <typename T>
 struct CountedRef {

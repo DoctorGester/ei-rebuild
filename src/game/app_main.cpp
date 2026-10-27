@@ -255,9 +255,8 @@ void LoadSystemMessages(console::CStringArray& messages) {
 
 mfc::CString Tail(const mfc::CString& argument, int prefixLength) { return argument.Right(argument.GetLength() - prefixLength); }
 
-// The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only
-// while flag 0x10 is off), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and
-// "-devicetarget_<driver>".
+// The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only while flag
+// 0x10 is off), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
 void ReadCommandLine(const char* commandLine) {
     console::CStringArray arguments;
     text::Split(commandLine, &arguments, ' ');
@@ -306,8 +305,7 @@ void ReadCommandLine(const char* commandLine) {
     }
 }
 
-// The window class registered; a game that runs already is brought to the front instead and this
-// one exits.
+// The window class registered; a game that runs already is brought to the front instead and this one exits.
 void RegisterWindowClass(HINSTANCE instance) {
     gameapi::lstrcpynA(g_windowTitle, kWindowTitle, kTextSize);
     gameapi::lstrcpynA(g_windowClassName, kWindowClassName, kTextSize);
@@ -540,9 +538,8 @@ std::uint32_t ClientClockMs() {
     return g_clientTicksMs + (g_clientBacklog < tick ? g_clientBacklog : tick);
 }
 
-// A change of the window's activation taken up: active again, every surface is restored (when the
-// renderer was created) and the renderer runs; inactive, the renderer stops and the desktop is
-// repainted.
+// A change of the window's activation taken up: active again, every surface is restored (when the renderer
+// was created) and the renderer runs; inactive, the renderer stops and the desktop is repainted.
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {

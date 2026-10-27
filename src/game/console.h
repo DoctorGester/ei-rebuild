@@ -1,8 +1,7 @@
 #pragma once
 
-// The developer console: the streambuf that collects console
-// output, the command executor with its two command maps, the "@"/"#"/"$" script lines
-// and the command handlers. See docs/notes/console.md.
+// The developer console: the streambuf that collects console output, the command executor with its two
+// command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
 #include "game_data.h"
 #include "game_strings.h"
@@ -170,11 +169,7 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 // the surface is redrawn from them.
 class ConsoleWindow {
 public:
-    // Made by CInterface3D::Create. The members
-    // constructed, `screen` kept, no surface, no command shown (-1), caret, selection, scroll and
-    // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
-    // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
-    // Returns this.
+    // Made by CInterface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
     ConsoleWindow* Construct(CInterface3D* screen);
     void SetRect(const RECT* rect);   // 800x600 coordinates
     void SetHistory(int lines);
@@ -186,8 +181,7 @@ public:
     void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
     void DrawLines();                          // the lines above the input line
     void DrawInput();                          // the input line, selection and caret
-    // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is
-    // one.
+    // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
     void Blit();
     // Called by the interface's shutdown, which deletes the window. Frees the surface and the font, then
     // the members (lines, input text, command history).
@@ -227,8 +221,7 @@ using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
-// if missing.
+// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const mfc::CString& key);
 
 static_assert(sizeof(CommandMap) == 0xC);

@@ -1,11 +1,10 @@
 #pragma once
 
 // The item and spell databases: fixed-size records loaded from the game's .db files, held in globals as
-// STLport vectors (only begin/end are read here). Records are looked up by index; every lookup does the
-// same bounds check against (end - begin) / stride, a signed division compared unsigned. Many callers then
-// read a field of the record without checking for null, so an index out of range reads near address 0 and
-// crashes. Field() keeps that behaviour (a real read through the null record) rather than inventing a
-// default.
+// STLport vectors (only begin/end are read here). Records are looked up by index; every lookup does the same
+// bounds check against (end - begin) / stride, a signed division compared unsigned. Many callers then read a
+// field of the record without checking for null, so an index out of range reads near address 0 and crashes.
+// Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
 #include "console.h"
 #include "lib/stlp.h"
@@ -73,9 +72,8 @@ struct SpellRecord {
     stlp::vector<int> list54;           // (chunk 17)
     std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
     std::uint32_t extraValues[5];       // ..+0x74 fields 23-27 (nothing reads them)
-    // which modifiers it accepts, one byte per kind (SpellModifierRecord::kind; by code letter
-    // 'r' +0x78, 't' +0x79, 'a' +0x7A, 'e' +0x7B, 'd' +0x7C); the item info shows the level when the
-    // 'e' byte is set.
+    // which modifiers it accepts, one byte per kind (SpellModifierRecord::kind; by code letter 'r' +0x78, 't'
+    // +0x79, 'a' +0x7A, 'e' +0x7B, 'd' +0x7C); the item info shows the level when the 'e' byte is set.
     std::uint8_t bytes78[5];
     std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
@@ -229,12 +227,11 @@ Record* RecordAs(ItemRecordHead* record) { return static_cast<Record*>(record); 
 template <class Record>
 const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const Record*>(record); }
 
-// The record kinds. Their copy constructors are what STLport's uninitialized_copy
-// (first, last, dest) and uninitialized_fill_n (dest, n, x) of each vector inline: the head constructed
-// (empty strings and string arrays, +0x68 = 1), the kind's own members, the head's Assign, then the kind's
-// own fields. Bytes that are not copied are left as constructed (or as they were, for bytes no constructor
-// sets). The default constructors make the record the vectors' resize(n) appends copies of and the item
-// constructor's temporary.
+// The record kinds. Their copy constructors are what STLport's uninitialized_copy (first, last, dest) and
+// uninitialized_fill_n (dest, n, x) of each vector inline: the head constructed (empty strings and string
+// arrays, +0x68 = 1), the kind's own members, the head's Assign, then the kind's own fields. Bytes that are
+// not copied are left as constructed (or as they were, for bytes no constructor sets). The default
+// constructors make the record the vectors' resize(n) appends copies of and the item constructor's temporary.
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
@@ -428,8 +425,7 @@ struct NamedRecordTable {
     // item and loot tables).
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record`: the byte offset from the first record divided by the record size, signed (a null
-    // record
-    // gives an index too).
+    // record gives an index too).
     int IndexOf(const Record* record) const {
         return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(records.begin())) /
                static_cast<int>(sizeof(Record));
@@ -478,10 +474,9 @@ using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 
 // The spell database: the spells and the modifiers by code, and the three lists of spells.sdb's chunks 3-5.
 struct SpellDatabase {
-    // Rebirth-patched. "spells.sdb" of the archive `folder` +
-    // `archive`: the spells (chunk 1) and the modifiers (chunk 2), each read through an archive of its own
-    // and filed under its code, then the three lists through a third. 1; FatalError's result when the
-    // archive or the file cannot be opened.
+    // Rebirth-patched. "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the
+    // modifiers (chunk 2), each read through an archive of its own and filed under its code, then the three
+    // lists through a third. 1; FatalError's result when the archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
     // Run by the static initialiser, the resource switch and the reload. Both
     // tables (CodeIndexedTable::Construct), the three lists empty. Returns this.
@@ -490,8 +485,7 @@ struct SpellDatabase {
     // lists from the last (records in order, then the storage), the modifiers and the spells (the index's
     // nodes and buckets, then the records and their storage); then Construct.
     void Reset();
-    // Run at exit. The destruction half of Reset: the three lists from the last,
-    // the modifiers, the spells.
+    // Run at exit. The destruction half of Reset: the three lists from the last, the modifiers, the spells.
     void Destruct();
 
     SpellTable spells;
@@ -513,9 +507,8 @@ struct ItemDatabase {
     // Run by the static initialiser, the resource switch and the reload. The six
     // tables from the first (NamedRecordTable::Construct). Returns this.
     ItemDatabase* Construct();
-    // Destruction and construction in place, which the resource switch runs. The
-    // tables from the last to the first as DestructBody destroys them, but through the library's
-    // containers; then Construct.
+    // Destruction and construction in place, which the resource switch runs. The tables from the last to the
+    // first as DestructBody destroys them, but through the library's containers; then Construct.
     void Reset();
 
     MaterialTable materials;        // kMaterialSize records
