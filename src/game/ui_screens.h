@@ -348,11 +348,6 @@ static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
 // An entry of the connection screen's list.
 struct MpAddressEntry {
-    MpAddressEntry* CopyConstruct(const MpAddressEntry* other);
-    // Every field; the padding is not copied. Returns this.
-    MpAddressEntry* AssignFrom(const MpAddressEntry& other);
-    void Destroy();
-
     std::string name;             // the server's name
     std::string description;      // the current map's title
     int players;
@@ -365,14 +360,7 @@ struct MpAddressEntry {
     bool password;                 // joining needs a password
 };
 
-struct MpAddresses : stlp::vector<MpAddressEntry> {
-    void PushDefault();
-    // One inserted before `pos` (the tail moved up by assignment); returns it.
-    MpAddressEntry* InsertDefault(MpAddressEntry* pos);
-    // [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
-    MpAddressEntry* Erase(MpAddressEntry* first, MpAddressEntry* last);
-};
-using MpAddressList = MpAddresses;
+using MpAddressList = std::vector<MpAddressEntry>;
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
 // and left as it is for the next draw's titles; Create's texts take it too.

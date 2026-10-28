@@ -57,7 +57,6 @@ CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     movers_ = EmptyList<BriefingMover>();
     personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
-    speakers_.ConstructEmpty();
 }
 
 void CInterface3D::CreateScreen(int id) {

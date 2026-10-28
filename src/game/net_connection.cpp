@@ -7,6 +7,7 @@
 
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_tree_abi.h"
@@ -34,9 +35,9 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 // CollectChanges's static vector of {object, priority}; its exit function frees the storage.
-constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
+constinit std::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
-void FreeReplicated() { g_replicated.FreeStorage(); }
+void FreeReplicated() { lib::FreeStorage(g_replicated); }
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
@@ -448,22 +449,21 @@ void Connection::CollectChanges() {
     ReplicatedVector& items = g_replicated;
     if (!(g_replicatedGuard & 1)) {
         g_replicatedGuard |= 1;
-        items.ConstructEmpty();
         libcrt::AtExit(FreeReplicated);
     }
-    items.EraseRange<stlp::PlainElement<Replicated>>(items.begin(), items.end());
+    items.clear();
     ReplicatedVector* target = &items;
     g_currentSession->CollectReplicated(&target);
-    if (items.begin() != items.end()) {
+    Replicated* item = items.data();
+    Replicated* end = item + items.size();
+    if (item != end) {
         int depth = 0;
         for (std::int32_t n = static_cast<std::int32_t>(items.size()); n != 1; n >>= 1) ++depth;
-        stl_sorts::ReplicatedIntroSort(items.begin(), items.end(), nullptr, depth * 2, target);
-        stl_sorts::ReplicatedFinalSort(items.begin(), items.end(), target);
+        stl_sorts::ReplicatedIntroSort(item, end, nullptr, depth * 2, target);
+        stl_sorts::ReplicatedFinalSort(item, end, target);
     }
 
     // Merge the sorted list with byObject_ (both ordered by object pointer).
-    Replicated* item = items.begin();
-    Replicated* end = items.end();
     ObjectMap::Node* header = byObject_.end();
     ObjectMap::Node* node = byObject_.begin();
     auto entryAt = [](ObjectMap::Node* n) { return n->second.Get(); };

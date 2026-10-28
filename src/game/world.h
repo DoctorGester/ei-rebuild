@@ -1343,11 +1343,11 @@ extern lib::StaticObject<GameFlow> g_gameFlow;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty) and file name.
 struct MpHeroRecord {
-    MpHeroRecord* Assign(const MpHeroRecord* other);
-    MpHeroRecord* Construct();
-    void Destruct();
-    MpHeroRecord* DeletingDestruct(unsigned flags);
-    static MpHeroRecord* CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    // A copy copies the party (CParty's copy constructor and Assign, which read the source non-const).
+    MpHeroRecord();
+    MpHeroRecord(const MpHeroRecord& other);
+    MpHeroRecord& operator=(const MpHeroRecord& other);
+    ~MpHeroRecord();
     // Writes the party to `folder` + file: a file name with no '.' or with anything but digits before
     // the last one is deleted instead. Otherwise the old file is moved to `folder` + "temp.mp", the
     // party saved (with its variables) into a memory stream and that written as a save file (magic
@@ -1375,7 +1375,7 @@ struct SavedParties {
     void Select(const MpHeroRecord* hero);
 
     std::string folder_;
-    stlp::vector<MpHeroRecord> entries_;
+    std::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
     MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };

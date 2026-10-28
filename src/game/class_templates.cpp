@@ -16,7 +16,6 @@
 
 #include <cstring>
 #include "spell.h"
-#include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
 namespace {

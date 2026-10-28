@@ -20,7 +20,6 @@
 #include "map_object_figures.h"
 #include "world.h"
 #include "world_glue.h"
-#include "library_containers.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -489,55 +488,33 @@ void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
 // --- A hero deleted, the message box's answer ------------------------------------------
 
-MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
-    Party()->Assign(const_cast<MpHeroRecord*>(other)->Party());   // (reads the source non-const)
-    file = other->file;
-    return this;
+MpHeroRecord::MpHeroRecord() { new (Party()) CParty(); }
+MpHeroRecord::MpHeroRecord(const MpHeroRecord& other) : file(other.file) {
+    new (Party()) CParty(*const_cast<MpHeroRecord&>(other).Party());
 }
-
-void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_.Assign(hero); }
-
-MpHeroRecord* MpHeroRecord::Construct() {
-    new (Party()) CParty();
-    std::construct_at(&file);
-    return this;
+MpHeroRecord& MpHeroRecord::operator=(const MpHeroRecord& other) {
+    Party()->Assign(const_cast<MpHeroRecord&>(other).Party());
+    file = other.file;
+    return *this;
 }
+MpHeroRecord::~MpHeroRecord() { Party()->~CParty(); }
 
-void MpHeroRecord::Destruct() {
-    std::destroy_at(&file);
-    Party()->CParty::~CParty();
-}
-
-MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-MpHeroRecord* MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
-                                                 MpHeroRecord* dest) {
-    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
-    return dest;
-}
+void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_ = *hero; }
 
 namespace {
-// The heroes' folder (a CString; the records follow it) and the records as a vector.
+// The heroes' folder and the records.
 const std::string& MpHeroesFolder() { return TheSavedParties().folder_; }
-MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_.Start(); }
-MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().entries_.Finish(); }
-// The count as the original computes it: a signed division, compared unsigned.
-std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
+std::vector<MpHeroRecord>& MpHeroes() { return TheSavedParties().entries_; }
+std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(MpHeroes().size()); }
 constexpr std::uint32_t kListRows = 10;
 constexpr int kAnswerOk = 0x10001;
 } // namespace
 
 void CMpHeroScreen::DeleteHero() {
     if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
-    std::string path = MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file;
+    std::string path = MpHeroesFolder() + MpHeroes()[heroIndex_].file;
     gameapi::DeleteFileA(path.c_str());
-    MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
-    for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
-    (--MpHeroesEnd())->Destruct();
+    MpHeroes().erase(MpHeroes().begin() + heroIndex_);
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     RefreshHeroScroll();
@@ -565,7 +542,7 @@ void MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
     if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
-        MpHeroRecord* hero = MpHeroesBegin() + heroIndex_;
+        MpHeroRecord* hero = &MpHeroes()[heroIndex_];
         hero->Party()->Assign(LocalPlayerData());
         hero->WriteFile(HeroesFolder());
     }
@@ -575,17 +552,8 @@ void CMpHeroScreen::OnMessageResult(int result) {
 // --- The new hero added to the list --------------------------------------------------
 
 namespace {
-MpHeroRecord*& MpHeroesCapacity() { return TheSavedParties().entries_.EndOfStorage(); }
 const char* HeroFilePattern() { return "%s*.mp"; }
 const char* HeroFileFormat() { return "%d.mp"; }
-
-// A record built in place for the vector's insert (constructed and destroyed by hand, as the
-// original does with its stack copy).
-union BlankHeroRecord {
-    BlankHeroRecord() {}
-    ~BlankHeroRecord() {}
-    MpHeroRecord record;
-};
 
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
@@ -630,17 +598,8 @@ void CMpHeroScreen::AddNewHero() {
         }
     }
 
-    if (MpHeroesEnd() == MpHeroesCapacity()) {
-        BlankHeroRecord blank;
-        blank.record.Construct();
-        TheSavedParties().entries_.InsertOverflow<libcontainers::HeroRecordElement>(MpHeroesEnd(), blank.record, 1);
-        blank.record.Destruct();
-    } else {
-        if (MpHeroesEnd()) MpHeroesEnd()->Construct();
-        ++MpHeroesEnd();
-    }
-    heroIndex_ = static_cast<int>(MpHeroesEnd() - MpHeroesBegin()) - 1;
-    MpHeroRecord* record = MpHeroesBegin() + heroIndex_;
+    MpHeroRecord* record = &MpHeroes().emplace_back();
+    heroIndex_ = static_cast<int>(MpHeroes().size()) - 1;
 
     std::string pattern;
     pattern = str::Format(HeroFilePattern(), MpHeroesFolder().c_str());

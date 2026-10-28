@@ -287,7 +287,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         // The member's timed face (no null test).
         for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
-            HudPortraitSlot* slots = portraits_->slots_.begin();
+            HudPortraitSlot* slots = portraits_->slots_.data();
             slots[i].faceTimer_ = 0.0f;
             portraits_->slots_[i].faceMode_ = 1;
         }

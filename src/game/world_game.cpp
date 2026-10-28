@@ -52,9 +52,7 @@
 #include "party_manager.h"
 #include "party_records.h"
 #include "game_lists.h"
-#include "record_vectors.h"
 #include "game_arrays.h"
-#include "library_containers.h"
 #include "bink_video.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -969,7 +967,11 @@ namespace {
 
 // The zone table: a vector of {first, second, id} entries (docs/notes/standalone.md, "The static
 // initialisers' objects").
-using ZoneEntry = recordvec::ZoneTableEntry;
+struct ZoneEntry {
+    std::string first;
+    std::string second;
+    int id;
+};
 using ZoneTable = std::vector<ZoneEntry>;
 constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 bool SameText(std::string_view a, std::string_view b) {
@@ -1664,22 +1666,8 @@ void GameFlow::UpdateFromServer() {
     UpdateMultiplayerVariable();
 }
 
-namespace {
-
-// An entry is a multiplayer hero record (ui_screens.h); the entry's destructor is inlined here: the file
-// name, then the party's.
-void DestroyPartyEntry(MpHeroRecord* entry) {
-    std::destroy_at(&entry->file);
-    entry->Party()->~CParty();
-}
-
-} // namespace
-
 void SavedParties::Reload() {
-    MpHeroRecord*& finish = entries_.Finish();
-    MpHeroRecord* end = MpHeroRecord::CopyRange(finish, finish, entries_.begin());
-    for (MpHeroRecord* entry = end; entry != finish; ++entry) entry->DeletingDestruct(0);
-    finish = end;
+    entries_.clear();
 
     WIN32_FIND_DATAA found;
     HANDLE search;
@@ -1689,11 +1677,8 @@ void SavedParties::Reload() {
     }
     if (search == INVALID_HANDLE_VALUE) return;
     do {
-        // The party records and the file name, side by side as the list's entries are.
-        lib::InPlace<MpHeroRecord> storage;
-        auto* entry = storage.Get();
-        new (entry->Party()) CParty();
-        std::construct_at(&entry->file);
+        MpHeroRecord read;
+        MpHeroRecord* entry = &read;
         entry->file = found.cFileName;
         if (entry->ReadFile(folder_.c_str())) {
             NamedFloatTable* variables = &entry->Party()->variables_;
@@ -1704,20 +1689,8 @@ void SavedParties::Reload() {
             } else {
                 variables->Clear();
             }
-            if (entry->Party()->members_.size == 1) {
-                MpHeroRecord* eos = entries_.EndOfStorage();
-                if (finish != eos) {
-                    if (finish) {
-                        new (finish->Party()) CParty(*entry->Party());
-                        std::construct_at(&finish->file, entry->file);
-                    }
-                    ++finish;
-                } else {
-                    entries_.InsertOverflow<libcontainers::HeroRecordElement>(finish, *entry, 1);
-                }
-            }
+            if (entry->Party()->members_.size == 1) entries_.push_back(read);
         }
-        DestroyPartyEntry(entry);
     } while (gameapi::FindNextFileA(search, &found));
     gameapi::FindClose(search);
 }

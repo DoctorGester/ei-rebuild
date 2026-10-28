@@ -27,6 +27,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -286,8 +287,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         }
         return;
     }
-    BriefingSpeaker* entry = speakers_.begin();
-    while (entry != speakers_.end() && entry->unit != person) ++entry;
+    auto entry = std::find_if(speakers_.begin(), speakers_.end(), [person](const BriefingSpeaker& s) { return s.unit == person; });
     if (entry != speakers_.end()) {
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
@@ -302,14 +302,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             controller->StopAction();
             // (The person is then looked up among the party's first members; the result is not used.)
         }
-        // vector::erase (then the last entry's destructor).
-        for (BriefingSpeaker* p = entry; p + 1 != speakers_.end(); ++p) {
-            p->unit = p[1].unit;
-            p->name = p[1].name;
-            p->spareFlag = p[1].spareFlag;
-        }
-        --speakers_.Finish();
-        std::destroy_at(&speakers_.Finish()->name);
+        speakers_.erase(entry);
     }
     if (person == third_) {
         MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,

@@ -26,19 +26,11 @@ void RegisterInline(ClientSession* client, int channel, Function handler) {
 
 } // namespace
 
-// The queries' constructor (an empty vector and a zero dword).
-ClientQueries* ClientVectorConstruct(ClientQueries* self) {
-    new (&self->list) stlp::vector<Query>();
-    self->extra = 0;
-    return self;
-}
-
 // The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
 // socket.
 ClientBase::ClientBase() {
     host_ = NetAddress{};
     servers_.Construct();
-    ClientVectorConstruct(&queries_);
     alwaysAsk_ = NetAddress{};
     joinState_ = kNotJoined;
     joinId_ = 0;
@@ -120,12 +112,11 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
     for (TimedNode* n = self->timers_.First(); n != self->timers_.End(); n = n->next) PushReplicated(*out, n->data.ref.ptr, 1);
     for (RefNode* n = self->fileRequests_.First(); n != self->fileRequests_.End(); n = n->next) PushReplicated(*out, n->data.ptr, 1);
     if (void* group = self->party_.ptr) {
-        PushReplicatedInline(*out, group, 1);
+        PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
             const RefVector& members = self->party_.Get()->members_;
-            RefPtr* begin = members.begin();
-            if (i >= static_cast<std::uint32_t>(members.end() - begin)) break;
-            PushReplicatedInline(*out, begin[i].ptr, 1);
+            if (i >= static_cast<std::uint32_t>(members.size())) break;
+            PushReplicated(*out, members[i].ptr, 1);
         }
     }
 }

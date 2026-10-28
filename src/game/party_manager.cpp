@@ -9,9 +9,7 @@
 #include "party.h"
 #include "resource_local.h"   // FillStream
 
-#include "record_vectors.h"
 #include "game_hashes.h"
-#include "lib/stlp_vector_refs.h"
 
 #include <memory>
 #include <string>

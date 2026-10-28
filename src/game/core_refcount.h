@@ -170,6 +170,46 @@ struct RefPtrTo : RefPtr {
 };
 static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
 
+// A RefPtr that holds a plain reference (a container's element): a copy takes one (FromRawCounted), the destructor
+// drops it (the plain release), an assignment takes the new reference before the old one is dropped (Assign). A
+// move hands the reference over.
+struct CountedRefPtr : RefPtr {
+    CountedRefPtr() : RefPtr{nullptr} {}
+    explicit CountedRefPtr(CRefObject* object) : RefPtr{nullptr} { FromRawCounted(object); }
+    CountedRefPtr(const CountedRefPtr& other) : RefPtr{nullptr} { FromRawCounted(other.ptr); }
+    CountedRefPtr(CountedRefPtr&& other) noexcept : RefPtr{std::exchange(other.ptr, nullptr)} {}
+    CountedRefPtr& operator=(const CountedRefPtr& other) {
+        Assign(other.ptr);
+        return *this;
+    }
+    CountedRefPtr& operator=(CountedRefPtr&& other) noexcept {
+        std::swap(ptr, other.ptr);
+        return *this;
+    }
+    ~CountedRefPtr() { ReleaseCounted(ptr); }
+};
+static_assert(sizeof(CountedRefPtr) == 4);
+
+// A RefPtr that owns its share (a container's element): a copy shares the object (Share: a clone of a
+// copy-on-share one), the destructor is the owner's release (Destroy), an assignment ShareAssign. A move hands
+// the share over.
+struct SharedRefPtr : RefPtr {
+    SharedRefPtr() : RefPtr{nullptr} {}
+    explicit SharedRefPtr(CRefObject* object) : RefPtr{nullptr} { Share(object); }
+    SharedRefPtr(const SharedRefPtr& other) : RefPtr{nullptr} { Share(other.ptr); }
+    SharedRefPtr(SharedRefPtr&& other) noexcept : RefPtr{std::exchange(other.ptr, nullptr)} {}
+    SharedRefPtr& operator=(const SharedRefPtr& other) {
+        ShareAssign(other.ptr);
+        return *this;
+    }
+    SharedRefPtr& operator=(SharedRefPtr&& other) noexcept {
+        std::swap(ptr, other.ptr);
+        return *this;
+    }
+    ~SharedRefPtr() { Destroy(); }
+};
+static_assert(sizeof(SharedRefPtr) == 4);
+
 // A counted reference to a figure (CLinkMesh), the client half's wounds material or its helper preset;
 // object3d_lifetime.cpp defines Assign for those. A plain store (`ref = p`) takes and drops no reference.
 template <typename T>

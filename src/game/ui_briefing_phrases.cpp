@@ -332,9 +332,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
         text_->SetText(dialogueText_.c_str());
         text_->SetPosition(text_->maxPosition_);
         text_->moved_ = true;
-        for (BriefingSpeaker* p = speakers_.begin(); p != speakers_.end(); ++p) {
-            SetBlink(p->unit, 0);
-            PlaySpeakerAnimation(p->unit, 0, 0);
+        for (const BriefingSpeaker& p : speakers_) {
+            SetBlink(p.unit, 0);
+            PlaySpeakerAnimation(p.unit, 0, 0);
         }
         speaking_ = nullptr;
         ClearShownItems();

@@ -915,9 +915,9 @@ static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
 struct HudPortraitSlot {
     int lastHitPoints_;              // lowest hit points seen (a drop flashes the portrait)
     float flash_;                    // 1 after a hit, fading out
-    Quaternion restA_;               // the face's rest orientation is restA_ * restB_
-    Quaternion current_;             // the face's orientation, eased towards the rest one
-    Quaternion restB_;
+    Quaternion restA_{1.0f, 0.0f, 0.0f, 0.0f};     // the face's rest orientation is restA_ * restB_
+    Quaternion current_{1.0f, 0.0f, 0.0f, 0.0f};   // the face's orientation, eased towards the rest one
+    Quaternion restB_{1.0f, 0.0f, 0.0f, 0.0f};
     int wobbleKind_;                 // 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
     float wobbleTime_;               // starts negative (a delay)
     std::string faceName_;
@@ -927,7 +927,7 @@ struct HudPortraitSlot {
     std::string modelPrefix_;       // the face model is prefix + build + suffix,
     std::string modelSuffix_;       // build "th", "me" or "fa"
     float build_;                    // the unit's build the model was chosen for
-    Quaternion wobbleTarget_;
+    Quaternion wobbleTarget_{1.0f, 0.0f, 0.0f, 0.0f};
     float wobbleSpeed_;
     bool hasPlayer_;                 // a multiplayer player without a unit here (no bars)
     std::uint8_t unused_71[3];
@@ -962,8 +962,7 @@ public:
     CBattleScreen* owner_;
     int count_;
     std::uint8_t unused_150[0x158 - 0x150];
-    // One per portrait (appended, ranges erased: with recordvec::HudPortraitSlotElement).
-    stlp::vector<HudPortraitSlot> slots_;
+    std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
@@ -1742,9 +1741,6 @@ struct SaveEntry {
     // Text "zone " + zone_ (its first line), else "save_camp"; text "allod " + map_, else "Unknown".
     std::string ZoneTitle() const;
     std::string AllodTitle() const;
-    SaveEntry* Assign(const SaveEntry* from);
-    SaveEntry* CopyConstruct(const SaveEntry* from);
-    void Destruct();
 
     std::string title_;
     std::string folder_;            // under saves\ ("saveq" quick, "savea" / "saveb" automatic, "save<n>")
@@ -1806,7 +1802,7 @@ public:
 
     void CreateScreen() override;
 
-    int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
+    int EntryCount() const { return static_cast<int>(entries_.size()); }
     void TakeSelectedTitle();
 
     // In a save window the edit keys edit the save's name (the first edit of an ordinary save takes over its
@@ -1820,7 +1816,7 @@ public:
     // "saveq", "savea" or "saveb"; no bound check.
     bool IsReservedSave(int index);
 
-    stlp::vector<SaveEntry> entries_;
+    std::vector<SaveEntry> entries_;
     int selected_;
     int firstVisible_;               // list scroll position
     bool isSave_;                    // save (not load) window
@@ -2009,12 +2005,6 @@ inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
 // A key binding row of the options window.
 struct OptionBinding {
-    void Destroy() {
-        std::destroy_at(&keysText_);
-        std::destroy_at(&name_);
-        std::destroy_at(&keys_);
-    }
-
     const ActionDefinition* action_;
     // The keys bound to the action (BuildBindings keeps at most one).
     std::vector<const UiKeyName*> keys_;
@@ -2079,7 +2069,7 @@ public:
     signed char keyOfScan_[0x200];   // the key code bound to each scan code
     int selectedRow_;
     int group_;                      // the option group shown
-    stlp::vector<OptionBinding> bindings_;
+    std::vector<OptionBinding> bindings_;
     std::vector<OptionSetting> settings_;
     OptionRow rows_[14];
     bool waitingForKey_;             // a key binding row waits for the new key

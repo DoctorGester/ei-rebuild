@@ -30,12 +30,6 @@ void* PartyArrayVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }     
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }       // CDWordArray
 void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }   // CArray<ObjectiveExit>
 
-// An STLport vector's storage back to the node pool (its elements already destroyed).
-template <typename T>
-void FreeVectorStorage(T* begin, T* capacity) {
-    stlp::deallocate(begin, static_cast<std::size_t>(capacity - begin) * sizeof(T));
-}
-
 // A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
 // erased and the header reset, the count 0; then the header freed.
 void DestroyPersonTexts(PersonTextMap& map) {
@@ -72,11 +66,7 @@ CItemInfoPanel::~CItemInfoPanel() {
     ItemParty()->CParty::~CParty();
 }
 
-CChatWindow::~CChatWindow() {
-    for (CRefObject* player : players_)
-        if (player) player->Release();
-    players_.FreeStorage();
-}
+CChatWindow::~CChatWindow() {}
 
 CForwardingStrip::~CForwardingStrip() {
     list_.vtable = ItemArrayVtable();
@@ -114,8 +104,6 @@ CBattleScreen::~CBattleScreen() {
 static_assert(sizeof(BriefingMover) == 0x30);
 
 CBriefingScreen::~CBriefingScreen() {
-    for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) std::destroy_at(&speaker->name);
-    speakers_.FreeStorage();
     // The shown items' list (node 0x18 bytes: next, prev, then the item record).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
@@ -139,13 +127,7 @@ CBriefingScreen::~CBriefingScreen() {
     party_.FreeData();
 }
 
-CMpConnectScreen::~CMpConnectScreen() {
-    for (MpAddressEntry& entry : entries_) {
-        std::destroy_at(&entry.description);
-        std::destroy_at(&entry.name);
-    }
-    entries_.FreeStorage();
-}
+CMpConnectScreen::~CMpConnectScreen() {}
 
 CHelpWindow::~CHelpWindow() {}
 
@@ -154,14 +136,4 @@ CObjectivesWindow::~CObjectivesWindow() {
     if (exits_.data) gamecrt::operator_delete(exits_.data);
 }
 
-CSaveLoadWindow::~CSaveLoadWindow() {
-    for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
-        std::destroy_at(&entry->stringArrays_[1]);
-        std::destroy_at(&entry->stringArrays_[0]);
-        std::destroy_at(&entry->zone_);
-        std::destroy_at(&entry->map_);
-        std::destroy_at(&entry->folder_);
-        std::destroy_at(&entry->title_);
-    }
-    FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
-}
+CSaveLoadWindow::~CSaveLoadWindow() {}

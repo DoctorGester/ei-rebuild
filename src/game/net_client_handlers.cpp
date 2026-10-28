@@ -2,7 +2,6 @@
 // around them. Each keeps the replicated objects the server sends in one of the client's lists and tells the
 // interface or the game flow. The messages are declared in net_messages.h. See docs/notes/network.md.
 #include "address_order.h"
-#include "library_containers.h"
 #include "net_messages.h"
 #include "party.h"
 #include "core_refcount.h"

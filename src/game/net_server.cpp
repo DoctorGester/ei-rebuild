@@ -108,8 +108,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         for (RefNode* m = requests->next; m != requests; m = m->next) {
             auto* request = fileRequests_.At(m);
             if (request->FileRef().ptr != files_.At(n) || request->ConnectionRef().ptr != g_currentConnection) continue;
-            const RefVector& chunks = files_.At(n)->chunks_;
-            for (RefPtr* p = chunks.begin(); p != chunks.end(); ++p) PushReplicated(*out, p->ptr, 1);
+            for (const SharedRefPtr& chunk : files_.At(n)->chunks_) PushReplicated(*out, chunk.ptr, 1);
             break;
         }
     }
@@ -126,22 +125,22 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         if (offer->partner_.ptr != record) continue;
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
-            CRefObject* member = offer->members_.begin()[i].ptr;
+            CRefObject* member = offer->members_[i].ptr;
             if (!member || (member->flags7_ & CRefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
         const RefVector& members = offers_.At(n)->members_;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, offers_.At(n)->members_.begin()[i].ptr, 2);
+            PushReplicated(*out, offers_.At(n)->members_[i].ptr, 2);
     }
     for (RefNode* n = trades_.First(); n != trades_.End(); n = n->next) {
         auto* trade = trades_.At(n);
-        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
+        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
     }
     for (TimedNode* n = finishedTrades_.First(); n != finishedTrades_.End(); n = n->next) {
         auto* trade = TimedValueOf<TradeMessage>(n);
-        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
+        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
     }
 }
 

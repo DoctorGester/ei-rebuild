@@ -62,7 +62,4 @@ CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
 
 // --- Its destructor -----------------------------------------------------------------------------------
 
-CHudPortraits::~CHudPortraits() {
-    for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) slot->~HudPortraitSlot();
-    slots_.FreeStorage();
-}
+CHudPortraits::~CHudPortraits() {}

@@ -4,7 +4,6 @@
 // the buckets freed. See docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
-#include "record_lifetime.h"
 
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"

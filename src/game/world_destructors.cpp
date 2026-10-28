@@ -7,7 +7,6 @@
 #include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
-#include "record_lifetime.h"
 #include "registry.h"
 #include "script.h"
 #include "sector_map.h"

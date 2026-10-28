@@ -16,7 +16,6 @@
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "record_vectors.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -94,7 +93,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
     CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
-    slots_.PushDefault<recordvec::HudPortraitSlotElement>();   // identity orientations, empty strings
+    slots_.emplace_back();   // identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
 
@@ -180,7 +179,7 @@ void CHudPortraits::Rebuild(int wide) {
     std::string picture;
     std::string model;
     std::string tip;
-    slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());
+    slots_.clear();
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];

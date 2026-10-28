@@ -13,12 +13,12 @@
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "record_vectors.h"
 #include "../hook/log.h"
 #include "game_data.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -37,7 +37,7 @@ ServerEntry* EntryOf(ServerNode* node) { return stlp::SharedRefListOf<ServerEntr
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
-using QueryList = stlp::vector<Query>;
+using QueryList = std::vector<Query>;
 
 
 // "<text>\n" and a flush.
@@ -63,10 +63,8 @@ ServerNode* FindServer(ClientBase* self, const NetAddress* address) {
     return node;
 }
 // The query with `address`, or the end.
-Query* FindQuery(ClientQueries& v, const NetAddress* address) {
-    Query* q = v.list.begin();
-    while (q != v.list.end() && !SameAddress(&q->address, address)) ++q;
-    return q;
+QueryList::iterator FindQuery(ClientQueries& v, const NetAddress* address) {
+    return std::find_if(v.list.begin(), v.list.end(), [address](const Query& q) { return SameAddress(&q.address, address); });
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
@@ -117,7 +115,7 @@ ServerEntryBase::ServerEntryBase() {
     state_ = kLocal;
 }
 
-Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+QueryList::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 
 // A buffer's length (its highest position brought up to date first).
 std::int32_t BufferLength(GameBuffer* b) {
@@ -244,8 +242,8 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     e->foreign_ = magic != magic_;   // another version (low byte differs): Connect refuses it
     bool local = socket_.IsLocal(from);
     ClientQueries& v = queries_;
-    Query* end = v.list.end();
-    Query* query = v.QueriesFind(from);
+    auto end = v.list.end();
+    auto query = v.QueriesFind(from);
     if (local) {
         e->state_ = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
         e->timeout_ = 20.0f /*0073BF98*/;
@@ -272,7 +270,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
             slot.Destroy();
             slot.Share(entry.ptr);
         }
-        Query* q = FindQuery(v, from);
+        auto q = FindQuery(v, from);
         if (q != v.list.end()) {
             BufferCursor c;
             c.Reset(nullptr, 0, 0);
@@ -327,11 +325,11 @@ void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address
 // Each server not yet listed is listed with an entry read from its saved reply (or an empty entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
     QueryList& v = queries_.list;
-    static_cast<recordvec::QueryVector*>(&v)->Assign(from->list);
+    v = from->list;
     queries_.extra = from->extra;
-    if (v.end() == v.begin()) return;
+    if (v.empty()) return;
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
-        Query* q = v.begin() + i;
+        Query* q = &v[i];
         if (FindServer(this, &q->address) != servers_.End()) continue;
         RefPtrTo<ServerEntry> entry{nullptr};
         GameBuffer& r = q->reply;
@@ -369,14 +367,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
 void ClientBase::Ask(const NetAddress* address) {
     QueryList& v = queries_.list;
     if (FindQuery(queries_, address) == v.end()) {
-        if (v.end() != v.EndOfStorage()) {
-            stlp::ConstructDefaultAt<Query, recordvec::QueryElement>(v.end());
-            ++v.Finish();
-        } else {
-            Query temporary;
-            v.InsertOverflow<recordvec::QueryElement>(v.end(), temporary, 1);
-        }
-        v.back().address = *address;
+        v.emplace_back().address = *address;
         GrowingBuffer b;
         std::uint8_t kind = 3;
         b.BufferWrite(&kind, 1);
@@ -408,13 +399,8 @@ void ClientBase::Ask(const NetAddress* address) {
 
 void ClientBase::Forget(const NetAddress* address) {
     QueryList& v = queries_.list;
-    Query* q = FindQuery(queries_, address);
-    if (q != v.end()) {
-        // erase(q), inlined: the tail copied down, the last query destroyed.
-        if (q + 1 != v.end()) stlp::CopyAssignTagged<Query, recordvec::QueryElement>(q + 1, v.end(), q, address, nullptr);
-        --v.Finish();
-        v.end()->~Query();
-    }
+    auto q = FindQuery(queries_, address);
+    if (q != v.end()) v.erase(q);
     ServerNode* node = servers_.End()->next;
     while (node != servers_.End()) {
         if (SameAddress(&EntryOf(node)->address_, address)) {
@@ -650,37 +636,21 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
 // ---- Saving the queries -----------------------------------------------------------------------
 
 void ClientQueries::Serialize(ChunkArchive* archive) {
-    if (archive->EnterChunk(1)) {
-        bool loading = archive->loading_ != 0;
-        int n;
-        if (loading) {
-            list.EraseRange<recordvec::QueryElement>(list.begin(), list.end());
-            n = archive->CountChunks(1);
-            list.ResizeDefault<recordvec::QueryVector::Element>(static_cast<unsigned>(n));
+    RecordChunks(archive, 1, &list, [](Query& q, ChunkArchive* ar) {
+        ar->Field(1, &q.address, 0x10);
+        std::uint32_t length;
+        if (ar->loading_) {
+            ar->Field(2, &length, 4);
+            GameBuffer& r = q.reply;
+            r.cur = r.begin;
+            r.high = r.begin + length;
+            if (r.high > r.end) r.Grow(length);
         } else {
-            n = static_cast<int>(list.size());
+            length = static_cast<std::uint32_t>(BufferLength(&q.reply));
+            ar->Field(2, &length, 4);
         }
-        for (int i = 0; i < n; ++i) {
-            archive->Current()->occurrence = i + 1;
-            Query* q = list.begin() + i;
-            if (!archive->EnterChunk(1)) continue;
-            archive->Field(1, &q->address, 0x10);
-            std::uint32_t length;
-            if (archive->loading_) {
-                archive->Field(2, &length, 4);
-                GameBuffer& r = q->reply;
-                r.cur = r.begin;
-                r.high = r.begin + length;
-                if (r.high > r.end) r.Grow(length);
-            } else {
-                length = static_cast<std::uint32_t>(BufferLength(&q->reply));
-                archive->Field(2, &length, 4);
-            }
-            archive->Field(3, q->reply.begin, length);
-            archive->LeaveChunk();
-        }
-        archive->LeaveChunk();
-    }
+        ar->Field(3, q.reply.begin, length);
+    });
     archive->Field(2, &extra, 4);
 }
 

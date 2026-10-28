@@ -618,7 +618,7 @@ float PortraitDelay(std::uint32_t random) {
 }
 // Portrait `index` nods (wobble kind 1) after a short random delay.
 void NodPortrait(CBattleScreen* screen, int index) {
-    HudPortraitSlot* slots = screen->portraits_->slots_.begin();
+    HudPortraitSlot* slots = screen->portraits_->slots_.data();
     float delay = PortraitDelay(IsaacRandom::Global().Next());
     slots[index].wobbleTime_ = delay;
     screen->portraits_->slots_[index].wobbleKind_ = 1;

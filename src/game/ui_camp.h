@@ -237,10 +237,6 @@ static_assert(offsetof(CGlobalMap, allodTitle_) == 0x17C);
 // perks the hero may learn, each with its price.
 
 struct TradeRow {
-    void Destroy();
-    TradeRow* DeleteThis(int flags);
-    TradeRow* CopyConstruct(const TradeRow* from);
-
     std::string name;
     std::string key;                // the perk's record name (perk rows)
     std::string nextKey;            // the next level's record name (held perks below 3)
@@ -250,7 +246,7 @@ struct TradeRow {
     std::uint8_t unused_15[3];
 };
 
-using TradeRows = stlp::vector<TradeRow>;
+using TradeRows = std::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
 // `index`).
@@ -324,7 +320,7 @@ public:
     TradeRows schools_;              // six
     TradeRows science_;              // one
     int experience_;                 // experience the hero can spend
-    stlp::vector<TradeRecord> records_;           // one per party member
+    std::vector<TradeRecord> records_;            // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
     float holdTime_;                 // from -0.5 s
     std::vector<std::string> texts_; // the titles

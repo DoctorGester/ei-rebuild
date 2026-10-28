@@ -2,7 +2,6 @@
 // looks. See docs/notes/world.md ("Client maps", the unit set). The set's three STLport hash_maps are walked
 // with the game's iterator helpers, so the order matches theirs.
 #include "core_streams.h"
-#include "record_vectors.h"
 #include "world.h"
 
 #include <bit>

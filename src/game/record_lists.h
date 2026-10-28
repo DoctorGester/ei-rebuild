@@ -13,7 +13,6 @@
 #include "net_classes.h"
 #include "net_link.h"
 #include "party.h"
-#include "record_lifetime.h"
 #include "ui_screens.h"
 
 #include "lib/mfc.h"

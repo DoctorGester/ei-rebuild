@@ -7,7 +7,6 @@
 
 #include "game_hashes.h"
 #include "item_db.h"
-#include "record_vectors.h"
 #include "unit.h"
 
 #include "lib/mfc.h"

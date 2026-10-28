@@ -148,7 +148,7 @@ void CSaveLoadWindow::CreateScreen() {
         selected_ = 0;
         if (EntryCount() != 0) {
             nameTyped_ = false;
-            name_ = entries_.begin()->title_;
+            name_ = entries_.front().title_;
             cursor_ = name_.size();
         }
     } else {

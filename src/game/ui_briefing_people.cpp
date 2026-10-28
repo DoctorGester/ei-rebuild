@@ -1,7 +1,6 @@
 // The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
 // person walking to a place and a dialogue's "#show" line. See
 // docs/notes/ui.md, "Briefing / base screen".
-#include "library_containers.h"
 #include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
@@ -25,6 +24,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <new>
@@ -113,27 +113,9 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
-        BriefingSpeaker* entry = speakers_.begin();
-        while (entry != speakers_.end() && entry->unit != unit) ++entry;
-        if (entry != speakers_.end()) {
-            // vector::erase (then the last entry's destructor).
-            for (BriefingSpeaker* p = entry; p + 1 != speakers_.end(); ++p) {
-                p->unit = p[1].unit;
-                p->name = p[1].name;
-                p->spareFlag = p[1].spareFlag;
-            }
-            --speakers_.Finish();
-            std::destroy_at(&speakers_.Finish()->name);
-        }
-        BriefingSpeaker added{unit, std::string(), false};
-        if (speakers_.Finish() != speakers_.EndOfStorage()) {
-            libcontainers::ConstructSpeaker(speakers_.Finish(), &added);
-            ++speakers_.Finish();
-        } else {
-            speakers_.InsertOverflow<libcontainers::SpeakerElement>(speakers_.Finish(), added, 1);
-        }
-        speakers_.back().unit = unit;
-        speakers_.back().name = name;
+        auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
+        if (entry != speakers_.end()) speakers_.erase(entry);
+        speakers_.push_back(BriefingSpeaker{unit, name, false, {}});
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {

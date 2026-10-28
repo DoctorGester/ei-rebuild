@@ -800,23 +800,7 @@ void CCampPages::Close() {
 
 // --- the trade panel's destructor body -----------------------------------------------------------
 
-namespace {
-
-// The rows' destructors, then the block (its capacity in rows).
-void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin(); at != rows.end(); ++at) at->Destroy();
-    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));
-}
-
-} // namespace
-
-CTradePanel::~CTradePanel() {
-    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));
-    DestroyRows(science_);
-    DestroyRows(schools_);
-    DestroyRows(perks_);
-    DestroyRows(learnable_);
-}
+CTradePanel::~CTradePanel() {}
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
