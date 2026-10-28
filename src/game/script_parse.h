@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace scriptparse {
@@ -30,6 +31,6 @@ int ScriptErrorV(CScript* script, int line, int code, const char* format, char* 
 
 // script_text_file.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read (MFC's CFileException, caught).
-int __fastcall ReadTextFile(const char* path, mfc::CString* text);
+int __fastcall ReadTextFile(const char* path, std::string* text);
 
 } // namespace scriptparse

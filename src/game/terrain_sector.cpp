@@ -119,8 +119,8 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     const char* wrongFormat = "Wrong format resource: ";
     // The message is passed to FatalError as its format string.
     auto fail = [&](const char* text) {
-        mfc::CString n(name);
-        std::string message = (mfc::operator+(text, n)).GetString();
+        std::string n(name);
+        std::string message = text + n;
         return game::FatalError(message.c_str());
     };
     if (!file) return fail(unableToLocate);

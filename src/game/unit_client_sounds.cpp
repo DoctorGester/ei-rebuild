@@ -19,6 +19,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <string>
@@ -64,7 +65,7 @@ const char* SkillSound(std::uint32_t number) {
 }
 } // namespace
 
-int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
+int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
@@ -78,22 +79,22 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
-        out->Format("steps\\human\\crawl\\%d.wav", RandomBelow(kCrawlSounds) + 1);
+        *out = str::Format("steps\\human\\crawl\\%d.wav", RandomBelow(kCrawlSounds) + 1);
         return 1;
     }
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     const char* name = model->soundNames.begin()[terrain].c_str();
-    out->Format("%s\\%d.wav", name, RandomBelow(count) + 1);
+    *out = str::Format("%s\\%d.wav", name, RandomBelow(count) + 1);
     return 1;
 }
 
-int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out,
+int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, std::string* out,
                                      std::uint8_t miss) {
     const auto* prototype = unit->GetPrototype23C();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     int frame = animation->soundFrame;
-    out->Empty();
+    out->clear();
     if (frame == 0) return 0;
     double at = frame;
     EI_NAN_AUDIT(from);
@@ -122,7 +123,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNone;
         if (unit->type_ == kUnitTypeHero && unit->activeWeapon < 4 && hand != kNone &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
-            out->Format("weapons\\%d.wav", sound);
+            *out = str::Format("weapons\\%d.wav", sound);
             return 1;
         }
         if (static_cast<std::uint32_t>(RandomBelow(100)) >= model->attackSoundChance) return 1;
@@ -133,7 +134,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     case kKindHit: format = "%s\\hit\\%d.wav"; break;
     default: return 0;
     }
-    out->Format(format, folder.c_str(), sound);
+    *out = str::Format(format, folder.c_str(), sound);
     return 1;
 }
 
@@ -188,7 +189,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     float now = state->time;
     Vector3 position{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
     int priority = 0;
-    mfc::CString sound;
+    std::string sound;
     if (lastAnimation != current) {
         lastAnimationTime = 0.0f;
         lastAnimation = current;
@@ -208,7 +209,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&
             ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
-            sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
+            sounds->Play3D(sound.c_str(), kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
         priority = kPriorityAction;
         action = true;
         break;
@@ -234,7 +235,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     default:
         break;
     }
-    if (action && !ActionSound(current, lastAnimationTime, now, &sound, 0)) sound.Empty();
+    if (action && !ActionSound(current, lastAnimationTime, now, &sound, 0)) sound.clear();
 
     for (int step = 0; steps && step < kStepFrames; ++step) {
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
@@ -299,15 +300,15 @@ void CUnitClientSpecific::PlayStepSounds() {
         break;
     }
 
-    if (sound.GetLength() != 0) {
+    if (sound.size() != 0) {
         int handle = -1;
         if (kind == kKindAttack) {
             if (!SoundBusy(speechSound)) {
-                handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+                handle = sounds->Play3D(sound.c_str(), priority, &position.x, kSoundNear, kSoundFar, 0, 0);
                 speechSound = handle;
             }
         } else {
-            handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+            handle = sounds->Play3D(sound.c_str(), priority, &position.x, kSoundNear, kSoundFar, 0, 0);
         }
         if (kind == kKindIdle) idleSound = handle;
     }

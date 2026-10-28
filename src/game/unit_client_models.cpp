@@ -363,8 +363,8 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
 namespace {
 
 // "<prototype name><texture>.mmp" into `texture`.
-void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
-    std::string named = unit->name.c_str() + std::string(texture.GetString());
+void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
+    std::string named = unit->name.c_str() + std::string(texture.c_str());
     std::string withExtension = named + ".mmp";
     texture = withExtension;
 }
@@ -373,41 +373,41 @@ void AddTexture(SkinRequest& request, const std::string& texture) {
     request.textures.push_back(texture);
 }
 
-void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {
+void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
     ArmorModelName(&texture, id >> 16, id & 0xFFFF);
     AddPrototypePrefix(unit, texture);
-    AddTexture(request, texture.GetString());
+    AddTexture(request, texture.c_str());
 }
 } // namespace
 
 namespace {
 // The layer texture names and the two keys of a skin.
-void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, mfc::CString& unitKey,
-                      mfc::CString& prototypeKey, mfc::CString& texture) {
+void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
+                      std::string& prototypeKey, std::string& texture) {
     const CUnit* unit = self->unit;
     int id = unit->id_;
     if (!detailed) {
-        unitKey.Format("mo%ds", id);
-        prototypeKey.Format("prot%ds", unit->prototypeId_);
+        unitKey = str::Format("mo%ds", id);
+        prototypeKey = str::Format("prot%ds", unit->prototypeId_);
         request.flags = kFlagSimple;
         if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && self->weaponIds[hand] != kNone) {
             WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
             AddPrototypePrefix(unit, texture);
-            AddTexture(request, texture.GetString());
+            AddTexture(request, texture.c_str());
         }
         return;
     }
-    unitKey.Format("mo%dp", id);
-    prototypeKey.Format("prot%dp", unit->prototypeId_);
+    unitKey = str::Format("mo%dp", id);
+    prototypeKey = str::Format("prot%dp", unit->prototypeId_);
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
-        texture.Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
+        texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
     else
-        texture.Format("%sskin_00.mmp", unit->name.c_str());
-    AddTexture(request, texture.GetString());
+        texture = str::Format("%sskin_00.mmp", unit->name.c_str());
+    AddTexture(request, texture.c_str());
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
     // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
@@ -435,9 +435,9 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     SkinLayerArray layers{mfc::impl::SkinLayerArrayClass::Vtable(), nullptr, 0, 0, 0};
     void* result;
     {
-        mfc::CString unitKey;
-        mfc::CString prototypeKey;
-        mfc::CString texture;   // the work string
+        std::string unitKey;
+        std::string prototypeKey;
+        std::string texture;   // the work string
         SkinRequest request{};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
@@ -445,7 +445,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         std::memcpy(request.layers.data, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
-            textureManager->Compose(static_cast<mfc::CString*>(target), &request, &unitKey, &prototypeKey, 3, 0, 0x5551));
+            textureManager->Compose(static_cast<std::string*>(target), &request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request.layers.FreeData();
     }
     if (layers.data) gamecrt::operator_delete(layers.data);

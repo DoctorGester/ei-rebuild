@@ -71,12 +71,11 @@ using ItemCache = ItemCacheOf<CTexture>;
 using Commands = stlp::TreeAbi<console::CommandMap>;
 // The interface's help topics (std::string keys by _mbscmp).
 using HelpTopics = stlp::TreeAbi<stlp::map<std::string, int, stlp::MbsLess>>;
-// The "pers" texts by text key (ui_camp.h; 0x18-byte nodes).
+// The "pers" texts by text key (ui_camp.h).
 using PersonTexts = stlp::TreeAbi<PersonTextMap>;
 // The global map's arrival times by exit (CGlobalMap::arrivals_; 0x18-byte nodes).
 using Arrivals = stlp::TreeAbi<stlp::map<int, float>>;
-static_assert(sizeof(PersonTexts::Node) == 0x18 &&
-              sizeof(Arrivals::Node) == 0x18);
+static_assert(sizeof(Arrivals::Node) == 0x18);
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:
 // Map() (the header from the pool, empty), then the limit 50.

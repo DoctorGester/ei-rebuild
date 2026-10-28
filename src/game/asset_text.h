@@ -24,7 +24,6 @@ inline constexpr unsigned kAssetCodePage = EI_ASSET_CODEPAGE;
 // `bytes`, text in `codepage`, as UTF-8 (EI_UTF8), else unchanged.
 std::string FromAssetText(std::string_view bytes, unsigned codepage = kAssetCodePage);
 // A string just read from an asset, converted in place. Nothing happens without EI_UTF8.
-void FromAssetText(mfc::CString* text, unsigned codepage = kAssetCodePage);
 void FromAssetText(std::string* text, unsigned codepage = kAssetCodePage);
 // The other way, for looking up an asset by a text name (one text database key holds Cyrillic): true with `*out`
 // set when EI_UTF8 is on and `text` is not plain ASCII.
@@ -57,7 +56,7 @@ void CopyFitting(char* to, std::size_t size, const char* from);
 // start.
 
 // `head` with typed character `character` after it.
-mfc::CString Typed(const std::string& head, int character);
+std::string Typed(const std::string& head, int character);
 // The bytes typed character `character` takes: its UTF-8 length with EI_UTF8, else 1.
 int TypedLength(int character);
 // The caret's step right from byte offset `at` (`at` + 1 at or past either end, as the game stepped before

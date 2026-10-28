@@ -174,10 +174,9 @@ int CLinkFigureLoader::AddArchive(const std::string* path) {
     node->resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 
-    // Failure: drop the node again (the resource object is leaked) and log. The string object
-    // is passed by value to "%s", so the three words of the string go on the stack.
+    // Failure: drop the node again (the resource object is leaked) and log. (The original passed STLport's
+    // string object by value to "%s": its first word, the text pointer, is what printed.)
     Archives::Erase<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_->prev));
-    auto words = reinterpret_cast<const char* const*>(path);
-    game::DebugLog("Can't open resource file \"%s\"\n", words[0], words[1], words[2]);
+    game::DebugLog("Can't open resource file \"%s\"\n", path->c_str());
     return 0;
 }

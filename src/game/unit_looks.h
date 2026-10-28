@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 class CStream;
 
@@ -44,7 +45,7 @@ struct FiguredUnitRecord : DressedUnitRecord {
     float morphS;                   // the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;
-    stlp::vector<mfc::CString> names;
+    stlp::vector<std::string> names;
 };
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);
@@ -62,7 +63,7 @@ struct UnitLooks {
         }
         dressed.FreeStorage();
         for (FiguredUnitRecord* r = figured.Start(); r != figured.Finish(); ++r) {
-            for (mfc::CString* name = r->names.Start(); name != r->names.Finish(); ++name) std::destroy_at(name);
+            for (std::string* name = r->names.Start(); name != r->names.Finish(); ++name) std::destroy_at(name);
             r->names.FreeStorage();
             r->extraWeapons.FreeStorage();
             r->items.FreeStorage();

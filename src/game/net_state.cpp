@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -302,7 +303,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
     }
     if (DeltaField* field = state->BeginField(9)) {
         {
-            mfc::CString text(mfc::CString::kUnset);
+            std::string text;
             unit->scriptName = *field->ReadString(&text);
         }
         complete &= SnapshotConsumed();

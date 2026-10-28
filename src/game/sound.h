@@ -307,7 +307,7 @@ struct CSoundManager : CEngineObject {
     SoundSlot* SlotForHandle(int handle) const;
 
     // Empty unless the stream plays or switches.
-    mfc::CString CurrentStreamName();
+    std::string CurrentStreamName();
 
     // Switch mode 4, the music fader at volume 100 with no fade.
     void ResetStream();

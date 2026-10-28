@@ -457,7 +457,7 @@ public:
     BOOL Tokenize(const std::string& text, ScriptTokenList* tokens);
     BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
-    mfc::CString* QualifyName(mfc::CString* out, const std::string& name);
+    std::string* QualifyName(std::string* out, const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(const char* name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
@@ -471,7 +471,7 @@ public:
     BOOL LoadScriptBody(struct ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
     BOOL LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
-                            ScriptVars* locals, const mfc::CString* name);
+                            ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
     BOOL LoadVariableDeclarations(struct ScriptDefinition* script, ScriptPos* pos,
                                   const ScriptTokenList* tokens, BOOL qualify);
@@ -480,7 +480,7 @@ public:
     BOOL LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens,
                       ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
-    BOOL Load(mfc::CString* text, BOOL runWorldScript);
+    BOOL Load(std::string* text, BOOL runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     BOOL LoadFile(const char* path);
 
@@ -652,7 +652,7 @@ void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines);
 // empty).
 void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
 // Each define in list order.
-void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines);
+void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines);
 
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
@@ -701,7 +701,7 @@ struct ScriptDefinition {
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
     // FALSE when the name is taken.
-    BOOL AddParameter(const mfc::CString* name, int type);
+    BOOL AddParameter(const std::string* name, int type);
     ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);
 
     int index;                          // 0 after loading
@@ -823,10 +823,10 @@ struct ScriptQuestObjective {
 };
 extern lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives;
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_scriptQuestObjectives; }
-extern lib::StaticObject<mfc::CString> g_scriptQuestName;
+extern lib::StaticObject<std::string> g_scriptQuestName;
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
-inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
+inline std::string& ScriptQuestName() { return *g_scriptQuestName; }
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 void __fastcall ScriptQuestStart(const char* name);
 void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float value);

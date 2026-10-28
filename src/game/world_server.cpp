@@ -21,6 +21,8 @@
 #include "game_lists.h"
 #include "game_data.h"
 
+#include <string>
+
 namespace {
 
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
@@ -141,7 +143,7 @@ void CWorld::SetServerPaused(std::uint8_t value) {
     SetPaused(value);
 }
 
-BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
+BOOL CWorldServer::GetZoneExit(int index, std::string* target, int* entrance) {
     if (index < 0 || index >= exits_.size) return 0;
     *target = exits_[index].target;
     *entrance = exits_[index].entrance;

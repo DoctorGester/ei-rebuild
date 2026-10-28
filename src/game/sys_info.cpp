@@ -156,10 +156,10 @@ int CSysInfo::Collect() {
     char digits[0x400];
 #pragma warning(push)
 #pragma warning(disable : 4996)   // _itoa
-    report += mfc::CString("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
-    report += mfc::CString("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
-    report += mfc::CString("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
-    report += mfc::CString("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+    report += std::string("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
+    report += std::string("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
+    report += std::string("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
+    report += std::string("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
 #pragma warning(pop)
     return 1;
 }

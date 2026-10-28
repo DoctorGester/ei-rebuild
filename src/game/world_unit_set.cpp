@@ -8,6 +8,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -53,7 +54,7 @@ void UnitSet::Write(CStream* stream) {
             PutWord(stream, std::bit_cast<std::uint32_t>(record.morphS));
             PutWord(stream, std::bit_cast<std::uint32_t>(record.morphT));
             PutWord(stream, std::bit_cast<std::uint32_t>(record.morphU));
-            auto names = [&record](std::uint32_t i) -> const char* { return record.names[i]; };
+            auto names = [&record](std::uint32_t i) -> const char* { return record.names[i].c_str(); };
             auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
             PutWord(stream, nameCount());
             for (std::uint32_t i = 0; i < nameCount(); ++i) {
@@ -117,7 +118,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        record->names.ResizeDefault<stlp::ObjectElement<mfc::CString>>(names);
+        record->names.ResizeDefault<stlp::ObjectElement<std::string>>(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(&record->names[i]);
     }

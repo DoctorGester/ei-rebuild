@@ -37,23 +37,22 @@ void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ar->CStringField(1, &strings->begin()[i]);
+        ar->StringField(1, &strings->begin()[i]);
     }
     ar->LeaveChunk();
 }
-template void InlineStrings(ChunkArchive*, int, stlp::vector<mfc::CString>*);
 template void InlineStrings(ChunkArchive*, int, stlp::vector<std::string>*);
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
-    ar->CStringField(1, &modelName);
+    ar->StringField(0, &name);
+    ar->StringField(1, &modelName);
     Dword(ar, 2, &modelIndex);
     Dword(ar, 3, &skin);
     Dword(ar, 4, &hair);
     Dword(ar, 5, &scale.x);
     Dword(ar, 6, &scale.y);
     Dword(ar, 7, &scale.z);
-    ar->CStringField(8, &soundFolder);
+    ar->StringField(8, &soundFolder);
     Dword(ar, 9, &hitPoints);
     Dword(ar, 10, &mana);
     Dword(ar, 11, &protectionScale);
@@ -87,7 +86,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x1E, skills3to5, sizeof(skills3to5));
     ar->SerializeStrings(0x1F, &spellNames, ar);
     ar->SerializeStrings(0x20, &armourNames, ar);
-    ar->CStringField(0x21, &weaponName);
+    ar->StringField(0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
     Dword(ar, 0x24, &combat[2]);
@@ -96,12 +95,12 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x27, &hitSoundKind);
     Dword(ar, 0x28, &shake);
     Dword(ar, 0x29, &level);
-    ar->CStringField(0x2A, &secondWeaponName);
+    ar->StringField(0x2A, &secondWeaponName);
     Dword(ar, 0x2B, &experienceValue);
 }
 
 void UnitModelRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
+    ar->StringField(0, &name);
     Dword(ar, 1, &objectClass);
     Dword(ar, 2, &hitPointRegen);
     Dword(ar, 3, &manaRegen);
@@ -119,11 +118,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
             ar->LeaveChunk();
         }
     }
-    ar->CStringField(0x1E, &figureName);
+    ar->StringField(0x1E, &figureName);
     ar->SerializeStrings(0x1F, &field1F, ar);
     ar->SerializeStrings(0x20, &field20, ar);
     Dword(ar, 0x21, &height);
-    ar->CStringField(0x22, &soundFolder);
+    ar->StringField(0x22, &soundFolder);
     ar->SerializeStrings(0x23, &soundNames, ar);
     ar->Field(0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
@@ -133,7 +132,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x29, &castEffect);
     Dword(ar, 0x2A, &footprintKind);
     Dword(ar, 0x2B, &footPart);
-    ar->CStringField(0x2C, &hitMaterial);
+    ar->StringField(0x2C, &hitMaterial);
     ar->Field(0x2D, &swapFeet, 1);
     Dword(ar, 0x2E, &sizeScale);
     Dword(ar, 0x2F, &eyeLeft);
@@ -143,7 +142,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
 }
 
 void UnitNpcRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
+    ar->StringField(0, &name);
     Dword(ar, 1, &field1);
     Dword(ar, 2, &experience);
     Dword(ar, 3, &stats[0]);
@@ -170,14 +169,14 @@ void UnitGoldRoll::Serialize(ChunkArchive* ar) {
 }
 
 void UnitModelSlot::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &levelName);
+    ar->StringField(0, &levelName);
     Dword(ar, 1, &levelIndex);
     Dword(ar, 2, &share);
     Dword(ar, 3, &factor);
 }
 
 void UnitLevelRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
+    ar->StringField(0, &name);
     ar->Field(1, valuesA, sizeof(valuesA));
     ar->Field(2, valuesB, sizeof(valuesB));
     Dword(ar, 3, &vitalMask);
@@ -251,18 +250,18 @@ bool SameName(const std::string& name, const char* other) {
 } // namespace
 
 void SkillRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
-    ar->CStringField(1, &field1);
+    ar->StringField(0, &name);
+    ar->StringField(1, &field1);
     Dword(ar, 2, &field2);
     InlineStrings(ar, 10, &statNames);
 }
 
 void SkillLevelRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &field0);
-    ar->CStringField(1, &name);
+    ar->StringField(0, &field0);
+    ar->StringField(1, &name);
     Dword(ar, 2, &field2);
-    ar->CStringField(10, &requiredLevelName);
-    ar->CStringField(11, &requiredSkillName);
+    ar->StringField(10, &requiredLevelName);
+    ar->StringField(11, &requiredSkillName);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
     ar->Field(0x16, &learnable, 1);
     Dword(ar, 0x17, &exclusionGroup);

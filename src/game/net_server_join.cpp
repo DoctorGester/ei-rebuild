@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 namespace net {
 
@@ -79,9 +80,9 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     if (host) record->host_ = 1;
 
-    mfc::CString announcement(mfc::CString::kUnset);   // constructed by the call
-    mfc::CString* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
-    self->Announce(formatted->GetString(), nullptr);
+    std::string announcement;
+    std::string* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
+    self->Announce(formatted->c_str(), nullptr);
 }
 
 namespace {

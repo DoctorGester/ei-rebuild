@@ -47,8 +47,8 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
-            std::string image = weapon->FigureName().GetString();
-            std::string model = weapon->PictureName().GetString();
+            std::string image = weapon->FigureName();
+            std::string model = weapon->PictureName();
             AddWeapon(model.c_str(), image.c_str());
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
@@ -77,8 +77,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (CSpell* spell = weapon->spell_) {
             description = "Unknown";
-            int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("spell "),
-                                                SpellPrototype(spell)->code));
+            int found = TheTextManager()->CTextManager::Open((std::string("spell ") + SpellPrototype(spell)->code).c_str());
             if (found) TheTextManager()->ReadLine(&description, 1);
             line = str::Format("%s %s\n", labels_[3].c_str(), description.c_str());
             tip += line;

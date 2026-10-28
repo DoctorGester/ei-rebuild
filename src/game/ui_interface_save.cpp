@@ -20,11 +20,10 @@ namespace {
 void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
 int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 
-// A string read into a temporary (ReadString constructs it), assigned to `field`
-// (CString::operator=), then destroyed.
+// A string read into a temporary, assigned to `field`.
 void ReadInto(CStream* stream, std::string* field) {
-    mfc::CString text(mfc::CString::kUnset);
-    *field = stream->ReadString(&text)->GetString();
+    std::string text;
+    *field = stream->ReadString(&text)->c_str();
 }
 
 } // namespace
@@ -78,7 +77,7 @@ const char* const kMessageKeys[13] = {
 };
 } // namespace
 
-mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
+std::string* CInterface3D::MessageText(std::string* out, int id, const char* value) {
     std::string key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     CTextManager* table = TheTextManager();
@@ -87,7 +86,7 @@ mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
         text = str::Format(key.c_str(), value);
     else
         text = key;
-    return new (out) mfc::CString(text);
+    *out = text; return out;
 }
 
 // --- The saved state written -----------------------------------------------------------

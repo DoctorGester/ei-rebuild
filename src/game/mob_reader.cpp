@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <new>
+#include <string>
 
 namespace mapspec {
 
@@ -105,8 +106,8 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
 }
 
 // The scripts' text, plain or encoded.
-void ReadScripts(Chunk* chunk, mfc::CString* scripts, bool encoded) {
-    mfc::CString text(mfc::CString::kUnset);   // the callee constructs it
+void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
+    std::string text;
     if (encoded) chunk->ReadEncodedString(&text);
     else chunk->ReadString(&text);
     *scripts = text;
@@ -114,7 +115,7 @@ void ReadScripts(Chunk* chunk, mfc::CString* scripts, bool encoded) {
 
 } // namespace
 
-bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts) {
+bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::string* scripts) {
     bool flag = true;
     ReadHeader();
     Chunk child(this);
@@ -144,10 +145,9 @@ bool MobFile::Load(void*, int keepIds) {
     records.maxId = 0;
     ZoneDiplomacy zoneDiplomacy;
     ZoneDiplomacy* diplomacy = &zoneDiplomacy;
-    alignas(mfc::CString) std::uint8_t scriptsStorage[sizeof(mfc::CString)];   // destroyed by hand, in order
-    auto* scripts = new (scriptsStorage) mfc::CString();
+    std::string scripts;
 
-    if (ReadChunks(&records, diplomacy, scripts)) {
+    if (ReadChunks(&records, diplomacy, &scripts)) {
         CDiplomacy* table = GameDiplomacy();
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
@@ -178,8 +178,7 @@ bool MobFile::Load(void*, int keepIds) {
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
-    std::destroy_at(scripts);
+    if (!(keepIds & 0xFF)) TheMissionScript()->Load(&scripts, 1);
     records.byId.Destroy();
     return true;
 }

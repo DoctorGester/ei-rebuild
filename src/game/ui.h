@@ -128,8 +128,8 @@ public:
     // 0x5D one more value; from 0x5F a CString.
     void LoadState(CStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
-    // the text table, formatted with `value` unless 0, constructed into `out`.
-    mfc::CString* MessageText(void* out, int id, const char* value);
+    // the text table, formatted with `value` unless 0, into `out`.
+    std::string* MessageText(std::string* out, int id, const char* value);
     // Without `force`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it
     // was not forced.
@@ -1379,7 +1379,7 @@ inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContain
 
 // --- Battle screen ---
 // The battle screen's "pers" texts by text key id.
-using PersonTextMap = stlp::map<int, mfc::CString>;
+using PersonTextMap = stlp::map<int, std::string>;
 using PersonTextNode = PersonTextMap::Node;
 static_assert(offsetof(PersonTextNode, second) == 0x14);
 
@@ -1641,7 +1641,6 @@ static_assert(sizeof(CUiSlider) == 0x18C);
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
-namespace mfc { class CString; }
 
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
@@ -1706,11 +1705,11 @@ public:
     // token ends the line and sets the next lines' font. Then the scroll bar's maximum.
     void Layout();
     // One format token before each run of newline, BEL C<rgb> and BEL F<digit> tokens.
-    void Tokenize(const mfc::CString* text);
+    void Tokenize(const std::string* text);
     // The token at `pos` (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or
     // up to the next space, tab, BEL or newline. Returns the position after it, or -1 at the end (`out`
     // untouched). `this` is not read.
-    int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
+    int NextToken(const std::string* text, int pos, std::string* out);
     // From `scroll` pixels down. A line is justified when align_ is not 1, it is not the last, not ended by
     // a newline, and of two or more tokens.
     void DrawLines(int scroll);
@@ -1760,8 +1759,8 @@ struct SaveEntry {
     // "save_quick", "save_auto_enter" / "save_auto_exit" for "saveq", "savea" / "saveb", else the zone's name.
     void MakeTitle(int unused);
     // Text "zone " + zone_ (its first line), else "save_camp"; text "allod " + map_, else "Unknown".
-    mfc::CString ZoneTitle() const;
-    mfc::CString AllodTitle() const;
+    std::string ZoneTitle() const;
+    std::string AllodTitle() const;
     SaveEntry* Assign(const SaveEntry* from);
     SaveEntry* CopyConstruct(const SaveEntry* from);
     void Destruct();
@@ -2003,7 +2002,7 @@ public:
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() override;
 
-    stlp::vector<mfc::CString> zones_;   // the zones listed
+    stlp::vector<std::string> zones_;   // the zones listed
     std::string zoneName_;          // the zone it was opened for
     int twoButtons_;                 // OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // exit -> distance, or null

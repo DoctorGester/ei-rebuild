@@ -190,11 +190,11 @@ double CFileRegistry::GetFloat(const char* section, const char* key, float defau
     return defaultValue;
 }
 
-mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
+std::string CFileRegistry::GetString(const char* section, const char* key, const std::string& defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        mfc::CString text(Chars(value + 2), U16(value));
+        std::string text(Chars(value + 2), U16(value));
         text::FromAssetText(&text);
-        std::string result = text.GetString();
+        std::string result = text;
         return result;
     }
     return defaultValue;

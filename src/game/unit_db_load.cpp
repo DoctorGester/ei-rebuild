@@ -79,7 +79,7 @@ UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
 // --- The unit database ----------------------------------------------------------------------------
 
 int UnitDatabase::Load(const char* folder, const char* archive) {
-    std::string path = (mfc::CString(folder) + archive).GetString();
+    std::string path = std::string(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
@@ -121,7 +121,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
 // --- The skill database ---------------------------------------------------------------------------
 
 int SkillDatabase::Load(const char* folder, const char* archive) {
-    std::string path = (mfc::CString(folder) + archive).GetString();
+    std::string path = std::string(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());

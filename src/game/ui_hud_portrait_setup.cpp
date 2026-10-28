@@ -39,7 +39,7 @@ bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
 // EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
-void SexOf(const char* figure, mfc::CString& sex) {
+void SexOf(const char* figure, std::string& sex) {
     const bool fixes = pluginfixes::Enabled();
     if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
         sex = "m";
@@ -176,7 +176,7 @@ void CHudPortraits::Rebuild(int wide) {
     count_ = 0;
 
     std::string build;     // "th", "me" or "fa"
-    mfc::CString sex;       // kept from one portrait to the next when the figure is neither
+    std::string sex;       // kept from one portrait to the next when the figure is neither
     std::string picture;
     std::string model;
     std::string tip;
@@ -196,7 +196,7 @@ void CHudPortraits::Rebuild(int wide) {
         const char* figure = unit->name.c_str();
         model = str::Format("infa%s%s%dface", figure, build.c_str(),
                      unit->GetPrototype()->hair + 1);
-        picture = str::Format("face%s%02d", sex.GetString(), skin);
+        picture = str::Format("face%s%02d", sex.c_str(), skin);
         AddPortrait(model.c_str(), picture.c_str(), wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
@@ -236,7 +236,7 @@ void CHudPortraits::Rebuild(int wide) {
         SexOf(figure->figureName.c_str(), sex);
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
-        picture = str::Format("face%s%02d", sex.GetString(), prototype->skin);
+        picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
         AddPortrait(model.c_str(), picture.c_str(), wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;

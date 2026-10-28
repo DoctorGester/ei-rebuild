@@ -370,7 +370,7 @@ public:
     std::uint16_t flags_;
 };
 
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const std::string* path, TextureLinkArray* links,
                                   TextureNameArray* names);
 // 0 without a root node.
 int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin);

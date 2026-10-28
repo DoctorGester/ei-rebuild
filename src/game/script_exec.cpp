@@ -267,7 +267,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    std::string path = (*GameBasePathString() + MoviesFolder()).GetString();
+    std::string path = *GameBasePathString() + MoviesFolder();
     std::string file = path + cmd->stringArgs.data[0];
     ::PlayMovie(file.c_str(), 0, 1, 1, 1, 1, 1);
 }

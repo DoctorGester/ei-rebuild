@@ -121,38 +121,38 @@ bool IsMinusOne(float v) {
 // The registry's values for one material group (the texture section and its mapping) and the
 // group's faces' texture coordinates moved into the mapping, once each.
 struct GroupStrings {
-    mfc::CString& groupName;
-    mfc::CString& mapping;
-    mfc::CString& section;
+    std::string& groupName;
+    std::string& mapping;
+    std::string& section;
 };
 
 void MapGroup(FakeUnitScene* unit, Registry& reg, const std::vector<std::string>& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
     CMaterial* helperRecord = &unit->helpers.data[helper];   // ElementAt
     {
-        mfc::CString found(mfc::CString::kUnset);
+        std::string found;
         // *out = the section of `sections` equal to `name` ignoring case, else `name`.
         FindListedName(&found, &sections, helperRecord->name2);
         s.section = found;
     }
-    s.mapping = reg.GetString(s.section, "Main Texture Name", mfc::CString("none"));   // "Main Texture Name", "none"
+    s.mapping = reg.GetString(s.section.c_str(), "Main Texture Name", std::string("none"));   // "Main Texture Name", "none"
 
     Mapping m;
     m.width = static_cast<float>(reg.GetInt2("Dimentions", "Width", 0x100));      // "Dimentions", "Width"
     m.height = static_cast<float>(reg.GetInt2("Dimentions", "Height", 0x100));
-    if (s.mapping.GetLength() == 0) {
+    if (s.mapping.size() == 0) {
         m.h = 0.0f;
         m.w = 0.0f;
         m.y = 0.0f;
         m.x = 0.0f;
     } else {
-        m.x = static_cast<float>(reg.GetInt2(s.mapping, "X", -1));
-        m.y = static_cast<float>(reg.GetInt2(s.mapping, "Y", -1));
-        m.w = static_cast<float>(reg.GetInt2(s.mapping, "Width", -1));
-        m.h = static_cast<float>(reg.GetInt2(s.mapping, "Height", -1));
+        m.x = static_cast<float>(reg.GetInt2(s.mapping.c_str(), "X", -1));
+        m.y = static_cast<float>(reg.GetInt2(s.mapping.c_str(), "Y", -1));
+        m.w = static_cast<float>(reg.GetInt2(s.mapping.c_str(), "Width", -1));
+        m.h = static_cast<float>(reg.GetInt2(s.mapping.c_str(), "Height", -1));
         if (IsMinusOne(m.x) || IsMinusOne(m.y) || IsMinusOne(m.w) || IsMinusOne(m.h)) {
             std::string message;
-            message = str::Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
+            message = str::Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.c_str(), s.section.c_str());
             game::DebugLog(message.c_str());
             if (TheClientWorld()->flags_ & 0x10000) {
                 mfc::impl::MessageBoxText(message.c_str(), 0x30, 0);
@@ -228,16 +228,16 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
 
 // `links` collects (type, value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when
 // the file has no sections, or what FatalError returns when it cannot be opened.
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const std::string* path, TextureLinkArray* links,
                                   TextureNameArray* names) {
-    mfc::CString groupName;
-    mfc::CString mapping;
-    mfc::CString section;
+    std::string groupName;
+    std::string mapping;
+    std::string section;
     std::vector<std::string> sections;
     Registry reg;
     reg.Construct();
-    if (!reg.Open(*path)) {
-        int result = game::FatalError("Can't open .reg file \"%s\".\n", path->GetString());   // Can't open .reg file
+    if (!reg.Open((*path).c_str())) {
+        int result = game::FatalError("Can't open .reg file \"%s\".\n", path->c_str());   // Can't open .reg file
         reg.Destroy();
         return result;
     }
@@ -254,7 +254,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = unit->helpers.data[h];
                 if (gamecrt::mbscmp(helperRecord.name,
-                                    groupName.GetString()) != 0) {
+                                    groupName.c_str()) != 0) {
                     continue;
                 }
                 MapGroup(unit, reg, sections, strings, m, g, h, seen);
@@ -262,7 +262,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             }
         }
 
-        RecordMaterial(unit, m, groupName.GetString(), mapping.GetString(), links, names);
+        RecordMaterial(unit, m, groupName.c_str(), mapping.c_str(), links, names);
         MapDestroy(seen);
     }
 

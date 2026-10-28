@@ -216,8 +216,8 @@ void DestroyVoices(MpVoiceVector& voices) {
     for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
     stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));
 }
-void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
-    for (mfc::CString* at = begin; at != end; ++at) std::destroy_at(at);
+void DestroyStrings(std::string* begin, std::string* end) {
+    for (std::string* at = begin; at != end; ++at) std::destroy_at(at);
 }
 } // namespace
 

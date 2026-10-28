@@ -102,7 +102,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
 }
 
-mfc::CString CSoundManager::CurrentStreamName() {
+std::string CSoundManager::CurrentStreamName() {
     gameapi::EnterCriticalSection(&nameLock);
     std::string name;
     if (streamState == 1 || streamState == 2) name = streamName;
@@ -405,7 +405,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamState = 0;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
-    std::string path = ((modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName).GetString();
+    std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (CompareText(m->nextName, game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);

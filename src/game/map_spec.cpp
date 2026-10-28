@@ -39,8 +39,8 @@ std::uint32_t Bits(float f) {
 
 // A string chunk into `field` (through a temporary).
 void ReadInto(Chunk& c, std::string& field) {
-    mfc::CString read(mfc::CString::kUnset);
-    field = c.ReadString(&read)->GetString();
+    std::string read;
+    field = c.ReadString(&read)->c_str();
 }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
@@ -72,8 +72,8 @@ Spec::Spec() : Chunk(nullptr) {
 
 Spec::~Spec() = default;
 
-mfc::CString* Spec::TypeName(mfc::CString* out) {
-    std::construct_at(out, "error");
+std::string* Spec::TypeName(std::string* out) {
+    *out = "error";
     return out;
 }
 
@@ -212,10 +212,10 @@ void ObjectSpec::Apply() {
     Selection()->EndRefresh();
 }
 
-mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
+std::string* ObjectSpec::TypeName(std::string* out) {
     std::string text;
     text = str::Format("%i", player);
-    std::construct_at(out, text);
+    *out = text;
     return out;
 }
 
@@ -286,8 +286,8 @@ TrapSpec::~TrapSpec() {
     if (trap.area.data) gamecrt::operator_delete(trap.area.data);
 }
 
-mfc::CString* TrapSpec::TypeName(mfc::CString* out) {
-    std::construct_at(out, "MagicTrap");
+std::string* TrapSpec::TypeName(std::string* out) {
+    *out = "MagicTrap";
     return out;
 }
 

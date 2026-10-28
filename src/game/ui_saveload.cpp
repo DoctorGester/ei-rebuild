@@ -56,8 +56,8 @@ constexpr int kVisibleRows = 16;
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY).
 BOOL IsDirectory(const mfc::CFileFind& find) { return find.MatchesMask(0x10ul); }
-mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
-mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
+std::string FilePath(const mfc::CFileFind& find) { return find.GetFilePath().GetString(); }
+std::string FileName(const mfc::CFileFind& find) { return find.GetFileName().GetString(); }
 
 // A file stream on the stack with the reads and writes the save list uses.
 struct LocalFileStream {
@@ -177,7 +177,7 @@ void SaveEntry::MakeTitle(int) {
         title = str::Format(kPlainFormat, autoExit.c_str());
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
-        const std::string name = ZoneTitle().GetString();
+        const std::string name = ZoneTitle();
         title = str::Format(kPlainFormat, name.c_str());
     }
 }
@@ -277,7 +277,7 @@ void CSaveLoadWindow::FillEntries() {
         mfc::CFileFind infoFind;
         BOOL hasInfo;
         {
-            std::string folderPath = FilePath(find).GetString();
+            std::string folderPath = FilePath(find);
             std::string path = folderPath + game::savewords::InfoInFolder();
             hasInfo = infoFind.FindFile(path, 0);
         }
@@ -291,7 +291,7 @@ void CSaveLoadWindow::FillEntries() {
             if (info.Stream()->ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.Read(&entry->gameTime_, 4);
                 {
-                    mfc::CString map(mfc::CString::kUnset);
+                    std::string map;
                     info.Stream()->ReadString(&map);
                     entry->map_ = map;
                 }
@@ -390,7 +390,7 @@ CInterface3D* Interface() { return TheInterface(); }
 GameFlow* Flow() { return TheGameFlow(); }
 
 // The save folder saves\<slot>\ under the game's folder.
-mfc::CString SlotFolder(const char* slot) {
+std::string SlotFolder(const char* slot) {
     std::string folder;
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), slot);
     return folder;
@@ -423,7 +423,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     const std::string zone = LocalPlayerZone();
     if (const MapRecord* record = TheMapDatabase()->FindMap(zone.c_str()))
         map = record->allod;
-    std::string folder = SlotFolder(slot).GetString();
+    std::string folder = SlotFolder(slot);
     LocalFileStream info;
     info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
@@ -449,7 +449,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
 
 void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
-    std::string folder = SlotFolder(slot).GetString();
+    std::string folder = SlotFolder(slot);
     if (libcrt::Access(folder.c_str(), 0) == -1) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
@@ -463,10 +463,10 @@ void __fastcall QuickLoad(const char* slot) {
 namespace {
 
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
-mfc::CString FirstLineOf(const char* prefix, const std::string& suffix) {
+std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
     CTextManager* texts = TheTextManager();
-    BOOL found = texts->Open(mfc::CString(prefix) + suffix);
+    BOOL found = texts->Open((std::string(prefix) + suffix).c_str());
     if (found) texts->ReadLine(&line, 1);
     return line;
 }
@@ -485,14 +485,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 }
 } // namespace
 
-mfc::CString SaveEntry::ZoneTitle() const {
-    std::string title = FirstLineOf("zone ", zone_).GetString();   // the key has a space
+std::string SaveEntry::ZoneTitle() const {
+    std::string title = FirstLineOf("zone ", zone_);   // the key has a space
     if (title.size() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 
-mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
+std::string SaveEntry::AllodTitle() const {
+    std::string title = FirstLineOf("allod ", map_);  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }
@@ -570,7 +570,7 @@ void CSaveLoadWindow::DeleteSave() {
     BOOL more = find.FindFile((folder + kEveryFile), 0);
     while (more) {
         more = find.FindNext();
-        gameapi::DeleteFileA(FilePath(find));
+        gameapi::DeleteFileA(FilePath(find).c_str());
     }
     find.Close();
     gameapi::RemoveDirectoryA(folder.c_str());

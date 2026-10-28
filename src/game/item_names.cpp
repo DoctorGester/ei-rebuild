@@ -50,7 +50,7 @@ int Number(const ItemRecordHead* record) { return record ? record->number : -1; 
 
 // "<code>_<number>.<material>.<variant>", or "" without a prototype or material.
 template <typename Record>
-mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], std::uint32_t id) {
+std::string ModelNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], std::uint32_t id) {
     const MaterialRecordHead* material = MaterialAt(MaterialIndex(id));
     const Record* prototype = table.At(PrototypeIndex(id));
     std::string name;
@@ -61,26 +61,19 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
 }
 
 template <typename Record>
-mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
+std::string FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));
     const std::vector<std::string>* list = &prototype->list20;
-    if (prototype && !list->empty()) return mfc::CString((*list)[0]);
-    return mfc::CString(game::EmptyText());   // ""
+    if (prototype && !list->empty()) return std::string((*list)[0]);
+    return std::string(game::EmptyText());   // ""
 }
 
-// "unhuma" + the item's model name (a virtual call). The model name is destroyed before the prefix.
-mfc::CString HumanFigureName(CItem* item) {
-    alignas(mfc::CString) char model[sizeof(mfc::CString)];
-    mfc::CString& modelName = *new (model) mfc::CString(item->ModelName());
-    std::string prefix = kHumanPrefix;
-    std::string name = prefix + modelName;
-    std::destroy_at(&modelName);
-    return name;
-}
+// "unhuma" + the item's model name (a virtual call).
+std::string HumanFigureName(CItem* item) { return kHumanPrefix + item->ModelName(); }
 
 // The picture name "<format with code and number>" (no null check on the prototype).
 template <typename Record>
-mfc::CString PictureNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], const char* format,
+std::string PictureNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], const char* format,
                            std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));
     const char* code = TypeCode(codes, prototype->type);
@@ -93,30 +86,30 @@ mfc::CString PictureNameOf(const NamedRecordTable<Record>& table, const char* co
 
 // --- Weapons and armors ---------------------------------------------------------------------------
 
-mfc::CString CItemWeapon::ModelName() { return ModelNameOf(TheItemDatabase().weapons, kWeaponCodes, prototypeId_); }
+std::string CItemWeapon::ModelName() { return ModelNameOf(TheItemDatabase().weapons, kWeaponCodes, prototypeId_); }
 
-mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(TheItemDatabase().weapons, prototypeId_); }
+std::string CItemWeapon::FirstListName() { return FirstListNameOf(TheItemDatabase().weapons, prototypeId_); }
 
-mfc::CString CItemWeapon::FigureName() { return HumanFigureName(this); }
+std::string CItemWeapon::FigureName() { return HumanFigureName(this); }
 
-mfc::CString CItemWeapon::PictureName() {
+std::string CItemWeapon::PictureName() {
     return PictureNameOf(TheItemDatabase().weapons, kWeaponCodes, kWeaponPicture, prototypeId_);
 }
 
-mfc::CString CItemArmor::ModelName() { return ModelNameOf(TheItemDatabase().armors, kArmorCodes, prototypeId_); }
+std::string CItemArmor::ModelName() { return ModelNameOf(TheItemDatabase().armors, kArmorCodes, prototypeId_); }
 
-mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(TheItemDatabase().armors, prototypeId_); }
+std::string CItemArmor::FirstListName() { return FirstListNameOf(TheItemDatabase().armors, prototypeId_); }
 
-mfc::CString CItemArmor::FigureName() { return HumanFigureName(this); }
+std::string CItemArmor::FigureName() { return HumanFigureName(this); }
 
-mfc::CString CItemArmor::PictureName() {
+std::string CItemArmor::PictureName() {
     return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
 // The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 would overrun it
 // (none in the database; the overlapping strcat that would follow is not reproduced).
-bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
-    out->Empty();
+bool __fastcall WeaponBaseFigure(std::uint32_t index, std::string* out) {
+    out->clear();
     if (index == 0xFFFFFFFFu) return false;
     const WeaponRecord* prototype = WeaponAt(index);
     if (!prototype) return false;
@@ -149,7 +142,7 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
-mfc::CString CItemQuick::FigureName() {
+std::string CItemQuick::FigureName() {
     std::string name;
     const ItemRecordHead* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(prototype->materialClass,
@@ -163,32 +156,32 @@ mfc::CString CItemQuick::FigureName() {
     return name;
 }
 
-mfc::CString CItemQuick::PictureName() {
+std::string CItemQuick::PictureName() {
     std::string name;
     name = str::Format(kQuickPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::FigureName() {
+std::string CItemQuest::FigureName() {
     std::string name;
     name = str::Format(kQuestFigure, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::PictureName() {
+std::string CItemQuest::PictureName() {
     std::string name;
     name = str::Format(kQuestPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemSpell::FigureName() {
+std::string CItemSpell::FigureName() {
     const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->prototypeId_));
     std::string name;
     name = str::Format(kSpellFigure, prototype->icon);
     return name;
 }
 
-mfc::CString CItemSpell::PictureName() { return mfc::CString(kSpellPicture); }
+std::string CItemSpell::PictureName() { return std::string(kSpellPicture); }
 
 // --- Loot ----------------------------------------------------------------------------------------
 
@@ -197,7 +190,7 @@ enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 
 enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
 } // namespace
 
-mfc::CString CItemLoot::FigureName() {
+std::string CItemLoot::FigureName() {
     std::string name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
@@ -232,7 +225,7 @@ mfc::CString CItemLoot::FigureName() {
     return name;
 }
 
-mfc::CString CItemLoot::PictureName() {
+std::string CItemLoot::PictureName() {
     std::string name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {

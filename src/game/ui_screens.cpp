@@ -20,6 +20,8 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
 const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
@@ -434,7 +436,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     voiceScroll_->SetPosition(voiceTop_);
     voiceScroll_->TakePosition(&voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name in texts[6].
-    const mfc::CString& file = voices_->begin()[voiceIndex_].file;
+    const std::string& file = voices_->begin()[voiceIndex_].file;
     HeroRecord()->texts[6] = file;
     DrawVoices();
 }

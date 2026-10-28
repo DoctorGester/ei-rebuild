@@ -8,9 +8,9 @@
 namespace itemdb {
 
 void MaterialRecordHead::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &key);
-    ar->CStringField(1, &soundName);
-    ar->CStringField(2, &name);
+    ar->StringField(0, &key);
+    ar->StringField(1, &soundName);
+    ar->StringField(2, &name);
     ar->Field(3, &number, 4);
     ar->Field(4, &unitPrice, 4);
     ar->Field(5, &factor38, 4);
@@ -25,10 +25,10 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
 }
 
 void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
-    ar->CStringField(0, &text04);
-    ar->CStringField(1, &text08);
+    ar->StringField(0, &text04);
+    ar->StringField(1, &text08);
     ar->Field(2, &type, 4);
-    ar->CStringField(3, &materialClass);
+    ar->StringField(3, &materialClass);
     ar->Field(4, &field4, 4);
     ar->Field(5, &number, 4);
     ar->Field(6, &variant, 4);
@@ -73,7 +73,7 @@ void QuickItemRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x16, &value70, 4);
     ar->Field(0x17, field17, 4);
     ar->Field(0x18, field18, 4);
-    ar->CStringField(0x19, &text7C);
+    ar->StringField(0x19, &text7C);
     ar->Field(0x1A, attributeBonus, 3);
     ar->Field(0x1B, field1B, 8);
 }

@@ -42,9 +42,6 @@ struct UnitLevelRecord;
 struct UnitModelRecord;
 struct UnitNpcRecord;
 struct UnitPrototypeRecord;
-namespace mfc {
-class CString;
-}
 namespace acks {
 struct UnitAcks;
 struct ModelAcks;
@@ -114,9 +111,6 @@ public:
     void LeaveChunk();
     int CountChunks(int id);
     void Field(int id, void* data, unsigned size);
-    // A text field (mfc::CString or std::string), written with its terminator.
-    template <typename Text>
-    void CStringField(int id, Text* s);
     void StringField(int id, std::string* s);
     void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
     void SaveObjectRef(int id, CRefCounted* object);   // object's number, object kept for Close

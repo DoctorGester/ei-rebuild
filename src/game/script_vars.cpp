@@ -82,10 +82,10 @@ void ScriptVars::RemoveDeletedObjects() {
 
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
 // strings and objects; for groups the names are grown with SetSize and the slot assigned.
-BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type) {
+BOOL ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
     const char* letter = "";   // the type letter: "f", "s", "o", "g"
     BOOL result;
-    const char* text = *parameterName;
+    const char* text = (*parameterName).c_str();
     switch (type) {
     case kScriptFloat:
         if (FindName(vars.floats.names, text) >= 0) {

@@ -201,7 +201,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     new (archive) CMappedResource();
     bool failed;
     {
-        std::string folder = TheTextFolder().GetString();
+        std::string folder = TheTextFolder();
         std::string path = folder + kAiInfoArchive;
         failed = archive->CMappedResource::OpenResource(path.c_str(), 0) == 0;
     }

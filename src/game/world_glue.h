@@ -7,8 +7,8 @@
 #include "lib/mfc.h"
 
 // The data folder CString / the base folder CString.
-const mfc::CString* GameDataPathString();
-const mfc::CString* GameBasePathString();
+const std::string* GameDataPathString();
+const std::string* GameBasePathString();
 
 // The scripts' QuestComplete in a network game. With a live game server: its FinishMap for the map named
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.

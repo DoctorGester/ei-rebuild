@@ -62,8 +62,8 @@ int HasPerkText(CTextManager* table, const std::string& name) {
 }
 int HasPerkText(CTextManager* table, const char* name) {
     std::string prefix("perk ");
-    mfc::CString key = prefix + name;
-    return table->CTextManager::Open(key);
+    std::string key = prefix + name;
+    return table->CTextManager::Open(key.c_str());
 }
 // The open perk text's line (the row's shown name); the cursor moves to the next line.
 std::string ReadPerkLine(CTextManager* texts) {
@@ -215,9 +215,9 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
-void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
+void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, std::string* value) {
     draw->DrawLine(school->name, row, 0, kBright, 0, 1);
-    value->Format("%d", school->level);
+    *value = str::Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
     RECT levelRect = shifted;
@@ -235,7 +235,7 @@ void CTradePanel::DrawLists() {
     CUiSurface* draw = surfaces_.data[0];
     draw->GetDC();
     draw->Clear();
-    mfc::CString value;
+    std::string value;
     while (sceneObjects_.size > 4) RemoveSceneObjectAt(sceneObjects_.size - 1);
 
     RECT title = {0, 10, 200, 25};
@@ -461,27 +461,27 @@ void CTradePanel::SelectHero(int index) {
 
 // --- A price as text ----------------------------------------------------------------------------------
 
-void CTradePanel::FormatPrice(int price, mfc::CString* out) {
+void CTradePanel::FormatPrice(int price, std::string* out) {
     constexpr float kThousandth = 0.001f;
     constexpr float kMillionth = 1e-6f;
     constexpr float kBillionth = 1e-9f;
     if (price < 0) {
         price = 0x7FFFFFFF;
     } else if (price < 1000) {
-        out->Format("%d", price);
+        *out = str::Format("%d", price);
         return;
     } else if (price < 10000) {
-        out->Format("%.1fk", static_cast<double>(price) * kThousandth);
+        *out = str::Format("%.1fk", static_cast<double>(price) * kThousandth);
         return;
     } else if (price < 1000000) {
-        out->Format("%dk", price / 1000);
+        *out = str::Format("%dk", price / 1000);
         return;
     } else if (price < 10000000) {
-        out->Format("%.1fm", static_cast<double>(price) * kMillionth);
+        *out = str::Format("%.1fm", static_cast<double>(price) * kMillionth);
         return;
     } else if (price < 1000000000) {
-        out->Format("%dm", price / 1000000);
+        *out = str::Format("%dm", price / 1000000);
         return;
     }
-    out->Format("%.1fg", static_cast<double>(price) * kBillionth);
+    *out = str::Format("%.1fg", static_cast<double>(price) * kBillionth);
 }

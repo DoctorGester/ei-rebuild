@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
@@ -72,9 +73,8 @@ struct DeltaField {
     void WriteStringBoth(const char* text);
     // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // Reads a CString from the reader into `cstring` (raw storage it constructs, as
-    // CStream::ReadString); returns it.
-    mfc::CString* ReadString(void* cstring);
+    // Reads a string from the reader into `text` (CStream::ReadString); returns it.
+    std::string* ReadString(std::string* text);
     // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);

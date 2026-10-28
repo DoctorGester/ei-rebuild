@@ -10,6 +10,7 @@
 #include <bit>
 #include <cstring>
 #include <memory>
+#include <string>
 
 
 namespace {
@@ -257,8 +258,8 @@ void DeltaField::WriteStringBoth(const char* text) {
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 
-mfc::CString* DeltaField::ReadString(void* cstring) {
-    return delta::g_received->ReadString(cstring);
+std::string* DeltaField::ReadString(std::string* text) {
+    return delta::g_received->ReadString(text);
 }
 
 void DeltaField::WriteStreamBoth(BitStream* from) {
@@ -267,15 +268,14 @@ void DeltaField::WriteStreamBoth(BitStream* from) {
 }
 
 void DeltaField::ReadText(char* text, int size) {
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* string = ReadString(storage);
-    if (string->GetLength() < size - 1) {
-        const char* from = *string;
+    std::string storage;
+    std::string* string = ReadString(&storage);
+    if (static_cast<int>(string->size()) < size - 1) {
+        const char* from = (*string).c_str();
         std::memcpy(text, from, std::strlen(from) + 1);
     } else {
         text[0] = '\0';
     }
-    std::destroy_at(string);
 }
 
 int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream(to); }

@@ -144,14 +144,14 @@ void CInterface3D::Create(CTextureDevice* device) {
     console::CStdioFile file;
     bool opened;
     {
-        std::string path = (TheDataFolder() + game::TutorialIniText()).GetString();
+        std::string path = TheDataFolder() + game::TutorialIniText();
         opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
     }
     if (opened) {
-        mfc::CString line;
+        std::string line;
         std::vector<std::string> words;
         while (file.ReadString(line)) {
-            text::SplitWords(line, &words, ' ');
+            text::SplitWords(line.c_str(), &words, ' ');
             if (words.size() <= 1) continue;
             const char* count = words[1].c_str();
             helpTopics_.Subscript(words[0]) = std::atoi(count);

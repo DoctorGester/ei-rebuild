@@ -101,9 +101,9 @@ void AppendName(const UnitModelRecord* model, const std::string& name, char* buf
 void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
     char buffer[0x100];
     {
-        mfc::CString name;
+        std::string name;
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
-        AppendName(model, name.GetString(), buffer);
+        AppendName(model, name.c_str(), buffer);
     }
     set.textures.push_back(buffer);
 }
@@ -137,19 +137,19 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     char buffer[0x100];
     {
         const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16);
-        mfc::CString name;
+        std::string name;
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
         WeaponRecordModelName(&name, weapon, material);
-        AppendName(model, name.GetString(), buffer);
+        AppendName(model, name.c_str(), buffer);
     }
     set.textures.push_back(buffer);
 }
 
 // The texture cache is the client world's texture manager.
-void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
+void Compose(CWorldClient* self, std::string& out, SkinComposition& set, const std::string& name, int size, int kind) {
     set.flags = size;
     self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
-    self->textureManager_->FindOrLoad(kind, name);
+    self->textureManager_->FindOrLoad(kind, name.c_str());
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
@@ -162,7 +162,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
-        mfc::CString built;
+        std::string built;
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         std::string skin;
@@ -178,11 +178,11 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         AddWeapons(set, model, items);
 
-        mfc::CString name;
+        std::string name;
         if (record->modelNumber != -1) {
-            name.Format("mo%dp", record->modelNumber);
+            name = str::Format("mo%dp", record->modelNumber);
         } else {
-            name.Format("prot%dp", static_cast<int>(record->prototype));
+            name = str::Format("prot%dp", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x100, 1);
 
@@ -192,9 +192,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
-            name.Format("mo%ds", record->modelNumber);
+            name = str::Format("mo%ds", record->modelNumber);
         } else {
-            name.Format("prot%ds", static_cast<int>(record->prototype));
+            name = str::Format("prot%ds", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x80, 2);
     }
@@ -236,15 +236,15 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     first.ConstructEmpty();
     second.ConstructEmpty();
 
-    const mfc::CString* names = record->names.Start();
+    const std::string* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
         CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
                                &second);
     } else {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
-        for (const mfc::CString* p = record->names.Start(); p != record->names.Finish(); ++p) {
-            std::string string(p->GetString());
+        for (const std::string* p = record->names.Start(); p != record->names.Finish(); ++p) {
+            std::string string(p->c_str());
             if (first.Finish() != first.EndOfStorage()) {
                 std::construct_at(first.Finish(), string);
                 ++first.Finish();

@@ -65,7 +65,7 @@ static void ReleaseTextures(CTextureManager* manager) {
 int CTextureManager::Create() {
     if (!CBaseManager::Create()) return 0;
     DeleteComposedTextures();
-    const std::string folder = TheTextFolder().GetString();
+    const std::string folder = TheTextFolder();
     BOOL opened = AddArchive((folder + "textures.res").c_str());
     opened = AddArchive((folder + "redress.res").c_str()) && opened ? 1 : 0;
     if (!AddArchive((folder + "menus.res").c_str()) || !opened) return 0;

@@ -52,7 +52,7 @@ struct ReadBuffer {
     }
 };
 
-mfc::CString CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
+std::string CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
@@ -171,10 +171,10 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
 // `fill`) is drawn from the layers and written with `mipCount` levels in `format` (1), or, without
 // layer textures, the file is deleted (0). 0 when the drawing fails; FatalError's result when the
 // file cannot be written.
-int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
-                             const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill,
+int CTextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
+                             const std::string* fallback, unsigned mipCount, std::uint32_t fill,
                              std::uint32_t format) {
-    std::string path = CachePath((*name).GetString()).GetString();
+    std::string path = CachePath((*name).c_str());
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     ReadBuffer buffer;
@@ -182,14 +182,14 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(name->GetString(),
-                               fallback->GetString()) != 0) {
+    } else if (gamecrt::mbscmp(name->c_str(),
+                               fallback->c_str()) != 0) {
         *out = *fallback;
-        path = CachePath((*fallback).GetString());
+        path = CachePath((*fallback).c_str());
         if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
             if (CacheMatches(file, header, buffer, request)) return 1;
             *out = *name;
-            path = CachePath((*name).GetString());
+            path = CachePath((*name).c_str());
         }
     }
 

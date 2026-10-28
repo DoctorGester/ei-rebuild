@@ -206,8 +206,8 @@ void ScriptSubCall::Load(ScriptStream* stream) {
 }
 
 void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream) {
-    mfc::CString temporary(mfc::CString::kUnset);
-    *out = stream->ReadString(&temporary)->GetString();
+    std::string temporary;
+    *out = stream->ReadString(&temporary)->c_str();
 }
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------

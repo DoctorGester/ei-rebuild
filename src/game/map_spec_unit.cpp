@@ -16,6 +16,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include <string>
 #include "lib/mfc_slots.h"
 #include "lib/mfc_array.h"
 #include "world_data.h"
@@ -79,8 +80,8 @@ std::uint32_t Bits(float f) {
 }
 
 void ReadInto(Chunk& c, std::string& field) {
-    mfc::CString read(mfc::CString::kUnset);
-    field = c.ReadString(&read)->GetString();
+    std::string read;
+    field = c.ReadString(&read)->c_str();
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;

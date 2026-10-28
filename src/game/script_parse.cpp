@@ -454,7 +454,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
         int rest;
         ClassifyToken(buffer, nullptr, &rest);
         p -= rest;
-        mfc::CString text(buffer, static_cast<int>(std::strlen(buffer)) - rest);
+        std::string text(buffer, static_cast<int>(std::strlen(buffer)) - rest);
 
         // CList::AddTail as the game inlines it: the new node's token zeroed, then constructed.
         ScriptTokenList::Node* node = tokens->NewNode(tokens->tail, nullptr);
@@ -481,14 +481,14 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     return 1;
 }
 
-mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
+std::string* CScript::QualifyName(std::string* out, const std::string& name) {
     if (FileCount() == 0) {
-        std::construct_at(out, name);
+        *out = name;
         return out;
     }
     std::string qualified;
     qualified = str::Format("!%i!%s", FileCount(), name.c_str());
-    std::construct_at(out, qualified);
+    *out = qualified;
     return out;
 }
 
@@ -537,17 +537,17 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
     defines->tail = node;
 }
 
-void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines) {
+void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines) {
     for (const ScriptDefineList::Node* node = defines->head; node;) {
         const ScriptDefineList::Node* next = node->next;
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).
         for (;;) {
-            const mfc::CString& text = *line;
-            int at = text.Find(node->data.name.c_str());
+            const std::string& text = *line;
+            int at = str::Find(text, node->data.name.c_str());
             if (at < 0) break;
-            std::string right = text.Right(line->GetLength() - static_cast<int>(node->data.name.size()) - at).GetString();
-            std::string left = text.Left(at).GetString();
+            std::string right = str::Right(text, static_cast<int>(line->size()) - static_cast<int>(node->data.name.size()) - at);
+            std::string left = str::Left(text, at);
             *line = (left + node->data.value) + right;
         }
         node = next;

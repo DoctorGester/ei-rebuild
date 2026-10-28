@@ -58,7 +58,7 @@ struct Panel {
     CUiSurface* surface;
     const std::string* labels;
     RECT rect;
-    mfc::CString text;
+    std::string text;
 
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
@@ -98,48 +98,48 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
     std::int16_t health = unitIn->packedVitals.hitPoints;
-    panel.text.Format(kValuePair, panel.labels[0].c_str(), health > 0 ? static_cast<int>(health) : 0,
+    panel.text = str::Format(kValuePair, panel.labels[0].c_str(), health > 0 ? static_cast<int>(health) : 0,
                       static_cast<int>(unitIn->packedVitals.maxHitPoints));
     panel.DrawLine();
     bool outside = OutsideGroup(this, unitIn);
-    panel.text.Format(kValuePair, panel.labels[1].c_str(), static_cast<int>(unitIn->packedVitals.mana),
+    panel.text = str::Format(kValuePair, panel.labels[1].c_str(), static_cast<int>(unitIn->packedVitals.mana),
                       static_cast<int>(unitIn->packedVitals.maxMana));
     panel.DrawLine();
 
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
-        panel.text.Format(kMoveKey, moveBonus - 1);
-        texts->CTextManager::GetString(panel.text, &suffix);
+        panel.text = str::Format(kMoveKey, moveBonus - 1);
+        texts->CTextManager::GetString(panel.text.c_str(), &suffix);
     } else {
         suffix.clear();
     }
     double speed = ShownSpeed(unitIn, outside);
-    panel.text.Format(kSpeedLine, panel.labels[2].c_str(), speed, suffix.c_str());
+    panel.text = str::Format(kSpeedLine, panel.labels[2].c_str(), speed, suffix.c_str());
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(TheClientWorld()));
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
-    panel.text.Format(kValueUnit, panel.labels[6].c_str(), vision, panel.labels[13].c_str());
+    panel.text = str::Format(kValueUnit, panel.labels[6].c_str(), vision, panel.labels[13].c_str());
     panel.DrawLine();
 
     // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
     // it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);
-    panel.text.Format(kValue, panel.labels[3].c_str(), combat.attack);
+    panel.text = str::Format(kValue, panel.labels[3].c_str(), combat.attack);
     panel.DrawLine();
-    panel.text.Format(kValue, panel.labels[4].c_str(), combat.defence);
+    panel.text = str::Format(kValue, panel.labels[4].c_str(), combat.defence);
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
-        panel.text.Format(kDamageKey, combat.damageType);
-        texts->CTextManager::GetString(panel.text, &suffix);   // else the move text stays
+        panel.text = str::Format(kDamageKey, combat.damageType);
+        texts->CTextManager::GetString(panel.text.c_str(), &suffix);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
-    panel.text.Format(kDamageLine, panel.labels[9].c_str(), damageMin, damageMax,
+    panel.text = str::Format(kDamageLine, panel.labels[9].c_str(), damageMin, damageMax,
                       suffix.c_str());
     panel.DrawLine();
-    panel.text.Format(kValue, panel.labels[15].c_str(), static_cast<int>(params->rate));
+    panel.text = str::Format(kValue, panel.labels[15].c_str(), static_cast<int>(params->rate));
     panel.DrawLine();
 
     float description[7];
@@ -165,7 +165,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
                 suffix = str::Format(kWeaker, -difference);
             }
             texts->CTextManager::GetString(suffix.c_str(), &suffix);
-            panel.text.Format(kTwoTexts, panel.labels[16].c_str(), suffix.c_str());
+            panel.text = str::Format(kTwoTexts, panel.labels[16].c_str(), suffix.c_str());
             panel.DrawLine();
         }
     } else if (lines[2].size() != 0) {
@@ -174,7 +174,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
 
     if (IsMultiplayerClient() && !outside) {
         texts->CTextManager::GetString(kCampExp, &suffix);
-        panel.text.Format(kValue, suffix.c_str(), params->unspentExperience);
+        panel.text = str::Format(kValue, suffix.c_str(), params->unspentExperience);
         panel.DrawLine();
     }
 }

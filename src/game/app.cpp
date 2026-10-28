@@ -247,26 +247,26 @@ int __cdecl StartFirstMap() {
     const auto& cmdMode = CommandLineMob();   // empty: main menu
     const auto& cmdScript = CommandLineScript();
     std::string map;
-    map = cmdMap.GetLength() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
-    if (gamecrt::mbscmp(cmdMode.GetString(),
+    map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
+    if (gamecrt::mbscmp(cmdMode.c_str(),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());
         return 1;
     }
     CWorldServer* world = TheServerWorld();
-    if (!world->NewZone(map.c_str(), cmdMode, (const char*)0))
+    if (!world->NewZone(map.c_str(), cmdMode.c_str(), (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
     client->SetPlayer(TheServerWorld()->shared5C_.Get());
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
-    if (cmdScript.GetLength() == 0) return 1;
+    if (cmdScript.size() == 0) return 1;
     CScript* script = TheMissionScript();
     BOOL loaded;
     {
-        std::string root = TheDataFolder().GetString();
+        std::string root = TheDataFolder();
         std::string dir = root + "Scripts\\";
         std::string path = dir + cmdScript;
         loaded = script->LoadFile(path.c_str());

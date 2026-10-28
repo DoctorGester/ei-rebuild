@@ -39,14 +39,14 @@ void __fastcall RecordDestruct(LeverRecord* self) {
 
 // The record's fields 0 .. 7 (strings 0, 5, 6, 7).
 void LeverRecord::Archive(ChunkArchive* archive) {
-    archive->CStringField(0, &name);
+    archive->StringField(0, &name);
     archive->Field(1, spots, 0x10);
     archive->Field(2, &spotCount, 4);
     archive->Field(3, &farScale, 4);
     archive->Field(4, &duration, 4);
-    archive->CStringField(5, &text20);
-    archive->CStringField(6, &sound);
-    archive->CStringField(7, &text28);
+    archive->StringField(5, &text20);
+    archive->StringField(6, &sound);
+    archive->StringField(7, &text28);
 }
 
 LeverRecord* LeverRecord::Assign(const LeverRecord* from) {

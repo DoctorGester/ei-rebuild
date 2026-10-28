@@ -37,7 +37,7 @@ public:
     CStdioFile& operator=(const CStdioFile&) = delete;
     mfc::BOOL Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error);
     // The next line into `line`; false at the end of the file.
-    mfc::BOOL ReadString(mfc::CString& line);
+    mfc::BOOL ReadString(std::string& line);
     // A line with its line end into `buffer` (at most size - 1 characters); null at the end
     // of the file. A read error throws a CFileException*.
     char* ReadString(char* buffer, unsigned size);

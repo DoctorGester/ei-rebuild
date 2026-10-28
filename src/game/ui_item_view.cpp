@@ -18,6 +18,7 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -182,12 +183,12 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        std::string name = item->PictureName().GetString();
+        std::string name = item->PictureName();
         model = CachedModel(&models_, name.c_str());
     }
     CTexture* texture;
     {
-        std::string name = item->FigureName().GetString();
+        std::string name = item->FigureName();
         texture = CachedTexture(&textures_, name.c_str());
     }
     if (!model || !texture) return;
@@ -355,7 +356,7 @@ bool SameText(const char* a, const char* b) {
 
 } // namespace
 
-void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture) {
+void CItemScreen::FaceNames(const char* prototype, std::string* model, std::string* texture) {
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
@@ -373,15 +374,15 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
         sex = "m";
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
-    model->Format("infa%sme%dface", figureModel, unit->hair + 1);
-    texture->Format("face%s%02d", sex.c_str(), unit->skin);
+    *model = str::Format("infa%sme%dface", figureModel, unit->hair + 1);
+    *texture = str::Format("face%s%02d", sex.c_str(), unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
-    mfc::CString modelName, textureName;
+    std::string modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    CUiMesh* model = CachedModel(&models_, modelName);
-    CTexture* texture = CachedTexture(&textures_, textureName);
+    CUiMesh* model = CachedModel(&models_, modelName.c_str());
+    CTexture* texture = CachedTexture(&textures_, textureName.c_str());
     if (!model || !texture) return;
 
     model->texture_ = texture;

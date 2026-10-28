@@ -85,8 +85,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            std::string image = item->FigureName().GetString();
-            std::string model = item->PictureName().GetString();
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, true);
@@ -110,8 +110,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            std::string image = item->FigureName().GetString();
-            std::string model = item->PictureName().GetString();
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, false);

@@ -315,7 +315,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     }
     case 2: {
         {
-            std::string path = (*GameBasePathString() + "Movies\\Exit.bik").GetString();
+            std::string path = *GameBasePathString() + "Movies\\Exit.bik";
             PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
@@ -499,13 +499,13 @@ struct TitlesTokenizer : TextTokenizer {
 
 void CCreditsScreen::CreateScreen() {
     CInterface3D* ui = interface_;
-    const mfc::CString& name = name_;
+    const std::string& name = name_;
     if (!fromGame_) {
         TheSoundManager()->StopAll(1);
         TheMusicSystem()->Stop();
     }
     TheCursor()->ShowImage(0);
-    app::PlayMovies(mfc::operator+(name, "fin"), true, false, 0, 0);
+    app::PlayMovies((name + "fin").c_str(), true, false, 0, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
@@ -520,15 +520,15 @@ void CCreditsScreen::CreateScreen() {
     if (!data) {
         currentLine_ = lines_.End();
     } else {
-        mfc::CString script;
-        std::memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
-        script.ReleaseBuffer(-1);
+        std::string script;
+        std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
+        str::CutAtNull(script);
         text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, "\n"}};
         lines.Start();
         while (lines.position != -1) {
-            mfc::CString line(lines.word.c_str());
+            std::string line(lines.word.c_str());
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record{};
@@ -566,8 +566,7 @@ void CCreditsScreen::CreateScreen() {
     if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    player_.Open(mfc::operator+(mfc::operator+(mfc::operator+(*GameBasePathString(), "Movies\\"), name),
-                                                            ".bik"),   // "<folder>Movies\<name>.bik"
+    player_.Open((*GameBasePathString() + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;
 }

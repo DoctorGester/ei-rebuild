@@ -78,6 +78,23 @@ std::string Right(const std::string& s, int count) {
 
 void MakeLower(std::string& s) { libcrt::Mbslwr(reinterpret_cast<uchar*>(s.data())); }
 
+// The destination steps by _mbsinc over the byte just copied (MFC's own way).
+int Remove(std::string& s, char c) {
+    char* source = s.data();
+    char* dest = s.data();
+    char* end = s.data() + s.size();
+    while (source < end) {
+        if (*source != c) {
+            *dest = *source;
+            dest = Inc(dest);
+        }
+        source = Inc(source);
+    }
+    const int count = static_cast<int>(source - dest);
+    s.resize(s.size() - static_cast<std::size_t>(count));
+    return count;
+}
+
 // TrimRight: cut at the start of the last run of characters that match.
 void TrimRight(std::string& s) {
     const char* last = nullptr;
@@ -131,6 +148,8 @@ char* Buffer(std::string& s, int minLength) {
     if (minLength > Length(s)) s.resize(static_cast<std::size_t>(minLength));
     return s.data();
 }
+
+void CutAtNull(std::string& s) { s.resize(std::strlen(s.c_str())); }
 
 char* SetLength(std::string& s, int length) {
     s.resize(static_cast<std::size_t>(length));

@@ -52,7 +52,7 @@ struct UiItemKinds {
     static bool __stdcall IsBuildable(const CItem* item);
 };
 
-using MpStringVector = stlp::vector<mfc::CString>;
+using MpStringVector = stlp::vector<std::string>;
 
 // --- Camp item strip ------------------------------------------------------------------------
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions
