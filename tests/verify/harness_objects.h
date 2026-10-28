@@ -133,7 +133,3 @@ inline _RTL_CRITICAL_SECTION* HarnessDeviceLock() {
                             : &ei::OriginalGameData<_RTL_CRITICAL_SECTION>(0x007AEE78);
 }
 
-// Whether the image's renderer draws (render::Active): never in game.exe's runs, which draw with the original code.
-inline bool HarnessRenderActive() {
-    return ei::Standalone() && ei::verify::image::RenderActive();
-}

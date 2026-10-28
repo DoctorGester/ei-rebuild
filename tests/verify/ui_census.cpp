@@ -1523,7 +1523,7 @@ void Frame() {
     if (!s.installed) return;
     ++s.frame;
     if (!s.modulesHooked || s.frame % 600 == 0) {
-        if (!s.modulesHooked && !HarnessRenderActive())
+        if (!s.modulesHooked && !ei::Standalone())
             ei::Log("census: the window surfaces are not in memory DCs (game.exe: the original's drawing): "
                     "no checksums, calls placed by the surface's DirectDraw DC only");
         s.modulesHooked = true;
@@ -1574,7 +1574,7 @@ void Write() {
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
     std::fprintf(f, "# ui_census install=%s frames=%u cpuwindows=%d\n", verify::starter::RebirthInstall() ? "rebirth" : "vanilla",
-                 s.frame, HarnessRenderActive() ? 1 : 0);
+                 s.frame, ei::Standalone() ? 1 : 0);
     std::fprintf(f, "kind,owner,size,primitive,chain,count,frames,detail\n");
     for (const auto& [key, row] : s.rows) {
         std::size_t a = key.find('\t'), b = key.find('\t', a + 1), c = key.find('\t', b + 1);

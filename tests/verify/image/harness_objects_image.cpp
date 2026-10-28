@@ -99,9 +99,6 @@ int CampaignMode() { return g_serverWorld->sessionKind_; }
 void* ClientWorldObject() { return &g_clientWorld.Get(); }
 void* SceneDevice() { return g_sceneRenderer->device_.device; }
 void* DeviceLock() { return &g_deviceLock; }
-// The image always draws with the renderer: a failure of it ends the game. The shared harness drops the query at
-// its next change.
-bool RenderActive() { return true; }
 
 int ServerUpdate(void* server) { return static_cast<CWorldServer*>(server)->Update(); }
 int ClientSegment(void* client) { return static_cast<CWorldClient*>(client)->Segment(); }

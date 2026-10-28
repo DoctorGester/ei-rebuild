@@ -211,7 +211,7 @@ bool WriteBmp(const char* path, const Image& image) {
 void Capture() {
     // The image (the new renderer presents by itself): the old render target holds nothing worth
     // keeping; the new frame is the capture.
-    if (HarnessRenderActive()) {
+    if (ei::Standalone()) {
         image::EndFrame();
         Image frame;
         char path[MAX_PATH];
