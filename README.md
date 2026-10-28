@@ -95,3 +95,12 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).
+
+## License
+
+The original work in this repository (the tools, the test harness, the renderer and the rebuilt source as written
+here) is under the MIT license (`LICENSE`). Libraries in `third_party/` keep their own licenses.
+
+Evil Islands (Проклятые Земли) and its data are the property of their rights holders (Nival). This repository holds no
+game files: no `game.exe`, no resources, no music or video. To build or play it you need your own copy of the game.
+The Rebirth edition's fixes are reimplemented from its behaviour; the Rebirth edition belongs to its authors.
