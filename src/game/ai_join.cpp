@@ -16,18 +16,7 @@ namespace {
 // unreached), the path to a cell into a list, reset. The path cell list: a reversed copy into `out`, append a
 // list, and the fix-up of the joined path.
 
-// ConstructElements<PathCell> (zero-fills `count`).
-
 constexpr int kUnreached = 0x7FFFFFFF;
-
-void DestroyList(PathCellList& list) {
-    list.vtable = PathCellListVtable();
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
-}
 
 } // namespace
 
@@ -54,14 +43,13 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         other = forward->CostAt(x, y);
         if (other < kUnreached) break;
     }
-    PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
+    PathCellList scratch;
     if (ok) {
         if (cost) *cost = other + open;
         forward->PathTo(x, y, path);
         backward->PathTo(x, y, &scratch);
         PathCellList reversed;
         path->Append(scratch.Reversed(&reversed));
-        DestroyList(reversed);
         PathCellsRemoveRepeats(path);
         // Like the original, the cells keep the stack word under SearchPathTo's local cell (the forward search's
         // address); ours get the plain words.
@@ -69,17 +57,10 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     }
     backward->Reset();
     forward->Reset();
-    DestroyList(scratch);
     return ok;
 }
 
 void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
-    path->count = 0;
-    path->free = nullptr;
-    path->tail = nullptr;
-    path->head = nullptr;
-    mfc::PlexFreeDataChain(path->blocks);
-    path->blocks = nullptr;
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
     // The original gives each cell's speed word and terrain bits a stack slot it never writes (the planner's last
     // call left a search's row offset there); ours get the plain words.
@@ -89,11 +70,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     };
     // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.
     while (int dir = marks.rows[y][x]) {
-        PathCellList::Node* node = path->NewNode(nullptr, path->head);
-        node->data = cellAt(x, y);
-        if (path->head) path->head->prev = node;
-        else path->tail = node;
-        path->head = node;
+        path->push_front(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
         case 2: --y; --x; break;
@@ -106,5 +83,5 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
         default: break;
         }
     }
-    path->AddHead(cellAt(x, y));
+    path->push_front(cellAt(x, y));
 }

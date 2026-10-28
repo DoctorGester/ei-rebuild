@@ -27,9 +27,6 @@
 
 namespace mapspec {
 
-template <typename T>
-using Array = mfc::CArray<T>;
-
 
 // The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
 // constructor). OnChunk is the first virtual; the behaviour record's writer is called directly.
@@ -59,20 +56,6 @@ public:
 
 namespace {
 
-// CRT eh vector constructor / destructor iterators.
-template <typename Constructor, typename Destructor>
-void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
-template <typename Destructor>
-void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
-void PatrolsSetSize(Array<Patrol>* patrols, int size) { mfc::impl::ArrayAs<mfc::impl::OwnedPatrols>(*patrols).SetSize(size, -1); }
-constexpr auto ConstructPatrols = mfc::impl::ConstructElementsAt<mfc::impl::Patrols>;
-constexpr auto DestructPatrols = mfc::impl::DestructElementsAt<mfc::impl::OwnedPatrols>;
-// A patrol's destructor (also with flags 0): its waypoint array destroyed by the array base class's
-// destructor.
-void DestroyPatrol(Patrol& p) {
-    ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
-    if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
-}
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -93,86 +76,8 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- Behaviour records -------------------------------------------------------------------------
 
-Behaviour* BehaviourConstruct(Behaviour* self) {
-    self->patrols.data = nullptr;
-    self->patrols.growBy = 0;
-    self->patrols.maxSize = 0;
-    self->patrols.size = 0;
-    ei::SetVtable(&self->patrols, mfc::impl::BehaviourPatrolsArrayClass::Vtable());
-    self->type = 3;
-    self->loop = 1;
-    self->flags = 0;
-    self->guardRadius = 10.0f;
-    self->field0A = -1.0f;
-    self->alarmKind = 0;
-    self->enabled = 0;
-    self->alertMode = 0;
-    self->callRadius = 0x41200000u /*0073C378*/;
-    self->alarmDelay = 75;
-    self->alarm = 0;
-    return self;
-}
 
-// The destructor body (the patrol array's destructor inlined: each patrol's waypoint
-// block freed, then the patrols' block).
-void BehaviourDestruct(Behaviour* self) {
-    Patrol* patrols = self->patrols.data;
-    ei::SetVtable(&self->patrols, mfc::impl::PatrolArrayClass::Vtable());
-    if (!patrols) return;
-    for (int i = 0, n = self->patrols.size; i < n; ++i) DestroyPatrol(patrols[i]);
-    gamecrt::operator_delete(self->patrols.data);
-}
 
-void Patrols::CopyFrom(const Patrols& from) {
-    int n = from.size;
-    if (n == 0) {
-        if (data) {
-            for (int i = 0, count = size; i < count; ++i) DestroyPatrol(data[i]);
-            gamecrt::operator_delete(data);
-            data = nullptr;
-        }
-        maxSize = 0;
-        size = 0;
-    } else if (!data) {
-        data = gamecrt::operator_new_array<Patrol>(static_cast<std::size_t>(n));
-        ConstructPatrols(data, n);
-        maxSize = n;
-        size = n;
-    } else if (n <= maxSize) {
-        if (size < n) ConstructPatrols(data + size, n - size);
-        else if (size > n) DestructPatrols(data + n, size - n);
-        size = n;
-    } else {
-        int grow = growBy;
-        if (grow == 0) {
-            grow = size / 8;
-            grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
-        }
-        int capacity = maxSize + grow;
-        if (n >= capacity) capacity = n;
-        auto* grown = gamecrt::operator_new_array<Patrol>(static_cast<std::size_t>(capacity));
-        std::memcpy(grown, data, static_cast<std::size_t>(size) * sizeof(Patrol));
-        ConstructPatrols(grown + size, n - size);
-        gamecrt::operator_delete(data);
-        data = grown;
-        size = n;
-        maxSize = capacity;
-    }
-    for (int i = 0; i < from.size; ++i) {
-        lib::InPlace<Patrol> raw;
-        auto* copy = raw.Get();
-        from.CopyAt(copy, i);
-        Patrol& to = data[i];
-        to.position = copy->position;
-        to.waypoints.SetSize(copy->waypoints.size, -1);
-        for (int j = 0; j < copy->waypoints.size; ++j) {
-            Waypoint w = copy->waypoints.data[j];   // GetAt by value
-            data[i].waypoints.data[j] = w;
-        }
-        ei::SetVtable(&copy->waypoints, mfc::impl::ArrayBaseClass::Vtable());
-        if (copy->waypoints.data) gamecrt::operator_delete(copy->waypoints.data);
-    }
-}
 
 // ---- The chunk classes ---------------------------------------------------------------------------
 
@@ -199,10 +104,10 @@ void PatrolChunk::OnChunk() {
     if (c.id_ != 0xBBBE0000) return;
     WaypointChunk child(this);
     Patrol* patrol = target;
-    patrol->waypoints.SetSize(patrol->waypoints.size + 1, -1);
-    patrol->waypoints.data[patrol->waypoints.size - 1].position = {0.0f, 0.0f, 0.0f};
+    patrol->waypoints.resize(std::ssize(patrol->waypoints) + 1);
+    patrol->waypoints[std::ssize(patrol->waypoints) - 1].position = {0.0f, 0.0f, 0.0f};
     Patrol* again = target;
-    child.target = &again->waypoints.data[patrol->waypoints.size - 1];
+    child.target = &again->waypoints[std::ssize(patrol->waypoints) - 1];
     child.ForEachChild();
 }
 
@@ -242,9 +147,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBD0000: {
         PatrolChunk child(this);
         Behaviour* behaviour = target;
-        PatrolsSetSize(&behaviour->patrols, behaviour->patrols.size + 1);
-        behaviour->patrols.data[behaviour->patrols.size - 1].position = {0.0f, 0.0f, 0.0f};
-        child.target = &target->patrols.data[behaviour->patrols.size - 1];
+        child.target = &behaviour->patrols.emplace_back();
         child.ForEachChild();
         break;
     }
@@ -270,14 +173,14 @@ void BehaviourChunk::Write() {
     c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
     PatrolChunk patrolChunk(this);
-    for (int i = 0; i < target->patrols.size; ++i) {
-        Patrol* p = &target->patrols.data[i];
+    for (int i = 0; i < std::ssize(target->patrols); ++i) {
+        Patrol* p = &target->patrols[i];
         patrolChunk.target = p;
         patrolChunk.BeginWrite(0xBBBD0000);
         WriteVector(patrolChunk, 0xBBBD0001, p->position);
         WaypointChunk waypointChunk(&patrolChunk);
-        for (int j = 0; j < p->waypoints.size; ++j) {
-            Waypoint* w = &p->waypoints.data[j];
+        for (int j = 0; j < std::ssize(p->waypoints); ++j) {
+            Waypoint* w = &p->waypoints[j];
             waypointChunk.target = w;
             waypointChunk.BeginWrite(0xBBBE0000);
             WriteVector(waypointChunk, 0xBBBE0001, w->position);
@@ -292,7 +195,6 @@ void BehaviourChunk::Write() {
 }
 
 UnitSpec::UnitSpec() {
-    VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
     record.applyStats = 0;
     kind = 5;
     prototype = "none";
@@ -301,11 +203,7 @@ UnitSpec::UnitSpec() {
     std::memset(&record.stats, 0, sizeof(record.stats));
 }
 
-// The prototype's name goes with the members, after the behaviour records (the original frees it
-// before them).
-UnitSpec::~UnitSpec() {
-    VectorDestruct(behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
-}
+UnitSpec::~UnitSpec() = default;
 
 CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
@@ -381,49 +279,19 @@ void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data,
 void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
 } // namespace
 
-// The count, the array sized to it (MFC SetSize inlined, new waypoints cleared), then the raw waypoints.
-void WaypointsRead(Array<Waypoint>* a, CStream* stream) {
+// The count, the array sized to it, then the raw waypoints.
+void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
-    if (n == 0) {
-        if (a->data) {
-            gamecrt::operator_delete(a->data);
-            a->data = nullptr;
-        }
-        a->maxSize = 0;
-        a->size = 0;
-    } else if (!a->data) {
-        a->data = gamecrt::operator_new_array<Waypoint>(static_cast<std::size_t>(n));
-        mfc::PlainElements<Waypoint>::Construct(a->data, n);
-        a->maxSize = n;
-        a->size = n;
-    } else if (n <= a->maxSize) {
-        if (n > a->size) mfc::PlainElements<Waypoint>::Construct(a->data + a->size, n - a->size);
-        a->size = n;
-    } else {
-        int grow = a->growBy;
-        if (grow == 0) {
-            grow = a->size / 8;
-            grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
-        }
-        int capacity = a->maxSize + grow;
-        if (n >= capacity) capacity = n;
-        auto* data = gamecrt::operator_new_array<Waypoint>(static_cast<std::size_t>(capacity));
-        std::memcpy(data, a->data, static_cast<std::size_t>(a->size) * sizeof(Waypoint));
-        mfc::PlainElements<Waypoint>::Construct(data + a->size, n - a->size);
-        gamecrt::operator_delete(a->data);
-        a->size = n;
-        a->data = data;
-        a->maxSize = capacity;
-    }
-    for (int i = 0; i < a->size; ++i) StreamRead(stream, &a->data[i], sizeof(Waypoint));
+    a->resize(n);
+    for (Waypoint& w : *a) StreamRead(stream, &w, sizeof(Waypoint));
 }
 
 // The count, then the raw waypoints.
-void WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
-    int n = a->size;
+void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
+    int n = static_cast<int>(a->size());
     StreamWrite(stream, &n, 4);
-    for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));
+    for (const Waypoint& w : *a) StreamWrite(stream, &w, sizeof(Waypoint));
 }
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
@@ -432,9 +300,9 @@ void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
-    PatrolsSetSize(&patrols, n);
-    for (int i = 0; i < patrols.size; ++i) {
-        Patrol* p = &patrols.data[i];
+    patrols.resize(n);
+    for (int i = 0; i < std::ssize(patrols); ++i) {
+        Patrol* p = &patrols[i];
         StreamRead(stream, &p->position, 12);
         WaypointsRead(&p->waypoints, stream);
     }
@@ -462,10 +330,10 @@ void Behaviour::Read(CStream* stream) {
 // The record to a stream (the same fields).
 void Behaviour::Write(CStream* stream) const {
     StreamWrite(stream, &type, 4);
-    int n = patrols.size;
+    int n = std::ssize(patrols);
     StreamWrite(stream, &n, 4);
-    for (int i = 0; i < patrols.size; ++i) {
-        const Patrol* p = &patrols.data[i];
+    for (int i = 0; i < std::ssize(patrols); ++i) {
+        const Patrol* p = &patrols[i];
         StreamWrite(stream, &p->position, 12);
         WaypointsWrite(&p->waypoints, stream);
     }

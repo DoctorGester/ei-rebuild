@@ -451,7 +451,7 @@ static_assert(sizeof(UnitStats) == 0x704);
 // The AI's move target.
 struct AIMoveOrder {
     Vector3 point;                          // +0x00
-    Array<AILook> looks;                    // +0x0C
+    Vector<AILook> looks;                   // +0x0C
 };
 static_assert(sizeof(AIMoveOrder) == 0x20);
 
@@ -467,8 +467,8 @@ struct AIMemory {
     List<CUnit*> visible;                   // +0x40
     std::uint8_t unknown5C[0x1C];
     List<CUnit*> corpses;                   // +0x78
-    Array<AIReport> reports;                // +0x94
-    Array<AIHeardCall> calls;               // +0xA8
+    Vector<AIReport> reports;               // +0x94
+    Vector<AIHeardCall> calls;              // +0xA8
     std::uint8_t seesEnemy;                 // +0xBC
     std::uint8_t unknownBD[0x3];
 };

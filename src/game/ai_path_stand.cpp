@@ -31,7 +31,7 @@ void FacingFromQuaternion(const float* q, float* out) {
 
 // The common part; `time` is read after the reset (one variant passes the path's own start time).
 void StandAt(AIPath* path, const int* time, const CMapObject* object) {
-    path->cells.RemoveAll();
+    path->cells.clear();
     path->Reset();
     path->targetX = 0.0f;
     path->targetY = 0.0f;

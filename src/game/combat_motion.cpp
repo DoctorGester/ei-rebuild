@@ -157,18 +157,10 @@ std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 // A motion order on the stack, as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
 // uninitialised).
 struct LocalMotionOrder : PathOrder {
-    LocalMotionOrder() {
-        std::memset(&motionOrder, 0, sizeof(motionOrder));
-        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
-    }
-    ~LocalMotionOrder() {
-        steps.vtable = PathCellListVtable();
-        steps.RemoveAll();
-    }
+    LocalMotionOrder() { std::memset(&motionOrder, 0, sizeof(motionOrder)); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
 };
-static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
 using UnitList = std::list<CUnit*>;
 

@@ -75,10 +75,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C350,1,,game,00456440 004578D0,004578B0,CDirectInputMouse,src/game/ui_cursor.h,the DirectInput mouse (CDirectInputMouse)
 0073C360,2,,game,00457740 004577E0 004A5BD0 004A5E90,004577C0,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
 0073C368,1,,game,004578D0 00457940 00457950 004F2C00 004F2D40 004F2E40 004F69F0 004F6BD0 004FCC40 004FCD50 004FD8A0 004FD8B0 0051C3D0 0051C730,00457950,the plain counted root,-,"a fieldless counted root (slot 0 the deleting destructor 00457950) that game.exe's renderer, figure and mouse destructors leave; their classes do without it"
-0073C37C,3,,game,0045D5B0,007005E3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
-0073C388,3,,game,0045D8B0 0045E020 0045E090 0045E1E0 0045E250 0046C290 0046E680,007005E3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
-0073C394,3,,game,0045D8B0 0045E090 0046C290 00545BA0 00557890,007005E3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
-0073C3A0,3,,game,0045E180 0046EFD0,007005E3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
+0073C37C,3,,game,0045D5B0,007005E3,BehaviourPatrolsArrayClass,-,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass); stored only by game.exe (ours is a std::vector)
+0073C388,3,,game,0045D8B0 0045E020 0045E090 0045E1E0 0045E250 0046C290 0046E680,007005E3,ArrayBaseClass,-,CArray (the base vtable the element arrays' destructors restore (patrols; motion records)); stored only by game.exe (ours is a std::vector)
+0073C394,3,,game,0045D8B0 0045E090 0046C290 00545BA0 00557890,007005E3,PatrolArrayClass,-,CArray (patrols; 32 bytes with a waypoint array at +0xC); stored only by game.exe (ours is a std::vector)
+0073C3A0,3,,game,0045E180 0046EFD0,007005E3,WaypointArrayClass,-,CArray (a patrol's waypoints; derived from ArrayBaseClass); stored only by game.exe (ours is a std::vector)
 0073C3D0,3,,game,0045E6F0 0045FBD0 004600D0 00460720 004608D0 005911C0 00596E70 005B3C30 005C1760 005EB8C0 005EB910 005F6130 00635080 006379E0 0063F300 0063F490,007005E3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
 0073C3DC,3,,game,0045E6F0 0045E820 0045FBD0,007005E3,AllodArrayClass,src/game/game_arrays.h,CArray (the map database's allods)
 0073C3E8,3,,game,0041BC40 0045E6F0 0045E820 00460130,007005E3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
@@ -92,10 +92,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C5F0,12,,game,0046A5C0 0046AEB0 0046B120 0046B570 0046BDC0 0046C140,0046AB20,ObjectSpec,src/game/map_spec.h,an object record
 0073C620,12,,game,0046B120 0046B210,0046B3C0,FlameSpec,src/game/map_spec.h,a flame record
 0073C650,12,,game,0046B4A0,0046B7D0,TrapSpec,src/game/map_spec.h,a magic trap record
-0073C680,3,,game,0046B4A0 00529DD0,007005E3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
-0073C68C,3,,game,0046B4A0 00529DD0,007005E3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
-0073C698,3,,game,0046B570 0046E910 0046EF40 00529F90,007005E3,TrapCircleArrayClass,src/lib/mfc_slots.h,CArray (a trap's circles)
-0073C6A4,3,,game,0046B570 0046E950 0046EF80 00529F90,007005E3,TrapPointArrayClass,src/lib/mfc_slots.h,CArray (a trap's points)
+0073C680,3,,game,0046B4A0 00529DD0,007005E3,TrapTargetsArrayClass,-,CArray (a map trap record's targets; derived from 0073C6A4); stored only by game.exe (ours is a std::vector)
+0073C68C,3,,game,0046B4A0 00529DD0,007005E3,TrapAreasArrayClass,-,CArray (a map trap record's areas; derived from 0073C698); stored only by game.exe (ours is a std::vector)
+0073C698,3,,game,0046B570 0046E910 0046EF40 00529F90,007005E3,TrapCircleArrayClass,-,CArray (a trap's circles); stored only by game.exe (ours is a std::vector)
+0073C6A4,3,,game,0046B570 0046E950 0046EF80 00529F90,007005E3,TrapPointArrayClass,-,CArray (a trap's points); stored only by game.exe (ours is a std::vector)
 0073C6B0,12,,game,0046BD40,0046BF20,LeverSpec,src/game/map_spec.h,a lever record
 0073C6E0,12,,game,0046C010 0046C140 0058EF20,0046D080,UnitSpec,src/game/map_spec.h,a unit record (also the world server's unit creation message)
 0073C710,2,,game,0046C6A0 0046C7F0 0046C900,0046C610,WaypointChunk,src/game/map_spec_unit.cpp,a unit record's waypoint chunk reader
@@ -179,14 +179,14 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D43C,3,,game,004C8AC0 004C8E20 0058A140,007005E3,GroupListClass,src/game/game_slots.h,CList (CScript's temporary groups)
 0073D448,3,,game,004C90D0 004C92C0 0058A140,007005E3,ObjectRefListClass,src/game/game_slots.h,CList (CScript's temporary objects)
 0073D454,3,,game,004C96A0 004C96F0 00529B80 0052A680 0052A920 0052AB30 0052B7A0 0054A900 00554830 0058B750 0058E850 0059DF90 005B7BB0 005B8FA0 005BFCD0 005C0600 005C98C0 005CFE40 005D0030 005D3F50 005D4170 005D5990 005D7F80 0067DBD0 00682650 00683600 00683730,007005E3,PtrListClass,-,CList (CPtrList (the lists the code builds on the stack; blocks of 10)); stored only by game.exe (ours is a std::list)
-0073D460,3,,game,004C9AF0 004CB770 004CDF00 005457E0 005573F0 005D0BE0 005D0F90 005D1240 005D12B0 005D1700 005D1B70 005D1F80 005D21A0 005D8CF0 005D95B0,007005E3,AiLookArrayClass,src/lib/mfc_slots.h,CArray (the AI's look records)
+0073D460,3,,game,004C9AF0 004CB770 004CDF00 005457E0 005573F0 005D0BE0 005D0F90 005D1240 005D12B0 005D1700 005D1B70 005D1F80 005D21A0 005D8CF0 005D95B0,007005E3,AiLookArrayClass,-,CArray (the AI's look records); stored only by game.exe (ours is a std::vector)
 0073D46C,3,,game,004C9D90 004C9DB0,007005E3,ObjectiveArrayClass,src/game/game_arrays.h,CArray (the script quest's objectives 007AA608)
 0073D478,3,,game,004CCAA0 004CD130 004CE750 004CE920 004D0A50 004D4E80 004D59D0,007005E3,ArgGroupsClass,src/lib/mfc_slots.h,CArray (a script command's group arguments; derived from 0073D400)
 0073D484,3,,game,004CCAA0 004CD130 004CE750 004CE920 004D0A50 004D4E80 004D59B0,007005E3,ArgObjectsClass,src/lib/mfc_slots.h,CArray (a script command's object arguments; derived from 0073D3F4)
 0073D490,3,,game,004CCAA0 004CD130 004CE750 004CE920 004D0A50 004D4E80 004D5990 0052E110,007005E3,ArgFloatArrayClass,src/lib/mfc_slots.h,CArray (the script commands' float arguments (a CArray<float> subclass))
 0073D49C,3,,game,004CCCB0 004CD130 004CE920 004D0A50 004D4E80 004D59F0,007005E3,BindingArrayClass,src/game/record_arrays.h,CArray (a command's binding arrays; derived from 0073D40C)
 0073D4A8,3,,game,004CCD90 004CD130 004CE920 004D0A50 004D5A10,007005E3,SubCallArrayClass,src/game/record_arrays.h,CArray (a command's nested calls; derived from 0073D418)
-0073D4B4,3,,game,004CDE30 00545990 005D0BE0 005D12B0 005D1700 005D1B70 005D1F80 005D21A0 005D6C80 005D8B40 005D9E40,007005E3,AiLookRecordArrayClass,src/lib/mfc_slots.h,CArray (the array inside the AI's 32-byte look records (base AiLookArrayClass); derived from AiLookArrayClass)
+0073D4B4,3,,game,004CDE30 00545990 005D0BE0 005D12B0 005D1700 005D1B70 005D1F80 005D21A0 005D6C80 005D8B40 005D9E40,007005E3,AiLookRecordArrayClass,-,CArray (the array inside the AI's 32-byte look records (base AiLookArrayClass); derived from AiLookArrayClass); stored only by game.exe (ours is a std::vector)
 0073D4C0,3,,game,004D6310 004D6340,007005E3,DefineListClass,src/game/game_slots.h,CList (the script's #define list)
 0073D4F4,25,,game,004D6900 004D6960,004D6940,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,,game,004D6970 004D6BA0 0052D0D0 0052D1D0,004D6B80,CTorchObjectSpec,src/game/server_specific_manager.h,
@@ -254,7 +254,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073EBB4,3,,game,0052E260 0052E2C0 0052E310 00533580 0054E250,007005E3,MotionWaypointBaseClass,-,CArray (a unit motion's waypoints); stored only by game.exe (ours is a std::vector)
 0073EBD4,3,,game,00531400 00533370 005901E0,007005E3,IdArrayClass,-,CArray (CArray<int> of quest item ids (world_party)); stored only by game.exe (ours is a std::vector)
 0073ECD8,54,,game,00533AD0 00533EA0,00533E80,CUnitClientSpecific,src/game/unit_client_models.h,the client's unit controller
-0073EDB0,3,,game,00533AD0 00533E20 00533EA0 00539890 00545750 00545780 00546100 0054E600 0054EAC0 0054EB30 00554830 00556D10 005AF5F0 005B9690 005B9C90 005C5E60 005CF3C0 005D37E0 005D7F80 006706A0,007005E3,CellListClass,src/lib/mfc_slots.h,CList (the units' path cell lists)
+0073EDB0,3,,game,00533AD0 00533E20 00533EA0 00539890 00545750 00545780 00546100 0054E600 0054EAC0 0054EB30 00554830 00556D10 005AF5F0 005B9690 005B9C90 005C5E60 005CF3C0 005D37E0 005D7F80 006706A0,007005E3,CellListClass,-,CList (the units' path cell lists); stored only by game.exe (ours is a std::list)
 0073EDBC,54,,game,00533AD0 00533DB0 00533EA0 00545580 00546230,00533D90,CUnitController,src/game/unit.h,the unit controllers' abstract base
 0073EEA0,3,,game,00536670 005396C0,007005E3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
 0073EF2C,3,,game,005450F0 005461C0 00546210 00546230 00547100 00548700 00548DE0 00548FA0 0054A150 0054C6B0 0054CA40 00550100 00551400 00553AC0 00556C20 00557B60 00557E70,007005E3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
@@ -262,17 +262,17 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F010,3,,game,00545580 00546230 00558070,007005E3,ArmourSpellListClass,-,CList (the armour spells); stored only by game.exe (ours is a std::list)
 0073F01C,3,,game,00545580 00545FF0 00546060 00547100 00548700 0054A150 0054B260 0054C6B0 00550100 00551400 00553AC0 00556850 00556870,007005E3,AnimationStepsCopyClass,src/lib/mfc_slots.h,CArray (the animation steps a motion copies; derived from AnimationStepsClass)
 0073F028,3,,game,005457E0 00545990 005575F0,007005E3,OwnedRefListClass,-,CList (a map object controller's counted pointers); stored only by game.exe (ours is a std::list)
-0073F034,3,,game,005457E0 00545BA0 00557890,007005E3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
-0073F040,3,,game,005457E0 00545990 00545C70 00557410,007005E3,AttackOptionArrayClass,src/lib/mfc_slots.h,CArray (a unit's attack options)
-0073F04C,3,,game,00545990,007005E3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour>: the brain constructor's second table with 0073F034's slots
-0073F058,3,,game,00545CB0 00545EA0 00556AD0 00556D90,007005E3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
-0073F064,3,,game,00545CB0 00556B70 00556FE0,007005E3,MemoryRecordArrayClass,src/game/unit_ai.h,CArray (a unit memory's heard calls: AICallRecord)
-0073F070,3,,game,00545F20,007005E3,MemoryRecordArrayClass,src/game/unit_ai.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
+0073F034,3,,game,005457E0 00545BA0 00557890,007005E3,BehaviourArrayClass,-,CArray<Behaviour> (the server unit's brain); stored only by game.exe (ours is a std::vector)
+0073F040,3,,game,005457E0 00545990 00545C70 00557410,007005E3,AttackOptionArrayClass,-,CArray (a unit's attack options); stored only by game.exe (ours is a std::vector)
+0073F04C,3,,game,00545990,007005E3,BehaviourArrayClass,-,CArray<Behaviour>: the brain constructor's second table with 0073F034's slots; stored only by game.exe (ours is a std::vector)
+0073F058,3,,game,00545CB0 00545EA0 00556AD0 00556D90,007005E3,MemoryObjectArrayClass,-,CArray (a unit memory's object records); stored only by game.exe (ours is a std::vector)
+0073F064,3,,game,00545CB0 00556B70 00556FE0,007005E3,MemoryRecordArrayClass,-,CArray (a unit memory's heard calls: AICallRecord); stored only by game.exe (ours is a std::vector)
+0073F070,3,,game,00545F20,007005E3,MemoryRecordArrayClass,-,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots; stored only by game.exe (ours is a std::vector)
 0073F07C,3,,game,00546100 00546230 0054DF50 00554830 00557230 00557250 005CF3C0 005D37E0 005D7F80 006706A0,007005E3,PointArrayClass,-,CArray (a unit's point lists); stored only by game.exe (ours is a std::vector)
 0073F0C4,13,,game,00551AE0 00551E10 00551EC0 005D8310,00552160,TamedMode,src/game/unit_ai.h,the Tamed AI mode (the Player mode's slots but 2-4 and 8)
 0073F0F8,13,,game,00551EC0 00551F50 00552000 005520D0 00552180 005D3760 005D6630 005D8310,005520B0,PlayerMode,src/game/unit_ai.h,the Player AI mode
 0073F12C,3,,game,005528F0 00558470 005942D0,007005E3,LootListClass,-,CList (the loot lists); stored only by game.exe (ours is a std::list)
-0073F140,3,,game,00556830,007005E3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
+0073F140,3,,game,00556830,007005E3,MemoryObjectArrayClass,-,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots; stored only by game.exe (ours is a std::vector)
 0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,CWorld,src/game/world.h,the worlds' base (CWorld)
 0073F234,3,,game,0055EAB0 0055EC80 0055EE20 005604B0,007005E3,CountdownArrayClass,-,CArray (the world's countdowns); stored only by game.exe (ours is a std::vector)
 0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,CWorldHandle,src/game/world.h,the server world's counted helper (a player source)
@@ -331,13 +331,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FBF0,22,,game,005AA8E0,005AADA0,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
-0073FCFC,3,,game,005B0600 005B0AF0 005B1810,007005E3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
+0073FCFC,3,,game,005B0600 005B0AF0 005B1810,007005E3,BlockCostListClass,-,CList (the AI's block cost lists); stored only by game.exe (ours is a std::list)
 0073FD58,1,,game,005B32E0,005B33D0,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
 0073FD5C,4,,game,005B3440 005B34F0 005B3540 005B7EF0,005B3570,CUnitShape,src/game/ai_unit_layer.h,a unit's footprint on the AI map's unit layers
 0073FD6C,2,,game,005B3C30,005B3B20,CLargeUnitLayer,src/game/ai_map.h,the AI map's large-unit layer
 0073FD74,2,,game,005B3C30,005B39D0,CSmallUnitLayer,src/game/ai_map.h,the AI map's small-unit layer
 0073FD7C,2,,game,005B4110,006E73EB,CUnitLayer,src/game/ai_map.h,the AI map's unit layer base
-0073FD9C,3,,game,005B9C90 005BDEE0,007005E3,WaypointListClass,src/lib/mfc_slots.h,CList (the AI plan's waypoint lists)
+0073FD9C,3,,game,005B9C90 005BDEE0,007005E3,WaypointListClass,-,CList (the AI plan's waypoint lists); stored only by game.exe (ours is a std::list)
 0073FDE0,3,,game,005BF8F0 005C1A90,007005E3,SpiralCellArrayClass,-,CArray (the sector spiral's cells); stored only by game.exe (ours is a std::vector)
 0073FDEC,3,,game,005C18C0 005C18E0,007005E3,SpiralOffsetArrayClass,-,CArray (the sector spiral's offsets 007C2FF8); stored only by game.exe (ours is a std::vector)
 0073FE10,3,,game,005C4050 005C4250 005C58D0,007005E3,SmoothCopyArrayClass,-,CArray (the path smoothing tables' copies); stored only by game.exe (ours is a std::vector)
@@ -347,8 +347,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FEB4,3,,game,005CDAD0 005CDBA0,007005E3,StaticListClass,-,CList (the list a static initialiser builds (005CDAD0)); stored only by game.exe (ours is a std::list)
 0073FF34,3,,game,005D0030 005D99E0,007005E3,AttentionListClass,-,CList (AIAttention::Choose's list); stored only by game.exe (ours is a std::list)
 0073FF40,13,,game,005D0F60 005D0F90 005D1140 005D1240 005D8310,005D1220,PatrolMode,src/game/unit_ai.h,the Patrol AI mode
-0073FF74,3,,game,005D0F60 005D0F90 005D1140 005D8CB0,007005E3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
-0073FF80,3,,game,005D1140 005D1240 005D8CF0 005D95B0,007005E3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
+0073FF74,3,,game,005D0F60 005D0F90 005D1140 005D8CB0,007005E3,PatrolPointsClass,-,CArray (a patrol mode's points; the constructors'); stored only by game.exe (ours is a std::vector)
+0073FF80,3,,game,005D1140 005D1240 005D8CF0 005D95B0,007005E3,PatrolPointsBaseClass,-,CArray (a patrol mode's points; the destructors': the same slots); stored only by game.exe (ours is a std::vector)
 0073FF8C,13,,game,005D2850 005D2880 005D28F0 005D6480 005D8310,005D2930,FearMode,src/game/unit_ai.h,the Fear AI mode
 00740034,11,,game,005DC200 005DC260,005DC240,ConsoleStreambuf,-,"stored only by game.exe's 005DC200 / 005DC260 (the console streambuf's constructor and destructor); ours (console.h) has no virtual functions"
 007400A8,13,,game,005E26F0,005E3C80,CChatOverlay,src/game/ui.h,the chat overlay's input side

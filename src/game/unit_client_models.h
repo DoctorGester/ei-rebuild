@@ -290,12 +290,7 @@ public:
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
 static_assert(offsetof(CUnitClientSpecific, lastTime) == 0x34);
-static_assert(offsetof(CUnitClientSpecific, footprint) == 0x80);
 static_assert(offsetof(CUnitClientSpecific, motion) == 0x38);
-static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
-static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);
-static_assert(offsetof(CUnitClientSpecific, speechSound) == 0x90);
-static_assert(offsetof(CUnitClientSpecific, speech) == 0x9C);
 
 // The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
 // `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,

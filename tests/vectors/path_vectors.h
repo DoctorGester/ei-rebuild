@@ -240,14 +240,17 @@ struct UnitState {
 };
 static_assert(sizeof(UnitState) == 52);
 
-inline void PutCells(Writer& w, const PathCellList& list) {
-    w.Put(static_cast<std::uint32_t>(list.count));
-    for (const PathCellList::Node* n = list.head; n; n = n->next) w.Put(n->data);
+// A cell list: ours (PathCellList) or game.exe's (the recorder's view of its MFC list).
+template <class Cells>
+void PutCells(Writer& w, const Cells& list) {
+    w.Put(static_cast<std::uint32_t>(list.size()));
+    for (const PathCell& cell : list) w.Put(cell);
 }
 
-// An AIPath: the order, the steps, the cells, the target and goal, the four flags, the excluded
-// blocks and the smoothing value.
-inline void PutPath(Writer& w, const AIPath& path) {
+// An AIPath (ours, or the recorder's view of game.exe's): the order, the steps, the cells, the target and goal,
+// the four flags, the excluded blocks and the smoothing value.
+template <class Path>
+void PutPath(Writer& w, const Path& path) {
     w.Put(path.motionOrder);
     PutCells(w, path.steps);
     PutCells(w, path.cells);
@@ -259,7 +262,7 @@ inline void PutPath(Writer& w, const AIPath& path) {
     w.Put(path.flag6E);
     w.Put(path.flag6F);
     w.Put(static_cast<std::uint32_t>(path.excludedBlocks.size()));
-    for (int i = 0; i < std::ssize(path.excludedBlocks); ++i) w.Put(path.excludedBlocks[i]);
+    for (const BlockPoint& block : path.excludedBlocks) w.Put(block);
     w.Put(path.smoothing);
 }
 

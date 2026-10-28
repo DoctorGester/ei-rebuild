@@ -106,7 +106,7 @@ void ReadEffects(CMapObject* m, Builder& b) {
 void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.action", brain.action);
     b.Vector("ai.point.x", "ai.point.y", "ai.point.z", brain.move.point);
-    b.Int("ai.looks", brain.move.looks.GetSize());
+    b.Int("ai.looks", static_cast<int>(brain.move.looks.size()));
     b.Int("ai.actionTime", brain.actionTime);
     b.Int("ai.target", IdOf(brain.target));
     b.Int("ai.seen", IdOf(brain.seen));
@@ -128,8 +128,8 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.nearby", std::ssize(brain.memory.nearby));
     b.Int("ai.visible", std::ssize(brain.memory.visible));
     b.Int("ai.corpses", std::ssize(brain.memory.corpses));
-    b.Int("ai.reports", brain.memory.reports.GetSize());
-    b.Int("ai.calls", brain.memory.calls.GetSize());
+    b.Int("ai.reports", static_cast<int>(brain.memory.reports.size()));
+    b.Int("ai.calls", static_cast<int>(brain.memory.calls.size()));
     b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
     // The modes by their kinds' ids (ModeId: game.exe's vtable addresses; the writer names the known ones).
     b.Mode("ai.mode", ModeId(brain.current));

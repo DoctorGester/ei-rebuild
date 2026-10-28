@@ -88,10 +88,8 @@ CUnitServer::CUnitServer() {
 
 void AIPath::Destruct() {
     lib::FreeStorage(excludedBlocks);
-    cells.vtable = PathCellListVtable();
-    cells.RemoveAll();
-    steps.vtable = PathCellListVtable();
-    steps.RemoveAll();
+    cells.clear();
+    steps.clear();
 }
 
 // --- OrderPlan ----------------------------------------------------------------------------------
@@ -117,19 +115,14 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
 // --- AIBrain ------------------------------------------------------------------------------------
 
 AIBrain* AIBrain::Construct() {
-    LooksInit(&move.looks);
-    move.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
     move.Clear();
     target = nullptr;
     seen = nullptr;
     modes = {};
     current = nullptr;
     alarmRecords = {};
-    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();   // the same virtuals
     attention.weapons = {};
-    attention.weapons.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     attention.spells = {};
-    attention.spells.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
     memory.spareCells = kEmptySightCache;
     memory.sightCells = kEmptySightCache;
@@ -138,27 +131,14 @@ AIBrain* AIBrain::Construct() {
     InitObjectList(memory.seenCorpses);
     InitObjectList(memory.corpses);
     memory.reports = {};
-    memory.reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();   // the same virtuals
     memory.calls = {};
-    memory.calls.vtable = MemoryRecordArrayClass::Vtable();   // the same virtuals
     Init();
     return this;
 }
 
 void AIMemory::Destruct() {
-    calls.vtable = MemoryRecordArrayClass::Vtable();
-    if (calls.data) {
-        for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // the call records' destructors
-        gamecrt::operator_delete(calls.data);
-    }
-    reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();
-    if (reports.data) {
-        for (int i = 0; i < reports.size; ++i) {   // the reference released
-            if (reports.data[i].object) reports.data[i].object->Release();
-            reports.data[i].object = nullptr;
-        }
-        gamecrt::operator_delete(reports.data);
-    }
+    calls.clear();
+    reports.clear();   // each reference released
     DestroyObjectList(corpses);
     DestroyObjectList(seenCorpses);
     DestroyObjectList(visible);

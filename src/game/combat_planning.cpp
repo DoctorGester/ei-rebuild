@@ -62,15 +62,15 @@ struct LocalPath {
     AIPath* Path() { return path.Get(); }
     const AIPath* Path() const { return &path.object; }
     LocalPath() {
-        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->steps, 0x80);
-        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->cells, 0x80);
+        std::construct_at(&Path()->steps);
+        std::construct_at(&Path()->cells);
         std::construct_at(&Path()->excludedBlocks);
         Path()->Clear();
     }
     ~LocalPath() {
         std::destroy_at(&Path()->excludedBlocks);
-        mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->cells);
-        mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->steps);
+        std::destroy_at(&Path()->cells);
+        std::destroy_at(&Path()->steps);
     }
     LocalPath(const LocalPath&) = delete;
     LocalPath& operator=(const LocalPath&) = delete;
@@ -82,15 +82,10 @@ struct LocalPath {
 // A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
 // is zeroed (the original leaves it uninitialised until it is filled).
 struct LocalMotionOrder : PathOrder {
-    LocalMotionOrder() {
-        std::memset(&motionOrder, 0, sizeof(motionOrder));
-        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
-    }
-    ~LocalMotionOrder() { mfc::impl::DestructList<mfc::impl::CellListClass>(steps); }
+    LocalMotionOrder() { std::memset(&motionOrder, 0, sizeof(motionOrder)); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
 };
-static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
 // A UnitMotion on the stack, cleared, with the speed scale, no turning limit (1e10) and no segment.
 struct LocalUnitMotion {

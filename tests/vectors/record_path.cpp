@@ -17,12 +17,14 @@
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
+#include "../verify/exe_objects.h"
 #include "../verify/harness_original.h"
 #include "game/game_data.h"
 #include "game/game_singletons.h"
 
 #include <windows.h>
 
+#include <cstddef>
 #include <cstring>
 #include <vector>
 
@@ -239,7 +241,25 @@ void PutMarksAfter(Writer& w, const std::vector<std::uint8_t>& before, const CAI
     PutDiff(w, before.data(), reinterpret_cast<const std::uint8_t*>(map.marks.data), MarkBytes(&map), 1);
 }
 
-bool Small(const AIPath* path) { return path->cells.count <= kMaxCells && path->steps.count <= kMaxCells; }
+// game.exe's AIPath (ai_map.h's, with its two cell lists MFC CLists and the excluded blocks an MFC CArray).
+using OriginalCells = ei::verify::exe::List<PathCell>;
+struct OriginalPath {
+    MotionOrder motionOrder;
+    OriginalCells steps;
+    OriginalCells cells;
+    float targetX, targetY;
+    Vector3 goal;
+    bool reached;
+    std::uint8_t failed;
+    bool flag6E, flag6F;
+    ei::verify::exe::Vector<BlockPoint> excludedBlocks;
+    int smoothing;
+};
+static_assert(offsetof(OriginalPath, steps) == 0x20 && offsetof(OriginalPath, cells) == 0x3C);
+static_assert(offsetof(OriginalPath, goal) == 0x60 && offsetof(OriginalPath, excludedBlocks) == 0x70);
+static_assert(sizeof(OriginalPath) == 0x88);
+
+bool Small(const OriginalPath* path) { return path->cells.count <= kMaxCells && path->steps.count <= kMaxCells; }
 
 // ---- FindPath, and the map it searches on ----------------------------------------------------------
 
@@ -255,9 +275,9 @@ struct PendingFind {
 thread_local PendingFind* t_find = nullptr;
 
 // 005BB350: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6).
-using FindPathFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, const Vector3*, AIPath*, float, float);
+using FindPathFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, const Vector3*, OriginalPath*, float, float);
 FindPathFn s_findPath;
-bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* target, AIPath* path, float range,
+bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* target, OriginalPath* path, float range,
                                float minDistance) {
     OfferTables();
     Writer head;
@@ -302,9 +322,9 @@ bool __fastcall RemoveRecord(CSectorMap* self, void*, CEngineObject* object) {
 }
 
 // 005B9C90: PUSH -1; PUSH 0x00727B90 (7).
-using PlanFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int);
+using PlanFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, int, int, int, int, OriginalPath*, int, int);
 PlanFn s_plan;
-bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path,
+bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int fromY, int toX, int toY, OriginalPath* path,
                            int retry, int maxCells) {
     OfferTables();
     if (t_find) ++t_find->plans;
@@ -330,9 +350,9 @@ bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int from
 
 // 005C46C0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xE0 (9). The original's rebuilt cells have stale stack
 // in their second dwords (SV7d2): only x and y are kept.
-using SmoothFn = int(__fastcall*)(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, float);
+using SmoothFn = int(__fastcall*)(PathSmoother*, void*, CUnit*, CAIMap*, OriginalCells*, int, float);
 SmoothFn s_smooth;
-int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map, PathCellList* path,
+int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map, OriginalCells* path,
                             int startDirection, float fraction) {
     OfferTables();
     if (path->count > kMaxCells) return s_smooth(self, nullptr, unit, map, path, startDirection, fraction);
@@ -347,9 +367,9 @@ int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map,
     int result = s_smooth(self, nullptr, unit, map, path, startDirection, fraction);
     w.Put<std::int32_t>(result);
     w.Put(static_cast<std::uint32_t>(path->count));
-    for (const PathCellList::Node* n = path->head; n; n = n->next) {
-        w.Put(n->data.x);
-        w.Put(n->data.y);
+    for (const PathCell& cell : *path) {
+        w.Put(cell.x);
+        w.Put(cell.y);
     }
     g_smooth.OfferBytes(w, cw, count < 3 ? 0u : count <= 12 ? 1u : 2u);
     return result;

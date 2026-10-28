@@ -877,7 +877,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             PatrolMode* patrol = BrainOf(state)->FindPatrolMode();
-            if (patrol) patrol->points.SetSize(0, -1);
+            if (patrol) patrol->points.clear();
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)
@@ -898,7 +898,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!last) break;
             AILook look;
             AILook* value = look.ScriptAILookConstruct(f[0], f[1], f[2], 0);
-            last->looks.SetAtGrow(last->looks.size, *value);
+            lib::SetAtGrow(last->looks, std::ssize(last->looks), *value);
             break;
         }
         case 0x31: {   // UMPlayer

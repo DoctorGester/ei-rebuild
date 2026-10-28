@@ -127,22 +127,6 @@ ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
     return this;
 }
 
-// The position and the waypoints are copied as the dwords they are.
-mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
-    const mapspec::Patrol& from = data[index];
-    std::memcpy(&result->position, &from.position, sizeof(from.position));
-    mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
-    to.Construct(mfc::impl::WaypointArrayClass::Vtable());
-    int n = from.waypoints.size;
-    if (n) {
-        to.data = gamecrt::operator_new_array<mapspec::Waypoint>(static_cast<std::size_t>(n));
-        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);
-    }
-    to.maxSize = n;
-    to.size = n;
-    for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
-    return result;
-}
 
 // The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
 ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {

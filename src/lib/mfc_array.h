@@ -162,12 +162,8 @@ void DestructArrayOf(CArray<T, E>& a) {
 
 struct IntArrayClass;
 struct ScriptAreaClass;
-struct AiLookArrayClass;
 struct BoneLinkArrayClass;
-struct WaypointArrayClass;
 struct ScriptAreaPartsClass;
-struct ArrayBaseClass;
-struct AiLookRecordArrayClass;
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -184,8 +180,7 @@ inline void InitKeyFrame40(KeyFrame40* p) {
     p->z = 0.0f;
 }
 
-// Elements that hold an array header of `Class` at `ArrayAt` (the 20-byte element is the
-// array; 32-byte patrols with the array at +0xC).
+// Elements that hold an array header of `Class` at `ArrayAt`.
 template <std::size_t Size, std::size_t ArrayAt, typename Class>
 struct WithArray {
     std::uint8_t bytes[Size];
@@ -288,7 +283,6 @@ void DestroyArrayAt(E* p) {
 using Plain4 = ArrayAbi<Bytes<4>>;
 using Plain8 = ArrayAbi<Bytes<8>>;
 using Plain12 = ArrayAbi<Bytes<12>>;
-using Plain16 = ArrayAbi<Bytes<16>>;
 using Plain20 = ArrayAbi<Bytes<20>>;
 using Plain24 = ArrayAbi<Bytes<24>>;
 using Plain28 = ArrayAbi<Bytes<28>>;
@@ -296,8 +290,6 @@ using Plain40 = ArrayAbi<Bytes<40>>;
 using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
-using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
-                         InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 
 using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
 using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
@@ -330,14 +322,6 @@ struct AnimationStepListAbi : AnimationStepList {
         return this;
     }
 };
-
-// Elements that own their array: built as above, destroyed by the destructors above.
-using PatrolElement = WithArray<0x20, 0xC, WaypointArrayClass>;
-using OwnedPatrols = ArrayAbi<PatrolElement, EachElements<PatrolElement, InitWithArray<0x20, 0xC, WaypointArrayClass>,
-                                                        DestroyArrayAt<PatrolElement, 0xC, ArrayBaseClass>>>;
-using AiLookElement = WithArray<0x20, 0xC, AiLookRecordArrayClass>;
-using AiLookRecords = ArrayAbi<AiLookElement, EachElements<AiLookElement, InitWithArray<0x20, 0xC, AiLookRecordArrayClass>,
-                                                          DestroyArrayAt<AiLookElement, 0xC, AiLookArrayClass>>>;
 
 // Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
 // the base's destructor (ScriptAreaClass's vtable, the storage freed).

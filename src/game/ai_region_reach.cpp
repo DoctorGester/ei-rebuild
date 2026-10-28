@@ -49,8 +49,6 @@ const int* StepY() { return DirectionDy() + 1; }
 
 } // namespace
 
-void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainElements<BlockCost>::Construct(elements, count); }
-
 namespace {
 // A per size class grid of the region map reallocated for the map's size.
 template <typename T>
@@ -61,15 +59,6 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (*allocate)(SearchGrid
     grid.width = width;
     grid.height = height;
     allocate(&grid);
-}
-
-void DestroyPathList(PathCellList& list) {
-    list.vtable = PathCellListVtable();
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
 }
 
 void ResetChain(BlockRecord* record) {
@@ -209,12 +198,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     if (bx < 0) bx = 0;
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
-    out->count = 0;
-    out->free = nullptr;
-    out->tail = nullptr;
-    out->head = nullptr;
-    mfc::PlexFreeDataChain(out->blocks);
-    out->blocks = nullptr;
+    out->clear();
 
     local.backward = flag;
     LocalSearch* search = &local;
@@ -230,13 +214,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
             std::uint8_t cell = cellRows[yy][xx];
             int cost = search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
             if (cost >= kUnreached) continue;
-            BlockCostList::Node* node = out->NewNode(out->tail, nullptr);
-            node->data.x = xx;
-            node->data.y = yy;
-            node->data.cost = cost;
-            if (out->tail) out->tail->next = node;
-            else out->head = node;
-            out->tail = node;
+            out->push_back({xx, yy, cost});
         }
     }
     search->Reset();
@@ -367,7 +345,7 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
 
 int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell (NearbyBlocks, through its address).
-    BlockCostList blocks{BlockCostListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    BlockCostList blocks{};
     NearbyBlocks(sizeClass, false, x, y, &blocks);
     // Count the blocks per region, in first-seen order (the original keeps a CList of {region, count}; at most
     // nine entries).
@@ -375,8 +353,8 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     int counts[9];
     int distinct = 0;
     std::uint16_t** rows = regions[sizeClass].rows;
-    for (BlockCostList::Node* n = blocks.head; n; n = n->next) {
-        std::uint16_t region = rows[n->data.y][n->data.x];
+    for (auto n = blocks.begin(); n != blocks.end(); ++n) {
+        std::uint16_t region = rows[n->y][n->x];
         int i = 0;
         while (i < distinct && seen[i] != region) ++i;
         if (i < distinct) {
@@ -393,8 +371,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
             best = counts[i];
             region = seen[i];
         }
-    blocks.vtable = BlockCostListVtable();
-    blocks.RemoveAll();
+    blocks.clear();
     return region;
 }
 
@@ -425,27 +402,20 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
         y = best->y;
         if (meets(forward, x, y)) break;
     }
-    PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
+    PathCellList scratch;
     if (ok) {
         forward.PathTo(x, y, chain);
         backward.PathTo(x, y, &scratch);
         PathCellList reversed;
         chain->Append(scratch.Reversed(&reversed));
-        DestroyPathList(reversed);
         PathCellsRemoveRepeats(chain);
     }
-    DestroyPathList(scratch);
     return ok;
 }
 
 static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellList* path) {
     auto& search = *searchIn;
-    path->count = 0;
-    path->free = nullptr;
-    path->tail = nullptr;
-    path->head = nullptr;
-    mfc::PlexFreeDataChain(path->blocks);
-    path->blocks = nullptr;
+    path->clear();
     int columns = search.records.width;
     int rows = search.records.height;
     if (x < 0 || x >= columns || y < 0 || y >= rows) return;
@@ -456,11 +426,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
     };
     // Walk back along the stored directions (1..8; 0 ends), each cell added at the head.
     while (int dir = search.records.rows[y][x].backDirection) {
-        PathCellList::Node* node = path->NewNode(nullptr, path->head);
-        node->data = cellAt(x, y);
-        if (path->head) path->head->prev = node;
-        else path->tail = node;
-        path->head = node;
+        path->push_front(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
         case 2: --y; --x; break;
@@ -473,7 +439,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         default: break;
         }
     }
-    path->AddHead(cellAt(x, y));
+    path->push_front(cellAt(x, y));
 }
 
 void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {

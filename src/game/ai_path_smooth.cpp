@@ -81,18 +81,18 @@ void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const Smoot
 }
 
 int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int startDirection, float fraction) {
-    if (path->count < 3) return 0;
+    if (std::ssize(*path) < 3) return 0;
     map = mapArg;
     mapArg->CostContextFor(unit, &costs);
     sizeClass = unit->sizeClass;
     level = static_cast<std::uint8_t>(StandingLevel(unit));
     int previousBest = kUnreached;
-    const int tailX = path->tail->data.x, tailY = path->tail->data.y;
-    const int headX = path->head->data.x, headY = path->head->data.y;
+    const int tailX = path->back().x, tailY = path->back().y;
+    const int headX = path->front().x, headY = path->front().y;
     SmoothPool& pool = SmoothNodePool();
     for (;;) {
         SmoothState first[kStates], second[kStates];
-        pool.SetSize((path->count + 5) * 10);
+        pool.SetSize((std::ssize(*path) + 5) * 10);
         pool.zeroed = 0;
         for (SmoothState& s : first) s = SmoothState{0, nullptr};
         pool.next = pool.nodes.data();
@@ -123,11 +123,11 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         SmoothState* from = first;
         SmoothState* to = second;
         int previousDirection = 0;
-        const PathCellList::Node* cell = path->head;
-        for (const PathCellList::Node* next = cell->next; next; next = next->next) {
-            int direction = DirectionSteps()[(next->data.y - cell->data.y) * 3 - cell->data.x + next->data.x];
-            x = cell->data.x;
-            y = cell->data.y;
+        auto cell = path->begin();
+        for (auto next = std::next(cell); next != path->end(); ++next) {
+            int direction = DirectionSteps()[(next->y - cell->y) * 3 - cell->x + next->x];
+            x = cell->x;
+            y = cell->y;
             Advance(from, to, &SmoothTables()[direction + previousDirection * 9]);
             SmoothState* swap = from;
             from = to;
@@ -135,8 +135,8 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
             previousDirection = direction;
             cell = next;
         }
-        x = cell->data.x;
-        y = cell->data.y;
+        x = cell->x;
+        y = cell->y;
         Advance(from, to, &SmoothTables()[previousDirection * 9]);
         // The cheapest end state; a diagonal one pays for the target's offset in its cell.
         int best = kUnreached;
@@ -155,14 +155,14 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         // Rebuild the cells from the tail back along the chain. The original gives their speed words and terrain bits
         // two stack slots it never writes (the tail what the path's builder left: the join's open cost or the
         // planner's list vtable); ours get the plain words.
-        path->RemoveAll();
+        path->clear();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};
-        path->AddHead(tail);
+        path->push_front(tail);
         for (const SmoothNode* node = bestNode; node; node = node->prev) {
             PathCell stepped{};
-            path->head->data.Step(&stepped, node->direction);
+            path->front().Step(&stepped, node->direction);
             SetPlainCellWords(&stepped);
-            path->AddHead(stepped);
+            path->push_front(stepped);
         }
     }
 }

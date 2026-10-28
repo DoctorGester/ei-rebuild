@@ -69,8 +69,6 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-void LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
-
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b) {
     // `a` is read as a byte.
@@ -329,7 +327,7 @@ void AIBrain::UpdateMove() {
         }
     }
     if (actionTime == kNoTime) {
-        if (move.looks.size == 0) {
+        if (move.looks.empty()) {
             if (target) {
                 target.Reset();
                 target = nullptr;
@@ -338,7 +336,7 @@ void AIBrain::UpdateMove() {
             return;
         }
         actionTime = kLookStarted;
-        AILook* look = move.looks.data;
+        AILook* look = move.looks.data();
         double angle = look->angle;
         Vector3 direction;
         direction.z = 0.0f;
@@ -348,12 +346,10 @@ void AIBrain::UpdateMove() {
         return;
     }
     if (actionTime == kLookStarted) {
-        if (move.looks.data->stopFirst) o->StopQueued();
-        float end = static_cast<float>(CurrentWorldTick()) + move.looks.data->wait;
+        if (move.looks.front().stopFirst) o->StopQueued();
+        float end = static_cast<float>(CurrentWorldTick()) + move.looks.front().wait;
         actionTime = x87::fistp(end);
-        int remaining = move.looks.size - 1;
-        if (remaining != 0) std::memmove(move.looks.data, move.looks.data + 1, static_cast<unsigned>(remaining) << 4);
-        --move.looks.size;
+        move.looks.erase(move.looks.begin());
         return;
     }
     if (CurrentWorldTick() > actionTime) actionTime = kNoTime;

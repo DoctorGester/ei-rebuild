@@ -71,12 +71,8 @@ float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-// The move order's looks are built with the derived array constructor, then clears the order.
-void ConstructOrder(AIMoveOrder* order) {
-    LooksInit(&order->looks);
-    order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-    order->Clear();
-}
+// The move order cleared.
+void ConstructOrder(AIMoveOrder* order) { order->Clear(); }
 
 // A flight point 5 from the enemy's side of the unit and within 3 of it at random, accepted when a
 // path there is not too roundabout and the order check from the path's end (at most 1 from the
@@ -304,11 +300,10 @@ void FearMode::Execute(AIBrain* brain) {
             brain->actionTime = AIBrain::kNoTime;
             // The order assigned to the brain's action point and looks.
             brain->move.point = order.point;
-            brain->move.looks.Copy(order.looks);
+            brain->move.looks = order.looks;
             brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
         }
     }
-    LooksDestroyAt(&order.looks);
 }
 
 void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {

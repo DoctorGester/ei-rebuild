@@ -35,9 +35,9 @@ void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
 void LoadLooks(AILookArray* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
-    looks->SetSize(count, -1);
-    for (int i = 0; i < looks->size; ++i) {
-        AILook& look = looks->data[i];
+    looks->resize(count);
+    for (int i = 0; i < std::ssize(*looks); ++i) {
+        AILook& look = (*looks)[i];
         stream->Read(&look.angle, 4);
         stream->Read(&look.time, 4);
         stream->Read(&look.wait, 4);
@@ -46,9 +46,9 @@ void LoadLooks(AILookArray* looks, CStream* stream) {
 }
 
 void SaveLooks(const AILookArray* looks, CStream* stream) {
-    WriteCopy(stream, looks->size);
-    for (int i = 0; i < looks->size; ++i) {
-        const AILook& look = looks->data[i];
+    WriteCopy(stream, std::ssize(*looks));
+    for (int i = 0; i < std::ssize(*looks); ++i) {
+        const AILook& look = (*looks)[i];
         WriteCopy(stream, look.angle);
         WriteCopy(stream, look.time);
         WriteCopy(stream, look.wait);
@@ -67,15 +67,18 @@ void AIMemory::Load(CStream* stream) {
     stream->Read(&nearbyCountdown, 4);
     int count;
     stream->Read(&count, 4);
-    reports.SetSize(count, -1);
+    reports.resize(count);
     for (int i = 0; i < count; ++i) {
-        reports.data[i].object.Load(stream, TheServerWorld());
-        stream->Read(&reports.data[i].what, 4);
+        AIRefTo<CMapObject> loaded{nullptr};
+        loaded.Load(stream, TheServerWorld());
+        reports[i].object = loaded.object;   // the report takes its own reference
+        loaded.Reset();
+        stream->Read(&reports[i].what, 4);
     }
     stream->Read(&count, 4);
-    calls.SetSize(count, -1);
-    for (int i = 0; i < calls.size; ++i) {
-        AICallRecord& call = calls.data[i];
+    calls.resize(count);
+    for (int i = 0; i < std::ssize(calls); ++i) {
+        AICallRecord& call = calls[i];
         call.hostileMask = 0;
         stream->Read(&call.point, 12);
         stream->Read(&call.kind, 4);
@@ -93,14 +96,14 @@ void AIMemory::Save(CStream* stream) {
     stream->Write(&noticedX, 8);        // x and y
     WriteCopy(stream, noticedLevel);
     WriteCopy(stream, nearbyCountdown);
-    WriteCopy(stream, reports.size);
-    for (int i = 0; i < reports.size; ++i) {
-        reports.data[i].object.Save(stream);
-        WriteCopy(stream, reports.data[i].what);
+    WriteCopy(stream, std::ssize(reports));
+    for (int i = 0; i < std::ssize(reports); ++i) {
+        AIRefTo<CMapObject>{reports[i].object}.Save(stream);
+        WriteCopy(stream, reports[i].what);
     }
-    WriteCopy(stream, calls.size);
-    for (int i = 0; i < calls.size; ++i) {
-        AICallRecord& call = calls.data[i];
+    WriteCopy(stream, std::ssize(calls));
+    for (int i = 0; i < std::ssize(calls); ++i) {
+        AICallRecord& call = calls[i];
         stream->Write(&call.point, 12);
         WriteCopy(stream, call.kind);
         stream->WriteString(call.text);

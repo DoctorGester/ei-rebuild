@@ -8,11 +8,6 @@
 
 #include <cstring>
 
-namespace {
-
-constexpr int kBlockSize = 0x80;
-
-} // namespace
 
 PathCell* PathCell::Step(PathCell* out, int direction) const {
     switch (direction) {
@@ -29,57 +24,27 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
     return out;
 }
 
-void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElements<PathCell>::Construct(cells, count); }
-
-void PathCells::Append(const PathCells* other) {
-    for (const Node* n = other->head; n;) {
-        const Node* next = n->next;
-        PathCell cell = n->data;
-        AddTail(cell);
-        n = next;
-    }
-}
+void PathCells::Append(const PathCells* other) { insert(end(), other->begin(), other->end()); }
 
 PathCells* PathCells::Reversed(PathCells* out) const {
-    // The original first builds a reversed local list, then copies it into `out` in order.
-    PathCellList reversed{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
-    for (const Node* n = head; n; n = n->next) reversed.AddHead(n->data);
-    *out = PathCellList{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
-    for (const Node* n = reversed.head; n;) {
-        const Node* next = n->next;
-        PathCell cell = n->data;
-        out->AddTail(cell);
-        n = next;
-    }
-    reversed.RemoveAll();
+    out->assign(rbegin(), rend());
     return out;
 }
 
 void PathCellsRemoveRepeats(PathCellList* list) {
-    using Node = PathCellList::Node;
     std::int16_t lastX = -1, lastY = -1;
-    for (Node* n = list->head; n;) {
-        Node* next = n->next;
-        bool repeat = n->data.x == lastX && n->data.y == lastY;
-        lastX = n->data.x;
-        lastY = n->data.y;
-        if (repeat) {
-            if (n == list->head) list->head = n->next;
-            else n->prev->next = n->next;
-            if (n == list->tail) list->tail = n->prev;
-            else n->next->prev = n->prev;
-            n->next = list->free;
-            list->free = n;
-            if (--list->count == 0) list->RemoveAll();
-        }
-        n = next;
-    }
+    list->remove_if([&](const PathCell& cell) {
+        bool repeat = cell.x == lastX && cell.y == lastY;
+        lastX = cell.x;
+        lastY = cell.y;
+        return repeat;
+    });
 }
 
 void AIPath::ToMotionOrder(PathOrder* out) const {
     constexpr int kFollowSteps = 2;
     std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
-    out->steps.RemoveAll();
+    out->steps.clear();
     out->steps.Append(&steps);
     if (out->motionOrder.kind != kFollowSteps) return;
     out->steps.Append(&cells);
@@ -91,12 +56,12 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
 void CAIMap::ClearMarksAround(const PathCellList* chain) {
     constexpr int kBlock = 8;
     constexpr int kMargin = 4 * kBlock;
-    if (chain->count < 1) return;
-    const PathCellList::Node* node = chain->head;
-    int minX = node->data.x, maxX = minX;
-    int minY = node->data.y, maxY = minY;
-    for (; node; node = node->next) {
-        int x = node->data.x, y = node->data.y;
+    if (chain->empty()) return;
+    auto node = chain->begin();
+    int minX = node->x, maxX = minX;
+    int minY = node->y, maxY = minY;
+    for (; node != chain->end(); ++node) {
+        int x = node->x, y = node->y;
         if (x < minX) minX = x;
         if (y < minY) minY = y;
         if (x > maxX) maxX = x;

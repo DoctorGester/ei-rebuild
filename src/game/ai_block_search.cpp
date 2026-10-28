@@ -110,18 +110,18 @@ void BlockSearch::Expand() {
 
 bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
-    BlockCostList blocks{mfc::impl::BlockCostListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    BlockCostList blocks{};
     NearbyBlocks(sizeClass, flag, x, y, &blocks);
-    for (BlockCostList::Node* node = blocks.head; node; node = node->next) {
-        int cost = node->data.cost / 128;
-        BlockRecord* record = &search->records.rows[node->data.y][node->data.x];
+    for (auto node = blocks.begin(); node != blocks.end(); ++node) {
+        int cost = node->cost / 128;
+        BlockRecord* record = &search->records.rows[node->y][node->x];
         if (cost > record->cost) continue;
         record->cost = cost;
         search->Requeue(record);
         seeded = true;
     }
     search->PickBest();
-    blocks.RemoveAll();
+    blocks.clear();
     return seeded;
 }
 

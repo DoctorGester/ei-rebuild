@@ -264,27 +264,11 @@ void FlameSpec::OnChunk() {
 
 TrapSpec::TrapSpec() {
     trap.sides = ~0u;
-    trap.area.data = nullptr;
-    trap.area.growBy = 0;
-    trap.area.maxSize = 0;
-    trap.area.size = 0;
-    ei::SetVtable(&trap.area, mfc::impl::TrapAreasArrayClass::Vtable());
-    trap.points.data = nullptr;
-    trap.points.growBy = 0;
-    trap.points.maxSize = 0;
-    trap.points.size = 0;
-    ei::SetVtable(&trap.points, mfc::impl::TrapTargetsArrayClass::Vtable());
     trap.period = 15;
     kind = 7;
 }
 
-// The spell's text goes with the trap's members, after this.
-TrapSpec::~TrapSpec() {
-    ei::SetVtable(&trap.points, mfc::impl::TrapPointArrayClass::Vtable());
-    if (trap.points.data) gamecrt::operator_delete(trap.points.data);
-    ei::SetVtable(&trap.area, mfc::impl::TrapCircleArrayClass::Vtable());
-    if (trap.area.data) gamecrt::operator_delete(trap.area.data);
-}
+TrapSpec::~TrapSpec() = default;
 
 std::string* TrapSpec::TypeName(std::string* out) {
     *out = "MagicTrap";
@@ -297,14 +281,14 @@ void TrapSpec::Save() {
     WriteString(0xBBAB0002, trap.spell);
     WriteInt(0xBBAB0005, trap.period);
     WriteByte(0xBBAC0005, trap.singleTarget);
-    std::uint32_t count = static_cast<std::uint32_t>(trap.area.size);
+    std::uint32_t count = static_cast<std::uint32_t>(trap.area.size());
     WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
     FileWrite(*this, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.area.data[i], 12);
-    count = static_cast<std::uint32_t>(trap.points.size);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.area[i], 12);
+    count = static_cast<std::uint32_t>(trap.points.size());
     WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
     FileWrite(*this, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.points.data[i], 8);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.points[i], 8);
     ObjectSpec::WriteFields();
     EndWrite();
 }
@@ -316,18 +300,18 @@ void TrapSpec::OnChunk() {
     case 0xBBAB0002: ReadInto(c, trap.spell); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
-        trap.area.SetSize(static_cast<int>(n), -1);
+        trap.area.resize(static_cast<int>(n));
         for (std::uint32_t i = 0; i < n; ++i) {
-            FileRead(c, &trap.area.data[i], 12);
+            FileRead(c, &trap.area[i], 12);
             c.Advance(12);
         }
         break;
     }
     case 0xBBAB0004: {
         int n = c.ReadInt();
-        trap.points.SetSize(n, -1);
+        trap.points.resize(n);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(n); ++i) {
-            FileRead(c, &trap.points.data[i], 8);
+            FileRead(c, &trap.points[i], 8);
             c.Advance(8);
         }
         break;

@@ -204,26 +204,9 @@ struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
 // The script's party slots
 struct PartySlotArrayClass final
     : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &Placements::Serialize> {};
-// The AI's look records
-struct AiLookArrayClass
-    : CompiledCollection<AiLookArrayClass, &ArrayHeader<AiLookArrayClass>::Destruct, &Plain16::Serialize> {};
-// The array inside the AI's 32-byte look records (base AiLookArrayClass)
-struct AiLookRecordArrayClass final : AiLookArrayClass {
-    static void* Vtable() { return CompiledVtable<AiLookRecordArrayClass>(); }
-};
 // A figure's bone links
 struct BoneLinkArrayClass final
     : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &KeyFrames::Serialize> {};
-// The base vtable the element arrays' destructors restore (patrols, motion records)
-struct ArrayBaseClass
-    : CompiledCollection<ArrayBaseClass, &ArrayHeader<ArrayBaseClass>::Destruct, &Plain20::Serialize> {};
-// A patrol's waypoints
-struct WaypointArrayClass final : ArrayBaseClass {
-    static void* Vtable() { return CompiledVtable<WaypointArrayClass>(); }
-};
-// A unit's attack options
-struct AttackOptionArrayClass final
-    : CompiledCollection<AttackOptionArrayClass, &ArrayHeader<AttackOptionArrayClass>::Destruct, &Plain40::Serialize> {};
 // A unit's animation steps
 struct AnimationStepsClass
     : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &AnimationSteps::Serialize> {};
@@ -238,17 +221,11 @@ struct CellRowArrayClass final
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
 // The units' path cell lists
-struct CellListClass final
-    : CompiledCollection<CellListClass, &PtrList::Destruct<CellListClass>, &List8::Serialize> {};
 // The client's third list
 struct ClientList3Class final
     : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &PtrList::Serialize> {};
 // The AI's block cost lists
-struct BlockCostListClass final
-    : CompiledCollection<BlockCostListClass, &PtrList::Destruct<BlockCostListClass>, &List12::Serialize> {};
 // The AI plan's waypoint lists
-struct WaypointListClass final
-    : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &List12::Serialize> {};
 // The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
 struct DwordMapClass final
     : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &Map32::Serialize> {};
@@ -287,11 +264,7 @@ using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMa
 
 // Arrays whose elements need nothing.
 // A trap's circles (map_spec, magic_trap).
-struct TrapCircleArrayClass
-    : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &Plain12::Serialize> {};
 // A trap's points.
-struct TrapPointArrayClass
-    : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &Plain8::Serialize> {};
 // A script command's object arguments (script_destroy).
 struct ArgObjectsBaseClass
     : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &Plain4::Serialize> {};
@@ -360,24 +333,8 @@ struct TerrainByteArraysClass final
 // The scene loader's 20-byte records with an aligned block at +4.
 struct AlignedAt4ArrayClass final
     : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &AlignedAt4Records::Serialize> {};
-// Patrols (32 bytes, a waypoint array at +0xC).
-struct PatrolArrayClass
-    : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &OwnedPatrols::Serialize> {};
-// A unit record behaviour's patrols (mapspec::Patrol elements): derived from PatrolArrayClass.
-struct BehaviourPatrolsArrayClass final : PatrolArrayClass {
-    static void* Vtable() { return CompiledVtable<BehaviourPatrolsArrayClass>(); }
-};
 // The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
 struct ScriptAreaArrayClass final
     : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};
-
-// A map trap record's areas (12-byte elements; the magic trap's circles).
-struct TrapAreasArrayClass final : TrapCircleArrayClass {
-    static void* Vtable() { return CompiledVtable<TrapAreasArrayClass>(); }
-};
-// A map trap record's targets (8-byte elements; the magic trap's points).
-struct TrapTargetsArrayClass final : TrapPointArrayClass {
-    static void* Vtable() { return CompiledVtable<TrapTargetsArrayClass>(); }
-};
 
 } // namespace mfc::impl

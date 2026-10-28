@@ -171,11 +171,7 @@ double UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
 
 AIPath* AIPath::Construct() {
     steps = {};
-    steps.vtable = PathCellListVtable();
-    steps.blockSize = 0x80;
     cells = {};
-    cells.vtable = PathCellListVtable();
-    cells.blockSize = 0x80;
     Clear();
     return this;
 }

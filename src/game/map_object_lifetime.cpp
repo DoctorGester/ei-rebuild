@@ -49,7 +49,6 @@ void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); 
 
 void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
 void BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
-void Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
@@ -291,15 +290,11 @@ CUnitServer::~CUnitServer() {
     AIBrain* b = Brain();
     b->Init();
     b->memory.Destruct();
-    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
-    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
-    mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
     for (AIMode*& mode : b->modes) DestroyOwned(mode);   // the owned modes released
     b->modes.clear();
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
-    Brain14Destroy(&b->move.looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     for (ArmourSpell& spell : armourSpells)
@@ -313,7 +308,5 @@ CUnitServer::~CUnitServer() {
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());
     DestroyArray(currentPlan.animation, mfc::impl::AnimationStepsClass::Vtable());
-    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
-    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
 }

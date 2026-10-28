@@ -62,15 +62,6 @@ struct ThemeArrayClass final
 
 using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
 
-// A unit's behaviour records: built by the constructor, destroyed by
-// the destructor body (also inlined elsewhere).
-inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
-inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
-using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
-// CArray<Behaviour> (the server unit's brain).
-struct BehaviourArrayClass final
-    : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &Behaviours::Serialize> {};
-
 // A fake unit's figure parts, meshes and materials (FakeUnitScene's constructor).
 struct FakeUnitPartArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};

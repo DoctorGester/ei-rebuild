@@ -146,29 +146,17 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
 
     PathCellList& pathCells = path->cells;
     PathCellList& steps = path->steps;
-    while (steps.count < 32 && pathCells.count > 0) {
-        PathCellList::Node* node = pathCells.head;
-        PathCell cell = node->data;
-        pathCells.head = node->next;
-        if (node->next) node->next->prev = nullptr;
-        else pathCells.tail = nullptr;
-        node->next = pathCells.free;
-        pathCells.free = node;
-        if (--pathCells.count == 0) pathCells.RemoveAll();
-
-        PathCellList::Node* added = steps.NewNode(steps.tail, nullptr);
-        added->data = cell;
-        if (steps.tail) steps.tail->next = added;
-        else steps.head = added;
-        steps.tail = added;
+    while (std::ssize(steps) < 32 && std::ssize(pathCells) > 0) {
+        steps.push_back(pathCells.front());
+        pathCells.pop_front();
     }
 
     float x, y;
-    if (pathCells.count > 0) {
+    if (std::ssize(pathCells) > 0) {
         path->reached = false;
         // Put the last step back at the head of the path: it is where the steering heads.
-        const PathCell* last = &steps.tail->data;
-        pathCells.AddHead(*last);   // the element zeroed first
+        const PathCell* last = &steps.back();
+        pathCells.push_front(*last);   // the element zeroed first
         y = static_cast<float>(last->y) + 0.5f;
         x = static_cast<float>(last->x) + 0.5f;
     } else {
@@ -221,9 +209,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         cell.x = static_cast<std::int16_t>(ux);
         cell.y = static_cast<std::int16_t>(uy);
         std::memcpy(&cell.flags, &uyHalf, 4);
-        pathCells.AddHead(cell);
+        pathCells.push_front(cell);
         found = true;
-        pathCells.head->data.flags = 0x200;
+        pathCells.front().flags = 0x200;
         AdvancePath(unit, path);
         goto done;
     }
@@ -235,7 +223,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         int diff = adx - ady < 0 ? ady - adx : adx - ady;
         bool tried = false;
         if (diff + ((shorter * 0x5A8) >> 10) <= 24) {
-            pathCells.RemoveAll();
+            pathCells.clear();
             if (ux != tx || uy != ty) {
                 if (BeginLocalSearch(&forwardSearch, unit, ux, uy, tx, ty)) {
                     if (!BeginLocalSearch(&backwardSearch, unit, tx, ty, ux, uy)) {
@@ -259,15 +247,12 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             std::memcpy(&path->targetX, &goal.x, 4);
             std::memcpy(&path->targetY, &goal.y, 4);
             if (ux == gx && uy == gy) {
-                PathCellList::Node* node = pathCells.NewNode(nullptr, pathCells.head);
-                node->data.x = static_cast<std::int16_t>(ux);
-                node->data.y = static_cast<std::int16_t>(uy);
-                std::memcpy(&node->data.flags, &shorter, 4);
-                if (pathCells.head) pathCells.head->prev = node;
-                else pathCells.tail = node;
-                pathCells.head = node;
+                PathCell& first = pathCells.emplace_front();
+                first.x = static_cast<std::int16_t>(ux);
+                first.y = static_cast<std::int16_t>(uy);
+                std::memcpy(&first.flags, &shorter, 4);
                 found = true;
-                pathCells.head->data.flags = 0x200;
+                first.flags = 0x200;
             } else {
                 int flag = path->flag6E || path->flag6F ? 1 : 0;
                 int rangeCells = WorldToCell(range);
@@ -305,7 +290,7 @@ done:
 
 bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
     bool wasReached = path->reached;
-    if (path->failed && path->cells.count == 0) return FindPath(unit, &path->goal, path, 1000000.0f, 0.0f);
+    if (path->failed && std::ssize(path->cells) == 0) return FindPath(unit, &path->goal, path, 1000000.0f, 0.0f);
     AdvancePath(unit, path);
     if (path->failed) path->reached = false;
     return !wasReached;

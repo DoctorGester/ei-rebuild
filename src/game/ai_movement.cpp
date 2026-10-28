@@ -103,25 +103,25 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
         PassCostContext context;
     CostContext(unit->sizeClass, &context);
 
-    PathCellList::Node* node = steps->head;
-    if (!node) return;
+    auto node = steps->begin();
+    if (node == steps->end()) return;
     for (;;) {
-        PathCellList::Node* next = node->next;
-        const AIMapCell& cell = cells[node->data.y][node->data.x];
-        if (!next) {
+        auto next = std::next(node);
+        const AIMapCell& cell = cells[node->y][node->x];
+        if (next == steps->end()) {
             int cost = context.costs[(cell.passable >> (context.shift & 31)) & 0xF];
-            node->data.terrainBits =
+            node->terrainBits =
                 static_cast<std::uint16_t>((cell.flags >> 7) + (cost > kExpensive ? 2 : 0));
             return;
         }
-        const AIMapCell& to = cells[next->data.y][next->data.x];
+        const AIMapCell& to = cells[next->y][next->x];
         int cost = stepCosts[(to.passable >> (shift & 31)) & 0xF];
         int contextCost = context.costs[(to.passable >> (context.shift & 31)) & 0xF];
         if (cost < 0) cost = 0x400;
         int climbCost = climb[static_cast<int>(to.groundLevel) - static_cast<int>(cell.groundLevel)];
         int speed = climbCost < 0 ? 0x200 : static_cast<int>(static_cast<unsigned>(cost) << 9) / climbCost;
-        node->data.flags = static_cast<std::uint16_t>(speed);
-        node->data.terrainBits = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
+        node->flags = static_cast<std::uint16_t>(speed);
+        node->terrainBits = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
         node = next;
     }
 }

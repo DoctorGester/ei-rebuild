@@ -65,8 +65,6 @@ void scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::F
 void scene::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("scene::InitSceneMesh")
 void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
 void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")
-mapspec::Behaviour* mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
-void mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, std::list<CUnit*>*, float)
