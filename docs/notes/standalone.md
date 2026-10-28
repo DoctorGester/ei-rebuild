@@ -73,7 +73,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: their callers call the
   virtual, `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
-  list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
+  list order (`RunStaticInitialisers`), then WinMain; its result goes to the CRT's exit as the CRT did.
 - **Missing code.** Reaching an address without code (a jump into the guarded .text) logs `FAILED: standalone: no code at <address>, [esp] <caller>` and ends the run;
   `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
   (`... of game.exe's code at ...`). The handler goes in before the start-up actions
@@ -99,10 +99,11 @@ each step green on the goldens and removing a measured tie:
   kept in a table, resolved by its reader. In game.exe (the original's runs: the harness and the vector
   recorders share this code) it is the address; in the image a moved section's addresses map to our
   storage, so the layout inside a section (arrays running into neighbours) stays. The generated static
-  initialisers resolve through their visitor (`d.At` for an argument that is a data address).
+  initialisers name every object they touch (plain calls, no data address; gen_static_init stops at a statement that
+  would have one).
 - **The check** (`python tools/data_seam.py`, build.cmd): per section the uses through the seam, through a
   helper whose every definition hands its address to the seam (per-file `GameFloat(std::uintptr_t)`), a
-  constant whose every use does, the generated ones, and raw. config/data_seam.csv holds the raw count per
+  constant whose every use does, and raw. config/data_seam.csv holds the raw count per
   file and section (only down; `--update`) and the sealed sections (none raw). `--list <section>` shows the
   raw uses, `--apply <section>` rewrites the casts it can (`*reinterpret_cast<T*>(0x...)`, the helpers'
   casts, constants used in casts).
@@ -550,7 +551,7 @@ kinds given.
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (each is a decision of the generator):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
-      static_init.cpp (the block keeps its `d.Begin`, its comment says "n left out"); the definition's initialiser
+      static_init.cpp (its comment says "n left out"); the definition's initialiser
       takes its place. the definition is game.exe's bytes *as the initialisers leave
       them* (`--emit` packs it back and compares) (gen_static_init.stored_values: the stores in list order, a fold computed as the original does, x87
       order at 53 bits, rounded to a float; a call's stored result is unknown and refused), so `constexpr float
@@ -594,7 +595,7 @@ kinds given.
         a pointer type it does not list is a pointer element: `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
       - The exit function: ported on the name, outside any anonymous namespace, with a row in
         config/static_init_ports.csv (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
-        place in the list as `d.AtExit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
+        place in the list as `std::atexit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
         (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
@@ -736,10 +737,10 @@ kinds given.
       game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
     - **Names in the generated code (C18u, 53 -> 41)**: gen_static_init.py's GENERATED_NAMES maps an address to a
       name and its header, and the generator writes the name where the original's code has the address: a guard's
-      flag byte (`d.Once(name, bit)`), the object a call takes as `this` (`d.Thiscall(fn, &name)`) and where a call's
-      result goes (`d.Store(name, d.Stdcall(...))`, kept in list order; named_data.py compares that definition at its
-      zero start instead of refusing the unknown store). static_init.h's visitors take a `std::uint8_t&` guard, a
-      `void*` object and a `T&` destination beside the addresses. Each entry must start a range of named_data.csv (the
+      flag byte (`Once(name, bit)`), the object a call takes as `this` (`Call(&Class::Method, &name)`) and where a
+      call's result goes (a store of the result, kept in list order; named_data.py compares that definition at its
+      zero start instead of refusing the unknown store). Only the guard is generated now (static_init.h's `Once` takes
+      a `std::uint8_t&`; the generator stops at an operation static_init.h lacks). Each entry must start a range of named_data.csv (the
       generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
       (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's). MFC's globals that only the
       initialisers and exit functions reached (_simpleUserException 007C8BC0, the thread / process locals 007C90BC,
@@ -968,12 +969,14 @@ the `--no-hooks` suite) keeps the registry.
   interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
-  callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
-  (static_init.h), run by its one visitor `Run` (the image).
+  callee is inlined, everything else is a call. The result is one function, `RunStaticInitialisers` (plain calls,
+  `std::atexit`, `Once`, `Local`; static_init.h), run by the image before WinMain. Inside the script the statements
+  are written `d.Operation(...)` and `plain` turns them into that code at the end (a call without arguments is the
+  call itself).
 - **Calls by name** (C20 batch 2): a call or atexit of a function ported by hand (a row of
-  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&Class::Method, &g_object, args)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
-  `name_calls`). Code::Call converts the decoded dwords to the declared parameters (`Argument`: a pointer from a
-  dword, a lib::StaticObject's T for a named object) and returns the result as a dword (`Returned`). The name is the
+  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `app::ConstructCameraFile();`, `Call(&Class::Method, &g_object, args)`, `std::atexit(Exit0070C0B8)` (gen_static_init's `Names`,
+  `name_calls`). A call with arguments goes through static_init.h's `Call`, which converts the decoded dwords to the
+  declared parameters (`Argument`: a pointer from a dword). The name is the
   definition's (its namespaces from srcscan.Scopes); a header that declares it in the same namespace is included,
   otherwise a `void __cdecl Fn()` initialiser or exit function is declared at the top of the generated file (the
   linker catches a signature that differs: MSVC's names hold the return type and convention). A method is
@@ -982,8 +985,8 @@ the `--no-hooks` suite) keeps the registry.
   Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing namespaces), batch 3
   the last 29 (console_streams 18, script_exec_helpers 2, string_map 1, and the files of the old MFC string and collections): nothing is
   called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
-  AtExit by address went. The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
-  them unchanged; `d.Begin(0x...)` is a label.
+  AtExit by address went. The statements stay in `d.` address form until render, so unread_objects, stored_values and
+  named_data.py read them unchanged (the `d.Begin` labels and the Do& template, Code and Run went with C20q1).
   When a helper gets ported later the output changes: rerun the generator (check_static_init, removed in
   C25d, re-decoded game.exe and compared).
 - **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns

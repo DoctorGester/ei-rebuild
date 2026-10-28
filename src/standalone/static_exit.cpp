@@ -3,7 +3,7 @@
 // The 12 exit functions game.exe registers with atexit that no rewrite ports, the static
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): 12 nothing.
-// Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
+// Each is decoded from its instructions as a whole-function pattern and written as plain calls (static_init.h),
 // calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are not
 // registered.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
