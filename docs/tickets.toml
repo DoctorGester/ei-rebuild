@@ -735,7 +735,7 @@ title = "No fake device: caps, display modes, video memory and the IDirect3DDevi
 group = "renderer"
 model = "opus"
 depends = ["R27b"]
-note = "After R27b. device_null.cpp invents caps, display modes, 256 MB VRAM and interface tokens with trap tables; directdraw_holder.cpp enumerates modes; IDirect3DDevice7 is held in ~22 files. Make the remaining device:: calls direct renderer / window calls, delete device_null.cpp and the DirectDraw/Direct3D headers from game code (the R11c goal). Goldens must stay the same; play.cmd must start."
+note = "After R27b. device_null.cpp invents caps, display modes, 256 MB VRAM and interface tokens with trap tables; directdraw_holder.cpp enumerates modes; IDirect3DDevice7 is held in ~22 files. Make the remaining device:: calls direct renderer / window calls, delete device_null.cpp and the DirectDraw/Direct3D headers from game code (the R11c goal). Goldens must stay the same; play.cmd must start. From R27b/C20p: left are device_null's display-mode list (DDSURFACEDESC2 modes_), GetCaps / GetAvailableVidMem, CRenderHelper's device_ / caps_, uidevice::Clear's now-constant flags; and FigureMeshDrawer::DrawPlain's two unused const void* parameters (figure_part_draw_plain.cpp, link_figure.h; caller renderer_lifetime.cpp:192)."
 
 [[ticket]]
 id = "R27d"
