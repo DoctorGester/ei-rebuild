@@ -5,17 +5,17 @@
 // could spill and round) is needed. The vector operators are vecmath.h's: one operation per component,
 // rounded when stored, the whole result computed before `*out` is written (out may alias an input).
 
-Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b) {
+Vector3* AddVectors(Vector3* out, const Vector3& a, const Vector3& b) {
     *out = a + b;
     return out;
 }
 
-Vector3* __fastcall NegateVector(Vector3* out, const Vector3& v) {
+Vector3* NegateVector(Vector3* out, const Vector3& v) {
     *out = -v;
     return out;
 }
 
-Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s) {
+Vector3* ScaleVector(Vector3* out, const Vector3& v, float s) {
     *out = s * v;
     return out;
 }
@@ -25,7 +25,7 @@ const Vector3* Vector3::AddInPlace(const Vector3& v) {
     return &v;
 }
 
-float __stdcall ClampUnit(float v) {
+float ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
     return v >= -1.0f ? v : -1.0f;   // -1 also for NaN
 }

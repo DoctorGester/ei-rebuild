@@ -40,7 +40,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
     return b->PositionOf(b->high);
 }
 
-// The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
+// The handlers registered for message `type` on `channel` (called with the session and the message). The end
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     HandlerVector& v = session->handlers_[channel][type & 0xFF];

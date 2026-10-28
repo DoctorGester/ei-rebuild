@@ -38,8 +38,8 @@ constexpr int kClassShowVisibility = 0x5E;
 constexpr int kClassSoundSequence = 99;
 constexpr int kClassUnit = 0x50;
 
-constexpr int kWorldSlotGridHeight = 27;
-constexpr int kWorldSlotGroundHeight = 28;
+constexpr double (CWorld::*kGridHeight)(float, float) = &CWorld::GridHeightAt;
+constexpr double (CWorld::*kRawSurfaceHeight)(float, float) = &CWorld::RawSurfaceHeightAt;
 
 constexpr std::uint32_t kPointLightFlags = 0x840;
 
@@ -125,27 +125,25 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
     return static_cast<int>(libcrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
-// World virtual `slot` (thiscall on the world; x, y as the floats' bits): a ground height left unrounded in
-// ST0.
-inline double WorldHeight(void* world, int slot, std::uint32_t x, std::uint32_t y) {
-    using Slot = double(__fastcall*)(void* self, void* unused, std::uint32_t x, std::uint32_t y);
-    return reinterpret_cast<Slot>((*static_cast<void***>(world))[slot])(world, nullptr, x, y);
+// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height left unrounded in ST0.
+inline double WorldHeight(CWorld* world, double (CWorld::*height)(float, float), float x, float y) {
+    return (world->*height)(x, y);
 }
 
 // *out = (float)(height + *add).
-inline void HeightPlus(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* add, float* out) {
-    *out = static_cast<float>(WorldHeight(world, slot, x, y) + *add);
+inline void HeightPlus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* add, float* out) {
+    *out = static_cast<float>(WorldHeight(world, height, x, y) + *add);
 }
 
 // The same with height - *sub (FSUB).
-inline void HeightMinus(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* sub, float* out) {
-    *out = static_cast<float>(WorldHeight(world, slot, x, y) - *sub);
+inline void HeightMinus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* sub, float* out) {
+    *out = static_cast<float>(WorldHeight(world, height, x, y) - *sub);
 }
 
 // The lightning's end: *out = (float)(height + *a * *b).
-inline void HeightPlusProduct(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* a, const float* b,
+inline void HeightPlusProduct(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* a, const float* b,
                               float* out) {
-    *out = static_cast<float>(WorldHeight(world, slot, x, y) + static_cast<double>(*a) * *b);
+    *out = static_cast<float>(WorldHeight(world, height, x, y) + static_cast<double>(*a) * *b);
 }
 
 // *out = (float)sqrt(y*y + x*x).
@@ -290,14 +288,14 @@ inline void HitAreaTargets(CSpellEffect* e) {
     }
 }
 
-inline float GroundPlus(CSpellEffect* e, int slot, const Vector3& at, const float* add) {
+inline float GroundPlus(CSpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* add) {
     float out;
-    HeightPlus(e->world, slot, Bits(at.x), Bits(at.y), add, &out);
+    HeightPlus(e->world, height, at.x, at.y, add, &out);
     return out;
 }
-inline float GroundMinus(CSpellEffect* e, int slot, const Vector3& at, const float* sub) {
+inline float GroundMinus(CSpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* sub) {
     float out;
-    HeightMinus(e->world, slot, Bits(at.x), Bits(at.y), sub, &out);
+    HeightMinus(e->world, height, at.x, at.y, sub, &out);
     return out;
 }
 

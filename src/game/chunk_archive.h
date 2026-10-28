@@ -82,7 +82,7 @@ public:
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
-    using Factory = CRefCounted*(__cdecl*)();
+    using Factory = CRefCounted*(*)();
     struct ClassRegistry {
         using ClassIdMap = std::unordered_map<std::uint32_t, std::int32_t>;
         ClassIdMap classIds;     // vtable -> class id

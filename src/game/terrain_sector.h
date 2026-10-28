@@ -157,7 +157,7 @@ struct SectorData {
     int spare390;                       // cleared with the rest; nothing reads it
 
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
-    int Load(void* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
+    int Load(CMappedResource* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists, bounding boxes and water materials.
     void Build();

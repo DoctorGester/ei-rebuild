@@ -73,10 +73,4 @@ T& GameData(std::uintptr_t address) {
 }
 #endif
 
-// Slot `slot` of a hand-made vtable (an array of code pointers) as the function type Fn.
-template <typename Fn>
-Fn VirtualSlot(const void* const* vtable, int slot) {
-    return reinterpret_cast<Fn>(vtable[slot]);
-}
-
 } // namespace ei

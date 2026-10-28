@@ -333,7 +333,7 @@ CTransformPipeline::CTransformPipeline(const char* folder) {
     game::DebugLog(LibraryLoadedText());
     if (!library_) ThrowGameError(NoLibraryText());
 
-    using GetTLPipeline = ITransformPipeline*(__cdecl*)();
+    using GetTLPipeline = ITransformPipeline*(*)();
     auto getPipeline = reinterpret_cast<GetTLPipeline>(
         gameapi::GetProcAddress(static_cast<HMODULE>(library_), TransformFunctionName()));
     if (!getPipeline) {

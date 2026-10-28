@@ -867,9 +867,9 @@ static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 static_assert(sizeof(UnitStats) == 0x704);
 
 // Resets a hit: all weights 1, multiplier 1, attackRoll and amount 3.4e36, location 6, the rest 0.
-std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info);
+std::uint32_t ResetDamageInfo(DamageInfo* info);
 // Has the hit a non-zero weight for damage type 3, 4 or 5 (NaN counts as zero)?
-BOOL __fastcall HasElementalDamage(const DamageInfo* info);
+BOOL HasElementalDamage(const DamageInfo* info);
 
 // The server-side state object of map objects (class id 0x39): the hit points.
 class CMapObjectServer : public CMapObjectCompanion {

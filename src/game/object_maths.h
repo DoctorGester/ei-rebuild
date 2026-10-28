@@ -7,7 +7,7 @@
 
 // Vector2 and Vector4 (with Vector4::FromPoint) are in src/lib/vecmath.h.
 
-// `out` = a x b. __fastcall (out in ECX, a in EDX, b on the stack); returns out. All three
+// `out` = a x b; returns out. All three
 // components are computed before the first store.
 Vector3* CrossProduct(Vector3* out, const Vector3& a, const Vector3& b);
 

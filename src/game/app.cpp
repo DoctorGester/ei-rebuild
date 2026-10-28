@@ -302,13 +302,11 @@ int ShowLibraryMessageBox(const char* text) {
 namespace {
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
-using ErrorHook = void(__fastcall*)(const char* text);
-void* g_fatalErrorHook = /*007A9BA0*/ {nullptr};   // set by the console (null here)
 int g_fatalErrorCount = /*007A9B9C*/ {};
 
 } // namespace
 
-// Formats the error (wvsprintfA, 1 KB), shows it in a message box, hands it to the error hook and exits the
+// Formats the error (wvsprintfA, 1 KB), shows it in a message box and exits the
 // game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
 // with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
 } // namespace app
@@ -321,7 +319,6 @@ int game::FatalError(const char* format, ...) {
     va_end(args);
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) app::ShowMessageBox(text, app::kErrorBoxFlags);
-    if (auto hook = reinterpret_cast<app::ErrorHook>(app::g_fatalErrorHook)) hook(text);
     if (++app::g_fatalErrorCount >= 1 && !carryOn) std::exit(-1);
     return 0;
 }
@@ -340,7 +337,6 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     gameapi::wvsprintfA(text, format, args);
     std::snprintf(report, sizeof(report), CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
-    if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(report);
     if (++g_fatalErrorCount >= 1) std::exit(-1);
     return 0;
 }

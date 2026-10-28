@@ -244,11 +244,8 @@ constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
 
 // The item's base price, left unrounded.
-double ItemPrice(const CItem* item) {
-    using PriceFn = double(__thiscall*)(const CItem*);
-    void** vtable;
-    std::memcpy(&vtable, item, sizeof(vtable));
-    return ei::VirtualSlot<PriceFn>(vtable, 16)(item);
+double ItemPrice(CItem* item) {
+    return item->GetPrice();
 }
 
 // How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a

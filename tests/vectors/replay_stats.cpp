@@ -15,8 +15,8 @@
 #include <vector>
 
 // MaxDamage is not declared in a header (unit_stats.cpp); the excess is DamageWords::ExcessOver (unit_db.h).
-std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage);
-int __fastcall SchoolPrice(int from, int to);   // unit_skill_price.cpp
+std::uint16_t MaxDamage(const std::uint16_t* damage);
+int SchoolPrice(int from, int to);   // unit_skill_price.cpp
 
 namespace {
 

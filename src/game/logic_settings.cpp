@@ -125,5 +125,5 @@ LogicSettings* LogicSettings::Construct() {
     return this;
 }
 
-// A static initialiser (cdecl): the defaults.
+// A static initialiser: the defaults.
 void ConstructLogicSettings() { g_logicSettings.Construct(); }

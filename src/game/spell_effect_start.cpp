@@ -85,7 +85,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     float size = PowerScaled(e, worlddata::FireballScale());
     CEffectParticle* particle = e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);   // the visual
     if (e->caster) particle->unitId_ = e->caster->id_;   // the particle's unit (no null check)
-    e->targetPoint.z = GroundPlus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
+    e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(&e->targetPoint);
     if (speed * ConstAt(worlddata::FireballNear()) > distance) {
         e->CreateSound(0, "magic\\FireBall\\start.wav", &e->position, &velocity, kVolume, kHearing);
@@ -102,7 +102,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
 
 // 4: a lightning strike from 30 above the target point, hitting every unit in the radius.
 Next StartLightStrike(CSpellEffect* e) {
-    e->targetPoint.z = GroundMinus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
+    e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
     top.z = top.z + ConstAt(worlddata::StrikeHeight());
@@ -161,7 +161,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     e->position = centre;
     e->timer = static_cast<int>(e->Spell()->duration_);
     e->state = 2;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
@@ -182,15 +182,15 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     b.x = span.x + e->targetPoint.x;
     b.y = span.y + e->targetPoint.y;
     b.z = span.z + e->targetPoint.z;
-    a.z = GroundPlus(e, kWorldSlotGroundHeight, a, ConstPtr(worlddata::OneRef()));
-    b.z = GroundPlus(e, kWorldSlotGroundHeight, b, ConstPtr(worlddata::OneRef()));
+    a.z = GroundPlus(e, kRawSurfaceHeight, a, ConstPtr(worlddata::OneRef()));
+    b.z = GroundPlus(e, kRawSurfaceHeight, b, ConstPtr(worlddata::OneRef()));
     auto* bolt = CreateObject<CEffectLightning>(e, kClassLightning);
     bolt->SetEnds(&a, &b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
     e->timer = static_cast<int>(e->Spell()->duration_);
     e->state = 2;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
@@ -201,7 +201,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
 // 8: the poison cloud at the target point.
 Next StartPoisonCloud(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
     e->CreateParticle(1, 0x2007, &centre, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
     e->CreateSoundSequence(&centre, &kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1, kVolume, kHearing);
@@ -227,7 +227,7 @@ Next ApplyBuff(CSpellEffect* e) {
 // 0x12: fireworks (five numbered sounds).
 Next StartFirework(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float size = Power(e);
     e->CreateParticle(1, 0x2009, &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
@@ -239,7 +239,7 @@ Next StartFirework(CSpellEffect* e) {
 // 0x14: clairvoyance. The particle uses the target point as it was; the light, the ground point.
 Next StartClairvoyance(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
     e->CreateParticle(0, 0x2018, &e->targetPoint, e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, e->Spell()->radius_, &kZeroVector);
@@ -321,10 +321,10 @@ Next StartLink(CSpellEffect* e) {
 Next StartTeleport(CSpellEffect* e) {
     const Vector3* source = e->caster ? &e->caster->localPosition_ : &e->position;
     Vector3 point = *source;
-    point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
+    point.z = GroundPlus(e, kGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
     point = e->targetPoint;
-    point.z = GroundMinus(e, kWorldSlotGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
+    point.z = GroundMinus(e, kGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
     e->CreateParticle(0, 0x2019, &point, -1.0f, 1.0f, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\Teleport\\start.wav", &point, &kZeroVector, kVolume, kHearing);
     PrototypeLight(e, &point, PrototypeRange(e), &kZeroVector);
@@ -357,7 +357,7 @@ Next StartCharm(CSpellEffect* e) {
 // 0x27: the effect only moves to the ground point.
 Next StartAtGround(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
     return Next::Set;
 }
@@ -490,7 +490,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
                                    int flag) {
     if (!boltTarget) return;
     Vector3 to = boltTarget->localPosition_;
-    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &boltTarget->bounds.boxMax.z,
+    HeightPlusProduct(world, kGridHeight, to.x, to.y, &boltTarget->bounds.boxMax.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
     auto* bolt = CreateObject<CEffectLightning>(this, kClassLightning);
     bolt->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));

@@ -1,5 +1,4 @@
-// The quaternion product (__fastcall: out in ECX, a in EDX, b on the stack):
-// out = a * b (Hamilton) the skin's animation nodes compose their key rotations with
+// The quaternion product: out = a * b (Hamilton), which the skin's animation nodes compose their key rotations with
 // and the hero preview. All four components are computed
 // before any is stored, so `out` may be either input. Returns out. See docs/notes/map_objects.md.
 #include "maths.h"

@@ -5,7 +5,7 @@
 // keeps a cursor into the current text (+0x24, +0x28 bytes). Texts are MBCS:
 // a character is one byte, or a lead byte (_ismbblead) and a trail byte; its code is
 // (signed lead << 8) + signed trail. Lines end with LF (CR also ends the line's content); a line
-// whose first word starts with "##" is a comment. All functions are __thiscall on the manager.
+// whose first word starts with "##" is a comment. All functions work on the manager.
 
 #include "item_db_text.h"
 

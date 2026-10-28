@@ -73,7 +73,7 @@ bool IsAnimated(const Terrain* owner, int texture) {
 
 // Loading
 
-int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
+int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
                      Terrain* terrain) {
     Clear();
     owner = terrain;
@@ -84,10 +84,8 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
     char name[0x100];
     std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
-    using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
-    const std::uint8_t* file = static_cast<const std::uint8_t*>(
-        (*reinterpret_cast<GetFileFn* const*>(archive))[5](archive, name, &size));
+    const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
     data = file;
 
     const char* unableToLocate = "Unable to locate resource: ";

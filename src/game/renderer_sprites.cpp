@@ -101,7 +101,7 @@ void EnsureStatics() {
 
 // One of the sort's statics, constructed (zeroed) on the first batch.
 template <typename T>
-void EnsureSortStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onExit)()) {
+void EnsureSortStatic(std::uint8_t bit, std::vector<T>& array, void(* onExit)()) {
     if (g_sortGuards & bit) return;
     g_sortGuards |= bit;
     array = std::vector<T>{};

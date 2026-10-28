@@ -17,10 +17,10 @@ using BOOL = int;
 class CStream;
 
 // Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
-// h % 1000000000 + 1000000000. __fastcall (name in ECX).
+// h % 1000000000 + 1000000000.
 int TextKeyFromName(std::string_view name);
 
-// Text keys are 1000000000..1999999999. __fastcall (id in ECX).
+// Text keys are 1000000000..1999999999.
 BOOL IsTextKey(int id);
 
 // One "#allod" entry of map.txt.
@@ -134,5 +134,5 @@ constexpr int kUiKeyNameCount = 88;
 extern UiKeyName g_keyNames[kUiKeyNameCount];
 
 // The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
-// has `key` in g_keyActions, or null. __fastcall (key in ECX).
+// has `key` in g_keyActions, or null.
 void* FindCommandByKey(int key);

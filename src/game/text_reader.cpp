@@ -15,7 +15,7 @@
 
 namespace {
 
-// Split (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
+// Splits `text` at `separator` into `out`.
 
 const char* const kComment = "##";
 const char* const kHeader = "#";

@@ -568,15 +568,15 @@ using ScriptDefineList = std::list<ScriptDefine>;
 // empty).
 void AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
 // Each define in list order.
-void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines);
+void ApplyDefines(std::string* line, const ScriptDefineList* defines);
 
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
-void __fastcall ClassifyToken(const char* text, int* id, int* rest);
+void ClassifyToken(const char* text, int* id, int* rest);
 // Rebirth patches it. Null unless function `id` returns `type`.
-const char* __fastcall FunctionSignature(int id, int type);
+const char* FunctionSignature(int id, int type);
 // Rebirth patches it. "Unknown command" if none.
-const char* __fastcall KeywordName(int id);
+const char* KeywordName(int id);
 // kScriptKeywords, or Rebirth's extended one (scriptaddon::Table()) with its AddNewScriptCommands flag.
 const ScriptKeyword* KeywordTable();
 

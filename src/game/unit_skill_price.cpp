@@ -34,7 +34,7 @@ int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
 }
 
 // What raising a school from level value `from` to `to` costs: the worths' difference, truncated.
-int __fastcall SchoolPrice(int from, int to) {
+int SchoolPrice(int from, int to) {
     const double upper = Worth(to);
     const double lower = Worth(from);
     return static_cast<int>(upper - lower);

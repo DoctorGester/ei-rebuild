@@ -15,7 +15,7 @@ namespace libcrt {
 
 namespace {
 
-using Compare = int(__cdecl*)(const void*, const void*);
+using Compare = int(*)(const void*, const void*);
 
 void SwapElements(char* a, char* b, std::size_t width) {
     if (a == b) return;

@@ -6,7 +6,7 @@
 #include <cstdint>
 
 namespace {
-// The cursor object and its methods (thiscall).
+// The cursor object and its methods.
 // The device the cursor is drawn on.
 // The set-up function through its address (the verify build's wrapper sees the call from the reset).
 void SetUpCursorsAt(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
@@ -48,7 +48,7 @@ const CursorShape kShapes[] = {
 };
 } // namespace
 
-// Set-up (fastcall). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
+// Set-up. `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
     TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,

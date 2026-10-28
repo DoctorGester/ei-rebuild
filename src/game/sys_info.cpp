@@ -179,7 +179,7 @@ int CSysInfo::Create() {
 const char* CSysInfo::GetClassName() { return SysInfoClassNameText(); }
 int CSysInfo::GetClassId() { return kClassId; }
 
-// The global's destructor (cdecl; registered with atexit by the static initialiser).
+// The global's destructor (registered with atexit by the static initialiser).
 void SysInfoAtExit() { g_sysInfo.Destroy(); }
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------

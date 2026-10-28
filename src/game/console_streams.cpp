@@ -35,7 +35,7 @@ namespace {
 
 using console::ConsoleStreambuf;
 using StreambufObject = lib::StaticObject<ConsoleStreambuf>;
-using ExitFunction = void(__cdecl*)();
+using ExitFunction = void(*)();
 
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     map.Construct();
