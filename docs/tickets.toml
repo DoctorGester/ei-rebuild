@@ -751,7 +751,7 @@ title = "EI_RENDER_VALIDATION code with nothing left to compare against; 2DintMM
 group = "renderer"
 model = "sonnet"
 depends = ["R27d"]
-note = "~80 EI_RENDER_VALIDATION lines: keep the checks that still validate something (uploads, read-backs), delete the A/B ones whose old path is gone. CPixelConverter's RasteriseTriangle, RasteriseKeyedTriangle, BlurShadow 1/2 have no callers since R26: delete them unless the DLL interface still needs them, and say which."
+note = "~80 EI_RENDER_VALIDATION lines: keep the checks that still validate something (uploads, read-backs), delete the A/B ones whose old path is gone. CPixelConverter's RasteriseTriangle, RasteriseKeyedTriangle, BlurShadow 1/2 have no callers since R26: delete them unless the DLL interface still needs them, and say which. From R27d: no DirectDraw/D3D7 headers or types left in game code. Also check: app_dxversion.cpp's DDRAW.DLL version probe (the game needs no DirectX 7 any more: delete the check unless something reads its answer), dx_errors.cpp's DirectDraw HRESULT message table (likely dead now), and comments still naming D3DBLEND / D3DTLVERTEX / D3DMATERIAL7 / DDSCAPS_* / DDBLT_WAIT (device_material.h, map_object_shadow.h, material.h, model.h, unit_client_blink.cpp, unit_client_wounds.cpp)."
 
 [[ticket]]
 id = "R27a1"
