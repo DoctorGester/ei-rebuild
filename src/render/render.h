@@ -449,11 +449,6 @@ struct MeshCacheInfo {
 };
 MeshCacheInfo MeshCacheState();
 
-// Copies the frame drawn so far (`source` in screen pixels) into the holder's SurfaceMemory, stretched: the
-// escape menu's background, the save game's picture. False when the holder has no such memory or the copy
-// failed.
-bool CopyFrameTo(const void* holder, const Rect& source);
-
 // Draws what was handed over since the last present and presents it. Once per frame; captures call it
 // before reading.
 void EndFrame();

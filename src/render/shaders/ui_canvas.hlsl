@@ -9,8 +9,9 @@ cbuffer vs_params : register(b0) {
 cbuffer fs_params : register(b0) {
     float4 colour;   // ps_solid: the colour (0..1); ps_compose: the text colour (0..255)
     uint4 bits;      // the surface format's bits of red, green, blue; w: ps_grey's formula
-    int4 source;     // ps_copy: left, top, width, height in the frame; ps_blit: left, top, texture width, height
-    int4 dest;       // ps_copy: the canvas's width, height; ps_blit: the destination's left, top
+    int4 source;     // ps_copy: left, top, width, height in the frame; ps_blit: left, top, texture width, height;
+                     // ps_rgb565: z, w the canvas's width, height
+    int4 dest;       // ps_copy, ps_rgb565: the target's width, height; ps_blit: the destination's left, top
     float4 scale;    // ps_blit: source texels per destination pixel (x, y)
     uint4 key;       // ps_blit: the colour key's red, green, blue (0..255); w: keyed
 };
@@ -97,6 +98,15 @@ float4 ps_copy(float4 pos : SV_Position) : SV_Target0 {
     uint2 x = uint2(pos.xy);   // the source rectangle and sizes are clamped non-negative
     uint2 t = (uint2)source.xy + (x * (uint2)source.zw) / (uint2)dest.xy;
     return FromBytes(Quantise(Bytes(tex0.Load(int3(t, 0)).rgb)));
+}
+
+// A canvas (tex0) stretched over an R16_UINT target as 5:6:5 pixels, each channel's top bits: the save's
+// picture. Each pixel takes the canvas pixel under its centre, (2 x + 1) * canvas size / (2 * target size).
+uint ps_rgb565(float4 pos : SV_Position) : SV_Target0 {
+    uint2 x = uint2(pos.xy);
+    uint2 t = ((2 * x + 1) * (uint2)source.zw) / (2 * (uint2)dest.xy);
+    uint3 v = Bytes(tex0.Load(int3(t, 0)).rgb);
+    return ((v.r >> 3) << 11) | ((v.g >> 2) << 5) | (v.b >> 3);
 }
 
 // A canvas onto the frame as blit.hlsl draws a window surface, the colour key compared on the stored colour.

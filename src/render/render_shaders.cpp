@@ -37,6 +37,7 @@ namespace {
 #include "shaders/ui_compose_ps.h"
 #include "shaders/ui_grey_ps.h"
 #include "shaders/ui_copy_ps.h"
+#include "shaders/ui_rgb565_ps.h"
 #include "shaders/ui_blit_ps.h"
 #include "shaders/perf_overlay_vs.h"
 #include "shaders/perf_overlay_ps.h"
@@ -62,6 +63,7 @@ const ShaderBytecode kUiGlyphShader{SG_RANGE(ui_glyph_vs), SG_RANGE(ui_glyph_ps)
 const ShaderBytecode kUiComposeShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_compose_ps)};
 const ShaderBytecode kUiGreyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_grey_ps)};
 const ShaderBytecode kUiCopyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_copy_ps)};
+const ShaderBytecode kUiRgb565Shader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_rgb565_ps)};
 const ShaderBytecode kUiBlitShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_blit_ps)};
 const ShaderBytecode kPerfOverlayShader{SG_RANGE(perf_overlay_vs), SG_RANGE(perf_overlay_ps)};
 const ShaderBytecode kTextureComposeShader{SG_RANGE(texture_compose_vs), SG_RANGE(texture_compose_ps)};

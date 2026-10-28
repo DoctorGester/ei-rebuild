@@ -444,8 +444,6 @@ bool g_simulationTaken = false;   // the loss being reported is LoseDevice's
 int g_losses = 0, g_recoveries = 0;
 long g_lastLossResult = 0, g_lastLossReason = 0;   // what reported the last loss, GetDeviceRemovedReason then
 bool g_lastLossSimulated = false;
-ID3D11Texture2D* g_staging = nullptr;
-UINT g_stagingWidth = 0, g_stagingHeight = 0;
 
 // Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
 // the device and context with them; a new device gets sokol again and the pipelines. The frame target, the
@@ -458,9 +456,6 @@ void RecreateDevice() {
     DropCursorPresents();
     DropWindow();
     DestroyTarget();
-    if (g_staging) g_staging->Release();
-    g_staging = nullptr;
-    g_stagingWidth = g_stagingHeight = 0;
     DestroyTerrain();
     DestroyMeshes();
     DropBlits();
@@ -803,65 +798,6 @@ bool DrawPendingAlone() {
     EndWindowPresent(false);
     return drawn;
 }
-
-// A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until UnmapTarget.
-// The staging texture (g_staging) is kept.
-
-bool MapTarget(const D3D11_BOX& box, const std::uint8_t** rows, UINT* pitch) {
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!texture) return false;
-    UINT width = box.right - box.left, height = box.bottom - box.top;
-    if (!g_staging || g_stagingWidth < width || g_stagingHeight < height) {
-        if (g_staging) g_staging->Release();
-        g_staging = nullptr;
-        D3D11_TEXTURE2D_DESC desc{};
-        texture->GetDesc(&desc);
-        desc.Width = width > desc.Width ? width : desc.Width;
-        desc.Height = height > desc.Height ? height : desc.Height;
-        desc.MipLevels = 1;
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &g_staging))) {
-            g_staging = nullptr;
-            return false;
-        }
-        g_stagingWidth = desc.Width;
-        g_stagingHeight = desc.Height;
-    }
-    g_context->CopySubresourceRegion(g_staging, 0, 0, 0, 0, texture, 0, &box);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (FAILED(g_context->Map(g_staging, 0, D3D11_MAP_READ, 0, &mapped))) return false;
-    *rows = static_cast<const std::uint8_t*>(mapped.pData);
-    *pitch = mapped.RowPitch;
-    return true;
-}
-
-void UnmapTarget() {
-    g_context->Unmap(g_staging, 0);
-    sg_reset_state_cache();
-}
-
-struct ChannelPack {
-    int down = 8, up = 0;
-    std::uint32_t mask = 0;
-    explicit ChannelPack(std::uint32_t m) : mask(m) {
-        if (!m) return;
-        int shift = 0, bits = 0;
-        while (!((m >> shift) & 1)) ++shift;
-        while (shift + bits < 32 && ((m >> (shift + bits)) & 1)) ++bits;
-        if (bits >= 8) {
-            down = 0;
-            up = shift + bits - 8;
-        } else {
-            down = 8 - bits;
-            up = shift;
-        }
-    }
-    std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
-};
 
 // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key): the target still
 // holds the last frame, as the original's render target did. A pass now would clear it first.
@@ -1269,58 +1205,6 @@ GpuWorkAlone::~GpuWorkAlone() {
 }
 
 } // namespace detail
-
-bool CopyFrameTo(const void* holder, const Rect& source) {
-    if (!holder) return false;
-    Start();
-    const SurfaceMemory* memory = SurfaceMemoryOf(holder);
-    if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
-    FpuGuard fpu;
-    if (!g_frameDrawn && !BetweenFrames() && !DrawPendingAlone()) return false;
-    if (!g_colour.id) return false;
-    Rect r = source;
-    if (r.left < 0) r.left = 0;
-    if (r.top < 0) r.top = 0;
-    if (r.right > g_width) r.right = g_width;
-    if (r.bottom > g_height) r.bottom = g_height;
-    if (r.right <= r.left || r.bottom <= r.top) return false;
-    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right),
-                  static_cast<UINT>(r.bottom), 1};
-    const std::uint8_t* rgba = nullptr;
-    UINT pitch = 0;
-    if (!MapTarget(box, &rgba, &pitch)) return false;
-    int sw = r.right - r.left, sh = r.bottom - r.top;
-    // Into the memory, stretched to its size as DirectDraw's Blt did (nearest texel).
-    GdiFlush();   // GDI drawing still queued for the memory must not land on the copy
-    int dw = memory->width, dh = memory->height;
-    std::uint32_t alpha = memory->alphaMask;
-    ChannelPack pr(memory->redMask), pg(memory->greenMask), pb(memory->blueMask);
-    std::vector<int> columns(static_cast<std::size_t>(dw));
-    for (int x = 0; x < dw; ++x) columns[static_cast<std::size_t>(x)] = static_cast<int>(static_cast<long long>(x) * sw / dw) * 4;
-    bool bgrx = memory->bitsPerPixel == 32 && memory->redMask == 0xFF0000 && memory->greenMask == 0xFF00 &&
-                memory->blueMask == 0xFF;
-    for (int y = 0; y < dh; ++y) {
-        const std::uint8_t* src = rgba + static_cast<std::size_t>(static_cast<long long>(y) * sh / dh) * pitch;
-        auto* row = static_cast<std::uint8_t*>(memory->bits) + static_cast<std::size_t>(y) * memory->pitch;
-        if (memory->bitsPerPixel == 32) {
-            auto* out = reinterpret_cast<std::uint32_t*>(row);
-            for (int x = 0; x < dw; ++x) {
-                const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
-                out[x] = bgrx ? (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2] | alpha
-                              : pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha;
-            }
-        } else {
-            auto* out = reinterpret_cast<std::uint16_t*>(row);
-            for (int x = 0; x < dw; ++x) {
-                const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
-                out[x] = static_cast<std::uint16_t>(pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha);
-            }
-        }
-    }
-    UnmapTarget();
-    SurfaceWritten(holder, nullptr);
-    return true;
-}
 
 void EndFrame() {
     if (g_frameDrawn) return;

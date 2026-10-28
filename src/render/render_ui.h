@@ -36,6 +36,14 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
 bool HasCanvas(const void* holder);
 // The holder is gone (HolderGone): its canvas and queued commands are dropped.
 void DropCanvas(const void* holder);
+// The canvas becomes the surface's only copy of its pixels (the screen copies and what is made from them):
+// the blit draws it whatever the switch says, and the comparison harness leaves it out (the memory is
+// not drawn). It stays so until the canvas is dropped.
+void CanvasOnly(const void* holder);
+// The canvas (and its queued commands) moved from the key `from` to `to`: SwapContents puts a canvas-only
+// surface's canvas aside while the surface has no holder and back onto its new one. A blit of it the frame
+// has not drawn yet is drawn first. A canvas `to` had is dropped.
+void MoveCanvas(const void* from, const void* to);
 
 // Drawing, in canvas pixels; each is clipped to the canvas, and does nothing without one.
 // FillSolidRect: [left, right) x [top, bottom).
@@ -61,6 +69,13 @@ void Greyscale(const void* holder);
 // The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false
 // without a canvas or when the GPU is not there.
 bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width = nullptr, int* height = nullptr);
+// The pixel (x, y) of the canvas after every queued command, as 0x00RRGGBB; false outside it, without one
+// or when the GPU is not there.
+bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb);
+// The canvas after every queued command stretched to `width` x `height` on the GPU (each pixel the canvas
+// pixel under its centre, (2 x + 1) * canvas width / (2 width)) as 5:6:5 pixels (each channel's top bits),
+// rows from the top, read back into `out` (width x height): the save's picture.
+bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out);
 // ReadPixels into the holder's SurfaceMemory (of the canvas's size) in its format, marked written: for
 // the code that reads surface pixels (PixelAt, Rgb565Copy).
 bool ReadBack(const void* holder);
@@ -93,7 +108,7 @@ bool Listed(const char* name);
 // Under Both, which of the two the blits show (default Cpu: the frame as without the canvases).
 void SetPath(Path path);
 // Whether the blit of `holder` draws its canvas (DrawCanvas) instead of its memory (SurfaceBlit): it has a
-// canvas, and the mode is Native, or Both with the path Native.
+// canvas, and the canvas is the only copy (CanvasOnly) or the mode is Native, or Both with the path Native.
 bool DrawsCanvas(const void* holder);
 
 // ---- What the comparison harness reads (verify build) -----------------------------------------------------
@@ -102,6 +117,7 @@ struct CanvasInfo {
     const void* holder = nullptr;
     int width = 0, height = 0;
     PixelFormat format;
+    bool only = false;        // CanvasOnly: the memory is not drawn
     unsigned version = 0;     // changes whenever a command for the canvas is queued (or it is made)
     std::vector<Rect> text;   // where glyph runs drew since the last fill of the whole canvas: their clip
                               // rectangles (unclipped, their bounds), at most 64 (then their union)

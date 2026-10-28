@@ -69,7 +69,7 @@ extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, 
 extern const ShaderBytecode kPerfOverlayShader;
 extern const ShaderBytecode kTextureComposeShader;
 extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
-    kUiBlitShader;
+    kUiRgb565Shader, kUiBlitShader;
 // `samples` 2, 4 or 8; null ranges otherwise.
 ShaderBytecode DepthFromMultisampledShader(int samples);
 void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code);
