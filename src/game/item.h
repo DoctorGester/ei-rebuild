@@ -268,8 +268,8 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    std::uint32_t kind_;       // 0 own price, 1 material, 2 record of recordType_
-    std::uint32_t recordType_;  // 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier
+    LootKind kind_;
+    LootRecordType recordType_;   // for kLootRecord
     std::uint32_t index_;       // record index
 };
 

@@ -106,9 +106,9 @@ void CItemLoot::Load(CStream* stream) {
     CItem::Load(stream);
     std::uint32_t value = 0;
     stream->ReadValue(value);
-    kind_ = value;
+    kind_ = static_cast<LootKind>(value);
     stream->ReadValue(value);
-    recordType_ = value;
+    recordType_ = static_cast<LootRecordType>(value);
     stream->ReadValue(index_);
 }
 

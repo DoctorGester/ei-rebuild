@@ -149,15 +149,15 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
 
 void SetOrientation(CUiMesh* model, const Quaternion& q) { model->localRotation_ = q; }
 
-bool IsRecordLoot(const CItem* item, std::uint32_t recordType) {
+bool IsRecordLoot(const CItem* item, LootRecordType recordType) {
     if (item->type_ != kItemLoot) return false;
     const auto* loot = AsLoot(item);
-    return loot->kind_ == 2 && loot->recordType_ == recordType;
+    return loot->kind_ == kLootRecord && loot->recordType_ == recordType;
 }
 
 bool LiesFlat(CItem* item) {
     if (item->type_ == kItemSpell) return true;
-    return IsRecordLoot(item, 3) || IsRecordLoot(item, 4);
+    return IsRecordLoot(item, kRecordSpell) || IsRecordLoot(item, kRecordModifier);
 }
 
 void SetShade(CUiMesh* sprite, float grey) {
@@ -250,7 +250,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
-        } else if (IsRecordLoot(item, 0) || IsRecordLoot(item, 1) || IsRecordLoot(item, 2)) {
+        } else if (IsRecordLoot(item, kRecordWeapon) || IsRecordLoot(item, kRecordArmor) || IsRecordLoot(item, kRecordQuick)) {
             SetOrientation(model, HalfTurn(1.0f, 0.0f, 0.0f));   // blueprints lie still
         } else {
             // Others turn about y after a half turn about x.

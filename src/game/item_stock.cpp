@@ -318,7 +318,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
-        if (item->type_ == kItemQuick && item->GetCategory() == 8)
+        if (item->type_ == kItemQuick && item->GetCategory() == kCategoryPotion)
             item->count_ = static_cast<std::uint32_t>(libcrt::Rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
     }

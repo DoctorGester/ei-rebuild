@@ -110,7 +110,6 @@ void ScreenCastAt(CBattleScreen* screen, Vector3 at, CUnit* unit, int quick) {
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 
-constexpr int kCategoryWand = 8;
 // The factor turning a random dword into the portraits' negative start delay.
 constexpr double kPortraitDelayScale = -6.984919588798148e-11;
 // A random value times ~-2^-34 * 0.3, stored the way the original does.
@@ -769,7 +768,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
         CItem* item = first->GetQuickItem(pendingSlot_);
-        if (item && item->GetCategory() == kCategoryWand && unit != first) return;
+        if (item && item->GetCategory() == kCategoryPotion && unit != first) return;
         ScreenCastOn(this, unit, 1, 0);
         return;
     }

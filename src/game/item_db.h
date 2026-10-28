@@ -32,6 +32,27 @@ enum ItemKind : int {
     kItemQuest = 0x3009,
 };
 
+// The category of a quick item prototype (CItem::GetCategory). The game's data has 0 (the danger sensor), 5 (the
+// wands) and 8 (the potions, and the scrolls' "spell container" prototype).
+enum QuickItemCategory : int {
+    kCategoryConsumable = 2,   // used up by the use-item order (kind 10); no prototype in the game's data has it
+    kCategoryWand = 5,         // casts the spell the item constructor put in, paid from its charge
+    kCategoryPotion = 8,       // casts the spell its prototype's spellText makes, on the user only; used up
+};
+
+// What a loot item stands for (a loot prototype's category, CItemLoot::kind_): itself (its own price), a material,
+// or a record of another database (kLootRecord, the record type saying which).
+enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
+// The database of a kLootRecord loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
+// weapon, armour and quick item blueprints ("instruction ..."), spells and spell modifiers.
+enum LootRecordType : std::uint32_t {
+    kRecordWeapon = 0,
+    kRecordArmor = 1,
+    kRecordQuick = 2,
+    kRecordSpell = 3,
+    kRecordModifier = 4,
+};
+
 namespace itemdb {
 
 // A spell prototype: the fields the camp's spell maker reads.
@@ -140,7 +161,7 @@ public:
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).
     std::uint8_t buildable;
-    // the category (5 wands, 8 quick items whose prototype names their spell), a quest
+    // the category (QuickItemCategory), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
 
@@ -222,7 +243,7 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t actionValue;              // CItemQuick::actionValue_
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string spellText;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::string spellText;                // the spell text of a kCategoryPotion item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
 };
 

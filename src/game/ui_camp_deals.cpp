@@ -35,10 +35,6 @@ enum CampPage {
 };
 
 // Loot (CItemLoot) kinds and record types the constructors take.
-constexpr std::uint32_t kKindOwnPrice = 0;
-constexpr std::uint32_t kRecordWeapon = 0;
-constexpr std::uint32_t kRecordArmor = 1;
-constexpr std::uint32_t kRecordQuickItem = 2;
 
 CParty* PlayerParty() { return LocalPlayerData(); }
 CItem* ItemAt(CParty* party, int index) { return party->items_[index]; }
@@ -137,7 +133,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
 
 // The item constructor's third list, from the end: each item repaired; weapons, armour and quick
 // items that can be taken apart and blueprint parts add their record to the template's stock;
-// loot priced by itself (kind 0) leaves the list.
+// loot priced by itself (kLootSelf) leaves the list.
 void StockItems(CCampPages* camp, CParty* list) {
     ItemStock* stock = AllowedList(camp->constructor_);
     for (int i = ItemCount(list) - 1; i >= 0; --i) {
@@ -149,19 +145,19 @@ void StockItems(CCampPages* camp, CParty* list) {
             index = PrototypeIndex(item);
             if (item->type_ == kItemWeapon) kind = kRecordWeapon;
             else if (item->type_ == kItemArmor) kind = kRecordArmor;
-            else if (item->type_ == kItemQuick) kind = kRecordQuickItem;
+            else if (item->type_ == kItemQuick) kind = kRecordQuick;
         } else if (UiItemKinds::IsPart(item)) {
             auto* loot = AsLoot(item);
             index = loot->index_;
-            if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);
-        } else if (item->type_ == kItemLoot && AsLoot(item)->kind_ == kKindOwnPrice) {
+            if (loot->recordType_ <= kRecordQuick) kind = static_cast<int>(loot->recordType_);
+        } else if (item->type_ == kItemLoot && AsLoot(item)->kind_ == kLootSelf) {
             list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
             stock->AddWeapon(itemdb::WeaponAt(index));
         else if (kind == static_cast<int>(kRecordArmor))
             stock->AddArmor(itemdb::ArmorAt(index));
-        else if (kind == static_cast<int>(kRecordQuickItem))
+        else if (kind == static_cast<int>(kRecordQuick))
             stock->AddQuickItem(itemdb::QuickItemAt(index));
     }
 }

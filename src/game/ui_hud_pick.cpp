@@ -16,9 +16,6 @@ namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 constexpr int kQuickSlots = 8;
-// Item categories (CItem::GetCategory) that carry a spell to aim: wands and scrolls.
-constexpr int kCategoryWand = 5;
-constexpr int kCategoryScroll = 8;
 // Spell data flag (CSpell flags): the spell is aimed at a unit (kind 'u' in spells.sdb).
 constexpr std::uint32_t kSpellOnUnit = 0x10000000;
 
@@ -151,7 +148,7 @@ void CHudQuickItems::Pick(int slot) {
         return;
     }
     int category = item->GetCategory();
-    if (category != kCategoryWand && category != kCategoryScroll) return;
+    if (category != kCategoryWand && category != kCategoryPotion) return;
     int mode = kPendingNone;
     if (CSpell* spell = SpellOf(item))
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
@@ -166,7 +163,7 @@ void CHudQuickItems::UseNow(int slot) {
     if (!item) return;
     owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
     int category = item->GetCategory();
-    if ((category == kCategoryWand || category == kCategoryScroll) && SpellOf(item))
+    if ((category == kCategoryWand || category == kCategoryPotion) && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);

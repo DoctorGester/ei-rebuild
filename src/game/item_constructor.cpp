@@ -29,7 +29,6 @@ namespace {
 
 
 
-constexpr int kCategoryWand = 8;     // quick item category whose spell comes from the prototype
 constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
@@ -137,8 +136,8 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         auto* from = RecordAs<LootItemRecord>(prototype);
         to->category = from->category;
         to->recordType = from->recordType;
-        // Kind 1 (a material) takes the material's index when one is given.
-        if (from->category == 1 && material)
+        // A material takes the material's index when one is given.
+        if (from->category == kLootMaterial && material)
             to->index = material->number;
         else
             to->index = from->index;
@@ -148,8 +147,6 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         return 0;   // not reached: the record of an unknown class is null and faulted above
     }
 }
-
-constexpr int kLootKindTable = 2;             // a loot item (class 0x15) naming a table
 
 const char* const kSpellContainer = "spell container";
 const char* const kMaterialType = "material";
@@ -163,19 +160,19 @@ int TableIndex(const Table& table, const Record* record) {
 }
 
 // The table index of a loot item's second name part.
-int LootTableIndex(int which, std::string_view name) {
-    if (which < 0 || which > 4) return 0;
+int LootTableIndex(LootRecordType which, std::string_view name) {
+    if (which > kRecordModifier) return 0;
     std::string key(name);
     ItemDatabase& items = *g_itemDatabase;
     SpellDatabase& spells = *g_spellDatabase;
     switch (which) {
-    case 0:
+    case kRecordWeapon:
         return TableIndex(items.weapons, items.weapons.names[key]);
-    case 1:
+    case kRecordArmor:
         return TableIndex(items.armors, items.armors.names[key]);
-    case 2:
+    case kRecordQuick:
         return TableIndex(items.quickItems, items.quickItems.names[key]);
-    case 3:
+    case kRecordSpell:
         return TableIndex(spells.spells, spells.spells.byCode[key]);
     default:
         return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
@@ -329,7 +326,7 @@ BOOL CItemConstructor::Build() {
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
     item_->InitFromRecord(record);
-    if (item_->GetClassId() == kClassItemQuick && static_cast<int>(prototype->category) == kCategoryWand) {
+    if (item_->GetClassId() == kClassItemQuick && static_cast<int>(prototype->category) == kCategoryPotion) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
         spell_ = spell;
@@ -420,9 +417,8 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);
-    if (item->GetClassId() == kClassItemLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size() > 1) {
-        int which = static_cast<int>(loot->recordType_);
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts[1]));
+    if (item->GetClassId() == kClassItemLoot && loot->kind_ == kLootRecord && parts.size() > 1) {
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
     }
     return item;
 }

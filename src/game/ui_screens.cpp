@@ -31,7 +31,6 @@ const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // Item fields read by the strips: a loot item's record type and record index.
-int ItemSubKind(const CItem* item) { return static_cast<int>(AsLoot(item)->recordType_); }
 std::uint32_t ItemRecord(const CItem* item) { return AsLoot(item)->index_; }
 
 bool TabKeysEnabled() { return options::g_options->switchFilters_ != 0; }
@@ -48,12 +47,12 @@ const CItemLoot* LootOrNull(const CItem* item) {
 // The predicates need no object (the original's read no `this` either): static functions.
 bool UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ == 3;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ == kRecordSpell;
 }
 
 bool UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ == 4;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ == kRecordModifier;
 }
 
 BOOL UiItemKinds::IsSpellContainer(const CItem* item) {
@@ -62,12 +61,12 @@ BOOL UiItemKinds::IsSpellContainer(const CItem* item) {
 
 bool UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ <= kRecordQuick;
 }
 
-bool UiItemKinds::IsKindOne(const CItem* item) {
+bool UiItemKinds::IsMaterial(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 1;
+    return loot && loot->kind_ == kLootMaterial;
 }
 
 bool UiItemKinds::IsBuildable(const CItem* item) {
@@ -141,7 +140,7 @@ void CUiItemStrip::CycleTab(int first, int count) {
 }
 
 int CUiItemStrip::ItemTab(const CItem* item) {
-    if (UiItemKinds::IsPart(item) || UiItemKinds::IsKindOne(item)) return 0;
+    if (UiItemKinds::IsPart(item) || UiItemKinds::IsMaterial(item)) return 0;
     if (UiItemKinds::IsSpell(item) || UiItemKinds::IsModifier(item)) return 1;
     int type = item->type_;
     if (type == kItemWeapon || type == kItemArmor || type == kItemQuick || type == kItemSpell) return 2;
@@ -169,18 +168,18 @@ int CUiItemStrip::SpellTab(const CItem* item) {
 
 int CUiItemStrip::ArmorTab(const CItem* item) {
     if (UiItemKinds::IsPart(item)) {
-        switch (ItemSubKind(item)) {
-        case 0: return 0;
-        case 1: {
+        switch (AsLoot(item)->recordType_) {
+        case kRecordWeapon: return 0;
+        case kRecordArmor: {
             auto* armor = itemdb::ArmorAt(ItemRecord(item));
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
-        case 2: return 3;
+        case kRecordQuick: return 3;
         default: return 5;
         }
     }
     if (item->type_ == kItemQuick) return 3;
-    return UiItemKinds::IsKindOne(item) ? 4 : 5;
+    return UiItemKinds::IsMaterial(item) ? 4 : 5;
 }
 
 void CForwardingStrip::RebuildList() {

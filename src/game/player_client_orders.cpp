@@ -22,7 +22,6 @@ constexpr std::uint8_t kWalk = 0x30, kAttack = 0x31, kCastAtPoint = 0x32, kCastO
 constexpr int kStateBetweenZones = 3, kStateJoining = 2;
 constexpr int kDeadUseKind = 0x18A95;   // the use order's kind for a dead target
 constexpr std::uint32_t kItemSlot = 0x80000000u;   // a quick item, not a spell
-constexpr int kPotionCategory = 8;
 constexpr int kNoId = -1;
 
 #pragma pack(push, 1)
@@ -67,7 +66,7 @@ int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* u
 // A potion used from a quick slot is counted off at once.
 void SpendPotion(CUnit* user, int slot) {
     auto* item = user->GetQuickItem(static_cast<std::uint32_t>(slot));
-    if (item && static_cast<int>(item->count_) > 0 && item->GetCategory() == kPotionCategory) --item->count_;
+    if (item && static_cast<int>(item->count_) > 0 && item->GetCategory() == kCategoryPotion) --item->count_;
 }
 
 } // namespace

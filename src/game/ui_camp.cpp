@@ -88,23 +88,23 @@ bool IsSpellContainer(const CItem* item) {
 bool IsSpell(const CItem* item) { return UiItemKinds::IsSpell(item); }
 bool IsModifier(const CItem* item) { return UiItemKinds::IsModifier(item); }
 bool IsPart(const CItem* item) { return UiItemKinds::IsPart(item); }
-bool IsKindOne(const CItem* item) { return UiItemKinds::IsKindOne(item); }
+bool IsMaterial(const CItem* item) { return UiItemKinds::IsMaterial(item); }
 bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
 // The database records of the camp's loot items (the record index): spells, spell
 // modifiers and materials (null past the end, which is then read through).
 std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
 // The loot's record type: the record table it indexes.
-std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
+LootRecordType RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
 itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
 itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
 itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
 // A part's prototype record by the loot's record type: weapon, armour, quick item.
-itemdb::ItemRecordHead* PartRecord(const CItem* item, int recordType) {
+itemdb::ItemRecordHead* PartRecord(const CItem* item, LootRecordType recordType) {
     switch (recordType) {
-    case 0: return itemdb::WeaponAt(Index(item));
-    case 1: return itemdb::ArmorAt(Index(item));
-    case 2: return itemdb::QuickItemAt(Index(item));
+    case kRecordWeapon: return itemdb::WeaponAt(Index(item));
+    case kRecordArmor: return itemdb::ArmorAt(Index(item));
+    case kRecordQuick: return itemdb::QuickItemAt(Index(item));
     default: return nullptr;
     }
 }
@@ -409,27 +409,27 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     case 5: {   // the item being built: a blueprint, its parts, a container's spell
         if (mode != 1 && mode != 3) return mode == 7;
         if (IsPart(item) || IsBlueprint(item)) return CountOf(itemResults_) <= 0;
-        if (IsKindOne(item)) {
+        if (IsMaterial(item)) {
             // The answer is not used.
             itemResults_->SpellManager();
-            std::uint32_t kindOnes = 0;
+            std::uint32_t materials = 0;
             const itemdb::ItemRecordHead* part = nullptr;
-            const itemdb::MaterialRecordHead* firstKindOne = nullptr;
+            const itemdb::MaterialRecordHead* firstMaterial = nullptr;
             if (CountOf(itemResults_) <= 0) return false;
             for (int i = 0; i < CountOf(itemResults_); ++i) {
                 if (IsBlueprint(ItemOf(itemResults_, i))) return false;
                 if (IsPart(ItemOf(itemResults_, i))) {
                     const CItem* entry = ItemOf(itemResults_, i);
-                    int recordType = static_cast<int>(RecordType(entry));
-                    if (recordType >= 0 && recordType <= 2) part = PartRecord(entry, recordType);
-                } else if (IsKindOne(ItemOf(itemResults_, i))) {
-                    ++kindOnes;
-                    if (!firstKindOne) firstKindOne = BlueprintRecord(ItemOf(itemResults_, i));
+                    LootRecordType recordType = RecordType(entry);
+                    if (recordType <= kRecordQuick) part = PartRecord(entry, recordType);
+                } else if (IsMaterial(ItemOf(itemResults_, i))) {
+                    ++materials;
+                    if (!firstMaterial) firstMaterial = BlueprintRecord(ItemOf(itemResults_, i));
                 }
             }
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
-            if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
+            if (firstMaterial) return own == firstMaterial && materials < part->materialUnits;
             return text::CompareIgnoringCase(part->materialClass, own->soundName) == 0;
         }
         if (!IsSpellContainer(item)) return false;
@@ -739,13 +739,13 @@ bool CCampPages::CanMakeItem() {
             CSpell* copy = item->spell_->Clone(manager);
             spell.Assign(copy);
         } else if (IsPart(item)) {
-            switch (static_cast<int>(RecordType(item))) {
-            case 0: type = kItemWeapon; part = PartRecord(item, 0); break;
-            case 1: type = kItemArmor; part = PartRecord(item, 1); break;
-            case 2: type = kItemQuick; part = PartRecord(item, 2); break;
+            switch (RecordType(item)) {
+            case kRecordWeapon: type = kItemWeapon; part = PartRecord(item, kRecordWeapon); break;
+            case kRecordArmor: type = kItemArmor; part = PartRecord(item, kRecordArmor); break;
+            case kRecordQuick: type = kItemQuick; part = PartRecord(item, kRecordQuick); break;
             default: break;
             }
-        } else if (IsKindOne(item)) {
+        } else if (IsMaterial(item)) {
             itemdb::MaterialRecordHead* record = BlueprintRecord(item);
             if (!blueprint) {
                 blueprint = record;
@@ -926,7 +926,7 @@ void CCampPages::PutOnFromStrip(CItem* item) {
         MoveBetween(this, item, itemParts_[2], LocalPlayerData(), 8, 1, 0);
         break;
     case 5:
-        if (IsKindOne(item) && ShiftHeld(interface_)) {
+        if (IsMaterial(item) && ShiftHeld(interface_)) {
             // With Shift the whole stack, one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
                 if (!CanEquip(item, 1)) break;
@@ -979,7 +979,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
         if (page_ == 4) {
             MoveBetween(this, item, itemParts_[1], itemParts_[0], 8, 1, 0);
         } else if (page_ == 5) {
-            if (IsKindOne(item) && ShiftHeld(interface_)) {
+            if (IsMaterial(item) && ShiftHeld(interface_)) {
                 for (int n = Count(item); n > 0; --n) {
                     if (!CanEquip(item, 3)) break;
                     MoveBetween(this, item, itemResults_, itemParts_[0], 0, 0, 1);
@@ -1019,12 +1019,12 @@ void CCampPages::MoveItem(CItem* item, int mode) {
     case 7:
         if (IsSpellContainer(item)) {
             back(item, itemParts_[0], itemResults_, partStrip_);
-        } else if (IsKindOne(item)) {
+        } else if (IsMaterial(item)) {
             back(item, itemParts_[0], itemResults_, partStrip_);
             // With Shift every other kind-one item goes too.
             if (ShiftHeld(interface_)) {
                 for (int i = 0; i < CountOf(itemResults_); ++i) {
-                    if (!IsKindOne(ItemOf(itemResults_, i))) continue;
+                    if (!IsMaterial(ItemOf(itemResults_, i))) continue;
                     back(ItemOf(itemResults_, i), itemParts_[0], itemResults_, partStrip_);
                     --i;
                 }

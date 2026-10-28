@@ -41,7 +41,7 @@ void LeaveGame();
 // type.
 struct UiItemKinds {
     static bool IsPart(const CItem* item);       // kind 2, record type 0-2 (blueprint parts)
-    static bool IsKindOne(const CItem* item);    // kind 1 (a material)
+    static bool IsMaterial(const CItem* item);
     static bool IsSpell(const CItem* item);      // kind 2, record type 3 (the spell table)
     static bool IsModifier(const CItem* item);   // kind 2, record type 4 (spell modifier table)
     static BOOL IsSpellContainer(const CItem* item);   // type kItemSpell

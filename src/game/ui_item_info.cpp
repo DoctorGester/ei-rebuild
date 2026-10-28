@@ -354,26 +354,26 @@ void CItemInfoPanel::DescribeItem() {
 
     int kind = KindOf(item);
     if (kind == kItemLoot) {
-        int sort = static_cast<int>(LootOf(item)->kind_);
-        int sub = static_cast<int>(LootOf(item)->recordType_);
-        if (sort == 1) {
+        LootKind sort = LootOf(item)->kind_;
+        LootRecordType sub = LootOf(item)->recordType_;
+        if (sort == kLootMaterial) {
             DescribeMaterial();
             return;
         }
-        if (sort == 2 && (sub == 0 || sub == 1 || sub == 2)) {
+        if (sort == kLootRecord && (sub == kRecordWeapon || sub == kRecordArmor || sub == kRecordQuick)) {
             DescribeBlueprint();
             return;
         }
-        if (sort == 2 && sub == 3) {
+        if (sort == kLootRecord && sub == kRecordSpell) {
             DescribeSpellRecord();
             return;
         }
-        if (sort == 2 && sub == 4) {
+        if (sort == kLootRecord && sub == kRecordModifier) {
             DescribeModifierRecord();
             return;
         }
     }
-    if (kind == kItemQuick && CategoryOf(item) == 8) {
+    if (kind == kItemQuick && CategoryOf(item) == kCategoryPotion) {
         DescribeQuickItem();
         return;
     }
@@ -416,7 +416,7 @@ void CItemInfoPanel::DescribeItem() {
     }
     if (kind != kItemQuest) w.Number(0, FtolOf(item->Weight()));
 
-    if (kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == 5)) {
+    if (kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == kCategoryWand)) {
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
@@ -483,7 +483,7 @@ tail:
         w.Down();
         if (kind != kItemWeapon) w.Down();
         CSpell* spell;
-        if ((kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == 5)) &&
+        if ((kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == kCategoryWand)) &&
             (spell = SpellOf(item)) != nullptr) {
             text = "Unknown";
             std::string key("spell ");
@@ -544,10 +544,10 @@ void CItemInfoPanel::DescribeBlueprint() {
     int sort = 3;
     const itemdb::ItemRecordHead* head = nullptr;
     std::uint32_t index = LootOf(item)->index_;
-    switch (static_cast<int>(LootOf(item)->recordType_)) {
-    case 0: sort = 0; head = itemdb::WeaponAt(index); break;
-    case 1: sort = 1; head = itemdb::ArmorAt(index); break;
-    case 2: sort = 2; head = itemdb::QuickItemAt(index); break;
+    switch (LootOf(item)->recordType_) {
+    case kRecordWeapon: sort = 0; head = itemdb::WeaponAt(index); break;
+    case kRecordArmor: sort = 1; head = itemdb::ArmorAt(index); break;
+    case kRecordQuick: sort = 2; head = itemdb::QuickItemAt(index); break;
     default: break;
     }
     std::string name, description, kindText;

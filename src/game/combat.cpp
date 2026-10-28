@@ -212,7 +212,7 @@ CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item) return nullptr;
     if (item->GetClassId() != kClassItemQuick) return nullptr;
-    if (item->GetCategory() == 5 || item->GetCategory() == 8) return item;
+    if (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion) return item;
     return nullptr;
 }
 
@@ -220,15 +220,15 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != kClassItemQuick) return false;
-    if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
-    return item->GetCategory() == 8;
+    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return false;
+    return item->GetCategory() == kCategoryPotion;
 }
 
 CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != kClassItemQuick) return nullptr;
-    if (item->GetCategory() != 5 && item->GetCategory() != 8) return nullptr;
+    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return nullptr;
     return item->spell_;
 }
 
@@ -237,7 +237,7 @@ bool CUnitServer::IsFighting() {
         CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
-            if (item && item->GetClassId() == kClassItemQuick && (item->GetCategory() == 5 || item->GetCategory() == 8))
+            if (item && item->GetClassId() == kClassItemQuick && (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion))
                 spell = item->spell_;
         } else {
             spell = unit->GetSpellObject(action.source);
@@ -258,10 +258,10 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != kClassItemQuick) return false;
-        if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
+        if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return false;
         CSpell* spell = item->spell_;
         if (!spell) return false;
-        if (item->GetCategory() != 5) return true;
+        if (item->GetCategory() != kCategoryWand) return true;
         // The charge against the cost: less (or unordered) refuses.
         return item->charge_ >= SpellCost(spell);
     }

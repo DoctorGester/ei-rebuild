@@ -75,7 +75,7 @@ CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
     }
     if (region > 2) {
         *topic = kTopicMaterial;
-        return NthSlot(slots_, region - 3, UiItemKinds::IsKindOne);
+        return NthSlot(slots_, region - 3, UiItemKinds::IsMaterial);
     }
     return nullptr;
 }

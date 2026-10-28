@@ -270,8 +270,8 @@ int CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != kClassItemQuick) return 3;
     CItem* item = object;
-    if (item->GetCategory() != 5 && item->GetCategory() != 8) return 3;
-    if (item->GetCategory() == 5) {
+    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return 3;
+    if (item->GetCategory() == kCategoryWand) {
         EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
         if (item->charge_ < SpellCost(item->spell_)) return 1;
     }

@@ -21,8 +21,6 @@ constexpr float kCastNoiseScale = 2.0f;
 constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
-constexpr int kCategoryCharged = 5;     // wands and the like: pay from the charge
-constexpr int kCategoryScroll = 8;      // scrolls: cast at once
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
@@ -97,7 +95,7 @@ void CUnitServer::FinishCast() {
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != kClassItemQuick) return;
-        if (item->GetCategory() != kCategoryCharged && item->GetCategory() != kCategoryScroll) return;
+        if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return;
         carrier = item;
         spell = item->spell_;
     } else {
@@ -216,8 +214,8 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
         if (item && item->GetClassId() == kClassItemQuick &&
-            (item->GetCategory() == kCategoryCharged || item->GetCategory() == kCategoryScroll) &&
-            item->GetCategory() == kCategoryScroll) {
+            (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion) &&
+            item->GetCategory() == kCategoryPotion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count_) return;
@@ -250,7 +248,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     target->AimPoint(&aim);    // result unused (sic)
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
-        if (carrier && carrier->GetCategory() == kCategoryScroll) {
+        if (carrier && carrier->GetCategory() == kCategoryPotion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
             if (!scroll || !scroll->count_) return;

@@ -41,7 +41,6 @@ float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
 constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
-constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
 constexpr int kMessageKilled = 0x30;
 constexpr int kMessageScienceFailed = 0x11;
@@ -118,7 +117,7 @@ void CUnitServer::FinishAction(int location) {
     case 10: {
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetCategory() == kQuickItemConsumable) {
+        if (item && item->GetCategory() == kCategoryConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
             g_serverWorld->UseQuickItem(unit);
