@@ -26,7 +26,6 @@
 #include "console.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "lib/crt.h"
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
 
@@ -36,6 +35,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -583,8 +583,8 @@ int CPlayerClient::OnNewObject() {
     figure->RestartPose();
     const char* to = textureTo;
     if (created->type_ == kTypeHumanoid) {
-        gamecrt::sprintf(textureFrom, TextSkinFrom(), created->id_);
-        gamecrt::sprintf(textureTo, TextSkinTo(), created->id_);
+        std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id_);
+        std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id_);
     } else if (Same(textureTo, TextNone())) {
         to = nullptr;
     }

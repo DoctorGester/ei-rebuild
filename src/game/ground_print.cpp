@@ -22,6 +22,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -294,7 +295,7 @@ Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float 
         SetTexture("footprints");
     } else {
         char name[64];
-        gamecrt::sprintf(name, "footprints%d", kind_ + 1);
+        std::snprintf(name, sizeof(name), "footprints%d", kind_ + 1);
         SetTexture(name);
     }
     growth_ = 0.0f;

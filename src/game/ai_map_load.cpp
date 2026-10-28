@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -439,7 +440,7 @@ int CAIMap::LoadTerrain(const char* path) {
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
-            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
+            std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
             if (!sector) return Fatal(("Unable to locate resource: " + std::string(file)).c_str());

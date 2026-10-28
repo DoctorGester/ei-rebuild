@@ -23,6 +23,7 @@
 
 #include "asset_text.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 #include "lib/mfc_slots.h"
@@ -574,10 +575,9 @@ int CPlayerServer::OnLogin() {
     if (login.version != kClientVersion) {
         int length = 0x100;
         char format[0x100];
-        char text[0x140];
         auto* world = player->ServerWorld();
         world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
-        gamecrt::sprintf(text, format, 1, 0);
+        const std::string text = str::Format(format, 1, 0);
         std::uint8_t type = kMessageError;
         out_.Write(&type, 1);
         out_.WriteString(text);

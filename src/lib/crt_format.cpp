@@ -1,25 +1,25 @@
-// The game CRT's formatted text: MSVC 6's _output behind sprintf / vsprintf / fprintf / printf, with the
-// CRT's own number conversion: $I10_OUTPUT's 17 digits from a 12-byte long double (96-bit mantissa products, the
-// exe's power-of-ten tables) and _fptostr's rounding of that digit string. All integer arithmetic, so the results
-// are the same bytes as game.exe's in either build. atof and sscanf are the
-// host CRT's; the host's printf differs (two-digit exponents, "inf"), so _output stays.
+// The game CRT's printf (str::Format, CString::Format's text): the format read as MSVC 6's _output reads it, the
+// integer, character and string conversions the host's snprintf, the float ones the CRT's own: $I10_OUTPUT's 17
+// digits from a 12-byte long double (96-bit mantissa products, the exe's power-of-ten tables) and _fptostr's
+// rounding of that digit string, all integer arithmetic. The host's floats differ (two-digit exponents, "inf", ties
+// to even), so these stay.
 #include "crt.h"
 
-#include "game/game_data.h"
 #include "str.h"
 #include "text_case.h"
 
-#include <climits>
+#include <charconv>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace libcrt {
 
 namespace {
 
-// The decimal point: the C locale's (nothing sets LC_NUMERIC). The other locale state the conversions read is the C
-// locale's too: no lead bytes, and a wide character is its low byte.
+// The decimal point: the C locale's (nothing sets LC_NUMERIC).
 constexpr char kDecimalPoint = '.';
 
 // ---- The 12-byte long double (_LDBL12): a 96-bit number as six 16-bit words, lowest first ----
@@ -189,15 +189,13 @@ constexpr Ld12 kPow10Negative[29] = /*0079AFC0*/ {
 
 // __multtenpow12: x *= 10^power, three bits of the power per table row. A table entry whose
 // extra word is at or above half is used one unit lower in its low mantissa dword ("unrounded").
-// Without `mult12` the extra word of x is cleared first.
-void MultiplyByPowerOfTen(Ld12& x, int power, bool mult12) {
+void MultiplyByPowerOfTen(Ld12& x, int power) {
     if (power == 0) return;
     const Ld12* table = kPow10Positive;
     if (power < 0) {
         power = -power;
         table = kPow10Negative;
     }
-    if (!mult12) x.w[0] = 0;
     int row = -8;
     while (power != 0) {
         row += 7;
@@ -212,36 +210,33 @@ void MultiplyByPowerOfTen(Ld12& x, int power, bool mult12) {
 
 // ---- Double to digits ----
 
-// FOS, $I10_OUTPUT's result: the decimal exponent, the sign (' ' or '-'), the digit count and digits.
+// FOS, $I10_OUTPUT's result: the decimal exponent, the sign (' ' or '-') and the digits.
 struct DigitString {
     std::int16_t exponent;
     char sign;
-    char length;
     char digits[24];
 };
 
 void PutZeroDigits(DigitString& out) {
     out.exponent = 0;
     out.sign = ' ';
-    out.length = 1;
     out.digits[0] = '0';
     out.digits[1] = '\0';
 }
 
-// $I10_OUTPUT on an 80-bit value (the low and high mantissa dwords, sign and exponent):
+// $I10_OUTPUT on an 80-bit value (the low and high mantissa dwords, sign and exponent) for 17 digits:
 // scale into [0.1, 1) by a power of ten estimated low from the exponent and the mantissa's top byte,
-// generate `count` + 1 digits (at most 22) by multiplying the 96-bit fraction by ten, and round on the
-// last one; trailing zeros are dropped. With `fixed` (flag 1) `count` counts from the decimal point.
-// Returns 0 for infinity and NaN (written as "1#INF", "1#IND", "1#QNAN", "1#SNAN"), else 1.
-int TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponentWord, int count, bool fixed,
-                    DigitString& out) {
+// generate 18 digits by multiplying the 96-bit fraction by ten, and round on the last one; trailing zeros
+// are dropped. Infinity and NaN are written as "1#INF", "1#IND", "1#QNAN", "1#SNAN".
+void TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponentWord, DigitString& out) {
+    constexpr int kDigits = 17;
     const Ld12 oneTenth = {{0xCCCC, 0xCCCC, 0xCCCC, 0xCCCC, 0xCCCC, 0x3FFB}};
     const std::uint16_t sign = exponentWord & 0x8000;
     const std::uint16_t exponent = exponentWord & 0x7FFF;
     out.sign = sign ? '-' : ' ';
     if (exponent == 0 && high == 0 && low == 0) {
         PutZeroDigits(out);
-        return 1;
+        return;
     }
     if (exponent == 0x7FFF) {
         out.exponent = 1;
@@ -254,8 +249,7 @@ int TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponen
             text = high == 0x80000000 && low == 0 ? "1#INF" : "1#QNAN";
         }
         std::memcpy(out.digits, text, std::strlen(text) + 1);
-        out.length = static_cast<char>(std::strlen(text));
-        return 0;
+        return;
     }
     Ld12 value{};
     Set32(value, 1, low);
@@ -263,20 +257,12 @@ int TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponen
     value.w[5] = exponent;
     const std::uint32_t estimate = ((exponent >> 8) + (high >> 24) * 2) * 0x4Du + exponent * 0x4D10u + 0xECBCED0Cu;
     std::int16_t decimal = static_cast<std::int16_t>(static_cast<std::int32_t>(estimate) >> 16);
-    MultiplyByPowerOfTen(value, -decimal, true);
+    MultiplyByPowerOfTen(value, -decimal);
     if (value.w[5] >= 0x3FFF) {
         ++decimal;
         Multiply(value, oneTenth);
     }
     out.exponent = decimal;
-    if (fixed) {
-        count += decimal;
-        if (count <= 0) {
-            PutZeroDigits(out);
-            return 1;
-        }
-    }
-    if (count > 21) count = 21;
     const int shift = value.w[5] - 0x3FFE;
     value.w[5] = 0;
     for (int i = 0; i < 8; ++i) ShiftLeft(value);
@@ -284,7 +270,7 @@ int TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponen
         for (unsigned n = static_cast<unsigned>(-shift) & 0xFF; n != 0; --n) ShiftRight(value);
     }
     char* p = out.digits;
-    for (int n = count + 1; n > 0; --n) {
+    for (int n = kDigits + 1; n > 0; --n) {
         const Ld12 copy = value;
         ShiftLeft(value);
         ShiftLeft(value);
@@ -306,12 +292,10 @@ int TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t exponen
         while (q >= out.digits && *q == '0') --q;
         if (q < out.digits) {
             PutZeroDigits(out);
-            return 1;
+            return;
         }
     }
-    out.length = static_cast<char>(q - out.digits + 1);
-    out.digits[static_cast<int>(out.length)] = '\0';
-    return 1;
+    q[1] = '\0';
 }
 
 // STRFLT: the sign, the decimal exponent (digits before the point), the digits.
@@ -351,7 +335,7 @@ Decimal ToDecimal(double value, char* digits) {
         exponentWord = static_cast<std::uint16_t>((hi >> 16 & 0x8000) | exponent);
     }
     DigitString out;
-    TenByteToDigits(manLow, manHigh, exponentWord, 17, false, out);
+    TenByteToDigits(manLow, manHigh, exponentWord, out);
     std::memcpy(digits, out.digits, std::strlen(out.digits) + 1);
     return Decimal{out.sign, out.exponent, digits};
 }
@@ -496,28 +480,17 @@ void CropZeros(char* text) {
     }
 }
 
-// wctomb in the C locale: a wide character below 0x100 is its byte; -1 (errno EILSEQ, not set: no caller reads it)
-// otherwise.
-int WideToBytes(char* to, wchar_t c) {
-    if (static_cast<unsigned short>(c) >= 0x100) return -1;
-    *to = static_cast<char>(c);
-    return 1;
-}
-
-// ---- _output ----
+// ---- The format: MSVC 6's _output ----
 
 constexpr unsigned kSignPlus = 0x1;
 constexpr unsigned kSignSpace = 0x2;
 constexpr unsigned kLeft = 0x4;
 constexpr unsigned kLeadZero = 0x8;
-constexpr unsigned kLong = 0x10;
+constexpr unsigned kAlternate = 0x10;
 constexpr unsigned kShort = 0x20;
-constexpr unsigned kSigned = 0x40;
-constexpr unsigned kAlternate = 0x80;
-constexpr unsigned kNegative = 0x100;
-constexpr unsigned kForceOctal = 0x200;
-constexpr unsigned kWide = 0x800;
-constexpr unsigned kInt64 = 0x8000;
+constexpr unsigned kLong = 0x40;
+constexpr unsigned kWide = 0x80;
+constexpr unsigned kInt64 = 0x100;
 
 // __lookuptable: for ' '..'x' the character class in the low nibble; the next state in the
 // high nibble of entry class * 8 + state.
@@ -531,381 +504,209 @@ constexpr unsigned char kFormatLookup[89] = {
 };
 enum State { kNormal, kPercent, kFlag, kWidth, kDot, kPrecision, kSize, kType };
 
-struct CountedString {
-    short length;
-    short maximum;
-    void* buffer;
-};
-
-// The text buffer is 512 bytes; a wider number would overrun it.
+// The text buffer is 512 bytes: an integer's precision stops at 511 digits, a float's buffer grows past
+// precision 112.
 constexpr int kBufferSize = 512;
 
-template <typename Sink>
-class Output {
-public:
-    explicit Output(Sink& sink) : sink_(sink) {}
+// The host's snprintf of `spec` with one argument, appended.
+template <typename T>
+void AppendHost(std::string& out, const char* spec, T value) {
+    char text[kBufferSize];
+    const int length = std::snprintf(text, sizeof text, spec, value);
+    // A wide character with no byte in the C locale: nothing (VC6 wrote nothing for a %lc either, but the padding
+    // and the characters before it for a %ls).
+    if (length < 0) return;
+    if (length < kBufferSize) {
+        out.append(text, static_cast<std::size_t>(length));
+        return;
+    }
+    const std::size_t at = out.size();
+    out.resize(at + static_cast<std::size_t>(length) + 1);
+    std::snprintf(out.data() + at, static_cast<std::size_t>(length) + 1, spec, value);
+    out.resize(at + static_cast<std::size_t>(length));
+}
 
-    int Run(const char* format, va_list args) {
-        const unsigned char* f = reinterpret_cast<const unsigned char*>(format);
-        int state = kNormal;
-        unsigned flags = 0;
-        int width = 0;
-        int precision = -1;
-        bool capitals = false;
-        bool noOutput = false;
-        bool wideText = false;
-        int prefixLength = 0;
-        char prefix[2] = {};
-        int radix = 0;
-        int hexAdd = 0;
-        // Kept from one conversion to the next.
-        const char* text = nullptr;
-        int textLength = 0;
-        char buffer[kBufferSize];
-        std::vector<char> floatBuffer;
-        unsigned char c;
-        while ((c = *f++) != 0 && written_ >= 0) {
-            const signed char sc = static_cast<signed char>(c);
-            const int cls = sc < ' ' || sc > 'x' ? 0 : kFormatLookup[sc - ' '] & 0xF;
-            state = kFormatLookup[cls * 8 + state] >> 4;
-            switch (state) {
-            case kNormal:
-            normal:
-                wideText = false;
-                PutChar(static_cast<signed char>(c));
-                break;
-            case kPercent:
-                precision = -1;
-                capitals = false;
-                noOutput = false;
-                width = 0;
-                prefixLength = 0;
-                flags = 0;
-                wideText = false;
-                break;
-            case kFlag:
-                switch (c) {
-                case ' ': flags |= kSignSpace; break;
-                case '#': flags |= kAlternate; break;
-                case '+': flags |= kSignPlus; break;
-                case '-': flags |= kLeft; break;
-                case '0': flags |= kLeadZero; break;
-                }
-                break;
-            case kWidth:
-                if (c == '*') {
-                    width = va_arg(args, int);
-                    if (width < 0) {
-                        flags |= kLeft;
-                        width = -width;
-                    }
-                } else {
-                    width = width * 10 + (sc - '0');
-                }
-                break;
-            case kDot:
-                precision = 0;
-                break;
-            case kPrecision:
-                if (c == '*') {
-                    precision = va_arg(args, int);
-                    if (precision < 0) precision = -1;
-                } else {
-                    precision = precision * 10 + (sc - '0');
-                }
-                break;
-            case kSize:
-                if (c == 'I') {
-                    if (f[0] != '6' || f[1] != '4') {
-                        state = kNormal;
-                        goto normal;
-                    }
-                    f += 2;
-                    flags |= kInt64;
-                } else if (c == 'h') {
-                    flags |= kShort;
-                } else if (c == 'l') {
-                    flags |= kLong;
-                } else if (c == 'w') {
-                    flags |= kWide;
-                }
-                break;
-            case kType: {
-                bool integer = false;
-                switch (c) {
-                case 'C':
-                    if (!(flags & (kShort | kLong | kWide))) flags |= kWide;
-                    [[fallthrough]];
-                case 'c':
-                    if (!(flags & (kLong | kWide))) {
-                        buffer[0] = static_cast<char>(va_arg(args, int));
-                        textLength = 1;
-                    } else {
-                        const wchar_t wc = static_cast<wchar_t>(va_arg(args, int));
-                        textLength = WideToBytes(buffer, wc);
-                        if (textLength < 0) noOutput = true;
-                    }
-                    text = buffer;
-                    break;
-                case 'Z': {
-                    const CountedString* counted = va_arg(args, const CountedString*);
-                    if (!counted || !counted->buffer) {
-                        text = "(null)";
-                        textLength = static_cast<int>(std::strlen(text));
-                    } else if (flags & kWide) {
-                        wideText = true;
-                        textLength = static_cast<int>(static_cast<unsigned>(static_cast<int>(counted->length)) >> 1);
-                        text = static_cast<const char*>(counted->buffer);
-                    } else {
-                        wideText = false;
-                        textLength = counted->length;
-                        text = static_cast<const char*>(counted->buffer);
-                    }
-                    break;
-                }
-                case 'S':
-                    if (!(flags & (kShort | kLong | kWide))) flags |= kWide;
-                    [[fallthrough]];
-                case 's': {
-                    int limit = precision == -1 ? INT_MAX : precision;
-                    const void* arg = va_arg(args, const void*);
-                    if (!(flags & (kLong | kWide))) {
-                        const char* s = arg ? static_cast<const char*>(arg) : "(null)";
-                        const char* e = s;
-                        for (; limit != 0 && *e; ++e) --limit;
-                        text = s;
-                        textLength = static_cast<int>(e - s);
-                    } else {
-                        const wchar_t* s = arg ? static_cast<const wchar_t*>(arg) : L"(null)";
-                        wideText = true;
-                        const wchar_t* e = s;
-                        for (; limit != 0 && *e; ++e) --limit;
-                        text = reinterpret_cast<const char*>(s);
-                        textLength = static_cast<int>(e - s);
-                    }
-                    break;
-                }
-                case 'n': {
-                    void* to = va_arg(args, void*);
-                    if (flags & kShort) {
-                        *static_cast<short*>(to) = static_cast<short>(written_);
-                    } else {
-                        *static_cast<int*>(to) = written_;
-                    }
-                    noOutput = true;
-                    break;
-                }
-                case 'E':
-                case 'G':
-                    capitals = true;
-                    c = static_cast<unsigned char>(c + ('a' - 'A'));
-                    [[fallthrough]];
-                case 'e':
-                case 'f':
-                case 'g': {
-                    flags |= kSigned;
-                    if (precision < 0) {
-                        precision = 6;
-                    } else if (precision == 0 && c == 'g') {
-                        precision = 1;
-                    }
-                    char* out = buffer;
-                    if (precision > kBufferSize - 400) {
-                        floatBuffer.assign(static_cast<std::size_t>(precision) + 400, '\0');
-                        out = floatBuffer.data();
-                    }
-                    const double value = va_arg(args, double);
-                    FormatFloat(value, out, c, precision, capitals);
-                    if ((flags & kAlternate) && precision == 0) ForceDecimalPoint(out);
-                    if (c == 'g' && !(flags & kAlternate)) CropZeros(out);
-                    text = out;
-                    if (*out == '-') {
-                        flags |= kNegative;
-                        ++text;
-                    }
-                    textLength = static_cast<int>(std::strlen(text));
-                    break;
-                }
-                case 'd':
-                case 'i':
-                    flags |= kSigned;
-                    radix = 10;
-                    integer = true;
-                    break;
-                case 'u':
-                    radix = 10;
-                    integer = true;
-                    break;
-                case 'o':
-                    radix = 8;
-                    if (flags & kAlternate) flags |= kForceOctal;
-                    integer = true;
-                    break;
-                case 'p':
-                    precision = 8;
-                    [[fallthrough]];
-                case 'X':
-                case 'x':
-                    hexAdd = c == 'x' ? 'a' - '9' - 1 : 'A' - '9' - 1;
-                    radix = 16;
-                    if (flags & kAlternate) {
-                        prefix[0] = '0';
-                        prefix[1] = static_cast<char>('Q' + hexAdd);   // 'X' or 'x'
-                        prefixLength = 2;
-                    }
-                    integer = true;
-                    break;
-                }
-                if (integer) FormatInteger(args, flags, precision, radix, hexAdd, prefixLength, buffer, text, textLength);
-                if (!noOutput) Emit(flags, width, prefix, prefixLength, text, textLength, wideText);
-                break;
-            }
-            }
-        }
-        return written_;
+// The integer, character and string conversions: the host's, with VC6's sizes ('l' is 32 bits, "I64" 64; %C and %S
+// are wide unless 'h'; %Z is wide with 'w' only) and %p as eight upper-case hex digits.
+void HostConversion(std::string& out, char type, unsigned flags, int width, int precision, va_list& args) {
+    char spec[48];
+    char* p = spec;
+    *p++ = '%';
+    if (flags & kLeft) *p++ = '-';
+    if (flags & kSignPlus) *p++ = '+';
+    if (flags & kSignSpace) *p++ = ' ';
+    if (flags & kAlternate) *p++ = '#';
+    if (flags & kLeadZero) *p++ = '0';
+    if (width > 0) p = std::to_chars(p, spec + 24, width).ptr;
+    const bool integer = std::strchr("diouxXp", type) != nullptr;
+    if (type == 'p') {
+        type = 'X';
+        precision = 8;
     }
-
-private:
-    void PutChar(int c) {
-        if (!sink_.Put(static_cast<char>(c))) {
-            written_ = -1;
-        } else {
-            ++written_;
-        }
+    if (integer && precision > kBufferSize - 1) precision = kBufferSize - 1;
+    if (precision >= 0) {
+        *p++ = '.';
+        p = std::to_chars(p, spec + 40, precision).ptr;
     }
-    void PutRepeated(char c, int count) {
-        while (count-- > 0) {
-            PutChar(c);
-            if (written_ == -1) break;
-        }
-    }
-    void PutText(const char* s, int count) {
-        while (count-- > 0) {
-            PutChar(*s++);
-            if (written_ == -1) break;
-        }
-    }
-
-    // The integer conversions: the argument by its size, its magnitude in `radix` written backwards
-    // from the end of the buffer, at least `precision` digits.
-    static void FormatInteger(va_list& args, unsigned& flags, int& precision, int radix, int hexAdd, int& prefixLength,
-                              char* buffer, const char*& text, int& textLength) {
-        std::uint64_t number;
+    if (integer) {
         if (flags & kInt64) {
-            number = va_arg(args, std::uint64_t);
+            std::memcpy(p, "I64", 3);
+            p += 3;
         } else if (flags & kShort) {
-            const int arg = va_arg(args, int);
-            number = static_cast<std::uint64_t>(static_cast<std::int64_t>(
-                flags & kSigned ? static_cast<int>(static_cast<short>(arg)) : arg & 0xFFFF));
-        } else if (flags & kSigned) {
-            number = static_cast<std::uint64_t>(static_cast<std::int64_t>(va_arg(args, int)));
-        } else {
-            number = va_arg(args, unsigned);
+            *p++ = 'h';
         }
-        if ((flags & kSigned) && static_cast<std::int64_t>(number) < 0) {
-            number = 0 - number;
-            flags |= kNegative;
-        }
-        if (!(flags & kInt64)) number &= 0xFFFFFFFF;
-        if (precision < 0) {
-            precision = 1;
-        } else {
-            flags &= ~kLeadZero;
-            if (precision > kBufferSize - 1) precision = kBufferSize - 1;
-        }
-        if (number == 0) prefixLength = 0;
-        char* last = buffer + kBufferSize - 1;
-        char* p = last;
-        while (precision-- > 0 || number != 0) {
-            int digit = static_cast<int>(number % static_cast<unsigned>(radix)) + '0';
-            number /= static_cast<unsigned>(radix);
-            if (digit > '9') digit += hexAdd;
-            *p-- = static_cast<char>(digit);
-        }
-        textLength = static_cast<int>(last - p);
-        ++p;
-        if ((flags & kForceOctal) && (*p != '0' || textLength == 0)) {
-            *--p = '0';
-            ++textLength;
-        }
-        text = p;
+    } else if (type == 'Z') {
+        *p++ = flags & kWide ? 'w' : 'h';   // the host's bare %Z is wide
+    } else {
+        const bool upper = type == 'C' || type == 'S';
+        if ((flags & (kLong | kWide)) || (upper && !(flags & kShort))) *p++ = 'l';
+        if (upper) type = static_cast<char>(type + ('a' - 'A'));
     }
+    *p++ = type;
+    *p = '\0';
+    if (integer && (flags & kInt64)) {
+        AppendHost(out, spec, va_arg(args, std::uint64_t));
+    } else if (integer || type == 'c') {
+        AppendHost(out, spec, va_arg(args, int));
+    } else {
+        AppendHost(out, spec, va_arg(args, const void*));
+    }
+}
 
-    // The sign or prefix, padding to the width (spaces before, zeros after the prefix, or spaces after
-    // when left-aligned) and the text; wide text goes through wctomb character by character.
-    void Emit(unsigned flags, int width, char* prefix, int prefixLength, const char* text, int textLength, bool wideText) {
-        if (flags & kSigned) {
-            if (flags & kNegative) {
-                prefix[0] = '-';
-                prefixLength = 1;
-            } else if (flags & kSignPlus) {
-                prefix[0] = '+';
-                prefixLength = 1;
-            } else if (flags & kSignSpace) {
-                prefix[0] = ' ';
-                prefixLength = 1;
-            }
-        }
-        const int padding = width - prefixLength - textLength;
-        if (!(flags & (kLeft | kLeadZero))) PutRepeated(' ', padding);
-        PutText(prefix, prefixLength);
-        if ((flags & kLeadZero) && !(flags & kLeft)) PutRepeated('0', padding);
-        if (wideText && textLength > 0) {
-            const wchar_t* w = reinterpret_cast<const wchar_t*>(text);
-            for (int left = textLength; left != 0; --left) {
-                char bytes[8];
-                const int size = WideToBytes(bytes, *w++);
-                if (size < 1) break;
-                PutText(bytes, size);
-            }
-        } else {
-            PutText(text, textLength);
-        }
-        if (flags & kLeft) PutRepeated(' ', padding);
+// %e %E %f %g %G: VC6's digits (FormatFloat), then the sign and the padding as _output writes them (spaces before,
+// zeros after the sign, or spaces after when left-aligned).
+void FloatConversion(std::string& out, char type, unsigned flags, int width, int precision, double value) {
+    bool capitals = false;
+    if (type == 'E' || type == 'G') {
+        capitals = true;
+        type = static_cast<char>(type + ('a' - 'A'));
     }
-
-    Sink& sink_;
-    int written_ = 0;
-};
-
-// sprintf's string FILE (_cnt 0x7FFFFFFF): no limit.
-struct UnboundedSink {
-    char* next;
-    bool Put(char c) {
-        *next++ = c;
-        return true;
+    if (precision < 0) {
+        precision = 6;
+    } else if (precision == 0 && type == 'g') {
+        precision = 1;
     }
-};
-// A string FILE with room for `left` bytes; past it every write fails (_flsbuf on _IOSTRG).
-struct BoundedSink {
-    char* next;
-    std::size_t left;
-};
-struct VectorSink {
-    std::vector<char>& text;
-    bool Put(char c) {
-        text.push_back(c);
-        return true;
+    char buffer[kBufferSize];
+    std::vector<char> large;
+    char* text = buffer;
+    if (precision > kBufferSize - 400) {
+        large.assign(static_cast<std::size_t>(precision) + 400, '\0');
+        text = large.data();
     }
-};
+    FormatFloat(value, text, type, precision, capitals);
+    if ((flags & kAlternate) && precision == 0) ForceDecimalPoint(text);
+    if (type == 'g' && !(flags & kAlternate)) CropZeros(text);
+    char sign = '\0';
+    if (*text == '-') {
+        sign = '-';
+        ++text;
+    } else if (flags & kSignPlus) {
+        sign = '+';
+    } else if (flags & kSignSpace) {
+        sign = ' ';
+    }
+    const int length = static_cast<int>(std::strlen(text));
+    const int padding = width - (sign ? 1 : 0) - length;
+    if (!(flags & (kLeft | kLeadZero)) && padding > 0) out.append(static_cast<std::size_t>(padding), ' ');
+    if (sign) out += sign;
+    if ((flags & kLeadZero) && !(flags & kLeft) && padding > 0) out.append(static_cast<std::size_t>(padding), '0');
+    out.append(text, static_cast<std::size_t>(length));
+    if ((flags & kLeft) && padding > 0) out.append(static_cast<std::size_t>(padding), ' ');
+}
 
 } // namespace
 
-int Vsprintf(char* buffer, const char* format, va_list args) {
-    UnboundedSink sink{buffer};
-    const int written = Output<UnboundedSink>(sink).Run(format, args);
-    *sink.next = '\0';
-    return written;
+std::string Format(const char* format, va_list args) {
+    std::string out;
+    int state = kNormal;
+    unsigned flags = 0;
+    int width = 0;
+    int precision = -1;
+    for (const char* f = format; *f != '\0';) {
+        const char c = *f++;
+        const int cls = c < ' ' || c > 'x' ? 0 : kFormatLookup[c - ' '] & 0xF;
+        state = kFormatLookup[cls * 8 + state] >> 4;
+        switch (state) {
+        case kNormal:
+            out += c;
+            break;
+        case kPercent:
+            flags = 0;
+            width = 0;
+            precision = -1;
+            break;
+        case kFlag:
+            switch (c) {
+            case ' ': flags |= kSignSpace; break;
+            case '#': flags |= kAlternate; break;
+            case '+': flags |= kSignPlus; break;
+            case '-': flags |= kLeft; break;
+            case '0': flags |= kLeadZero; break;
+            }
+            break;
+        case kWidth:
+            if (c == '*') {
+                width = va_arg(args, int);
+                if (width < 0) {
+                    flags |= kLeft;
+                    width = -width;
+                }
+            } else {
+                width = width * 10 + (c - '0');
+            }
+            break;
+        case kDot:
+            precision = 0;
+            break;
+        case kPrecision:
+            if (c == '*') {
+                precision = va_arg(args, int);
+                if (precision < 0) precision = -1;
+            } else {
+                precision = precision * 10 + (c - '0');
+            }
+            break;
+        case kSize:
+            if (c == 'I') {
+                if (f[0] != '6' || f[1] != '4') {   // not "I64": the 'I' is text
+                    state = kNormal;
+                    out += c;
+                    break;
+                }
+                f += 2;
+                flags |= kInt64;
+            } else if (c == 'h') {
+                flags |= kShort;
+            } else if (c == 'l') {
+                flags |= kLong;
+            } else if (c == 'w') {
+                flags |= kWide;
+            }
+            break;
+        case kType:
+            if (std::strchr("eEfgG", c)) {
+                FloatConversion(out, c, flags, width, precision, va_arg(args, double));
+            } else if (c == 'n') {
+                void* to = va_arg(args, void*);
+                if (flags & kShort) {
+                    *static_cast<short*>(to) = static_cast<short>(out.size());
+                } else {
+                    *static_cast<int*>(to) = static_cast<int>(out.size());
+                }
+            } else if (c != 'B') {   // 'B' converts nothing (VC6 wrote the previous conversion's text again)
+                HostConversion(out, c, flags, width, precision, args);
+            }
+            break;
+        }
+    }
+    return out;
 }
 
 } // namespace libcrt
 
-// CString::FormatV's text (str.h): the game's vsprintf into a std::string, up to the first zero byte as
-// ReleaseBuffer(-1) left it.
+// CString::FormatV's text (str.h): up to the first zero byte, as ReleaseBuffer(-1) left it.
 std::string str::FormatV(const char* format, va_list arguments) {
-    std::vector<char> text;
-    libcrt::VectorSink sink{text};
-    libcrt::Output<libcrt::VectorSink>(sink).Run(format, arguments);
-    text.push_back('\0');
-    return std::string(text.data());
+    std::string text = libcrt::Format(format, arguments);
+    text.resize(std::strlen(text.c_str()));
+    return text;
 }

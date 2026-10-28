@@ -19,6 +19,7 @@
 #include "logic_settings.h"
 
 #include <cmath>
+#include <cstdio>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
@@ -158,7 +159,7 @@ int CUnitClientSpecific::Level() {
 int CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
         char name[0x80];
-        gamecrt::sprintf(name, "mo%dw", unit->id_);
+        std::snprintf(name, sizeof(name), "mo%dw", unit->id_);
         unit->ClientSpecific()->ShowWounds(name);
     } else {
         unit->ClientSpecific()->HideWounds();

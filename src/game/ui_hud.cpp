@@ -24,7 +24,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/mfc_slots.h"
@@ -34,6 +33,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include "game_data.h"
@@ -266,7 +266,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         }
     }
     char text[128];
-    gamecrt::sprintf(text, "%d", playerId);
+    std::snprintf(text, sizeof(text), "%d", playerId);
     // ClientSession::SendCommand: the server commands 4 and 5.
     if (mode == 1)
         net::GameClient()->SendCommand(4, text);

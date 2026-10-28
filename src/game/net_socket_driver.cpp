@@ -4,7 +4,6 @@
 // through the game's import thunks. See docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 
@@ -13,6 +12,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -88,14 +88,14 @@ std::string NetAddress::Format(int resolve) const {
         void* h = gameapi::gethostbyaddr(this, 0x10, 2);
         if (h && *static_cast<char**>(h)) {
             std::uint16_t value = gameapi::ntohs(port);
-            gamecrt::sprintf(text, "%s:%i", *static_cast<char**>(h), value & 0xFFFF);
+            std::snprintf(text, sizeof(text), "%s:%i", *static_cast<char**>(h), value & 0xFFFF);
             named = true;
         }
     }
     if (!named) {
         std::uint16_t value = gameapi::ntohs(port);
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
-        gamecrt::sprintf(text, "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
+        std::snprintf(text, sizeof(text), "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
     return text;
 }

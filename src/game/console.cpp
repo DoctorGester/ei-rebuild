@@ -10,7 +10,6 @@
 #include "lib/file_io.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -56,8 +55,7 @@ Stream& Stream::operator<<(unsigned value) {
     return *this;
 }
 Stream& Stream::operator<<(double value) {
-    char text[32];   // "%.6g": at most 13 characters ("-1.23457e+308")
-    buffer_->Write(std::string_view(text, static_cast<std::size_t>(gamecrt::sprintf(text, "%.6g", value))));
+    buffer_->Write(str::Format("%.6g", value));
     return *this;
 }
 Stream& Stream::Flush() {
