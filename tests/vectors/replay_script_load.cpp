@@ -30,13 +30,13 @@ using namespace ei::vectors::script;
 
 // ---- Building the state -------------------------------------------------------------------------
 
-// Storage for `maxSize` elements as the game's arrays have it (operator new; none when 0).
+// Storage for the recorded size's elements, zeroed (operator new; none when 0).
 template <typename T>
 void ReadShape(Reader& r, mfc::CArray<T>* a, void* vtable) {
     a->vtable = vtable;
     a->size = r.Get<std::int32_t>();
-    a->maxSize = r.Get<std::int32_t>();
-    a->growBy = r.Get<std::int32_t>();
+    a->maxSize = a->size;
+    a->growBy = 0;
     a->data = nullptr;
     if (a->maxSize > 0) {
         const std::size_t bytes = static_cast<std::size_t>(a->maxSize) * sizeof(T);
@@ -231,9 +231,6 @@ bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
     SSCCmd* cmd = reinterpret_cast<SSCCmd*>(storage)->Construct();
     cmd->id = r.Get<std::int32_t>();
     cmd->calledScript = ReadBlockRef(r);
-    for (int* growBy : {&cmd->floatArgs.growBy, &cmd->stringArgs.growBy, &cmd->objectArgs.growBy, &cmd->groupArgs.growBy,
-                        &cmd->localBindings.growBy, &cmd->globalBindings.growBy, &cmd->subCalls.growBy})
-        *growBy = r.Get<std::int32_t>();
     Run run;
     ReadRun(r, &run);
     const int result0 = r.Get<std::int32_t>();
@@ -260,7 +257,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     CScript* s = ReadState(r);
     SetError(s, ReadError(r));
     ScriptVars* locals = ReadLocals(r);
-    ScriptCommands commands{{recordarrays::SubCallArrayClass::Vtable(), nullptr, 0, 0, r.Get<std::int32_t>()}};
+    ScriptCommands commands{{recordarrays::SubCallArrayClass::Vtable(), nullptr, 0, 0, 0}};
     Run run;
     ReadRun(r, &run);
     const int result0 = r.Get<std::int32_t>();
@@ -272,7 +269,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     const int result = s->LoadCommands(&commands, &pos, &run.list, locals);
     const Error error = TakeError(s);
     const bool sameCommands = HashOf([&](Writer& h) { PutCmds(h, commands); }) == commands0;
-    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, nullptr); }) == blocks0;
+    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, 0); }) == blocks0;
     const bool ok = result == result0 && SameError(error, error0) && pos == run.end && sameCommands && sameBlocks;
     if (!ok)
         Describe(d, n, "LoadCommands", result0, result, error0, error,
@@ -306,8 +303,8 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
         HashOf([&](Writer& h) { PutText(h, text); }),
         HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->Scripts(), pairs); }),
         HashOf([&](Writer& h) { PutVars(h, *s->Globals()); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, nullptr); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, nullptr); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, 0); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, 0); }),
     };
     static const char* const kParts[5] = {"the text", "the definitions", "the globals", "the new blocks",
                                           "the new WorldScript blocks"};

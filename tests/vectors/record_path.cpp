@@ -59,6 +59,13 @@ struct OriginalRadiusTree {
     int mask;
 };
 static_assert(sizeof(OriginalRadiusTree) == 0x1C);
+// game.exe's SmoothTable: three MFC arrays.
+struct OriginalSmoothTable {
+    ei::verify::exe::Array<SmoothCopy> copies;
+    ei::verify::exe::Array<SmoothStep> steps;
+    ei::verify::exe::Array<SmoothStep> chained;
+};
+static_assert(sizeof(OriginalSmoothTable) == 0x3C);
 std::uint32_t AddressOf(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
 void OfferTables() {
@@ -93,11 +100,11 @@ void OfferTables() {
         w.Put(Range{AddressOf(at), kTableArrayElementSize});
         PutArray(w, array.data, array.size, kTableArrayElementSize);
     }
-    const SmoothTable* tables = ei::OriginalGameData<const SmoothTable[kSmoothTableCount]>(0x007C3058);
+    const auto* tables = ei::OriginalGameData<const OriginalSmoothTable[kSmoothTableCount]>(0x007C3058);
     for (int i = 0; i < kSmoothTableCount; ++i) {
-        PutArray(w, tables[i].copies.data(), std::ssize(tables[i].copies), kSmoothCopySize);
-        PutArray(w, tables[i].steps.data(), std::ssize(tables[i].steps), kSmoothStepSize);
-        PutArray(w, tables[i].chained.data(), std::ssize(tables[i].chained), kSmoothStepSize);
+        PutArray(w, tables[i].copies.data, tables[i].copies.size, kSmoothCopySize);
+        PutArray(w, tables[i].steps.data, tables[i].steps.size, kSmoothStepSize);
+        PutArray(w, tables[i].chained.data, tables[i].chained.size, kSmoothStepSize);
     }
     g_tables.OfferBytes(w, ControlWord());
 }

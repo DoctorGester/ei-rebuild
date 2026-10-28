@@ -113,15 +113,15 @@ const char* __fastcall KeywordNameRecord(int id) {
     return result;
 }
 
-void PutCString(Writer& w, const mfc::CString& s) { w.PutString(static_cast<const char*>(s)); }
+void PutCString(Writer& w, const exe::CString& s) { w.PutString(static_cast<const char*>(s)); }
 
 // 004CF7A0: PUSH -1; PUSH imm32 (7). Error results keep the script's error.
-BOOL(__fastcall* s_tokenize)(CScript*, void*, const mfc::CString*, OriginalScriptTokenList*);
-BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source, OriginalScriptTokenList* tokens) {
+BOOL(__fastcall* s_tokenize)(OriginalScript*, void*, const exe::CString*, OriginalScriptTokenList*);
+BOOL __fastcall TokenizeRecord(OriginalScript* self, void*, const exe::CString* source, OriginalScriptTokenList* tokens) {
     OfferFixtures();
     std::uint16_t cw = ControlWord();
     BOOL result = s_tokenize(self, nullptr, source, tokens);
-    const std::uint32_t length = static_cast<std::uint32_t>(source->GetLength());
+    const std::uint32_t length = Length(*source);
     if (length > kMaxSource) return result;
     Writer w;
     w.Put(length);
@@ -129,32 +129,29 @@ BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source,
     w.Put<std::int32_t>(tokens->blockSize);
     w.Put<std::int32_t>(result);
     if (!result) {
-        const OriginalScriptError& error = OriginalError(self);
-        w.Put<std::int32_t>(error.code);
-        w.Put<std::int32_t>(error.line);
-        PutCString(w, error.text);
+        w.Put<std::int32_t>(self->errorCode);
+        w.Put<std::int32_t>(self->errorLine);
+        PutCString(w, self->errorText);
     }
-    w.Put(static_cast<std::uint32_t>(tokens->count));
+    w.Put(static_cast<std::uint32_t>(tokens->size()));
     std::uint64_t all = 0xCBF29CE484222325ull;
-    for (const OriginalScriptTokenList::Node* node = tokens->head; node; node = node->next)
-        all = TokenHash(node->data.text, node->data.line, all);
+    for (const OriginalScriptToken& token : *tokens) all = TokenHash(token.text, token.line, all);
     w.Put(all);
-    for (const OriginalScriptTokenList::Node* node = tokens->head; node; node = node->next)
-        w.Put(static_cast<std::uint32_t>(TokenHash(node->data.text, node->data.line)));
+    for (const OriginalScriptToken& token : *tokens) w.Put(static_cast<std::uint32_t>(TokenHash(token.text, token.line)));
     g_tokenize.OfferBytes(w, cw, SourceBucket(length));
     return result;
 }
 
 // 004D33E0: MOV EAX,FS:[0] (6). Bucket 1: the line changed.
-void(__fastcall* s_applyDefines)(mfc::CString*, const OriginalScriptDefineList*);
-void __fastcall ApplyDefinesRecord(mfc::CString* line, const OriginalScriptDefineList* defines) {
+void(__fastcall* s_applyDefines)(exe::CString*, const OriginalScriptDefineList*);
+void __fastcall ApplyDefinesRecord(exe::CString* line, const OriginalScriptDefineList* defines) {
     OfferFixtures();
     Writer w;
     PutCString(w, *line);
-    w.Put(static_cast<std::uint32_t>(defines->count));
-    for (const OriginalScriptDefineList::Node* node = defines->head; node; node = node->next) {
-        PutCString(w, node->data.name);
-        PutCString(w, node->data.value);
+    w.Put(static_cast<std::uint32_t>(defines->size()));
+    for (const OriginalScriptDefine& define : *defines) {
+        PutCString(w, define.name);
+        PutCString(w, define.value);
     }
     const std::string before = static_cast<const char*>(*line);
     std::uint16_t cw = ControlWord();
