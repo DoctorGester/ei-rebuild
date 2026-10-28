@@ -104,8 +104,6 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
     }
 }
 
-// SerializeElements<CString>: each string stored (operator<<) or loaded (operator>>).
-void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count);
 // CArray<CString>::Serialize: the count, then the strings.
 template <>
 void Strings::Serialize(CArchive* ar);

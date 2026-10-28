@@ -23,7 +23,6 @@ char DecimalPoint();
 // The multibyte code page's flags (_mbctype + 1: a byte's flags at its value) and _mbcasemap (each byte's
 // other case).
 const std::uint8_t* MultibyteFlags();
-const std::uint8_t* MultibyteCaseMap();
 
 #ifdef EI_VECTORS_REPLAY
 // ei_vectors: the decimal point and the class words recorded in the game (`classes` stays the caller's).

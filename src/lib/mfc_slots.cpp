@@ -11,13 +11,6 @@ namespace mfc::impl {
 
 void __fastcall ExceptionDestruct(libcrt::Exception* self) { self->Destruct(); }
 
-void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count) {
-    if (!ar->IsLoading())
-        for (; count--; ++strings) StoreText(*ar, *strings);
-    else
-        for (; count--; ++strings) LoadText(*ar, *strings);
-}
-
 // ---- Destructors ----------------------------------------------------------------------------------
 
 // Arrays: the vtable, the storage freed.
@@ -338,6 +331,5 @@ EI_REWRITTEN(0x005D9A40, AttentionList::Serialize);   // AttentionListClass
 
 // CArray<CString> and its SerializeElements.
 EI_REWRITTEN(0x004C2700, Strings::Serialize);
-EI_REWRITTEN(0x007085AF, SerializeStrings);
 
 } // namespace mfc::impl

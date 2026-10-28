@@ -33,7 +33,6 @@ public:
 
     // Printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
     void __cdecl Format(const char* format, ...);
-    void FormatV(const char* format, va_list arguments);
 
     void Empty();
     char* GetBufferSetLength(int length);
@@ -55,7 +54,6 @@ public:
     CString Mid(int first) const;
     CString Mid(int first, int count) const;
     int Remove(char ch);                          // the count removed
-    int FindOneOf(const char* set) const;
     int ReverseFind(char ch) const;               // -1 when absent
     int Find(const char* sub) const;              // -1 when absent
     int Find(const char* sub, int start) const;
@@ -278,10 +276,6 @@ void MoveElements(T* to, T* from, int count) {
 class CArchive {
 public:
     bool IsLoading() const { return (mode_ & 1) != 0; }
-    unsigned Read(void* buffer, unsigned bytes);
-    void Write(const void* buffer, unsigned bytes);
-    unsigned long ReadCount();
-    void WriteCount(unsigned long count);
     void Flush();
     CFile* File() const { return file_; }
 
