@@ -9,7 +9,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "logic_settings.h"
@@ -39,7 +38,6 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     unit->MarkChanged(0);
     return 1;
 }
-EI_REWRITTEN(0x005533B0, CUnitServer::RefreshVitals);
 
 void CUnitServer::UpdateProtection() {
     stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
@@ -52,7 +50,6 @@ void CUnitServer::UpdateProtection() {
         protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(static_cast<double>(factor) * stats.combat[UnitStats::kDefence]));
     }
 }
-EI_REWRITTEN(0x00553450, CUnitServer::UpdateProtection);
 
 void CUnitServer::RepackStats() {
     std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
@@ -63,7 +60,6 @@ void CUnitServer::RepackStats() {
     unit->MarkChanged(4);
     if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
-EI_REWRITTEN(0x00553500, CUnitServer::RepackStats);
 
 bool CUnitServer::ArmourPutOn(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
@@ -71,35 +67,28 @@ bool CUnitServer::ArmourPutOn(std::uint32_t key) {
     stats.AddArmourLayer(unit->armor[record->type]);
     return false;
 }
-EI_REWRITTEN(0x00553560, CUnitServer::ArmourPutOn);
 
 bool CUnitServer::RebuildArmourLayers(int) {
     stats.RebuildArmourLayers(unit);
     return true;
 }
-EI_REWRITTEN(0x005535C0, CUnitServer::RebuildArmourLayers);
 
 int CUnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
-EI_REWRITTEN(0x005535E0, CUnitServer::ClearOuterArmourLayers);
 
 BOOL CUnitServer::RefreshEquipment() {
     RefreshItemSpells();
     BrainOf(this)->attention.Build(unit);
     return 1;
 }
-EI_REWRITTEN(0x005535F0, CUnitServer::RefreshEquipment);
 
 void CUnitServer::HostileMaskChanged() {
     claimedHostile = 0;
     BrainOf(this)->memory.calls.RemoveClaims();
 }
-EI_REWRITTEN(0x00552CD0, CUnitServer::HostileMaskChanged);
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
-EI_REWRITTEN(0x00553360, CUnitServer::CopyStats);
 
 BOOL CUnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
     return RefreshVitals(0);
 }
-EI_REWRITTEN(0x00553380, CUnitServer::AddExperience);

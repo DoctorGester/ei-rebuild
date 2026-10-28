@@ -14,8 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <cstring>
 #include "game_data.h"
@@ -214,6 +212,3 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
 }
-
-EI_REWRITTEN(0x0058E850, CWorldServer::CastSpell);
-EI_REWRITTEN(0x0058E670, CWorldServer::CreateMissile);

@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "net_coder.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "world.h"
 #include "game_data.h"
@@ -51,7 +50,6 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     self->timers_.Insert(self->timers_.End(), entry);
     DestroyInline(&entry.ref);
 }
-EI_REWRITTEN(0x0041D1A0, ClientSession::AddTimed);
 
 // Sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(int kind, const char* text) {
@@ -72,7 +70,6 @@ void ClientSession::SendCommand(int kind, const char* text) {
     raw.ptr = nullptr;
     raw.Destroy();
 }
-EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 
 // Makes `*out` an empty server entry (no name or description, kind 4, no players).
 void ClientSession::CreateEntry(RefPtr* out) {
@@ -91,11 +88,9 @@ void ClientSession::CreateEntry(RefPtr* out) {
     }
     out->Share(entry);
 }
-EI_REWRITTEN(0x0041D420, ClientSession::CreateEntry);
 
 // The game flow begins the multiplayer game.
 void ClientSession::OnJoined() { TheGameFlow()->BeginMultiplayerGame(); }
-EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 
 // Called by the transfer screen: a buffer's stream size (its base plus the highest written position, from
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading
@@ -115,6 +110,5 @@ double ClientSession::BufferRatio(GameBuffer* buffer) {
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
     return static_cast<double>(streamSize()) / static_cast<double>(divisor);
 }
-EI_REWRITTEN(0x0041D9A0, ClientSession::BufferRatio);
 
 } // namespace net

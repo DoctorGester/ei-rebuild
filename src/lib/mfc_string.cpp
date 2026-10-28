@@ -2,7 +2,6 @@
 #include "mfc_string.h"
 
 #include "crt.h"
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
 #include "game/game_data.h"
@@ -144,14 +143,6 @@ void __cdecl ConstructStringAlloc512() {
     libcrt::AtExit(DestroyStringAlloc512);
 }
 
-EI_REWRITTEN(0x00700718, ConstructStringAlloc64);
-EI_REWRITTEN(0x00700747, ConstructStringAlloc128);
-EI_REWRITTEN(0x00700779, ConstructStringAlloc256);
-EI_REWRITTEN(0x007007AB, ConstructStringAlloc512);
-EI_REWRITTEN(0x0070073D, DestroyStringAlloc64);
-EI_REWRITTEN(0x0070076F, DestroyStringAlloc128);
-EI_REWRITTEN(0x007007A1, DestroyStringAlloc256);
-EI_REWRITTEN(0x007007D3, DestroyStringAlloc512);
 #endif
 
 // ---- CString: construction and buffers ----------------------------------------------------------
@@ -761,35 +752,5 @@ CString* CString::ConstructText(const char* text) { return ::new (this) CString(
 namespace shim {
 void __fastcall Destruct(CString* self) { self->~CString(); }
 } // namespace shim
-
-EI_REWRITTEN(0x006E6BCD, CFixedAlloc::Construct);
-EI_REWRITTEN(0x006E6BF5, CFixedAlloc::Destruct);
-EI_REWRITTEN(0x006E6C09, CFixedAlloc::FreeAll);
-EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
-EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
-
-EI_REWRITTEN(0x007009DE, CString::ConstructText);
-EI_REWRITTEN(0x00700970, shim::Destruct);
-EI_REWRITTEN(0x007007DD, CString::AllocBuffer);
-EI_REWRITTEN(0x0070085F, CString::FreeData);
-EI_REWRITTEN(0x00700919, CString::CopyBeforeWrite);
-EI_REWRITTEN(0x00700947, CString::AllocBeforeWrite);
-EI_REWRITTEN(0x0070099A, CString::AllocCopy);
-EI_REWRITTEN(0x00700A7C, CString::AssignCopy);
-EI_REWRITTEN(0x00700B61, CString::ConcatCopy);
-EI_REWRITTEN(0x00700CED, CString::ConcatInPlace);
-EI_REWRITTEN(0x007008FB, CString::Empty);
-EI_REWRITTEN(0x00702B0E, CString::LoadResourceString);
-EI_REWRITTEN(0x00700DA0, CString::GetBuffer);
-EI_REWRITTEN(0x00700DEF, CString::ReleaseBuffer);
-EI_REWRITTEN(0x00700E17, CString::GetBufferSetLength);
-EI_REWRITTEN(0x00700E6A, CString::LockBuffer);
-EI_REWRITTEN(0x00700E7C, CString::UnlockBuffer);
-EI_REWRITTEN(0x006FDBB7, CString::ReverseFind);
-EI_REWRITTEN(0x00700EFE, CString::MakeLower);
-EI_REWRITTEN(0x006FD963, CString::Remove);
-EI_REWRITTEN(0x006FDF5F, CString::Format);
-EI_REWRITTEN(0x006FE268, ConstructStrings);
-EI_REWRITTEN(0x006FE296, DestructStrings);
 
 } // namespace mfc::impl

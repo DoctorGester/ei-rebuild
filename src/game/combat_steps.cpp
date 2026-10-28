@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "unit.h"
 #include "game_data.h"
@@ -143,10 +142,8 @@ struct ScratchSteps {
 // --- Durations ---------------------------------------------------------------------------------
 
 int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
-EI_REWRITTEN(0x00551A40, CUnitServer::AnimationDuration);
 
 int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
-EI_REWRITTEN(0x00551A90, CUnitServer::AnimationMoment);
 
 // --- Movement mode transitions -------------------------------------------------------------
 
@@ -195,7 +192,6 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     added.duration = duration;
     return true;
 }
-EI_REWRITTEN(0x005516D0, CUnitServer::BuildTransition);
 
 // --- Orders ----------------------------------------------------------------------------------
 
@@ -284,7 +280,6 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         if (BuildTransition(&back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
     }
 }
-EI_REWRITTEN(0x00550100, CUnitServer::BuildOrderSteps);
 
 // --- Casts -----------------------------------------------------------------------------------
 
@@ -357,7 +352,6 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     steps->data[1].kind = 1;
     *duration = *duration + pause;
 }
-EI_REWRITTEN(0x00550620, CUnitServer::BuildCastSteps);
 
 // --- Attacks ---------------------------------------------------------------------------------
 
@@ -532,7 +526,6 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     BuildOrderSteps(steps, duration, kOrderAttack, key);
     return true;
 }
-EI_REWRITTEN(0x0054F970, CUnitServer::BuildAttackSteps);
 
 // --- Death and falls -------------------------------------------------------------------------
 
@@ -610,4 +603,3 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     if (isFall)
         for (int i = 0; i < steps->size; ++i) steps->data[i].kind = kStepLying;
 }
-EI_REWRITTEN(0x00550A80, CUnitServer::BuildDeathAnimation);

@@ -1,7 +1,6 @@
 // The scene renderer's members (CSceneRenderer, model.h) that are game code rather than device code.
 #include "model.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstdint>
@@ -19,4 +18,3 @@ void CSceneRenderer::SetFogColour(float r, float g, float b) {
     fogColour_ = colour;
     SetFogColourState(colour);
 }
-EI_REWRITTEN(0x004BA120, CSceneRenderer::SetFogColour);

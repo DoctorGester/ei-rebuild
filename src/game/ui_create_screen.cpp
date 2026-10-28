@@ -13,7 +13,6 @@
 #include "ui.h"
 #include "ui_cursor.h"
 
-#include "ei/hook.h"
 #include "render/render_state.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -204,12 +203,6 @@ void CInterface3D::Activate(CUiWindow* window) {
     OpenOnTop(this, window);
 }
 
-EI_REWRITTEN(0x005F71C0, CInterface3D::Activate);
-
-EI_REWRITTEN(0x005F7350, CInterface3D::PushWindow);
-
-EI_REWRITTEN(0x005F5BA0, CInterface3D::CreateScreen);
-
 // --- the message window --------------------------------------------------------------------------
 
 void CInterface3D::ShowMessage(int force) {
@@ -228,8 +221,6 @@ void CInterface3D::ShowMessage(int force) {
     if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
     PushWindow(new CHelpWindow(this, true, messageText_.c_str(), messageFlag_), 1, 0);
 }
-
-EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 
 // --- the help window -----------------------------------------------------------------------------
 
@@ -261,8 +252,6 @@ void CInterface3D::OpenHelp(int flag) {
     PushWindow(new CHelpWindow(this, false, topic, seen), 1, 0);
 }
 
-EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
-
 // --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
 
 namespace {
@@ -282,7 +271,6 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     ItemCache<CTexture>::Construct(&textures_.map);
     textures_.limit = 50;
 }
-EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 
 // Screen 8's constructor: lines_ gets its header node (its allocator byte, the flag's low byte, is
 // overwritten).
@@ -293,7 +281,6 @@ CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name
     player_.Construct();
     fromGame_ = fromGame;
 }
-EI_REWRITTEN_SPECIAL(0x005F6D50, CCreditsScreen::CCreditsScreen);
 
 // Screen 8's destructor body: its members, the list (each line's two CStrings, style
 // then text) back to the node allocator, then the container base.
@@ -312,6 +299,3 @@ CCreditsScreen::~CCreditsScreen() {
     stlp::deallocate(lines_.head, sizeof(Node));
     archive_.Get()->CMappedResource::Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x005F6E40, CCreditsScreen::~CCreditsScreen);
-EI_REWRITTEN_SPECIAL(0x005F6E20, CCreditsScreen::~CCreditsScreen);
-EI_REWRITTEN_SPECIAL(0x005FC0F0, CCreditsScreen::~CCreditsScreen);

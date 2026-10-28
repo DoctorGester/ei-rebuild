@@ -4,7 +4,6 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -29,12 +28,9 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
     }
     return out;
 }
-EI_REWRITTEN(0x005C5CC0, PathCell::Step);
 
 void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElements<PathCell>::Construct(cells, count); }
 
-EI_REWRITTEN(0x005BD200, PathCellList::AddHead);
-EI_REWRITTEN(0x005BD2A0, PathCellList::AddTail);
 void PathCells::Append(const PathCells* other) {
     for (const Node* n = other->head; n;) {
         const Node* next = n->next;
@@ -43,7 +39,6 @@ void PathCells::Append(const PathCells* other) {
         n = next;
     }
 }
-EI_REWRITTEN(0x005C5DA0, PathCells::Append);
 
 PathCells* PathCells::Reversed(PathCells* out) const {
     // The original first builds a reversed local list, then copies it into `out` in order.
@@ -59,7 +54,6 @@ PathCells* PathCells::Reversed(PathCells* out) const {
     reversed.RemoveAll();
     return out;
 }
-EI_REWRITTEN(0x005C5E60, PathCells::Reversed);
 
 void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
     using Node = PathCellList::Node;
@@ -81,7 +75,6 @@ void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
         n = next;
     }
 }
-EI_REWRITTEN(0x005C6000, PathCellsRemoveRepeats);
 
 void AIPath::ToMotionOrder(PathOrder* out) const {
     constexpr int kFollowSteps = 2;
@@ -94,7 +87,6 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
     out->SetStepSpeeds(0x200);
     out->SetTarget(targetX, targetY);
 }
-EI_REWRITTEN(0x005B22C0, AIPath::ToMotionOrder);
 
 void CAIMap::ClearMarksAround(const PathCellList* chain) {
     constexpr int kBlock = 8;
@@ -119,4 +111,3 @@ void CAIMap::ClearMarksAround(const PathCellList* chain) {
     for (int y = y0; y < y1; ++y)
         for (int x = x0; x < x1; ++x) marks.rows[y][x] = 0;
 }
-EI_REWRITTEN(0x005B9BC0, CAIMap::ClearMarksAround);

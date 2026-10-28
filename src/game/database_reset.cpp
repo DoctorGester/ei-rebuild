@@ -8,8 +8,6 @@
 #include "record_vectors.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
-
 namespace {
 
 constexpr std::size_t kBuckets = 100;   // each index asks for 100 buckets (STLport: 193)
@@ -58,7 +56,6 @@ void UnitDatabase::Reset() {
     ConstructUnitTable(models);
     ConstructUnitTable(levels);
 }
-EI_REWRITTEN(0x0057CBE0, UnitDatabase::Reset);
 
 namespace itemdb {
 
@@ -78,6 +75,3 @@ void ItemDatabase::Reset() {
 }
 
 } // namespace itemdb
-
-EI_REWRITTEN(0x0057CE80, itemdb::SpellDatabase::Reset);
-EI_REWRITTEN(0x0057D340, itemdb::ItemDatabase::Reset);

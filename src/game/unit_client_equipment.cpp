@@ -10,7 +10,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 
 #include <string>
@@ -51,7 +50,6 @@ int CUnitClientSpecific::RefreshEquipment() {
     if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
     return 1;
 }
-EI_REWRITTEN(0x00536100, CUnitClientSpecific::RefreshEquipment);
 
 int CUnitClientSpecific::RefreshModel() {
     if (unit->type_ != kUnitTypeHero) return 1;
@@ -61,7 +59,6 @@ int CUnitClientSpecific::RefreshModel() {
     if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
     return 1;
 }
-EI_REWRITTEN(0x00536220, CUnitClientSpecific::RefreshModel);
 
 void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids, int count) {
     for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
@@ -69,14 +66,12 @@ void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids, int count) {
     int n = static_cast<std::uint32_t>(count) < kArmourSlots ? count : kArmourSlots;
     for (int i = 0; i < n; ++i) ArmourPutOn(ids[i]);
 }
-EI_REWRITTEN(0x00538140, CUnitClientSpecific::SetArmourModels);
 
 void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids, int count) {
     for (std::uint32_t& id : weaponIds) id = kNone;
     int n = static_cast<std::uint32_t>(count) < kWeaponSlots ? count : kWeaponSlots;
     for (int i = 0; i < n; ++i) WeaponAdded(ids[i]);
 }
-EI_REWRITTEN(0x00538860, CUnitClientSpecific::SetWeaponModels);
 
 bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
     if (id == kNone) return false;
@@ -87,7 +82,6 @@ bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
     weaponIds[slot] = id;
     return true;
 }
-EI_REWRITTEN(0x005388C0, CUnitClientSpecific::WeaponAdded);
 
 bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t id) {
     for (std::uint32_t& slot : weaponIds) {
@@ -98,4 +92,3 @@ bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t id) {
     }
     return false;
 }
-EI_REWRITTEN(0x00538920, CUnitClientSpecific::RemoveWeaponModel);

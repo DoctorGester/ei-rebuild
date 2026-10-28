@@ -8,7 +8,6 @@
 #include "party.h"
 #include "record_lists.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "record_vectors.h"
 
@@ -54,15 +53,11 @@ ClientSession::~ClientSession() {
     lines_.Release();
     players_.Release();
 }
-EI_REWRITTEN_SPECIAL(0x0041CA10, ClientSession::~ClientSession);
-EI_REWRITTEN_SPECIAL(0x0041C8B0, ClientSession::~ClientSession);
 
 ClientBase::~ClientBase() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);
     servers_.Release();
 }
-EI_REWRITTEN_SPECIAL(0x0041C530, ClientBase::~ClientBase);
-EI_REWRITTEN_SPECIAL(0x0041C450, ClientBase::~ClientBase);
 
 } // namespace net

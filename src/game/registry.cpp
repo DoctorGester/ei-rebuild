@@ -4,7 +4,6 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -77,7 +76,6 @@ CFileRegistry* CFileRegistry::Construct() {
     data_ = nullptr;
     return this;
 }
-EI_REWRITTEN(0x00694520, CFileRegistry::Construct);
 
 void CFileRegistry::Destroy() {
     if (!attached_) file_.Close();
@@ -85,7 +83,6 @@ void CFileRegistry::Destroy() {
     data_ = nullptr;
     file_.Close();                   // the mapped file's destructor
 }
-EI_REWRITTEN(0x00694540, CFileRegistry::Destroy);
 
 BOOL CFileRegistry::Open(const char* path) {
     if (!file_.Open(path, 0)) return 0;
@@ -98,7 +95,6 @@ BOOL CFileRegistry::Open(const char* path) {
     data_ = nullptr;
     return 0;
 }
-EI_REWRITTEN(0x006945A0, CFileRegistry::Open);
 
 BOOL CFileRegistry::Attach(const void* image) {
     attached_ = 1;
@@ -110,15 +106,12 @@ BOOL CFileRegistry::Attach(const void* image) {
     data_ = nullptr;
     return 0;
 }
-EI_REWRITTEN(0x00694610, CFileRegistry::Attach);
 
 void CFileRegistry::Close() {
     if (!attached_) file_.Close();
     attached_ = 0;
     data_ = nullptr;
 }
-EI_REWRITTEN(0x006946B0, CFileRegistry::Close);
-
 
 const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
     const std::uint8_t* root = data_;
@@ -165,7 +158,6 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     }
     return value + 3 + (keyLength & 0xFFFF);
 }
-EI_REWRITTEN(0x006946D0, CFileRegistry::FindData);
 
 BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     const std::uint8_t* root = data_;
@@ -177,7 +169,6 @@ BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00694880, CFileRegistry::GetSectionNames);
 
 int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
@@ -186,12 +177,10 @@ int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue
         return FloatToInt(F32(value));
     return defaultValue;
 }
-EI_REWRITTEN(0x00694B90, CFileRegistry::GetInt);
 
 int CFileRegistry::GetInt2(const char* section, const char* key, int defaultValue) {
     return GetInt(section, key, defaultValue);
 }
-EI_REWRITTEN(0x00694BE0, CFileRegistry::GetInt2);
 
 double CFileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
@@ -200,7 +189,6 @@ double CFileRegistry::GetFloat(const char* section, const char* key, float defau
         return static_cast<int>(U32(value));
     return defaultValue;
 }
-EI_REWRITTEN(0x00694C80, CFileRegistry::GetFloat);
 
 mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
@@ -211,7 +199,6 @@ mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc:
     }
     return defaultValue;
 }
-EI_REWRITTEN(0x00694D20, CFileRegistry::GetString);
 
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
@@ -235,17 +222,14 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     gamecrt::strncpy(buffer, defaultValue, static_cast<std::size_t>(*length));
     *length = static_cast<int>(std::strlen(buffer));
 }
-EI_REWRITTEN(0x00694DC0, CFileRegistry::GetStringBuffer);
 
 BOOL CFileRegistry::GetIntArray(const char* section, const char* key, IntArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
-EI_REWRITTEN(0x00695410, CFileRegistry::GetIntArray);
 
 BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, DwordArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
 }
-EI_REWRITTEN(0x00695600, CFileRegistry::GetFloatArray);
 
 BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console::CStringArray* out) {
     int isScalar;
@@ -271,4 +255,3 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
     }
     return 1;
 }
-EI_REWRITTEN(0x006958E0, CFileRegistry::GetStringArray);

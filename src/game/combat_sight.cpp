@@ -14,7 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -133,7 +132,6 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     out->eyeHeight = static_cast<float>(unit->BaseSpeed());
     return true;
 }
-EI_REWRITTEN(0x0054BCB0, CUnitServer::FindSightTarget);
 
 // --- Can the order be carried out from here ----------------------------------------------------
 
@@ -239,7 +237,6 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     double visibility = map->LineOfSight(&eye, &sight.point);
     return visibility >= kPointOne;
 }
-EI_REWRITTEN(0x0054C2F0, CUnitServer::CanActFrom);
 
 // --- The planner -----------------------------------------------------------------------------
 
@@ -454,7 +451,6 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     DestroySteps(&steps);
     return false;
 }
-EI_REWRITTEN(0x0054CA40, CUnitServer::PlanAction);
 
 bool CUnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan;
@@ -467,4 +463,3 @@ bool CUnitServer::CanPlanAction(const AIOrder* order) {
     DestroySteps(&plan.animation);
     return result;
 }
-EI_REWRITTEN(0x0054C6B0, CUnitServer::CanPlanAction);

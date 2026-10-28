@@ -5,8 +5,6 @@
 #include "logic_settings.h"
 #include "ui.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -34,4 +32,3 @@ void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std
     for (int k = 0; k < kDamageTypes; ++k)
         out[k] = static_cast<float>((scale * out[k] + static_cast<std::uint16_t>(vitals->protection[k])) * factor);
 }
-EI_REWRITTEN(0x005270E0, UnitParams::ProtectionBlock);

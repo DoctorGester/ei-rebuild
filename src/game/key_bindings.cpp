@@ -6,7 +6,6 @@
 #include "console.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -92,7 +91,6 @@ void __cdecl LoadKeyBindings() {
     }
     file.Close();
 }
-EI_REWRITTEN(0x00462C10, LoadKeyBindings);
 
 // One line per scan code with an action, when both the key and the action are known:
 // key name, action name.
@@ -122,6 +120,5 @@ void __cdecl SaveKeyBindings() {
     }
     file.Close();
 }
-EI_REWRITTEN(0x00462DF0, SaveKeyBindings);
 
 } // namespace keybind

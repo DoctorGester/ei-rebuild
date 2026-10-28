@@ -5,7 +5,6 @@
 // and .anm only when they opened), and the cached entry is looked up again. See docs/notes/models.md.
 #include "figure_manager.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -56,7 +55,6 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     return found ? found->value : nullptr;
 }
 
-EI_REWRITTEN(0x005AA5F0, CFigureManager::FindModel);
 // The model's animation of a name, loaded on first use from its animation archive (GetFile with the name) into
 // a new archive over that data (OpenFromMemory); without data nothing is created. The cached entry is looked
 // up again either way.
@@ -73,7 +71,6 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     const AnimationMap::Node* found = map->Find(*name);
     return found ? found->value : nullptr;
 }
-EI_REWRITTEN(0x005A9EF0, FigureModel::FindAnimation);
 
 constexpr std::uint32_t kPrimeCount = 28;
 constexpr std::uint32_t kPrimes[kPrimeCount] = /*0073B914*/ {
@@ -113,4 +110,3 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     }
     return model;
 }
-EI_REWRITTEN(0x005A9A50, ConstructFigureModel);

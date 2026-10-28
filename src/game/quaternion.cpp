@@ -3,7 +3,6 @@
 // for values the game keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -49,14 +48,12 @@ Quaternion* Quaternion::SetAngleAxis(float angle, const Vector3& axis) {
     FromAngle(this, axis, angle);
     return this;
 }
-EI_REWRITTEN(0x0049E790, Quaternion::SetAngleAxis);
 
 // Arguments (axis, angle); returns this.
 Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
     FromAngle(this, axis, angle);
     return this;
 }
-EI_REWRITTEN(0x0049E800, Quaternion::SetAxisAngle);
 
 // Out = conj(b) * a (b copied first, its vector part negated through float
 // temporaries); a is read completely before out is written. Dead: only MakeFrameRelative
@@ -75,7 +72,6 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
     out->z = static_cast<float>(nz);
     return out;
 }
-EI_REWRITTEN(0x0049E950, MultiplyByConjugate);
 
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
 // rotations interpolate linearly. The weight of a is rounded to float, the weight of b is not.
@@ -110,4 +106,3 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     z = static_cast<float>(D(weightA) * D(a.z) + weightB * D(c.z));
     w = static_cast<float>(D(weightA) * D(a.w) + weightB * D(c.w));
 }
-EI_REWRITTEN(0x0049ED20, Quaternion::Slerp);

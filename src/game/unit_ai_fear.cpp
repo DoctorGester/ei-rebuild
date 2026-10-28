@@ -12,7 +12,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
@@ -211,8 +210,6 @@ int FearMode::Evaluate(AIBrain* brain) {
     return kNoPriority;
 }
 
-EI_REWRITTEN(0x005D2960, FearMode::Evaluate);
-
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     ConstructOrder(&order);
@@ -316,8 +313,6 @@ void FearMode::Execute(AIBrain* brain) {
     LooksDestroyAt(&order.looks);
 }
 
-EI_REWRITTEN(0x005D30A0, FearMode::Execute);
-
 void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
     CUnit* object = choice->object;
     if (!object) return;
@@ -339,4 +334,3 @@ void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
     brain->actionTime = part;
     brain->owner->OrderCast(part, object, 0);
 }
-EI_REWRITTEN(0x005CF170, AIAttention::ApplyAttack);

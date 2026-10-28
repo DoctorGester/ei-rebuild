@@ -8,7 +8,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -35,13 +34,11 @@ double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     if (!weapon) return kNoSkill;
     return static_cast<double>(weapon->skillBonus[skill]);
 }
-EI_REWRITTEN(0x00526860, WeaponPrototypeSkillBonus);
 
 double UnitParams::VisionRange(float daylight) {
     double day = static_cast<double>(valuesB0[1]) * daylight * kPercent;
     return (day + (static_cast<double>(kOne) - daylight)) * valuesB0[0];
 }
-EI_REWRITTEN(0x005271E0, UnitParams::VisionRange);
 
 void CUnit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
@@ -51,7 +48,6 @@ void CUnit::AdvanceTime(float time) {
     if (moveMode == 0) range = range * kOne;
     TheClientWorld()->MarkFootprintsInSight(&localPosition_.x, range);
 }
-EI_REWRITTEN(0x0052FC40, CUnit::AdvanceTime);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = this;
@@ -60,4 +56,3 @@ int CMapObject::SetVisibilityLevel(float level) {
     if (level == kOne) return slots->SetVisibilityMode(1);
     return slots->SetVisibilityMode(2);
 }
-EI_REWRITTEN(0x0050F170, CMapObject::SetVisibilityLevel);

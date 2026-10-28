@@ -8,8 +8,6 @@
 #include "spell.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -120,18 +118,3 @@ void CItemLoot::Save(CStream* stream) {
     stream->Write(&recordType_, kDword);
     stream->Write(&index_, kDword);
 }
-
-// --- The virtual slots' entry points (rule 4) -----------------------------------------------------
-
-EI_REWRITTEN(0x006A0270, CItem::Load);
-EI_REWRITTEN(0x006A0360, CItem::Save);
-EI_REWRITTEN(0x006A2E60, CItemWeapon::Load);
-EI_REWRITTEN(0x006A2EB0, CItemWeapon::Save);
-EI_REWRITTEN(0x006A3A70, CItemArmor::Load);
-EI_REWRITTEN(0x006A3AA0, CItemArmor::Save);
-EI_REWRITTEN(0x006A3C80, CItemQuick::Load);
-EI_REWRITTEN(0x006A3CA0, CItemQuick::Save);
-EI_REWRITTEN(0x006A4570, CItemQuest::Load);
-EI_REWRITTEN(0x006A4590, CItemQuest::Save);
-EI_REWRITTEN(0x006A5630, CItemLoot::Load);
-EI_REWRITTEN(0x006A5680, CItemLoot::Save);

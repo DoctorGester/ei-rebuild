@@ -8,7 +8,6 @@
 #include "game_lists.h"
 #include "net_classes.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -40,24 +39,3 @@ void __fastcall CleanupClear8(void* object) {
 }
 
 } // namespace destructors400
-
-using destructors400::CleanupClear8;
-using destructors400::DeletingDestructor;
-using namespace net;
-
-EI_REWRITTEN(0x004292A0, DeletingDestructor<RefPtrRelease>::Delete);
-EI_REWRITTEN(0x004292C0, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0059DD90, DeletingDestructor<RefPtrRelease>::Delete);
-EI_REWRITTEN(0x005DA270, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0042A5D0, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0042A5F0, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0042B880, DeletingDestructor<&RefPtr::Destroy>::Delete);
-EI_REWRITTEN(0x0042D6D0, DeletingDestructor<misc400::ManagerDestruct>::Delete);
-EI_REWRITTEN(0x0043DCA0, DeletingDestructor<&RefPtr::Destroy>::Delete);
-
-EI_REWRITTEN(0x004054F0, CleanupClear8);
-EI_REWRITTEN(0x00405530, CleanupClear8);
-EI_REWRITTEN(0x00689810, CleanupClear8);
-EI_REWRITTEN(0x00689880, CleanupClear8);
-EI_REWRITTEN(0x0059AF10, CleanupClear8);
-EI_REWRITTEN(0x0059AFE0, CleanupClear8);

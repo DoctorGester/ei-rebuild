@@ -1,6 +1,5 @@
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 void* CRefCounted::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
@@ -14,7 +13,6 @@ void ReleaseObject(CRefObject* object) {
 } // namespace
 
 void CRefObject::Release() { ReleaseObject(this); }
-EI_REWRITTEN(0x0040A3A0, CRefObject::Release);
 
 int CRefObject::Shutdown() {
     ++refs_;
@@ -22,7 +20,6 @@ int CRefObject::Shutdown() {
     --refs_;
     return result;
 }
-EI_REWRITTEN(0x00417DF0, CRefObject::Shutdown);
 
 void RefPtr::Assign(CRefObject* object) {
     CRefObject* old = ptr;
@@ -30,7 +27,6 @@ void RefPtr::Assign(CRefObject* object) {
     if (object) ++object->refs_;
     if (old) ReleaseObject(old);
 }
-EI_REWRITTEN(0x00419CD0, RefPtr::Assign);
 
 void RefPtr::Share(CRefObject* object) {
     if (!object || (object->flags7_ & CRefObject::kDetached)) {
@@ -42,7 +38,6 @@ void RefPtr::Share(CRefObject* object) {
     ++object->refs_;
     ptr->flags6_ |= CRefObject::kCopyOnShare;
 }
-EI_REWRITTEN(0x00418BE0, RefPtr::Share);
 
 void RefPtr::Destroy() {
     CRefObject* object = ptr;
@@ -55,7 +50,6 @@ void RefPtr::Destroy() {
     }
     ReleaseObject(ptr);   // reloaded: the shutdown may have changed it
 }
-EI_REWRITTEN(0x00413270, RefPtr::Destroy);
 
 RefPtr* RefPtr::ShareAssign(CRefObject* object) {
     if (object != ptr) {
@@ -64,4 +58,3 @@ RefPtr* RefPtr::ShareAssign(CRefObject* object) {
     }
     return this;
 }
-EI_REWRITTEN(0x005D9D40, RefPtr::ShareAssign);

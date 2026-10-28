@@ -2,7 +2,6 @@
 //. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 
-#include "ei/hook.h"
 #include "net_coder.h"
 
 #include <cstring>
@@ -41,7 +40,6 @@ GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
     return this;
 }
 
-EI_REWRITTEN(0x00401310, GameBuffer::CopyOut);
 // Reads `size` bytes: past the highest written position through the overflow handler, from memory
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
@@ -54,7 +52,6 @@ unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
 }
 
 namespace net {
-EI_REWRITTEN(0x00401340, GameBuffer::ReadBytes);
 
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &masterKey, 4);
@@ -84,8 +81,5 @@ int GameInfoRecord::Read(GameBuffer* buffer) {
     Sanitize(&description);
     return static_cast<int>((~buffer->flags >> 3) & 1);
 }
-
-EI_REWRITTEN(0x00401000, GameInfoRecord::Write);
-EI_REWRITTEN(0x00401170, GameInfoRecord::Read);
 
 } // namespace net

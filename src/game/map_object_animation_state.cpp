@@ -6,7 +6,6 @@
 #include "base_manager.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -74,10 +73,8 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
     SetTime(0.0f);
     current = animation;
 }
-EI_REWRITTEN(0x0050CA50, CFigureAnimationState::Play);
 
 void* CFigureAnimationState::Queue(FigureAnimation* animation) { return queue.AddTail(animation); }
-EI_REWRITTEN(0x0050CBA0, CFigureAnimationState::Queue);
 
 void CFigureAnimationState::SetTime(float frame) {
     EI_NAN_AUDIT(time, frame);
@@ -104,7 +101,5 @@ void CFigureAnimationState::SetTime(float frame) {
     Apply(this, current);
     changed = 1;
 }
-EI_REWRITTEN(0x0050D600, CFigureAnimationState::SetTime);
 
 void CFigureAnimationState::Advance(float frames) { SetTime(frames + time); }
-EI_REWRITTEN(0x0050D5E0, CFigureAnimationState::Advance);

@@ -4,7 +4,6 @@
 #include "chunk_archive.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/stlp.h"
 
 #include <unknwn.h>
@@ -24,6 +23,5 @@ void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void
     registry->factories.FindOrInsert({id, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
-EI_REWRITTEN(0x00458570, TypeRegistryRegister);
 
 } // namespace app

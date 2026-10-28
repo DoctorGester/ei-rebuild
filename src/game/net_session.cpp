@@ -3,7 +3,6 @@
 #include "net_session.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
 #include "game_lists.h"
@@ -84,15 +83,5 @@ void __cdecl Pump() {
     TickSession(GameClient(), elapsed);
     TheGameFlow()->UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
 }
-EI_REWRITTEN(0x004122D0, Pump);
 
 } // namespace net
-
-EI_REWRITTEN(0x00412230, InitGameServerPointer);
-EI_REWRITTEN(0x00412250, ReleaseGameServer);
-EI_REWRITTEN(0x00412280, InitGameClientPointer);
-EI_REWRITTEN(0x004122A0, ReleaseGameClient);
-EI_REWRITTEN(0x00432CA0, ConstructSendBuffer);
-EI_REWRITTEN(0x00432CC0, DestroySendBuffer);
-EI_REWRITTEN(0x00432CE0, ConstructReceiveBuffer);
-EI_REWRITTEN(0x00432D00, DestroyReceiveBuffer);

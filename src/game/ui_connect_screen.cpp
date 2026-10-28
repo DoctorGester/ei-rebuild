@@ -22,7 +22,6 @@
 #include "world.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -174,7 +173,6 @@ MpAddressEntry* MpAddressEntry::CopyConstruct(const MpAddressEntry* other) {
     password = other->password;
     return this;
 }
-EI_REWRITTEN(0x0061EE80, MpAddressEntry::CopyConstruct);
 
 MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
     name = other.name;
@@ -189,13 +187,11 @@ MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
     password = other.password;
     return this;
 }
-EI_REWRITTEN(0x0061E8F0, MpAddressEntry::AssignFrom);
 
 void MpAddressEntry::Destroy() {
     std::destroy_at(&description);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x0061E8A0, MpAddressEntry::Destroy);
 
 void MpAddressList::PushDefault() {
     MpAddressEntry*& finish = Finish();
@@ -211,7 +207,6 @@ void MpAddressList::PushDefault() {
     MpAddressEntry entry{};
     InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
 }
-EI_REWRITTEN(0x0061E5A0, MpAddressList::PushDefault);
 
 MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
     MpAddressEntry* start = begin();
@@ -240,7 +235,6 @@ MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
     }
     return begin() + index;
 }
-EI_REWRITTEN(0x0061E660, MpAddressList::InsertDefault);
 
 MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last) {
     MpAddressEntry* to = first;
@@ -249,7 +243,6 @@ MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last
     Finish() = to;
     return first;
 }
-EI_REWRITTEN(0x0061EA90, MpAddressList::Erase);
 
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
@@ -301,7 +294,6 @@ void CMpConnectScreen::Update() {
     nameEdit_->changed_ = false;
     if (renamed) DrawListVanilla();
 }
-EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
@@ -320,7 +312,6 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         net::GameClient()->gameType_ = entries_[selected_].gameType;
     }
 }
-EI_REWRITTEN(0x0061C2E0, CMpConnectScreen::OnBoxResult);
 
 // --- input ---------------------------------------------------------------------------------------
 
@@ -429,10 +420,6 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0061C700, CMpConnectScreen::OnLButtonDown);
-EI_REWRITTEN(0x0061CA30, CMpConnectScreen::OnLButtonDouble);
-EI_REWRITTEN(0x0061CAD0, CMpConnectScreen::OnKeyDown);
-
 void CMpConnectScreen::SelectAndScroll() {
     if (selected_ < 0) selected_ = 0;
     if (static_cast<unsigned>(selected_) >= entries_.size()) selected_ = static_cast<int>(entries_.size()) - 1;
@@ -444,7 +431,6 @@ void CMpConnectScreen::SelectAndScroll() {
     scroll_->TakePosition(&scrollTop_);
     DrawListVanilla();
 }
-EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
 void CMpConnectScreen::Connect() {
     interface_->PlaySound(OkSound(), 0);
@@ -473,7 +459,6 @@ void CMpConnectScreen::Connect() {
     TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
     net::GameClient()->gameType_ = entries_[selected_].gameType;
 }
-EI_REWRITTEN(0x0061CCE0, CMpConnectScreen::Connect);
 
 void CMpConnectScreen::EditAddress() {
     int row = selected_;
@@ -491,7 +476,6 @@ void CMpConnectScreen::EditAddress() {
     }
     OpenBox(interface_, texts_[kTextAddress].c_str(), boxText_, kBoxAddress, kBoxFlagsEdit);
 }
-EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
@@ -506,7 +490,6 @@ void CMpConnectScreen::MasterRequest() {
     interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster].c_str(), boxText_, kBoxMaster, &master, extra), 1,
                            1);
 }
-EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
@@ -521,7 +504,6 @@ void CMpConnectScreen::SaveAddressBook() {
     archive.Close(&file);
     file.Close();
 }
-EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 
 void CMpConnectScreen::RebuildList() {
     entries_.Erase(entries_.begin(), entries_.end());
@@ -588,7 +570,6 @@ void CMpConnectScreen::RebuildList() {
     }
     scrollTop_ = 0;
 }
-EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -756,7 +737,6 @@ void CMpConnectScreen::CreateScreen() {
     note->DrawTextIn(texts_[kTextConnecting].c_str(), &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
-EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
 
 // --- the master request box ----------------------------------------------------------------------
 
@@ -769,7 +749,6 @@ CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, con
     bar_->flatColour_ = kBarColour;
     BufferPut(&link_.out, &extra, sizeof(extra));
 }
-EI_REWRITTEN_SPECIAL(0x0061E2F0, CMasterRequestBox::CMasterRequestBox);
 
 void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatio(&link_.in);
@@ -779,4 +758,3 @@ void CMasterRequestBox::Update() {
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }
-EI_REWRITTEN(0x0061E4E0, CMasterRequestBox::Update);

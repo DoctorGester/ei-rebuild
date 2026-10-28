@@ -8,7 +8,6 @@
 #include "mod_folders.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -54,7 +53,6 @@ int CFigureManager::CreateWithArchives() {
     LoadMenuRects(g_menuRects);
     return 1;
 }
-EI_REWRITTEN(0x005AA510, CFigureManager::CreateWithArchives);
 
 CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName, FigureModel*, std::uint32_t,
                                      std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
@@ -125,11 +123,3 @@ void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
     else LoadOld(cursor, s, t, u);
     flags_ |= kLoaded;
 }
-
-EI_REWRITTEN(0x005A2490, CFigureMesh::LoadFromMemory);
-EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's LoadFromMemory)
-EI_REWRITTEN(0x005AC1A0, CFigureManager::NewFigure);
-EI_REWRITTEN(0x005AC2B0, CFigureManager::NewPart);
-EI_REWRITTEN(0x005A9EB0, FigureModel::Open);
-EI_REWRITTEN(0x005AC2F0, CFigureManager::LoadPart);
-EI_REWRITTEN(0x005ACA60, CFigureManager::LoadBoneAnimation);

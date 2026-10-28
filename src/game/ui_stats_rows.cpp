@@ -6,7 +6,6 @@
 #include "item_db_text.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
@@ -58,7 +57,6 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
     surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
-EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
 // --- A body part's armour ------------------------------------------------------------------------
 
@@ -91,4 +89,3 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
     surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
-EI_REWRITTEN(0x00624590, CHeroStatsPanel::DrawPart);

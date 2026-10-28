@@ -9,7 +9,6 @@
 #include "dx_surface.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -79,4 +78,3 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return this;
 }
-EI_REWRITTEN(0x005E4EB0, CursorImage::Construct);

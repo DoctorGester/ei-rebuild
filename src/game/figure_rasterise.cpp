@@ -9,7 +9,6 @@
 #include "figure_mesh.h"
 #include "texture.h"   // CPixelConverter, RasterTriangle
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "game_data.h"
@@ -56,6 +55,3 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
     }
     return buffers.vertexCount * 4;
 }
-
-EI_REWRITTEN(0x005A0E80, CFigureMesh::Rasterise);
-EI_REWRITTEN(0x005A1170, FreeTexturePoints);

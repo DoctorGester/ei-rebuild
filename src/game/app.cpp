@@ -12,7 +12,6 @@
 #include "present_window.h"
 #include "asset_text.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
@@ -166,7 +165,6 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
     if (message != 0 && message == autoPlay) return 1;
     return gameapi::DefWindowProcA(window, message, wParam, lParam);
 }
-EI_REWRITTEN(0x00457D40, WindowProc);
 
 LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
@@ -237,14 +235,12 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     }
     return WindowProc(g_mainWindow, message, wParam, lParam);
 }
-EI_REWRITTEN(0x00457970, DispatchInput);
 
 void __cdecl PumpMessages() {
     MSG msg;
     while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         WindowProc(g_mainWindow, msg.message, msg.wParam, msg.lParam);
 }
-EI_REWRITTEN(0x00458220, PumpMessages);
 
 int __cdecl StartFirstMap() {
     const auto& cmdMap = CommandLineMap();    // map on the command line
@@ -280,7 +276,6 @@ int __cdecl StartFirstMap() {
     script->GetError(&error);
     return game::FatalError("%s, line %i", error.text.c_str(), error.line);
 }
-EI_REWRITTEN(0x00456140, StartFirstMap);
 
 // ---- FatalError ---------------------------------------------------------------------
 
@@ -301,7 +296,6 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
     gameapi::SetCursor(cursor);
     return answer;
 }
-EI_REWRITTEN(0x004560D0, ShowMessageBox);
 
 namespace {
 
@@ -329,7 +323,6 @@ int __cdecl game::FatalError(const char* format, ...) {
     if (++app::g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
     return 0;
 }
-EI_REWRITTEN(0x00480080, game::FatalError);
 
 namespace app {
 
@@ -357,7 +350,6 @@ int __cdecl FatalErrorCode(long result, const char* format, ...) {
     va_end(args);
     return value;
 }
-EI_REWRITTEN(0x004800E0, FatalErrorCode);
 
 // ---- The operator new handler -------------------------------------------------------
 
@@ -369,6 +361,5 @@ int __cdecl OutOfMemory(std::size_t) {
     ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
     return 0;
 }
-EI_REWRITTEN(0x00455A30, OutOfMemory);
 
 } // namespace app

@@ -5,8 +5,6 @@
 #include "record_vectors.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -37,7 +35,6 @@ void DressedUnitRecord::Write(CStream* stream) {
     Put(stream, &byte, 1);
     PutWord(stream, static_cast<std::uint32_t>(modelNumber));
 }
-EI_REWRITTEN(0x00558FA0, DressedUnitRecord::Write);
 
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.
@@ -134,6 +131,3 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->modelNumber, 4);
     }
 }
-
-EI_REWRITTEN(0x0055A190, ReadUnitLooks);
-EI_REWRITTEN(0x00559E60, UnitSet::Write);

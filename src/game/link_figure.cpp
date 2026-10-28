@@ -6,7 +6,6 @@
 #include "texture.h"   // CTextureDevice
 #include "render/render.h"   // MeshChanged
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp_tree_abi.h"
@@ -94,8 +93,6 @@ CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*na
 
 // The name goes after the body (a member).
 CLinkMeshBase::~CLinkMeshBase() { headers_.Destroy(); }
-EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding
-EI_REWRITTEN_SPECIAL(0x004F2E00, CLinkMeshBase::~CLinkMeshBase);   // deleting
 
 CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u)
     : CLinkMeshBase(name) {
@@ -112,7 +109,6 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float 
     loader_ = loader;
     pipeline_ = loader->renderer_->pipeline_->transform_;
 }
-EI_REWRITTEN_SPECIAL(0x004F2C00, CLinkMesh::CLinkMesh);
 
 CLinkMesh::~CLinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
@@ -124,9 +120,6 @@ CLinkMesh::~CLinkMesh() {
     normals_.FreeData();
     vertices_.FreeData();
 }
-EI_REWRITTEN_SPECIAL(0x004F2E40, CLinkMesh::~CLinkMesh);
-
-EI_REWRITTEN_SPECIAL(0x004F2E20, CLinkMesh::~CLinkMesh);   // deleting
 
 bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
@@ -152,7 +145,6 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     ranges_.Subscript(*name) = ranges;
     return true;
 }
-EI_REWRITTEN(0x004F30F0, CLinkMesh::AddPart);
 
 // ---- Part loaders ---------------------------------------------------------------------------------
 
@@ -192,7 +184,6 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
                   FileArray<std::uint32_t>(words), fig.wordCount, FileArray<std::uint16_t>(indices), fig.indexCount);
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
-EI_REWRITTEN(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
@@ -230,7 +221,6 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
                   FileArray<std::uint32_t>(words), wordCount, FileArray<std::uint16_t>(indices), indexCount);
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
-EI_REWRITTEN(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
 
@@ -247,7 +237,6 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name
     mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
-EI_REWRITTEN(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
 
 void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
@@ -260,14 +249,12 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name
     mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
-EI_REWRITTEN(0x004FA670, CLinkFigureLoader::RemorphOldPart);
 
 int CLinkMesh::MemoryBytes() const {
     const int parts = static_cast<int>(ranges_.size());
     const int inner = texCoords_.size + 8 * (vertices_.size + normals_.size) + 6 * parts;
     return 2 * (indices_.size + 3 * corners_.size + 2 * (words_.size + 0x2C + 2 * inner));
 }
-EI_REWRITTEN(0x004F4B50, CLinkMesh::MemoryBytes);
 
 bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
@@ -278,7 +265,6 @@ bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* ve
     render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps
     return true;
 }
-EI_REWRITTEN(0x004F3800, CLinkMesh::SetPartVertices);
 
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
 
@@ -302,7 +288,6 @@ void CLinkMesh::SetMorph(float s, float t, float u) {
     morphWeights_[1] = t;
     morphWeights_[2] = u;
 }
-EI_REWRITTEN(0x004F2F90, CLinkMesh::SetMorph);
 
 void CLinkMesh::UpdateScreenRect() {
     gameapi::SetRect(&screenRect_, kNoRect, kNoRect, -kNoRect, -kNoRect);
@@ -317,16 +302,13 @@ void CLinkMesh::UpdateScreenRect() {
 }
 
 bool CLinkMesh::HasPart(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
-EI_REWRITTEN(0x004F3040, CLinkMesh::HasPart);
 
 void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
     for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
         out->push_back(node->first);
 }
-EI_REWRITTEN(0x004F2FB0, CLinkMesh::CollectPartNames);
 
 bool CLinkMesh::LoadPart(const stlp::string* name) { return loader_->LoadPartInto(this, name); }
-EI_REWRITTEN(0x004F30D0, CLinkMesh::LoadPart);
 
 bool CLinkMesh::RemovePart(const stlp::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
@@ -354,7 +336,6 @@ bool CLinkMesh::RemovePart(const stlp::string* name) {
     }
     return true;
 }
-EI_REWRITTEN(0x004F3530, CLinkMesh::RemovePart);
 
 bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                             std::uint16_t** indices, int* vertexCount, int* indexCount) {
@@ -368,4 +349,3 @@ bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, M
     *vertexCount = r.vertices.count;
     return true;
 }
-EI_REWRITTEN(0x004F3780, CLinkMesh::GetPartData);

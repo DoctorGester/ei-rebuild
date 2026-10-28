@@ -1,6 +1,5 @@
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "resource.h"
 #include "spell.h"
 
@@ -66,7 +65,6 @@ BOOL CTextManager::IsPastEnd(const char* p) {
     int offset = static_cast<int>(p - text_);
     return offset >= static_cast<int>(length_);
 }
-EI_REWRITTEN(0x004E0000, CTextManager::IsPastEnd);
 
 BOOL CTextManager::GetString(const char* name, std::string* out) {
     if (cursor_) {
@@ -91,7 +89,6 @@ BOOL CTextManager::GetString(const char* name, std::string* out) {
     cursor_ = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x004E0020, CTextManager::GetString);
 
 BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
@@ -210,7 +207,6 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     if (kindKey) GetString(kindKey, kind);
     return 1;
 }
-EI_REWRITTEN(0x004E0150, CTextManager::GetItemTexts);
 
 BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
     std::string name;
@@ -226,7 +222,6 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004E13E0, CTextManager::FormatItemName);
 
 TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* next = pos->next;
@@ -238,12 +233,10 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     *out = next;
     return out;
 }
-EI_REWRITTEN(0x004E1550, TextSources::Erase);
 
 TextSources::Node* TextSources::CreateNode(const TextSource* value) {
     return stlp::list<TextSource>::CreateNode(*value);
 }
-EI_REWRITTEN(0x004E15C0, TextSources::CreateNode);
 
 TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource* value) {
     Node* node = CreateNode(value);
@@ -254,5 +247,3 @@ TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource*
     *out = node;
     return out;
 }
-EI_REWRITTEN(0x004E1590, TextSources::Insert);
-

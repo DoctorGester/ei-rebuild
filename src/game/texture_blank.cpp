@@ -12,7 +12,6 @@
 #include "dx_surface.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -69,8 +68,6 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     uploadResult_ = static_cast<int>((layout.bitCount * size * size) >> 3);
     return 1;
 }
-EI_REWRITTEN(0x0068F6C0, CTexture::CreateBlank);
-
 
 CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     CTexture* texture = NewTextureOfType(kind);
@@ -111,4 +108,3 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     }
     return texture;
 }
-EI_REWRITTEN(0x00691D80, CTextureManager::NewTexture);

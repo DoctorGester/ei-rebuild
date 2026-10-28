@@ -12,7 +12,6 @@
 #include "lib/compiled_vtable.h"
 #include "lib/crt_iostream.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "library_trees.h"
@@ -77,11 +76,8 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
 ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : Streambuf(buffer_, sizeof(buffer_)), filter_(filter) {}
-EI_REWRITTEN_SPECIAL(0x005DC200, ConsoleStreambuf::ConsoleStreambuf);
 
 ConsoleStreambuf::~ConsoleStreambuf() {}
-EI_REWRITTEN_SPECIAL(0x005DC260, ConsoleStreambuf::~ConsoleStreambuf);
-EI_REWRITTEN_SPECIAL(0x005DC240, ConsoleStreambuf::~ConsoleStreambuf);   // deleting
 
 int ConsoleStreambuf::Underflow() { return -1; }
 
@@ -98,7 +94,6 @@ int ConsoleStreambuf::Overflow(int c) {
     }
     return 0;
 }
-EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 
 // Overflow(EOF), the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
@@ -108,7 +103,6 @@ int ConsoleStreambuf::Sync() {
     line_ = game::EmptyText();
     return 0;
 }
-EI_REWRITTEN(0x005DC1B0, ConsoleStreambuf::Sync);
 
 // ---- Executor -----------------------------------------------------------------------------------
 
@@ -200,7 +194,6 @@ void __fastcall Execute(const char* text) {
     }
     PrintLine("Unknown command");
 }
-EI_REWRITTEN(0x005DC620, Execute);
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.
@@ -253,7 +246,6 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004DC200, Tokenize);
 
 // The arguments are joined back with single spaces.
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
@@ -270,6 +262,5 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     if (!RunScriptText(&line, 1, &error))
         EndLine(Out() << "Script error: " << error.text.c_str());
 }
-EI_REWRITTEN(0x005DD800, RunScriptLine);
 
 } // namespace console

@@ -10,7 +10,6 @@
 #include "party.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -72,7 +71,6 @@ BOOL CHeroQuickStrip::Draw(CSceneRenderer* pass) {
     }
     return DrawBase(pass);
 }
-EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 
 // --- The repair grid ------------------------------------------------------------------
 
@@ -117,7 +115,6 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00627C90, CRepairGrid::Draw);
 
 // --- The constructors' second pages ----------------------------------------
 
@@ -243,7 +240,6 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
     highlight->visible_ = 0;
     return 1;
 }
-EI_REWRITTEN(0x006284A0, CSpellMakerPage::DrawSpellMaker);
 
 namespace {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
@@ -343,4 +339,3 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
     highlight->visible_ = 0;
     return 1;
 }
-EI_REWRITTEN(0x00628F80, CConstructorPage::DrawItemMaker);

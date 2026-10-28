@@ -6,7 +6,6 @@
 #include "device_material.h"
 #include "model.h"   // CSceneRenderer
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "render/render_state.h"
 
@@ -20,7 +19,6 @@ int CSceneRenderer::SetFogColourState(std::uint32_t colour) {
     if (hr != 0) return game::FatalError("Can't set fog color 0x%X.\n", colour);
     return 1;
 }
-EI_REWRITTEN(0x00501AB0, CSceneRenderer::SetFogColourState);
 
 // Sets SRCBLEND, then DESTBLEND (D3DBLEND values: the particle draw passes 5, 2 for additive sources and 5, 6 to go
 // back). A failure is reported (its result returned; DESTBLEND is then not set), else 1.
@@ -33,7 +31,6 @@ int CSceneRenderer::SetBlend(std::uint32_t source, std::uint32_t dest) {
     if (hr != 0) return app::FatalErrorCode(hr, "Can't set destination alpha blend mode.\n");
     return 1;
 }
-EI_REWRITTEN(0x00501C60, CSceneRenderer::SetBlend);
 
 void* CDeviceMaterial::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CDeviceMaterial::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -53,4 +50,3 @@ int CTextureDevice::SetMaterial(CDeviceMaterial* material) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004EB170, CTextureDevice::SetMaterial);

@@ -9,7 +9,6 @@
 #include "unit_create.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "logic_settings.h"
 
@@ -31,15 +30,12 @@ void AttackParams::ScaleForDifficulty(int keyed) {
     defence =
         static_cast<int>(static_cast<float>(defence) * GameLogicSettings().defence[Difficulty()]);
 }
-EI_REWRITTEN(0x0052E0D0, AttackParams::ScaleForDifficulty);
 
 // --- Database records ---------------------------------------------------------------------------------
 
 UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return RecordAt(begin, end, index); }
-EI_REWRITTEN(0x00539280, UnitModelTable::At);
 
 // Prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {
     return RecordAt(begin, end, index);
 }
-EI_REWRITTEN(0x0053AD30, UnitPrototypeTable::At);

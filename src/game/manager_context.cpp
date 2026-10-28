@@ -4,12 +4,9 @@
 
 #include "item.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 int CManagerContext::Create() { return 1; }
-EI_REWRITTEN(0x0055E930, CManagerContext::Create);
 
 CItem* CManagerContext::MakeCopyOf(CItem* item) {
     std::uint32_t packed = item->prototypeId_;
@@ -17,4 +14,3 @@ CItem* CManagerContext::MakeCopyOf(CItem* item) {
     item->CopyTo(copy, SpellManager());
     return copy;
 }
-EI_REWRITTEN(0x0055E940, CManagerContext::MakeCopyOf);

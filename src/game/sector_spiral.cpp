@@ -9,8 +9,6 @@
 
 #include "game_arrays.h"
 
-#include "ei/hook.h"
-
 static_assert(sizeof(mfc::CArray<int>) == 0x14 && sizeof(RadiusTree) == 0x1C && sizeof(mfc::CArray<SpiralOffset>) == 0x14);
 
 constinit lib::StaticObject<mfc::CArray<int>> g_spiralLengths = /*007C2FC0*/ {};
@@ -47,10 +45,3 @@ void __cdecl ConstructSpiralLengths() {
     mfc::impl::ConstructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
     RegisterExit(DestroySpiralLengths);
 }
-
-EI_REWRITTEN(0x005BF810, ConstructSpiralOffsets);
-EI_REWRITTEN(0x005BF830, DestroySpiralOffsets);
-EI_REWRITTEN(0x005BF840, ConstructSpiralRadii);
-EI_REWRITTEN(0x005BF860, DestroySpiralRadii);
-EI_REWRITTEN(0x005BF8B0, ConstructSpiralLengths);
-EI_REWRITTEN(0x005BF8D0, DestroySpiralLengths);

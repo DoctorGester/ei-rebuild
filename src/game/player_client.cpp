@@ -31,7 +31,6 @@
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -306,23 +305,6 @@ int CPlayerClient::OnExperience() {
     return 1;
 }
 
-EI_REWRITTEN(0x00669350, CPlayerClient::OnQuestItemsChanged);
-EI_REWRITTEN(0x0066A480, CPlayerClient::OnExperienceAll);
-EI_REWRITTEN(0x0066A5A0, CPlayerClient::OnExperience);
-EI_REWRITTEN(0x00669010, CPlayerClient::OnZone);
-EI_REWRITTEN(0x006690F0, CPlayerClient::OnWorldBlock3);
-EI_REWRITTEN(0x006691C0, CPlayerClient::OnWorldBlock5);
-EI_REWRITTEN(0x00669290, CPlayerClient::OnItemRemoved);
-EI_REWRITTEN(0x00667D80, CPlayerClient::ReadText);
-EI_REWRITTEN(0x00669850, CPlayerClient::OnSetVariable);
-EI_REWRITTEN(0x00669960, CPlayerClient::OnDeleteVariable);
-EI_REWRITTEN(0x00669EB0, CPlayerClient::OnZoneChange);
-EI_REWRITTEN(0x00669F40, CPlayerClient::OnJingle);
-EI_REWRITTEN(0x00667680, CPlayerClient::Pump);
-EI_REWRITTEN(0x00667810, CPlayerClient::SendToServer);
-EI_REWRITTEN(0x00667970, CPlayerClient::DispatchMessages);
-EI_REWRITTEN(0x00667A30, CPlayerClient::ReceiveMessages);
-
 // --- Items, party, path markers, string events, recording ---------------------------------------
 
 namespace {
@@ -477,14 +459,6 @@ void CPlayerClient::StopRecording() {
     netlink::NetLink* link = Owner()->link_;
     if (link != nullptr) link->CloseRecording();
 }
-
-EI_REWRITTEN(0x00669490, CPlayerClient::OnItemsReceived);
-EI_REWRITTEN(0x00669A30, CPlayerClient::OnParty);
-EI_REWRITTEN(0x00669C90, CPlayerClient::OnPartyUpdate);
-EI_REWRITTEN(0x00669FA0, CPlayerClient::OnPathMarker);
-EI_REWRITTEN(0x00667E60, CPlayerClient::OnStringEvent);
-EI_REWRITTEN(0x00669710, CPlayerClient::StartRecording);
-EI_REWRITTEN(0x00669750, CPlayerClient::StopRecording);
 
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
@@ -667,8 +641,6 @@ int CPlayerClient::OnNewObject() {
     return 1;
 }
 
-EI_REWRITTEN(0x00667EC0, CPlayerClient::OnNewObject);
-
 // --- Clearing the connection ---------------------------------------------------------------
 
 void CoderState::Reset() {
@@ -715,7 +687,6 @@ BOOL CPlayerClient::CreateClient() {
         handlers_[entry.type] = entry.handler;
     return 1;
 }
-EI_REWRITTEN(0x00667230, CPlayerClient::CreateClient);
 
 void CPlayerClient::Clear() {
     state_ = 0;
@@ -736,8 +707,6 @@ CPlayerConnection::CPlayerConnection() {
 }
 
 CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
-EI_REWRITTEN_SPECIAL(0x00666EC0, CPlayerConnection::~CPlayerConnection);
-EI_REWRITTEN_SPECIAL(0x00666F70, CPlayerConnection::~CPlayerConnection);
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
 CPlayerClient::CPlayerClient() {
@@ -748,7 +717,6 @@ CPlayerClient::CPlayerClient() {
     otherUnitIds_.Construct();
     Clear();
 }
-EI_REWRITTEN_SPECIAL(0x00666D10, CPlayerClient::CPlayerClient);
 
 // The streams are members, destroyed after the body (the original frees them before the handler table).
 CPlayerClient::~CPlayerClient() {
@@ -759,17 +727,9 @@ CPlayerClient::~CPlayerClient() {
     compressor_.out.End();
     handlers_.FreeData();
 }
-EI_REWRITTEN_SPECIAL(0x00666FD0, CPlayerClient::~CPlayerClient);
-EI_REWRITTEN_SPECIAL(0x00666FB0, CPlayerClient::~CPlayerClient);
 
 const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
-EI_REWRITTEN(0x00666F90, CPlayerClient::GetClassName);
 int CPlayerClient::GetClassId() { return 0x3C; }
-EI_REWRITTEN(0x00666FA0, CPlayerClient::GetClassId);
-
-EI_REWRITTEN(0x006671A0, CoderState::Reset);
-EI_REWRITTEN(0x00667510, CPlayerClient::Clear);
-EI_REWRITTEN(0x00667600, CPlayerClient::Clear);
 
 // --- The party state ---------------------------------------------------------------------
 
@@ -796,9 +756,6 @@ void __cdecl ConstructPartyIdSet() {
     g_partyIdSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(DestroyPartyIdSet);
 }
-
-EI_REWRITTEN(0x00668B40, ConstructPartyIdSet);
-EI_REWRITTEN(0x00668B60, DestroyPartyIdSet);
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
@@ -834,7 +791,6 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);
     return 1;
 }
-EI_REWRITTEN(0x00668C50, CPlayerClient::OnPartyState);
 
 // --- Messages appended to the received stream -----------------------------------------------
 
@@ -846,4 +802,3 @@ void CPlayerClient::AppendReceived(BitStream* source) {
     in_.Write(source->data_, source->Size());
     in_.Seek(position);
 }
-EI_REWRITTEN(0x00667B40, CPlayerClient::AppendReceived);

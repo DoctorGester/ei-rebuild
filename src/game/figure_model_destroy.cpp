@@ -7,7 +7,6 @@
 #include "record_lifetime.h"
 
 #include "lib/crt.h"
-#include "ei/hook.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
 #include "lib/mfc_slots.h"
@@ -78,9 +77,6 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     DeallocatePointers(buckets.Start(), static_cast<int>(buckets.EndOfStorage() - buckets.Start()));
 }
 
-EI_REWRITTEN(0x005A9C90, DestroyFigureModel);
-EI_REWRITTEN(0x005AE5B0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
-EI_REWRITTEN(0x005AE5D0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
 // The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
 // cleared and its buckets freed (the map's inline destructor), then the base destructor.
 CFigureManager::~CFigureManager() {
@@ -102,5 +98,3 @@ CFigureManager::~CFigureManager() {
     if (buckets.Start())
         Deallocate(buckets.Start(), static_cast<std::size_t>(buckets.EndOfStorage() - buckets.Start()) * 4);
 }
-
-EI_REWRITTEN_SPECIAL(0x005AA1C0, CFigureManager::~CFigureManager);

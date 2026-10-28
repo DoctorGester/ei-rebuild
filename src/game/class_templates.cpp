@@ -12,7 +12,6 @@
 #include "party_manager.h"
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_hash.h"
 
 #include <cstring>
@@ -91,7 +90,6 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         }
     }
 }
-EI_REWRITTEN(0x004A7080, ClassTemplateFill);
 
 // ---- Building the templates ------------------------------------------------------------------
 
@@ -145,7 +143,6 @@ void TemplateTable::Build(unsigned fourClasses) {
         AddTemplate(v, 5, 1, 1, kZeroWeights);
     }
 }
-EI_REWRITTEN(0x004A7630, TemplateTable::Build);
 
 // ---- Small members ----------------------------------------------------------------------------------
 
@@ -155,7 +152,6 @@ ClassTemplate* TemplateTable::Find(int type) const {
         if ((*this)[i]->type == type) return (*this)[i];
     return nullptr;
 }
-EI_REWRITTEN(0x004A74F0, TemplateTable::Find);
 
 unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager) {
     ClassTemplateVector* v = &manager->templates;
@@ -166,4 +162,3 @@ unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager) {
     }
     return i;
 }
-EI_REWRITTEN(0x004A88E0, ClassTemplatesQuestCompleted);

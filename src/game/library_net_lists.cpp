@@ -1,8 +1,6 @@
 // The clients' find and the counted pointer's init (library_net_lists.h).
 #include "library_net_lists.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace netlists {
@@ -32,7 +30,3 @@ ClientsIterator* ClientsIterator::FindByAddress(ClientsNode* first, ClientsNode*
 }
 
 } // namespace netlists
-
-using namespace netlists;
-
-EI_REWRITTEN(0x0043D780, ClientsIterator::FindByAddress);

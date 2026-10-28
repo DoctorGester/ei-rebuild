@@ -9,7 +9,6 @@
 #include "texture.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "game_arrays.h"
 #include "lib/mfc_coll.h"
@@ -82,7 +81,6 @@ int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
     DeleteVertices(vertices);
     return 1;
 }
-EI_REWRITTEN(0x005045D0, CSceneRenderer::Polyline);
 
 // Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.
@@ -126,7 +124,6 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
     render::state::Render(kShadeMode, kShadeGouraud);
     return hr;
 }
-EI_REWRITTEN(0x0049B4B0, DeviceDrawLineStrip);
 
 // The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers
 // leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
@@ -149,8 +146,3 @@ void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
     libcrt::AtExit(DestroyLineOutcodes);
 }
-
-EI_REWRITTEN(0x0049B490, FreeLineVertices);
-EI_REWRITTEN(0x0049B710, FreeLineProjected);
-EI_REWRITTEN(0x0049B6B0, ConstructLineOutcodes);
-EI_REWRITTEN(0x0049B6D0, DestroyLineOutcodes);

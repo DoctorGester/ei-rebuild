@@ -7,8 +7,6 @@
 #include "net_coder.h"
 #include "object.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace {
@@ -147,6 +145,3 @@ bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, in
     out->version_ = file->version_;
     return true;
 }
-
-EI_REWRITTEN(0x00579B80, SaveFileWrite);
-EI_REWRITTEN(0x00579830, SaveFileRead);

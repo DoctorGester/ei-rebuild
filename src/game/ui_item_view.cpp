@@ -17,7 +17,6 @@
 #include "spell.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/vecmath.h"
 #include "ei/x87.h"
@@ -326,7 +325,6 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         RemoveSceneObject(shade);
     }
 }
-EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
 BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
     if (CItem* item = FirstItem()) {
@@ -341,8 +339,6 @@ BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
     }
     return 1;
 }
-
-EI_REWRITTEN(0x005EE5C0, CItemInfoPanel::Draw);
 
 // --- A hero's face -----------------------------------------------------------------------------
 
@@ -410,7 +406,6 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     RemoveSceneObject(frame);
     model->Draw(pass);
 }
-EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 // --- An item's figure texture -------------------------------------------------------------
 
@@ -486,7 +481,6 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     manager->FreeAllFiles();
     return texture;
 }
-EI_REWRITTEN(0x005EC020, ItemFigureTexture);
 
 // --- An image into part of a texture -------------------------------------------------------
 
@@ -538,5 +532,3 @@ int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, in
     TheTextureManager()->FreeAllFiles();
     return image != nullptr;
 }
-
-EI_REWRITTEN(0x005FFFB0, CUiWindow::CopyImage);

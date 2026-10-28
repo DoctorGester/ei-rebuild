@@ -389,7 +389,6 @@ int CSpellEffect::Update() {
         return 0;
     }
 }
-EI_REWRITTEN(0x0067E6D0, CSpellEffect::Update);
 
 void CSpellEffect::UpdateMissile(int type) {
     switch (type) {
@@ -406,7 +405,6 @@ void CSpellEffect::UpdateMissile(int type) {
     default: break;
     }
 }
-EI_REWRITTEN(0x00681BB0, CSpellEffect::UpdateMissile);
 
 void CSpellEffect::UpdateLasting(int type) {
     UnitList units;   // the inline CPtrList the fireworks and clairvoyance fill
@@ -444,13 +442,9 @@ void CSpellEffect::UpdateLasting(int type) {
     units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
 }
-EI_REWRITTEN(0x00682650, CSpellEffect::UpdateLasting);
 
 void CSpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }
-EI_REWRITTEN(0x0067EE00, CSpellEffect::ReleaseVisual);
 
 void CSpellEffect::ReleaseSound() { Assign<CEffect>(this, &sound, nullptr); }
-EI_REWRITTEN(0x0067EE40, CSpellEffect::ReleaseSound);
 
 void CSpellEffect::ReleaseLight() { Assign<CEffectPointLight>(this, &light, nullptr); }
-EI_REWRITTEN(0x0067EE80, CSpellEffect::ReleaseLight);

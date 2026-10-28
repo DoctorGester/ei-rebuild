@@ -3,7 +3,6 @@
 // constructor. See core_streams.h.
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -20,28 +19,12 @@ constexpr std::uint32_t kDefaultVersion = 2000000000;
 
 } // namespace
 
-// --- CRefCounted / CRefObject: the out-of-line constructor and destructor bodies ----------
-
-EI_REWRITTEN_SPECIAL(0x00412720, CRefCounted::~CRefCounted);
-EI_REWRITTEN_SPECIAL(0x005ED7A0, CRefCounted::~CRefCounted);
-EI_REWRITTEN_SPECIAL(0x004368C0, CRefCounted::~CRefCounted);
-EI_REWRITTEN_SPECIAL(0x00562770, CRefCounted::~CRefCounted);
-EI_REWRITTEN_SPECIAL(0x0058FBE0, CRefCounted::~CRefCounted);
-EI_REWRITTEN_SPECIAL(0x00412730, CRefCounted::~CRefCounted);   // deleting
-EI_REWRITTEN_SPECIAL(0x00419720, CRefObject::CRefObject);
-EI_REWRITTEN_SPECIAL(0x00412700, CRefObject::~CRefObject);   // deleting
-EI_REWRITTEN_SPECIAL(0x00562750, CRefObject::~CRefObject);   // deleting; byte-identical copies
-EI_REWRITTEN_SPECIAL(0x0058FBC0, CRefObject::~CRefObject);   // deleting
-
 // --- CStream -----------------------------------------------------------------------------------
 
 CStream::CStream() {
     version_ = kDefaultVersion;
     ok_ = 1;
 }
-EI_REWRITTEN_SPECIAL(0x0047A200, CStream::CStream);
-EI_REWRITTEN_SPECIAL(0x004174E0, CStream::~CStream);
-EI_REWRITTEN_SPECIAL(0x00417400, CStream::~CStream);
 
 void* CStream::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -54,7 +37,6 @@ mfc::CString* CStream::ReadString(void* out) {
     while (Read(&byte, 1) && byte) text = mfc::operator+(text, static_cast<char>(byte));
     return new (out) mfc::CString(text);
 }
-EI_REWRITTEN(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------
 
@@ -66,16 +48,10 @@ CMemoryStream::CMemoryStream() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-EI_REWRITTEN_SPECIAL(0x0041DD70, CMemoryStream::CMemoryStream);
-EI_REWRITTEN_SPECIAL(0x0066C4F0, CMemoryStream::CMemoryStream);   // the queue streams'
 
 CMemoryStream::~CMemoryStream() {
     if (data_) gamecrt::operator_delete(data_);
 }
-EI_REWRITTEN_SPECIAL(0x004173D0, CMemoryStream::~CMemoryStream);
-EI_REWRITTEN_SPECIAL(0x004790A0, CMemoryStream::~CMemoryStream);   // the queue streams' copy
-EI_REWRITTEN_SPECIAL(0x004173B0, CMemoryStream::~CMemoryStream);
-EI_REWRITTEN_SPECIAL(0x004790D0, CMemoryStream::~CMemoryStream);
 
 void CMemoryStream::Clear() {
     if (data_) gamecrt::operator_delete(data_);
@@ -87,7 +63,6 @@ void CMemoryStream::Clear() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-EI_REWRITTEN(0x00417350, CMemoryStream::Clear);
 
 // --- Aligned pointer arrays --------------------------------------------------------------------
 
@@ -109,4 +84,3 @@ CoderState* CoderState::Construct() {
     window[0x7FF] = 0;
     return this;
 }
-EI_REWRITTEN(0x0042FCA0, CoderState::Construct);

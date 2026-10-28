@@ -5,7 +5,6 @@
 
 #include "net_delta.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -65,7 +64,6 @@ void PathOrder::WriteState(DeltaField* field) {
         if (yCode == kStepWritten) field->WriteBoth(&cell.y, 2);
     }
 }
-EI_REWRITTEN(0x005C7DB0, PathOrder::WriteState);
 
 void PathOrder::ReadState(DeltaField* field) {
     MotionOrder* order = OrderOf(this);
@@ -101,4 +99,3 @@ void PathOrder::ReadState(DeltaField* field) {
         previousY = cell.y;
     }
 }
-EI_REWRITTEN(0x005C7FC0, PathOrder::ReadState);

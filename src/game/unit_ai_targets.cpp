@@ -14,7 +14,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "lib/nan_audit.h"
@@ -82,7 +81,6 @@ struct Scored {
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b) {
     return DistanceSquaredXYUnrounded<double>(*a, *b);
 }
-EI_REWRITTEN(0x005CFE20, AIDistance2);
 
 void AIOrder::Clear() {
     kind = 9;
@@ -90,7 +88,6 @@ void AIOrder::Clear() {
     target = nullptr;
     flag18 = 0;
 }
-EI_REWRITTEN(0x00545F40, AIOrder::Clear);
 
 void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
@@ -101,7 +98,6 @@ void AIOrder::MakeAttack(CMapObject* object) {
         target = object;
     }
 }
-EI_REWRITTEN(0x005CF720, AIOrder::MakeAttack);
 
 void AIOrder::MakeCast(int spell, CMapObject* object) {
     Clear();
@@ -112,7 +108,6 @@ void AIOrder::MakeCast(int spell, CMapObject* object) {
     }
     source = static_cast<std::uint32_t>(spell);
 }
-EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 
 bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
     ScopedPath local;
@@ -165,7 +160,6 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     order.target.Reset();
     return allowed;
 }
-EI_REWRITTEN(0x005CF3C0, AIAttention::CanReach);
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
     for (int i = 0; i < weapons.size; ++i)
@@ -201,8 +195,6 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
-
-EI_REWRITTEN(0x005CF7F0, AIAttention::IsUsable);
 
 double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
@@ -280,7 +272,6 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     }
     return result;
 }
-EI_REWRITTEN(0x005CF9A0, AIAttention::Score);
 
 void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
@@ -385,5 +376,3 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     }
     *choice = current;
 }
-
-EI_REWRITTEN(0x005D0030, AIAttention::Choose);

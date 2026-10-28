@@ -22,7 +22,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -388,4 +387,3 @@ void CCampPages::BuildPages() {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x0060C870, CCampPages::CreateScreen);

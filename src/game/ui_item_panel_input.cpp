@@ -5,7 +5,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
@@ -17,7 +16,5 @@ void CUiItemPanel::OnLeftDown(int, int x, int y) {
     }
     if (topic) OwnerTopicClicked(topic);
 }
-EI_REWRITTEN(0x005EE310, CUiItemPanel::OnLeftDown);
 
 CUiItemPanel::CUiItemPanel(CInterface3D* ui, CItemScreen* owner) : CUiWindow(ui), owner_(owner) {}
-EI_REWRITTEN_SPECIAL(0x0060E210, CUiItemPanel::CUiItemPanel);

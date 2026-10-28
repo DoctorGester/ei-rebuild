@@ -1,7 +1,6 @@
 #include "ai_map.h"
 #include "sector_map.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/compiled_vtable.h"
@@ -28,7 +27,6 @@ void Sector::Clear() {
     objects.RemoveAll();
     units.RemoveAll();
 }
-EI_REWRITTEN(0x005BFE00, Sector::Clear);
 
 int Sector::NewOccluder() {
     if (freeOccluder >= 0) {
@@ -39,7 +37,6 @@ int Sector::NewOccluder() {
     occluders.SetSize(occluders.size + 1, -1);
     return occluders.size - 1;
 }
-EI_REWRITTEN(0x005BFE70, Sector::NewOccluder);
 
 int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transparency) {
     std::int16_t first = static_cast<std::int16_t>(head);
@@ -58,13 +55,11 @@ int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transpar
     }
     return first;
 }
-EI_REWRITTEN(0x005BFFD0, Sector::RemoveOccluder);
 
 void Sector::FreeOccluder(int index) {
     occluders[index].next = static_cast<std::int16_t>(freeOccluder);
     freeOccluder = index;
 }
-EI_REWRITTEN(0x005C0060, Sector::FreeOccluder);
 
 Sector::Sector() {
     objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
@@ -77,7 +72,6 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) new (sectors) Sector();
 }
-EI_REWRITTEN(0x0059DF90, ConstructSectors);
 
 void SectorElements::Construct(Sector* sectors, int count) { ConstructSectors(sectors, count); }
 
@@ -88,7 +82,6 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     sectors.SetSize(width * height, -1);
     aiMap = map;
 }
-EI_REWRITTEN(0x005C06F0, CSectorMap::Init);
 
 void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
     sectors->vtable = mfc::impl::SectorArrayClass::Vtable();
@@ -96,8 +89,6 @@ void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>*
     SectorElements::Destruct(sectors->data, sectors->size);
     gamecrt::operator_delete(sectors->data);
 }
-EI_REWRITTEN(0x00599330, CSectorMap::DestructSectors);
-EI_REWRITTEN(0x005BD1C0, mfc::impl::ArrayHeader<mfc::impl::SectorArrayClass>::Construct);   // the sectors array's constructor (SectorArrayClass is built from DestructSectors: not in ei_vectors)
 
 CSectorMap::CSectorMap() {
     mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(sectors);
@@ -108,8 +99,6 @@ CSectorMap::CSectorMap() {
 }
 
 CSectorMap::~CSectorMap() { DestructSectors(&sectors); }
-EI_REWRITTEN_SPECIAL(0x0058A700, CSectorMap::~CSectorMap);
-EI_REWRITTEN_SPECIAL(0x0058A780, CSectorMap::~CSectorMap);
 
 bool CSectorMap::Add(CMapObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);
@@ -139,13 +128,11 @@ bool CSectorMap::Add(CMapObject* object) {
     }
     return false;
 }
-EI_REWRITTEN(0x005C0DF0, CSectorMap::Add);
 
 mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
-EI_REWRITTEN(0x005C0930, CSectorMap::UnitsAt);
 
 bool CSectorMap::Remove(CMapObject* object) {
     int sx = object->sectorCellX / 32, sy = object->sectorCellY / 32;
@@ -170,7 +157,6 @@ bool CSectorMap::Remove(CMapObject* object) {
     }
     return cleared;
 }
-EI_REWRITTEN(0x005C1010, CSectorMap::Remove);
 
 namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
@@ -191,7 +177,6 @@ int RadiusTree::Find(float radius) const {
     }
     return node & mask;
 }
-EI_REWRITTEN(0x005BF7D0, RadiusTree::Find);
 
 void RadiusTree::Build(const float* values, int count) {
     depth = 1;
@@ -211,7 +196,6 @@ void RadiusTree::Build(const float* values, int count) {
         }
     }
 }
-EI_REWRITTEN(0x005BF5F0, RadiusTree::Build);
 
 // ---- The spiral's tables ------------------------------------------------------------------------
 // Built by a static initialiser at start-up; a running game never calls the builder.
@@ -290,12 +274,10 @@ void* __fastcall BuildSectorSpiral(void* self) {
     BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
     return self;
 }
-EI_REWRITTEN(0x005BF8F0, BuildSectorSpiral);
 
 // The static initialiser that builds the spiral at its place in the list. The object it passes
 // has no fields and nothing reads it.
 void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
-EI_REWRITTEN(0x005BF8E0, BuildSectorSpiralStatic);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];
@@ -324,7 +306,6 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         }
     }
 }
-EI_REWRITTEN(0x005C0BD0, CSectorMap::FindUnitsInRadius);
 
 bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
@@ -371,4 +352,3 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     object->sectorCellX = cellX;
     return true;
 }
-EI_REWRITTEN(0x005C11D0, CSectorMap::Move);

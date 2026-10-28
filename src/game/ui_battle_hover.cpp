@@ -9,7 +9,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -222,4 +221,3 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     }
     SetCursor(shape);
 }
-EI_REWRITTEN(0x00639EF0, CBattleScreen::HoverUnit);

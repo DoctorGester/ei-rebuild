@@ -5,7 +5,6 @@
 #include "net_delta.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "world.h"
 
 namespace {
@@ -21,22 +20,16 @@ constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits 
 // --- The base companion -------------------------------------------------------------------------------
 
 CMapObjectCompanion::~CMapObjectCompanion() { owner = nullptr; }
-EI_REWRITTEN_SPECIAL(0x00510730, CMapObjectCompanion::~CMapObjectCompanion);
-EI_REWRITTEN_SPECIAL(0x00510710, CMapObjectCompanion::~CMapObjectCompanion);
 
 int CMapObjectCompanion::Create() {
     owner = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x00510750, CMapObjectCompanion::Create);
 void CMapObjectCompanion::Destroy() { owner = nullptr; }
-EI_REWRITTEN(0x00510760, CMapObjectCompanion::Destroy);
 
 int CMapObjectCompanion::UpdateCompanion() { return 0; }
-EI_REWRITTEN(0x005106E0, CMapObjectCompanion::UpdateCompanion);
 // Query (all three classes): 0.
 int CMapObjectCompanion::Query(int, int) { return 0; }
-EI_REWRITTEN(0x005104C0, CMapObjectCompanion::Query);
 
 // --- The client's and the server's ---------------------------------------------------------------------
 
@@ -45,23 +38,17 @@ void CMapObjectClientSpecific::Hit(int damage, int kind) {
     if (!(owner->flags_ & kShowsNumbers)) return;
     ClientWorld()->ShowNumber(owner->id_, damage, kind);
 }
-EI_REWRITTEN(0x005117F0, CMapObjectClientSpecific::Hit);
 
 // Class name and id.
 const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; }
-EI_REWRITTEN(0x00510520, CMapObjectClientSpecific::GetClassName);
 int CMapObjectClientSpecific::GetClassId() { return kClientClassId; }
-EI_REWRITTEN(0x00510530, CMapObjectClientSpecific::GetClassId);
 
 // Class name and id.
 const char* CMapObjectServer::GetClassName() { return kServerClassName; }
-EI_REWRITTEN(0x005156E0, CMapObjectServer::GetClassName);
 int CMapObjectServer::GetClassId() { return kServerClassId; }
-EI_REWRITTEN(0x005156F0, CMapObjectServer::GetClassId);
 
 // --- The client companion's particle records and the network records ---------------------------------
 
 void EffectParticle::ReleaseSource() {
     if (source) source->Release();
 }
-EI_REWRITTEN(0x00511290, EffectParticle::ReleaseSource);

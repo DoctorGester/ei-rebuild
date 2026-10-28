@@ -10,7 +10,6 @@
 
 #include "lib/stlp_list_refs.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -68,7 +67,6 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         }
     }
 }
-EI_REWRITTEN(0x00479E30, DriverSession::PumpDrivers);
 
 // Both lists emptied, then one driver for `player`: started, and its pending output
 // drained into throwaway memory streams while slot 6 answers true. Returns the driver.
@@ -97,6 +95,5 @@ DriverLink* DriverSession::Start(net::Connection* player) {
     }
     return driver;
 }
-EI_REWRITTEN(0x0047A080, DriverSession::Start);
 
 } // namespace netlink

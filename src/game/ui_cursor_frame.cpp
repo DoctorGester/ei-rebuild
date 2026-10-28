@@ -6,7 +6,6 @@
 #include "ui_cursor.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
@@ -51,7 +50,6 @@ void __fastcall CursorDrawFrame(CCursor* self) {
     render::Cursor(image->holder, image->saved, ToRender(self->from_), ToRender(*rect));
     self->drawn_ = *rect;
 }
-EI_REWRITTEN(0x005E54A0, CursorDrawFrame);
 
 // Takes the cursor's place once, then until `stop_` is set: every 41 ms, with the software cursor on, one
 // MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's background
@@ -76,7 +74,6 @@ void __fastcall CursorThread(CCursor* self) {
     }
     gameapi::SetEvent(self->stopped_);
 }
-EI_REWRITTEN(0x005E5690, CursorThread);
 
 // The procedure AfxBeginThread starts (the cursor as its
 // parameter): CursorThread, then exit code 0.
@@ -84,11 +81,9 @@ unsigned __cdecl CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<CCursor*>(cursor));
     return 0;
 }
-EI_REWRITTEN(0x005E52A0, CursorThreadEntry);
 
 // The part of the drawn rectangle inside `bounds_` is
 // copied from the primary (`fromPrimary`) or the render target into the background surface, as the
 // screen under the cursor changed (the movie players after their blits to the primary). Nothing
 // draws from the background here (the thread and the frame draw's blits are left out): nothing.
 void CCursor::SaveBackground(char /*fromPrimary*/) {}
-EI_REWRITTEN(0x005E6630, CCursor::SaveBackground);

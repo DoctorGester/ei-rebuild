@@ -4,7 +4,6 @@
 
 #include "core_transform.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
@@ -48,11 +47,8 @@ CLight::CLight() {
     rangeSquared_ = static_cast<float>(squared);
     inverseRangeSquared_ = static_cast<float>(1.0 / static_cast<float>(squared));
 }
-EI_REWRITTEN_SPECIAL(0x0068CED0, CLight::CLight);
 
 CLight::~CLight() = default;
-EI_REWRITTEN_SPECIAL(0x0068CFE0, CLight::~CLight);
-EI_REWRITTEN_SPECIAL(0x0068CFC0, CLight::~CLight);
 
 BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     kind_ = kKindPoint;
@@ -64,7 +60,6 @@ BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REWRITTEN(0x0068D010, CLight::SetPoint);
 
 BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     kind_ = kKindDirectional;
@@ -77,7 +72,6 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REWRITTEN(0x0068D0A0, CLight::SetDirectional);
 
 namespace {
 float Lit(float base, float amount, float color) {
@@ -101,7 +95,6 @@ void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, cons
     out->y = green;
     out->z = blue;
 }
-EI_REWRITTEN(0x0068D310, CLight::AddDirectional);
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                       float distance) const {
@@ -120,16 +113,11 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
     out->y = green;
     out->z = blue;
 }
-EI_REWRITTEN(0x0068D5A0, CLight::AddPoint);
 
 int CLight::Create() { return 1; }
 void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
 const char* CLight::GetClassName() { return "CLight"; }
 int CLight::GetClassId() { return 10; }
-EI_REWRITTEN(0x0068CFF0, CLight::Create);
-EI_REWRITTEN(0x0068D000, CLight::Destroy);
-EI_REWRITTEN(0x0068CFA0, CLight::GetClassName);
-EI_REWRITTEN(0x0068CFB0, CLight::GetClassId);
 
 // --- CLightFactory -------------------------------------------------------------------------------
 
@@ -143,7 +131,6 @@ CLightFactory::CLightFactory() {
     std::memset(unused_B0, 0, sizeof(unused_B0));
     unused_D0 = 1;
 }
-EI_REWRITTEN_SPECIAL(0x0068D850, CLightFactory::CLightFactory);
 
 CLightFactory::~CLightFactory() {
     litIds_.ClearWith([](int*) {});
@@ -151,8 +138,6 @@ CLightFactory::~CLightFactory() {
     unused_CC = 0;
     if (held_) held_->Release();
 }
-EI_REWRITTEN_SPECIAL(0x0068D990, CLightFactory::~CLightFactory);
-EI_REWRITTEN_SPECIAL(0x0068D970, CLightFactory::~CLightFactory);
 
 CEngineObject* CLightFactory::NewObject(int type) {
     if (type != kLightDefault && type != kLightPoint) {
@@ -168,16 +153,12 @@ CEngineObject* CLightFactory::NewObject(int type) {
     light->type_ = type;
     return light;
 }
-EI_REWRITTEN(0x0068DA40, CLightFactory::NewObject);
 
 CEngineObject* CLightFactory::CreateObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObject(type, id);
     object->flags_ &= ~kFlagCreatedLight;
     return object;
 }
-EI_REWRITTEN(0x0068DAD0, CLightFactory::CreateObject);
 
 const char* CLightFactory::GetClassName() { return "CLightManager"; }
 int CLightFactory::GetClassId() { return 0x29; }
-EI_REWRITTEN(0x0068D950, CLightFactory::GetClassName);
-EI_REWRITTEN(0x0068D960, CLightFactory::GetClassId);

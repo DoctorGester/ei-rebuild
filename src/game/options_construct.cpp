@@ -3,7 +3,6 @@
 #include "options.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -151,8 +150,5 @@ void __cdecl ConstructGameOptions() {
     g_options.Construct();
     libcrt::AtExit(DestroyGameOptions);
 }
-
-EI_REWRITTEN(0x00458700, ConstructGameOptions);
-EI_REWRITTEN(0x00458720, DestroyGameOptions);
 
 } // namespace options

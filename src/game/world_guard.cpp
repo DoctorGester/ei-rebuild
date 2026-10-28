@@ -8,7 +8,6 @@
 #include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -60,6 +59,3 @@ void __stdcall GuardPlayerData(char plain) {
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_.data[i].stats, key);
     g_guardPlain = plain;
 }
-
-EI_REWRITTEN(0x005791C0, GuardPlayers);
-EI_REWRITTEN(0x005790E0, GuardPlayerData);

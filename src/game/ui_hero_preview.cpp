@@ -9,7 +9,6 @@
 #include "model.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
@@ -184,4 +183,3 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     model->flags_ &= ~0x800u;
     renderer->SetColour(savedColour);
 }
-EI_REWRITTEN(0x005EC300, CUiWindow::DrawHeroPreview);

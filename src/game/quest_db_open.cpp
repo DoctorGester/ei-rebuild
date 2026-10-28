@@ -6,7 +6,6 @@
 #include "database_file.h"
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -50,4 +49,3 @@ int QuestDatabase::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REWRITTEN(0x006AE3A0, QuestDatabase::Load);

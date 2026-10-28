@@ -9,8 +9,6 @@
 #include "lib/stlp.h"
 #include "lib/str.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace {
@@ -76,5 +74,3 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     }
     files.Destruct();
 }
-
-EI_REWRITTEN(0x0053A8E0, UnitDatabase::CountSoundFiles);

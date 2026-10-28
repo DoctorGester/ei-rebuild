@@ -12,7 +12,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "render/render.h"
 
@@ -68,7 +67,6 @@ void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, 
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
     render::TexturePatch(target->surface_, to, source->surface_, rectangle);
 }
-EI_REWRITTEN(0x00533980, BlitMipChain);
 
 void CUnitClientSpecific::BlinkClose(bool force) {
     if (!faceTexture) return;
@@ -85,7 +83,6 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
-EI_REWRITTEN(0x00538ED0, CUnitClientSpecific::BlinkClose);
 
 void CUnitClientSpecific::BlinkOpen(bool force) {
     if (!faceTexture) return;
@@ -102,4 +99,3 @@ void CUnitClientSpecific::BlinkOpen(bool force) {
     BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }
-EI_REWRITTEN(0x00539010, CUnitClientSpecific::BlinkOpen);

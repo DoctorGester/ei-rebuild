@@ -5,7 +5,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -104,7 +103,6 @@ void CUiItemStrip::Build(char top) {
     SetTab(5);
     hovered_ = -1;
 }
-EI_REWRITTEN(0x00620380, CUiItemStrip::Build);
 
 // `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
@@ -181,7 +179,6 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     numbers->ReleaseDC();
     return 1;
 }
-EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
 // --- The strip's per-frame scroll ---------------------------------------------------
 
@@ -285,4 +282,3 @@ void CUiItemStrip::Update() {
         velocity_ = 0.0f;
     }
 }
-EI_REWRITTEN(0x00620A50, CUiItemStrip::Update);

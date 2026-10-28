@@ -6,7 +6,6 @@
 #include "game_strings.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "world.h"
 #include "game_data.h"
@@ -51,8 +50,5 @@ void ServerSession::SetPublic(bool announce) {
     public_ = announce;
     if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.c_str(), 0x6D64);
 }
-
-EI_REWRITTEN(0x0041A7E0, ServerSession::Describe);
-EI_REWRITTEN(0x00417E10, ServerSession::SetPublic);
 
 } // namespace net

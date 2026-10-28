@@ -2,7 +2,6 @@
 #include "console.h"
 #include "ui_gdi.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -43,6 +42,5 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     DrawLines();
     return this;
 }
-EI_REWRITTEN(0x005E3CE0, ConsoleWindow::Construct);
 
 } // namespace console

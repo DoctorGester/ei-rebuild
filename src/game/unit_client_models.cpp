@@ -16,7 +16,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -118,7 +117,6 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     }
     return true;
 }
-EI_REWRITTEN(0x005381B0, CUnitClientSpecific::ArmourPutOn);
 
 namespace {
 // The figure parts collects: an array in 32-byte aligned storage (the block kept at
@@ -171,7 +169,6 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     }
     return true;
 }
-EI_REWRITTEN(0x005385A0, CUnitClientSpecific::ArmourTakenOff);
 
 namespace {
 
@@ -218,7 +215,6 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     unit->Controller()->RefreshModel();
     return 1;
 }
-EI_REWRITTEN(0x00535590, CUnitClientSpecific::ShowWeapon);
 
 // --- The weapon in hand and the bow's arrow during animations ------------------------------
 
@@ -236,7 +232,6 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     weaponHidden = hidden;
     arrowHidden = hidden;
 }
-EI_REWRITTEN(0x00537CB0, CUnitClientSpecific::ShowWeaponParts);
 
 namespace {
 // The bow's arrow part of a hero holding a bow, or null.
@@ -278,7 +273,6 @@ void CUnitClientSpecific::UpdateArrow() {
         arrowHidden = 1;
     }
 }
-EI_REWRITTEN(0x00538C20, CUnitClientSpecific::UpdateArrow);
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
@@ -323,7 +317,6 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
         }
     }
 }
-EI_REWRITTEN(0x00535CB0, CollectArmourPartNames);
 
 // --- Skin -------------------------------------------------------------------------------------
 
@@ -366,7 +359,6 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         out->data[k + 1].slot = armour->type;
     }
 }
-EI_REWRITTEN(0x00536300, CUnitClientSpecific::BuildSkinLayers);
 
 namespace {
 
@@ -459,4 +451,3 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;
 }
-EI_REWRITTEN(0x00536670, CUnitClientSpecific::ComposeSkin);

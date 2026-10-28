@@ -5,7 +5,6 @@
 #include "link_figure.h"
 #include "party.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp_list_refs.h"
 
@@ -42,11 +41,3 @@ void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* valu
 }
 
 } // namespace libcontainers
-
-using namespace libcontainers;
-
-EI_REWRITTEN(0x0060AB00, ConstructSpeaker);
-EI_REWRITTEN(0x0060AA80, ConstructRefPtr);
-EI_REWRITTEN(0x004FB680, HeldEngineObject::Construct);
-EI_REWRITTEN(0x00429060, ConstructRefPtr);
-EI_REWRITTEN(0x004298F0, HeldEngineObject::Construct);

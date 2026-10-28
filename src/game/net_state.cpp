@@ -11,7 +11,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstdint>
@@ -379,8 +378,3 @@ std::uint32_t CUnit::ReadNetState(int first) {
     }
     return complete;
 }
-
-EI_REWRITTEN(0x0052EF90, CUnit::ReadNetState);
-EI_REWRITTEN(0x0050EC30, CMapObject::ReadNetState);
-EI_REWRITTEN(0x0050EAF0, CMapObject::WriteNetState);
-EI_REWRITTEN(0x0052EC70, CUnit::WriteNetState);

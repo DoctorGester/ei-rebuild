@@ -5,8 +5,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 // The three lists, empty at the start: each is built by its static initialiser in the list's order and
@@ -53,18 +51,3 @@ void __cdecl ConstructDeferredUnitsList() {
 }
 
 } // namespace static_lists
-
-EI_REWRITTEN(0x004ED540, static_lists::ConstructDirectDrawDrivers);
-EI_REWRITTEN(0x0056A410, static_lists::ConstructDeferredUnits);
-EI_REWRITTEN(0x00455E30, static_lists::ConstructProtectionChecksList);
-EI_REWRITTEN(0x00455F00, static_lists::DestroyProtectionChecks);
-EI_REWRITTEN(0x004ED520, static_lists::ConstructDriversList);
-EI_REWRITTEN(0x004ED5F0, static_lists::DestroyDrivers);
-EI_REWRITTEN(0x0056A3F0, static_lists::ConstructDeferredUnitsList);
-EI_REWRITTEN(0x0056A4C0, static_lists::DestroyDeferredUnits);
-
-// ~list() of the lists only exit functions destroy: every node's element destroyed and the node returned to
-// the pool, then the sentinel. The copy protection's check list (bytes), and the DirectDraw driver list (each
-// driver's description, then its name; the guarded exit function).
-EI_REWRITTEN(0x004584E0, stlp::ListAbi<std::uint8_t>::Destruct);
-EI_REWRITTEN(0x004F0520, stlp::ListAbi<DirectDrawDriver>::Destruct);

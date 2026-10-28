@@ -12,7 +12,6 @@
 #include "game_singletons.h"
 #include "game_arrays.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_array.h"
 
 #include <cstring>
@@ -126,7 +125,3 @@ void __fastcall ScriptResetZone(CScript* script) {
         node = next;
     }
 }
-
-EI_REWRITTEN(0x004BED90, ScriptPurgeDeletedObjects);
-EI_REWRITTEN(0x004BE490, ScriptDropInstancesAndRuns);
-EI_REWRITTEN(0x004BEB00, ScriptResetZone);

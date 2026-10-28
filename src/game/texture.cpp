@@ -3,7 +3,6 @@
 #include "app.h"
 #include "device.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -156,7 +155,6 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
     device::GetAvailableVidMem(device::DDraw(device_), &caps, &total, &available);
     videoMemoryTenth_ = total / 10;
 }
-EI_REWRITTEN(0x006913A0, CTextureManager::SetDevice);
 
 CEngineObject* CTextureManager::NewObject(int type) {
     CTexture* memory = gamecrt::operator_new_as<CTexture>();
@@ -165,9 +163,3 @@ CEngineObject* CTextureManager::NewObject(int type) {
     texture->type_ = type;
     return texture;
 }
-EI_REWRITTEN(0x00691810, CTextureManager::NewObject);
-// The extra block's out-of-line SetSize.
-EI_REWRITTEN(0x00694300, lib::AlignedArray<std::uint8_t>::SetSize);
-
-EI_REWRITTEN(0x006922A0, CTextureManager::LoadTexture);
-EI_REWRITTEN(0x006926F0, CTextureManager::LoadTextureFrom);

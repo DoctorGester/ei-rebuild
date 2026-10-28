@@ -2,7 +2,6 @@
 #include "terrain_sector.h"   // SectorData
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -97,8 +96,3 @@ double CWorldClient::RawSurfaceHeightAt(float x, float y) {
     terrain_->GroundAndWaterDepth(x, y, &ground, &depth);
     return static_cast<float>(ground + depth);
 }
-
-EI_REWRITTEN(0x00564070, CWorldClient::RawSurfaceHeightAt);
-EI_REWRITTEN(0x006C8680, Terrain::HeightAt);
-EI_REWRITTEN(0x006C85A0, Terrain::VertexAt);
-EI_REWRITTEN(0x006BE3A0, PlaneHeight);

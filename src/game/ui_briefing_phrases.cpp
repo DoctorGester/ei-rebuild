@@ -21,7 +21,6 @@
 #include "world_data.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
@@ -340,4 +339,3 @@ void CBriefingScreen::NextPhrase(bool skip) {
         ClearShownItems();
     }
 }
-EI_REWRITTEN(0x00604C50, CBriefingScreen::NextPhrase);

@@ -7,7 +7,6 @@
 #include "sound.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -103,6 +102,3 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     Start(update);
     return 1;
 }
-
-EI_REWRITTEN(0x00676C00, CEffectSoundSeq::Start);
-EI_REWRITTEN(0x00676FD0, CEffectSoundSeq::Unpack);

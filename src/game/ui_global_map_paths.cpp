@@ -13,7 +13,6 @@
 #include "ui_widescreen.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -131,7 +130,6 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (goesBeyond) beyondTarget_ = false;
     }
 }
-EI_REWRITTEN(0x006312C0, CGlobalMap::FindPaths);
 
 void CGlobalMap::OnLeftDown(int, int x, int y) {
     if (dragging_) return;
@@ -177,5 +175,3 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     GamePassTime(Arrival(arrivals_, 0));
     ::RequestZone(links_.data[link].name.c_str(), 0);
 }
-
-EI_REWRITTEN(0x0062F950, CGlobalMap::OnLeftDown);

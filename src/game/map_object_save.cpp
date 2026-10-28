@@ -5,8 +5,6 @@
 #include "core_streams.h"
 #include "unit.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 #include <memory>
 #include <new>
@@ -51,7 +49,6 @@ void CMapObject::LoadMapObject(CStream* stream) {
     }
     if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
 }
-EI_REWRITTEN(0x0050F7A0, CMapObject::LoadMapObject);
 
 void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
@@ -69,7 +66,6 @@ void CMapObject::SaveMapObject(CStream* stream) {
     WriteText(stream, name2);
     stream->Write(&baseScale, sizeof(baseScale));
 }
-EI_REWRITTEN(0x0050F900, CMapObject::SaveMapObject);
 
 void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&vitals, sizeof(vitals));
@@ -88,7 +84,6 @@ void CMapObjectServer::Load(CStream* stream) {
         strings.push_back(text.text->GetString());
     }
 }
-EI_REWRITTEN(0x005159D0, CMapObjectServer::Load);
 
 void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
@@ -98,4 +93,3 @@ void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&count, sizeof(count));
     for (const std::string& text : strings) WriteText(stream, text);
 }
-EI_REWRITTEN(0x00515AC0, CMapObjectServer::Save);

@@ -2,7 +2,6 @@
 // lighting. Flat meshes (0x100) get their colours filled with one value and speculars with another, a mesh not
 // yet lit asks the device to light it, and the per-vertex offsets are added into a copy of the positions. See
 // docs/notes/models.md ("Figure parts").
-#include "ei/hook.h"
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "lib/containers.h"
@@ -115,5 +114,3 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     DrawBounds(TheSceneRenderer());
     return 1;
 }
-EI_REWRITTEN(0x005A7640, FigureMeshDrawer::DrawPlain);
-EI_REWRITTEN(0x005A7A50, FreeMovedPositions);

@@ -13,7 +13,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -329,7 +328,6 @@ void CHudMap::BuildMarkers() {
 
     mesh->RefreshBuffers();
 }
-EI_REWRITTEN(0x00643DC0, CHudMap::BuildMarkers);
 
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
 
@@ -548,7 +546,6 @@ void CHudMap::UpdateView() {
     uv[3].u = u1;
     uv[3].v = vTop;
 }
-EI_REWRITTEN(0x00642E80, CHudMap::UpdateView);
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
@@ -571,5 +568,3 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     handled_ = true;
     return 1;
 }
-
-EI_REWRITTEN(0x00645640, CHudMap::OnWheel);

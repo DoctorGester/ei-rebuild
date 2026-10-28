@@ -7,7 +7,6 @@
 #include "item_db_text.h"
 #include "text_reader.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
@@ -41,20 +40,17 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     delete tip_;
     tip_ = NewTooltip(this, text.c_str(), flag, extra);
 }
-EI_REWRITTEN(0x005FC730, CUiRegion::SetTip);
 
 void CUiRegion::SetTipString(const char* text, int flag, int extra) {
     delete tip_;
     tip_ = NewTooltip(this, text, flag, extra);
 }
-EI_REWRITTEN(0x005FC6B0, CUiRegion::SetTipString);
 
 // --- The tooltip's text --------------------------------------------------------------
 
 void CUiRegion::SetTipText(const char* text) {
     if (tip_) tip_->SetText(text);
 }
-EI_REWRITTEN(0x005FC690, CUiRegion::SetTipText);
 
 // --- The destructor body --------------------------------------------------------------
 
@@ -62,4 +58,3 @@ void CUiRegion::ReleaseContents() {
     delete tip_;
     points_.FreeData();
 }
-EI_REWRITTEN(0x005FC600, CUiRegion::ReleaseContents);

@@ -4,7 +4,6 @@
 // See docs/notes/map_objects.md.
 #include "map_object_animation.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -32,7 +31,6 @@ AnimationTrack::AnimationTrack() {
     vertices.Construct();
     DestroyTrack();
 }
-EI_REWRITTEN_SPECIAL(0x0050A5D0, AnimationTrack::AnimationTrack);
 
 void AnimationTrack::DestroyTrack() {
     animation = nullptr;
@@ -48,22 +46,17 @@ void AnimationTrack::DestroyTrack() {
     vertices.RemoveAll();
     time = 0.0f;
 }
-EI_REWRITTEN(0x0050A8C0, AnimationTrack::DestroyTrack);
 
 int AnimationTrack::CreateTrack() {
     DestroyTrack();
     return 1;
 }
-EI_REWRITTEN(0x0050A810, AnimationTrack::CreateTrack);
 
 AnimationTrack::~AnimationTrack() {
     DestroyTrack();   // empties the arrays through SetSize(0)
     vertices.FreeData();
     frames.FreeData();
 }
-EI_REWRITTEN_SPECIAL(0x0050A720, AnimationTrack::~AnimationTrack);
-
-EI_REWRITTEN_SPECIAL(0x0050A700, AnimationTrack::~AnimationTrack);   // deleting
 
 int AnimationTrack::Create() { return CreateTrack(); }
 void AnimationTrack::Destroy() { DestroyTrack(); }
@@ -85,4 +78,3 @@ void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
         *cursor += vertexCount * static_cast<int>(sizeof(Vector3));
     }
 }
-EI_REWRITTEN(0x0050AAF0, AnimationTrack::LoadKeyFrames);

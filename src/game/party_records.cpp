@@ -14,7 +14,6 @@
 #include "game_hashes.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
@@ -74,7 +73,6 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     party->entrance_ = 0;
     party->variables_.Set(kGameTime, std::bit_cast<float>(kSix));
 }
-EI_REWRITTEN(0x004A5BD0, PartyRecordsReset);
 
 CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
@@ -84,7 +82,6 @@ CParty* NamedPartyRecords::Find(const char* name) const {
     }
     return unnamed;
 }
-EI_REWRITTEN(0x004A5E10, NamedPartyRecords::Find);
 
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
@@ -102,7 +99,6 @@ void NamedPartyRecords::Add(const char* name) {
     }
     Release(temp);
 }
-EI_REWRITTEN(0x004A5E90, NamedPartyRecords::Add);
 
 void NamedPartyRecords::Remove(const char* name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.Finish() - records.Start()); ++i) {
@@ -123,7 +119,6 @@ void NamedPartyRecords::Remove(const char* name) {
         Release(*records.Finish());
     }
 }
-EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);
 
 // ---- The party manager -----------------------------------------------------------------
 
@@ -141,19 +136,15 @@ void __fastcall PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(0);
 }
-EI_REWRITTEN(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(1);
 }
-EI_REWRITTEN(0x004A88C0, PartyManagerNewGameFour);
 
 void PartyManager::BeginRedeploy(CParty* party) { records.BeginRedeploy(party); }
-EI_REWRITTEN(0x004A8890, PartyManager::BeginRedeploy);
 
 void PartyManager::EndRedeploy(CParty* party) { records.EndRedeploy(party); }
-EI_REWRITTEN(0x004A8880, PartyManager::EndRedeploy);
 
 int g_nextPartyId = /*0078B0E8*/ 1;
 
@@ -161,7 +152,6 @@ int __stdcall PartyNextId(int* out) {
     *out = g_nextPartyId;
     return ++g_nextPartyId;
 }
-EI_REWRITTEN(0x004A8910, PartyNextId);
 
 bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* target) const {
     if (*key == 0) {
@@ -173,7 +163,6 @@ bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* t
     target->Assign(stored);
     return true;
 }
-EI_REWRITTEN(0x004A8790, PartyManager::LoadParty);
 
 bool PartyManager::StoreParty(const int* key, CParty* source) {
     CParty* value = FindParty(parties, *key);
@@ -181,4 +170,3 @@ bool PartyManager::StoreParty(const int* key, CParty* source) {
     value->Assign(source);
     return true;
 }
-EI_REWRITTEN(0x004A8800, PartyManager::StoreParty);

@@ -5,7 +5,6 @@
 
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
@@ -87,8 +86,6 @@ void CBriefingScreen::FindTopics(int personId) {
     for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.push_back(topic->data());
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
-EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
-
 
 mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
     std::string title;
@@ -106,4 +103,3 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);
     return std::construct_at(out, title);
 }
-EI_REWRITTEN(0x006078C0, CBriefingScreen::TopicTitle);

@@ -5,8 +5,6 @@
 #include "gameapi.h"
 #include "mfc_runtime_class.h"
 
-#include "ei/hook.h"
-
 #include <process.h>
 
 namespace mfc::impl {
@@ -69,14 +67,12 @@ BOOL CreateThread(WinThread* thread, DWORD flags, UINT stackSize, LPSECURITY_ATT
 } // namespace
 
 const CRuntimeClass* WinThread::GetRuntimeClass() const { return &kClassCWinThread; }
-EI_REWRITTEN(0x0070C328, WinThread::GetRuntimeClass);
 
 WinThread::WinThread(ThreadProc procedure, void* parameter) {
     threadProc = procedure;
     threadParams = parameter;
     CommonConstruct();
 }
-EI_REWRITTEN_SPECIAL(0x0070C259, WinThread::WinThread);
 
 void WinThread::CommonConstruct() {
     mainWnd = nullptr;
@@ -90,7 +86,6 @@ void WinThread::CommonConstruct() {
     oleTermOrFreeLib = nullptr;
     autoDelete = TRUE;
 }
-EI_REWRITTEN(0x0070C2F6, WinThread::CommonConstruct);
 
 void WinThread::Delete() {
     if (autoDelete) delete this;
@@ -100,9 +95,6 @@ WinThread::~WinThread() {
     if (thread != nullptr) gameapi::CloseHandle(thread);
     if (t_current == this) t_current = nullptr;
 }
-EI_REWRITTEN(0x00702596, WinThread::Delete);
-EI_REWRITTEN_SPECIAL(0x0070E132, WinThread::~WinThread);
-EI_REWRITTEN_SPECIAL(0x0070C29D, WinThread::~WinThread);   // deleting
 
 WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security) {
@@ -115,7 +107,6 @@ WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int p
     if (!(flags & CREATE_SUSPENDED)) gameapi::ResumeThread(thread->thread);
     return thread;
 }
-EI_REWRITTEN(0x007022A0, AfxBeginThread);
 
 void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread) {
     if (WinThread* thread = t_current) {
@@ -125,6 +116,5 @@ void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread) {
     }
     _endthreadex(exitCode);
 }
-EI_REWRITTEN(0x00702380, AfxEndThread);
 
 } // namespace mfc::impl

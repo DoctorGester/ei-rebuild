@@ -7,7 +7,6 @@
 #include "mod_folders.h"
 #include "world_data.h"   // TextPathString
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -47,7 +46,6 @@ CMaterial::CMaterial() {
     ResetFields(this);
     entries.PopAll();
 }
-EI_REWRITTEN_SPECIAL(0x0068DBC0, CMaterial::CMaterial);
 
 // A fake unit's helper built in its array's storage (scene_loader.h's HelperElements).
 void scene::InitHelper(CMaterial* p) { new (p) CMaterial(); }
@@ -57,8 +55,6 @@ CMaterial::~CMaterial() {
     entries.PopAll();
     entries.Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x0068DE30, CMaterial::~CMaterial);
-EI_REWRITTEN_SPECIAL(0x0068DD20, CMaterial::~CMaterial);   // deleting
 
 int CMaterial::Create() {
     ResetFields(this);
@@ -73,13 +69,6 @@ void CMaterial::Destroy() {
 const char* CMaterial::GetName() { return name.c_str(); }
 const char* CMaterial::GetClassName() { return kMaterialClassName; }
 int CMaterial::GetClassId() { return 5; }
-
-EI_REWRITTEN(0x0068DD00, CMaterial::GetClassName);
-EI_REWRITTEN(0x0068DD10, CMaterial::GetClassId);
-
-EI_REWRITTEN(0x0068DF90, CMaterial::Create);
-EI_REWRITTEN(0x0068E040, CMaterial::Destroy);
-
 
 namespace {
 
@@ -105,11 +94,8 @@ CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table
 } // namespace
 
 CMaterialManager::CMaterialManager() { colors_.InitBuckets(kColorTableHint); }
-EI_REWRITTEN_SPECIAL(0x0068E3F0, CMaterialManager::CMaterialManager);
 
 CMaterialManager::~CMaterialManager() { colors_.Destroy(); }
-EI_REWRITTEN_SPECIAL(0x0068E540, CMaterialManager::~CMaterialManager);
-EI_REWRITTEN_SPECIAL(0x0068E520, CMaterialManager::~CMaterialManager);
 
 int CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
@@ -153,22 +139,13 @@ CMaterial* CMaterialManager::NewMaterial(int type) {
     material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_))->value;
     return material;
 }
-EI_REWRITTEN(0x0068E970, CMaterialManager::NewMaterial);
 
 int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
     if (!material) return 0;
     material->colors = EnterKey(colors_, key)->value;
     return 1;
 }
-EI_REWRITTEN(0x0068EAF0, CMaterialManager::FillMaterial);
 
 const char* CMaterialManager::GetClassName() { return kManagerClassName; }
 int CMaterialManager::GetClassId() { return 0x27; }
 const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
-
-EI_REWRITTEN(0x0068E4F0, CMaterialManager::GetFolderName);
-EI_REWRITTEN(0x0068E500, CMaterialManager::GetClassName);
-EI_REWRITTEN(0x0068E510, CMaterialManager::GetClassId);
-
-EI_REWRITTEN(0x0068E640, CMaterialManager::Create);
-EI_REWRITTEN(0x0068E900, CMaterialManager::NewObject);

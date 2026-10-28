@@ -14,7 +14,6 @@
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -50,7 +49,6 @@ CVisualizator* CVisualizator::SetUpBase() {
     sun_ = nullptr;
     return this;
 }
-EI_REWRITTEN(0x00500440, CVisualizator::SetUpBase);
 
 CVisualizator::CVisualizator() { SetUpBase(); }
 
@@ -72,12 +70,9 @@ void CVisualizator::DestroyBase() {
     graphicsLibrary_ = nullptr;
     graphicsProcessor_ = nullptr;
 }
-EI_REWRITTEN(0x005006E0, CVisualizator::DestroyBase);
 
 // The member destructor of pipeline_ then finds it null.
 CVisualizator::~CVisualizator() { DestroyBase(); }
-EI_REWRITTEN_SPECIAL(0x00500480, CVisualizator::~CVisualizator);
-EI_REWRITTEN_SPECIAL(0x00500460, CVisualizator::~CVisualizator);   // deleting
 
 void CVisualizator::SetBaseColour(std::uint32_t colour) {
     colour_ = colour;
@@ -91,7 +86,6 @@ void CVisualizator::SetBaseColour(std::uint32_t colour) {
     g_transformAmbientColour[2] = blue * kInverseColourScale;
     transform->SetAmbient(g_transformAmbientColour[0], g_transformAmbientColour[1], g_transformAmbientColour[2]);
 }
-EI_REWRITTEN(0x00500740, CVisualizator::SetBaseColour);
 
 const float* TransformAmbientColour() { return g_transformAmbientColour; }
 
@@ -102,7 +96,6 @@ void CVisualizator::SetSun(CLight* light) {
     if (old) old->Release();
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
-EI_REWRITTEN(0x005007C0, CVisualizator::SetSun);
 
 void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
@@ -112,19 +105,16 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
-EI_REWRITTEN(0x00500800, CVisualizator::SetSunAndAmbient);
 
 // --- The renderer -----------------------------------
 
 // The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
-EI_REWRITTEN(0x00500960, SceneRenderer);
 
 CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
     helper_ = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x00500A70, CSceneRenderer::CSceneRenderer);
 
 CSceneRenderer::~CSceneRenderer() {
     CTextureDevice* device = device_;
@@ -133,7 +123,6 @@ CSceneRenderer::~CSceneRenderer() {
     // The helper's member destructor: released, the pointer left as it is.
     if (helper_ && --helper_->refs_ == 0) delete helper_;
 }
-EI_REWRITTEN_SPECIAL(0x00500AC0, CSceneRenderer::~CSceneRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers
 // in the list's order and destroyed by the exit functions those register (docs/notes/standalone.md, "The static
@@ -158,13 +147,6 @@ void __cdecl ConstructDeviceLock() {
     libcrt::AtExit(DestroyDeviceLock);
 }
 
-EI_REWRITTEN(0x00500930, ConstructSceneRenderer);
-EI_REWRITTEN(0x00500950, DestroySceneRenderer);
-EI_REWRITTEN(0x004F0B10, ConstructDeviceLock);
-EI_REWRITTEN(0x004F0B30, DestroyDeviceLock);
-
-EI_REWRITTEN_SPECIAL(0x00500AA0, CSceneRenderer::~CSceneRenderer);   // deleting
-
 void CSceneRenderer::DestroyRenderer() {
     DestroyBase();
     flags_ &= ~2u;
@@ -175,7 +157,6 @@ void CSceneRenderer::DestroyRenderer() {
     device_ = nullptr;
     if (device) device->Release();
 }
-EI_REWRITTEN(0x005019F0, CSceneRenderer::DestroyRenderer);
 
 int CSceneRenderer::ClearFrame() {
     const std::uint32_t colour = fogColour_;
@@ -187,10 +168,8 @@ int CSceneRenderer::ClearFrame() {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
-EI_REWRITTEN(0x00501A40, CSceneRenderer::ClearFrame);
 
 std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
-EI_REWRITTEN(0x00501AA0, CSceneRenderer::ZEnable);
 
 // The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
@@ -203,41 +182,34 @@ int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     ++device->textureChanges_;
     return 1;
 }
-EI_REWRITTEN(0x00501AF0, CSceneRenderer::SetTexture);
 
 void CSceneRenderer::SetColour(std::uint32_t colour) {
     SetBaseColour(colour);
     device_->colour_ = colour;
 }
-EI_REWRITTEN(0x00501CC0, CSceneRenderer::SetColour);
 
 void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
-EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineList);
 
 int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                                tagRECT* screen) {
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawPlain(device_, unknownA, unknownB, material, alpha, screen);
 }
-EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigure);
 
 int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawLit(device_, lights, material, alpha, screen, textureA, textureB);
 }
-EI_REWRITTEN(0x00501D40, CSceneRenderer::DrawFigureLit);
 
 void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) const {
     *brightness = brightness_;
     *contrast = contrast_;
     *gamma = gamma_;
 }
-EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
-EI_REWRITTEN(0x00504780, CSceneRenderer::RestoreSurfaces);
 
 // --- The device object's counted holder ----------------------------------------------------
 
@@ -248,7 +220,6 @@ void HeldDevice::Assign(CTextureDevice* value) {
     if (value) value->AddRef();
     if (old) old->Release();
 }
-EI_REWRITTEN(0x00504E20, HeldDevice::Assign);
 
 // --- Texture holders -----------------------------------------------------------------------------
 
@@ -258,7 +229,6 @@ int __fastcall TextureHolderEnsureLoaded(HeldTexture* holder) {
     if (texture->flags_ & kTextureIsLoaded) return 1;
     return TheTextureManager()->LoadTexture(texture);
 }
-EI_REWRITTEN(0x00500970, TextureHolderEnsureLoaded);
 
 void HeldTexture::Load(int kind, const char* name) {
     if (CTexture* old = texture) {
@@ -274,8 +244,3 @@ void HeldTexture::Load(int kind, const char* name) {
     if (found) ++found->refCount_;
     if (old) old->Release();
 }
-EI_REWRITTEN(0x00500A00, HeldTexture::Load);
-
-EI_REWRITTEN(0x00504F60, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00505140, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00505260, lib::AlignedArray<std::uint32_t>::Construct);

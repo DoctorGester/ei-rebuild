@@ -7,7 +7,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
@@ -56,7 +55,6 @@ void CUiItemStrip::Setup(UiPtrArray<CItem>* source, char top) {
     slots_ = 9;
     source_ = source;
 }
-EI_REWRITTEN(0x00621160, CUiItemStrip::Setup);
 
 void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTips) {
     figures_ = names;
@@ -69,7 +67,6 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
     tabsEnabled_ = false;
     for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
 }
-EI_REWRITTEN(0x00629A40, CUiItemStrip::SetupFigures);
 
 CForwardingStrip::CForwardingStrip(CInterface3D* ui, CItemScreen* owner) : CUiItemStrip(ui, owner) {
     list_.Construct(mfc::impl::ItemStripArrayClass::Vtable());   // CArray<char*>
@@ -113,10 +110,8 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00629AF0, CFigureStrip::Draw);
 
 void CFigureStrip::RebuildList() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
-EI_REWRITTEN(0x00629AD0, CFigureStrip::RebuildList);
 
 void CFigureStrip::OnFigureClick(int buttons, int x, int y) {
     OnLButtonDown(buttons, x, y);
@@ -128,4 +123,3 @@ void CFigureStrip::OnFigureClick(int buttons, int x, int y) {
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
     owner_->ChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }
-EI_REWRITTEN(0x00629DB0, CFigureStrip::OnFigureClick);

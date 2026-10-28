@@ -3,8 +3,6 @@
 #include "net_classes.h"
 #include "net_coder.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace {
@@ -55,7 +53,6 @@ bool GameBuffer::ReadString(stlp::string* s, int maxLength) {
     Commit();
     return true;
 }
-EI_REWRITTEN(0x004DA200, GameBuffer::ReadString);
 
 void GameBuffer::WriteString(const stlp::string* s) {
     const auto length = static_cast<std::uint32_t>(s->size());
@@ -68,4 +65,3 @@ void GameBuffer::WriteString(const stlp::string* s) {
     }
     WriteInline(this, s->data(), length);
 }
-EI_REWRITTEN(0x004DA380, GameBuffer::WriteString);

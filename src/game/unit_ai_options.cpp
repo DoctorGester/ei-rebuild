@@ -7,8 +7,6 @@
 #include "object_tables.h"
 #include "spell.h"
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <initializer_list>
 
@@ -195,18 +193,7 @@ void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     options->SetSize(count, -1);
     for (int i = 0; i < options->size; ++i) options->data[i].Load(stream);
 }
-EI_REWRITTEN(0x005D9B80, LoadAttackOptions);
 
 namespace {
 double __fastcall OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 } // namespace
-
-EI_REWRITTEN(0x005CEED0, AIAttention::Build);
-EI_REWRITTEN(0x005CEA30, AIAttention::InitOption);
-EI_REWRITTEN(0x005CEA60, AIAttention::AddWeaponOption);
-EI_REWRITTEN(0x005CEBD0, AIAttention::AddSpellOption);
-EI_REWRITTEN(0x005CEDC0, AIAttention::SpellKind);
-EI_REWRITTEN(0x005CE9B0, OptionWeight);
-EI_REWRITTEN(0x005D9250, AIAttackOptions::SetSize);
-EI_REWRITTEN(0x005CE860, AIAttackOption::Load);
-EI_REWRITTEN(0x005CE920, AIAttackOption::Save);

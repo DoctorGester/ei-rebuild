@@ -19,7 +19,6 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -321,27 +320,3 @@ void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
     login->id_ = unit->player ? unit->id_ : -1;
     ++login->version_;
 }
-
-EI_REWRITTEN(0x00667DA0, CPlayerClient::OnLoginAccepted);
-EI_REWRITTEN(0x00667DE0, CPlayerClient::OnDisconnect);
-EI_REWRITTEN(0x00667C20, CPlayerClient::OnCameraPlacement);
-EI_REWRITTEN(0x00669D50, CPlayerClient::OnGameState);
-EI_REWRITTEN(0x00669F30, CPlayerClient::OnGameLost);
-EI_REWRITTEN(0x00667DF0, CPlayerClient::OnUnitSpeech);
-EI_REWRITTEN(0x006696A0, CPlayerClient::OnObjectValues);
-EI_REWRITTEN(0x00667D10, CPlayerClient::OnFreeCamera);
-EI_REWRITTEN(0x00667E20, CPlayerClient::OnWorldValue);
-EI_REWRITTEN(0x0066A420, CPlayerClient::OnItemValue);
-EI_REWRITTEN(0x00669400, CPlayerClient::OnWeaponRemoved);
-EI_REWRITTEN(0x0066A620, CPlayerClient::OnUnitControl);
-EI_REWRITTEN(0x006687B0, CPlayerClient::OnObjectChanged);
-EI_REWRITTEN(0x00668850, CPlayerClient::OnObjectRemoved);
-EI_REWRITTEN(0x0066A3B0, CPlayerClient::OnUnitDied);
-EI_REWRITTEN(0x00668940, CPlayerClient::OnTimedObjectAdded);
-EI_REWRITTEN(0x00668A30, CPlayerClient::OnTimedObjectChanged);
-EI_REWRITTEN(0x00668AA0, CPlayerClient::OnTimedObjectRemoved);
-EI_REWRITTEN(0x00669760, CPlayerClient::OnWeather);
-EI_REWRITTEN(0x006697B0, CPlayerClient::OnWorldTime);
-EI_REWRITTEN(0x00669800, CPlayerClient::OnWorldPoint);
-EI_REWRITTEN(0x0066A400, CPlayerClient::OnWorldStream);
-EI_REWRITTEN(0x00667BA0, CPlayerClient::NotifyUnitChanged);

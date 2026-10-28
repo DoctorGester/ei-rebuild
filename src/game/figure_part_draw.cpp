@@ -1,7 +1,6 @@
 // The draw of one figure part: the mesh is clip-tested, advanced when animated, its colours filled (flat meshes)
 // or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
 // parts").
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "figure_mesh.h"
 #include "material.h"
@@ -311,5 +310,3 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     DrawBounds(TheSceneRenderer());
     return 1;
 }
-EI_REWRITTEN(0x005A7A70, FigureMeshDrawer::DrawLit);
-EI_REWRITTEN(0x005A8AE0, FreeMovedPositions);

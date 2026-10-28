@@ -6,7 +6,6 @@
 
 #include "../lib/crt.h"
 #include "lib/vecmath.h"
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -110,6 +109,5 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
     coordMap.FreeData();
     pointMap.FreeData();
 }
-EI_REWRITTEN(0x0044C4A0, WeldMeshVertices);
 
 } // namespace scene

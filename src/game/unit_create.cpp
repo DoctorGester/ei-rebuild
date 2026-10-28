@@ -11,7 +11,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <bit>
@@ -50,7 +49,6 @@ UnitPrototypeRecord* UnitPrototypeTable::FindByName(const char* name) {
     UnitPrototypeRecord* record = byName[pairKey];
     return record;
 }
-EI_REWRITTEN(0x00514930, UnitPrototypeTable::FindByName);
 
 // --- Server controller ------------------------------------------------------------------------
 
@@ -66,7 +64,6 @@ void CUnitServer::SetStats(const UnitStats* source) {
     companion = unit->ServerCompanion();
     std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
 }
-EI_REWRITTEN(0x00552F40, CUnitServer::SetStats);
 
 void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
@@ -74,7 +71,6 @@ void CUnitServer::Shout(std::uint32_t code) {
     if (!unit->player) return;
     PlayerMessages(unit->player)->SendObject0B(unit, code);
 }
-EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 
 // --- Broken equipment -------------------------------------------------------------------------
 
@@ -129,4 +125,3 @@ void CUnit::DropBrokenEquipment() {
     }
     broken.RemoveAll();
 }
-EI_REWRITTEN(0x00532AC0, CUnit::DropBrokenEquipment);

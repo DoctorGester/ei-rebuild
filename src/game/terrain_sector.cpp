@@ -7,7 +7,6 @@
 #include "terrain_sector.h"
 #include "model.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "random.h"
 #include "../lib/crt.h"
@@ -535,14 +534,6 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     return wanted & built;
 }
 
-EI_REWRITTEN(0x006C13A0, SectorData::Load);
-EI_REWRITTEN(0x006C1C00, SectorData::Build);
-EI_REWRITTEN(0x006C30E0, SectorData::ApplyWaterLevels);
-EI_REWRITTEN(0x006C3DD0, SectorData::Ensure);
-EI_REWRITTEN(0x006C53C0, Terrain::TileUv);
-EI_REWRITTEN(0x006C8D40, Terrain::SurfaceClass);
-EI_REWRITTEN(0x006C8930, Terrain::GroundAndWaterDepth);
-
 // Construction and projection
 
 namespace {
@@ -631,7 +622,6 @@ SectorData* SectorData::Construct() {
     ProjectionOutcodes().SetSize(ProjectionInput().size, -1);
     return this;
 }
-EI_REWRITTEN(0x006BF5F0, SectorData::Construct);
 
 void SectorData::DestructBody() {
     Clear();
@@ -654,7 +644,6 @@ void SectorData::DestructBody() {
     waterMaterials.vtable = mfc::impl::ByteArrayClass::Vtable();   // ~CByteArray
     waterMaterials.FreeData();
 }
-EI_REWRITTEN(0x006BF8A0, SectorData::DestructBody);
 
 int SectorData::Project(CTransformPipeline* pipeline) {
     const int columnStep = detail >= 1 ? 2 : 1;
@@ -692,11 +681,5 @@ int SectorData::Project(CTransformPipeline* pipeline) {
     }
     return clipMode;
 }
-EI_REWRITTEN(0x006BFC80, SectorData::Project);
 
 } // namespace terrain
-
-EI_REWRITTEN(0x006BFA30, terrain::FreeProjectionInput);
-EI_REWRITTEN(0x006BFAC0, terrain::ConstructProjectionOutcodes);
-EI_REWRITTEN(0x006BFAE0, terrain::DestroyProjectionOutcodes);
-EI_REWRITTEN(0x006BFA90, terrain::FreeProjectionOutput);

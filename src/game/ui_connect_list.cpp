@@ -11,7 +11,6 @@
 #include "net_classes.h"
 #include "ui_gdi.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -257,4 +256,3 @@ void CMpConnectScreen::DrawListVanilla() {
     dc->SelectObject(oldPen);
     UiSurfaceReleaseDC(surface);
 }   // ~CPen
-EI_REWRITTEN(0x0061D780, CMpConnectScreen::DrawListVanilla);

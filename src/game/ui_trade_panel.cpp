@@ -8,7 +8,6 @@
 #include "record_lifetime.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -95,14 +94,12 @@ void TradeRow::Destroy() {
     std::destroy_at(&key);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x00613CF0, TradeRow::Destroy);
 
 TradeRow* TradeRow::DeleteThis(int flags) {
     Destroy();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x0062A7C0, TradeRow::DeleteThis);
 
 TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
     std::construct_at(&name, from->name);
@@ -113,8 +110,6 @@ TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
     learnable = from->learnable;
     return this;
 }
-EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
-
 
 void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->HeroRecord()->stats;
@@ -212,8 +207,6 @@ void CTradePanel::BuildLists() {
 namespace {
 void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
 } // namespace
-EI_REWRITTEN(0x00625880, TradeBuildLists);
-
 
 namespace {
 
@@ -305,8 +298,6 @@ void CTradePanel::DrawLists() {
 namespace {
 void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
 } // namespace
-EI_REWRITTEN(0x006261A0, TradeDrawLists);
-
 
 namespace {
 void __fastcall TradeSnapshotRecord(CTradePanel*);
@@ -375,7 +366,6 @@ void CTradePanel::Build() {
 namespace {
 void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
 } // namespace
-EI_REWRITTEN(0x00624F10, TradeBuild);
 
 // --- The records again --------------------------------------------------------------------------------
 
@@ -393,7 +383,6 @@ void CTradePanel::ResetRecords() {
 namespace {
 void __fastcall TradeResetRecords(CTradePanel* self) { self->ResetRecords(); }
 } // namespace
-EI_REWRITTEN(0x00625430, TradeResetRecords);
 
 // --- The record from the hero ------------------------------------------------------------------------
 
@@ -421,7 +410,6 @@ void CTradePanel::SnapshotRecord() {
 namespace {
 void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
 } // namespace
-EI_REWRITTEN(0x00626F10, TradeSnapshotRecord);
 
 // --- The hero's statistics back from the record -------------------------------------------------------
 
@@ -450,7 +438,6 @@ void CTradePanel::RestoreRecord() {
 namespace {
 void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
 } // namespace
-EI_REWRITTEN(0x00626FA0, TradeRestoreRecord);
 
 // --- Settling and choosing the hero ------------------------------------------------------------------
 
@@ -476,7 +463,6 @@ void CTradePanel::Settle(int keep, int all) {
         TradeRestoreRecord(this);
     BuildLists();
 }
-EI_REWRITTEN(0x006255A0, CTradePanel::Settle);
 
 void CTradePanel::SelectHero(int index) {
     recordIndex_ = index;
@@ -484,7 +470,6 @@ void CTradePanel::SelectHero(int index) {
     learnableTop_ = 0;
     BuildLists();
 }
-EI_REWRITTEN(0x00625860, CTradePanel::SelectHero);
 
 // --- A price as text ----------------------------------------------------------------------------------
 
@@ -512,4 +497,3 @@ void CTradePanel::FormatPrice(int price, mfc::CString* out) {
     }
     out->Format("%.1fg", static_cast<double>(price) * kBillionth);
 }
-EI_REWRITTEN(0x00626090, CTradePanel::FormatPrice);

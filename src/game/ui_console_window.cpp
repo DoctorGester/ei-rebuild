@@ -10,7 +10,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/str.h"
 
@@ -69,7 +68,6 @@ void ConsoleWindow::Show(bool shown) {
     }
     surface_ = nullptr;
 }
-EI_REWRITTEN(0x005E3FD0, ConsoleWindow::Show);
 
 // Keys while the window is shown. Shift (0x10) and Ctrl (0x11) are remembered; with
 // Ctrl, PgUp/PgDn scroll by a page and Home/End go to the first/last page, otherwise PgUp/PgDn
@@ -153,7 +151,6 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     }
     DrawLines();
 }
-EI_REWRITTEN(0x005E4180, ConsoleWindow::OnKeyDown);
 
 // ---- Character input ------------------------------------------------------------------
 
@@ -316,7 +313,6 @@ void ConsoleWindow::OnChar(int key, int, int) {
     anchor_ = caret_;
     DrawInput();
 }
-EI_REWRITTEN(0x005E44A0, ConsoleWindow::OnChar);
 
 // Keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a
@@ -350,7 +346,6 @@ void ConsoleWindow::DrawLines() {
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
 }
-EI_REWRITTEN(0x005E4800, ConsoleWindow::DrawLines);
 
 // Keeps the caret and anchor within the input, then (with a surface and a font) fills
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
@@ -386,7 +381,5 @@ void ConsoleWindow::DrawInput() {
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
 }
-EI_REWRITTEN(0x005E4A10, ConsoleWindow::DrawInput);
 
 } // namespace console
-

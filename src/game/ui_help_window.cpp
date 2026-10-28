@@ -9,7 +9,6 @@
 #include "item_db_text.h"
 #include "text_reader.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_singletons.h"
@@ -91,7 +90,6 @@ void CHelpWindow::CreateScreen() {
     SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
     ShowPage();
 }
-EI_REWRITTEN(0x00658E10, CHelpWindow::CreateScreen);
 
 void CHelpWindow::Close() {
     pulsing_.ClearWith([](CUiMesh**) {});
@@ -100,7 +98,6 @@ void CHelpWindow::Close() {
     ClearRegions();
     ClearSceneObjects();
 }
-EI_REWRITTEN(0x006590F0, CHelpWindow::Close);
 
 void CHelpWindow::Update() {
     UpdateBase();
@@ -117,7 +114,6 @@ void CHelpWindow::Update() {
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
     for (auto* node = pulsing_.First(); node != pulsing_.End(); node = node->next) node->data->flatColour_ = colour;
 }
-EI_REWRITTEN(0x0065A5E0, CHelpWindow::Update);
 
 void CHelpWindow::Finish() {
     interface_->PlaySound(OkSound(), 0);
@@ -166,6 +162,3 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
     Finish();
     handled_ = true;
 }
-
-EI_REWRITTEN(0x00659190, CHelpWindow::OnLeftDown);
-EI_REWRITTEN(0x006592C0, CHelpWindow::OnKeyDown);

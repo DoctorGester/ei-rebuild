@@ -6,7 +6,6 @@
 #include "app.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
-#include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"
@@ -265,9 +264,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
 
     CreateHelper(this, settings);
 }
-EI_REWRITTEN(0x00500B70, CSceneRenderer::CreateRenderer);
 
-EI_REWRITTEN(0x005019D0, CTransformPipeline::Top);
 void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     CTransformPipeline* pipeline = pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
@@ -312,4 +309,3 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     pipeline_->transform_->SetViewportSize(static_cast<float>(screen->right - screen->left),
                                            static_cast<float>(screen->bottom - screen->top));
 }
-EI_REWRITTEN(0x005015A0, CSceneRenderer::SetView);

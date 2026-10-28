@@ -15,7 +15,6 @@
 #include "world.h"
 #include "model.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -33,8 +32,6 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 #include "camera.h"
-
-using console::CStringArray;
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
@@ -224,6 +221,3 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
     CUiContainer::Draw(pass);
     return 1;
 }
-
-EI_REWRITTEN(0x00635250, CBattleScreen::CreateScreen);
-EI_REWRITTEN(0x00636020, CBattleScreen::Draw);

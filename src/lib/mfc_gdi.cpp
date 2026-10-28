@@ -1,7 +1,6 @@
 // MFC 4.2's CDC and GDI objects, registered at their library addresses (mfc_gdi.h).
 #include "mfc_gdi.h"
 
-#include "ei/hook.h"
 #include "crt.h"
 #include "gameapi.h"
 #include "mfc_exception.h"
@@ -71,8 +70,6 @@ CHandleMap* __stdcall MapHGDIOBJ(BOOL create) {
     return MakeMap(map, create, &kClassCTempGdiObject, offsetof(CGdiObject, handle), 1);
 }
 
-EI_REWRITTEN(0x00708D07, MapHDC);
-EI_REWRITTEN(0x00709FEE, MapHGDIOBJ);
 // ---- CGdiObject, CPen, CFont ----------------------------------------------------------------------
 
 CGdiObject* __stdcall CGdiObject::FromHandle(HGDIOBJ object) {
@@ -134,27 +131,6 @@ BOOL CFont::CreatePointFontIndirect(const LOGFONTA* source, CDC* dc) {
 }
 
 CGdiObject::~CGdiObject() { DeleteObject(); }
-
-EI_REWRITTEN_SPECIAL(0x00444B30, CGdiObject::~CGdiObject);
-EI_REWRITTEN_SPECIAL(0x00444B90, CGdiObject::~CGdiObject);
-EI_REWRITTEN_SPECIAL(0x005FDDE0, CGdiObject::~CGdiObject);
-EI_REWRITTEN_SPECIAL(0x00444B10, CGdiObject::~CGdiObject);   // deleting
-EI_REWRITTEN_SPECIAL(0x00444B70, CGdiObject::~CGdiObject);   // deleting
-EI_REWRITTEN_SPECIAL(0x005FDDC0, CGdiObject::~CGdiObject);   // deleting
-EI_REWRITTEN(0x0070BFAD, CGdiObject::GetRuntimeClass);
-EI_REWRITTEN(0x0070BFB9, CBrush::GetRuntimeClass);
-EI_REWRITTEN(0x0070BFB3, CPen::GetRuntimeClass);
-EI_REWRITTEN(0x0070BFBF, CFont::GetRuntimeClass);
-EI_REWRITTEN(0x0070A060, CGdiObject::FromHandle);
-EI_REWRITTEN(0x0070A075, CGdiObject::Attach);
-EI_REWRITTEN(0x0070A0A2, CGdiObject::Detach);
-EI_REWRITTEN(0x0070A0CC, CGdiObject::DeleteObject);
-EI_REWRITTEN(0x0070C028, CreateTempGdiObject);
-EI_REWRITTEN(0x0070BF93, CreateCGdiObject);
-EI_REWRITTEN_SPECIAL(0x0070A0E2, CPen::CPen);
-EI_REWRITTEN(0x0070BBE5, CFont::CreatePointFont);
-EI_REWRITTEN(0x0070BC2A, CFont::CreatePointFontIndirect);
-
 
 CDC::~CDC() {
     if (hdc) gameapi::DeleteDC(Detach());
@@ -236,27 +212,5 @@ void CDC::FillSolidArea(int x, int y, int cx, int cy, COLORREF colour) {
     const RECT rect{x, y, x + cx, y + cy};
     gameapi::ExtTextOutA(hdc, 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
 }
-
-EI_REWRITTEN_SPECIAL(0x00708CD7, CDC::CDC);
-EI_REWRITTEN_SPECIAL(0x00708E0C, CDC::~CDC);
-EI_REWRITTEN_SPECIAL(0x00708CEB, CDC::~CDC);   // deleting
-EI_REWRITTEN(0x0070BF7B, CDC::GetRuntimeClass);
-EI_REWRITTEN(0x00708DC5, CDC::Detach);
-EI_REWRITTEN(0x00708E42, CDC::SetAttribDC);
-EI_REWRITTEN(0x00708E4C, CDC::SetOutputDC);
-EI_REWRITTEN(0x00708E56, CDC::ReleaseAttribDC);
-EI_REWRITTEN(0x00708E5B, CDC::ReleaseOutputDC);
-EI_REWRITTEN(0x00708D79, CDC::FromHandle);
-EI_REWRITTEN(0x0070BFD7, CreateTempDC);
-EI_REWRITTEN(0x0070BF64, CreateCDC);
-EI_REWRITTEN(0x00708F5A, CDC::SelectObject);
-EI_REWRITTEN(0x00708FE6, CDC::SelectFont);
-EI_REWRITTEN(0x0070917A, CDC::SetTextColor);
-EI_REWRITTEN(0x006E6A1C, CDC::DrawText);
-EI_REWRITTEN(0x007090C2, CDC::SetBkMode);
-EI_REWRITTEN(0x00709613, CDC::MoveTo);
-EI_REWRITTEN(0x0070965F, CDC::LineTo);
-EI_REWRITTEN(0x0070BADA, CDC::FillSolidRect);
-EI_REWRITTEN(0x0070BB04, CDC::FillSolidArea);
 
 } // namespace mfc::impl

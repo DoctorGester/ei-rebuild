@@ -7,7 +7,6 @@
 
 #include "random.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -89,11 +88,8 @@ Particle* CParticleManager::AcquireParticle() {
     freeParticles.FreeNode(node);
     return p;
 }
-EI_REWRITTEN(0x00498870, CParticleManager::AcquireParticle);
 
 void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
-EI_REWRITTEN(0x004987C0, CParticleManager::ReleaseParticle);
-
 
 // A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.
@@ -103,7 +99,6 @@ void CParticleSource::AddParticle(Particle* p) {
     GrowBounds(boundsMin, boundsMax, p->pos);
     particles.AddTail(p);
 }
-EI_REWRITTEN(0x00496A20, CParticleSource::AddParticle);
 
 namespace {
 
@@ -275,4 +270,3 @@ int CParticleSource::RunTick() {
     if (flags_ & 1) return 1;
     return particles.count != 0;
 }
-EI_REWRITTEN(0x00496EB0, CParticleSource::RunTick);

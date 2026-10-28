@@ -13,7 +13,6 @@
 #include "text_helpers.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_window.h"
 #include "lib/mfc_array.h"
@@ -271,6 +270,5 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
     reg.Destroy();
     return 1;
 }
-EI_REWRITTEN(0x0044B980, LoadFigureRegistry);
 
 } // namespace scene

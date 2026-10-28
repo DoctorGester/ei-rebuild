@@ -10,7 +10,6 @@
 #include "unit.h"
 #include "unit_client_models.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -47,9 +46,3 @@ CEngineObject* CClientSpecificManager::NewObject(int type) {
     default: return nullptr;
     }
 }
-
-EI_REWRITTEN_SPECIAL(0x0042D690, CClientSpecificManager::CClientSpecificManager);
-EI_REWRITTEN(0x0042D6F0, misc400::ManagerDestruct);
-EI_REWRITTEN(0x0042D6B0, CClientSpecificManager::GetClassName);
-EI_REWRITTEN(0x0042D6C0, CClientSpecificManager::GetClassId);
-EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObject);

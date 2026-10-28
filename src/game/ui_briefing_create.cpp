@@ -23,7 +23,6 @@
 #include "party.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -269,9 +268,6 @@ void CBriefingScreen::CreateScreen() {
     markPhase_ = 0.0f;
 }
 
-EI_REWRITTEN(0x006024B0, CBriefingScreen::CreateScreen);
-
-
 void CBriefingScreen::Update() {
     markPhase_ = static_cast<float>(FrameTime() + markPhase_);
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
@@ -404,5 +400,3 @@ void CBriefingScreen::LeaveIfExitOpen() {
     second.FreeData();
     records.FreeData();
 }
-
-EI_REWRITTEN(0x00604130, CBriefingScreen::Update);

@@ -2,7 +2,6 @@
 // cleared (and the clear's result returned). Otherwise the model is looked up and its animation part asked
 // for the name; each failure logs "Can't open model" / "Can't open animation ... for model" and returns 0; a
 // found animation goes to the figure (its result returned). See docs/notes/models.md.
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -34,5 +33,3 @@ int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char
     }
     return figure->LoadBoneTracks(static_cast<CFigureModelPart*>(found), animation);
 }
-
-EI_REWRITTEN(0x005ACCF0, CFigureManager::SetFigureAnimation);

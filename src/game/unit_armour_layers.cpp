@@ -6,7 +6,6 @@
 #include "item.h"
 #include "object_tables.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <bit>
@@ -45,7 +44,6 @@ void UnitStats::AddArmourLayer(CItemArmor* piece) {
         layer.layerMask |= static_cast<int>(piece->layerMask_[part]);
     }
 }
-EI_REWRITTEN(0x005230C0, UnitStats::AddArmourLayer);
 
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
@@ -56,7 +54,6 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // to nearest
     }
 }
-EI_REWRITTEN(0x00523300, UnitStats::RebuildArmourLayers);
 
 void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -70,7 +67,6 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
         out->words[1 + k] = static_cast<std::uint16_t>(x87::RoundToInt(static_cast<float>(value)));
     }
 }
-EI_REWRITTEN(0x00523020, UnitStats::PackBodyProtection);
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index
@@ -89,7 +85,6 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     default: return kZero + static_cast<double>(best);
     }
 }
-EI_REWRITTEN(0x00525E90, UnitStats::AttributeWithItems);
 
 double UnitStats::SpellSchoolSkill(int school) {
     if (school == 4) school = 3;
@@ -102,4 +97,3 @@ double UnitStats::SpellSchoolSkill(int school) {
     double level = SkillLevelValue(school + 7);
     return (base + level) + (stat20 - kStatBase);
 }
-EI_REWRITTEN(0x00527EB0, UnitStats::SpellSchoolSkill);

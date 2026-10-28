@@ -5,7 +5,6 @@
 #include "terrain.h"
 #include "ground_decal.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -79,5 +78,3 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
         }
     }
 }
-
-EI_REWRITTEN(0x006CCF20, Terrain::AddDecalTriangles);

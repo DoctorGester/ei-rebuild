@@ -5,7 +5,6 @@
 #include "net_coder.h"
 #include "net_messages.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_strings.h"
 
@@ -74,6 +73,5 @@ void ClientSession::ReadServerList(GameBuffer* in) {
     }
     coder.out.End();
 }
-EI_REWRITTEN(0x0041D600, ClientSession::ReadServerList);
 
 } // namespace net

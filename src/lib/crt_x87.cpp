@@ -4,7 +4,6 @@
 // this is the one file in src/lib that tools/check_cleanup.py lets hold __asm.
 #include "crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cfloat>
@@ -292,11 +291,5 @@ double __cdecl Hypot(double x, double y) {
     if (IsInfinite(Bits(result))) return control.Overflow(false);
     return result;
 }
-
-// ---- The register entries ----
-
-EI_REWRITTEN(0x006E7334, libcrt::CiAcos);
-EI_REWRITTEN(0x006E83D4, libcrt::CiAsin);
-EI_REWRITTEN(0x006FD026, libcrt::Hypot);
 
 } // namespace libcrt

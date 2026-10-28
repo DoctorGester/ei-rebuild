@@ -3,8 +3,6 @@
 
 #include "crt.h"
 
-#include "ei/hook.h"
-
 #include <new>
 
 namespace stlp {
@@ -33,11 +31,3 @@ StringPair* StringPair::DeletingDestructor(unsigned flags) {
 }
 
 } // namespace stlp
-
-using stlp::DwordPair;
-using stlp::StringDwordPair;
-using stlp::StringPair;
-using stlp::StringListPair;
-
-EI_REWRITTEN(0x0069C1C0, StringListPair::Construct);
-EI_REWRITTEN(0x004AD640, StringListPair::Destruct);

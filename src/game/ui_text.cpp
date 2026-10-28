@@ -7,8 +7,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 #include <string>
 
@@ -87,4 +85,3 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     }
     return lines.GetSize();
 }
-EI_REWRITTEN(0x005FDFA0, CUiSurface::DrawWrappedText);

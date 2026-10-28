@@ -2,17 +2,13 @@
 // virtual is the counted value's deleting destructor.
 #include "item.h"
 
-#include "ei/hook.h"
-
 CItemLink::CItemLink() {
     refs_ = 0;
     flags6_ = 0;
     flags7_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x0058FBB0, CItemLink::CItemLink);
 
 int CItemLink::OnShutdown() { return 0; }
-EI_REWRITTEN(0x0058FB90, CItemLink::OnShutdown);
 
 // The count dword is cleared only after the allocation is tested.
 CItemLink* CItemLink::Clone() {
@@ -21,4 +17,3 @@ CItemLink* CItemLink::Clone() {
     copy->value = value;
     return copy;
 }
-EI_REWRITTEN(0x0058FB60, CItemLink::Clone);

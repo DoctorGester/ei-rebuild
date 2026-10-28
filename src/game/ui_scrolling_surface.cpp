@@ -10,7 +10,6 @@
 #include "ui_gdi.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -65,7 +64,6 @@ CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : C
     offset_ = 0;
     endOffset_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x0065ED30, CUiScrollingSurface::CUiScrollingSurface);
 
 // Then the surface's.
 CUiScrollingSurface::~CUiScrollingSurface() {
@@ -75,8 +73,6 @@ CUiScrollingSurface::~CUiScrollingSurface() {
         richEditLibrary_ = nullptr;
     }
 }
-EI_REWRITTEN_SPECIAL(0x0065EDE0, CUiScrollingSurface::~CUiScrollingSurface);
-EI_REWRITTEN_SPECIAL(0x0065EDC0, CUiScrollingSurface::~CUiScrollingSurface);
 
 bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     std::uint32_t size = 0;
@@ -85,7 +81,6 @@ bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     archive->CloseFile(data);
     return data != nullptr;
 }
-EI_REWRITTEN(0x0065EF30, CUiScrollingSurface::Load);
 
 bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     RtfSource source = {static_cast<const std::uint8_t*>(data), size, 0};
@@ -96,7 +91,6 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     RenderText();
     return true;
 }
-EI_REWRITTEN(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
     mfc::impl::CDC* dc = UiSurfaceGetDC(this);
@@ -124,7 +118,6 @@ void CUiScrollingSurface::RenderText() {
     }
     UiSurfaceReleaseDC(this);
 }
-EI_REWRITTEN(0x0065F020, CUiScrollingSurface::RenderText);
 
 void CUiScrollingSurface::Blit() {
     EI_NAN_AUDIT(speed_);
@@ -136,7 +129,6 @@ void CUiScrollingSurface::Blit() {
     }
     CUiSurface::Blit();
 }
-EI_REWRITTEN(0x0065F170, CUiScrollingSurface::Blit);
 
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;
@@ -150,4 +142,3 @@ void CUiScrollingSurface::Start(float speed, char fromBelow) {
     speed_ = speed;
     startTime_ = GameTime();
 }
-EI_REWRITTEN(0x0065F1C0, CUiScrollingSurface::Start);

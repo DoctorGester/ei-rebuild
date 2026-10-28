@@ -4,7 +4,6 @@
 #include "net_messages.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ui.h"
 #include "world_data.h"
@@ -56,11 +55,6 @@ RefPtr* RefPtr::CopyPlain(const RefPtr* other) {
     if (object) ++object->refs_;
     return this;
 }
-
-EI_REWRITTEN(0x004263B0, RefPtr::CopyPlain);
-EI_REWRITTEN(0x00429910, RefPtr::CopyPlain);
-EI_REWRITTEN(0x00609960, RefPtr::CopyPlain);
-EI_REWRITTEN(0x005BEF50, RefPtr::CopyPlain);
 
 namespace net {
 
@@ -162,11 +156,5 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
     self->trades_.Remove(removing, stlp::SameObject());
     ReleaseInline(removing.ptr);
 }
-
-EI_REWRITTEN(0x0041ACF0, ServerSession::FindTrade);
-EI_REWRITTEN(0x0041B720, ServerOnObjectRemoved);
-EI_REWRITTEN(0x0041B7A0, ServerOnTradeOffer);
-EI_REWRITTEN(0x0041B970, ServerOnTradeUpdate);
-EI_REWRITTEN(0x0041BA30, ServerOnTradeCancel);
 
 } // namespace net

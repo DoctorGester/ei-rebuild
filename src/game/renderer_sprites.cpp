@@ -5,7 +5,6 @@
 #include "model.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "render/render_state.h"
 #include "render/render.h"
 #include "ei/x87.h"
@@ -320,7 +319,6 @@ void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteS
         for (SpriteSortRecord* r = buckets[ascending ? i : 255 - i]; r; r = r->next) *dst++ = r;
     }
 }
-EI_REWRITTEN(0x00503710, SpriteRadixPass);
 
 // One merge sort pass over `count` record pointers: for each column j below `width`, the
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
@@ -357,7 +355,6 @@ void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteS
         }
     }
 }
-EI_REWRITTEN(0x005037D0, SpriteMergePass);
 
 // DrawIndexedPrimitive under the device's
 // critical section; the result goes to lastLoadResult_; counts vertices, triangles
@@ -377,8 +374,6 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
     drawCount_ += 1;
     return 1;
 }
-EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
-
 
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
 // The view matrix is the top of the clip stack, transposed. Returns 1, or 0 when a draw fails (the blend is
@@ -434,17 +429,3 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     }
     return 1;
 }
-EI_REWRITTEN(0x00502CA0, CSceneRenderer::DrawSprites);
-
-EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
-EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);
-EI_REWRITTEN(0x00505150, lib::AlignedArray<SpriteSortRecord>::SetSize);
-EI_REWRITTEN(0x00505270, lib::AlignedArray<SpriteSortRecord*>::SetSize);
-EI_REWRITTEN(0x00503A20, FreeUnused);
-EI_REWRITTEN(0x00503A00, FreeCorners);
-EI_REWRITTEN(0x005039C0, FreeCornersCopy);
-EI_REWRITTEN(0x005039A0, FreeRecords);
-EI_REWRITTEN(0x00503980, FreeOrder);
-EI_REWRITTEN(0x00503960, FreeSpare);
-EI_REWRITTEN(0x005039F0, DestroyOutcodes);
-EI_REWRITTEN(0x005039E0, DestroyIndices);

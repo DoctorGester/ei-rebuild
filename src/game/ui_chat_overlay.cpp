@@ -9,7 +9,6 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -200,7 +199,6 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         node->data.surface = surface;
     }
 }
-EI_REWRITTEN(0x005E2A30, CChatOverlay::AddLine);
 
 // --- opening the chat line, clearing the lines ---------------------------------------------------
 
@@ -212,12 +210,10 @@ void CChatOverlay::SetOpen(bool open) {
     }
     DrawTyped();
 }
-EI_REWRITTEN(0x005E36C0, CChatOverlay::SetOpen);
 
 void CChatOverlay::ClearLines() {
     lines_.ClearWith([](ChatLine* line) { line->Destroy(); });
 }
-EI_REWRITTEN(0x005E3930, CChatOverlay::ClearLines);
 
 // --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
 
@@ -255,7 +251,6 @@ void CChatOverlay::DrawTyped() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
@@ -313,8 +308,6 @@ void CChatOverlay::OnChar(int key, int, int) {
     }
     DrawTyped();
 }
-EI_REWRITTEN(0x005E3230, CChatOverlay::OnKeyDown);
-EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 
 // --- the constructor -----------------------------------------------------------------------------
 
@@ -330,7 +323,6 @@ CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     caret_ = 0;
     DrawTyped();
 }
-EI_REWRITTEN_SPECIAL(0x005E26F0, CChatOverlay::CChatOverlay);
 
 void CChatOverlay::Update() {
     std::uint32_t now = gameapi::timeGetTime();
@@ -348,7 +340,6 @@ void CChatOverlay::Update() {
         node = next;
     }
 }
-EI_REWRITTEN(0x005E2990, CChatOverlay::Update);
 
 void CChatOverlay::Redraw() {
     int y = kTop;
@@ -359,4 +350,3 @@ void CChatOverlay::Redraw() {
     }
     RedrawBase();
 }
-EI_REWRITTEN(0x005E29E0, CChatOverlay::Redraw);

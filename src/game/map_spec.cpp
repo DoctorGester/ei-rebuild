@@ -8,7 +8,6 @@
 #include "game_strings.h"
 #include "map_object.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -70,25 +69,18 @@ Spec::Spec() : Chunk(nullptr) {
     name = none;
     comment = none;
 }
-EI_REWRITTEN_SPECIAL(0x00469CA0, Spec::Spec);
 
 Spec::~Spec() = default;
-EI_REWRITTEN_SPECIAL(0x00469E50, Spec::~Spec);
-EI_REWRITTEN_SPECIAL(0x00469E30, Spec::~Spec);
 
 mfc::CString* Spec::TypeName(mfc::CString* out) {
     std::construct_at(out, "error");
     return out;
 }
-EI_REWRITTEN(0x00469DB0, Spec::TypeName);
 
 void Spec::Remove() { Apply(); }
-EI_REWRITTEN(0x00469DE0, Spec::Remove);
 void Spec::Refresh() { Apply(); }
-EI_REWRITTEN(0x00469E00, Spec::Refresh);
 
 void* Spec::WorldObject() { return TheObjectManager()->FindObject(id); }
-EI_REWRITTEN(0x00469F20, Spec::WorldObject);
 
 void Spec::Move(float dx, float dy, float dz) {
     position.x = dx + position.x;
@@ -96,8 +88,6 @@ void Spec::Move(float dx, float dy, float dz) {
     position.z = dz + position.z;
     Apply();
 }
-EI_REWRITTEN(0x00469F40, Spec::Move);
-
 
 ObjectSpec::ObjectSpec() {
     std::string none("none");
@@ -116,13 +106,8 @@ ObjectSpec::ObjectSpec() {
     parentIname = none;
     skinTexture = none;
 }
-EI_REWRITTEN_SPECIAL(0x0046A5C0, ObjectSpec::ObjectSpec);
 
 ObjectSpec::~ObjectSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046AEB0, ObjectSpec::~ObjectSpec);
-EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
-EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the quick item effect record's twin (UseQuickItem)
-EI_REWRITTEN_SPECIAL(0x0058EDD0, ObjectSpec::~ObjectSpec);
 
 void ObjectSpec::WriteFields() {
     WriteStringArray(0xB00D, &parts);
@@ -148,14 +133,12 @@ void ObjectSpec::WriteFields() {
     FileWrite(*this, &scale.x, 4);
     FileWrite(*this, &scale.z, 4);
 }
-EI_REWRITTEN(0x0046A940, ObjectSpec::WriteFields);
 
 void ObjectSpec::Save() {
     BeginWrite(0xB001);
     WriteFields();
     EndWrite();
 }
-EI_REWRITTEN(0x0046A920, ObjectSpec::Save);
 
 void ObjectSpec::OnChunk() {
     Chunk& c = *this;
@@ -192,7 +175,6 @@ void ObjectSpec::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046AB20, ObjectSpec::OnChunk);
 
 void ObjectSpec::Remove() {
     if (object) {
@@ -201,14 +183,12 @@ void ObjectSpec::Remove() {
     }
     Apply();
 }
-EI_REWRITTEN(0x0046AF70, ObjectSpec::Remove);
 
 CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(object); }
 
 void ObjectSpec::Refresh() {
     if (object) MapObject()->MarkChanged(2);
 }
-EI_REWRITTEN(0x0046AFA0, ObjectSpec::Refresh);
 
 void ObjectSpec::Apply() {
     if (!object) {
@@ -231,7 +211,6 @@ void ObjectSpec::Apply() {
     TheSectorMap()->Add(MapObject());
     Selection()->EndRefresh();
 }
-EI_REWRITTEN(0x0046AFB0, ObjectSpec::Apply);
 
 mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
     std::string text;
@@ -239,8 +218,6 @@ mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
     std::construct_at(out, text);
     return out;
 }
-EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
-
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -249,11 +226,8 @@ FlameSpec::FlameSpec() {
     std::memcpy(&volume, &volumeBits, 4);
     sound = "nature\\fire\\small.wav";
 }
-EI_REWRITTEN_SPECIAL(0x0046B210, FlameSpec::FlameSpec);
 
 FlameSpec::~FlameSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046B120, FlameSpec::~FlameSpec);
-EI_REWRITTEN_SPECIAL(0x0046B1F0, FlameSpec::~FlameSpec);
 
 void FlameSpec::Apply() {
     if (object) {
@@ -262,7 +236,6 @@ void FlameSpec::Apply() {
     }
     TheServerWorld()->CreateObject(this);
 }
-EI_REWRITTEN(0x0046B310, FlameSpec::Apply);
 
 void FlameSpec::Save() {
     BeginWrite(0xBBBF0000);
@@ -272,7 +245,6 @@ void FlameSpec::Save() {
     ObjectSpec::WriteFields();
     EndWrite();
 }
-EI_REWRITTEN(0x0046B340, FlameSpec::Save);
 
 void FlameSpec::OnChunk() {
     Chunk& c = *this;
@@ -287,7 +259,6 @@ void FlameSpec::OnChunk() {
     default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046B3C0, FlameSpec::OnChunk);
 
 // ---- Magic traps --------------------------------------------------------------------
 
@@ -306,7 +277,6 @@ TrapSpec::TrapSpec() {
     trap.period = 15;
     kind = 7;
 }
-EI_REWRITTEN_SPECIAL(0x0046B4A0, TrapSpec::TrapSpec);
 
 // The spell's text goes with the trap's members, after this.
 TrapSpec::~TrapSpec() {
@@ -315,14 +285,11 @@ TrapSpec::~TrapSpec() {
     ei::SetVtable(&trap.area, mfc::impl::TrapCircleArrayClass::Vtable());
     if (trap.area.data) gamecrt::operator_delete(trap.area.data);
 }
-EI_REWRITTEN_SPECIAL(0x0046B570, TrapSpec::~TrapSpec);
-EI_REWRITTEN_SPECIAL(0x0046B550, TrapSpec::~TrapSpec);
 
 mfc::CString* TrapSpec::TypeName(mfc::CString* out) {
     std::construct_at(out, "MagicTrap");
     return out;
 }
-EI_REWRITTEN(0x0046B520, TrapSpec::TypeName);
 
 void TrapSpec::Save() {
     BeginWrite(0xBBAB0000);
@@ -341,7 +308,6 @@ void TrapSpec::Save() {
     ObjectSpec::WriteFields();
     EndWrite();
 }
-EI_REWRITTEN(0x0046B680, TrapSpec::Save);
 
 void TrapSpec::OnChunk() {
     Chunk& c = *this;
@@ -371,8 +337,6 @@ void TrapSpec::OnChunk() {
     default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046B7D0, TrapSpec::OnChunk);
-
 
 LeverSpec::LeverSpec() {
     lever.lock.mask = 1;
@@ -385,11 +349,8 @@ LeverSpec::LeverSpec() {
     lever.cycling = 0;
     kind = 8;
 }
-EI_REWRITTEN_SPECIAL(0x0046BD40, LeverSpec::LeverSpec);
 
 LeverSpec::~LeverSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046BDC0, LeverSpec::~LeverSpec);
-EI_REWRITTEN_SPECIAL(0x0046BDA0, LeverSpec::~LeverSpec);
 
 void LeverSpec::Save() {
     BeginWrite(0xBBAC0000);
@@ -402,7 +363,6 @@ void LeverSpec::Save() {
     ObjectSpec::WriteFields();
     EndWrite();
 }
-EI_REWRITTEN(0x0046BE80, LeverSpec::Save);
 
 void LeverSpec::OnChunk() {
     Chunk& c = *this;
@@ -416,7 +376,6 @@ void LeverSpec::OnChunk() {
     default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046BF20, LeverSpec::OnChunk);
 
 // ---- Rotating a vector ---------------------------------------------------------------------------
 
@@ -436,7 +395,6 @@ Vector3* Quaternion::Rotate(Vector3* out, const Vector3* v) const {
     out->z = (m * v->z + bz) + az;
     return out;
 }
-EI_REWRITTEN(0x0046A4B0, Quaternion::Rotate);
 
 namespace mapspec {
 
@@ -451,6 +409,5 @@ ZoneDiplomacy::ZoneDiplomacy() {
     for (int i = 0; i < 32; ++i) relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) names.push_back(str::Format("Player-%i", i));
 }
-EI_REWRITTEN_SPECIAL(0x0046E5E0, ZoneDiplomacy::ZoneDiplomacy);
 
 } // namespace mapspec

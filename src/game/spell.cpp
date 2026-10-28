@@ -1,7 +1,6 @@
 #include "spell.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -47,7 +46,6 @@ int CSpell::Create() {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REWRITTEN(0x0068B320, CSpell::Create);
 
 BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed_ = prototype->speed;
@@ -71,12 +69,10 @@ BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REWRITTEN(0x0068B430, CSpell::InitFromPrototype);
 
 itemdb::SpellRecord* CSpell::GetPrototype() {
     return SpellAt(prototypeId_ >> 16);
 }
-EI_REWRITTEN(0x0068BA20, CSpell::GetPrototype);
 
 int CSpell::GetModifierCount() {
     for (int i = 0; i < 8; ++i) {
@@ -84,7 +80,6 @@ int CSpell::GetModifierCount() {
     }
     return 8;
 }
-EI_REWRITTEN(0x0068BA60, CSpell::GetModifierCount);
 
 bool CSpell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
@@ -98,7 +93,6 @@ bool CSpell::HasCastFlagModifier() {
     }
     return false;
 }
-EI_REWRITTEN(0x0068B7C0, CSpell::HasCastFlagModifier);
 
 int CSpell::GetDamageType() {
     switch (prototypeId_ >> 16) {
@@ -108,7 +102,6 @@ int CSpell::GetDamageType() {
     default: return 6;
     }
 }
-EI_REWRITTEN(0x0068B700, CSpell::GetDamageType);
 
 bool CSpell::IsOffensive() {
     switch (prototypeId_ >> 16) {
@@ -121,7 +114,6 @@ bool CSpell::IsOffensive() {
         return false;
     }
 }
-EI_REWRITTEN(0x0068B770, CSpell::IsOffensive);
 // Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
 
 bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
@@ -145,7 +137,6 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     if ((flags & 0x20) && std::strcmp(name, kMoli) == 0) return false;
     return true;
 }
-EI_REWRITTEN(0x0068B4C0, CSpell::CanAffect);
 
 BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
@@ -180,7 +171,6 @@ BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00683950, CSpellEffect::GetDamage);
 
 float CLight::GetIntensityAt(const Vector3* point) {
     if (type_ != kPointLight) {
@@ -197,7 +187,6 @@ float CLight::GetIntensityAt(const Vector3* point) {
     }
     return kZero;
 }
-EI_REWRITTEN(0x0068D730, CLight::GetIntensityAt);
 
 char* __stdcall SpellCodeByName(const char* name) {
     const SpellTable& spells = TheSpellDatabase().spells;
@@ -213,7 +202,6 @@ char* __stdcall SpellCodeByName(const char* name) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x006893F0, SpellCodeByName);
 
 char* __stdcall SpellModifierCodeByName(const char* name) {
     const SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
@@ -228,4 +216,3 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x006894B0, SpellModifierCodeByName);

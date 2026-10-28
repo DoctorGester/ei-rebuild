@@ -8,7 +8,6 @@
 #include "engine_object.h"
 #include "options.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -158,7 +157,6 @@ CTextManager::~CTextManager() {
 void* TextSources::Find(const char* key, std::uint32_t* size) {
     return FindFile(this, key, size, nullptr);
 }
-EI_REWRITTEN(0x004DEBC0, TextSources::Find);
 
 void* TextSources::FindText(const char* key, std::uint32_t* size) {
     CMappedResource* source = nullptr;
@@ -174,7 +172,6 @@ void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
         out->Append(found);
     }
 }
-EI_REWRITTEN(0x004DEC40, TextSources::ListKeys);
 
 void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
     sources_.ListKeys(out, pattern);
@@ -183,7 +180,6 @@ void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
         for (int i = 0; i < out->GetSize(); ++i) text::FromAssetText(&(*out)[i]);
     }
 }
-EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
@@ -196,13 +192,3 @@ int CTextManager::Create() {
     }
     return 1;
 }
-EI_REWRITTEN(0x004DED20, CTextManager::Create);
-
-EI_REWRITTEN(0x004DE930, TextSources::Add);
-EI_REWRITTEN(0x004DEAF0, TextSources::Remove);
-EI_REWRITTEN(0x004DEB60, TextSources::Clear);
-EI_REWRITTEN(0x004DEDB0, CTextManager::AddSource);
-EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
-EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);
-EI_REWRITTEN_SPECIAL(0x005629B0, CTextManager::~CTextManager);
-EI_REWRITTEN_SPECIAL(0x00562990, CTextManager::~CTextManager);

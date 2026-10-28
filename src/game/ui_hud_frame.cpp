@@ -9,7 +9,6 @@
 
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -162,7 +161,6 @@ void CHudClock::Update() {
 
     SetTint(objects[6], highlight_ ? pulse : 1.0f);
 }
-EI_REWRITTEN(0x006488E0, CHudClock::Update);
 
 // --- Top panel ---------------------------------------------------------------------------------
 
@@ -207,4 +205,3 @@ void CHudTopPanel::Update() {
     interface_->hudPanelsIn_[1] = slideDirection_ > 0.0f ? 1 : 0;   // the panel is (coming) in
     interface_->hudTopPage_ = page_;
 }
-EI_REWRITTEN(0x00649FF0, CHudTopPanel::Update);

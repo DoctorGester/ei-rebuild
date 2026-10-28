@@ -3,7 +3,6 @@
 
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/str.h"
 
 #include <string>
@@ -45,7 +44,6 @@ int SplitAt(const char* text, Array* array, char separator, bool skipAdjacent) {
 int __fastcall Split(const char* text, mfc::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, false);
 }
-EI_REWRITTEN(0x004DBE40, Split);
 
 int SplitStrings(const char* text, std::vector<std::string>* array, char separator) {
     return SplitAt(text, array, separator, false);
@@ -54,7 +52,6 @@ int SplitStrings(const char* text, std::vector<std::string>* array, char separat
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, true);
 }
-EI_REWRITTEN(0x004DBF50, SplitWords);
 
 int __fastcall ReplaceChar(std::string* string, char from, char to) {
     std::string result;
@@ -70,7 +67,6 @@ int __fastcall ReplaceChar(std::string* string, char from, char to) {
     *string = result;
     return 1;
 }
-EI_REWRITTEN(0x004DC400, ReplaceChar);
 
 int __fastcall Join(std::string* out, const mfc::CStringArray* parts, char separator) {
     *out = game::EmptyText();
@@ -82,6 +78,5 @@ int __fastcall Join(std::string* out, const mfc::CStringArray* parts, char separ
     }
     return 1;
 }
-EI_REWRITTEN(0x004DC390, Join);
 
 } // namespace text

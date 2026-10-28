@@ -10,7 +10,6 @@
 #include "sys_info.h"
 #include "at_exit_functions.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/str.h"
@@ -70,14 +69,12 @@ MEMORYSTATUS* CSysInfo::QueryMemory() {
     gameapi::GlobalMemoryStatus(&memory_);
     return &memory_;
 }
-EI_REWRITTEN(0x004DE687, CSysInfo::QueryMemory);
 
 SYSTEM_INFO* CSysInfo::QuerySystem() {
     std::memset(&system_, 0, sizeof(system_));
     gameapi::GetSystemInfo(&system_);
     return &system_;
 }
-EI_REWRITTEN(0x004DE6C2, CSysInfo::QuerySystem);
 
 OSVERSIONINFOA* CSysInfo::QueryVersion() {
     std::memset(&version_, 0, sizeof(version_));
@@ -91,7 +88,6 @@ OSVERSIONINFOA* CSysInfo::QueryVersion() {
         systemName_ = "Windows NT";
     return &version_;
 }
-EI_REWRITTEN(0x004DE6F3, CSysInfo::QueryVersion);
 
 // (The game also copies the report's twelve bytes as a string into a local nothing
 // reads.) Without CPUID the globals keep what they held.
@@ -107,7 +103,6 @@ void CSysInfo::QueryProcessor() {
     else
         flags_ &= ~kSse;
 }
-EI_REWRITTEN(0x004DE789, CSysInfo::QueryProcessor);
 
 // (The game's two unused locals, a registry key holder that is never opened and an
 // empty string, are left out.) The report built at the end goes nowhere: it is a local.
@@ -168,7 +163,6 @@ int CSysInfo::Collect() {
 #pragma warning(pop)
     return 1;
 }
-EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
 
 // ---- The object ------------------------------------------------------------------------------------
 
@@ -176,69 +170,48 @@ CSysInfo::CSysInfo() {
     ClearFields();
     Collect();   // Create, called directly
 }
-EI_REWRITTEN_SPECIAL(0x004DDD6F, CSysInfo::CSysInfo);
 
 CSysInfo::~CSysInfo() = default;
-EI_REWRITTEN_SPECIAL(0x004DDE75, CSysInfo::~CSysInfo);
-EI_REWRITTEN_SPECIAL(0x004DE8B0, CSysInfo::~CSysInfo);
 
 int CSysInfo::Create() {
     Collect();
     return 1;
 }
-EI_REWRITTEN(0x004DDF05, CSysInfo::Create);
-EI_REWRITTEN(0x004DDF1D, CSysInfo::Destroy);
 
 const char* CSysInfo::GetClassName() { return SysInfoClassNameText(); }
-EI_REWRITTEN(0x004DE890, CSysInfo::GetClassName);
 int CSysInfo::GetClassId() { return kClassId; }
-EI_REWRITTEN(0x004DE8A0, CSysInfo::GetClassId);
 
 // The global's destructor (cdecl; registered with atexit by the static initialiser).
 void __cdecl SysInfoAtExit() { g_sysInfo.Destroy(); }
-EI_REWRITTEN(0x004DDD60, SysInfoAtExit);
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------
 
 // The four constants, each one operation on the exe's
 // pi rounded to a float by the store.
 void __cdecl SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
-EI_REWRITTEN(0x004DDCBA, SysInfoInitTwoPi);
 void __cdecl SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
-EI_REWRITTEN(0x004DDCD7, SysInfoInitHalfPi);
 void __cdecl SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
-EI_REWRITTEN(0x004DDCF8, SysInfoInitQuarterPi);
 void __cdecl SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
-EI_REWRITTEN(0x004DDD19, SysInfoInitInversePi);
 
 // The table's entries for them.
 void __cdecl SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }
-EI_REWRITTEN(0x004DDCB0, SysInfoStaticTwoPi);
 void __cdecl SysInfoStaticHalfPi() { SysInfoInitHalfPi(); }
-EI_REWRITTEN(0x004DDCCD, SysInfoStaticHalfPi);
 void __cdecl SysInfoStaticQuarterPi() { SysInfoInitQuarterPi(); }
-EI_REWRITTEN(0x004DDCEE, SysInfoStaticQuarterPi);
 void __cdecl SysInfoStaticInversePi() { SysInfoInitInversePi(); }
-EI_REWRITTEN(0x004DDD0F, SysInfoStaticInversePi);
 
 // The global constructed, then its destructor registered with atexit: the
 // table's entry covers both.
 void __cdecl SysInfoStaticConstruct() { g_sysInfo.Construct(); }
-EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
 void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }
-EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
     SysInfoStaticRegisterExit();
 }
-EI_REWRITTEN(0x004DDD30, SysInfoStaticInit);
 
 // An empty destructor (a bare RET) registered with atexit. The
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
 void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }
-EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
     if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }
-EI_REWRITTEN(0x004DE855, SysInfoStaticGuard);

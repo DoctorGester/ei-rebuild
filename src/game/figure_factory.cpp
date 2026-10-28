@@ -10,7 +10,6 @@
 #include "map_object_figures.h"
 #include "sky_object.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "scene_loader.h"
@@ -58,5 +57,3 @@ void* __stdcall CreateFigureObject(int classId) {
     static_cast<CEngineObject*>(object)->type_ = classId;
     return object;
 }
-
-EI_REWRITTEN(0x005AA8E0, CreateFigureObject);

@@ -23,7 +23,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -160,7 +159,6 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         game::FatalError("SSCCmd::CalcParameters, unknown function parameter type");
     }
 }
-EI_REWRITTEN(0x004B4030, SSCCmd::CalcParameters);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
@@ -542,7 +540,6 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
 }
-EI_REWRITTEN(0x004B41E0, SSCCmd::CalcFloat);
 
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
@@ -607,8 +604,6 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
 }
-EI_REWRITTEN(0x004B56C0, SSCCmd::CalcObject);
-
 
 namespace {
 
@@ -706,4 +701,3 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     }
     if (objects.manager) --objects.manager->refCount_;   // the iterator's destructor
 }
-EI_REWRITTEN(0x004B5B00, SSCCmd::CalcGroup);

@@ -10,7 +10,6 @@
 #include "../lib/gameapi.h"
 #include "../lib/stlp_string.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_thread.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
@@ -41,9 +40,6 @@ int CSoundManager::CreateBody() {
     Reset();
     return 1;
 }
-EI_REWRITTEN(0x006B6D70, CSoundManager::CreateBody);
-
-EI_REWRITTEN_SPECIAL(0x006B62B0, CSoundManager::~CSoundManager);   // deleting
 
 // The list's RemoveHead (inlined), then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
@@ -52,7 +48,6 @@ void CSoundManager::ClearWaveSources() {
         delete source;
     }
 }
-EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 
 // Called at startup for the two sound archives. A failed allocation is not tested (the open call goes
 // through a null object).
@@ -67,7 +62,6 @@ int CSoundManager::AddWaveSource(const char* path) {
     waveSources.AddTail(source);
     return 1;
 }
-EI_REWRITTEN(0x006B7AB0, CSoundManager::AddWaveSource);
 
 // From the map's ambient sounds.
 void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source) {
@@ -82,7 +76,6 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
     }
     return nullptr;
 }
-EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
 // Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
 // the game's main thread.
@@ -98,7 +91,6 @@ void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
     }
     names.Destruct();
 }
-EI_REWRITTEN(0x006B7110, CSoundManager::ListWaveFiles);
 
 // Called at startup.
 int CSoundManager::SetPath(const char* folder, const char* registryPath) {
@@ -112,7 +104,6 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     if (missing) soundPath += kBackslash;
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
 }
-EI_REWRITTEN(0x006BAE20, CSoundManager::SetPath);
 
 mfc::CString CSoundManager::CurrentStreamName() {
     gameapi::EnterCriticalSection(&nameLock);
@@ -122,7 +113,6 @@ mfc::CString CSoundManager::CurrentStreamName() {
     gameapi::LeaveCriticalSection(&nameLock);
     return name;
 }
-EI_REWRITTEN(0x006BAEA0, CSoundManager::CurrentStreamName);
 
 int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset) {
     if (offset >= 0) {
@@ -135,7 +125,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
     manager->streamReadPosition += size;
     return size;
 }
-EI_REWRITTEN(0x006BA950, SoundStreamRead);
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
@@ -194,8 +183,6 @@ CSoundManager::CSoundManager() {
     Reset();
 }
 
-EI_REWRITTEN_SPECIAL(0x006B6040, CSoundManager::CSoundManager);
-
 // The archive, the strings and the stream reader are destroyed after the body (the archive after the
 // registries; the game destroys it between them and the stream reader last).
 CSoundManager::~CSoundManager() {
@@ -218,7 +205,6 @@ CSoundManager::~CSoundManager() {
     registry0CC.Destroy();
     soundRegistry.Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x006B65D0, CSoundManager::~CSoundManager);
 
 void CSoundManager::ResetStream() {
     streamState = 0;
@@ -245,8 +231,6 @@ void CSoundManager::ResetStream() {
     switchMode = kNoSwitch;
     ConstructFader(musicFader);
 }
-
-EI_REWRITTEN(0x006BA9C0, CSoundManager::ResetStream);
 
 // --- Open, Close, Reset ------------------------------------------------------------------
 
@@ -364,7 +348,6 @@ void CSoundManager::StreamThread() {
     }
     mfc::impl::AfxEndThread(0, 1);
 }
-EI_REWRITTEN(0x006BB910, CSoundManager::StreamThread);
 
 // The stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached: StreamThread ends
 // the thread).
@@ -372,7 +355,6 @@ unsigned __cdecl StreamThreadEntry(void* manager) {
     static_cast<CSoundManager*>(manager)->StreamThread();
     return 0;
 }
-EI_REWRITTEN(0x006B6A10, StreamThreadEntry);
 
 // kDeviceCallback: DirectSoundEnumerateA's callback in Open. The device's GUID pointer is appended to the
 // aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
@@ -382,7 +364,6 @@ int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedA
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
     return 1;
 }
-EI_REWRITTEN(0x006B68A0, AddSoundDevice);
 
 // --- The stream's reader -----------------------------------------------------------------
 
@@ -531,7 +512,6 @@ void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
     }
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
-EI_REWRITTEN(0x006BB3A0, CSoundManager::ReadStreamVanilla);
 
 // Miles calls it on its own thread when a voice's sample ends (registered in sound_manager.cpp). The voice
 // (the sample's user data 1) is marked finished; the game also reads user data 0 (the manager) and drops
@@ -540,10 +520,6 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
     gameapi::AIL_sample_user_data(sample, 0);
     reinterpret_cast<SoundSlot*>(gameapi::AIL_sample_user_data(sample, 1))->finished = 1;
 }
-EI_REWRITTEN(0x006B75E0, SoundEndOfSample);
-
-EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
-EI_REWRITTEN(0x006BAC90, CSoundManager::CloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
     Destroy();   // Close
@@ -599,7 +575,6 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     enabled = 1;
     return 1;
 }
-EI_REWRITTEN(0x006B6A30, CSoundManager::Open);
 
 void CSoundManager::Close() {
     if (streamThread != nullptr) {
@@ -643,7 +618,6 @@ void CSoundManager::Close() {
     soundRegistry.Close();
     Reset();
 }
-EI_REWRITTEN(0x006B6D80, CSoundManager::Close);
 
 void CSoundManager::Reset() {
     waveDriver = nullptr;
@@ -693,4 +667,3 @@ void CSoundManager::Reset() {
     soundPath = game::EmptyText();
     randomStart = 0;
 }
-EI_REWRITTEN(0x006B73E0, CSoundManager::Reset);

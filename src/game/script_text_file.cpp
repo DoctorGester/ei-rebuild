@@ -6,7 +6,6 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/mfc_try.h"
 
@@ -35,6 +34,5 @@ int __fastcall ReadTextFile(const char* path, mfc::CString* text) {
     }
     return result;
 }
-EI_REWRITTEN(0x004D5880, ReadTextFile);
 
 } // namespace scriptparse

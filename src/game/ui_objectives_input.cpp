@@ -12,7 +12,6 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -145,9 +144,6 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REWRITTEN(0x0064E330, CObjectivesWindow::OnLButtonDown);
-EI_REWRITTEN(0x0064E5A0, CObjectivesWindow::OnKeyDown);
-
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;
     places.clear();
@@ -178,7 +174,6 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     }
     TextClose(texts);
 }
-EI_REWRITTEN(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
 
 // --- Quest list handlers --------------------------------------------------------
 
@@ -215,7 +210,6 @@ void CObjectivesWindow::SelectExit(int index) {
     Sprite(this, 4)->visible_ = 0;
     Sprite(this, 5)->visible_ = 0;
 }
-EI_REWRITTEN(0x0064E990, CObjectivesWindow::SelectExit);
 
 void CObjectivesWindow::RefreshQuests() {
     const auto& quests = quests_;
@@ -230,7 +224,6 @@ void CObjectivesWindow::RefreshQuests() {
     DrawQuestList();
     ShowQuest();
 }
-EI_REWRITTEN(0x0064E8B0, CObjectivesWindow::RefreshQuests);
 
 void CObjectivesWindow::Update() {
     UpdateBase();
@@ -255,4 +248,3 @@ void CObjectivesWindow::Update() {
         marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
 }
-EI_REWRITTEN(0x0064E760, CObjectivesWindow::Update);

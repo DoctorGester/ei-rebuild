@@ -12,7 +12,6 @@
 #include "model.h"                // CTransformPipeline, ScenePipeline
 #include "terrain.h"
 
-#include "ei/hook.h"
 #include "render/render.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
@@ -153,5 +152,3 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     builder.Finish();
     render::EndDecalTime(points->size * 4);
 }
-EI_REWRITTEN(0x0056C750, CWorldClient::ProjectDecal);
-EI_REWRITTEN(0x0056CE10, FreePartPoints);

@@ -20,7 +20,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -91,8 +90,6 @@ void CBriefingScreen::StartPhrases() {
     firstPhrase_ = true;
     NextPhrase(0);
 }
-EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
-
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
@@ -114,8 +111,6 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
         controller->PlayAnimation(animation->name);
 }
-EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
-
 
 // SpeakerAnimationDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
@@ -129,8 +124,6 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
-EI_REWRITTEN(0x006023F0, SpeakerAnimationDone);
-
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
     float cosAngle = static_cast<float>(x87::fcos(angle));
@@ -191,8 +184,6 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.z = static_cast<float>(eye.z + height);
     LocalServerPlayer()->Server()->SendPosition0F(&at, &eye, 1);
 }
-EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
-
 
 namespace {
 
@@ -263,8 +254,6 @@ void CBriefingScreen::ViewPreset(int preset) {
         break;
     }
 }
-EI_REWRITTEN(0x00607EC0, CBriefingScreen::ViewPreset);
-
 
 namespace {
 
@@ -329,4 +318,3 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         third_ = nullptr;
     }
 }
-EI_REWRITTEN(0x006062C0, CBriefingScreen::HideSpeaker);

@@ -7,7 +7,6 @@
 
 #include "engine_object.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -138,7 +137,6 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
         if (parent == 0) return;
     }
 }
-EI_REWRITTEN(0x00499CD0, MakeHeapByDepth);
 
 // STLport __pop_heap: the top goes to `result`, `value` (the old *result) is re-sifted into [first, last).
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
@@ -146,7 +144,6 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
     *result = *first;
     AdjustHeap(first, 0, static_cast<int>(last - first), value);
 }
-EI_REWRITTEN(0x00499C20, PopHeapByDepth);
 
 // STLport __introsort_loop: partitions until the range is at most 16 entries; past the depth limit the rest
 // is heap sorted (make_heap, then pop_heap to the end).
@@ -167,7 +164,6 @@ void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void
         last = cut;
     }
 }
-EI_REWRITTEN(0x00499380, IntroSortByDepth);
 
 // STLport __final_insertion_sort.
 void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int) {
@@ -178,10 +174,6 @@ void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int)
         InsertionSort(first, last);
     }
 }
-EI_REWRITTEN(0x004994E0, FinalSortByDepth);
-
-// MFC CArray::SetAtGrow: grows the array (new entries zeroed) to hold `index`.
-EI_REWRITTEN(0x00499200, ParticleDepthArray::SetAtGrow);
 
 // The attachment point plus the local position, or the local position alone.
 Vector3* CParticleSource::WorldPosition(Vector3* out) {
@@ -199,7 +191,6 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
     std::memcpy(out, &localPosition_, sizeof(Vector3));
     return out;
 }
-EI_REWRITTEN(0x00484AE0, CParticleSource::WorldPosition);
 
 // Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
 // sources until the first empty entry), sorts it far to near and draws each source that is not
@@ -266,7 +257,3 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     --refCount_;
     return 1;
 }
-EI_REWRITTEN(0x00498940, CParticleManager::DrawAll);
-
-EI_REWRITTEN(0x00498910, ConstructDrawOrder);
-EI_REWRITTEN(0x00498930, DestroyDrawOrder);

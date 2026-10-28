@@ -30,7 +30,6 @@
 #include "world_effect.h"
 #include "world_glue.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -70,7 +69,6 @@ const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
-using InstanceList = mfc::CList<ScriptDefinition>;
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
@@ -99,9 +97,6 @@ CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 
 using PtrList = mfc::CList<CUnit*>;
-using ObjectIterator = ObjectListIterator;
-
-
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
@@ -1141,4 +1136,3 @@ BOOL ScriptRun::Execute(CScript* script) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004B6760, ScriptRun::Execute);

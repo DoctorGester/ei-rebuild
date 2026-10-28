@@ -4,7 +4,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ui.h"
 #include "world_data.h"
@@ -58,8 +57,5 @@ void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player)
     mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);
     Announce(formatted->GetString(), player);
 }
-
-EI_REWRITTEN(0x0041A310, ServerSession::Announce);
-EI_REWRITTEN(0x0041A490, ServerSession::AnnounceText);
 
 } // namespace net

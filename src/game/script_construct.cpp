@@ -4,7 +4,6 @@
 
 #include "world_glue.h"
 
-#include "ei/hook.h"
 #include "game_lists.h"
 #include "game/game_slots.h"
 #include "game/record_arrays.h"
@@ -75,7 +74,6 @@ CScript* CScript::Construct() {
     ScriptReset(this);
     return this;
 }
-EI_REWRITTEN(0x004BDE40, CScript::Construct);
 
 ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
     out->text = errorText_;
@@ -83,4 +81,3 @@ ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
     out->line = errorLine_;
     return out;
 }
-EI_REWRITTEN(0x00456360, CScript::GetError);

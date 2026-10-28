@@ -9,7 +9,6 @@
 #include "object_tables.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_reader.h"
 #include "game_arrays.h"
@@ -237,21 +236,18 @@ bool CMapDatabase::Load(const char* fileName) {
     reader->Close();
     return true;
 }
-EI_REWRITTEN(0x0045EA20, CMapDatabase::Load);
 
 // The map database file names ("map.txt", "map-LMP.txt").
 bool CMapDatabase::LoadAll() {
     Load("map.txt");
     return Load("map-LMP.txt");
 }
-EI_REWRITTEN(0x0045EA00, CMapDatabase::LoadAll);
 
 CMapDatabase* CMapDatabase::Construct() {
     allods.Construct(mfc::impl::AllodArrayClass::Vtable());
     maps.Construct(gameslots::MapRecordArrayClass::Vtable());
     return this;
 }
-EI_REWRITTEN(0x0045E820, CMapDatabase::Construct);
 
 // The map database, zero at the start: built by a static initialiser in the list's order and destroyed by the
 // exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
@@ -266,6 +262,3 @@ void __cdecl ConstructMapDatabase() {
     g_mapDatabase->Construct();
     libcrt::AtExit(DestroyMapDatabase);
 }
-
-EI_REWRITTEN(0x0045E6C0, ConstructMapDatabase);
-EI_REWRITTEN(0x0045E6E0, DestroyMapDatabase);

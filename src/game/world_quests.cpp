@@ -24,7 +24,6 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/mfc_list.h"
@@ -647,7 +646,6 @@ void CWorldServer::ClearPlayerItems(CPlayer* player) {
     CParty* party = player->Party();
     while (party->items_.size != 0) party->RemoveItem(party->items_.data[0], 1);
 }
-EI_REWRITTEN(0x00591070, CWorldServer::ClearPlayerItems);
 
 void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
@@ -664,14 +662,3 @@ void CWorldServer::TellPartiesGone(CEngineObject* unit) {
         if (server->partyUnits_.Contains(unit)) server->SendObject43(unit);
     }
 }
-
-EI_REWRITTEN(0x00590160, CWorldServer::StorePlayerItems);
-EI_REWRITTEN(0x0058D340, CWorldServer::TellParties);
-EI_REWRITTEN(0x00593AF0, CWorldServer::TellPartiesGone);
-EI_REWRITTEN(0x00591800, CWorldServer::UpdateMercBriefings);
-EI_REWRITTEN(0x0058FD90, CWorldServer::StoreParty);
-EI_REWRITTEN(0x00590A40, CWorldServer::CollectParty);
-EI_REWRITTEN(0x00590C70, CWorldServer::SyncPartyRecords);
-EI_REWRITTEN(0x005911C0, CWorldServer::AwardExperience);
-EI_REWRITTEN(0x00592090, CWorldServer::CompleteBriefing);
-EI_REWRITTEN(0x00591DE0, CWorldServer::ApplyMercBriefing);

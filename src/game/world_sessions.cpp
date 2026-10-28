@@ -8,7 +8,6 @@
 #include "core_streams.h"
 #include "net_link.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
@@ -66,9 +65,6 @@ void ReleaseCounted(CRefObject* object) {
 
 
 CPlayerSource::~CPlayerSource() {}
-EI_REWRITTEN_SPECIAL(0x0055F2E0, CPlayerSource::~CPlayerSource);
-EI_REWRITTEN_SPECIAL(0x0055F2F0, CPlayerSource::~CPlayerSource);
-
 
 // A new helper with the same pending link (counted).
 CWorldHandle* CWorldHandle::Clone() {
@@ -78,7 +74,6 @@ CWorldHandle* CWorldHandle::Clone() {
     if (copy->pendingLink_) ++copy->pendingLink_->refs_;
     return copy;
 }
-EI_REWRITTEN(0x0055F1A0, CWorldHandle::Clone);
 
 // The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
 int CWorldHandle::OnShutdown() {
@@ -86,22 +81,15 @@ int CWorldHandle::OnShutdown() {
     pendingLink_ = nullptr;
     return 0;
 }
-EI_REWRITTEN(0x0055F1E0, CWorldHandle::OnShutdown);
 
 CWorldHandle::~CWorldHandle() { ReleaseCounted(pendingLink_); }
-EI_REWRITTEN_SPECIAL(0x0055F280, CWorldHandle::~CWorldHandle);
-EI_REWRITTEN_SPECIAL(0x0055F260, CWorldHandle::~CWorldHandle);
-
 
 CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
-EI_REWRITTEN(0x005626B0, CClientHandle::Clone);
-EI_REWRITTEN(0x005626D0, CClientHandle::OnShutdown);
 
 void CClientHandle::TakeNew(JoinedLinks* links) {
     for (auto* node = links->head; node; node = node->next) ReleaseCounted(node->data);
     links->RemoveAll();
 }
-EI_REWRITTEN(0x00562700, CClientHandle::TakeNew);
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
 
@@ -120,7 +108,6 @@ DriverSession* DriverSession::Clone() {
     InsertRange<stlp::CountedRef>(copy->holders_->next, holders_->next, holders_);
     return copy;
 }
-EI_REWRITTEN(0x0055F550, DriverSession::Clone);
 
 // The session is destroyed and built again in place (the count and flags kept): both lists emptied and their
 // sentinels freed, then new sentinels.
@@ -133,7 +120,6 @@ int DriverSession::OnShutdown() {
     holders_ = NewSentinel();
     return 0;
 }
-EI_REWRITTEN(0x0055F6B0, DriverSession::OnShutdown);
 
 DriverSession::~DriverSession() {
     ClearHolders(holders_);
@@ -141,15 +127,11 @@ DriverSession::~DriverSession() {
     ClearDrivers(drivers_);
     stlp::deallocate(drivers_, sizeof(DriverNode));
 }
-EI_REWRITTEN_SPECIAL(0x0055F7B0, DriverSession::~DriverSession);
-EI_REWRITTEN_SPECIAL(0x0055F790, DriverSession::~DriverSession);
 
 } // namespace netlink
 
 
 void CWorld::OpenSession() { netSession_.ShareAssign(new DriverSession()); }
-EI_REWRITTEN(0x0055F410, CWorld::OpenSession);
-
 
 void CWorld::CloseSession() {
     RefPtr& session = netSession_;
@@ -157,4 +139,3 @@ void CWorld::CloseSession() {
     session.Destroy();
     session.ptr = nullptr;
 }
-EI_REWRITTEN(0x0055F890, CWorld::CloseSession);

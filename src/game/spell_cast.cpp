@@ -8,7 +8,6 @@
 
 #include "item.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
@@ -69,7 +68,6 @@ void CSpell::Destroy() {
     ClearState();
     std::memset(modifiers_, 0, sizeof(modifiers_));
 }
-EI_REWRITTEN(0x0068B350, CSpell::Destroy);
 
 void CSpell::CopyTo(CSpell* target) {
     target->Destroy();
@@ -81,16 +79,12 @@ void CSpell::CopyTo(CSpell* target) {
     }
     target->prototypeId_ = prototypeId_;
 }
-EI_REWRITTEN(0x0068B370, CSpell::CopyTo);
-
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
     CSpell* spell = manager->CreateSpellObject(-1);
     CopyTo(spell);
     return spell;
 }
-EI_REWRITTEN(0x0068B410, CSpell::Clone);
-
 
 int CSpellContainer::Create() {
     prototype_ = nullptr;
@@ -98,7 +92,6 @@ int CSpellContainer::Create() {
     Spell()->Create();
     return 1;
 }
-EI_REWRITTEN(0x0068BD80, CSpellContainer::Create);
 
 void CSpellContainer::Destroy() {
     ClearState();
@@ -106,17 +99,14 @@ void CSpellContainer::Destroy() {
     FreeModifierNodes(modifiers_);
     Spell()->Destroy();
 }
-EI_REWRITTEN(0x0068BDD0, CSpellContainer::Destroy);
 
 const char* CSpellContainer::GetName() { return name_.c_str(); }
-EI_REWRITTEN(0x0068BC00, CSpellContainer::GetName);
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
     SpellModifierList::Insert(modifiers_.End(), modifier);
     return 1;
 }
-EI_REWRITTEN(0x0068BE30, CSpellContainer::AddModifier);
 
 int CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
     if (!prototype_ || !modifier) return 0;
@@ -129,7 +119,6 @@ int CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier)
     default: return 1;
     }
 }
-EI_REWRITTEN(0x0068BEC0, CSpellContainer::AllowsModifier);
 
 BOOL CSpellContainer::Build() {
     CSpell* spell = Spell();
@@ -246,13 +235,10 @@ BOOL CSpellContainer::Build() {
     }
     return 1;
 }
-EI_REWRITTEN(0x0068BF60, CSpellContainer::Build);
-
 
 CSpellContainer* CSpellManager::NewContainer() {
     return CreateObjectAs<CSpellContainer>(kClassSpellContainer, -1);
 }
-EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers) {
     CSpellConstructor* constructor = context_->SpellConstructor();
@@ -271,20 +257,14 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
     constructor->SetManager(nullptr);
     return spell;
 }
-EI_REWRITTEN(0x00689310, CSpellManager::CreateSpell);
-
 
 CSpellConstructor::~CSpellConstructor() {
     CSpellConstructor::Destroy();
     if (container_) container_->Release();   // the container member's destructor
 }
-EI_REWRITTEN_SPECIAL(0x006840A0, CSpellConstructor::~CSpellConstructor);
-EI_REWRITTEN_SPECIAL(0x00684080, CSpellConstructor::~CSpellConstructor);
 
 const char* CSpellConstructor::GetClassName() { return "CSpellConstructor"; }
 int CSpellConstructor::GetClassId() { return 0x1B; }
-EI_REWRITTEN(0x00684060, CSpellConstructor::GetClassName);
-EI_REWRITTEN(0x00684070, CSpellConstructor::GetClassId);
 
 int CSpellConstructor::Create() {
     CSpellContainer* container = container_;
@@ -293,7 +273,6 @@ int CSpellConstructor::Create() {
     manager_ = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x00684120, CSpellConstructor::Create);
 
 void CSpellConstructor::Destroy() {
     CSpellContainer* container = container_;
@@ -302,7 +281,6 @@ void CSpellConstructor::Destroy() {
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
 }
-EI_REWRITTEN(0x00684150, CSpellConstructor::Destroy);
 
 void CSpellConstructor::SetManager(CSpellManager* manager) {
     CSpellContainer* container = container_;
@@ -312,7 +290,6 @@ void CSpellConstructor::SetManager(CSpellManager* manager) {
     manager_ = manager;
     if (manager) ++manager->refCount_;
 }
-EI_REWRITTEN(0x006841A0, CSpellConstructor::SetManager);
 
 BOOL CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     if (!manager_) return game::FatalError(kNoSpellManager);
@@ -325,7 +302,6 @@ BOOL CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     container_->prototype_ = prototype;   // no null check
     return 1;
 }
-EI_REWRITTEN(0x006841E0, CSpellConstructor::BeginConstruct);
 
 BOOL CSpellConstructor::EndConstruct() {
     if (manager_ && container_) {
@@ -334,7 +310,6 @@ BOOL CSpellConstructor::EndConstruct() {
     }
     return game::FatalError(kNoManagerOrContainer);
 }
-EI_REWRITTEN(0x00684250, CSpellConstructor::EndConstruct);
 
 BOOL CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!container_) return 0;
@@ -343,5 +318,3 @@ BOOL CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
     container_->Build();
     return 1;
 }
-EI_REWRITTEN(0x006842A0, CSpellConstructor::AddModifier);
-

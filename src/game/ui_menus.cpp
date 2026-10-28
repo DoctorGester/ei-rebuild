@@ -8,7 +8,6 @@
 #include "sound.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
@@ -63,7 +62,6 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     name_ = entries_.begin()[selected].title_;
     cursor_ = name_.size();
 }
-EI_REWRITTEN(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
 
 void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
     if (sliding_) return;
@@ -160,13 +158,6 @@ void CSaveLoadWindow::OnDialogResult(int result) {
     else if (result == kResultLoad)
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }
-
-EI_REWRITTEN(0x00654660, CSaveLoadWindow::OnMouseDown);
-EI_REWRITTEN(0x006547B0, CSaveLoadWindow::OnDoubleClick);
-EI_REWRITTEN(0x006544A0, CSaveLoadWindow::Draw);
-EI_REWRITTEN(0x006545E0, CSaveLoadWindow::Update);
-EI_REWRITTEN(0x00654430, CSaveLoadWindow::CloseDialog);
-EI_REWRITTEN(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 // --- Options window ----------------------------------------------------------------------------
 
@@ -319,14 +310,6 @@ void COptionsWindow::Update() {
     }
 }
 
-EI_REWRITTEN(0x00650C20, COptionsWindow::OnMouseDown);
-EI_REWRITTEN(0x00650D70, COptionsWindow::OnDoubleClick);
-EI_REWRITTEN(0x00650920, COptionsWindow::Draw);
-EI_REWRITTEN(0x00650A20, COptionsWindow::Redraw);
-EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
-EI_REWRITTEN(0x00650900, COptionsWindow::HelpTopic);
-EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
-
 // --- The destructor body ------------------------------------------------------------------
 
 COptionsWindow::~COptionsWindow() {
@@ -335,9 +318,6 @@ COptionsWindow::~COptionsWindow() {
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x0062B180, COptionsWindow::~COptionsWindow);
-EI_REWRITTEN_SPECIAL(0x0062B160, COptionsWindow::~COptionsWindow);
-EI_REWRITTEN_SPECIAL(0x0062B770, COptionsWindow::~COptionsWindow);
 
 // --- Scroll bar --------------------------------------------------------------------------------
 
@@ -404,11 +384,6 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0065B090, CUiScrollbar::TakePosition);
-EI_REWRITTEN(0x0065B360, CUiScrollbar::Update);
-EI_REWRITTEN(0x0065B240, CUiScrollbar::OnMouseDown);
-EI_REWRITTEN(0x0065B340, CUiScrollbar::OnMouseUp);
-
 // --- Tooltip -----------------------------------------------------------------------------------
 
 BOOL CUiTooltip::Draw(CSceneRenderer* pass) {
@@ -419,6 +394,3 @@ BOOL CUiTooltip::Draw(CSceneRenderer* pass) {
 void CUiTooltip::Redraw() {
     if (Shown()) RedrawBase();
 }
-
-EI_REWRITTEN(0x0065EA50, CUiTooltip::Draw);
-EI_REWRITTEN(0x0065EA80, CUiTooltip::Redraw);

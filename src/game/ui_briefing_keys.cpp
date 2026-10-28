@@ -7,7 +7,6 @@
 #include "camera.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "game_data.h"
@@ -139,5 +138,3 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         break;
     }
 }
-
-EI_REWRITTEN(0x006034A0, CBriefingScreen::OnKeyDown);

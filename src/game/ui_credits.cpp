@@ -10,7 +10,6 @@
 
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "ui_cursor.h"
@@ -31,7 +30,6 @@ constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 // --- a window above the titles closed ------------------------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
-EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
 // --- a script line's destructor ------------------------------------------------------------------
 
@@ -39,7 +37,6 @@ void TitleLine::Destroy() {
     std::destroy_at(&style);
     std::destroy_at(&text);
 }
-EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
 // --- the frame -----------------------------------------------------------------------------------
 
@@ -79,7 +76,6 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
     }
     return CUiContainer::Draw(pass);
 }
-EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
 // --- the close -----------------------------------------------------------------------------------
 
@@ -90,4 +86,3 @@ void CCreditsScreen::OnClose() {
     app::g_interfaceHasScreen = 1;
     TheCursor()->ShowImage(1);
 }
-EI_REWRITTEN(0x0062BD00, CCreditsScreen::OnClose);

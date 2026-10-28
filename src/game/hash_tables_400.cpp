@@ -6,8 +6,6 @@
 #include "base_manager.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 namespace hash400 {
 
 // --- The registries ------------------------------------------------------------------------------
@@ -26,20 +24,3 @@ void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
 }
 
 } // namespace hash400
-
-namespace {
-using MapObjectIds = decltype(MapObjectIdMap::map);
-} // namespace
-// CBaseManager's id tables (SetAt, RemoveKey, Lookup and find of the objects; RemoveKey of the positions, also the
-// client world's dynamic nodes'; operator[] of the positions and the spare counts) and the world's object maps.
-EI_REWRITTEN(0x00404E80, hash400::SetAt<CBaseManager::ObjectMap>);
-EI_REWRITTEN(0x00404F20, hash400::RemoveKey<CBaseManager::ObjectMap>);
-EI_REWRITTEN(0x00404F80, hash400::Lookup<CBaseManager::ObjectMap>);
-EI_REWRITTEN(0x00406950, hash400::Find<CBaseManager::ObjectMap>);
-EI_REWRITTEN(0x00405350, hash400::RemoveKey<CBaseManager::PositionMap>);
-EI_REWRITTEN(0x00406A10, hash400::Entry<CBaseManager::PositionMap>);
-EI_REWRITTEN(0x00406AA0, hash400::Entry<CBaseManager::SpareCountMap>);
-EI_REWRITTEN(0x00599A80, hash400::RemoveKey<MapObjectIds>);
-EI_REWRITTEN(0x00599AE0, hash400::Find<MapObjectIds>);
-EI_REWRITTEN(0x00408EA0, hash400::ClassRegistryConstruct);
-EI_REWRITTEN(0x00408D60, hash400::ClassRegistryDestruct);

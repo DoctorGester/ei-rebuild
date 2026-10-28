@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 namespace {
@@ -29,10 +28,8 @@ CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) 
     layout_ = rect;
     SetValue(0);
 }
-EI_REWRITTEN_SPECIAL(0x0065BCD0, CUiSpin::CUiSpin);
 
 void CUiSpin::AddText(const char* text) { texts_.push_back(text ? text : game::EmptyText()); }
-EI_REWRITTEN(0x0065BE70, CUiSpin::AddText);
 
 bool CUiSpin::GetValue(int* value) {
     *value = value_;
@@ -40,7 +37,6 @@ bool CUiSpin::GetValue(int* value) {
     changed_ = false;
     return true;
 }
-EI_REWRITTEN(0x0065BEB0, CUiSpin::GetValue);
 
 void CUiSpin::SetValue(int value) {
     value_ = value < static_cast<int>(texts_.size()) ? value : 0;
@@ -54,7 +50,6 @@ void CUiSpin::SetValue(int value) {
     UiSurfaceReleaseDC(surface);
     changed_ = true;
 }
-EI_REWRITTEN(0x0065BEE0, CUiSpin::SetValue);
 
 // --- A click steps the value ------------------------------------------------------------------------
 
@@ -66,5 +61,3 @@ void CUiSpin::OnLButtonDown(int, int, int) {
     interface_->PlaySound(kOkSound, 0);
     SetValue(value_ + 1);
 }
-
-EI_REWRITTEN(0x0065BFD0, CUiSpin::OnLButtonDown);

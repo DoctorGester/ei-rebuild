@@ -12,7 +12,6 @@
 #include "script.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstring>
@@ -183,6 +182,3 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to) {
         ScriptQueue().Load(&text, 1);
     }
 }
-
-EI_REWRITTEN(0x0058CCD0, CWorldServer::UpdateWeather);
-EI_REWRITTEN(0x00578E30, ShowBolt);

@@ -4,7 +4,6 @@
 #include "core_streams.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -91,10 +90,6 @@ mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
     return new (out) mfc::CString(text);
 }
 
-EI_REWRITTEN(0x005F8C90, CInterface3D::MessageText);
-
-EI_REWRITTEN(0x005F8420, CInterface3D::LoadState);
-
 // --- The saved state written -----------------------------------------------------------
 
 void CInterface3D::SaveState(CStream* stream) {
@@ -112,4 +107,3 @@ void CInterface3D::SaveState(CStream* stream) {
     stream->Write(&value, 4);
     stream->Write(savedText_.c_str(), static_cast<std::uint32_t>(std::strlen(savedText_.c_str()) + 1));
 }
-EI_REWRITTEN(0x005F85C0, CInterface3D::SaveState);

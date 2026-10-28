@@ -14,7 +14,6 @@
 #include "item.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstring>
@@ -108,7 +107,6 @@ void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemar
     if (before < t) return;          // was already below
     if (condition < t) Remark(unit, wornRemark);
 }
-EI_REWRITTEN(0x005253E0, WearItem);
 
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     if (!(IsTextKey(unit->id_) & 0xFF) || layer == 0) return;
@@ -129,7 +127,6 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     WearItem(unit->armor[kArmourPieces[row]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
     WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
 }
-EI_REWRITTEN(0x00525720, WearArmour);
 
 int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -187,7 +184,6 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return damaged;
 }
-EI_REWRITTEN(0x00525070, UnitStats::DamageSlot);
 
 int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
     if (hit->location >= kLocations) return 0;
@@ -234,7 +230,6 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     unit->DropBrokenEquipment();
     return damaged;
 }
-EI_REWRITTEN(0x005254B0, UnitStats::ApplyHit);
 
 BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     for (int type = 0; type < kDamageTypes; ++type) {
@@ -247,7 +242,6 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     hitPoints = f >= hp ? f : hp;
     return 1;
 }
-EI_REWRITTEN(0x00524FE0, UnitVitals::TakeHit);
 
 BOOL CUnit::IsBehind(const CMapObject* t) {
     if (!player) return 0;
@@ -289,4 +283,3 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack ? 1 : 0;
 }
-EI_REWRITTEN(0x00530A60, CUnit::IsBehind);

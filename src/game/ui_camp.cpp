@@ -18,7 +18,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -210,8 +209,6 @@ void CCampPages::ShowPage(int page) {
     SetShade(SceneMesh(page_ + 2), 1.0f);
     interface_->OpenHelp(0);
 }
-EI_REWRITTEN(0x0060E9E0, CCampPages::ShowPage);
-
 
 namespace {
 
@@ -300,8 +297,6 @@ int CCampPages::Price(CItem* item, int kind) {
     }
     return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
-
-EI_REWRITTEN(0x0060FAB0, CCampPages::Price);
 
 bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
@@ -418,9 +413,6 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         return false;
     }
 }
-
-EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
-
 
 namespace {
 // The stack count of an item.
@@ -576,8 +568,6 @@ void CCampPages::UpdateAction() {
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);
 }
-EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
-
 
 BOOL CCampPages::Draw(CSceneRenderer* pass) {
     int x = MouseScreenX();   // the mouse in screen pixels
@@ -642,8 +632,6 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
     return 1;
 }
 
-EI_REWRITTEN(0x0060F050, CCampPages::Draw);
-
 // --- what the constructors would make ------------------------------------------------------------
 
 namespace {
@@ -703,7 +691,6 @@ bool CCampPages::CanMakeSpell() {
     if (mana < static_cast<int>(gamecrt::Ftol(D(made->manaCost_)))) return false;
     return skill >= static_cast<int>(made->skillNeeded_);
 }
-EI_REWRITTEN(0x00612290, CCampPages::CanMakeSpell);
 
 bool CCampPages::CanMakeItem() {
     CItemConstructor* constructor = itemResults_->ItemConstructor();
@@ -765,7 +752,6 @@ bool CCampPages::CanMakeItem() {
     ReleaseObject(spell);
     return true;
 }
-EI_REWRITTEN(0x00612600, CCampPages::CanMakeItem);
 
 // --- leaving the camp ----------------------------------------------------------------------------
 
@@ -811,7 +797,6 @@ void CCampPages::Close() {
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 
 // --- the trade panel's destructor body -----------------------------------------------------------
 
@@ -832,9 +817,6 @@ CTradePanel::~CTradePanel() {
     DestroyRows(perks_);
     DestroyRows(learnable_);
 }
-EI_REWRITTEN_SPECIAL(0x0060E3E0, CTradePanel::~CTradePanel);
-EI_REWRITTEN_SPECIAL(0x0060E3C0, CTradePanel::~CTradePanel);   // deleting
-EI_REWRITTEN_SPECIAL(0x00613DB0, CTradePanel::~CTradePanel);   // the input side's
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
@@ -899,7 +881,6 @@ CItem* CCampPages::TakeOff(CItem* item) {
     statsPanel_->DrawStats();
     return result;
 }
-EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
 
 // --- putting an item on the hero -----------------------------------------------------------------
 
@@ -942,7 +923,6 @@ void CCampPages::PutOn(CItem* item) {
     PlayerParty()->RemoveItem(item, 0);
     statsPanel_->DrawStats();
 }
-EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
 
 // --- moving an item between the camp's lists -----------------------------------------------------
 
@@ -992,7 +972,6 @@ void CCampPages::PutOnFromStrip(CItem* item) {
     }
     interface_->PlaySound(game::PutOnSoundText(), 0);
 }
-EI_REWRITTEN(0x00610920, CCampPages::PutOnFromStrip);
 
 void CCampPages::MoveItem(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {
@@ -1096,7 +1075,6 @@ void CCampPages::MoveItem(CItem* item, int mode) {
     }
     interface_->PlaySound(game::PutOffSoundText(), 0);
 }
-EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 
 // --- the hero's unit after a change --------------------------------------------------------------
 
@@ -1112,7 +1090,6 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->RefreshModel();
     RefreshStats();
 }
-EI_REWRITTEN(0x0060F9E0, CCampPages::RefreshWeapons);
 
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
@@ -1122,7 +1099,6 @@ void CCampPages::RefreshStats() {
     }
     statsPanel_->DrawStats();
 }
-EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
 // --- turning and choosing the hero ---------------------------------------------------------------
 
@@ -1152,7 +1128,6 @@ void CCampPages::Update() {
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }
-EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 
 namespace {
 // From the current hero, step until a record of the hero class (fatal after more steps than there are
@@ -1190,8 +1165,6 @@ void CCampPages::PreviousHero() {
     ShowHero();
     RefreshWeapons();
 }
-EI_REWRITTEN(0x0060F710, CCampPages::NextHero);
-EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
@@ -1214,7 +1187,6 @@ void CCampPages::ShowHero() {
     statsPanel_->SetHero(hero_, name.c_str());
     trade_->SelectHero(hero_);
 }
-EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 
 // --- the constructor -----------------------------------------------------------------------------
 
@@ -1226,4 +1198,3 @@ CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) 
     fromHeroScreen_ = fromHeroScreen;
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
 }
-EI_REWRITTEN_SPECIAL(0x005F6240, CCampPages::CCampPages);

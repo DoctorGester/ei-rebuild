@@ -8,7 +8,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -119,7 +118,6 @@ void CHudSpellColumn::Click(int index) {
     int mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint;
     owner_->SetPendingAction(mode, index, -1);
 }
-EI_REWRITTEN(0x0063EC90, CHudSpellColumn::Click);
 
 // --- An action button ----------------------------------------------------------------
 
@@ -137,7 +135,6 @@ void CHudActionColumn::Select(int index) {
     int action = static_cast<int>(actions_.data[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
-EI_REWRITTEN(0x0063FB50, CHudActionColumn::Select);
 
 // --- A quick item slot ---------------------------------------------------------------
 
@@ -160,7 +157,6 @@ void CHudQuickItems::Pick(int slot) {
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner_->SetPendingAction(mode, slot, -1);
 }
-EI_REWRITTEN(0x0063DD70, CHudQuickItems::Pick);
 
 // --- A quick item or spell used at once ------------------------------------
 
@@ -175,7 +171,6 @@ void CHudQuickItems::UseNow(int slot) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-EI_REWRITTEN(0x0063E020, CHudQuickItems::UseNow);
 
 void CHudSpellColumn::ClickAlternate(int index) {
     if (!unit_ || index < 0 || index >= count_) return;
@@ -186,4 +181,3 @@ void CHudSpellColumn::ClickAlternate(int index) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-EI_REWRITTEN(0x0063EF60, CHudSpellColumn::ClickAlternate);

@@ -6,7 +6,6 @@
 #include "figure.h"
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -125,6 +124,5 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
         previous.angle = angle;
     }
 }
-EI_REWRITTEN(0x0044EB60, MakeFrameRelative);
 
 } // namespace scene

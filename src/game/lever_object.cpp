@@ -9,7 +9,6 @@
 #include "sound.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
 #include "game_data.h"
@@ -55,18 +54,14 @@ Lever::Lever() {
     CreateMapObject();
     ResetLever(this);
 }
-EI_REWRITTEN_SPECIAL(0x0052B1F0, Lever::Lever);
 
 Lever::~Lever() { DestroyMapObject(); }
-EI_REWRITTEN_SPECIAL(0x0052B320, Lever::~Lever);
-EI_REWRITTEN_SPECIAL(0x0052B300, Lever::~Lever);   // deleting
 
 int Lever::CreateLever() {
     int result = CreateMapObject();
     ResetLever(this);
     return result;
 }
-EI_REWRITTEN(0x0052B370, Lever::CreateLever);
 
 int Lever::UpdateLever() {
     Update();
@@ -87,7 +82,6 @@ int Lever::UpdateLever() {
     }
     return 0;
 }
-EI_REWRITTEN(0x0052B490, Lever::UpdateLever);
 
 void Lever::LoadLever(CStream* stream) {
     LoadMapObject(stream);
@@ -98,7 +92,6 @@ void Lever::LoadLever(CStream* stream) {
     stream->Read(&flag260, 1);
     stream->Read(&keepsMapFlag, 1);
 }
-EI_REWRITTEN(0x0052BDD0, Lever::LoadLever);
 
 void Lever::SaveLever(CStream* stream) {
     SaveMapObject(stream);
@@ -114,7 +107,6 @@ void Lever::SaveLever(CStream* stream) {
     byte = keepsMapFlag;
     stream->Write(&byte, 1);
 }
-EI_REWRITTEN(0x0052BE40, Lever::SaveLever);
 
 void Lever::Load(CStream* stream) { LoadLever(stream); }
 void Lever::Save(CStream* stream) { SaveLever(stream); }
@@ -126,12 +118,10 @@ void LockKey::ReadFrom(CStream* stream) {
     stream->Read(&id, 4);
     stream->Read(&level, 4);
 }
-EI_REWRITTEN(0x005229F0, LockKey::ReadFrom);
 
 void LockKey::WriteTo(CStream* stream) const {
     for (std::uint32_t word : {mask, id, level}) stream->Write(&word, 4);
 }
-EI_REWRITTEN(0x00522A30, LockKey::WriteTo);
 
 void Lever::WriteLeverNetState() {
     CMapObject::WriteNetState();
@@ -148,7 +138,6 @@ void Lever::WriteLeverNetState() {
     field->WriteDelta(&disabled, 1);
     field->EndField();
 }
-EI_REWRITTEN(0x0052B560, Lever::WriteLeverNetState);
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
@@ -177,7 +166,6 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     }
     return complete;
 }
-EI_REWRITTEN(0x0052B650, Lever::ReadLeverNetState);
 
 void Lever::SetUp(const LeverSetup* setup) {
     state = setup->state;
@@ -190,38 +178,30 @@ void Lever::SetUp(const LeverSetup* setup) {
     else scale.y = 0.0f;
     MarkChanged(kPartScale);
 }
-EI_REWRITTEN(0x0052B3F0, Lever::SetUp);
 
 void Lever::Enable(bool on) {
     if (on) flags_ &= ~kDisabled;
     else flags_ |= kDisabled;
     MarkChanged(kLeverField);
 }
-EI_REWRITTEN(0x0052BAD0, Lever::Enable);
 
 void Lever::SetLock(const LockKey* key) {
     lock = *key;
     MarkChanged(kLeverField);
 }
-EI_REWRITTEN(0x0052BB20, Lever::SetLock);
 
 bool Lever::Slot29True() { return true; }
-EI_REWRITTEN(0x0052B2B0, Lever::Slot29True);
 
 int Lever::Flag260Slot() { return flag260; }
-EI_REWRITTEN(0x0052B2D0, Lever::Flag260Slot);
 
 bool Lever::KeepsMapFlagSlot() { return keepsMapFlag != 0; }
-EI_REWRITTEN(0x0052B2C0, Lever::KeepsMapFlagSlot);
 
 int Lever::NeedsKey() {
     if (flags_ & kDisabled) return 0;
     return lock.mask != 0 ? 1 : 0;
 }
-EI_REWRITTEN(0x0052BB00, Lever::NeedsKey);
 
 std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
-EI_REWRITTEN(0x0052BBC0, Lever::KeyId);
 
 bool Lever::ApplyKey(const LockKey* key, int) {
     if (!key->Opens(&lock)) return false;
@@ -230,14 +210,10 @@ bool Lever::ApplyKey(const LockKey* key, int) {
     MarkChanged(kLeverField);
     return true;
 }
-EI_REWRITTEN(0x0052BB50, Lever::ApplyKey);
 
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
-EI_REWRITTEN(0x0052BBA0, Lever::KeyOpens);
 
 double Lever::RadiusSlot() { return bounds.radius; }
-EI_REWRITTEN(0x0052B3E0, Lever::RadiusSlot);
 
 const char* Lever::GetClassName() { return kLeverClassName; }
 int Lever::GetClassId() { return kClassLever; }
-

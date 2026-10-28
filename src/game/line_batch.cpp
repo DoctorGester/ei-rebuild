@@ -6,8 +6,6 @@
 #include "link_figure.h"
 #include "model.h"
 
-#include "ei/hook.h"
-
 int LineBatch::AddPoint(const float* point) {
     if (count == packets.size * 4) packets.SetSize(packets.size + 1);
     auto put = [this, point](int index) {
@@ -23,7 +21,6 @@ int LineBatch::AddPoint(const float* point) {
     for (int index = count; index < packets.size * 4; ++index) put(index);
     return count;
 }
-EI_REWRITTEN(0x0049B140, LineBatch::AddPoint);
 
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     lib::AlignedArray<ProjectedPoint>& projected = LineProjected();
@@ -37,4 +34,3 @@ int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0049B780, LineBatch::Draw);

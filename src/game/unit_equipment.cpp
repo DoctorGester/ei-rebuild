@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "world.h"
 
 #include <cstdint>
@@ -75,4 +74,3 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     }
     return 1;
 }
-EI_REWRITTEN(0x005141F0, CMapObjectManager::GiveStartingEquipment);

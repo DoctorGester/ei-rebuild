@@ -5,7 +5,6 @@
 #include "unit.h"   // CMapObjectServer
 #include "player_messages.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <new>
@@ -33,11 +32,8 @@ enum ServerObjectType {
 
 
 CServerSpecificManager::CServerSpecificManager() {}
-EI_REWRITTEN_SPECIAL(0x004D6900, CServerSpecificManager::CServerSpecificManager);
 
 CServerSpecificManager::~CServerSpecificManager() {}
-EI_REWRITTEN_SPECIAL(0x004D6960, CServerSpecificManager::~CServerSpecificManager);
-EI_REWRITTEN_SPECIAL(0x004D6940, CServerSpecificManager::~CServerSpecificManager);
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
@@ -66,11 +62,6 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
     }
 }
 
-EI_REWRITTEN(0x004D6920, CServerSpecificManager::GetClassName);
-EI_REWRITTEN(0x004D6930, CServerSpecificManager::GetClassId);
-EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObject);
-
-
 CTorchObjectSpec::CTorchObjectSpec() {
     ClearFields();
     torch_ = nullptr;
@@ -78,13 +69,7 @@ CTorchObjectSpec::CTorchObjectSpec() {
 }
 
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
-EI_REWRITTEN_SPECIAL(0x004D6BA0, CTorchObjectSpec::~CTorchObjectSpec);
-EI_REWRITTEN_SPECIAL(0x004D6B80, CTorchObjectSpec::~CTorchObjectSpec);   // deleting
 
 const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }
 int CTorchObjectSpec::RunTick() { return 1; }
-
-EI_REWRITTEN(0x004D6B60, CTorchObjectSpec::GetClassName);
-EI_REWRITTEN(0x004D6B70, CTorchObjectSpec::GetClassId);
-EI_REWRITTEN(0x004D6B50, CTorchObjectSpec::RunTick);

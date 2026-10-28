@@ -18,7 +18,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -205,13 +204,11 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
     name += suffix;
     sounds->Play3D(name.c_str(), 0, position, SoundNear(), SoundFar(), 0, 0);
 }
-EI_REWRITTEN(0x005114D0, PlayEffectSound);
 
 void CMapObjectClientSpecific::EffectsChanged(bool first) {
     UpdateEffectParticles(first);
     UpdateEffectSounds(first);
 }
-EI_REWRITTEN(0x005117D0, CMapObjectClientSpecific::EffectsChanged);
 
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
@@ -345,7 +342,6 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
 
     if (wanted) gamecrt::operator_delete(wanted);
 }
-EI_REWRITTEN(0x00510B80, CMapObjectClientSpecific::UpdateEffectParticles);
 
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
@@ -395,12 +391,10 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         --i;
     }
 }
-EI_REWRITTEN(0x005112A0, CMapObjectClientSpecific::UpdateEffectSounds);
 
 void CObject3DClientSpecific::ResetPartAlpha() {
     for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
-EI_REWRITTEN(0x0051CCA0, CObject3DClientSpecific::ResetPartAlpha);
 
 void CObject3DClientSpecific::ClearPartTints() {
     for (int i = 0; i < materials.size; ++i) {
@@ -411,7 +405,6 @@ void CObject3DClientSpecific::ClearPartTints() {
         materials[i]->flags_ &= ~kPartTinted;
     }
 }
-EI_REWRITTEN(0x0051CD60, CObject3DClientSpecific::ClearPartTints);
 
 void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
@@ -420,7 +413,6 @@ void CMapObjectClientSpecific::HideLight() {
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
-EI_REWRITTEN(0x005119B0, CMapObjectClientSpecific::HideLight);
 
 void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
@@ -429,7 +421,6 @@ void CMapObjectClientSpecific::ShowLight() {
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
-EI_REWRITTEN(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
@@ -449,7 +440,6 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     if (flag) light->flags_ |= kLightFlag40;
     ShowLight();
 }
-EI_REWRITTEN(0x00511830, CMapObjectClientSpecific::CreateLight);
 
 void CMapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 1) {
@@ -467,7 +457,6 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
     }
     if (mode == 2 && light) DropLight(this);
 }
-EI_REWRITTEN(0x00511A00, CMapObjectClientSpecific::SetLightMode);
 
 void CMapObjectClientSpecific::Destroy() {
     lightStateA = 0;
@@ -476,4 +465,3 @@ void CMapObjectClientSpecific::Destroy() {
     if (light) DropLight(this);
     owner = nullptr;
 }
-EI_REWRITTEN(0x005107B0, CMapObjectClientSpecific::Destroy);

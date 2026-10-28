@@ -12,7 +12,6 @@
 
 #include <unknwn.h>
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -21,15 +20,10 @@
 #include <cstdint>
 #include <cstring>
 
-// ---- Counted holders ------------------------------------------------------------------------------
-
-EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
-
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
 // The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
 CRendererBase::~CRendererBase() = default;
-EI_REWRITTEN_SPECIAL(0x004E7800, CRendererBase::~CRendererBase);
 
 void* CRendererBase::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRendererBase::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -49,4 +43,3 @@ Matrix4* __stdcall AxisSwapMatrix(Matrix4* out) {
     out->m[5] = -1.0f;
     return out;
 }
-EI_REWRITTEN(0x004F1330, AxisSwapMatrix);

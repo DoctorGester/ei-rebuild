@@ -17,7 +17,6 @@
 #include "world_data.h"
 #include "world_deleting_destructors.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
@@ -123,7 +122,6 @@ void CScript::Destruct() {
     DestroyScriptList<gamelists::ParticleSources, gameslots::ParticleSourceListClass>(particles_);
     DestroyScriptArray<gamearrays::PointLights, gamearrays::PointLightArrayClass>(pointLights_);
 }
-EI_REWRITTEN(0x0058A140, CScript::Destruct);
 
 CWorld::~CWorld() {
     CWorld::Destroy();
@@ -134,8 +132,6 @@ CWorld::~CWorld() {
     if (CLinkFigureLoader* loader = figureLoader_)
         if (--loader->refCount_ == 0) delete loader;
 }
-EI_REWRITTEN_SPECIAL(0x0055EC80, CWorld::~CWorld);
-EI_REWRITTEN_SPECIAL(0x0055EC60, CWorld::~CWorld);
 
 CParticleManager::CParticleManager() {
     mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
@@ -151,10 +147,6 @@ CParticleManager::~CParticleManager() {
     freeParticles.RemoveAll();
 }
 
-EI_REWRITTEN_SPECIAL(0x005627C0, CParticleManager::~CParticleManager);
-
-EI_REWRITTEN_SPECIAL(0x005627A0, CParticleManager::~CParticleManager);
-
 Sector::~Sector() {
     Clear();
     occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
@@ -164,8 +156,6 @@ Sector::~Sector() {
     objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
     objects.RemoveAll();
 }
-EI_REWRITTEN_SPECIAL(0x005BFCD0, Sector::~Sector);
-EI_REWRITTEN_SPECIAL(0x0059E080, Sector::~Sector);
 
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
@@ -190,8 +180,6 @@ CWorldClient::~CWorldClient() {
     countedA0_.ReleaseAll();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }
-EI_REWRITTEN_SPECIAL(0x00561B00, CWorldClient::~CWorldClient);
-EI_REWRITTEN_SPECIAL(0x00561A00, CWorldClient::~CWorldClient);
 
 CWorldServer::~CWorldServer() {
     CWorldServer::Destroy();
@@ -211,5 +199,3 @@ CWorldServer::~CWorldServer() {
     updateMap_.map.Destroy();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }
-EI_REWRITTEN_SPECIAL(0x0058AAD0, CWorldServer::~CWorldServer);
-EI_REWRITTEN_SPECIAL(0x0058A430, CWorldServer::~CWorldServer);

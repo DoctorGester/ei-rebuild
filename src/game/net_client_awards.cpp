@@ -10,7 +10,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_list.h"
 #include "game_slots.h"
 #include "world.h"
@@ -119,7 +118,6 @@ void ClientSession::ApplyAwards() {
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
     self->awards_.Clear();
 }
-EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 
 // The client base tick, then the timers count down by `dt` (as a float) and those below zero are dropped. Awards
 // are applied in a game of mode 3 when player 0 exists with its connection in state 1 and the game-flow flag is set.
@@ -145,6 +143,5 @@ void ClientSession::Tick(double dt) {
     if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
     ApplyAwards();
 }
-EI_REWRITTEN(0x0041CCD0, ClientSession::Tick);
 
 } // namespace net

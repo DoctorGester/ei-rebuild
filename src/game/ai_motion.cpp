@@ -5,7 +5,6 @@
 #include "ai_motion.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -105,7 +104,6 @@ int PathOrder::Reset() {
     ClearList(steps);
     return 0;
 }
-EI_REWRITTEN(0x005C7D50, PathOrder::Reset);
 
 bool PathOrder::Start(const Vector3* position, const Vector3* direction, int time) {
     MotionOrder* order = OrderOf(this);
@@ -125,7 +123,6 @@ bool PathOrder::Start(const Vector3* position, const Vector3* direction, int tim
     ClearList(steps);
     return !same;
 }
-EI_REWRITTEN(0x005C7B00, PathOrder::Start);
 
 void PathOrder::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
@@ -134,7 +131,6 @@ void PathOrder::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
     order->arg6 = rateBits;
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
-EI_REWRITTEN(0x005C7C00, PathOrder::SetTurn);
 
 void PathOrder::SetTrack(int id, int from, int to) {
     MotionOrder* order = OrderOf(this);
@@ -143,7 +139,6 @@ void PathOrder::SetTrack(int id, int from, int to) {
     order->arg6 = static_cast<std::uint32_t>(from);
     order->arg7 = static_cast<std::uint32_t>(to);
 }
-EI_REWRITTEN(0x005C7C20, PathOrder::SetTrack);
 
 void PathOrder::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     MotionOrder* order = OrderOf(this);
@@ -153,7 +148,6 @@ void PathOrder::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     order->arg6 = static_cast<std::uint32_t>(arg6);
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
-EI_REWRITTEN(0x005C7C40, PathOrder::SetTurnUntil);
 
 void PathOrder::SetTarget(float x, float y) {
     MotionOrder* order = OrderOf(this);
@@ -161,13 +155,11 @@ void PathOrder::SetTarget(float x, float y) {
     std::memcpy(&order->arg5, &x, sizeof(x));
     std::memcpy(&order->arg6, &y, sizeof(y));
 }
-EI_REWRITTEN(0x005C7C70, PathOrder::SetTarget);
 
 void PathOrder::ForgetObject(int id) {
     MotionOrder* order = OrderOf(this);
     if (order->kind == 3 && order->arg5 == static_cast<std::uint32_t>(id)) order->arg5 = 0xFFFFFFFF;
 }
-EI_REWRITTEN(0x005C7C90, PathOrder::ForgetObject);
 
 void PathOrder::ShiftTime(int delta) {
     MotionOrder* order = OrderOf(this);
@@ -177,13 +169,11 @@ void PathOrder::ShiftTime(int delta) {
         order->arg7 += static_cast<std::uint32_t>(delta);
     }
 }
-EI_REWRITTEN(0x005C7CB0, PathOrder::ShiftTime);
 
 int PathOrder::SetStepSpeeds(std::uint16_t speed) {
     for (PathCellList::Node* node = steps.head; node; node = node->next) node->data.flags = speed;
     return 0;
 }
-EI_REWRITTEN(0x005C7CE0, PathOrder::SetStepSpeeds);
 
 Vector3* PathOrder::Destination(Vector3* out) {
     const MotionOrder* order = OrderOf(this);
@@ -199,7 +189,6 @@ Vector3* PathOrder::Destination(Vector3* out) {
     }
     return out;
 }
-EI_REWRITTEN(0x005C7D00, PathOrder::Destination);
 
 void AIPath::Clear() {
     ClearList(cells);
@@ -218,7 +207,6 @@ void AIPath::Clear() {
     excludedBlocks.size = 0;
     smoothing = 0;
 }
-EI_REWRITTEN(0x005B23A0, AIPath::Clear);
 
 // --- The trajectory --------------------------------------------------------------------------------
 
@@ -237,13 +225,11 @@ void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
     scaled = scaled + scaled;
     c2 = static_cast<float>((half - scaled) * inverse * 0.5f);
 }
-EI_REWRITTEN(0x005C73B0, MotionCubic::Fit);
 
 double MotionCubic::Slope(float u) {
     double c2x2 = static_cast<double>(c2) + c2;
     return (static_cast<double>(u) * c3 * 3.0f + c2x2) * u + c1;
 }
-EI_REWRITTEN(0x005C7410, MotionCubic::Slope);
 
 int UnitMotion::Clear() {
     segment = -1;
@@ -252,7 +238,6 @@ int UnitMotion::Clear() {
     stepSpeeds.size = 0;
     return 0;
 }
-EI_REWRITTEN(0x005C6270, UnitMotion::Clear);
 
 bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position,
                         float* direction, float* speedOut, int* cellX, int* cellY) {
@@ -333,7 +318,6 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         return true;
     }
 }
-EI_REWRITTEN(0x005C7430, UnitMotion::Sample);
 
 bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* direction, float* speedOut,
                             int* cellX, int* cellY) {
@@ -422,7 +406,6 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     *cellY = points.data[segment + 1].cellY;
     return true;
 }
-EI_REWRITTEN(0x005C6FC0, UnitMotion::SamplePath);
 
 namespace {
 // Brings `turn` (stored as float) into [-pi, pi]: the first comparison is on the unrounded difference, the
@@ -592,7 +575,6 @@ void UnitMotion::Build(PathOrder* path) {
     NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
 }
-EI_REWRITTEN(0x005C67D0, UnitMotion::Build);
 
 void UnitMotion::AssignCells(PathOrder* path) {
     PathCellList::Node* head = path->steps.head;
@@ -611,7 +593,6 @@ void UnitMotion::AssignCells(PathOrder* path) {
         last.cellY = head->data.y;
     }
 }
-EI_REWRITTEN(0x005C6750, UnitMotion::AssignCells);
 
 void UnitMotion::Subdivide() {
     int stepIndex = 0;
@@ -622,7 +603,6 @@ void UnitMotion::Subdivide() {
         SubdivideSegment(w, w + 1, w->cells, startOffset, endOffset, &stepIndex);
     }
 }
-EI_REWRITTEN(0x005C66C0, UnitMotion::Subdivide);
 
 void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint* b, int cells, float startOffset,
                                   float endOffset, int* stepIndex) {
@@ -667,7 +647,6 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         ++*stepIndex;
     }
 }
-EI_REWRITTEN(0x005C6370, UnitMotion::SubdivideSegment);
 
 void UnitMotion::LimitSpeeds(float rate) {
     const double twoPi = static_cast<double>(kPi) + kPi;
@@ -686,7 +665,6 @@ void UnitMotion::LimitSpeeds(float rate) {
         if (turnTime > wayTime) p[0].speed = static_cast<float>(distance / turnTime);
     }
 }
-EI_REWRITTEN(0x005C6290, UnitMotion::LimitSpeeds);
 
 // ---- The unit's save ------------------------------------------------------
 
@@ -709,7 +687,6 @@ void UnitMotion::LoadState(CStream* stream) {
     stream->Read(&startAngle, 4);
     stream->Read(&turn, 4);
 }
-EI_REWRITTEN(0x005C7860, UnitMotion::LoadState);
 
 void UnitMotion::SaveState(CStream* stream) {
     int count = points.size;
@@ -729,5 +706,3 @@ void UnitMotion::SaveState(CStream* stream) {
         stream->Write(&value, 4);
     }
 }
-EI_REWRITTEN(0x005C79B0, UnitMotion::SaveState);
-

@@ -4,7 +4,6 @@
 
 #include "figure_mesh.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
@@ -55,7 +54,6 @@ CAnimationNode* CAnimationNode::Construct() {
     spare010_[1] = 0;
     return this;
 }
-EI_REWRITTEN(0x00506710, CAnimationNode::Construct);
 
 void CAnimationNode::DestructBody() {
     if (mesh_) {
@@ -84,4 +82,3 @@ void CAnimationNode::DestructBody() {
     std::destroy_at(&spareName008_);
     std::destroy_at(&name_);
 }
-EI_REWRITTEN(0x005068C0, CAnimationNode::DestructBody);

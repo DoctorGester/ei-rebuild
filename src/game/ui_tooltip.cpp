@@ -5,7 +5,6 @@
 #include "options.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "text_split.h"
@@ -92,19 +91,14 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
     width_ += kPaddingX;
     height_ += kPaddingY;
 }
-EI_REWRITTEN_SPECIAL(0x0065E320, CUiTooltip::CUiTooltip);
 
 CUiTooltip::~CUiTooltip() = default;
-EI_REWRITTEN_SPECIAL(0x0065E4F0, CUiTooltip::~CUiTooltip);
-EI_REWRITTEN_SPECIAL(0x0065E4D0, CUiTooltip::~CUiTooltip);   // the deleting destructor
-EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;
     text::SplitStrings(text, &lines_, kLineSeparator);
     DrawLines();
 }
-EI_REWRITTEN(0x0065E540, CUiTooltip::SetText);
 
 void CUiTooltip::DrawLines() {
     if (!(surfaces_.size > 0)) return;
@@ -129,7 +123,6 @@ void CUiTooltip::DrawLines() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x0065E880, CUiTooltip::DrawLines);
 
 void CUiTooltip::OnMouseMove(int x, int y) {
     switch (state_) {
@@ -197,4 +190,3 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x0065E580, CUiTooltip::OnMouseMove);

@@ -9,7 +9,6 @@
 #include "../lib/crt.h"
 #include "lib/containers.h"
 #include "lib/vecmath.h"
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <bit>
@@ -105,7 +104,6 @@ void __fastcall ComputeMeshNormals(MeshArray* meshes) {
     }
     facesOfVertex.FreeData();
 }
-EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 
 // PlaceMeshes (`unit` is the fake unit, meshes): every mesh's positions packed four at a time
 // into 64-byte blocks (x[4], y[4], z[4], w[4] = 1); every lane starts as the first position, so
@@ -140,7 +138,6 @@ void __fastcall PackMeshPositions(FakeUnitScene* unit) {
         }
     }
 }
-EI_REWRITTEN(0x0044E3B0, PackMeshPositions);
 
 namespace {
 // The branchless select after FCOMP: `b` when a < b or unordered, else `a`.
@@ -185,6 +182,5 @@ void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     high.y -= centre.y;
     high.z -= centre.z;
 }
-EI_REWRITTEN(0x0044E8A0, ComputeMeshBounds);
 
 } // namespace scene

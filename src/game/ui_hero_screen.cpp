@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -74,13 +73,11 @@ int CTradePanel::Experience() const {
     const TradeRecord& record = Record();
     return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
 }
-EI_REWRITTEN(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
     PartyUnitRecord* hero = owner_->HeroRecord();
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
-EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 
 // --- Draw ------------------------------------------------------------------------------
 
@@ -140,7 +137,6 @@ BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
         DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
-EI_REWRITTEN(0x006159E0, CMpHeroScreen::Draw);
 
 // --- Update ----------------------------------------------------------------------------
 
@@ -177,7 +173,6 @@ void CMpHeroScreen::Update() {
     button->tint_[1] = shade;
     button->tint_[2] = shade;
 }
-EI_REWRITTEN(0x00617820, CMpHeroScreen::Update);
 
 // --- Close -----------------------------------------------------------------------------
 
@@ -196,7 +191,6 @@ void CMpHeroScreen::Close() {
     descPanel_->Describe(nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x00615850, CMpHeroScreen::Close);
 
 // --- A voice entry's destructor -------------------------------------------------------
 
@@ -207,7 +201,6 @@ void MpVoiceEntry::Destroy() {
 namespace {
 void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
 } // namespace
-EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
 // --- The caches' objects released ----------------------------------------------------------
 
@@ -218,8 +211,6 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
 }
 template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
 template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
-EI_REWRITTEN(0x00634500, ReleaseCachedObjects<CUiMesh>);
-EI_REWRITTEN(0x00634560, ReleaseCachedObjects<CTexture>);
 
 // --- The destructor body -------------------------------------------------------------
 
@@ -249,9 +240,6 @@ CMpHeroScreen::~CMpHeroScreen() {
     stlp::deallocate(defaults_.begin(),
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
 }
-EI_REWRITTEN_SPECIAL(0x00633260, CMpHeroScreen::~CMpHeroScreen);
-EI_REWRITTEN_SPECIAL(0x00633240, CMpHeroScreen::~CMpHeroScreen);
-EI_REWRITTEN_SPECIAL(0x006345F0, CMpHeroScreen::~CMpHeroScreen);
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
@@ -296,7 +284,6 @@ void CMpHeroScreen::DrawHeroList() {
 namespace {
 void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
 } // namespace
-EI_REWRITTEN(0x006167C0, HeroScreenDrawHeroList);
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_.data[2];
@@ -325,7 +312,6 @@ void CMpHeroScreen::DrawVoices() {
 namespace {
 void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
 } // namespace
-EI_REWRITTEN(0x00616560, HeroScreenDrawVoices);
 
 // --- The preview's unit -------------------------------------------------------------------
 
@@ -369,7 +355,6 @@ void CMpHeroScreen::MakePreview(int flag) {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x00616E20, CMpHeroScreen::MakePreview);
 
 // --- A hero shown -------------------------------------------------------------------------
 
@@ -400,4 +385,3 @@ void CMpHeroScreen::ShowHero(int index) {
     DrawHeroList();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x00616910, CMpHeroScreen::ShowHero);

@@ -5,7 +5,6 @@
 
 #include "random.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -123,12 +122,10 @@ LightningSegment::LightningSegment() {
     points.capacity = 0;
     points.growBy = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00468900, LightningSegment::LightningSegment);
 
 LightningSegment::~LightningSegment() {
     if (points.data) LightningPointArray::Free(points.data);
 }
-EI_REWRITTEN_SPECIAL(0x00468920, LightningSegment::~LightningSegment);
 
 CLightning::CLightning() {
     ClearFields();
@@ -141,15 +138,8 @@ CLightning::CLightning() {
 
 // The texture references are null after the reset (releasing them again is a no-op).
 CLightning::~CLightning() { CLightning::Destroy(); }
-EI_REWRITTEN_SPECIAL(0x00468810, CLightning::~CLightning);
-EI_REWRITTEN_SPECIAL(0x004687F0, CLightning::~CLightning);
 
 const char* CLightning::GetClassName() { return "CLightning"; }
-EI_REWRITTEN(0x004687D0, CLightning::GetClassName);
 int CLightning::GetClassId() { return 0x1E; }
-EI_REWRITTEN(0x004687E0, CLightning::GetClassId);
 
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
-EI_REWRITTEN(0x00468680, CLightningManager::NewObject);
-
-EI_REWRITTEN(0x004680D0, CLightning::Start);

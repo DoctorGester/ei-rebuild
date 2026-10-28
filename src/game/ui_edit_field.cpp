@@ -7,7 +7,6 @@
 #include "asset_text.h"
 #include "ui_gdi.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -84,9 +83,6 @@ void CUiEditField::OnKeyDown(int key, int, int) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0065C610, CUiEditField::OnKeyDown);
-
-
 namespace {
 constexpr int kSurfaceFormat = 5;
 constexpr int kKeyTab = 0x09;
@@ -131,7 +127,6 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     DrawContentsVanilla();
     focused_ = true;
 }
-EI_REWRITTEN_SPECIAL(0x0065C010, CUiEditField::CUiEditField);
 
 void CUiEditField::OnChar(int key, int, int) {
     if (!focused_) return;
@@ -158,8 +153,6 @@ void CUiEditField::OnChar(int key, int, int) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0065C930, CUiEditField::OnChar);
-
 // --- the look, the text and the focus ------------------------------------------------------------
 
 void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour,
@@ -172,7 +165,6 @@ void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int m
     caretColour_ = caretColour;
     DrawContentsVanilla();
 }
-EI_REWRITTEN(0x0065C1A0, CUiEditField::SetLook);
 
 void CUiEditField::SetText(const char* text) {
     editing_ = false;
@@ -181,10 +173,8 @@ void CUiEditField::SetText(const char* text) {
     caret_ = text_.size();
     DrawContentsVanilla();
 }
-EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
 
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
-EI_REWRITTEN(0x0065C2D0, CUiEditField::SetFocused);
 
 // --- the text and the caret drawn ----------------------------------------------------------------
 
@@ -218,4 +208,3 @@ void CUiEditField::DrawContentsVanilla() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x0065C2E0, CUiEditField::DrawContentsVanilla);

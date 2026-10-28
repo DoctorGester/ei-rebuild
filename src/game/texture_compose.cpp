@@ -8,7 +8,6 @@
 #include "game_strings.h"
 #include "unit_client_models.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -165,7 +164,6 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
     }
     return drawn;
 }
-EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 
 // `out` receives the name of the texture used; `name` is the cache file to use, `fallback`
 // another one tried when `name` has no file. A cached file whose extra block equals the request's
@@ -220,4 +218,3 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }
-EI_REWRITTEN(0x00693180, CTextureManager::Compose);

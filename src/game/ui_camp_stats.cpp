@@ -10,7 +10,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
 
@@ -94,7 +93,6 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     }
     info->stats = HeroStats(owner_);
 }
-EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 
 // --- the statistics column -----------------------------------------------------------------------
 
@@ -165,7 +163,6 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
         break;
     }
 }
-EI_REWRITTEN(0x00624CB0, CHeroStatsPanel::HoverInfo);
 
 // --- the column's hero ---------------------------------------------------------------------------
 
@@ -180,11 +177,9 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     points_ = static_cast<int>(owner_->HeroRecord()->height * 100.0f);
     DrawStats();
 }
-EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 
 // --- the camp's hero record ----------------------------------------------------------------------
 
 PartyUnitRecord* CCampPages::HeroRecord() {
     return &LocalPlayerData()->members_.data[hero_];
 }
-EI_REWRITTEN(0x0060FA80, CCampPages::HeroRecord);

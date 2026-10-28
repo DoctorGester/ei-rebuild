@@ -14,7 +14,6 @@
 #include "game_strings.h"
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 
 #include "../hook/log.h"
@@ -99,7 +98,6 @@ CTexture* CTextureManager::NewShadowTexture() {
     bool missing;
     return MakeShadowTexture(this, kShadowTextureKeep, kShadowTextureFlag, &missing);
 }
-EI_REWRITTEN(0x00692010, CTextureManager::NewShadowTexture);
 
 CTexture* CTextureManager::ShadowRenderSurface() {
     if (shadowRenderSurface_) return shadowRenderSurface_;
@@ -112,8 +110,6 @@ CTexture* CTextureManager::ShadowRenderSurface() {
     if (previous) previous->Release();
     return shadowRenderSurface_;
 }
-EI_REWRITTEN(0x00692140, CTextureManager::ShadowRenderSurface);
-
 
 // The holder's pixels are the new renderer's memory: described, no Lock / Unlock, the result 0 in
 // the holder.
@@ -124,7 +120,6 @@ int CTexture::LockPixels(SurfacePixels* pixels) {
     holder->result = 0;
     return DirectPixels(holder, pixels) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
-EI_REWRITTEN(0x00690FC0, CTexture::LockPixels);
 
 void CTexture::UnlockPixels() {
     CDXSurface* holder = surface_;
@@ -132,8 +127,6 @@ void CTexture::UnlockPixels() {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     holder->result = 0;
 }
-EI_REWRITTEN(0x00691030, CTexture::UnlockPixels);
-
 
 void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
     const CDXSurface* to = surface_;

@@ -23,7 +23,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -249,7 +248,6 @@ int CUnitServer::RunTick() {
     AdvanceAnimation();
     return 1;
 }
-EI_REWRITTEN(0x00552300, CUnitServer::RunTick);
 
 // --- The state of the unit's animation --------------------------------------------------------
 
@@ -314,7 +312,6 @@ void CUnitServer::UpdateState() {
     }
     hitDirection = 0xFFFFFFFFu;
 }
-EI_REWRITTEN(0x005499F0, CUnitServer::UpdateState);
 
 // --- The animation queue ---------------------------------------------------------------------
 
@@ -359,7 +356,6 @@ void CUnitServer::AdvanceAnimation() {
     }
     unit->SetMotionMode(kind);
 }
-EI_REWRITTEN(0x00546F30, CUnitServer::AdvanceAnimation);
 
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
@@ -390,7 +386,6 @@ bool CUnitServer::PopFinishedSteps() {
     }
     return popped;
 }
-EI_REWRITTEN(0x00546B40, CUnitServer::PopFinishedSteps);
 
 void CUnitServer::ShowCurrentStep() {
     if (queue.size == 0) return;
@@ -398,7 +393,6 @@ void CUnitServer::ShowCurrentStep() {
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
-EI_REWRITTEN(0x00546C10, CUnitServer::ShowCurrentStep);
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), like the original.
@@ -414,7 +408,6 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
-EI_REWRITTEN(0x00546C40, CUnitServer::PlaySteps);
 
 // --- States -------------------------------------------------------------------------------------
 
@@ -427,10 +420,8 @@ void CUnitServer::SetState(int newState) {
     }
     actingCheckTime = WorldTime(this) + 10;
 }
-EI_REWRITTEN(0x00547090, CUnitServer::SetState);
 
 void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
-EI_REWRITTEN(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
     motion.Clear();
@@ -440,7 +431,6 @@ void CUnitServer::StandStill() {
     if (MotionPath()->Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
-EI_REWRITTEN(0x00547280, CUnitServer::StandStill);
 
 // --- Hit reactions ------------------------------------------------------------------------------
 
@@ -464,7 +454,6 @@ void CUnitServer::PlayHitReaction() {
     ShowCurrentStep();
     animationHeld = 1;
 }
-EI_REWRITTEN(0x00547100, CUnitServer::PlayHitReaction);
 
 // --- The end of an order ------------------------------------------------------------------------
 
@@ -505,7 +494,6 @@ void CUnitServer::EndOrder(char abort) {
     OrderPlanReset(&Plan(this));
     StandStill();
 }
-EI_REWRITTEN(0x00549690, CUnitServer::EndOrder);
 
 // --- Acting -------------------------------------------------------------------------------------
 
@@ -576,7 +564,6 @@ void CUnitServer::TickAction() {
     if (MotionPath()->Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
 }
-EI_REWRITTEN(0x00549160, CUnitServer::TickAction);
 
 // --- Checks -------------------------------------------------------------------------------------
 
@@ -606,7 +593,6 @@ bool CUnitServer::ActionInReach() {
     EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
     return distanceSq < Plan(this).rangeSq;   // closer
 }
-EI_REWRITTEN(0x00549D40, CUnitServer::ActionInReach);
 
 // --- Item spells --------------------------------------------------------------------------------
 
@@ -638,7 +624,6 @@ void CUnitServer::TickItemSpells() {
         if (countdown <= 0) current->countdown = 8;
     }
 }
-EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 
 namespace {
 // The lists RefreshItemSpells uses.
@@ -715,4 +700,3 @@ void CUnitServer::RefreshItemSpells() {
     items.vtable = mfc::impl::ItemListClass::Vtable();
     items.RemoveAll();
 }
-EI_REWRITTEN(0x005528F0, CUnitServer::RefreshItemSpells);

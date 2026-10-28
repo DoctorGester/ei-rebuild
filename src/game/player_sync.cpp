@@ -24,7 +24,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -432,19 +431,3 @@ void CPlayerServer::UpdatePartyUnits() {
         gamecrt::operator_delete(known.data);
     }
 }
-
-EI_REWRITTEN(0x0066E130, CPlayerServer::UpdatePartyUnits);
-EI_REWRITTEN(0x0066D270, CPlayerServer::ReceiveMessages);
-EI_REWRITTEN(0x0066D100, CPlayerServer::Flush);
-EI_REWRITTEN(0x0066E430, CPlayerServer::SendPartyState);
-EI_REWRITTEN(0x0066DC90, CPlayerServer::ForgetObject);
-EI_REWRITTEN(0x0066E110, CPlayerServer::IsPartyUnit);
-EI_REWRITTEN(0x0066EF80, CPlayerServer::SendParty);
-EI_REWRITTEN(0x0066D7F0, CPlayerServer::SendObjectsAdded);
-EI_REWRITTEN(0x0066DAD0, CPlayerServer::SendObjectsRemoved);
-EI_REWRITTEN(0x0066DBA0, CPlayerServer::SendObjectsChanged);
-EI_REWRITTEN(0x0066DDE0, CPlayerServer::SendTimedAdded);
-EI_REWRITTEN(0x0066DF40, CPlayerServer::SendTimedRemoved);
-EI_REWRITTEN(0x0066E020, CPlayerServer::SendTimedChanged);
-EI_REWRITTEN(0x0066F080, CPlayerServer::SendItems);
-EI_REWRITTEN(0x0066E7D0, CPlayerServer::SendItemsGiven);

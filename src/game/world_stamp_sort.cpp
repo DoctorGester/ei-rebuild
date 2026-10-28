@@ -4,8 +4,6 @@
 
 #include "lib/stlp_algo.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -22,9 +20,7 @@ using StampSort = stlp::Sort<Node*, ByStamp>;
 void __fastcall StampIntroSort(Node** first, Node** last, int, int depthLimit, const void*) {
     StampSort::IntroLoop(first, last, depthLimit, ByStamp());
 }
-EI_REWRITTEN(0x00589160, StampIntroSort);
 
 void __fastcall StampInsertionSort(Node** first, Node** last, const void*) {
     StampSort::FinalInsertionSort(first, last, ByStamp());
 }
-EI_REWRITTEN(0x00589240, StampInsertionSort);

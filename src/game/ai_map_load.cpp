@@ -9,7 +9,6 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -475,4 +474,3 @@ int CAIMap::Load(const char* path) {
     AttachTerrain();
     return 1;
 }
-EI_REWRITTEN(0x005B43C0, CAIMap::Load);

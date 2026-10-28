@@ -8,7 +8,6 @@
 #include "texture.h"   // TextureHolderEnsureLoaded, HeldTexture
 #include "world.h"     // ClientArrayManager
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -34,7 +33,6 @@ constexpr float kFogTileSize = 0.25f;
 // A new CVisibilityFog, whatever the type asked: the engine object's fields, everything up to the cell map
 // zero, an empty cell map; null when the allocation fails.
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
-EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
 // The texture, the tile table, then the manager's own Create (its result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
@@ -49,7 +47,6 @@ int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
     }
     return self->CBaseManager::Create();
 }
-EI_REWRITTEN(0x004E2990, VisFogManagerCreate);
 
 // The texture dropped (null, then released), every fog released, the list emptied.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
@@ -63,7 +60,6 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
     }
     self->list.RemoveAll();
 }
-EI_REWRITTEN(0x004E2850, VisFogManagerDestroy);
 
 // Every fog's tick; one that returns 0 (no cells left) leaves the list and is released. Returns 0.
 int __fastcall VisFogManagerTick(ClientArrayManager* self) {
@@ -77,7 +73,6 @@ int __fastcall VisFogManagerTick(ClientArrayManager* self) {
     }
     return 0;
 }
-EI_REWRITTEN(0x004E2760, VisFogManagerTick);
 
 int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
@@ -90,7 +85,6 @@ CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {
     self->list.AddTail(fog);
     return fog;
 }
-EI_REWRITTEN(0x004E28D0, VisFogManagerAdd);
 
 // Draw (called by the world's draw). Nothing listed: 1. Otherwise the texture is made sure of and bound to
 // stage 0 (a failed bind: 0), then every fog draws; 1.
@@ -105,4 +99,3 @@ int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004E2700, ClientArrayManager::Draw);

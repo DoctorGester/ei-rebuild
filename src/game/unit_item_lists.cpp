@@ -4,8 +4,6 @@
 
 #include "item.h"
 
-#include "ei/hook.h"
-
 // The loop runs once when the item has a spell.
 void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
     if (!item) return;
@@ -13,7 +11,6 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<
     CSpell* spell = item->spell_;
     if (spell) spells->AddTail(spell);
 }
-EI_REWRITTEN(0x0069FB60, GatherItem);
 
 namespace {
 // Empty slots add nothing.
@@ -36,5 +33,3 @@ void CUnit::CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CS
     AddSlots(items, itemSpells, spells, 8);
     for (int i = 0; i < carriedCount; ++i) AddItem(items, itemSpells, carried[i]);
 }
-
-EI_REWRITTEN(0x005316F0, CUnit::CollectItems);

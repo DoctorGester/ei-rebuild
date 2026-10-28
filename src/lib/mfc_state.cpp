@@ -2,7 +2,6 @@
 #include "mfc_state.h"
 
 #include "crt.h"
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "static_object.h"
 #include "game/game_data.h"
@@ -49,15 +48,6 @@ void CThreadLocalObject::Destruct() {
 void CProcessLocalObject::Destruct() {
     if (object) object->DeletingDestructor(1);
 }
-
-EI_REWRITTEN(0x0070C71F, CThreadSlotData::FreeSlot);
-EI_REWRITTEN(0x0070CA59, CThreadLocalObject::Destruct);
-EI_REWRITTEN(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE>
-EI_REWRITTEN(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T>
-EI_REWRITTEN(0x0070CAD2, CProcessLocalObject::Destruct);
-EI_REWRITTEN(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE>
-EI_REWRITTEN(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
-EI_REWRITTEN(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
 
 // ---- GDI objects and AUX_DATA ----------------------------------------------------------------------
 
@@ -130,14 +120,6 @@ void AuxData::UpdateScrollMetrics() {
     marked4 = FALSE;
 }
 
-EI_REWRITTEN(0x0070AA54, AfxDeleteObject);
-EI_REWRITTEN(0x0070D1AA, AuxData::Construct);
-EI_REWRITTEN(0x0070E181, AuxData::Destruct);
-EI_REWRITTEN(0x00703E12, AuxData::UpdateSysColors);
-EI_REWRITTEN(0x00703E56, AuxData::UpdateSysMetrics);
-EI_REWRITTEN(0x0070D158, UpdateAfxScrollMetricsMarked4);
-EI_REWRITTEN(0x0070D188, UpdateAfxScrollMetrics);
-
 namespace {
 void __cdecl DestroyAfxData() { g_afxData->Destruct(); }
 } // namespace
@@ -146,9 +128,6 @@ void __cdecl ConstructAfxData() {
     g_afxData->Construct();
     libcrt::AtExit(DestroyAfxData);
 }
-
-EI_REWRITTEN(0x0070D12E, ConstructAfxData);
-EI_REWRITTEN(0x0070D14E, DestroyAfxData);
 
 } // namespace mfc::impl
 
@@ -234,15 +213,5 @@ void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
 // atexit's answer would be kept in _afxWingdixTerm, which nothing reads.
 void __cdecl AfxWingdixTermInit() { libcrt::AtExit(AfxWingdixTerm); }
-
-EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);
-EI_REWRITTEN(0x0070CE8C, ImageModuleState);
-EI_REWRITTEN(0x0070C3C5, AfxCriticalInit);
-EI_REWRITTEN(0x0070C458, AfxLockGlobals);
-EI_REWRITTEN(0x0070C4C8, AfxUnlockGlobals);
-EI_REWRITTEN(0x00700674, AfxClassInit);
-EI_REWRITTEN(0x0070DC4D, AfxInitDbcs);
-EI_REWRITTEN(0x0070B5F0, AfxWingdixTerm);
-EI_REWRITTEN(0x0070B600, AfxWingdixTermInit);
 
 } // namespace mfc::impl

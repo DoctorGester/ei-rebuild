@@ -8,7 +8,6 @@
 #include "ui.h"
 
 #include "lib/containers.h"
-#include "ei/hook.h"
 #include "world_data.h"
 #include "ei/x87.h"
 #include "game_data.h"
@@ -195,7 +194,6 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E8450, CUiMesh::Framed);
 
 void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
                           int uvRadius) {
@@ -234,7 +232,6 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     SetScale(s);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E8C60, CUiMesh::Disc);
 
 void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
                           int v0, int u1, int v1) {
@@ -310,10 +307,8 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E91F0, CUiMesh::Ring);
 
 void CUiMesh::ResetColours() { ResetVertexColours(this); }
 namespace {
 void __fastcall MeshResetColours(CUiMesh* self) { self->ResetColours(); }
 } // namespace
-EI_REWRITTEN(0x005E9F30, MeshResetColours);

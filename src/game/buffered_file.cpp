@@ -3,7 +3,6 @@
 
 #include "net_classes.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
 #include "lib/stlp_hash.h"
@@ -46,25 +45,18 @@ void BufferedStream::Flush() {
     if (static_cast<std::uint32_t>(WriteAt(base, begin, size)) != size) flags |= kFlagError;
     if (cur > high) high = cur;
 }
-EI_REWRITTEN(0x004DAAF0, BufferedStream::Flush);
 
 void BufferedStream::ReleaseBlock() {
     Flush();
     if (begin) gamecrt::operator_delete(begin);
     begin = nullptr;
 }
-EI_REWRITTEN(0x004DAC80, BufferedStream::ReleaseBlock);
-
-EI_REWRITTEN_SPECIAL(0x00580DD0, BufferedStream::BufferedStream);
-EI_REWRITTEN_SPECIAL(0x00580DF0, BufferedStream::~BufferedStream);
-EI_REWRITTEN_SPECIAL(0x00580E40, BufferedStream::~BufferedStream);   // deleting
 
 std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
     flags |= kFlagUnwritten;
     if (cur + static_cast<std::uint32_t>(size) > end) ReserveWrite(size);
     return cur;
 }
-EI_REWRITTEN(0x00580EE0, GameBuffer::BeginWrite);
 
 void BufferedStream::MoveWindow(std::int32_t position) {
     std::int32_t room = Capacity();
@@ -105,13 +97,11 @@ void BufferedStream::ReserveReadWindow(std::int32_t size) {
     Flush();
     MoveWindow(position);
 }
-EI_REWRITTEN(0x004DAE30, BufferedStream::ReserveReadWindow);
 
 void BufferedStream::ReserveWriteWindow(std::int32_t size) {
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
     if (!(grown < Capacity())) ::Reallocate(this, grown);
 }
-EI_REWRITTEN(0x004DAFC0, BufferedStream::ReserveWriteWindow);
 
 int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
     if (size > static_cast<std::uint32_t>(Capacity())) {
@@ -137,7 +127,6 @@ int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
     cur += size;
     return static_cast<int>(size);
 }
-EI_REWRITTEN(0x004DB200, BufferedStream::ReadMoreWindow);
 
 int BufferedStream::WriteMoreWindow(const void* from, std::uint32_t size) {
     if (size > static_cast<std::uint32_t>(Capacity())) {
@@ -156,7 +145,6 @@ int BufferedStream::WriteMoreWindow(const void* from, std::uint32_t size) {
     cur += size;
     return static_cast<int>(size);
 }
-EI_REWRITTEN(0x004DB420, BufferedStream::WriteMoreWindow);
 
 std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
     std::uint8_t* old = cur;
@@ -171,7 +159,6 @@ std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
     Rebase();
     return old;
 }
-EI_REWRITTEN(0x004DB0F0, BufferedStream::SeekWindow);
 
 // --- The file ------------------------------------------------------------------------------------
 
@@ -180,24 +167,18 @@ int BufferedFile::ReadAtFile(std::int32_t position, void* to, std::uint32_t size
     if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
     return static_cast<int>(libcrt::Fread(to, 1, size, file));
 }
-EI_REWRITTEN(0x004DB5E0, BufferedFile::ReadAtFile);
 
 int BufferedFile::WriteAtFile(std::int32_t position, const void* from, std::uint32_t size) {
     if (!file) return 0;
     if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
     return static_cast<int>(gamecrt::fwrite(from, 1, size, file));
 }
-EI_REWRITTEN(0x004DB630, BufferedFile::WriteAtFile);
 
 void BufferedFile::Close() {
     ReleaseBlock();
     if (file) libcrt::Fclose(file);
     file = nullptr;
 }
-EI_REWRITTEN(0x004DB680, BufferedFile::Close);
-
-EI_REWRITTEN_SPECIAL(0x00580E60, BufferedFile::~BufferedFile);
-EI_REWRITTEN_SPECIAL(0x00580EC0, BufferedFile::~BufferedFile);   // deleting
 
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();
@@ -218,7 +199,6 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
     base = 0;
     MoveWindow(0);
 }
-EI_REWRITTEN(0x004DB700, BufferedFile::Open);
 
 // A hash_set<int> that nothing of ours reads: built by its static initialiser, destroyed by its exit function.
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
@@ -231,6 +211,3 @@ void __cdecl ConstructUnreadSet() {
     g_unreadSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(DestroyUnreadSet);
 }
-
-EI_REWRITTEN(0x004DB870, ConstructUnreadSet);
-EI_REWRITTEN(0x004DB890, DestroyUnreadSet);

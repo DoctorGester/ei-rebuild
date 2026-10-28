@@ -20,7 +20,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -219,8 +218,6 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     else
         state_ = kStateStarting;
 }
-EI_REWRITTEN(0x006064E0, CBriefingScreen::StartDialogue);
-
 
 void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
@@ -302,4 +299,3 @@ void CBriefingScreen::FinishDialogue() {
         LocalServerPlayer()->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }
-EI_REWRITTEN(0x00608450, CBriefingScreen::FinishDialogue);

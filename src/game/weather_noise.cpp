@@ -5,7 +5,6 @@
 // bits at start-up) and are rounded to a float only where the game stores one.
 #include "weather_noise.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -66,7 +65,6 @@ void WeatherNoiseCurve::Build(float amplitude) {
         segment.quadratic = static_cast<float>((bend - (cubic + cubic)) * half);
     }
 }
-EI_REWRITTEN(0x004E3980, WeatherNoiseCurve::Build);
 
 // A static initialiser: the five curves built one after another with the amplitude 0.5.
 void BuildWeatherNoise() {
@@ -77,4 +75,3 @@ void BuildWeatherNoise() {
     g_swayYByPlace.Build(kAmplitude);
     g_swayZByHeight.Build(kAmplitude);
 }
-EI_REWRITTEN(0x004E3B20, BuildWeatherNoise);

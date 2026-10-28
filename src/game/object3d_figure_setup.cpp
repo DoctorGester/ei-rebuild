@@ -16,7 +16,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "library_trees.h"
 
 #include <bit>
@@ -158,8 +157,6 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     bounds.flags |= kBoundsSphere;
 }
 
-EI_REWRITTEN(0x005179E0, CObject3D::SetUpAnimatedFigure);
-
 // --- Bounds of the placed parts -----------------------------------------------------------------
 
 void CObject3D::UpdatePartBounds() {
@@ -188,7 +185,6 @@ void CObject3D::UpdatePartBounds() {
     bounds.center.y = centreY - localPosition_.y;
     bounds.center.z = centreZ - localPosition_.z;
 }
-EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
@@ -207,7 +203,6 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
         if (startsWith(part)) out->SetAtGrow(out->size, part);
     }
 }
-EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);
 
 // --- Loading single parts ---------------------------------------------------------------------
 
@@ -219,9 +214,6 @@ constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid fig
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
 } // namespace
-
-// Add (SetAtGrow at the size; RET 4).
-EI_REWRITTEN(0x00519A10, AlignedPtrArray::Add);
 
 CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
@@ -273,7 +265,6 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
     part->box_.pivot.z = part->localPosition_.z;
     return part;
 }
-EI_REWRITTEN(0x00517240, CObject3D::LoadPart);
 
 int CObject3D::LoadParts(const char* model, const std::vector<std::string>* names, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
@@ -289,7 +280,6 @@ int CObject3D::LoadParts(const char* model, const std::vector<std::string>* name
     }
     return 1;
 }
-EI_REWRITTEN(0x00517110, CObject3D::LoadParts);
 
 // --- Building the figure ----------------------------------------------------------------------
 
@@ -360,4 +350,3 @@ int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, st
     else flags_ |= kFlagFigureLoaded;
     return 1;
 }
-EI_REWRITTEN(0x00516DA0, CObject3D::MakeFigure);

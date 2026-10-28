@@ -5,7 +5,6 @@
 #include "unit_record.h"
 
 #include "combat.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -89,6 +88,5 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name.c_str()));
     for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name.c_str()));
 }
-EI_REWRITTEN(0x00477B00, UnitRecord::ApplyTo);
 
 } // namespace unitrecord

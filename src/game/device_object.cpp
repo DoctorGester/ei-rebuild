@@ -13,7 +13,6 @@
 #include "model.h"               // CTransformPipeline
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -159,7 +158,6 @@ void CTextureDevice::BuildFormatTable() {
         formats_[static_cast<int>(id)] = format;
     }
 }
-EI_REWRITTEN(0x004E6EE0, CTextureDevice::BuildFormatTable);
 
 CTextureDevice::~CTextureDevice() {
     for (const StageBlockSetup& block : kStageBlocks) {
@@ -186,8 +184,6 @@ CTextureDevice::~CTextureDevice() {
     if (depth2_) depth2_->Release();
     if (depth_) depth_->Release();
 }
-EI_REWRITTEN_SPECIAL(0x004E68A0, CTextureDevice::~CTextureDevice);
-EI_REWRITTEN_SPECIAL(0x004E6880, CTextureDevice::~CTextureDevice);
 
 // The base's constructor and the format table first. The game then makes the Direct3D object, takes the HAL device
 // (the T&L HAL is skipped by its id), the depth buffer and the render target; none of that exists in the
@@ -208,4 +204,3 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
     // The switch-over: no Direct3D object or device, no DirectDraw fallback.
     ConstructWithoutDirect3D(this);
 }
-EI_REWRITTEN_SPECIAL(0x004E5E50, CTextureDevice::CTextureDevice);

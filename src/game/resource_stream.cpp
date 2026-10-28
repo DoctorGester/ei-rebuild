@@ -7,7 +7,6 @@
 #include "mod_folders.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -221,24 +220,3 @@ CMMIOResource::~CMMIOResource() {
     // The CMappedFile destructor; CMappedResource's follows.
     file_.Close();
 }
-
-
-EI_REWRITTEN_SPECIAL(0x00674790, CResourceBase::CResourceBase);
-EI_REWRITTEN_SPECIAL(0x00674810, CResourceBase::~CResourceBase);
-EI_REWRITTEN_SPECIAL(0x006747C0, CResourceBase::~CResourceBase);   // deleting
-EI_REWRITTEN(0x00674A90, CResourceBase::FreeAccelTable);
-
-EI_REWRITTEN_SPECIAL(0x00674280, CResourceStream::CResourceStream);
-EI_REWRITTEN_SPECIAL(0x006742C0, CResourceStream::~CResourceStream);
-EI_REWRITTEN_SPECIAL(0x006742A0, CResourceStream::~CResourceStream);   // deleting
-EI_REWRITTEN(0x00674430, CResourceStream::Close);
-EI_REWRITTEN(0x006744C0, CResourceStream::OpenFile);
-EI_REWRITTEN(0x006746B0, CResourceStream::Read);
-EI_REWRITTEN(0x006746F0, CResourceStream::Seek);
-
-EI_REWRITTEN(0x00674CE0, WildcardMatch);
-EI_REWRITTEN(0x00674AC0, CMappedResource::ListFiles);
-
-EI_REWRITTEN_SPECIAL(0x006721D0, CMMIOResource::CMMIOResource);
-EI_REWRITTEN_SPECIAL(0x006722F0, CMMIOResource::~CMMIOResource);
-EI_REWRITTEN_SPECIAL(0x006722D0, CMMIOResource::~CMMIOResource);   // deleting

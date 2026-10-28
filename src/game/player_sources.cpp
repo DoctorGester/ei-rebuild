@@ -8,7 +8,6 @@
 #include "core_refcount.h"
 #include "net_link.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -50,6 +49,3 @@ void DriverSession::TakeNew(JoinedLinks* list) {
 }
 
 } // namespace netlink
-
-EI_REWRITTEN(0x00478880, CWorldHandle::TakeNew);
-EI_REWRITTEN(0x0047A230, netlink::DriverSession::TakeNew);

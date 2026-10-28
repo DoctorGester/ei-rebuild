@@ -7,7 +7,6 @@
 #include "console.h"
 #include "text_split.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -40,4 +39,3 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     text::Join(&file, &pieces, '\\');
     return LoadBmpFiles(device, file.c_str(), alphaPath.c_str());
 }
-EI_REWRITTEN(0x00690260, CTexture::LoadBmp);

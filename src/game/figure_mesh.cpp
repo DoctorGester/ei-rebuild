@@ -7,7 +7,6 @@
 
 #include "link_figure.h"
 
-#include "ei/hook.h"
 #include "model.h"
 #include "render/render.h"
 #include "game_data.h"
@@ -198,7 +197,6 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     box_.bounds.radius = radius_;
     box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
 }
-EI_REWRITTEN(0x005A18E0, CFigureMesh::LoadBounds);
 
 void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
     Vector3 boxMin, boxMax;
@@ -223,7 +221,6 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
     }
     out->SetBox(&boxMin.x, &boxMax.x);
 }
-EI_REWRITTEN(0x005AAE60, MorphFigureBounds);
 
 void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
     Vector3 c = MorphVector6(data, s, t, u, true);
@@ -239,7 +236,6 @@ void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, f
     Vector3 boxMax{mx.x, mx.y, mx.z};
     out->SetBox(&boxMin.x, &boxMax.x);
 }
-EI_REWRITTEN(0x005AB9A0, MorphFigureBounds6);
 
 namespace {
 
@@ -395,7 +391,6 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.words = words_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A2500, CPlainFigureMesh::LoadFig);
 
 void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
@@ -436,7 +431,6 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A5C70, CSharedFigureMesh::LoadFig);
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
@@ -518,7 +512,6 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.indices = indices_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A3800, CPlainFigureMesh::LoadOld);
 
 void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     // Unlike the other three loaders, this one does not test the loaded flag.
@@ -543,7 +536,6 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A4D60, CSharedFigureMesh::LoadOld);
 
 // ---- World-space box ----------------------------------------------------------------------------
 
@@ -584,7 +576,6 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
         Extend(*maxZ, *minZ, w.z);
     }
 }
-EI_REWRITTEN(0x0059FDF0, CFigureMesh::ExtendWorldBox);
 
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
 
@@ -616,20 +607,16 @@ lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
 
 void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
 
-EI_REWRITTEN(0x005A0CB0, FreeOffsetVertices);
-
 void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);
     NegateBlock(normals_, 0);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4B30, CPlainFigureMesh::MirrorX);
 
 void CFigureMesh::FitVertexBounds() {
     if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
 }
-EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 
 void CPlainFigureMesh::MirrorY() {
     NegateBlock(vertices_, 1);
@@ -637,9 +624,6 @@ void CPlainFigureMesh::MirrorY() {
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4BF0, CPlainFigureMesh::MirrorY);
-
-EI_REWRITTEN(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 
 void CPlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
@@ -658,8 +642,6 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.indices = indices_.data;
     buffers_.indexCount = indices_.size;
 }
-EI_REWRITTEN(0x005A6D40, CPlainFigureMesh::RefreshBuffers);
-EI_REWRITTEN(0x005EA150, CPlainFigureMesh::RefreshBuffers);
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
@@ -672,7 +654,6 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 }
 
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
-EI_REWRITTEN(0x005A0B10, CFigureMesh::SetOffsets);
 
 int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
     const VertexPacket* vertices = buffers_.vertices;
@@ -724,4 +705,3 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                                       bounds);
     return buffers_.vertexCount << 2;
 }
-EI_REWRITTEN(0x005A0CD0, CFigureMesh::DrawOffset);

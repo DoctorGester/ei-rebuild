@@ -6,7 +6,6 @@
 // way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -109,6 +108,3 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     }
     path->AddHead(cellAt(x, y));
 }
-
-EI_REWRITTEN(0x005B9690, CAIMap::JoinLocalSearches);
-EI_REWRITTEN(0x005B9A20, CAIMap::BuildCellsTo);

@@ -6,8 +6,6 @@
 // so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
-
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -45,8 +43,6 @@ void __cdecl DeleteComposedTextures() {
         }
     } while (more);
 }
-EI_REWRITTEN(0x006916F0, DeleteComposedTextures);
-
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
 // CEngineObject::Release, its caller, returns it but no caller reads it).
@@ -69,8 +65,6 @@ int CTextureManager::ReleaseObject(CEngineObject* object) {
 namespace {
 // The virtual slot's entry point (rewrite-guide rule 4).
 } // namespace
-EI_REWRITTEN(0x00691B00, CTextureManager::ReleaseObject);
-
 
 CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
     for (auto* node = cache_.head; node;) {
@@ -86,8 +80,6 @@ CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00691BF0, CTextureManager::TakeFromCache);
-
 
 // Details kept: a texture taken back from the cache here is not subtracted from
 // cachedBytes_ (the by-type lookup does subtract it).
@@ -116,8 +108,6 @@ CTexture* CTextureManager::FindTexture(const char* name) {
     if (registered.manager) --registered.manager->refCount_;
     return found;
 }
-EI_REWRITTEN(0x00693C60, CTextureManager::FindTexture);
-
 
 CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
     ObjectListIteratorOf<CTexture> registered{};
@@ -132,8 +122,6 @@ CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
     if (registered.manager) --registered.manager->refCount_;
     return found;
 }
-EI_REWRITTEN(0x00692D30, CTextureManager::FindTypedTexture);
-
 
 void CTextureManager::FreeCache() {
     for (auto* node = cache_.head; node;) {
@@ -144,4 +132,3 @@ void CTextureManager::FreeCache() {
     cachedBytes_ = 0;
     cache_.RemoveAll();
 }
-EI_REWRITTEN(0x00692F00, CTextureManager::FreeCache);

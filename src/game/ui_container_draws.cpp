@@ -11,7 +11,6 @@
 #include "texture.h"   // g_stageBlocks
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -60,15 +59,12 @@ BOOL CUiContainer::Draw(CSceneRenderer* pass) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
 // Returns ScreenDraw's result.
 int CBriefingScreen::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, true); }
-EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
 // Returns ScreenDraw's result.
 int CMainMenu::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, false); }
-EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
 // The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
 // selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection. Returns
@@ -126,7 +122,6 @@ int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00622420, CHeroEquipPanel::Draw);
 
 long CObjectivesWindow::RestoreAlphaRef() {
     std::uint32_t value = savedAlphaRef_;
@@ -134,4 +129,3 @@ long CObjectivesWindow::RestoreAlphaRef() {
     render::state::Render(kAlphaRef, value);
     return hr;
 }
-EI_REWRITTEN(0x0064D970, CObjectivesWindow::RestoreAlphaRef);

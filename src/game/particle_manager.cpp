@@ -2,7 +2,6 @@
 // letting go of the held ones. See effects.h (CParticleManager) and docs/notes/particles.md.
 #include "effects.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -90,9 +89,3 @@ int CParticleManager::TickSources(char paused) {
 void CParticleManager::ReleaseUnheld() {
     ReleaseHeld(this, [](CEngineObject* object) { return object->refCount_ == 1; });
 }
-
-EI_REWRITTEN(0x00497FC0, CParticleManager::Create);
-EI_REWRITTEN(0x00497FE0, CParticleManager::Destroy);
-EI_REWRITTEN(0x00498400, CParticleManager::CreateSource);
-EI_REWRITTEN(0x00498480, CParticleManager::TickSources);
-EI_REWRITTEN(0x00498630, CParticleManager::ReleaseUnheld);

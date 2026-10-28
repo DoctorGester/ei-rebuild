@@ -14,7 +14,6 @@
 #include "unit.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/crt.h"
@@ -36,14 +35,12 @@ CFlyingHitPoints* CFlyingHitPoints::Construct() {
     texture_ = nullptr;
     return this;
 }
-EI_REWRITTEN(0x005E1710, CFlyingHitPoints::Construct);
 
 void CFlyingHitPoints::Destruct() {
     if (texture_) texture_->Release();
     points_.ClearWith([](FlyingHitPoint*) {});
     stlp::deallocate(points_.head, sizeof(Node));
 }
-EI_REWRITTEN(0x005E17E0, CFlyingHitPoints::Destruct);
 
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
@@ -57,7 +54,6 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     head->prev->next = node;
     head->prev = node;
 }
-EI_REWRITTEN(0x005E1870, CFlyingHitPoints::Add);
 
 // --- drawing -------------------------------------------------------------------------------------
 
@@ -248,4 +244,3 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
     return 1;
 }
-EI_REWRITTEN(0x005E18E0, CFlyingHitPoints::Draw);

@@ -10,7 +10,6 @@
 #include "ui_screens.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -63,8 +62,6 @@ void __fastcall TrimItemCache(ItemObjectCache<Object>* cache) {
 }
 template struct ItemObjectCache<CUiMesh>;
 template struct ItemObjectCache<CTexture>;
-EI_REWRITTEN(0x005F2F20, TrimItemCache<CUiMesh>);
-EI_REWRITTEN(0x005F2F90, TrimItemCache<CTexture>);
 
 // --- The icon window's frame -------------------------------------------------------------
 
@@ -93,7 +90,6 @@ void CItemIconWindow::Build() {
     sprite()->SetRectangleVanilla(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
     sprite()->SetRectangleVanilla(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
 }
-EI_REWRITTEN(0x005F2A90, CItemIconWindow::Build);
 
 // --- The first two bars moved ------------------------------------------------------------
 
@@ -106,7 +102,6 @@ void CItemIconWindow::PlaceBars(int y) {
     SceneMesh(kRightBar)
         ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
-EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);
 
 // --- The item screens' base Create ------------------------------------------------------
 
@@ -133,7 +128,6 @@ void CItemScreen::CreateBase() {
         TrimItemCache(&models_);
     }
 }
-EI_REWRITTEN(0x005EDD80, CItemScreen::CreateBase);
 
 // --- The item screens' destructor bodies -----------------------------------
 
@@ -151,18 +145,12 @@ CItemScreen::~CItemScreen() {
     DestroyCache(textures_);
     DestroyCache(models_);
 }
-EI_REWRITTEN_SPECIAL(0x005F6470, CItemScreen::~CItemScreen);
-EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);
-EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);
 
 // The page titles, the heroes CArray, then the item screen's.
 CCampPages::~CCampPages() {
     heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (heroes_.data) gamecrt::operator_delete(heroes_.data);
 }
-EI_REWRITTEN_SPECIAL(0x005F6620, CCampPages::~CCampPages);
-EI_REWRITTEN_SPECIAL(0x005F6600, CCampPages::~CCampPages);
-EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);
 
 // --- Screen 9's destructor ------------------------------------------
 
@@ -172,9 +160,6 @@ CExchangeScreen::~CExchangeScreen() {
     for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) std::destroy_at(at);
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
 }
-EI_REWRITTEN_SPECIAL(0x005F7010, CExchangeScreen::~CExchangeScreen);
-EI_REWRITTEN_SPECIAL(0x005F6FF0, CExchangeScreen::~CExchangeScreen);
-EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);
 
 // --- Moving items between lists ----------------------------------------------
 
@@ -196,10 +181,8 @@ ItemTurn* ItemTurn::Clone() {
     copy->glow = glow;
     return copy;
 }
-EI_REWRITTEN(0x005ED710, ItemTurn::Clone);
 
 ItemTurn::~ItemTurn() {}
-EI_REWRITTEN_SPECIAL(0x005ED780, ItemTurn::~ItemTurn);
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
@@ -226,7 +209,6 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     }
     return moved;
 }
-EI_REWRITTEN(0x005EE1B0, CItemScreen::MoveItem);
 
 CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
@@ -237,4 +219,3 @@ CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     }
     return moved;
 }
-EI_REWRITTEN(0x005EE2C0, CItemScreen::ReturnAll);

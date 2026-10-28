@@ -5,7 +5,6 @@
 #include "object_maths.h"
 #include "random.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -74,7 +73,6 @@ Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d) {
     out->z = z;
     return out;
 }
-EI_REWRITTEN(0x00488940, DivideVector);
 
 // --- Source setters -----------------------------------------------------------------------------
 
@@ -90,19 +88,15 @@ void CParticleSource::ScaleSize(float factor) {
     height = factor * height;
     emitSpacing = factor * emitSpacing;
 }
-EI_REWRITTEN(0x00485480, CParticleSource::ScaleSize);
 
 void CParticleSource::StopEmitting() { flags_ = (flags_ & ~1u) | 4u; }
-EI_REWRITTEN(0x00485440, CParticleSource::StopEmitting);
 
 void CParticleSource::StartEmitting() { flags_ |= 5u; }
-EI_REWRITTEN(0x00485450, CParticleSource::StartEmitting);
 
 void CParticleSource::Stop() {
     flags_ &= ~5u;
     Attach(nullptr);
 }
-EI_REWRITTEN(0x00485360, CParticleSource::Stop);
 
 // --- Particle updates ---------------------------------------------------------------------------
 
@@ -121,7 +115,6 @@ int CParticleSource::UpdateFalling(Particle* p) {
     p->drift.z = fall >= terminal ? fall : terminal;
     return 1;
 }
-EI_REWRITTEN(0x0048F670, CParticleSource::UpdateFalling);
 
 // Clouds: cycle the texture frames; once the source stops emitting, raise the alpha byte (it wraps) until it is at
 // most 9, then drop the particle.
@@ -139,7 +132,6 @@ int CParticleSource::UpdateCloud(Particle* p) {
     p->color = ((static_cast<std::uint32_t>(step) * 255 + a) << 24) | rgb;
     return 1;
 }
-EI_REWRITTEN(0x0048B570, CParticleSource::UpdateCloud);
 
 // Smoke puffs: rise and spread for the first two frames, then grow; past frame 7 they drift with
 // the wind and fire smoke dies (other smoke lives on, a quarter of the time each later frame).
@@ -177,7 +169,6 @@ int CParticleSource::UpdateSmoke(Particle* p) {
     p->pos.z = push * windDirection.z + p->pos.z;
     return 1;
 }
-EI_REWRITTEN(0x0048EC20, CParticleSource::UpdateSmoke);
 
 // A new smoke puff: a random offset in the source's spread (smaller puffs, 40% of them, spread
 // wider), half of it applied at once, and a random height up to `height`.
@@ -213,7 +204,6 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     std::memcpy(&p->drift.z, &height, sizeof(float));
     return 1;
 }
-EI_REWRITTEN(0x0048E9E0, CParticleSource::EmitSmoke);
 
 // Nuke debris: fly up and fall back with growing opacity; on landing (falling below the source's
 // mid height) it turns to dust that spreads, grows and fades over 14 ticks.
@@ -248,7 +238,6 @@ int CParticleSource::UpdateDebris(Particle* p) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00489190, CParticleSource::UpdateDebris);
 
 // Orbiting particles (spheres, Antimagic): rotate the offset about z by element 1's tilt, flatten it onto the
 // plane through element 1's normal at element 0's distance, and place it around the source; the size follows a
@@ -304,7 +293,6 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0048E7C0, CParticleSource::UpdateOrbit);
 
 // --- Element updates ----------------------------------------------------------------------------
 
@@ -314,7 +302,6 @@ void CParticleSource::TickNuke(ParticleElement* e) {
     if (emitCount > 8) emitCount = emitCount / 2;
     if (e->ticks == 13) flags_ &= ~1u;
 }
-EI_REWRITTEN(0x004892E0, CParticleSource::TickNuke);
 
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
@@ -325,7 +312,6 @@ void CParticleSource::TickTendril(ParticleElement*) {
     int cap = maxParticles / 16;
     emitCount = count < cap ? count : cap;
 }
-EI_REWRITTEN(0x0048EE20, CParticleSource::TickTendril);
 
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
@@ -337,4 +323,3 @@ void CParticleSource::TickMushroom(ParticleElement* e) {
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags_ &= ~1u;
 }
-EI_REWRITTEN(0x00488F00, CParticleSource::TickMushroom);

@@ -9,8 +9,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
-
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -78,14 +76,12 @@ FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
     if (!anyOfKind) return nullptr;
     return CallRandomAnimationOfKind(this, kind);
 }
-EI_REWRITTEN(0x005301B0, CUnit::FindAnimation);
 
 FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
     FigureAnimation* entry = AnimationAt(key);
     if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.c_str());
     return entry;
 }
-EI_REWRITTEN(0x00530240, CUnit::AnimationEntry);
 
 double CUnit::BodyExtent() {
     int part = FindPartIndex(kBodyPart);
@@ -100,7 +96,6 @@ double CUnit::BodyExtent() {
     double x = corner.x;
     return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
 }
-EI_REWRITTEN(0x005304A0, CUnit::BodyExtent);
 
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
@@ -108,7 +103,6 @@ double CUnit::GroundHeight(float x, float y) {
     if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
-EI_REWRITTEN(0x00530280, CUnit::GroundHeight);
 
 Vector3* CUnit::EffectPoint(Vector3* out) {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns
@@ -138,4 +132,3 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     out->z = turned.z + localPosition_.z;
     return out;
 }
-EI_REWRITTEN(0x00532860, CUnit::EffectPoint);

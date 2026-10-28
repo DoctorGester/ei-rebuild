@@ -8,7 +8,6 @@
 #include "game_data.h"
 #include "random.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -114,7 +113,6 @@ AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
     if (value) value->Release();
     return out;
 }
-EI_REWRITTEN(0x005D8D50, CountedUnits::PopHead);
 
 void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
@@ -235,7 +233,6 @@ void AIBrain::Think() {
         return;
     }
 }
-EI_REWRITTEN(0x005D53B0, AIBrain::Think);
 
 // --- Mode lookups --------------------------------------------------------------------------------
 
@@ -247,7 +244,6 @@ AIMode* AIBrain::FindMode(int type) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x005D5DD0, AIBrain::FindMode);
 
 PatrolMode* AIBrain::FindPatrolMode() {
     for (auto* node = modes.head; node;) {
@@ -257,7 +253,6 @@ PatrolMode* AIBrain::FindPatrolMode() {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x005D5E30, AIBrain::FindPatrolMode);
 
 PlayerMode* AIBrain::FindPlayerMode() {
     for (auto* node = modes.head; node;) {
@@ -267,7 +262,6 @@ PlayerMode* AIBrain::FindPlayerMode() {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x005D5E60, AIBrain::FindPlayerMode);
 
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
@@ -275,7 +269,6 @@ CMapObject* AIBrain::LeaderOrFollowed() {
     if (!leader && action == kActionFollow) return target;
     return leader;
 }
-EI_REWRITTEN(0x005D5E90, AIBrain::LeaderOrFollowed);
 
 CMapObject* AIBrain::AggressionEnemy() {
     for (auto* node = modes.head; node;) {
@@ -288,7 +281,6 @@ CMapObject* AIBrain::AggressionEnemy() {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x005D5F20, AIBrain::AggressionEnemy);
 
 // --- Positions -----------------------------------------------------------------------------------
 
@@ -319,7 +311,6 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     EI_NAN_AUDIT(ey, ex);
     return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
-EI_REWRITTEN(0x005D50E0, AIBrain::IsNearPath);
 
 std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     if (newOwner == owner) return reinterpret_cast<std::uint32_t>(newOwner);
@@ -333,7 +324,6 @@ std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     std::memset(&previousPosition.z, 0, 4);
     return kUnset;
 }
-EI_REWRITTEN(0x005D5080, AIBrain::SetOwner);
 
 void AIBrain::OnObjectDeleted(CEngineObject* object) {
     for (auto* node = modes.head; node;) {
@@ -345,7 +335,6 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
     if (seen == object && seen) seen.Reset();
     memory.Forget(object);
 }
-EI_REWRITTEN(0x005D58D0, AIBrain::OnObjectDeleted);
 
 // --- Actions -------------------------------------------------------------------------------------
 
@@ -393,7 +382,6 @@ void AIBrain::UpdateMove() {
     }
     if (CurrentWorldTick() > actionTime) actionTime = kNoTime;
 }
-EI_REWRITTEN(0x005D7520, AIBrain::UpdateMove);
 
 void AIBrain::UpdateAttack() {
     if (!target) {
@@ -424,13 +412,11 @@ void AIBrain::UpdateAttack() {
     if (o->action2.kind == 4 || o->action2.kind == 5) return;
     action = kActionNone;
 }
-EI_REWRITTEN(0x005D76A0, AIBrain::UpdateAttack);
 
 void AIBrain::StopAction() {
     target.Reset();
     action = kActionNone;
 }
-EI_REWRITTEN(0x005D7790, AIBrain::StopAction);
 
 void AIBrain::AttackTarget(CMapObject* object) {
     action = kActionAttack;
@@ -452,7 +438,6 @@ void AIBrain::AttackTarget(CMapObject* object) {
     }
     owner->OrderAttack(target, 6, 0, flags);
 }
-EI_REWRITTEN(0x005D7B50, AIBrain::AttackTarget);
 
 void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
     if (!object) return;
@@ -475,32 +460,27 @@ void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
         return;
     }
 }
-EI_REWRITTEN(0x005D7CE0, AIBrain::UseOn);
 
 void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
     owner->OrderMove(point, run, unknown, 1000000.0f);
 }
-EI_REWRITTEN(0x005D7AE0, AIBrain::Walk);
 
 void AIBrain::TurnTowards(const Vector3* direction, float time) {
     action = kActionWalk;
     owner->OrderTurn(&direction->x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
-EI_REWRITTEN(0x005D7B30, AIBrain::TurnTowards);
 
 void AIBrain::CastAt(int spell, const Vector3* point, int run) {
     if (!owner->IsScrollSource(spell)) action = kActionCast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
 }
-EI_REWRITTEN(0x005D7DA0, AIBrain::CastAt);
 
 void AIBrain::Follow(CMapObject* object) {
     action = kActionFollow;
     target.Assign(object);
 }
-EI_REWRITTEN(0x005D7E40, AIBrain::Follow);
 
 namespace {
 const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
@@ -521,4 +501,3 @@ void AIBrain::SetSeen(CMapObject* object) {
     if (!alerted && alertMode == 1) alerted = 1;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
 }
-EI_REWRITTEN(0x005D7E90, AIBrain::SetSeen);

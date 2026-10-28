@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "record_vectors.h"
@@ -117,26 +116,18 @@ ServerEntryBase::ServerEntryBase() {
     foreign_ = 0;
     state_ = kLocal;
 }
-EI_REWRITTEN_SPECIAL(0x004413E0, ServerEntryBase::ServerEntryBase);
 
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
-EI_REWRITTEN(0x00441410, ClientQueries::QueriesFind);
 
 // A buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
     return b->PositionOf(b->high);
 }
-EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
-EI_REWRITTEN(0x00441640, BufferLength);
 
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
-EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
 Query::~Query() {}
-EI_REWRITTEN_SPECIAL(0x00443790, Query::~Query);
-EI_REWRITTEN_SPECIAL(0x00443E90, Query::~Query);   // deleting
 Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
-EI_REWRITTEN_SPECIAL(0x00444270, Query::Query);
 
 // The temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
@@ -144,7 +135,6 @@ RefPtr* __fastcall HolderInit(RefPtr* self, CRefObject* raw) {
     self->ptr = raw;
     return self;
 }
-EI_REWRITTEN(0x00443E20, HolderInit);
 
 // ---- Client: sending ------------------------------------------------------------------------------
 
@@ -156,7 +146,6 @@ void ClientBase::SendPing(const NetAddress* address) {
     Put(&b, &time, 4);
     Send(address, &b);
 }
-EI_REWRITTEN(0x00441660, ClientBase::SendPing);
 
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
@@ -171,7 +160,6 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     Put(&b, data->begin, length);
     Send(address, &b);
 }
-EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
 // ---- Client: packets and the connection's loss ---------------------------------------
 
@@ -311,12 +299,6 @@ void ClientBase::RemoveClient(ClientNode* node) {
     joinState_ = kNotJoined;
 }
 
-EI_REWRITTEN(0x004418F0, ClientBase::OnUpdate);
-EI_REWRITTEN(0x00441940, ClientBase::OnAccepted);
-EI_REWRITTEN(0x00441B40, ClientBase::OnRejected);
-EI_REWRITTEN(0x00441D40, ClientBase::OnInfo);
-EI_REWRITTEN(0x004420E0, ClientBase::RemoveClient);
-
 // ---- Client: the lobby's requests ---------------------------------------------------------------
 
 // Pings go to the game port (net::g_gamePort).
@@ -341,10 +323,8 @@ void ClientBase::Refresh() {
         waiting_.Insert(waiting_.End(), alwaysAsk_);
     }
 }
-EI_REWRITTEN(0x00442180, ClientBase::Refresh);
 
 void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address; }
-EI_REWRITTEN(0x004422D0, ClientBase::SetAlwaysAsk);
 
 // Each server not yet listed is listed with an entry read from its saved reply (or an empty entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
@@ -385,7 +365,6 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         AppendServer(this, entry);
     }
 }
-EI_REWRITTEN(0x00442300, ClientBase::SetQueries);
 
 // A new query is added and pinged (3, the session time); the server is listed (an empty entry) or
 // marked as asked.
@@ -428,7 +407,6 @@ void ClientBase::Ask(const NetAddress* address) {
         entry.ptr->Release();
     }
 }
-EI_REWRITTEN(0x00442590, ClientBase::Ask);
 
 void ClientBase::Forget(const NetAddress* address) {
     QueryList& v = queries_.list;
@@ -448,7 +426,6 @@ void ClientBase::Forget(const NetAddress* address) {
         }
     }
 }
-EI_REWRITTEN(0x004427F0, ClientBase::Forget);
 
 // Listed (never checked again) unless known, and its address queued to be asked.
 void ClientBase::AddServer(ServerEntry* entry) {
@@ -461,7 +438,6 @@ void ClientBase::AddServer(ServerEntry* entry) {
     }
     waiting_.Insert(waiting_.End(), entry->address_);
 }
-EI_REWRITTEN(0x004428A0, ClientBase::AddServer);
 
 // Unless already asking that host: a new join id (rand() << 16 | GetTickCount() & 0xFFFF), the
 // first retry at once.
@@ -477,7 +453,6 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     refusal_ = 0;
     joinData_ = *data;
 }
-EI_REWRITTEN(0x00442980, ClientBase::Join);
 
 ServerEntry* ClientBase::ServerAt(int index) {
     ServerNode* sentinel = servers_.End();
@@ -489,7 +464,6 @@ ServerEntry* ClientBase::ServerAt(int index) {
     if (node == sentinel) return nullptr;
     return EntryOf(node);
 }
-EI_REWRITTEN(0x00442A40, ClientBase::ServerAt);
 
 // Counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
@@ -527,7 +501,6 @@ void ClientBase::Tick(double dt) {
     retryInterval_ = retryInterval_ + retryInterval_;
     retryTimer_ = retryInterval_;
 }
-EI_REWRITTEN(0x00442AD0, ClientBase::Tick);
 
 // ---- Server base ------------------------------------------------------------------------------------
 
@@ -564,7 +537,6 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         entry.Destroy();
     }
 }
-EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
@@ -679,12 +651,6 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     Send(from, &b);
 }
 
-EI_REWRITTEN(0x00443080, ServerBase::OnLogin);
-EI_REWRITTEN(0x00443060, ServerBase::OnGetInfo);
-EI_REWRITTEN(0x00443050, ServerBase::Admit);
-EI_REWRITTEN(0x004434F0, ServerBase::OnUpdate);
-EI_REWRITTEN(0x00443590, ServerBase::Tick);
-
 // ---- Saving the queries -----------------------------------------------------------------------
 
 void ClientQueries::Serialize(ChunkArchive* archive) {
@@ -721,6 +687,5 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
     }
     archive->Field(2, &extra, 4);
 }
-EI_REWRITTEN(0x004414E0, ClientQueries::Serialize);
 
 } // namespace net

@@ -19,8 +19,6 @@
 #include "lib/mfc_list.h"
 #include "game_lists.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
@@ -277,8 +275,6 @@ void CWorldServer::AddCounted(CEngineObject* item) {
     AddCountedTail(&counted_, item);
 }
 
-EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);
-
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
         if (CItemLink* link = item->ServerLink()) {
@@ -291,10 +287,3 @@ void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     }
     --item->count_;
 }
-EI_REWRITTEN(0x00595020, CWorldServer::UseItemUp);
-EI_REWRITTEN(0x00594F30, CWorldServer::AddCounted);
-EI_REWRITTEN(0x00594AB0, CWorldServer::CreateItemNamed);
-EI_REWRITTEN(0x00594BC0, CWorldServer::CreateSpellNamed);
-EI_REWRITTEN(0x005901E0, CWorldServer::TakeZoneQuestItems);
-EI_REWRITTEN(0x00590460, CWorldServer::RestorePlayerItems);
-EI_REWRITTEN(0x00590700, CWorldServer::Redeploy);

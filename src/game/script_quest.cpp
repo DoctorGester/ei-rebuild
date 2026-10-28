@@ -6,7 +6,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "game_arrays.h"
 
 #include <cstring>
@@ -44,15 +43,9 @@ void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float
     std::memcpy(&objective.value, &value, 4);
 }
 
-EI_REWRITTEN(0x004BAEB0, ScriptQuestObjectiveDestruct);
-EI_REWRITTEN(0x004BAA40, ScriptQuestStart);
-EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
-
 // The key, then a {key, null} pair copied from it; the pair is destroyed before the key.
 QuestRecord* QuestDatabase::FindQuest(const char* name) {
     stlp::string key(name);
     QuestIndex::Pair pair{key, nullptr};
     return questsByName.FindOrInsert(pair)->value;
 }
-EI_REWRITTEN(0x004C9C90, QuestDatabase::FindQuest);
-EI_REWRITTEN(0x0064F550, QuestDatabase::FindQuest);

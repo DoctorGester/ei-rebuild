@@ -6,7 +6,6 @@
 #include "core_refcount.h"
 
 #include "lib/crt.h"
-#include "ei/hook.h"
 
 #include <cstring>
 
@@ -46,7 +45,6 @@ int ServerSession::LeaderId() {
         if (players.At(node)->host_) return players.At(node)->id_;
     return -1;
 }
-EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
 
 // Whether a client from `from` may join. Refused when the address is banned (reason 2), when a password is
 // set and the 20 bytes at `*password` differ (reason 3; the pointer moves past them either way), or when the
@@ -79,7 +77,6 @@ void ServerSession::SetPassword(const char* text) {
     std::memset(stored, 0, kPasswordSize);
     gamecrt::strncpy(stored, text, kPasswordSize);
 }
-EI_REWRITTEN(0x0041A140, ServerSession::SetPassword);
 
 // The connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
@@ -108,7 +105,6 @@ Connection* ServerSession::FindGuestConnection(const stlp::string* name) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x0041A170, ServerSession::FindGuestConnection);
 
 // The connection of the player with serial `serial`, or null.
 Connection* ServerSession::FindConnectionBySerial(int serial) {
@@ -117,7 +113,6 @@ Connection* ServerSession::FindConnectionBySerial(int serial) {
         if (PlayerOf(bindings.At(node))->serial_ == serial) return ConnectionOf(bindings.At(node));
     return nullptr;
 }
-EI_REWRITTEN(0x0041A270, ServerSession::FindConnectionBySerial);
 
 // The player with id `id`, or null.
 PlayerMessage* ServerSession::FindPlayer(int id) {
@@ -126,7 +121,6 @@ PlayerMessage* ServerSession::FindPlayer(int id) {
         if (players.At(node)->id_ == id) return players.At(node);
     return nullptr;
 }
-EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);
 
 // A line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
@@ -135,7 +129,6 @@ void ServerSession::AnnounceToGuests(int kind, const char* text) {
         if (!player->host_) AnnounceText(kind, text, player);
     }
 }
-EI_REWRITTEN(0x0041A500, ServerSession::AnnounceToGuests);
 
 // Kicks the client on `connection` (unless it is the host's): its player is announced
 // (text 2), then the client is told to leave and removed.
@@ -155,7 +148,6 @@ void ServerSession::Kick(Connection* connection) {
     }
     DropClient(this, connection);
 }
-EI_REWRITTEN(0x0041A550, ServerSession::Kick);
 
 // Bans the client on `connection` (unless it is the host's): its player is announced
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
@@ -177,7 +169,6 @@ void ServerSession::Ban(Connection* connection) {
     banned_.Insert(banned_.End(), *address);
     DropClient(this, connection);
 }
-EI_REWRITTEN(0x0041A620, ServerSession::Ban);
 
 // A client lost and a client left: the client's player is announced (text 4 / text 1).
 void ServerSession::ReportDeparture(Connection* connection, int text) {
@@ -197,9 +188,5 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
 // Slots 11 (a client lost: text 4) and 12 (a client left: text 1).
 void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
 void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
-
-EI_REWRITTEN(0x0041A050, ServerSession::Admit);
-EI_REWRITTEN(0x0041A700, ServerSession::OnClientLost);
-EI_REWRITTEN(0x0041A770, ServerSession::OnClientLeft);
 
 } // namespace net

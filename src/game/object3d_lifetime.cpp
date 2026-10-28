@@ -8,7 +8,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -38,9 +37,6 @@ void CountedRef<T>::Assign(T* value) {
 template struct CountedRef<CLinkMesh>;
 template struct CountedRef<WoundsMaterial>;
 template struct CountedRef<CRenderPreset>;
-EI_REWRITTEN(0x00519580, CountedRef<CLinkMesh>::Assign);
-EI_REWRITTEN(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies
-EI_REWRITTEN(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {
     std::memset(&localPosition_, 0, sizeof(localPosition_));
@@ -63,7 +59,6 @@ int CObject3D::Create3D() {
     partBoxCount = 0;
     return 1;
 }
-EI_REWRITTEN(0x00515F70, CObject3D::Create3D);
 
 void CObject3D::Destroy3D() {
     figure.Assign(nullptr);
@@ -103,7 +98,6 @@ void CObject3D::Destroy3D() {
     animations = nullptr;
     flags_ = 0;
 }
-EI_REWRITTEN(0x00516080, CObject3D::Destroy3D);
 
 void CObject3D::AddEffectSource(CParticleSource* source) {
     if (effectSources.Find(source)) return;
@@ -113,7 +107,6 @@ void CObject3D::AddEffectSource(CParticleSource* source) {
         source->Attach(this);
     }
 }
-EI_REWRITTEN(0x00518A00, CObject3D::AddEffectSource);
 
 void CObject3D::RemoveEffectSource(CParticleSource* source) {
     auto* node = effectSources.Find(source);
@@ -124,4 +117,3 @@ void CObject3D::RemoveEffectSource(CParticleSource* source) {
         source->Release();
     }
 }
-EI_REWRITTEN(0x00518AE0, CObject3D::RemoveEffectSource);

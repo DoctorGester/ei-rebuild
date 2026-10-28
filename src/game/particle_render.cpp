@@ -7,7 +7,6 @@
 #include "lib/static_object.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -79,22 +78,10 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-// The list's GetNext (the list itself not read).
-EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
-// Byte-identical copies (other CTypedPtrList iterators in the world range).
-EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REWRITTEN(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REWRITTEN(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
-
 int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
     TextureHolderEnsureLoaded(holder);
     return SetTexture(stage, *holder);
 }
-EI_REWRITTEN(0x00497CE0, CSceneRenderer::BindHeldTexture);
-
-// CArray::SetSize for the 8-byte sprites: new elements are zeroed.
-EI_REWRITTEN(0x00497D50, ParticleSpriteArray::SetSize);
-EI_REWRITTEN(0x00497D30, DestroySprites);
 
 // Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
@@ -143,5 +130,3 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
     return renderer->DrawSprites(blend != 0, &Vertices(), &Sprites());
 }
-EI_REWRITTEN(0x004976B0, CParticleSource::Draw);
-EI_REWRITTEN(0x00497D10, FreeVertices);

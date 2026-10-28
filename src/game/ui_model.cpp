@@ -9,7 +9,6 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -50,14 +49,12 @@ void CUiModel::ReleaseObject() {
     if (object_) object_->Release();
     object_ = nullptr;
 }
-EI_REWRITTEN(0x005FC1D0, CUiModel::ReleaseObject);
 
 // Skill animation `animation` + 1 of the object played.
 void CUiModel::Play(int animation) {
     CObject3D* object = Figure();
     object->PlayAnimation(object->FindSkillAnimation(animation + 1), 1);
 }
-EI_REWRITTEN(0x005FC3B0, CUiModel::Play);
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void CUiModel::Stop() {
@@ -65,20 +62,17 @@ void CUiModel::Stop() {
     mfc::CString name(object->name);
     object->PlayAnimation(TheObjectManager()->FindAnimation(&name, kRestPoseKind), 1);
 }
-EI_REWRITTEN(0x005FC3D0, CUiModel::Stop);
 
 // The part named `name` shown or hidden (`show`'s low byte).
 void CUiModel::ShowPart(const char* name, int show) {
     if (CFigureMesh* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
 }
-EI_REWRITTEN(0x005FC4C0, CUiModel::ShowPart);
 
 // Every part shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
         if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
 }
-EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,
 // with flag 0x800 set during the draw.
@@ -92,7 +86,6 @@ void CUiModel::Draw(CSceneRenderer* pass) {
     Figure()->flags_ &= ~kPreviewDraw;
     pass->SetColour(saved);
 }
-EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
@@ -111,4 +104,3 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->RestartPose();
     specific->SetSkins(from, to);
 }
-EI_REWRITTEN(0x005FC1F0, CUiModel::Load);

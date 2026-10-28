@@ -7,7 +7,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/mfc.h"
 #include "lib/mfc_file.h"
@@ -89,5 +88,3 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         OpenHelp(1);
     }
 }
-
-EI_REWRITTEN(0x005F78C0, CInterface3D::OnKeyDown);

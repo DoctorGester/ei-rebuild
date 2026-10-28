@@ -9,7 +9,6 @@
 
 #include "link_figure.h"   // CLinkMesh::screenRect_
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 
 void CObject3DClientSpecific::GetScale(float* x, float* y, float* z) {
@@ -17,7 +16,6 @@ void CObject3DClientSpecific::GetScale(float* x, float* y, float* z) {
     *y = figureScale.y;
     *z = figureScale.z;
 }
-EI_REWRITTEN(0x0051AD20, CObject3DClientSpecific::GetScale);
 
 void CObject3DClientSpecific::RegisterPartMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
@@ -30,7 +28,6 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
         material = materials[materialCursor];
     }
 }
-EI_REWRITTEN(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);
 
 // --- Screen picking, part lookups, class slots, the base half's destructor -----------------
 
@@ -49,7 +46,6 @@ int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
     if (!(object->flags_ & kObjectShown)) return FALSE;
     return gameapi::PtInRect(object->DirtyRect(), AsPoint(point));
 }
-EI_REWRITTEN(0x0051C130, CObject3DClientSpecific::BoundsContainPoint);
 
 int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     CObject3D* target = object;
@@ -61,7 +57,6 @@ int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     }
     return FALSE;
 }
-EI_REWRITTEN(0x0051C160, CObject3DClientSpecific::PartsContainPoint);
 
 int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     CObject3D* target = object;
@@ -75,13 +70,10 @@ int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     }
     return FALSE;
 }
-EI_REWRITTEN(0x0051C1D0, CObject3DClientSpecific::PartRectsMeet);
 
 CFigureMesh* CObject3DClientSpecific::FindPart(const char* name) { return object->FindPart(name); }
-EI_REWRITTEN(0x0051B2E0, CObject3DClientSpecific::FindPart);
 
 CFigureMesh* CObject3DClientSpecific::FindPartOfType(int type) { return object->FindPartOfType(type); }
-EI_REWRITTEN(0x0051B2D0, CObject3DClientSpecific::FindPartOfType);
 
 CFigureMesh* CObject3D::FindPartOfType(int type) {
     for (int i = 0; i < parts.size; ++i)
@@ -90,18 +82,13 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
         if (pendingParts.data[i]->type_ == type) return pendingParts.data[i];
     return nullptr;
 }
-EI_REWRITTEN(0x00516920, CObject3D::FindPartOfType);
 
 // Slots 11 / 12: the class name and id 0x37.
 const char* CObject3DClientSpecific::GetClassName() { return ClientClassName(); }
-EI_REWRITTEN(0x0051AD50, CObject3DClientSpecific::GetClassName);
 int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
-EI_REWRITTEN(0x0051AD60, CObject3DClientSpecific::GetClassId);
 
 // The base half's destructor (deleting form): the object forgotten.
 CObject3DSpecific::~CObject3DSpecific() { object = nullptr; }
-EI_REWRITTEN_SPECIAL(0x0051AD00, CObject3DSpecific::~CObject3DSpecific);
-EI_REWRITTEN_SPECIAL(0x0051ACE0, CObject3DSpecific::~CObject3DSpecific);
 
 namespace {
 constexpr float kNoScale = 1.0f;
@@ -112,4 +99,3 @@ void CObject3DSpecific::GetScale(float* x, float* y, float* z) {
     *y = kNoScale;
     *z = kNoScale;
 }
-EI_REWRITTEN(0x0051AC30, CObject3DSpecific::GetScale);

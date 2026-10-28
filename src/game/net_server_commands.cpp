@@ -4,7 +4,6 @@
 #include "net_connection.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "world.h"
 #include "game_strings.h"
@@ -118,9 +117,5 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         return;
     }
 }
-
-EI_REWRITTEN(0x00419F90, ServerSession::IsHostConnection);
-EI_REWRITTEN(0x0041B690, ServerOnObjectAdded);
-EI_REWRITTEN(0x0041B2A0, ServerOnCommand);
 
 } // namespace net

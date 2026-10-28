@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -62,7 +61,6 @@ PartyUnitRecord* PartyUnitRecord::Construct() {
     fightAtWill = 1;
     return this;
 }
-EI_REWRITTEN(0x0065F5F0, PartyUnitRecord::Construct);
 
 void PartyUnitRecord::Destruct() {
     ClearItems();
@@ -74,7 +72,6 @@ void PartyUnitRecord::Destruct() {
     FreeStorage(weapons);
     for (int i = 6; i >= 0; --i) std::destroy_at(&texts[i]);
 }
-EI_REWRITTEN(0x0065F740, PartyUnitRecord::Destruct);
 
 void PartyUnitRecord::ClearItems() {
     ReleaseAll(weapons);
@@ -86,12 +83,7 @@ void PartyUnitRecord::ClearItems() {
     armor.SetSize(0, -1);
     spells.SetSize(0, -1);
 }
-EI_REWRITTEN(0x0065F860, PartyUnitRecord::ClearItems);
 
-EI_REWRITTEN(0x00663960, AlignedPtrArray::SetSize);
-EI_REWRITTEN(0x00663AD0, AlignedPtrArray::SetSize);
-EI_REWRITTEN(0x00663C00, AlignedPtrArray::SetSize);
-EI_REWRITTEN(0x00663D30, AlignedPtrArray::SetSize);
 // --- The record array ---------------------------------------------------------------------------
 
 void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
@@ -99,12 +91,10 @@ void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
     for (PartyUnitRecord* record = records; count != 0; --count, ++record)
         if (record != nullptr) record->Construct();
 }
-EI_REWRITTEN(0x00664880, ConstructPartyUnitRecords);
 
 void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
     for (; count != 0; --count, ++records) records->Destruct();
 }
-EI_REWRITTEN(0x00664850, DestructPartyUnitRecords);
 
 void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) { DestructPartyUnitRecords(records, count); }
 
@@ -139,19 +129,12 @@ void PartyMemberArray::Destruct() {
     vtable = Vtable();
     FreeData();
 }
-EI_REWRITTEN(0x00664160, PartyMemberArray::Destruct);
 
 PartyMemberArray* PartyMemberArray::DeletingDestruct(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x00664470, PartyMemberArray::DeletingDestruct);
-
-EI_REWRITTEN(0x00663FA0, PartyMemberArray::SetSize);
-// CArray<PartyUnitRecord>::Serialize, in the array's table (PartyMembers::Vtable()); no code calls it (the
-// parties go through CStream, party_save.cpp).
-EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize<mfc::impl::CArchive>);
 
 // --- The managers and constructors a party makes ------------------------------------------------
 
@@ -161,14 +144,11 @@ CSpellConstructor::CSpellConstructor() {
     // (The game then releases +0x20, which it has just cleared.)
     manager_ = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x00683FF0, CSpellConstructor::CSpellConstructor);
 
 CSpellManager::CSpellManager() {
     sequences_.InitBuckets(100);
     maxSequenceKey_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00688840, CSpellManager::CSpellManager);
-
 
 namespace {
 
@@ -205,7 +185,6 @@ CParty::CParty() {
     itemConstructor_ = nullptr;
     spellConstructor_ = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x00661050, CParty::CParty);
 
 CParty::~CParty() {
     Clear(1, 1);
@@ -218,13 +197,9 @@ CParty::~CParty() {
         gamecrt::operator_delete(members_.data);
     }
 }
-EI_REWRITTEN_SPECIAL(0x00661190, CParty::~CParty);
-EI_REWRITTEN_SPECIAL(0x006611D0, CParty::~CParty);   // the destructor called in place
 
 const char* CParty::GetClassName() { return "CParty"; }
 int CParty::GetClassId() { return 9; }
-EI_REWRITTEN(0x0065F560, CParty::GetClassName);
-EI_REWRITTEN(0x0065F570, CParty::GetClassId);
 
 CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }
 CSpellConstructor* CParty::SpellConstructor() { return spellConstructor_; }
@@ -251,7 +226,6 @@ int CParty::Create() {
     Clear(1, 0);
     return 1;
 }
-EI_REWRITTEN(0x006614F0, CParty::Create);
 
 void CParty::Destroy() {
     members_.SetSize(0, -1);
@@ -262,7 +236,6 @@ void CParty::Destroy() {
     Drop(itemManager_);
     Drop(spellManager_);
 }
-EI_REWRITTEN(0x00661640, CParty::Destroy);
 
 void CParty::Clear(int clearVariables, int keepSpells) {
     ReleaseItems(items_);
@@ -278,4 +251,3 @@ void CParty::Clear(int clearVariables, int keepSpells) {
     entrance_ = 0;
     money_ = 0;
 }
-EI_REWRITTEN(0x00661700, CParty::Clear);

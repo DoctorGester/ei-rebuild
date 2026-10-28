@@ -2,7 +2,6 @@
 // vector of the records and their index by name. Its destructor is defined here. See docs/notes/app.md.
 #include "lever.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -13,7 +12,6 @@ LeverRecordTable::~LeverRecordTable() {
     records.clear();
     records.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x00463120, LeverRecordTable::~LeverRecordTable);
 
 // The table, empty at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
@@ -26,6 +24,3 @@ void __cdecl ConstructLeverTable() {
     g_leverTable.Construct();
     libcrt::AtExit(DestroyLeverTable);
 }
-
-EI_REWRITTEN(0x004630F0, ConstructLeverTable);
-EI_REWRITTEN(0x00463110, DestroyLeverTable);

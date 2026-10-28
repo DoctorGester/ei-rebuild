@@ -10,7 +10,6 @@
 #include "script.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
 
@@ -123,7 +122,6 @@ void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListCla
 // --- Shared slots --------------------------------------------------------------------------------
 
 int AIMode::Evaluate(AIBrain*) { return kPriority; }
-EI_REWRITTEN(0x005D0A80, AIMode::Evaluate);
 
 void AIMode::Enter(AIBrain* brain) {
     brain->target.Reset();
@@ -133,13 +131,11 @@ void AIMode::Enter(AIBrain* brain) {
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
 }
-EI_REWRITTEN(0x005D0AF0, AIMode::Enter);
 
 void AIActionMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
-EI_REWRITTEN(0x005D0A50, AIActionMode::Enter);
 
 // --- Guard ---------------------------------------------------------------------------------------
 
@@ -155,7 +151,6 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     else
         std::memcpy(&wander, &GameLogicSettings().guardStayTime, 4);
 }
-EI_REWRITTEN(0x005D0B70, GuardMode::Set);
 
 void GuardMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -200,7 +195,6 @@ void GuardMode::Execute(AIBrain* brain) {
     StartMove(brain, &order);
     DestroyLooks(&order);
 }
-EI_REWRITTEN(0x005D0BE0, GuardMode::Execute);
 
 void GuardMode::Load(CStream* stream) {
     ReadField(stream, &radius);
@@ -208,7 +202,6 @@ void GuardMode::Load(CStream* stream) {
     ReadField(stream, &point);
     if (stream->version_ >= 0x66) ReadField(stream, &failures);
 }
-EI_REWRITTEN(0x005D0EB0, GuardMode::Load);
 
 void GuardMode::Save(CStream* stream) {
     WriteCopy(stream, radius);
@@ -216,7 +209,6 @@ void GuardMode::Save(CStream* stream) {
     stream->Write(&point, sizeof(Vector3));
     WriteCopy(stream, failures);
 }
-EI_REWRITTEN(0x005D0F00, GuardMode::Save);
 
 // --- Patrol --------------------------------------------------------------------------------------
 
@@ -228,7 +220,6 @@ int PatrolMode::Evaluate(AIBrain* brain) {
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
 }
-EI_REWRITTEN(0x005D16B0, PatrolMode::Evaluate);
 
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -253,13 +244,11 @@ void PatrolMode::Execute(AIBrain* brain) {
     SetPositions(brain, &order.point, kNearX, kNearY);
     DestroyLooks(&order);
 }
-EI_REWRITTEN(0x005D1700, PatrolMode::Execute);
 
 PatrolPoint* PatrolMode::LastPoint() {
     if (points.size == 0) return nullptr;
     return points.data + (points.size - 1);
 }
-EI_REWRITTEN(0x005D1690, PatrolMode::LastPoint);
 
 void PatrolMode::Load(CStream* stream) {
     int count;
@@ -281,7 +270,6 @@ void PatrolMode::Load(CStream* stream) {
     }
     ReadField(stream, &current);
 }
-EI_REWRITTEN(0x005D1930, PatrolMode::Load);
 
 void PatrolMode::Save(CStream* stream) {
     WriteCopy(stream, points.size);
@@ -300,12 +288,10 @@ void PatrolMode::Save(CStream* stream) {
     }
     WriteCopy(stream, current);
 }
-EI_REWRITTEN(0x005D1A40, PatrolMode::Save);
 
 // --- Sentry --------------------------------------------------------------------------------------
 
 void SentryMode::Set(const Vector3* p) { std::memcpy(&point, p, sizeof(Vector3)); }
-EI_REWRITTEN(0x005D1B50, SentryMode::Set);
 
 void SentryMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -324,13 +310,10 @@ void SentryMode::Execute(AIBrain* brain) {
     SetPositions(brain, &order.point, kNearX, kNearY);
     DestroyLooks(&order);
 }
-EI_REWRITTEN(0x005D1B70, SentryMode::Execute);
 
 void SentryMode::Load(CStream* stream) { stream->Read(&point, sizeof(Vector3)); }
-EI_REWRITTEN(0x005D1DA0, SentryMode::Load);
 
 void SentryMode::Save(CStream* stream) { stream->Write(&point, sizeof(Vector3)); }
-EI_REWRITTEN(0x005D1DC0, SentryMode::Save);
 
 // --- Follow --------------------------------------------------------------------------------------
 
@@ -345,18 +328,14 @@ void FollowMode::Execute(AIBrain* brain) {
     ++who->refCount_;
     brain->target = who;
 }
-EI_REWRITTEN(0x005D1E10, FollowMode::Execute);
 
 void FollowMode::OnObjectDeleted(CEngineObject* object) {
     if (leader == object && leader) leader.Reset();
 }
-EI_REWRITTEN(0x005D1DE0, FollowMode::OnObjectDeleted);
 
 void FollowMode::Load(CStream* stream) { leader.Load(stream, TheServerWorld()); }
-EI_REWRITTEN(0x005D1E60, FollowMode::Load);
 
 void FollowMode::Save(CStream* stream) { leader.Save(stream); }
-EI_REWRITTEN(0x005D1E80, FollowMode::Save);
 
 // --- Suspection ----------------------------------------------------------------------------------
 
@@ -386,7 +365,6 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
     point.z = 0.0f;
     return level;
 }
-EI_REWRITTEN(0x005D1E90, SuspectionMode::Evaluate);
 
 void SuspectionMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) {
@@ -430,7 +408,6 @@ void SuspectionMode::Execute(AIBrain* brain) {
     level = brain->memory.noticedLevel;
     DestroyLooks(&order);
 }
-EI_REWRITTEN(0x005D1F80, SuspectionMode::Execute);
 
 void SuspectionMode::Enter(AIBrain* brain) {
     brain->owner->SetBusy(1);
@@ -445,13 +422,11 @@ void SuspectionMode::Enter(AIBrain* brain) {
     brain->owner->voice.Raise(5);
     DestroyLooks(&order);
 }
-EI_REWRITTEN(0x005D21A0, SuspectionMode::Enter);
 
 void SuspectionMode::Leave(AIBrain* brain) {
     brain->owner->SetBusy(0);
     brain->owner->voice.Raise(3);
 }
-EI_REWRITTEN(0x005D2310, SuspectionMode::Leave);
 
 int AggressionMode::Evaluate(AIBrain* brain) {
     chosen.object = nullptr;
@@ -503,7 +478,6 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     return chosen.object ? 10000 : kNoPriority;
 }
-EI_REWRITTEN(0x005D2390, AggressionMode::Evaluate);
 
 void AggressionMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
@@ -533,19 +507,16 @@ void AggressionMode::Execute(AIBrain* brain) {
     brain->actionTime = part;
     brain->owner->OrderCast(part, object, 0);
 }
-EI_REWRITTEN(0x005D2580, AggressionMode::Execute);
 
 void SuspectionMode::Load(CStream* stream) {
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&level, 4);
 }
-EI_REWRITTEN(0x005D2330, SuspectionMode::Load);
 
 void SuspectionMode::Save(CStream* stream) {
     stream->Write(&point, sizeof(Vector3));
     WriteCopy(stream, level);
 }
-EI_REWRITTEN(0x005D2360, SuspectionMode::Save);
 
 // --- Aggression ----------------------------------------------------------------------------------
 
@@ -555,7 +526,6 @@ void AggressionMode::Enter(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
     brain->owner->voice.Raise(6);
 }
-EI_REWRITTEN(0x005D26D0, AggressionMode::Enter);
 
 void AggressionMode::Leave(AIBrain* brain) {
     if (!enemy || IsGone(enemy) != 0) {
@@ -566,19 +536,16 @@ void AggressionMode::Leave(AIBrain* brain) {
     brain->owner->SetBusy(0);
     brain->owner->voice.Raise(4);
 }
-EI_REWRITTEN(0x005D2710, AggressionMode::Leave);
 
 void AggressionMode::Load(CStream* stream) {
     enemy.Load(stream, TheServerWorld());
     stream->Read(&fixed, 1);
 }
-EI_REWRITTEN(0x005D2770, AggressionMode::Load);
 
 void AggressionMode::Save(CStream* stream) {
     enemy.Save(stream);
     stream->Write(&fixed, 1);
 }
-EI_REWRITTEN(0x005D27A0, AggressionMode::Save);
 
 // --- CorpseWatcher -------------------------------------------------------------------------------
 
@@ -591,7 +558,6 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     }
     return kNoPriority;
 }
-EI_REWRITTEN(0x005D27D0, CorpseWatcherMode::Evaluate);
 
 // --- Fear ----------------------------------------------------------------------------------------
 
@@ -600,10 +566,8 @@ void FearMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
-EI_REWRITTEN(0x005D3650, FearMode::Enter);
 
 void FearMode::Leave(AIBrain* brain) { brain->owner->SetBusy(0); }
-EI_REWRITTEN(0x005D3680, FearMode::Leave);
 
 void FearMode::Load(CStream* stream) {
     ReadField(stream, &distance);
@@ -614,7 +578,6 @@ void FearMode::Load(CStream* stream) {
         if (stream->version_ >= 0x70) ReadField(stream, &fleePoint);
     }
 }
-EI_REWRITTEN(0x005D3690, FearMode::Load);
 
 void FearMode::Save(CStream* stream) {
     WriteCopy(stream, distance);
@@ -623,7 +586,6 @@ void FearMode::Save(CStream* stream) {
     WriteCopy(stream, flag);
     stream->Write(&fleePoint, sizeof(Vector3));
 }
-EI_REWRITTEN(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
@@ -705,7 +667,6 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
-EI_REWRITTEN(0x005D4A90, PlayerMode::Execute);
 
 namespace {
 bool DirectControl(const AIBrain* brain) {
@@ -738,7 +699,6 @@ void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(&point, run, unknown, kMoveTime);
 }
-EI_REWRITTEN(0x005D39E0, PlayerMode::CommandWalk);
 
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
@@ -753,7 +713,6 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(&point, run, unknown, kMoveTime);
 }
-EI_REWRITTEN(0x005D3AE0, PlayerMode::CommandGoTo);
 
 void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown) {
     if (object == brain->owner->unit) return;
@@ -776,13 +735,11 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
     }
     brain->owner->OrderAttack(brain->target, how, unknown, 2);
 }
-EI_REWRITTEN(0x005D3C30, PlayerMode::CommandAttack);
 
 void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b) {
     state = kStateFollow;
     brain->UseOn(object, kind, a, b);
 }
-EI_REWRITTEN(0x005D3CF0, PlayerMode::CommandUse);
 
 void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object, int) {
     std::uint8_t running = run;
@@ -797,7 +754,6 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object, int)
     brain->actionTime = spell;
     brain->owner->OrderCast(spell, object, running);
 }
-EI_REWRITTEN(0x005D3D20, PlayerMode::CommandCast);
 
 void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int) {
     std::uint8_t running = run;
@@ -806,7 +762,6 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
     brain->actionTime = spell;
     brain->owner->OrderCastAt(spell, at, running);
 }
-EI_REWRITTEN(0x005D3D90, PlayerMode::CommandCastAt);
 
 namespace {
 PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
@@ -848,13 +803,11 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
         leader = newLeader;
     }
 }
-EI_REWRITTEN(0x005D3DE0, PlayerMode::SetLeader);
 
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object && target) target.Reset();
     if (leader == object && leader) ReleaseRef(leader);
 }
-EI_REWRITTEN(0x005D37A0, PlayerMode::OnObjectDeleted);
 
 void PlayerMode::Load(CStream* stream) {
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
@@ -873,7 +826,6 @@ void PlayerMode::Load(CStream* stream) {
         group.DestructBody();
     }
 }
-EI_REWRITTEN(0x005D4CD0, PlayerMode::Load);
 
 void PlayerMode::Save(CStream* stream) {
     target.Save(stream);
@@ -881,6 +833,3 @@ void PlayerMode::Save(CStream* stream) {
     stream->Write(&point, sizeof(Vector3));
     stream->Write(&state, 4);
 }
-EI_REWRITTEN(0x005D4DB0, PlayerMode::Save);
-
-EI_REWRITTEN(0x005D2570, DestroyCandidates);

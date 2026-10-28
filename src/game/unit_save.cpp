@@ -9,7 +9,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -193,7 +192,6 @@ void CUnit::LoadUnit(CStream* stream) {
     }
     prototype23C = PrototypeIndexOf(second);
 }
-EI_REWRITTEN(0x00531A80, CUnit::LoadUnit);
 
 void CUnit::SaveUnit(CStream* stream) {
     SaveMapObject(stream);
@@ -239,4 +237,3 @@ void CUnit::SaveUnit(CStream* stream) {
     else prototypeName = "";
     WriteString(stream, prototypeName);
 }
-EI_REWRITTEN(0x005321C0, CUnit::SaveUnit);

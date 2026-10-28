@@ -13,7 +13,6 @@
 #include "record_lifetime.h"
 #include "record_vectors.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 
@@ -37,7 +36,6 @@ void CMapDatabase::Destruct() {
     allods.vtable = mfc::impl::AllodArrayClass::Vtable();
     allods.FreeData();
 }
-EI_REWRITTEN(0x0045E6F0, CMapDatabase::Destruct);
 
 namespace itemdb {
 
@@ -49,20 +47,16 @@ void SpellDatabase::Destruct() {
 
 } // namespace itemdb
 
-EI_REWRITTEN(0x00684390, itemdb::SpellDatabase::Destruct);
-
 void QuestDatabase::Destruct() {
     DestroyTable<recordvec::BriefingVector>(briefings.records, briefings.index);
     DestroyTable<recordvec::QuestVector>(quests, questsByName);
 }
-EI_REWRITTEN(0x006ADF40, QuestDatabase::Destruct);
 
 void PrintsDatabase::Destruct() {
     DestroyTable<recordvec::PrintVector>(scorch, scorchByName);
     DestroyTable<recordvec::Print2Vector>(footprints, footprintsByName);
     DestroyTable<recordvec::PrintVector>(blood, bloodByName);
 }
-EI_REWRITTEN(0x006D00E0, PrintsDatabase::Destruct);
 
 namespace acks {
 
@@ -73,5 +67,3 @@ void AckDatabase::Destruct() {
 }
 
 } // namespace acks
-
-EI_REWRITTEN(0x006D70B0, acks::AckDatabase::Destruct);

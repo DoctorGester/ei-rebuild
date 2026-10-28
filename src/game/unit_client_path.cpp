@@ -10,7 +10,6 @@
 #include "unit_client_models.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
@@ -117,7 +116,5 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
 }
 
 void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
-EI_REWRITTEN(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
 void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
-EI_REWRITTEN(0x00535B20, CUnitClientSpecific::MotionChanged);

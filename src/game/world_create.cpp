@@ -17,8 +17,6 @@
 #include "unit_create.h"
 #include "random.h"
 
-#include "ei/hook.h"
-
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -77,7 +75,6 @@ int CWorld::Create() {
     countdowns_.RemoveAll();
     return 1;
 }
-EI_REWRITTEN(0x0055EE40, CWorld::Create);
 
 CWorld::CWorld() {
     ClearFields();
@@ -97,17 +94,13 @@ CWorld::CWorld() {
     timeBase_ = 0.0f;
     secondsPerTick_ = 0.0f;
 }
-EI_REWRITTEN_SPECIAL(0x0055EAB0, CWorld::CWorld);
 
 int CWorld::RunTick() { return 1; }
-EI_REWRITTEN(0x0055FAD0, CWorld::RunTick);
 
 CUnit* CWorld::FindUnit(int id) {
     return UnitOrNull(ObjectWithId(id));
 }
-EI_REWRITTEN(0x0055FB00, CWorld::FindUnit);
 
 CMapObject* CWorld::ObjectWithId(int id) {
     return MapObjectManager()->FindMapObject(static_cast<unsigned>(id));
 }
-EI_REWRITTEN(0x0055FAE0, CWorld::ObjectWithId);

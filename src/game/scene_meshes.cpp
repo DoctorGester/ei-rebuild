@@ -9,7 +9,6 @@
 #include "../lib/containers.h"
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
@@ -201,7 +200,6 @@ void __fastcall IndexMeshCorners(MeshArray* meshes) {
     records.vtable = mfc::impl::MeshCornerArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x0044CFF0, IndexMeshCorners);
 
 // The two qsort comparators above (kCompareRecords, kComparePairs). 1, -1 or 0 by the first field that
 // differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
@@ -225,7 +223,5 @@ int __cdecl CompareCornerRecords(const void* a, const void* b) {
 int __cdecl CompareWordPairs(const void* a, const void* b) {
     return CompareFields(static_cast<const std::uint16_t*>(a), static_cast<const std::uint16_t*>(b), 2);
 }
-EI_REWRITTEN(0x0044CF00, CompareCornerRecords);
-EI_REWRITTEN(0x0044CF60, CompareWordPairs);
 
 } // namespace scene

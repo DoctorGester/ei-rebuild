@@ -16,7 +16,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/mfc_slots.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cmath>
@@ -185,15 +184,3 @@ void CEffectTornado::Save(CStream* s) {
     copy = launchTick_;
     s->Write(&copy, 4);
 }
-
-EI_REWRITTEN_SPECIAL(0x0067D670, CEffectTornado::CEffectTornado);
-EI_REWRITTEN_SPECIAL(0x0067D800, CEffectTornado::~CEffectTornado);
-EI_REWRITTEN_SPECIAL(0x0067D7E0, CEffectTornado::~CEffectTornado);
-EI_REWRITTEN(0x0067D970, CEffectTornado::Reset);
-EI_REWRITTEN(0x0067DA50, CEffectTornado::Launch);
-EI_REWRITTEN(0x0067DBD0, CEffectTornado::RunTick);
-EI_REWRITTEN(0x0067DDD0, CEffectTornado::Unpack);
-EI_REWRITTEN(0x0067DEB0, CEffectTornado::Pack);
-EI_REWRITTEN(0x0067DF10, CEffectTornado::Start);
-EI_REWRITTEN(0x0067E020, CEffectTornado::Load);
-EI_REWRITTEN(0x0067E070, CEffectTornado::Save);

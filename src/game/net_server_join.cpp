@@ -5,7 +5,6 @@
 #include "net_connection.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ui.h"
 #include "world_data.h"
@@ -84,7 +83,6 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     mfc::CString* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(formatted->GetString(), nullptr);
 }
-EI_REWRITTEN(0x0041ADB0, ServerOnJoin);
 
 namespace {
 // Every node of `list` holding `value` erased (the next node taken first).
@@ -110,7 +108,6 @@ void __fastcall ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
     PlayerMessage* player = PlayerOf(message);
     ++player->version_;
 }
-EI_REWRITTEN(0x0041AD80, ServerOnPlayerChanged);
 
 // Channel 2: the client left. With a live binding: its live player is removed from the
 // players list, and when it was the host the first remaining player becomes the host (its version
@@ -134,6 +131,5 @@ void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     }
     EraseValue(self->bindings_, message->binding_.ptr);
 }
-EI_REWRITTEN(0x0041B0C0, ServerOnPlayerGone);
 
 } // namespace net

@@ -4,8 +4,6 @@
 #include "registry.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
-
 #include "lib/static_object.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -70,5 +68,3 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
     reg->Destroy();
     return 1;
 }
-
-EI_REWRITTEN(0x005ACE80, CFigureManager::LoadMenuRects);

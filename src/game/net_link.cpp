@@ -8,7 +8,6 @@
 #include "record_lists.h"
 #include "world.h"   // CWorldHandle (CreatePair)
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -61,27 +60,20 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 // FileStream
 
 FileStream::FileStream() { new (file_.Get()) mfc::CFile(); }
-EI_REWRITTEN_SPECIAL(0x00478470, FileStream::FileStream);
 
 FileStream::FileStream(const FileStream&) : FileStream() {}
-EI_REWRITTEN_SPECIAL(0x00479B10, FileStream::FileStream);
 
 FileStream::~FileStream() { file_->~CFile(); }
-EI_REWRITTEN_SPECIAL(0x00477FB0, FileStream::~FileStream);
-EI_REWRITTEN_SPECIAL(0x00477F90, FileStream::~FileStream);
 
 std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
     std::uint32_t read = File()->Read(buffer, size);
     ok_ = static_cast<std::uint8_t>(ok_ & (read == size ? 1 : 0));
     return read;
 }
-EI_REWRITTEN(0x00477F00, FileStream::Read);
 
 void FileStream::Write(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }
-EI_REWRITTEN(0x00477F30, FileStream::Write);
 
 long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }
-EI_REWRITTEN(0x00477F50, FileStream::SeekFrom);
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
 std::uint32_t FileStream::Size() { return File()->GetLength(); }
@@ -91,35 +83,25 @@ long FileStream::Restart() {
     ok_ = 1;
     return File()->Seek(0L, 0u);
 }
-EI_REWRITTEN(0x00477EE0, FileStream::Restart);
 void FileStream::Clear() { Restart(); }
-
-EI_REWRITTEN(0x00477F70, FileStream::Size);
-EI_REWRITTEN(0x00477F80, FileStream::Position);
 
 // NetLink
 
 NetLink::NetLink() { recording_ = 0; }
-EI_REWRITTEN_SPECIAL(0x00477E60, NetLink::NetLink);
 
 NetLink::NetLink(const NetLink& source)
     : CRefObject(), recording_(source.recording_), skipNext_(source.skipNext_), record_(source.record_) {}
 
 NetLink::~NetLink() {}
-EI_REWRITTEN_SPECIAL(0x00478050, NetLink::~NetLink);
-EI_REWRITTEN_SPECIAL(0x00478030, NetLink::~NetLink);
 
 int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }
-EI_REWRITTEN(0x00478000, NetLink::IncomingCount);
 
 bool NetLink::Send(CStream*) { return true; }
-EI_REWRITTEN(0x00478100, NetLink::Send);
 
 bool NetLink::Receive(CMemoryStream* stream) {
     Record(stream);
     return true;
 }
-EI_REWRITTEN(0x00478110, NetLink::Receive);
 
 void NetLink::Record(CStream* stream) {
     if (!recording_) return;
@@ -136,13 +118,11 @@ void NetLink::OpenRecording(const char* path) {
     skipNext_ = 1;
     recording_ = 1;
 }
-EI_REWRITTEN(0x004780B0, NetLink::OpenRecording);
 
 void NetLink::CloseRecording() {
     record_.Close();
     recording_ = 0;
 }
-EI_REWRITTEN(0x004780E0, NetLink::CloseRecording);
 
 // LoopbackLink
 
@@ -193,14 +173,11 @@ LoopbackLink* __stdcall LoopbackLink::CreatePair(CWorldHandle* player) {
     AssignPeer(&second->peer_, first);
     return second;
 }
-EI_REWRITTEN(0x004782E0, LoopbackLink::CreatePair);
 
 LoopbackLink::~LoopbackLink() {
     ReleaseCounted(peer_);
     DestroyQueue();
 }
-EI_REWRITTEN_SPECIAL(0x004787A0, LoopbackLink::~LoopbackLink);
-EI_REWRITTEN_SPECIAL(0x00478780, LoopbackLink::~LoopbackLink);
 
 // Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
 // and +9 kept): no peer, an empty queue, a closed file, not recording.
@@ -212,30 +189,24 @@ int LoopbackLink::OnShutdown() {
     new (this) LoopbackLink();
     return 0;
 }
-EI_REWRITTEN(0x00478610, LoopbackLink::OnShutdown);
 
 // Null when the allocation fails.
 LoopbackLink* LoopbackLink::Clone() { return net::NewCounted<LoopbackLink>(*this); }
-EI_REWRITTEN(0x004784D0, LoopbackLink::Clone);
 
 bool LoopbackLink::Connected() { return IsLive(peer_); }
-EI_REWRITTEN(0x00478710, LoopbackLink::Connected);
 
 bool LoopbackLink::Alive() {
     if (!queue_.Empty()) return true;
     return IsLive(peer_);
 }
-EI_REWRITTEN(0x00478730, LoopbackLink::Alive);
 
 bool LoopbackLink::HasIncoming() { return !queue_.Empty(); }
-EI_REWRITTEN(0x00478750, LoopbackLink::HasIncoming);
 
 int LoopbackLink::IncomingCount() {
     int count = 0;
     for (QueueNode* node = queue_.First(); node != queue_.End(); node = node->next) ++count;
     return count;
 }
-EI_REWRITTEN(0x00478760, LoopbackLink::IncomingCount);
 
 // A new empty stream at the end of the peer's queue takes a copy of `stream` (its slot 7). False
 // without a live peer.
@@ -247,7 +218,6 @@ bool LoopbackLink::Send(CStream* stream) {
     last->CopyFrom(stream);
     return true;
 }
-EI_REWRITTEN(0x00478220, LoopbackLink::Send);
 
 // The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
 // does. False when nothing is queued.
@@ -258,7 +228,6 @@ bool LoopbackLink::Receive(CMemoryStream* stream) {
     Record(stream);
     return true;
 }
-EI_REWRITTEN(0x00478270, LoopbackLink::Receive);
 
 // Lets go of the peer, then has the peer let go of this one (a reference held across its slot 11).
 void LoopbackLink::Disconnect() {
@@ -270,7 +239,6 @@ void LoopbackLink::Disconnect() {
     if (peer) peer->Disconnect();
     ReleaseCounted(peer);
 }
-EI_REWRITTEN(0x00478140, LoopbackLink::Disconnect);
 
 // ReplayLink
 
@@ -287,8 +255,6 @@ FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
 }
 
 FramedLink::~FramedLink() {}
-EI_REWRITTEN_SPECIAL(0x00479B90, FramedLink::~FramedLink);
-EI_REWRITTEN_SPECIAL(0x00479B70, FramedLink::~FramedLink);
 
 void FramedLink::Append(const void* data, std::uint32_t size) {
     CStream* inbox = &inbox_;
@@ -296,7 +262,6 @@ void FramedLink::Append(const void* data, std::uint32_t size) {
     inbox->Seek(end);
     inbox->Write(data, size);
 }
-EI_REWRITTEN(0x0047B980, FramedLink::Append);
 
 // The inbox is emptied only when it held anything.
 void FramedLink::TakeAll(CStream* out) {
@@ -308,7 +273,6 @@ void FramedLink::TakeAll(CStream* out) {
     out->Write(data, size);
     inbox->Clear();
 }
-EI_REWRITTEN(0x0047B9B0, FramedLink::TakeAll);
 
 // Whether the inbox holds a whole message (a length and that many bytes).
 bool FramedLink::HasIncoming() {
@@ -320,7 +284,6 @@ bool FramedLink::HasIncoming() {
     std::uint32_t size = inbox->Size();
     return size >= length + 4;
 }
-EI_REWRITTEN(0x0047B9F0, FramedLink::HasIncoming);
 
 // The number of whole messages in the inbox, counted from the start; stops at a length that runs
 // past the end or is not positive.
@@ -342,7 +305,6 @@ int FramedLink::IncomingCount() {
     }
     return count;
 }
-EI_REWRITTEN(0x0047BA40, FramedLink::IncomingCount);
 
 // The message framed (its length, then its bytes, read from the start) in a stack buffer and handed to slot
 // 13; when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
@@ -359,7 +321,6 @@ bool FramedLink::Send(CStream* stream) {
     Disconnect();
     return false;
 }
-EI_REWRITTEN(0x0047BAD0, FramedLink::Send);
 
 // The first message's bytes into `stream` (a memory stream, resized to them), the rest of the inbox
 // moved to its start. False when no whole message is there.
@@ -377,12 +338,10 @@ bool FramedLink::Receive(CMemoryStream* stream) {
     inbox_.Resize(rest);
     return true;
 }
-EI_REWRITTEN(0x0047BB70, FramedLink::Receive);
 
 // DriverLink
 
 DriverLink::DriverLink() { player_.ptr = nullptr; }
-EI_REWRITTEN_SPECIAL(0x0047A030, DriverLink::DriverLink);
 
 DriverLink::DriverLink(const DriverLink& other) : FramedLink(other) {
     player_.ptr = other.player_.ptr;
@@ -406,14 +365,11 @@ void DriverLink::Disconnect() {
     player_.ptr = nullptr;
     ReleaseCounted(player);
 }
-EI_REWRITTEN(0x00479810, DriverLink::Disconnect);
 
 DriverLink::~DriverLink() {
     DriverLink::Disconnect();
     ReleaseCounted(player_.ptr);
 }
-EI_REWRITTEN_SPECIAL(0x00479D40, DriverLink::~DriverLink);
-EI_REWRITTEN_SPECIAL(0x00479D20, DriverLink::~DriverLink);
 
 // Destroyed (disconnecting) and built again in place with the constructor's code: the
 // reference count and +9 kept, no player, an empty inbox, a closed file.
@@ -421,14 +377,11 @@ int DriverLink::OnShutdown() {
     net::Rebuild(this);
     return 0;
 }
-EI_REWRITTEN(0x00479C10, DriverLink::OnShutdown);
 
 // Null when the allocation fails.
 DriverLink* DriverLink::Clone() { return net::NewCounted<DriverLink>(*this); }
-EI_REWRITTEN(0x00479A30, DriverLink::Clone);
 
 bool DriverLink::Connected() { return IsLive(player_.Get()); }
-EI_REWRITTEN(0x00479780, DriverLink::Connected);
 
 // The player's incoming reliable bytes appended to the inbox, and that stream emptied (flags 6).
 void DriverLink::Pump() {
@@ -441,7 +394,6 @@ void DriverLink::Pump() {
     in->high = in->begin;
     in->cur = in->begin;
 }
-EI_REWRITTEN(0x004797A0, DriverLink::Pump);
 
 // `size` bytes written at the end of the player's outgoing reliable stream (when the player is
 // alive); whether the player is (still) alive.
@@ -453,7 +405,5 @@ bool DriverLink::SendBytes(const void* data, std::uint32_t size) {
     }
     return IsLive(player_.Get());
 }
-EI_REWRITTEN(0x004796B0, DriverLink::SendBytes);
 
 } // namespace netlink
-

@@ -24,7 +24,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -384,9 +383,6 @@ void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, s
 void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
     return ErasePrint<GroundPrint>(out, pos);
 }
-EI_REWRITTEN(0x00572550, CWorldClient::EraseBloodPrint);
-EI_REWRITTEN(0x00572580, CWorldClient::EraseFootprint);
-EI_REWRITTEN(0x005725B0, CWorldClient::EraseScorchMark);
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};
@@ -497,24 +493,3 @@ int CWorldClient::Segment() {
     EndWalk(objectsIt);
     return 1;
 }
-EI_REWRITTEN(0x005641F0, CWorldClient::Segment);
-
-EI_REWRITTEN(0x00563F70, CWorldClient::ClampedGroundHeight);
-EI_REWRITTEN(0x00560F00, PlatformSet::SurfaceHeight);
-EI_REWRITTEN(0x00561050, PlatformSet::Contains);
-EI_REWRITTEN(0x00561150, PlatformSet::SurfacePlane);
-EI_REWRITTEN(0x00560E10, MatrixRows::Transform);
-EI_REWRITTEN(0x005640A0, CWorldClient::NearestVisibleUnit);
-EI_REWRITTEN(0x00564AF0, CObject3D::PartBox);
-EI_REWRITTEN(0x005699F0, CWorldClient::LocalView);
-EI_REWRITTEN(0x00566EC0, CWorldClient::IsLocalViewMode2);
-EI_REWRITTEN(0x00566EF0, CWorldClient::IsLocalPlayerIdle);
-EI_REWRITTEN(0x00567440, CWorldClient::FindExitAt);
-EI_REWRITTEN(0x005674C0, CWorldClient::ExitCentre);
-EI_REWRITTEN(0x0056D9F0, CWorldClient::EnvironmentFlags);
-EI_REWRITTEN(0x00567500, CWorldClient::CreateExitMarkers);
-EI_REWRITTEN(0x005677F0, CWorldClient::PartyInExit);
-EI_REWRITTEN(0x00566C20, CWorldClient::SummonBird);
-EI_REWRITTEN(0x00565380, CWorldClient::OnQuestVariable);
-EI_REWRITTEN(0x005654F0, CWorldClient::ObjectVariableName);
-EI_REWRITTEN(0x005652E0, CWorldClient::ApplyObjectVariables);

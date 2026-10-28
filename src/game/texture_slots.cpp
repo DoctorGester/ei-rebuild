@@ -3,7 +3,6 @@
 // header's pixel format presets. See texture.h and docs/notes/items_spells.md.
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -21,7 +20,6 @@ void MmpHeader::SetNoFormat() {
     bitsPerPixel = 0;
     format = 0;
 }
-EI_REWRITTEN(0x00693820, MmpHeader::SetNoFormat);
 
 void MmpHeader::SetFormat5551() {
     alphaMask = 0x8000, alphaKind = 1, alphaShift = 15;
@@ -31,7 +29,6 @@ void MmpHeader::SetFormat5551() {
     bitsPerPixel = 16;
     format = 0x5551;
 }
-EI_REWRITTEN(0x00693850, MmpHeader::SetFormat5551);
 
 void MmpHeader::SetFormat4444() {
     alphaMask = 0xF000, alphaKind = 4, alphaShift = 12;
@@ -41,7 +38,6 @@ void MmpHeader::SetFormat4444() {
     bitsPerPixel = 16;
     format = 0x4444;
 }
-EI_REWRITTEN(0x006938B0, MmpHeader::SetFormat4444);
 
 void MmpHeader::SetFormat8888() {
     alphaMask = 0xFF000000, alphaKind = 8, alphaShift = 24;
@@ -51,8 +47,6 @@ void MmpHeader::SetFormat8888() {
     bitsPerPixel = 32;
     format = 0x8888;
 }
-EI_REWRITTEN(0x00693910, MmpHeader::SetFormat8888);
-
 
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
@@ -71,7 +65,6 @@ void CTexture::FreeBlock() {
     if (block_) lib::FreeAligned32(block_);
     block_ = nullptr;
 }
-EI_REWRITTEN(0x00690FA0, CTexture::FreeBlock);
 
 int CTexture::Create() {
     name_.clear();
@@ -119,21 +112,14 @@ CTexture::~CTexture() {
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
     if (extra_.data) lib::FreeAligned32(extra_.data);
 }
-EI_REWRITTEN_SPECIAL(0x00691950, CTexture::~CTexture);
-EI_REWRITTEN_SPECIAL(0x00691930, CTexture::~CTexture);   // deleting
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
 } // namespace
-EI_REWRITTEN(0x00691A00, CTexture::Create);
-EI_REWRITTEN(0x00691A70, CTexture::Destroy);
-
 
 MmpHeader* CTextureManager::GetFileData(const char* name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
-EI_REWRITTEN(0x00691CF0, CTextureManager::GetFileData);
 
 CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }
-EI_REWRITTEN(0x00691D40, CTextureManager::NewTextureOfType);
 
 CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     CTexture* texture = FindTypedTexture(type, name);
@@ -141,7 +127,6 @@ CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     texture->name_ = name;
     return texture;
 }
-EI_REWRITTEN(0x00691D00, CTextureManager::FindOrCreate);
 
 CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     if (CTexture* found = FindTexture(name)) return found;
@@ -151,7 +136,6 @@ CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     LoadTexture(texture);
     return texture;
 }
-EI_REWRITTEN(0x00693F10, CTextureManager::FindOrLoad);
 
 void CTextureManager::TrimCache() {
     const auto overLimit = [this] { return cachedBytes_ > static_cast<int>(videoMemoryTenth_); };
@@ -166,4 +150,3 @@ void CTextureManager::TrimCache() {
         node = next;
     }
 }
-EI_REWRITTEN(0x00694020, CTextureManager::TrimCache);

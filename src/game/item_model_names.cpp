@@ -2,7 +2,6 @@
 // them) and the weapon's from its records. See item.h; the item classes' own name builders are item_names.cpp.
 #include "item.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -21,7 +20,6 @@ void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std:
     if (static_cast<std::uint32_t>(armor->type) <= 6) std::memcpy(code, kArmorCodes[armor->type], 3);
     out->Format("%s_%.2d.%s.%d", code, armor->number, material->name.c_str(), armor->variant);
 }
-EI_REWRITTEN(0x006A3480, ArmorModelName);
 
 void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
     const MaterialRecordHead* material = MaterialAt(materialIndex);
@@ -34,7 +32,6 @@ void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, st
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
     out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
 }
-EI_REWRITTEN(0x006A0AA0, WeaponModelName);
 
 void __fastcall WeaponRecordModelName(mfc::CString* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
     // The code's four bytes are the stack slot `out` was saved in.
@@ -43,4 +40,3 @@ void __fastcall WeaponRecordModelName(mfc::CString* out, const WeaponRecord* wea
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
     out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
 }
-EI_REWRITTEN(0x006A0BF0, WeaponRecordModelName);

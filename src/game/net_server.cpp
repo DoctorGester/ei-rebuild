@@ -6,7 +6,6 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -69,7 +68,6 @@ ServerSession::ServerSession(std::uint32_t kind) {
     masterToken_ = 0;
     std::memset(password_, 0, sizeof(password_));
 }
-EI_REWRITTEN_SPECIAL(0x00412D80, ServerSession::ServerSession);
 
 namespace {
 
@@ -150,6 +148,5 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }
-EI_REWRITTEN(0x00417EB0, ServerSession::CollectReplicated);
 
 } // namespace net

@@ -14,8 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -109,7 +107,6 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
@@ -119,4 +116,3 @@ void CUnitServer::UndoTaming() {
     if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;
 }
-EI_REWRITTEN(0x00552280, CUnitServer::UndoTaming);

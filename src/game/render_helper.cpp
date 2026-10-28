@@ -11,7 +11,6 @@
 #include "sys_info.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -188,7 +187,6 @@ bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned i
     }
     return true;
 }
-EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 
 // ---- State blocks -------------------------------------------------------------------------------------
 
@@ -284,8 +282,6 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     return preset;
 }
 
-EI_REWRITTEN(0x004FD2A0, CRenderHelper::Record);
-
 // The preset's state blocks deleted, its place among the built-in presets
 // cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
 // nodes first, then its head). The record holds the preset, so this usually deletes it.
@@ -314,8 +310,6 @@ void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     }
 }
 
-EI_REWRITTEN(0x004FD9D0, CRenderHelper::ReleaseBlock);
-
 // ---- The helper's lifetime ----------------------------------------------------------------------------
 
 // Takes the device and its capabilities, then records the nine
@@ -343,7 +337,6 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
     }
     states.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x004FCA60, CRenderHelper::CRenderHelper);
 
 // The destructor body. Every record's preset goes through slot 3, which erases the record
 // the walk stands on: the step to the next record then reads the freed node (its
@@ -362,8 +355,6 @@ CRenderHelper::~CRenderHelper() {
     records_.Destroy();
     if (device_) device::Release(device_);
 }
-EI_REWRITTEN_SPECIAL(0x004FCD50, CRenderHelper::~CRenderHelper);
-EI_REWRITTEN_SPECIAL(0x004FCC20, CRenderHelper::~CRenderHelper);
 
 void* CRenderHelper::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRenderHelper::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -373,18 +364,15 @@ void CRenderHelper::operator delete(void* block) { gamecrt::operator_delete(bloc
 void CRenderHelper::ReleasePreset(CRenderPreset* preset) {
     if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
 }
-EI_REWRITTEN(0x004FDB00, CRenderHelper::ReleasePreset);
 
 void* CRenderHelper::PresetBlock(CRenderPreset* preset) {
     auto* node = records_.Find(preset);
     return node ? node->value.preset : nullptr;
 }
-EI_REWRITTEN(0x004FDB50, CRenderHelper::PresetBlock);
 
 CRenderPreset* CRenderHelper::Preset(unsigned index) {
     return index < CRenderHelper::kPresetCount ? presets_[index] : nullptr;
 }
-EI_REWRITTEN(0x004FDBA0, CRenderHelper::Preset);
 
 // The result is a byte (a bool).
 bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
@@ -393,14 +381,12 @@ bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
     AssignStates(out, node->value.states);
     return true;
 }
-EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStates);
 
 // The result is a byte (a bool).
 bool CRenderHelper::BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);
 }
-EI_REWRITTEN(0x004FDD80, CRenderHelper::BuiltInStates);
 
 // ---- The preset -------------------------------------------------------------------------------------
 
@@ -410,8 +396,6 @@ CRenderPreset::CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stag
 }
 
 CRenderPreset::~CRenderPreset() { blocks_.FreeStorage(); }
-EI_REWRITTEN_SPECIAL(0x004FD8B0, CRenderPreset::~CRenderPreset);
-EI_REWRITTEN_SPECIAL(0x004FD880, CRenderPreset::~CRenderPreset);
 
 void* CRenderPreset::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -422,10 +406,8 @@ void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(bloc
 // ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
 
 MatrixStack::MatrixStack() : matrices(lib::AlignedArray<Matrix4>::Allocate(kMatrixStackDepth)), count(0) {}
-EI_REWRITTEN_SPECIAL(0x004F0DB0, MatrixStack::MatrixStack);
 
 MatrixStack::~MatrixStack() { lib::FreeAligned32(matrices); }
-EI_REWRITTEN_SPECIAL(0x004F0DE0, MatrixStack::~MatrixStack);
 
 namespace {
 
@@ -461,7 +443,6 @@ CTransformPipeline::CTransformPipeline(const char* folder) {
     game::DebugLog(AcquiringText());
     transform_ = getPipeline();
 }
-EI_REWRITTEN_SPECIAL(0x004F0B90, CTransformPipeline::CTransformPipeline);
 
 // The stacks' blocks go after the body (members), from the last to the first.
 CTransformPipeline::~CTransformPipeline() {
@@ -470,8 +451,3 @@ CTransformPipeline::~CTransformPipeline() {
     if (library) gameapi::FreeLibrary(static_cast<HMODULE>(library));
     library_ = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x004F0E10, CTransformPipeline::~CTransformPipeline);
-EI_REWRITTEN_SPECIAL(0x004F0DF0, CTransformPipeline::~CTransformPipeline);
-
-// ---- The driver list --------------------------------------------------------------------------------
-

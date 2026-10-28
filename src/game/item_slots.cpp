@@ -3,7 +3,6 @@
 #include "item.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -103,17 +102,3 @@ void CItemLoot::InitFromRecord(const ItemRecordHead* record) {
     recordType_ = r->recordType;
     index_ = r->index;
 }
-
-// --- The virtual slots' entry points (rule 4) -----------------------------------------------------
-
-EI_REWRITTEN(0x006A43C0, CItemQuest::GetUse);
-EI_REWRITTEN(0x0069FE90, CItem::IsSameAs);
-EI_REWRITTEN(0x006A30D0, CItemArmor::IsSameAs);
-EI_REWRITTEN(0x006A3C20, CItemQuick::IsSameAs);
-EI_REWRITTEN(0x006A4510, CItemQuest::IsSameAs);
-EI_REWRITTEN(0x006A4B00, CItemLoot::IsSameAs);
-EI_REWRITTEN(0x006A0660, CItemWeapon::InitFromRecord);
-EI_REWRITTEN(0x006A3070, CItemArmor::InitFromRecord);
-EI_REWRITTEN(0x006A3BE0, CItemQuick::InitFromRecord);
-EI_REWRITTEN(0x006A44D0, CItemQuest::InitFromRecord);
-EI_REWRITTEN(0x006A4AB0, CItemLoot::InitFromRecord);

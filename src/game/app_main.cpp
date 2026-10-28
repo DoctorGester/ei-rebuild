@@ -25,7 +25,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -111,18 +110,6 @@ void __cdecl ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
         if (--mouse->references_ == 0) delete mouse;
 }
-
-EI_REWRITTEN(0x00455CE0, ConstructCameraFile);
-EI_REWRITTEN(0x00455D10, ConstructCommandLineScript);
-EI_REWRITTEN(0x00455D40, ConstructCommandLineMob);
-EI_REWRITTEN(0x00455D70, ConstructCommandLineMap);
-EI_REWRITTEN(0x00455DA0, ConstructMovieFolder);
-EI_REWRITTEN(0x00455D00, DestroyCameraFile);
-EI_REWRITTEN(0x00455D30, DestroyCommandLineScript);
-EI_REWRITTEN(0x00455D60, DestroyCommandLineMob);
-EI_REWRITTEN(0x00455D90, DestroyCommandLineMap);
-EI_REWRITTEN(0x00455DC0, DestroyMovieFolder);
-EI_REWRITTEN(0x00455DF0, ReleaseMouseAtExit);
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};
@@ -782,6 +769,5 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     ShutDown(previousHandler);
     return result;
 }
-EI_REWRITTEN(0x00456440, GameMain);
 
 } // namespace app

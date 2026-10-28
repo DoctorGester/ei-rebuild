@@ -12,8 +12,6 @@
 #include "lib/stlp_algo.h"
 #include "terrain.h"
 
-#include "ei/hook.h"
-
 #include <cmath>
 #include <cstring>
 #include "lib/stlp_list_refs.h"
@@ -352,24 +350,3 @@ void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
 void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }
 void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }
 void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }
-
-EI_REWRITTEN(0x0056A830, FreeTouchedModels);
-EI_REWRITTEN(0x0056A7E0, FreeShadow52);
-EI_REWRITTEN(0x0056A790, FreeShadowUnits);
-EI_REWRITTEN(0x0056A740, FreeShadow5D);
-EI_REWRITTEN(0x0056A6F0, FreeShadowOther);
-EI_REWRITTEN(0x0056A6A0, FreeShadow54);
-EI_REWRITTEN(0x0056A650, FreeVisible52);
-EI_REWRITTEN(0x0056A600, FreeVisibleUnits);
-EI_REWRITTEN(0x0056A5B0, FreeVisible5D);
-EI_REWRITTEN(0x0056A560, FreeVisibleOther);
-EI_REWRITTEN(0x0056A510, FreeVisible54);
-
-EI_REWRITTEN(0x0056A990, CWorldClient::CollectVisible);
-EI_REWRITTEN(0x0056BF30, CWorldClient::PickGround);
-EI_REWRITTEN(0x0056C350, CWorldClient::PickSurface);
-EI_REWRITTEN(0x005740D0, IntroSortByModel);
-EI_REWRITTEN(0x00574390, FinalSortByModel);
-EI_REWRITTEN(0x00573D50, IntroSortByModelUse);
-EI_REWRITTEN(0x00573F10, FinalSortByModelUse);
-EI_REWRITTEN(0x00573EE0, ModelUseLess::Less);

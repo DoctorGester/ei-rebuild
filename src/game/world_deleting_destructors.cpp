@@ -9,7 +9,6 @@
 #include "sector_map.h"
 #include "unit_ai.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 #include "game_lists.h"
@@ -32,22 +31,3 @@ template <>
 AIRef* AIRef::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](AIRef* ref) { ref->Reset(); });
 }
-EI_REWRITTEN(0x00558CA0, AIRef::DeleteScalar);
-
-EI_REWRITTEN_SPECIAL(0x005AA1A0, CFigureManager::~CFigureManager);   // deleting
-
-using mfc::impl::ScalarDeleting;
-EI_REWRITTEN(0x005754E0, ScalarDeleting<&ObjectHolderRelease>::Delete);
-EI_REWRITTEN(0x00575510, ScalarDeleting<&ObjectHolderRelease>::Delete);
-EI_REWRITTEN(0x005768A0, ScalarDeleting<&ObjectHolderRelease>::Delete);
-EI_REWRITTEN(0x0059DDB0, ScalarDeleting<&ObjectHolderRelease>::Delete);
-
-// ---- MFC collections ----------------------------------------------------------------------
-
-EI_REWRITTEN(0x00571E50, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::PlatformListClass>>::Delete);
-EI_REWRITTEN(0x00571ED0, ScalarDeleting<&recordarrays::WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>>::Delete);
-EI_REWRITTEN(0x0059B430, ScalarDeleting<&CSectorMap::DestructSectors>::Delete);
-EI_REWRITTEN(0x0059B4F0, ScalarDeleting<&gamelists::SharedObjects::Destruct<gameslots::SharedObjectListClass>>::Delete);
-EI_REWRITTEN(0x005B1B30, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::BlockCostListClass>>::Delete);
-EI_REWRITTEN(0x005B1B50, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::AiMapListClass>>::Delete);
-EI_REWRITTEN(0x005BE070, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::WaypointListClass>>::Delete);

@@ -19,7 +19,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -127,7 +126,6 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         ++slot;
     }
 }
-EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
 // --- the battle screen's update ------------------------------------------------------------------
 
@@ -370,7 +368,6 @@ void CBattleScreen::Update() {
 namespace {
 void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
-EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
 // --- the party ids compared ----------------------------------------------------------------------
 
@@ -386,7 +383,6 @@ bool SameIds(const IdVector& a, const IdVector& b) {
 bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
-EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
 // --- the battle screen's left button release -----------------------------------------------------
 
@@ -462,7 +458,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         stlp::PushSmallNode(units.head);
     }
 }
-EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
 // --- a quest variable's notice -------------------------------------------------------------------
 
@@ -557,7 +552,6 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
 }
-EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
 // --- the selection's refresh ---------------------------------------------------------------------
 
@@ -608,4 +602,3 @@ void CBattleScreen::RefreshSelection() {
     for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
     actions->selected_ = -1;
 }
-EI_REWRITTEN(0x00637DC0, CBattleScreen::RefreshSelection);

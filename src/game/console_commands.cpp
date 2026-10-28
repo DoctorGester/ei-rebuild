@@ -8,7 +8,6 @@
 #include "player_client.h"
 #include "text_split.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "net_classes.h"
 #include "acks_db.h"
@@ -90,7 +89,6 @@ void __fastcall Help(CStringArray*) {
     };
     for (const char* line : kLines) PrintLine(line);
 }
-EI_REWRITTEN(0x005DF5E0, Help);
 
 // Debuginfo l<eft>|r<ight>|lt|lefttop|rt|righttop.
 void __fastcall DebugInfo(CStringArray* args) {
@@ -106,7 +104,6 @@ void __fastcall DebugInfo(CStringArray* args) {
     }
     PrintLine("Invalid debug info position");
 }
-EI_REWRITTEN(0x005DD920, DebugInfo);
 
 // Console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).
 void __fastcall ConsolePos(CStringArray* args) {
@@ -126,14 +123,12 @@ void __fastcall ConsolePos(CStringArray* args) {
     }
     PrintLine("Invalid console position");
 }
-EI_REWRITTEN(0x005DDBE0, ConsolePos);
 
 // History <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine("Invalid parameters");
     TheInterface()->SetConsoleHistory(std::atoi((*args)[0]));
 }
-EI_REWRITTEN(0x005DDF80, History);
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
 void __fastcall Filter(CStringArray* args) {
@@ -164,7 +159,6 @@ void __fastcall Filter(CStringArray* args) {
         PrintLine("Invalid parameters");
     }
 }
-EI_REWRITTEN(0x005DDFE0, Filter);
 
 // Show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
 void __fastcall Show(CStringArray* args) {
@@ -189,7 +183,6 @@ void __fastcall Show(CStringArray* args) {
     if (ArgOn(args, 1)) (TheClientWorld()->*on)();
     else if (ArgOff(args, 1)) (TheClientWorld()->*off)();
 }
-EI_REWRITTEN(0x005DE460, Show);
 
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
@@ -221,7 +214,6 @@ void __fastcall ListVar(CStringArray* args) {
     }
     if (writing) file.Close();
 }
-EI_REWRITTEN(0x005DEA00, ListVar);
 
 // Loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
@@ -248,7 +240,6 @@ void __fastcall LoadVar(CStringArray* args) {
     }
     file.Close();
 }
-EI_REWRITTEN(0x005DEC90, LoadVar);
 
 // "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
@@ -258,7 +249,6 @@ void __fastcall LastFps(CStringArray*) {
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
-EI_REWRITTEN(0x005DEEE0, LastFps);
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
@@ -277,7 +267,6 @@ void __fastcall Exec(CStringArray* args) {
     while (file.ReadString(line)) console::Execute(line);
     file.Close();
 }
-EI_REWRITTEN(0x005DEF50, Exec);
 
 // Give <player> money <n> | exp <n> (shared by the party) | assortment.
 void __fastcall Give(CStringArray* args) {
@@ -311,7 +300,6 @@ void __fastcall Give(CStringArray* args) {
     }
     PrintLine("Give what?");
 }
-EI_REWRITTEN(0x005DF0F0, Give);
 
 namespace {
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
@@ -330,7 +318,6 @@ void __fastcall Join(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
-EI_REWRITTEN(0x005DF3A0, Join);
 
 // server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
 void __fastcall HostServer(CStringArray* args) {
@@ -338,20 +325,16 @@ void __fastcall HostServer(CStringArray* args) {
     PrintLine("Starting up a server");
     RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
 }
-EI_REWRITTEN(0x005DF490, HostServer);
 
 void __fastcall MemUsage(CStringArray*) {}
-EI_REWRITTEN(0x005DF5A0, MemUsage);
 
 // disconnect, any arguments: the client world's local player disconnects.
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
-EI_REWRITTEN(0x005DFC10, Disconnect);
 
 void __fastcall LootAll(CStringArray*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
 }
-EI_REWRITTEN(0x005DF5B0, LootAll);
 
 // Fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
@@ -359,7 +342,6 @@ void __fastcall FadeOut(CStringArray* args) {
     TheInterface()->fade_->Start(std::atoi((*args)[0]));
     PrintLine("Ok");
 }
-EI_REWRITTEN(0x005DF8E0, FadeOut);
 
 // Net client|server|time 0/1 (traffic and timing output), net zone <name>.
 void __fastcall Net(CStringArray* args) {
@@ -382,7 +364,6 @@ void __fastcall Net(CStringArray* args) {
         Server()->SendCommand(0, zone.c_str());
     }
 }
-EI_REWRITTEN(0x005DF9B0, Net);
 
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
@@ -401,14 +382,12 @@ void __fastcall WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list)
     mfc::CString line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
-EI_REWRITTEN(0x005DFC20, WriteSpeechLines);
 
 void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     mfc::CString line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
 }
-EI_REWRITTEN(0x005DFCE0, WriteEnvironmentSpeechLines);
 
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
@@ -431,7 +410,6 @@ void __fastcall GenerateAcks(CStringArray*) {
         record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
     file.Close();
 }
-EI_REWRITTEN(0x005DFDA0, GenerateAcks);
 
 // Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
 void __fastcall Days(CStringArray* args) {
@@ -480,12 +458,10 @@ void __fastcall Days(CStringArray* args) {
     };
     for (const char* line : kUsage) PrintLine(line);
 }
-EI_REWRITTEN(0x005E00D0, Days);
 
 void __fastcall PartyResend(CStringArray*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }
-EI_REWRITTEN(0x005E0570, PartyResend);
 
 namespace {
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
@@ -512,11 +488,9 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
 
 // Kick [name].
 void __fastcall Kick(CStringArray* args) { KickOrBan(args, 1, 2); }
-EI_REWRITTEN(0x005E0590, Kick);
 
 // Ban [name].
 void __fastcall Ban(CStringArray* args) { KickOrBan(args, 2, 3); }
-EI_REWRITTEN(0x005E06E0, Ban);
 
 // Fps 1|on|0|off (anything else: nothing).
 void __fastcall Fps(CStringArray* args) {
@@ -524,7 +498,6 @@ void __fastcall Fps(CStringArray* args) {
     if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
     else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
 }
-EI_REWRITTEN(0x005E0830, Fps);
 
 namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
@@ -539,10 +512,8 @@ void SetRate(CStringArray* args, int* rate, const char* usage) {
 
 // Rate <bytes per second>.
 void __fastcall Rate(CStringArray* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
-EI_REWRITTEN(0x005E0990, Rate);
 
 // Localrate <bytes per second>.
 void __fastcall LocalRate(CStringArray* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
-EI_REWRITTEN(0x005E0A10, LocalRate);
 
 } // namespace console::commands

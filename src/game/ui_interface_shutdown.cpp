@@ -9,7 +9,6 @@
 #include "ui_cursor.h"
 #include "ui_gdi.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -35,7 +34,6 @@ void CInterface3D::ResetInput() {
     doubleClick_ = false;
     if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
 }
-EI_REWRITTEN(0x005F8C50, CInterface3D::ResetInput);
 
 void CInterface3D::Shutdown() {
     TheCursor()->SetShape(kCursorWait);
@@ -93,7 +91,6 @@ void CInterface3D::Shutdown() {
     // The fade's destructor body is empty; the pointer is not cleared.
     if (fade_) gamecrt::operator_delete(fade_);
 }
-EI_REWRITTEN(0x005F4F90, CInterface3D::Shutdown);
 
 void CInterface3D::DestroyBody() {
     std::destroy_at(&savedText_);
@@ -105,7 +102,6 @@ void CInterface3D::DestroyBody() {
         stlp::deallocate(stack_.Start(), static_cast<std::size_t>(stack_.EndOfStorage() - stack_.Start()) * sizeof(CUiWindow*));
     }
 }
-EI_REWRITTEN(0x005F4790, CInterface3D::DestroyBody);
 
 void console::ConsoleWindow::DestroyBody() {
     DeleteSurface(surface_);
@@ -115,4 +111,3 @@ void console::ConsoleWindow::DestroyBody() {
     // The members in reverse order: the lines, the input text, the command history.
     this->~ConsoleWindow();
 }
-EI_REWRITTEN(0x005E3DF0, console::ConsoleWindow::DestroyBody);

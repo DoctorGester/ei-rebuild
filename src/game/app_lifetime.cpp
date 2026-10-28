@@ -13,7 +13,6 @@
 #include "party_records.h"
 #include "ui_cursor.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -46,7 +45,6 @@ CRefCounted* __cdecl CreatePartyRecord() {
     record->flags7_ = 0;
     return record;
 }
-EI_REWRITTEN(0x00457740, CreatePartyRecord);
 
 CRefCounted* __cdecl CreateClassTemplate() {
     auto* created = new ClassTemplate();
@@ -56,7 +54,6 @@ CRefCounted* __cdecl CreateClassTemplate() {
     created->flags7_ = 0;
     return created;
 }
-EI_REWRITTEN(0x00457850, CreateClassTemplate);
 
 // ---- The party record -----------------------------------------------------------------------------
 
@@ -70,8 +67,6 @@ PartyRecord::~PartyRecord() {
     Party()->Destroy();
     Party()->~CParty();
 }
-EI_REWRITTEN_SPECIAL(0x004577E0, PartyRecord::~PartyRecord);
-EI_REWRITTEN_SPECIAL(0x004577C0, PartyRecord::~PartyRecord);
 
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 
@@ -84,8 +79,6 @@ CDirectInputMouse::~CDirectInputMouse() {
     if (device_) device_->Release();
     if (input_) input_->Release();
 }
-EI_REWRITTEN_SPECIAL(0x004578D0, CDirectInputMouse::~CDirectInputMouse);
-EI_REWRITTEN_SPECIAL(0x004578B0, CDirectInputMouse::~CDirectInputMouse);
 
 // ---- The party manager ----------------------------------------------------------------------------
 
@@ -100,7 +93,6 @@ void PartyManager::Destruct() {
     entries.FreeStorage();
     parties.Destroy();   // every node deleted, then the buckets freed
 }
-EI_REWRITTEN(0x004A5700, PartyManager::Destruct);
 
 PartyManager* PartyManager::Construct() {
     parties.InitZeroedBuckets(100);
@@ -111,7 +103,6 @@ PartyManager* PartyManager::Construct() {
     new (&templates) stlp::vector<ClassTemplate*>();
     return this;
 }
-EI_REWRITTEN(0x004A5870, PartyManager::Construct);
 
 // The manager, empty at the start: built by a static initialiser in the list's order and destroyed by the exit
 // function it registers (docs/notes/standalone.md, "The static initialisers' objects").
@@ -126,6 +117,3 @@ void __cdecl ConstructPartyManager() {
     g_partyManager->Construct();
     libcrt::AtExit(DestroyPartyManager);
 }
-
-EI_REWRITTEN(0x004A56D0, ConstructPartyManager);
-EI_REWRITTEN(0x004A56F0, DestroyPartyManager);

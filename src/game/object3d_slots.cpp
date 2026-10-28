@@ -8,8 +8,6 @@
 
 #include "lib/gameapi.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace {
@@ -18,21 +16,17 @@ constexpr int kSpecificType = 0x46;   // the side halves' type_
 
 // The same body as the base's.
 void CObject3D::CombineRotation(const Quaternion& parent) { CTransformObject::CombineRotation(parent); }
-EI_REWRITTEN(0x00516370, CObject3D::CombineRotation);
 
 // CTransformObject's functions, called directly.
 void CObject3D::SaveTransform(mfc::CFileVirtuals* file) { CTransformObject::SaveTransform(file); }
-EI_REWRITTEN(0x00516350, CObject3D::SaveTransform);
 
 void CObject3D::LoadTransform(mfc::CFileVirtuals* file) { CTransformObject::LoadTransform(file); }
-EI_REWRITTEN(0x00516360, CObject3D::LoadTransform);
 
 void CObject3D::CopyFigure(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);
     std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
     CTransformObject::CopyTransform(*other);
 }
-EI_REWRITTEN(0x005161E0, CObject3D::CopyFigure);
 
 void CObject3D::AttachSpecific(CEngineObject* half) {
     if (!half || half->type_ != kSpecificType) return;
@@ -44,7 +38,6 @@ void CObject3D::AttachSpecific(CEngineObject* half) {
     Specific()->object = this;
     ++attached->refCount_;
 }
-EI_REWRITTEN(0x00516D50, CObject3D::AttachSpecific);
 
 void CObject3D::RemoveAllEffectSources() {
     while (effectSources.head) {
@@ -59,19 +52,15 @@ void CObject3D::RemoveAllEffectSources() {
         }
     }
 }
-EI_REWRITTEN(0x00515E90, CObject3D::RemoveAllEffectSources);
 
 int CObject3D::DrawFigure(CSceneRenderer* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
-EI_REWRITTEN(0x00516460, CObject3D::DrawFigure);
 
 int CObject3D::DrawCollectDirty(CSceneRenderer* context) {
     gameapi::SetRectEmpty(DirtyRect());
     return attached ? Specific()->DrawParts(context, &dirtyRect) : 1;
 }
-EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirty);
 
 int CObject3D::DrawFigureShadow(CSceneRenderer* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
-EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadow);
 
 // --- Small virtuals ----------------------------------------------------------------------------
 

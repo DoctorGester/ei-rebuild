@@ -13,7 +13,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "world_glue.h"
@@ -61,8 +60,6 @@ void CBattleScreen::Close() {
     GameStopAmbience();
     party_.SetSize(0, -1);
 }
-EI_REWRITTEN(0x00635E60, CBattleScreen::Close);
-
 
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
@@ -74,8 +71,6 @@ bool CBattleScreen::PollShown() {
     }
     return true;
 }
-EI_REWRITTEN(0x006360F0, CBattleScreen::PollShown);
-
 
 void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
     for (auto* node = items->head; node != nullptr;) {
@@ -87,8 +82,6 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
     topPanel_->ShowItems();
     RefreshSelection();
 }
-EI_REWRITTEN(0x00636150, CBattleScreen::OnItemsPicked);
-
 
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
@@ -108,8 +101,6 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     portraits_->Rebuild(0);
     RefreshSelection();
 }
-EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
-
 
 void CBattleScreen::SaveState() {
     CStream* stream = GameSaveStream();
@@ -131,8 +122,6 @@ void CBattleScreen::SaveState() {
     stream->Write(&exitPending_, 1);
     stream->Write(&pendingExit_, 4);
 }
-EI_REWRITTEN(0x00635080, CBattleScreen::SaveState);
-
 
 void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = portraits_;
@@ -197,8 +186,6 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     RefreshSelection();
 }
-EI_REWRITTEN(0x006361B0, CBattleScreen::OnUnitJoined);
-
 
 void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
@@ -220,8 +207,6 @@ void CBattleScreen::OnMessageResult(int result) {
         break;
     }
 }
-EI_REWRITTEN(0x00635EB0, CBattleScreen::OnMessageResult);
-
 
 void CBattleScreen::OnGameOver(char won) {
     GameStopSounds(1);
@@ -235,4 +220,3 @@ void CBattleScreen::OnGameOver(char won) {
     }
     interface_->PushWindow(box, 1, 1);
 }
-EI_REWRITTEN(0x006365E0, CBattleScreen::OnGameOver);

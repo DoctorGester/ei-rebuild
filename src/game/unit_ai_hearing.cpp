@@ -8,7 +8,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
@@ -59,7 +58,6 @@ void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
     std::string copy = text;
     AppendCall(this, at, kind, 0, copy);
 }
-EI_REWRITTEN(0x005CCD40, AIHeardCalls::Hear);
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     std::string copy;
@@ -68,18 +66,14 @@ void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
     AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
-EI_REWRITTEN(0x005CCEA0, AIHeardCalls::AddClaim);
 
 void AIHeardCalls::RemoveClaims() {
     for (int i = 0; i < size; ++i)
         if (data[i].hostileMask != 0) RemoveCall(this, i--);
 }
-EI_REWRITTEN(0x005CCBF0, AIHeardCalls::RemoveClaims);
 
 void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }
-EI_REWRITTEN(0x005CBBA0, AIMemory::HearCall);
 void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.AddClaim(mask, kind, text); }
-EI_REWRITTEN(0x005CBBC0, AIMemory::AddClaim);
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     mfc::CTypedPtrList<CUnit> units{};
@@ -109,7 +103,6 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();
 }
-EI_REWRITTEN(0x005C98C0, AIViewer::Noise);
 
 AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
@@ -119,4 +112,3 @@ AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* sourc
     Noise(source, loudness, kStepNoise, nullptr);
     return nullptr;
 }
-EI_REWRITTEN(0x005C9770, AIViewer::StepNoise);

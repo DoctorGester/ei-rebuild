@@ -1,6 +1,5 @@
 #include "item.h"
 
-#include "ei/hook.h"
 #include "random.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -30,13 +29,11 @@ ItemRecordHead* CItem::GetPrototype() {
     }
     return record;
 }
-EI_REWRITTEN(0x006A0110, CItem::GetPrototype);
 
 int CItem::GetCategory() {
     const ItemRecordHead* prototype = GetPrototype();
     return prototype ? static_cast<int>(prototype->category) : INT_MAX;
 }
-EI_REWRITTEN(0x006A4230, CItem::GetCategory);
 
 int CItem::RunTick() {
     EI_NAN_AUDIT(charge_, chargeMax_);
@@ -50,12 +47,10 @@ int CItem::RunTick() {
     if (charge_ >= chargeMax_) std::memcpy(&charge_, &chargeMax_, sizeof(float));
     return 1;
 }
-EI_REWRITTEN(0x006A0070, CItem::RunTick);
 
 int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(prototypeId_))->type;
 }
-EI_REWRITTEN(0x006A07F0, CItemWeapon::GetType);
 
 void CItemWeapon::GetDamageTypes(float* out) {
     WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId_));
@@ -65,7 +60,6 @@ void CItemWeapon::GetDamageTypes(float* out) {
     }
     std::memset(out, 0, 7 * sizeof(float));
 }
-EI_REWRITTEN(0x006A0770, CItemWeapon::GetDamageTypes);
 
 double CItemWeapon::RollDamage() {
     EI_NAN_AUDIT(damageSpread_);
@@ -80,7 +74,6 @@ double CItemWeapon::RollDamage() {
     return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
            static_cast<double>(low);
 }
-EI_REWRITTEN(0x006A2DE0, CItemWeapon::RollDamage);
 
 BOOL CItemWeapon::IsSameAs(CItem* item) {
     if (!CItem::IsSameAs(item)) return 0;
@@ -92,18 +85,15 @@ BOOL CItemWeapon::IsSameAs(CItem* item) {
     if (other->reach_ != reach_) return 0;
     return 1;
 }
-EI_REWRITTEN(0x006A06C0, CItemWeapon::IsSameAs);
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(prototypeId_))->type;
 }
-EI_REWRITTEN(0x006A39E0, CItemArmor::GetType);
 
 int CItemArmor::GetTypeGroup() {
     int type = ArmorAt(PrototypeIndex(prototypeId_))->type;
     return (type == 0 || type == 1 || type == 2) ? 2 : 1;
 }
-EI_REWRITTEN(0x006A31A0, CItemArmor::GetTypeGroup);
 
 float CItemLoot::GetPrice() {
     switch (kind_) {
@@ -121,7 +111,6 @@ float CItemLoot::GetPrice() {
     default: return -1.0f;
     }
 }
-EI_REWRITTEN(0x006A5470, CItemLoot::GetPrice);
 
 namespace {
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
@@ -131,25 +120,21 @@ MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(Mater
 int __fastcall WeaponType(std::uint32_t packedId) {
     return WeaponOf(packedId)->type;
 }
-EI_REWRITTEN(0x006A2B80, WeaponType);
 
 float __fastcall WeaponMinDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return weapon->damage * MaterialOf(packedId)->damageFactor;
 }
-EI_REWRITTEN(0x006A2A50, WeaponMinDamage);
 
 float __fastcall WeaponMaxDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return (weapon->damageSpread + weapon->damage) * MaterialOf(packedId)->damageFactor;
 }
-EI_REWRITTEN(0x006A2AE0, WeaponMaxDamage);
 
 float __fastcall WeaponAttack(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return weapon->value38 * MaterialOf(packedId)->factor38;
 }
-EI_REWRITTEN(0x006A2BD0, WeaponAttack);
 
 int __fastcall WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
@@ -160,20 +145,16 @@ int __fastcall WeaponDamageType(std::uint32_t packedId) {
     }
     return 6;
 }
-EI_REWRITTEN(0x006A2C60, WeaponDamageType);
 
 float __fastcall WeaponStat84(std::uint32_t packedId) {
     return WeaponOf(packedId)->attackBonus;
 }
-EI_REWRITTEN(0x006A2D40, WeaponStat84);
 
 float __fastcall WeaponStat88(std::uint32_t packedId) {
     return WeaponOf(packedId)->defenceBonus;
 }
-EI_REWRITTEN(0x006A2D90, WeaponStat88);
 
 int __fastcall ArmorFieldB8(std::uint32_t index) {
     ArmorRecord* armor = ArmorAt(index);
     return armor ? static_cast<int>(armor->layer) : 0;
 }
-EI_REWRITTEN(0x006A3200, ArmorFieldB8);

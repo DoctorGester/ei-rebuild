@@ -4,7 +4,6 @@
 // the order triangles are emitted in are the same.
 #include "ground_decal.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -62,7 +61,6 @@ void EmptyKeepingBuffer(lib::AlignedArray<T>* a) {
 } // namespace
 
 double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>(*this); }
-EI_REWRITTEN(0x004D8470, Vector3::LengthSquared);
 
 namespace decal {
 
@@ -291,16 +289,3 @@ void DecalBuilder::Finish() {
     texCoords_ = nullptr;
     indices_ = nullptr;
 }
-
-EI_REWRITTEN(0x004D7140, decal::Interpolate);
-EI_REWRITTEN(0x004D6E90, decal::ClipTriangle);
-EI_REWRITTEN(0x004D7F50, DecalBuilder::Construct);
-EI_REWRITTEN(0x004D8000, DecalBuilder::Begin);
-EI_REWRITTEN(0x004D7F60, DecalBuilder::Touches);
-EI_REWRITTEN(0x004D8780, DecalBuilder::Reserve);
-EI_REWRITTEN(0x004D6C50, DecalBuilder::AddVertex);
-EI_REWRITTEN(0x004D6CF0, DecalBuilder::Emit);
-EI_REWRITTEN(0x004D7BD0, DecalBuilder::ClipPlane);
-EI_REWRITTEN(0x004D85F0, DecalBuilder::AddTriangle);
-EI_REWRITTEN(0x004D8490, DecalBuilder::AddTerrainTriangle);
-EI_REWRITTEN(0x004D89A0, DecalBuilder::Finish);

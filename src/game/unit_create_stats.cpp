@@ -19,7 +19,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -156,14 +155,12 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
 
 // --- Name lookups -----------------------------------------------------------------------------
 
-EI_REWRITTEN(0x005144D0, UnitPrototypeTable::FindByName);
 UnitNpcRecord* NpcPrototypeTable::FindByName(const char* name) {
     stlp::string key(name);
     stlp::string pairKey(key);
     UnitNpcRecord* record = byName[pairKey];
     return record;
 }
-EI_REWRITTEN(0x005145D0, NpcPrototypeTable::FindByName);
 
 // --- Builders ---------------------------------------------------------------------------------
 
@@ -213,7 +210,6 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     }
     return 1;
 }
-EI_REWRITTEN(0x005134F0, CMapObjectManager::SetDefaults);
 
 int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
@@ -284,7 +280,6 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     LearnNpcSkills(stats, npc);
     return 1;
 }
-EI_REWRITTEN(0x005136D0, CMapObjectManager::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
@@ -340,7 +335,6 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     stats->ResetToBase(1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00513DA0, BuildNpcStats);
 
 int __stdcall PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
@@ -350,7 +344,6 @@ int __stdcall PrototypeObjectClass(const char* name) {
     if (!model) return kDefaultClass;
     return model->objectClass;
 }
-EI_REWRITTEN(0x00513240, PrototypeObjectClass);
 
 // --- Statistics from their bases -----------------------------------------------------------------
 
@@ -431,7 +424,6 @@ void UnitStats::ResetToBase(float newLoad) {
     rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
-EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 
 namespace {
 
@@ -460,7 +452,6 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
 }
-EI_REWRITTEN(0x00526450, UnitStats::LearnSkill);
 
 namespace {
 constexpr float kStatBase = 25.0f;
@@ -506,7 +497,6 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     }
     return kZero;
 }
-EI_REWRITTEN(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
 
@@ -544,7 +534,6 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     int own = database->IndexOf(record->name.c_str());
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
-EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
@@ -589,7 +578,6 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
     return 1;
 }
-EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 
 // --- The factory ------------------------------------------------------------------------------
 
@@ -633,4 +621,3 @@ CEngineObject* CMapObjectManager::NewObject(int classId) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00512730, CMapObjectManager::NewObject);

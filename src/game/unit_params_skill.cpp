@@ -4,7 +4,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstdint>
@@ -73,4 +72,3 @@ double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon
     }
     return 0.0;
 }
-EI_REWRITTEN(0x00527850, UnitParams::WeaponSkillBonus);

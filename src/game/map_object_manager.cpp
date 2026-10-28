@@ -13,7 +13,6 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <new>
@@ -62,13 +61,7 @@ int ThirdHalfOf(int classId) {
 
 CMapObjectManager::CMapObjectManager() {}
 
-EI_REWRITTEN_SPECIAL(0x005125E0, CMapObjectManager::CMapObjectManager);
-
 CMapObjectManager::~CMapObjectManager() {}
-
-EI_REWRITTEN_SPECIAL(0x00512650, CMapObjectManager::~CMapObjectManager);
-
-EI_REWRITTEN_SPECIAL(0x00512630, CMapObjectManager::~CMapObjectManager);
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::GetClassName() { return kClassName; }
@@ -76,19 +69,12 @@ int CMapObjectManager::GetClassId() { return kManagerClassId; }
 int CMapObjectManager::Create() { return CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
 
-// Folder name, class name and class id.
-EI_REWRITTEN(0x00512600, CMapObjectManager::GetFolderName);
-EI_REWRITTEN(0x00512610, CMapObjectManager::GetClassName);
-EI_REWRITTEN(0x00512620, CMapObjectManager::GetClassId);
-
 int CMapObjectManager::CreateManager() {
     std::string folder = TheTextFolder().GetString();
     if (!CBaseManager::Create()) return 0;
     AddArchive((folder + "database.res").c_str());
     return 1;
 }
-EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
-
 
 CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }
 
@@ -105,7 +91,6 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
         object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }
-EI_REWRITTEN(0x00512A30, CMapObjectManager::CreateMapObject);
 
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(GetFile(*figure + ".adb", nullptr));
@@ -121,7 +106,6 @@ FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, st
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 
 int CMapObjectManager::GiveDefaults(CMapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the shares and factors,
@@ -144,5 +128,3 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
     object->prototypeId_ = 0;
     return 1;
 }
-EI_REWRITTEN(0x00513630, CMapObjectManager::GiveDefaults);
-

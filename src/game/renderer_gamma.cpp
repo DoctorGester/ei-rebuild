@@ -5,7 +5,6 @@
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CDXSurface
 
-#include "ei/hook.h"
 #include "render/render.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -72,4 +71,3 @@ bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
     return true;
 }
-EI_REWRITTEN(0x00504A60, CSceneRenderer::SetGamma);

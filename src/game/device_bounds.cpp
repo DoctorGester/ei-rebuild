@@ -5,7 +5,6 @@
 #include "device_buffers.h"  // ProjectedVertex
 #include "texture.h"         // CTextureDevice
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
@@ -55,7 +54,6 @@ int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices
     }
     return bounds.Store(this);
 }
-EI_REWRITTEN(0x004E86B0, CTextureDevice::BoundsOfVertices);
 
 // The same of projected positions, whole blocks of four at a time (a size that is not a multiple of four reads to
 // the end of its last block).
@@ -71,4 +69,3 @@ int CTextureDevice::BoundsOfProjected(const lib::AlignedArray<devicebuffers::Pro
     }
     return bounds.Store(this);
 }
-EI_REWRITTEN(0x004E8900, CTextureDevice::BoundsOfProjected);

@@ -12,7 +12,6 @@
 #include "unit_db.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -179,4 +178,3 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         panel.DrawLine();
     }
 }
-EI_REWRITTEN(0x00647040, CHudUnitPanel::DrawUnitInfo);

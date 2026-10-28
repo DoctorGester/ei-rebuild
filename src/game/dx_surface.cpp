@@ -9,7 +9,6 @@
 #include "device.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -180,7 +179,6 @@ CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : de
     bitsPerPixel = static_cast<int>(format.words[kBits]);
     ++device::HolderCount();
 }
-EI_REWRITTEN_SPECIAL(0x004EF7B0, CDXSurface::CDXSurface);
 
 namespace {
 
@@ -276,8 +274,6 @@ int CDXSurface::LoadPictureData(const MmpHeader* picture, int /*flag*/) {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
-EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
-
 
 // A holder whose surface shows an .mmp picture (the software cursor's images, windows made from a picture). The new
 // renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the surface
@@ -287,7 +283,6 @@ CDXSurface::CDXSurface(CTextureDevice* deviceIn, const MmpHeader* picture, int f
     render::PictureFromMmp(this, picture);
     ++device::HolderCount();
 }
-EI_REWRITTEN_SPECIAL(0x004EFC60, CDXSurface::CDXSurface);
 
 // Releases the new renderer's memory (the surface, in the game).
 CDXSurface::~CDXSurface() {
@@ -295,5 +290,3 @@ CDXSurface::~CDXSurface() {
     device = nullptr;
     --device::HolderCount();
 }
-EI_REWRITTEN_SPECIAL(0x004EFD20, CDXSurface::~CDXSurface);
-EI_REWRITTEN_SPECIAL(0x004EF790, CDXSurface::~CDXSurface);

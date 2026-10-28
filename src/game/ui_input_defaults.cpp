@@ -2,13 +2,9 @@
 // See ui.h (UiInputSide) and docs/notes/ui.md, section 1.
 #include "ui.h"
 
-#include "ei/hook.h"
-
 int UiInputSide::LeftDouble(int buttons, int x, int y) { return LeftDown(buttons, x, y); }
-EI_REWRITTEN(0x005E2860, UiInputSide::LeftDouble);
 
 int UiInputSide::RightDouble(int buttons, int x, int y) { return RightDown(buttons, x, y); }
-EI_REWRITTEN(0x005E2880, UiInputSide::RightDouble);
 
 int UiInputSide::Event(int slot, int a, int b, int c) {
     switch (slot) {

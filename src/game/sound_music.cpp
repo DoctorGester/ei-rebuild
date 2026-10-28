@@ -13,7 +13,6 @@
 #include "../lib/gameapi.h"
 #include "random.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "record_arrays.h"
 #include "game_data.h"
@@ -145,7 +144,6 @@ int CMusicSystem::LoadThemes() {
     reg.Destroy();
     return 1;
 }
-EI_REWRITTEN(0x006B4710, CMusicSystem::LoadThemes);
 
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
@@ -169,13 +167,11 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     std::string full = message + "\"";
     game::FatalError(full.c_str());
 }
-EI_REWRITTEN(0x006B4E30, CMusicSystem::SetZoneMode);
 
 void CMusicSystem::Stop() {
     state = 0;
     TheSoundManager()->StopStream(4);
 }
-EI_REWRITTEN(0x006B4F70, CMusicSystem::Stop);
 
 namespace {
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
@@ -199,14 +195,12 @@ void CMusicSystem::PlayBriefing(const char* allod) {
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
-EI_REWRITTEN(0x006B4F90, CMusicSystem::PlayBriefing);
 
 void CMusicSystem::PlayConstructor(const char* allod) {
     state = 3;
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
 }
-EI_REWRITTEN(0x006B5080, CMusicSystem::PlayConstructor);
 
 void CMusicSystem::PlayMainMenu() {
     state = 4;
@@ -214,7 +208,6 @@ void CMusicSystem::PlayMainMenu() {
     std::string path = mainMenu + kMp3;
     TheSoundManager()->RequestStream(path.c_str(), 4);
 }
-EI_REWRITTEN(0x006B51F0, CMusicSystem::PlayMainMenu);
 
 // A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
 // waits until it has finished.
@@ -229,7 +222,6 @@ void CMusicSystem::PlayJingle(const char* name) {
     WaitAndEndAfter(TheSoundManager());
     jinglePlaying = 1;
 }
-EI_REWRITTEN(0x006B5270, CMusicSystem::PlayJingle);
 
 // Every world frame. Always 1.
 int CMusicSystem::UpdateMusic() {
@@ -279,7 +271,6 @@ int CMusicSystem::UpdateMusic() {
     inCombat = fighting;
     return 1;
 }
-EI_REWRITTEN(0x006B5350, CMusicSystem::UpdateMusic);
 
 // ---- Lifetime and the engine object's virtuals ----
 
@@ -302,7 +293,6 @@ CMusicSystem::CMusicSystem() {
     themeCount = 0;
     ResetThemes();
 }
-EI_REWRITTEN_SPECIAL(0x006B4350, CMusicSystem::CMusicSystem);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
@@ -316,7 +306,6 @@ void CMusicSystem::ResetThemes() {
     holding = 0;
     combatTrack = game::NoneText();
 }
-EI_REWRITTEN(0x006B4690, CMusicSystem::ResetThemes);
 
 // The strings go after the body (jingle, combatTrack, mainMenu, credits: the game's order, before its theme
 // array's destructor).
@@ -324,13 +313,9 @@ CMusicSystem::~CMusicSystem() {
     ResetThemes();
     ThemesDestruct(&themesVtable);
 }
-EI_REWRITTEN_SPECIAL(0x006B44B0, CMusicSystem::~CMusicSystem);
-EI_REWRITTEN_SPECIAL(0x006B4490, CMusicSystem::~CMusicSystem);   // deleting
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
-EI_REWRITTEN(0x006B4E10, CMusicSystem::FadeOut);
-EI_REWRITTEN(0x006B4E20, CMusicSystem::FadeIn);
 
 // GetClassName and GetClassId.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }

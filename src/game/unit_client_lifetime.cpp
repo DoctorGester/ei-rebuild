@@ -5,7 +5,6 @@
 #include "effects.h"
 #include "texture.h"   // CTexture
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 
@@ -51,7 +50,6 @@ int CUnitClientSpecific::Create() {
     blinks = 0;
     return 1;
 }
-EI_REWRITTEN(0x00533FE0, CUnitClientSpecific::Create);
 
 void CUnitClientSpecific::Destroy() {
     for (CParticleSource*& source : sources) {
@@ -63,7 +61,6 @@ void CUnitClientSpecific::Destroy() {
     ReleaseFace(this);
     blinks = 0;
 }
-EI_REWRITTEN(0x005340C0, CUnitClientSpecific::Destroy);
 
 CUnitClientSpecific::~CUnitClientSpecific() {
     for (CParticleSource*& source : sources) {
@@ -86,8 +83,6 @@ CUnitClientSpecific::~CUnitClientSpecific() {
     motion.steps.vtable = mfc::impl::CellListClass::Vtable();
     motion.steps.RemoveAll();
 }
-EI_REWRITTEN_SPECIAL(0x00533EA0, CUnitClientSpecific::~CUnitClientSpecific);
-EI_REWRITTEN_SPECIAL(0x00533E80, CUnitClientSpecific::~CUnitClientSpecific);
 
 CUnitClientSpecific::CUnitClientSpecific() {
     motion.steps.vtable = mfc::impl::CellListClass::Vtable();
@@ -104,4 +99,3 @@ CUnitClientSpecific::CUnitClientSpecific() {
     faceTexture = nullptr;
     fadeIn = 1.0f;
 }
-EI_REWRITTEN_SPECIAL(0x00533AD0, CUnitClientSpecific::CUnitClientSpecific);

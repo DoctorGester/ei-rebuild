@@ -8,7 +8,6 @@
 
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "unit_db.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -52,7 +51,6 @@ void CTradePanel::ClampScroll() {
 namespace {
 void __fastcall TradeClampScroll(CTradePanel* self) { self->ClampScroll(); }
 } // namespace
-EI_REWRITTEN(0x00626D70, TradeClampScroll);
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
@@ -105,7 +103,6 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         UiCapture(interface_) = Input();
     }
 }
-EI_REWRITTEN(0x00626920, CTradePanel::OnLButtonDown);
 
 // --- The left button released (input release) -----------------------------------------------------------
 
@@ -114,7 +111,6 @@ void CTradePanel::OnLButtonUp(int, int, int) {
     heldRegion_ = -1;
     holdTime_ = 0.0f;
 }
-EI_REWRITTEN(0x00626C30, CTradePanel::OnLButtonUp);   // through LeftUp (input slot 3, RET 0xC; 0 in EAX)
 
 // --- The held school / science button (update) ---------------------------------------------------------
 
@@ -148,4 +144,3 @@ void CTradePanel::UpdateHeld() {
     interface_->mouseCapture_ = nullptr;
     heldRegion_ = -1;
 }
-EI_REWRITTEN(0x00626C50, CTradePanel::UpdateHeld);

@@ -4,7 +4,6 @@
 #include "mfc_file.h"
 #include "mfc_runtime_class.h"
 
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 #include "game/asset_text.h"
@@ -832,76 +831,5 @@ CString CFileFind::GetFileURL() const {
 }
 
 CString CFileFind::GetRoot() const { return CString(root); }
-
-EI_REWRITTEN(0x00701870, FullPath);
-EI_REWRITTEN(0x00701940, GetRoot);
-
-EI_REWRITTEN(0x00701036, CFile::Construct);
-EI_REWRITTEN(0x0070106C, CFile::ConstructHandle);
-EI_REWRITTEN(0x0070108B, CFile::ConstructOpen);
-EI_REWRITTEN(0x0070112B, CFile::Destruct);
-EI_REWRITTEN(0x00701050, CFile::DeletingDestructor);
-EI_REWRITTEN(0x007013B9, CFile::GetPosition);
-EI_REWRITTEN(0x00702C31, CFile::GetFileName);
-EI_REWRITTEN(0x00702CB3, CFile::GetFileTitle);
-EI_REWRITTEN(0x00702D35, CFile::GetFilePath);
-EI_REWRITTEN(0x00702D64, CFile::GetStatus);
-EI_REWRITTEN(0x0070D0D2, AfxGetFileName);
-EI_REWRITTEN(0x00701AC9, AfxGetFileTitle);
-EI_REWRITTEN(0x006E6361, CFile::SetFilePath);
-EI_REWRITTEN(0x007011E8, CFile::Open);
-EI_REWRITTEN(0x00701173, CFile::Duplicate);
-EI_REWRITTEN(0x0070138A, CFile::Seek);
-EI_REWRITTEN(0x007014B6, CFile::SetLength);
-EI_REWRITTEN(0x007014E2, CFile::GetLength);
-EI_REWRITTEN(0x00701305, CFile::Read);
-EI_REWRITTEN(0x0070133F, CFile::Write);
-EI_REWRITTEN(0x00701464, CFile::LockRange);
-EI_REWRITTEN(0x0070148D, CFile::UnlockRange);
-EI_REWRITTEN(0x00701444, CFile::Abort);
-EI_REWRITTEN(0x007013E2, CFile::Flush);
-EI_REWRITTEN(0x00701403, CFile::Close);
-EI_REWRITTEN(0x0070150F, CFile::GetBufferPtr);
-
-EI_REWRITTEN(0x00701B79, CStdioFile::Construct);
-EI_REWRITTEN(0x00701BD4, CStdioFile::ConstructOpen);
-EI_REWRITTEN(0x00701C6D, CStdioFile::Destruct);
-EI_REWRITTEN(0x00701B8F, CStdioFile::DeletingDestructor);
-EI_REWRITTEN(0x00701F8E, CStdioFile::GetPosition);
-EI_REWRITTEN(0x00701CB0, CStdioFile::Open);
-EI_REWRITTEN(0x0070203B, CStdioFile::Duplicate);
-EI_REWRITTEN(0x00701F56, CStdioFile::Seek);
-EI_REWRITTEN(0x00701D84, CStdioFile::Read);
-EI_REWRITTEN(0x00701DF0, CStdioFile::Write);
-EI_REWRITTEN(0x00702043, CStdioFile::LockRange);
-EI_REWRITTEN(0x0070204B, CStdioFile::LockRange);   // UnlockRange: the same body
-EI_REWRITTEN(0x00702016, CStdioFile::Abort);
-EI_REWRITTEN(0x00701FB8, CStdioFile::Flush);
-EI_REWRITTEN(0x00701FE0, CStdioFile::Close);
-EI_REWRITTEN(0x00701E23, CStdioFile::WriteString);
-EI_REWRITTEN(0x00701E93, CStdioFile::ReadLine);
-EI_REWRITTEN(0x00701E4E, CStdioFile::ReadString);
-
-EI_REWRITTEN(0x006E6370, CFileFind::Construct);
-EI_REWRITTEN(0x006E63AD, CFileFind::Destruct);
-EI_REWRITTEN(0x006E6391, CFileFind::DeletingDestructor);
-EI_REWRITTEN(0x006E63E9, CFileFind::Close);
-EI_REWRITTEN(0x006E6429, CFileFind::CloseContext);
-EI_REWRITTEN(0x006E6433, CFileFind::FindFile);
-EI_REWRITTEN(0x006E6653, CFileFind::FindNextFile);
-EI_REWRITTEN(0x006E6513, CFileFind::MatchesMask);
-EI_REWRITTEN(0x006E661A, CFileFind::IsDots);
-EI_REWRITTEN(0x006E68AA, CFileFind::GetLength);
-EI_REWRITTEN(0x006E684B, CFileFind::GetFileName);
-EI_REWRITTEN(0x006E6722, CFileFind::GetFilePath);
-EI_REWRITTEN(0x006E67BA, CFileFind::GetFileTitle);
-EI_REWRITTEN(0x006E668E, CFileFind::GetFileURL);
-EI_REWRITTEN(0x006E6707, CFileFind::GetRoot);
-EI_REWRITTEN(0x006E65C4, CFileFind::GetLastWriteTime);
-EI_REWRITTEN(0x006E6551, CFileFind::GetLastWriteFileTime);
-EI_REWRITTEN(0x006E6599, CFileFind::GetLastAccessTime);
-EI_REWRITTEN(0x006E652D, CFileFind::GetLastAccessFileTime);
-EI_REWRITTEN(0x006E65EF, CFileFind::GetCreationTime);
-EI_REWRITTEN(0x006E6575, CFileFind::GetCreationFileTime);
 
 } // namespace mfc::impl

@@ -8,7 +8,6 @@
 #include "ui_widescreen.h"
 #include "app.h"   // app::g_mainWindow
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -63,7 +62,6 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, CO
     interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
-EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 
 // --- TextExtent ---------------------------------------------------------------------------------------
 
@@ -84,4 +82,3 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     out->cy = static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_;
     return out;
 }
-EI_REWRITTEN(0x005F8340, CInterface3D::TextExtent);

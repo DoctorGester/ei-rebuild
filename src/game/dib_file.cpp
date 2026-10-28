@@ -4,7 +4,6 @@
 #include "dib.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_try.h"
 #include "lib/mfc_window.h"
@@ -71,7 +70,6 @@ int CDib::Read(mfc::CFile* source) {
     MakePalette();
     return 1;
 }
-EI_REWRITTEN(0x006D5910, CDib::Read);
 
 int CDib::Write(mfc::CFile* target) {
     auto* output = target->Virtuals();
@@ -93,4 +91,3 @@ int CDib::Write(mfc::CFile* target) {
     }
     return 1;
 }
-EI_REWRITTEN(0x006D5AC0, CDib::Write);

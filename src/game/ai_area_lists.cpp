@@ -5,8 +5,6 @@
 #include "ai_grids.h"
 #include "game_data.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -50,5 +48,3 @@ void __fastcall FillAreaLists(CAIMap* map) {
         }
     }
 }
-
-EI_REWRITTEN(0x005B4150, FillAreaLists);

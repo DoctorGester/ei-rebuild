@@ -8,7 +8,6 @@
 #include "database_file.h"
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -92,7 +91,6 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REWRITTEN(0x00684550, SpellDatabase::Load);
 
 // --- The item database ----------------------------------------------------------------------------
 
@@ -124,6 +122,5 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REWRITTEN(0x006A67A0, ItemDatabase::Load);
 
 } // namespace itemdb

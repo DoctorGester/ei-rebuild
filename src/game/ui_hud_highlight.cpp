@@ -4,8 +4,6 @@
 // the panels' SetUnit drive them. See docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -56,7 +54,6 @@ void CUiMesh::SetScale(float scale) {
     std::memcpy(&ScaleY(), &bits, sizeof(bits));
     std::memcpy(&ScaleZ(), &bits, sizeof(bits));
 }
-EI_REWRITTEN(0x005E7060, CUiMesh::SetScale);
 
 // --- A quick item slot ---------------------------------------------------------------
 
@@ -75,18 +72,13 @@ void CHudQuickItems::Highlight(int slot, int on) {
         mesh->flatSpecular_ = kColourOff;
     }
 }
-EI_REWRITTEN(0x0063CD20, CHudQuickItems::Highlight);
 
 // --- The columns' buttons -----------------------------------------------------------------
 
 void CHudSpellColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
-EI_REWRITTEN(0x0063E750, CHudSpellColumn::Highlight);
 
 void CHudActionColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
-EI_REWRITTEN(0x0063F730, CHudActionColumn::Highlight);
 
 void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
-EI_REWRITTEN(0x0063E7C0, CHudSpellColumn::ClearHighlights);
 
 void CHudActionColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
-EI_REWRITTEN(0x0063F7A0, CHudActionColumn::ClearHighlights);

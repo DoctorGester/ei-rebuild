@@ -7,7 +7,6 @@
 #include "database_file.h"
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -90,7 +89,6 @@ int PrintsDatabase::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REWRITTEN(0x006D0630, PrintsDatabase::Load);
 
 // --- acks.db --------------------------------------------------------------------------------------
 
@@ -136,6 +134,5 @@ int AckDatabase::Load(const char* folder) {
     }
     return 1;
 }
-EI_REWRITTEN(0x006D7620, AckDatabase::Load);
 
 } // namespace acks

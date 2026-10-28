@@ -10,7 +10,6 @@
 #include "item_db_text.h"
 #include "text_reader.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
@@ -64,13 +63,10 @@ void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
 // --- titles --------------------------------------------------------------------------------------
 
 mfc::CString* CGlobalMap::AllodTitle(mfc::CString* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
-EI_REWRITTEN(0x00631110, CGlobalMap::AllodTitle);
 
 mfc::CString* CGlobalMap::ZoneTitle(mfc::CString* out, const char* zone) { return PlaceTitle(out, kZonePrefix, zone); }
-EI_REWRITTEN(0x00631030, CGlobalMap::ZoneTitle);
 
 mfc::CString* CGlobalMap::QuestTitle(mfc::CString* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
-EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 
 // --- positions -----------------------------------------------------------------------------------
 
@@ -99,13 +95,11 @@ Vector3* CGlobalMap::ZonePosition(Vector3* out, const char* zone) {
     ReadMapPosition(out, kZoneEntry, zone, true);
     return out;
 }
-EI_REWRITTEN(0x00630E00, CGlobalMap::ZonePosition);
 
 Vector3* CGlobalMap::QuestPosition(Vector3* out, const char* quest) {
     ReadMapPosition(out, kQuestEntry, quest, false);
     return out;
 }
-EI_REWRITTEN(0x00630CC0, CGlobalMap::QuestPosition);
 
 // --- the selected zone ---------------------------------------------------------------------------
 
@@ -138,7 +132,6 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         for (int k = 0; k < 3; ++k) marker->tint_[k] = i == link ? fog_[k] : 1.0f;
     }
 }
-EI_REWRITTEN(0x00630860, CGlobalMap::SelectZone);
 
 // --- the pick picture ----------------------------------------------------------------------------
 
@@ -176,7 +169,6 @@ void CGlobalMap::RefreshSelection() {
     backdrop_->CaptureScreen();
     SelectZone(-1, 0);
 }
-EI_REWRITTEN(0x00630670, CGlobalMap::RefreshSelection);
 
 // --- the weather ---------------------------------------------------------------------------------
 
@@ -194,4 +186,3 @@ void CGlobalMap::SetWeather() {
         weather_->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
     }
 }
-EI_REWRITTEN(0x0062EE90, CGlobalMap::SetWeather);

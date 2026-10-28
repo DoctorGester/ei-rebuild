@@ -9,7 +9,6 @@
 #include "core_streams.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "record_lists.h"
@@ -164,7 +163,6 @@ void ClientSession::RecordTrade(const void* party) {
     record->parties[1]->Assign(parties_[1].Get());
     record->parties[2]->Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
-EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 
 // Starts our trade offer to `partner` when the binding and its player are
 // live: kept, from the binding's player.
@@ -187,12 +185,9 @@ void ClientSession::StartParty(CRefObject* partner) {
     AssignRef(&party_.Get()->player_, binding_->PlayerRef().ptr);
     AssignRef(&party_.Get()->partner_, partner);
 }
-EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 
 // Drops the party description.
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
-EI_REWRITTEN(0x0041E3E0, ClientDropParty);
-
 
 // The binding of this client: kept, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
@@ -314,7 +309,6 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     }
     chunks.FreeStorage();
 }
-EI_REWRITTEN(0x0041ECC0, ClientOnFileChunk);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
 // The awards (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
@@ -372,35 +366,5 @@ void __fastcall ClientOnTradeGone(ClientSession* self, Message* message) {
     DropParty(self);
     ClearTradeRecords(self);
 }
-
-EI_REWRITTEN(0x0041E430, ClientOnBinding);
-EI_REWRITTEN(0x0041E460, ClientOnBindingGone);
-EI_REWRITTEN(0x0041E490, ClientOnPlayer);
-EI_REWRITTEN(0x0041E510, ClientOnPlayerChanged);
-EI_REWRITTEN(0x0041E520, ClientOnPlayerGone);
-EI_REWRITTEN(0x0041E5D0, ClientOnLine);
-EI_REWRITTEN(0x0041E690, ClientOnLineGone);
-EI_REWRITTEN(0x0041E730, ClientOnInfo);
-EI_REWRITTEN(0x0041E760, ClientOnInfoGone);
-EI_REWRITTEN(0x0041E790, ClientOnZone);
-EI_REWRITTEN(0x0041E850, ClientOnZoneGone);
-EI_REWRITTEN(0x0041E900, ClientOnMap);
-EI_REWRITTEN(0x0041E960, ClientOnMapGone);
-EI_REWRITTEN(0x0041E990, ClientOnVariable);
-EI_REWRITTEN(0x0041EA10, ClientOnVariableChanged);
-EI_REWRITTEN(0x0041EA20, ClientOnVariableGone);
-EI_REWRITTEN(0x0041EAC0, ClientOnFile);
-EI_REWRITTEN(0x0041EBF0, ClientOnFileGone);
-EI_REWRITTEN(0x0041EF10, ClientOnObjectGone);
-EI_REWRITTEN(0x0041EF90, ClientOnAward);
-EI_REWRITTEN(0x0041EFF0, ClientOnParty);
-EI_REWRITTEN(0x0041F090, ClientOnPartyChanged);
-EI_REWRITTEN(0x0041F0D0, ClientOnPartyGone);
-EI_REWRITTEN(0x0041F150, ClientOnMember);
-EI_REWRITTEN(0x0041F180, ClientOnMember);
-EI_REWRITTEN(0x0041F1B0, ClientOnMember);
-EI_REWRITTEN(0x0041F1E0, ClientOnTrade);
-EI_REWRITTEN(0x0041F270, ClientOnTradeChanged);
-EI_REWRITTEN(0x0041F3A0, ClientOnTradeGone);
 
 } // namespace net

@@ -9,7 +9,6 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 
 namespace {
@@ -77,14 +76,12 @@ void EraseWhere(ClientSpeechNode*& queue, Pick pick) {
 int SpeechFilter::Replaced(const ClientSpeech* queued) const {
     return Replaces(kind, queued->kind) ? 1 : 0;
 }
-EI_REWRITTEN(0x00537F60, SpeechFilter::Replaced);
 
 bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     if (queued->sound == -1 || SoundBusy(queued->sound)) return false;
     if (queued->talking) SetTalking(unitId, false);
     return true;
 }
-EI_REWRITTEN(0x00537FD0, SpeechFilter::Finished);
 
 void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     if (!record) return;
@@ -111,7 +108,6 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     }
     SpeechList::Insert(stlp::AsNode<ClientSpeech>(speech), said);
 }
-EI_REWRITTEN(0x00537D80, CUnitClientSpecific::Say);
 
 void CUnitClientSpecific::StopSpeech() {
     for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
@@ -126,7 +122,6 @@ void CUnitClientSpecific::StopSpeech() {
     speech->next = speech;
     speech->prev = speech;
 }
-EI_REWRITTEN(0x00538040, CUnitClientSpecific::StopSpeech);
 
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
@@ -136,4 +131,3 @@ bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     lastSpeechTime = now;
     return true;
 }
-EI_REWRITTEN(0x005380D0, CUnitClientSpecific::Speak);

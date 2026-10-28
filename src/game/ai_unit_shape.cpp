@@ -2,7 +2,6 @@
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
 #include "ai_unit_layer.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <cstring>
@@ -34,10 +33,6 @@ CUnitShape::CUnitShape(float newRadius) {
         }
     }
 }
-EI_REWRITTEN_SPECIAL(0x005B3440, CUnitShape::CUnitShape);
-// The deleting destructor and its body.
-EI_REWRITTEN_SPECIAL(0x005B3570, CUnitShape::~CUnitShape);
-EI_REWRITTEN_SPECIAL(0x005B3590, CUnitShape::~CUnitShape);
 
 CUnitShape::CUnitShape() {
     refs_ = 0;
@@ -51,7 +46,6 @@ int CUnitShape::OnShutdown() {
     radius = -1.0f;
     return 0;
 }
-EI_REWRITTEN(0x005B3540, CUnitShape::OnShutdown);
 
 CUnitShape* CUnitShape::Clone() {
     auto* copy = new CUnitShape();
@@ -60,7 +54,5 @@ CUnitShape* CUnitShape::Clone() {
     copy->radius = radius;
     return copy;
 }
-EI_REWRITTEN(0x005B34F0, CUnitShape::Clone);
 
 CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle) { return new CUnitShape(handle->height); }
-EI_REWRITTEN(0x005B33D0, CreateUnitShape);

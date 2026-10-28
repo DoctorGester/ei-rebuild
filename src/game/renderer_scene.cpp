@@ -11,7 +11,6 @@
 #include "ui.h"        // GameDeviceLock, DebugInfoPanel
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -86,7 +85,6 @@ int CSceneRenderer::BeginScene() {
     if (result != 0) app::FatalErrorCode(result, "Can't begin scene.\n");
     return 1;
 }
-EI_REWRITTEN(0x00503F40, CSceneRenderer::BeginScene);
 
 int CSceneRenderer::EndScene() {
     CTextureDevice* device = device_;
@@ -103,7 +101,6 @@ int CSceneRenderer::EndScene() {
     lastFrameStart_ = frameStart_;
     return 1;
 }
-EI_REWRITTEN(0x005040A0, CSceneRenderer::EndScene);
 
 int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale) {
     if (!texture) return 0;
@@ -127,4 +124,3 @@ int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale
     device->drawCount_ += 1;
     return 1;
 }
-EI_REWRITTEN(0x00504860, CSceneRenderer::DrawTexture);

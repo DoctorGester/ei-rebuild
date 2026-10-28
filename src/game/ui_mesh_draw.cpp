@@ -5,7 +5,6 @@
 #include "material.h"
 #include "model.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -50,7 +49,6 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
     *y = localPosition_.y / localPosition_.z / 0.48157462f /*00740158*/ * 400.0f /*00740160*/ + 300.0f /*0073FA98*/;
     std::memcpy(depth, &localPosition_.z, sizeof(float));
 }
-EI_REWRITTEN(0x005E7010, CUiMesh::GetPlacement);
 
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
 // 10023151): x moved by the panel offset first (an integer add; 0 outside its panel builders,
@@ -63,7 +61,6 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
     localPosition_.y = placedY;
     std::memcpy(&localPosition_.z, &depth, sizeof(float));
 }
-EI_REWRITTEN(0x005E6FA0, CUiMesh::PlaceBody);
 
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
 // orientation and position, pushes it on the view and world stacks, then the scale matrix on both (the view
@@ -109,7 +106,6 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     Pop(world);
     return 1;
 }
-EI_REWRITTEN(0x005E6D90, CUiMesh::Draw);
 
 int CUiMesh::CreateSprite() {
     CreateMesh();
@@ -135,14 +131,11 @@ int CUiMesh::CreateSprite() {
     visible_ = 1;
     return 1;
 }
-EI_REWRITTEN(0x005E6C60, CUiMesh::CreateSprite);
 
 // --- The class 0x43's lifetime and slots ---------------------------------------------------
 
 CUiMesh::CUiMesh() {}
 CUiMesh::~CUiMesh() {}
-EI_REWRITTEN_SPECIAL(0x005AAD00, CUiMesh::~CUiMesh);
-EI_REWRITTEN_SPECIAL(0x005AACE0, CUiMesh::~CUiMesh);
 
 int CUiMesh::Create() { return CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }
@@ -159,16 +152,12 @@ void CUiMesh::SetQuadCount(int count) {
             vertices_[i].w()[k] = 1.0f;
         }
 }
-EI_REWRITTEN(0x005EA210, CUiMesh::SetQuadCount);
 
 void CUiMesh::SetVertexCount(int count) {
     corners_.SetSize(count);
     for (int i = 0; i < count; ++i) corners_[i].normal = 0;
 }
-EI_REWRITTEN(0x005EA600, CUiMesh::SetVertexCount);
 
 void CUiMesh::SetIndexCount(int count) { indices_.SetSize(count); }
-EI_REWRITTEN(0x005EA4C0, CUiMesh::SetIndexCount);
 
 void CUiMesh::SetUvCount(int count) { texCoords_.SetSize(count); }
-EI_REWRITTEN(0x005EA380, CUiMesh::SetUvCount);

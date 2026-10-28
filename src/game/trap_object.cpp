@@ -7,7 +7,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include <new>
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -32,21 +31,17 @@ constexpr int kBlockSize = 10;
 } // namespace
 
 BOOL LockKey::AcceptedByTrap() const { return 1; }
-EI_REWRITTEN(0x00522AD0, LockKey::AcceptedByTrap);
 
 CTrapObject::CTrapObject() {
     CreateMapObject();
     flags_ &= ~kFlag40;
 }
-EI_REWRITTEN_SPECIAL(0x00529A80, CTrapObject::CTrapObject);
-EI_REWRITTEN_SPECIAL(0x00529B30, CTrapObject::~CTrapObject);   // deleting
 
 int CTrapObject::CreateTrap() {
     int result = CreateMapObject();
     flags_ &= ~kFlag40;
     return result;
 }
-EI_REWRITTEN(0x00529B60, CTrapObject::CreateTrap);
 
 int CTrapObject::UpdateTrap() {
     Update();
@@ -69,44 +64,35 @@ int CTrapObject::UpdateTrap() {
     units.RemoveAll();
     return 0;
 }
-EI_REWRITTEN(0x00529B80, CTrapObject::UpdateTrap);
 
 bool CTrapObject::Disarm(const LockKey* key, int) {
     if (!(flags_ & kArmed) || !key->AcceptedByTrap()) return false;
     flags_ &= ~kArmed;
     return true;
 }
-EI_REWRITTEN(0x00529D30, CTrapObject::Disarm);
 
 int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
-EI_REWRITTEN(0x00529D60, CTrapObject::KeyFits);
 
 void CTrapObject::LoadTrapObject(CStream* stream) {
     LoadMapObject(stream);
     stream->Read(&savedValue_, 4);
 }
-EI_REWRITTEN(0x00529D70, CTrapObject::LoadTrapObject);
 
 void CTrapObject::SaveTrapObject(CStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = savedValue_;
     stream->Write(&value, 4);
 }
-EI_REWRITTEN(0x00529DA0, CTrapObject::SaveTrapObject);
 
 void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
 void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
 bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key, 0); }
 
 bool CTrapObject::Slot29True() { return true; }
-EI_REWRITTEN(0x00529AE0, CTrapObject::Slot29True);
 
 int CTrapObject::Slot38One() { return 1; }
-EI_REWRITTEN(0x00529AF0, CTrapObject::Slot38One);
 
 const char* CTrapObject::GetClassName() { return kTrapName; }
 int CTrapObject::GetClassId() { return kClassTrap; }
 const char* MagicTrap::GetClassName() { return kMagicTrapName; }
 int MagicTrap::GetClassId() { return kClassMagicTrap; }
-
-EI_REWRITTEN_SPECIAL(0x00529F70, MagicTrap::~MagicTrap);   // deleting

@@ -9,7 +9,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
@@ -225,5 +224,3 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     DestroyList(chain, PathCellListVtable());
     return result;
 }
-
-EI_REWRITTEN(0x005B9C90, CAIMap::PlanLongPath);

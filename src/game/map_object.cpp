@@ -5,7 +5,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -47,7 +46,6 @@ void CMapObject::MarkChanged(int part) {
     if (refCount_ == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
-EI_REWRITTEN(0x0050E9F0, CMapObject::MarkChanged);
 
 int CMapObject::HasEffect(std::uint32_t type) {
     for (int i = 0; i < effects.size; ++i) {
@@ -56,7 +54,6 @@ int CMapObject::HasEffect(std::uint32_t type) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0050F630, CMapObject::HasEffect);
 
 // --- Per-tick update -------------------------------------------------------------------------
 
@@ -64,8 +61,6 @@ int CMapObject::Update() {
     if (companion) companion->RunTick();
     return 1;
 }
-EI_REWRITTEN(0x0050F1C0, CMapObject::Update);
-
 
 namespace {
 
@@ -123,7 +118,6 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (scales) RecomputeScale();
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
-EI_REWRITTEN(0x0050F1E0, CMapObject::AddEffect);
 // Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is in
 // CWorldServer::UpdateUnits (original).
 
@@ -143,7 +137,6 @@ void CMapObject::ClearEffects() {
     SetStunned(0);
     RecomputeScale();
 }
-EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 
 float CMapObject::EffectValue(std::uint32_t type) {
     std::uint32_t best = 0;
@@ -156,8 +149,6 @@ float CMapObject::EffectValue(std::uint32_t type) {
     }
     return std::bit_cast<float>(best);
 }
-EI_REWRITTEN(0x0050F690, CMapObject::EffectValue);
-
 
 void CMapObject::RecomputeScale() {
     ApplyBaseScale();
@@ -186,23 +177,18 @@ void CMapObject::RecomputeScale() {
     if (refCount_ == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
-EI_REWRITTEN(0x0050F2D0, CMapObject::RecomputeScale);
 
 void CMapObject::ResetScale() { scale = baseScale; }
-EI_REWRITTEN(0x0050E440, CMapObject::ResetScale);
-
 
 float* CMapObject::GetPosition(float* out, int) {
     std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
     return out;
 }
-EI_REWRITTEN(0x0050E4B0, CMapObject::GetPosition);
 
 float* CMapObject::GetPosition2(float* out) {
     std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
     return out;
 }
-EI_REWRITTEN(0x0050E4D0, CMapObject::GetPosition2);
 
 float* CMapObject::GroundPoint(float* out) {
     float x = localPosition_.x + bounds.center.x;   // each stored to a float local
@@ -214,21 +200,17 @@ float* CMapObject::GroundPoint(float* out) {
     out[2] = static_cast<float>(height + z);
     return out;
 }
-EI_REWRITTEN(0x0050F730, CMapObject::GroundPoint);
 
 void CMapObject::PlaceOnGround(float offset) {
     double height = GroundHeight(World(), localPosition_.x, localPosition_.y);
     localPosition_.z = static_cast<float>(height + offset);
 }
-EI_REWRITTEN(0x0050F020, CMapObject::PlaceOnGround);
-
 
 void CMapObject::SetServerData(const UnitVitals* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return;
     ServerCompanion()->SetData(data);
 }
-EI_REWRITTEN(0x0050F050, CMapObject::SetServerData);
 
 void CMapObject::AttachCompanion(CEngineObject* object) {
     if (companion) {
@@ -241,7 +223,6 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
         ++companion->refCount_;
     }
 }
-EI_REWRITTEN(0x0050E8F0, CMapObject::AttachCompanion);
 
 namespace {
 constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
@@ -261,21 +242,15 @@ void CMapObject::AttachObject(CEngineObject* object) {
     CompanionOwner(object) = this;
     ++companion->refCount_;
 }
-EI_REWRITTEN(0x0050E890, CMapObject::AttachObject);
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;
     ServerCompanion()->vitals.Pack(PackedVitals());
     return 1;
 }
-EI_REWRITTEN(0x0050E970, CMapObject::PackVitals);
-
 
 std::uint32_t CMapObject::IsInvisible() { return (flags_ >> 16) & 1; }
-EI_REWRITTEN(0x0050FA10, CMapObject::IsInvisible);
 
 std::uint32_t CMapObject::IsStunned() { return (flags_ >> 18) & 1; }
-EI_REWRITTEN(0x0050FA20, CMapObject::IsStunned);
 
 std::uint32_t CMapObject::Flag20000() { return (flags_ >> 17) & 1; }
-EI_REWRITTEN(0x0050E430, CMapObject::Flag20000);

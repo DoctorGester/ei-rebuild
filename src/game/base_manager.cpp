@@ -4,7 +4,6 @@
 
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
@@ -139,7 +138,6 @@ CBaseManager::CBaseManager() {
     reservedB_ = -1;
     lastId_ = -1;
 }
-EI_REWRITTEN_SPECIAL(0x00402B20, CBaseManager::CBaseManager);
 
 CBaseManager::~CBaseManager() {
     CBaseManager::Destroy();
@@ -150,8 +148,6 @@ CBaseManager::~CBaseManager() {
     objectList_.RemoveAll();
     objects_.Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x00402DF0, CBaseManager::~CBaseManager);
-EI_REWRITTEN_SPECIAL(0x00402DD0, CBaseManager::~CBaseManager);
 
 // --- Create and destroy -------------------------------------------------------------------------
 
@@ -275,32 +271,14 @@ int CBaseManager::ReleaseObject(CEngineObject* object) {
     return RemoveObject(object);
 }
 
-EI_REWRITTEN(0x00403020, CBaseManager::Create);
-EI_REWRITTEN(0x004031E0, CBaseManager::Destroy);
-EI_REWRITTEN(0x0066C100, CBaseManager::Destroy);
-EI_REWRITTEN(0x0067E160, CBaseManager::Destroy);
-EI_REWRITTEN(0x004046E0, CBaseManager::Load);
-EI_REWRITTEN(0x00404760, CBaseManager::Save);
-EI_REWRITTEN(0x004031B0, CBaseManager::Init);
-EI_REWRITTEN(0x004034E0, CBaseManager::DestroyAll);
-EI_REWRITTEN(0x00402D60, CBaseManager::AddArchive);
-EI_REWRITTEN(0x00402D70, CBaseManager::RemoveArchive);
-EI_REWRITTEN(0x00402D90, CBaseManager::GetFile);
-EI_REWRITTEN(0x00402DA0, CBaseManager::CloseFile);
-EI_REWRITTEN(0x00402DB0, CBaseManager::HasFile);
-EI_REWRITTEN(0x00403730, CBaseManager::CreateObject);
-EI_REWRITTEN(0x00403AE0, CBaseManager::ReleaseObject);
-
 // --- Registration (non-virtual) -----------------------------------------------------------------
 
 CEngineObject* CBaseManager::FindObject(unsigned id) const {
     auto* node = objects_.Find(id);
     return node ? node->value : nullptr;
 }
-EI_REWRITTEN(0x00403F40, CBaseManager::FindObject);
 
 void CBaseManager::SetContext(CManagerContext* context) { context_ = context; }
-EI_REWRITTEN(0x00403720, CBaseManager::SetContext);
 
 CEngineObject* CBaseManager::Unregister(int id) {
     ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id));
@@ -310,7 +288,6 @@ CEngineObject* CBaseManager::Unregister(int id) {
     ForgetPosition(this, id);
     return object;
 }
-EI_REWRITTEN(0x004039B0, CBaseManager::Unregister);
 
 int CBaseManager::RegisterInstant(CEngineObject* object) {
     int id = NextFreeId(this);
@@ -326,7 +303,6 @@ int CBaseManager::RegisterInstant(CEngineObject* object) {
     object->SetOwner(this);
     return id;
 }
-EI_REWRITTEN(0x00403BD0, CBaseManager::RegisterInstant);
 
 int CBaseManager::RemoveObject(CEngineObject* object) {
     int id = object->id_;
@@ -367,7 +343,6 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     spareCounts_.FindOrInsert({type, 0})->value = count;
     return 0;
 }
-EI_REWRITTEN(0x00404040, CBaseManager::RemoveObject);
 
 // Each type's list deletes its objects, is emptied and deleted; then the spares and spare counts tables are
 // emptied.
@@ -390,7 +365,6 @@ void CBaseManager::FreeSpares() {
     maxSpareCountType_ = 0;
     spareCounts_.Clear();
 }
-EI_REWRITTEN(0x00404410, CBaseManager::FreeSpares);
 
 // --- Saving and loading -------------------------------------------------------------------------
 
@@ -441,7 +415,6 @@ void CBaseManager::LoadObjects(CStream* in) {
         object->Load(in);
     }
 }
-EI_REWRITTEN(0x004047E0, CBaseManager::LoadObjects);
 
 // {id, [1 byte if the id is the end mark], the object's Save data} per object in list order, then
 // the end mark and a 0 byte.
@@ -463,7 +436,6 @@ void CBaseManager::SaveObjects(CStream* out) {
     char zero = 0;
     out->Write(&zero, 1);
 }
-EI_REWRITTEN(0x00404860, CBaseManager::SaveObjects);
 
 void CBaseManager::ReleaseUnused() {
     for (ObjectNode* node = objectList_.head; node;) {
@@ -475,7 +447,6 @@ void CBaseManager::ReleaseUnused() {
         }
     }
 }
-EI_REWRITTEN(0x004048F0, CBaseManager::ReleaseUnused);
 
 // --- ObjectListIterator -------------------------------------------------------------------------
 
@@ -491,7 +462,6 @@ CEngineObject* ObjectListIterator::First(CBaseManager* list) {
     position = node->next;
     return node->data;
 }
-EI_REWRITTEN(0x00404920, ObjectListIterator::First);
 
 CEngineObject* ObjectListIterator::Next() {
     ObjectNode* node = position;
@@ -499,5 +469,3 @@ CEngineObject* ObjectListIterator::Next() {
     position = node->next;
     return node->data;
 }
-EI_REWRITTEN(0x004BAA30, ObjectListIterator::Next);
-EI_REWRITTEN(0x00404960, ObjectListIterator::Next);

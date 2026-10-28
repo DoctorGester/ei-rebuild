@@ -8,7 +8,6 @@
 #include "object_tables.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "logic_settings.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
@@ -168,7 +167,6 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     }
     return changed;
 }
-EI_REWRITTEN(0x00523740, UnitVitals::Regenerate);
 
 // --- Body slots ------------------------------------------------------------------------------
 
@@ -196,14 +194,12 @@ bool UnitStats::HealSlots(float scale, float amount) {
     }
     return true;
 }
-EI_REWRITTEN(0x00525800, UnitStats::HealSlots);
 
 BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
     HealSlots(vitals->maxHitPoints, amount);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
 }
-EI_REWRITTEN(0x00525900, UnitStats::Heal);
 
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
     float ratio = maxHitPoints / slots[1].share;
@@ -216,7 +212,6 @@ void UnitStats::SetSlotMaxima(float maxHitPoints) {
         slot.current = SelectLess(m, current, m, current);
     }
 }
-EI_REWRITTEN(0x00525A00, UnitStats::SetSlotMaxima);
 
 void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
     float ratio = maxHitPoints / slots[1].share;
@@ -231,7 +226,6 @@ void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
         slot.current = SelectLess(m, s, m, s);
     }
 }
-EI_REWRITTEN(0x00525A70, UnitStats::ScaleSlotMaxima);
 
 void* UnitStats::RefillSlots() {
     for (UnitStatSlot& slot : slots) {
@@ -240,7 +234,6 @@ void* UnitStats::RefillSlots() {
     UnitStatSlot* end = slots + 6;
     return &end->maximum;   // where the loop pointer stops
 }
-EI_REWRITTEN(0x00525AF0, UnitStats::RefillSlots);
 
 void* UnitStats::RestoreSlots() {
     for (UnitStatSlot& slot : slots) {
@@ -252,13 +245,10 @@ void* UnitStats::RestoreSlots() {
     UnitStatSlot* end = slots + 6;
     return &end->kind;   // where the loop pointer stops
 }
-EI_REWRITTEN(0x00523C80, UnitStats::RestoreSlots);
 
 float UnitStats::LegsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotLegs)); }
-EI_REWRITTEN(0x00524060, UnitStats::LegsFactor);
 
 float UnitStats::ArmsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotArms)); }
-EI_REWRITTEN(0x00524110, UnitStats::ArmsFactor);
 
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
@@ -267,7 +257,6 @@ int UnitStats::MovementState(char checkLoad) {
     if (lowest < GameLogicSettings().damageLevelRunLimit) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005241C0, UnitStats::MovementState);
 
 // --- Maxima ----------------------------------------------------------------------------------
 
@@ -276,7 +265,6 @@ double UnitStats::HitPointCurve() {
     double scaled = curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
     return (LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled;
 }
-EI_REWRITTEN(0x00523E80, UnitStats::HitPointCurve);
 
 double UnitStats::ManaCurve() {
     double curve =
@@ -284,7 +272,6 @@ double UnitStats::ManaCurve() {
     double scaled = curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
     return (LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled;
 }
-EI_REWRITTEN(0x00523F50, UnitStats::ManaCurve);
 
 double UnitStats::RateValue() {
     float base = stat18 * kPointTwo + kTen;
@@ -292,18 +279,14 @@ double UnitStats::RateValue() {
     float arms = ArmsFactor(1);
     return (level * kPercentB + kOne) * arms * base;
 }
-EI_REWRITTEN(0x00524320, UnitStats::RateValue);
 
 float __stdcall ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
-EI_REWRITTEN(0x00523D30, ScaleDamageByEffects);
 
 double __stdcall HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
-EI_REWRITTEN(0x00523DB0, HitPointEffectScale);
 
 float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value) {
     return ScaledAtLeastOne(unit, kHitPointEffect, value);
 }
-EI_REWRITTEN(0x00523E00, ScaleHitPointsByEffects);
 
 void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     if (IsTextKey(unit->id_) & 0xFF) {
@@ -318,7 +301,6 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     vitals->hitPoints = static_cast<float>(hitPoints);
     if (hitPoints > kZero) flags |= 8;
 }
-EI_REWRITTEN(0x005243D0, UnitStats::RecomputeHitPoints);
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -418,7 +400,6 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     rate = SelectLess(kOne, h, h, kOne);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
 }
-EI_REWRITTEN(0x00524560, UnitStats::Recompute);
 
 // --- Experience ------------------------------------------------------------------------------
 
@@ -434,13 +415,10 @@ void AddPending(UnitStats* stats, double gain) {
 } // namespace
 
 void UnitStats::AddExperience(float amount) { AddPending(this, amount); }
-EI_REWRITTEN(0x00523920, UnitStats::AddExperience);
 
 void UnitStats::AddScaledExperience(float amount) { AddPending(this, IntelligenceFactor(&stat20) * amount); }
-EI_REWRITTEN(0x00523960, UnitStats::AddScaledExperience);
 
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
-EI_REWRITTEN(0x00523C20, UnitStats::TakePendingExperience);
 
 namespace {
 void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
@@ -494,15 +472,12 @@ void UnitStats::GainExperience(CUnit* unit, float amount) {
     AddPending(this, IntelligenceFactor(&stat20) * amount);
     RefreshMaxima(this, vitals, unit);
 }
-EI_REWRITTEN(0x005239B0, UnitStats::GainExperience);
 
 bool UnitStats::RaiseSkill(int skill, int amount, CUnit* unit) { return RaiseLevel(this, skills, skill, amount, unit); }
-EI_REWRITTEN(0x00528AB0, UnitStats::RaiseSkill);
 
 bool UnitStats::RaiseAttribute(int index, int amount, CUnit* unit) {
     return RaiseLevel(this, attributes, index, amount, unit);
 }
-EI_REWRITTEN(0x00528DA0, UnitStats::RaiseAttribute);
 
 bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
@@ -524,7 +499,6 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     unit->MarkChanged(4);
     return true;
 }
-EI_REWRITTEN(0x00529090, UnitStats::RaiseStrength);
 
 bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
@@ -555,7 +529,6 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     unit->MarkChanged(4);
     return true;
 }
-EI_REWRITTEN(0x00529220, UnitStats::RaiseDexterity);
 
 bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
@@ -565,7 +538,5 @@ bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     Recompute(vitals, unit);
     return true;
 }
-EI_REWRITTEN(0x00529400, UnitStats::RaiseIntelligence);
 
 double UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }
-EI_REWRITTEN(0x005282D0, UnitStats::SkillLevelValueCopy);

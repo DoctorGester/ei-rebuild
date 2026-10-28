@@ -2,7 +2,6 @@
 #include "script.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_arrays.h"
@@ -49,7 +48,6 @@ void ScriptVars::ResetValues() {
         group.size = 0;
     }
 }
-EI_REWRITTEN(0x004B35E0, ScriptVars::ResetValues);
 
 BOOL ScriptVars::HasVariable(const char* name) const {
     if (FindName(floatNames, name) >= 0) return 1;
@@ -58,7 +56,6 @@ BOOL ScriptVars::HasVariable(const char* name) const {
     if (FindName(groupNames, name) >= 0) return 1;
     return 0;
 }
-EI_REWRITTEN(0x004B36D0, ScriptVars::HasVariable);
 
 BOOL ScriptVars::FindVariable(const char* name, int* index, int* type) const {
     *type = kScriptFloat;
@@ -75,13 +72,11 @@ BOOL ScriptVars::FindVariable(const char* name, int* index, int* type) const {
     *index = found;
     return found >= 0;
 }
-EI_REWRITTEN(0x004B37D0, ScriptVars::FindVariable);
 
 void ScriptVars::RemoveDeletedObjects() {
     for (int i = 0; i < objects.size; ++i) objects.data[i].ReleaseIfDeleted();
     for (int g = 0; g < groups.size; ++g) groups.data[g].RemoveDeleted();
 }
-EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
@@ -147,8 +142,6 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
     if (result) params += letter;
     return result;
 }
-EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameter);
-
 
 void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
     for (int k = 0; k < bindings->size; ++k) {
@@ -171,7 +164,6 @@ void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
         }
     }
 }
-EI_REWRITTEN(0x004B3F60, SSCCmd::SetParameters);
 
 void SSCCmd::Save(ScriptStream* stream) const {
     stream->Write(&id, 4);
@@ -212,4 +204,3 @@ void SSCCmd::Save(ScriptStream* stream) const {
     if (calledScript) scriptIndex = calledScript->id;
     stream->Write(&scriptIndex, 4);
 }
-EI_REWRITTEN(0x004B6360, SSCCmd::Save);

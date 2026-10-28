@@ -9,7 +9,6 @@
 #include "party.h"
 #include "resource_local.h"   // FillStream
 
-#include "ei/hook.h"
 #include "record_vectors.h"
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
@@ -47,7 +46,6 @@ void PartyManagerEntry::Destruct() {
 // ---- Archive chunks -------------------------------------------------------------------------------
 
 void ChunkArchive::IntField(int id, int* value) { Field(id, value, 4); }
-EI_REWRITTEN(0x004AD2C0, ChunkArchive::IntField);
 
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;
@@ -82,7 +80,6 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     }
     LeaveChunk();
 }
-EI_REWRITTEN(0x004ACEC0, ChunkArchive::SerializeParties);
 
 void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void*) {
     if (!EnterChunk(id)) return;
@@ -126,7 +123,6 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
     }
     LeaveChunk();
 }
-EI_REWRITTEN(0x004AD0C0, ChunkArchive::SerializePartyEntries);
 
 void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void*) {
     if (!EnterChunk(id)) return;
@@ -147,7 +143,6 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
     }
     LeaveChunk();
 }
-EI_REWRITTEN(0x004ACDC0, ChunkArchive::SerializeClassTemplates);
 
 void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     if (ar->EnterChunk(1)) {
@@ -172,7 +167,6 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     ar->CStringField(2, &text0C);
     ar->CStringField(3, &text10);
 }
-EI_REWRITTEN(0x004A64B0, NamedPartyRecords::Serialize);
 
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
@@ -189,7 +183,6 @@ void PartyRecord::Serialize(ChunkArchive* ar) {
         p->LoadParty(&local, 1);
     }
 }
-EI_REWRITTEN(0x004A5AF0, PartyRecord::Serialize);
 
 void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(1, &type, 4);
@@ -215,8 +208,6 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     }
     ar->Field(6, &flag38, 1);
 }
-EI_REWRITTEN(0x004A6C40, ClassTemplate::Serialize);
-
 
 namespace {
 
@@ -246,14 +237,12 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
     }
     variables.Destroy();
 }
-EI_REWRITTEN(0x004A6050, NamedPartyRecords::BeginRedeploy);
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {
     if (CParty* found = Find(text0C.c_str())) CopyParty(party, found);
     else party->Clear(1, 0);
     text10 = text0C;
 }
-EI_REWRITTEN(0x004A6360, NamedPartyRecords::EndRedeploy);
 
 // ---- Load and save --------------------------------------------------------------------------------
 
@@ -286,7 +275,6 @@ void PartyManager::Load(CMemoryStream* from) {
     ArchiveManager(this, &archive);
     archive.Close(&local);
 }
-EI_REWRITTEN(0x004A8310, PartyManager::Load);
 
 void PartyManager::Save(CMemoryStream* to) {
     CMemoryStream local;
@@ -296,4 +284,3 @@ void PartyManager::Save(CMemoryStream* to) {
     archive.Close(&local);
     to->WriteSized(&local);
 }
-EI_REWRITTEN(0x004A8560, PartyManager::Save);

@@ -1,7 +1,6 @@
 // STLport basic_string<char> members (stlp_string.h) registered at the library addresses.
 #include "stlp_string.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <algorithm>
@@ -77,10 +76,3 @@ void __fastcall ThrowOutOfRange() {
 }
 
 } // namespace stlp
-
-EI_REWRITTEN(0x004F5DF0, StringAbi::ConstructAt);
-EI_REWRITTEN(0x0041F460, StringAbi::ConstructDefault);
-EI_REWRITTEN(0x006B6CC0, StringAbi::ConstructDefault);
-EI_REWRITTEN(0x004410A0, stlp::ThrowOutOfRange);
-EI_REWRITTEN(0x00445780, StringAbi::Less);
-EI_REWRITTEN(0x004DDC90, StringAbi::DeletingDestructor);

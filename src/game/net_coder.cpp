@@ -4,7 +4,6 @@
 
 #include "game_data.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -44,7 +43,6 @@ void BufferCursor::PutBits(std::uint32_t value, std::uint8_t count) {
         ++p;
     }
 }
-EI_REWRITTEN(0x004301E0, BufferCursor::PutBits);
 
 std::uint32_t BufferCursor::GetBit() {
     if (bits < 1) {
@@ -56,7 +54,6 @@ std::uint32_t BufferCursor::GetBit() {
     --bits;
     return bit;
 }
-EI_REWRITTEN(0x00431040, BufferCursor::GetBit);
 
 std::uint32_t BufferCursor::GetBits(std::uint32_t count) {
     while (bits < count) {
@@ -69,19 +66,16 @@ std::uint32_t BufferCursor::GetBits(std::uint32_t count) {
     bits = static_cast<std::uint8_t>(bits - static_cast<std::uint8_t>(count));
     return value;
 }
-EI_REWRITTEN(0x00430FE0, BufferCursor::GetBits);
 
 void BufferCursor::WriteBytes(const void* from, std::uint32_t size) {
     std::memcpy(p, from, size);
     p += size;
 }
-EI_REWRITTEN(0x00430930, BufferCursor::WriteBytes);
 
 void BufferCursor::ReadBytes(void* to, std::uint32_t size) {
     std::memcpy(to, p, size);
     p += size;
 }
-EI_REWRITTEN(0x00430F60, BufferCursor::ReadBytes);
 
 void BufferCursor::Reset(std::uint8_t* at, std::uint32_t, std::uint32_t) {
     p = at;
@@ -103,7 +97,6 @@ std::uint32_t BufferCursor::EndWrite() {
     sink = nullptr;
     return result;
 }
-EI_REWRITTEN(0x00430F90, BufferCursor::EndWrite);
 
 std::uint32_t BufferCursor::End() {
     FlushBits();
@@ -111,7 +104,6 @@ std::uint32_t BufferCursor::End() {
     sink->cur = p;
     return sink->Commit();
 }
-EI_REWRITTEN(0x0041D930, BufferCursor::End);
 
 // --- Code tables ----------------------------------------------------------------------------------
 
@@ -175,8 +167,6 @@ void __cdecl InitCodeTables() {
         }
     }
 }
-EI_REWRITTEN(0x0042FAE0, InitCodeTables);
-
 
 void CoderState::EncodeMatch(std::int32_t at) {
     std::uint32_t offset = (pos - static_cast<std::uint32_t>(matchLen) - static_cast<std::uint32_t>(at) - 1) & kWindowMask;
@@ -210,7 +200,6 @@ void CoderState::EncodeMatch(std::int32_t at) {
         out.PutBits(static_cast<std::uint32_t>(value - 0x562), 12);
     }
 }
-EI_REWRITTEN(0x0042FD10, CoderState::EncodeMatch);
 
 namespace {
 
@@ -322,8 +311,6 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     out.EndWrite();
     reader.End();
 }
-EI_REWRITTEN(0x00430450, CoderState::Compress);
-
 
 namespace {
 
@@ -399,26 +386,16 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     out.EndWrite();
     reader.End();
 }
-EI_REWRITTEN(0x00430960, CoderState::Decompress);
 
 // --- The fixed view and the buffer base (BufferView, GameBuffer; net_coder.h) ----------------------------
 
 // Nothing to reserve (the view's first two virtuals).
 void BufferView::ReserveRead(std::int32_t) {}
-EI_REWRITTEN(0x004DA580, BufferView::ReserveRead);
 void BufferView::ReserveWrite(std::int32_t) {}
-EI_REWRITTEN(0x004DA590, BufferView::ReserveWrite);
 
 std::uint8_t* BufferView::Seek(std::int32_t position) {
     cur = begin + position;
     return cur;
 }
-EI_REWRITTEN(0x0047D930, BufferView::Seek);
 
 BufferView::~BufferView() {}
-EI_REWRITTEN_SPECIAL(0x0047D960, BufferView::~BufferView);
-EI_REWRITTEN_SPECIAL(0x004DA850, BufferView::~BufferView);
-EI_REWRITTEN_SPECIAL(0x0047D940, BufferView::~BufferView);
-
-// The base's deleting destructor: nothing of its own.
-EI_REWRITTEN_SPECIAL(0x0047D910, GameBuffer::~GameBuffer);

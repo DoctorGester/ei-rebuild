@@ -7,7 +7,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <bit>
@@ -34,8 +33,6 @@ MapEffect* MapEffect::Construct() {
     ending = 0;
     return this;
 }
-EI_REWRITTEN(0x00688510, MapEffect::Construct);
-
 
 MapEffect CSpell::Effect() const {
     MapEffect record;
@@ -75,17 +72,11 @@ CSpell::CSpell() {
     skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
 }
-EI_REWRITTEN_SPECIAL(0x0068B1F0, CSpell::CSpell);
 
 CSpell::~CSpell() { CSpell::Destroy(); }
-EI_REWRITTEN_SPECIAL(0x0068B2C0, CSpell::~CSpell);
-EI_REWRITTEN_SPECIAL(0x0068B2A0, CSpell::~CSpell);
 
 const char* CSpell::GetClassName() { return "CSpell"; }
 int CSpell::GetClassId() { return 0x4F; }
-EI_REWRITTEN(0x0068B280, CSpell::GetClassName);
-EI_REWRITTEN(0x0068B290, CSpell::GetClassId);
-
 
 CSpellEffect::CSpellEffect() {
     target = nullptr;
@@ -101,7 +92,6 @@ CSpellEffect::CSpellEffect() {
     silentEnd = 0;
     footprintStamped = 0;
 }
-EI_REWRITTEN_SPECIAL(0x0067E510, CSpellEffect::CSpellEffect);
 
 CSpellEffect::~CSpellEffect() {
     if (footprintStamped) UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 0);
@@ -119,8 +109,6 @@ CSpellEffect::~CSpellEffect() {
     if (target) target->Release();
     target = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x0067E5D0, CSpellEffect::~CSpellEffect);
-EI_REWRITTEN_SPECIAL(0x0067E5B0, CSpellEffect::~CSpellEffect);   // deleting
 
 // --- The cast's start values and the object it forgets ------------------------------------
 
@@ -138,7 +126,6 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster,
     state = 0;
     silentEnd = flagA4;
 }
-EI_REWRITTEN(0x0067ECB0, CSpellEffect::Init);
 
 BOOL CSpellEffect::Forget(CEngineObject* object) {
     if (target == object) return 0;
@@ -148,7 +135,6 @@ BOOL CSpellEffect::Forget(CEngineObject* object) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0067EF00, CSpellEffect::Forget);
 
 // --- An effect's tick --------------------------------------------------------------
 
@@ -156,4 +142,3 @@ int MapEffect::Tick() {
     --ticksLeft;
     return ticksLeft > 0 ? 1 : 0;
 }
-EI_REWRITTEN(0x00688530, MapEffect::Tick);

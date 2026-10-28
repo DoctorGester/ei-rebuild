@@ -3,8 +3,6 @@
 #include "combat.h"
 #include "lib/mfc_array.h"
 
-
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <bit>
@@ -60,7 +58,6 @@ void AnimationSteps::AddStep(int animation, int duration) {
     last.animation = static_cast<std::uint8_t>(animation);
     last.duration = duration;
 }
-EI_REWRITTEN(0x00544CE0, AnimationSteps::AddStep);
 
 void AnimationSteps::AddEmote(int emote) {
     if (size == 0 || data[size - 1].variant != kNone) AppendBlank(this);
@@ -68,12 +65,10 @@ void AnimationSteps::AddEmote(int emote) {
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;
 }
-EI_REWRITTEN(0x00544D50, AnimationSteps::AddEmote);
 
 void AnimationSteps::SetStepFlags(int value) {
     for (int i = 0; i < size; ++i) data[i].kind = value;
 }
-EI_REWRITTEN(0x00544DD0, AnimationSteps::SetStepFlags);
 
 int AnimationSteps::Duration() const {
     int total = 0;
@@ -83,7 +78,6 @@ int AnimationSteps::Duration() const {
     }
     return total;
 }
-EI_REWRITTEN(0x00544E40, AnimationSteps::Duration);
 
 bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     if (size != other->size) return false;
@@ -96,7 +90,6 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     }
     return true;
 }
-EI_REWRITTEN(0x00544E70, AnimationSteps::SameAs);
 
 void AnimationSteps::Load(CStream* stream) {
     int newCount = 0;
@@ -105,7 +98,6 @@ void AnimationSteps::Load(CStream* stream) {
     for (int i = 0; i < size; ++i) stream->Read(&data[i], sizeof(AnimationStep));
     stream->Read(&extra, sizeof(extra));
 }
-EI_REWRITTEN(0x00544EF0, AnimationSteps::Load);
 
 void AnimationSteps::Save(CStream* stream) {
     int written = size;
@@ -114,7 +106,6 @@ void AnimationSteps::Save(CStream* stream) {
     int last = extra;
     stream->Write(&last, sizeof(last));
 }
-EI_REWRITTEN(0x00544F60, AnimationSteps::Save);
 
 void __fastcall OrderPlanReset(OrderPlan* plan) {
     AnimationSteps& list = plan->animation;
@@ -134,4 +125,3 @@ void __fastcall OrderPlanReset(OrderPlan* plan) {
     plan->notSkill = 0;
     plan->castKind = 8;
 }
-EI_REWRITTEN(0x00544FD0, OrderPlanReset);

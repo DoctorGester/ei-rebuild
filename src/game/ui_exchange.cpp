@@ -11,7 +11,6 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "world_glue.h"
 #include "game_data.h"
@@ -42,10 +41,8 @@ void CExchangeScreen::Close() {
     descPanel_->Describe(nullptr);
     delete scratch_;   // the deleting destructor
 }
-EI_REWRITTEN(0x0062C8F0, CExchangeScreen::Close);
 
 void CExchangeScreen::OnMessageResult(int) {}
-EI_REWRITTEN(0x0062C920, CExchangeScreen::OnMessageResult);
 
 // --- the update ----------------------------------------------------------------------------------
 
@@ -62,7 +59,6 @@ void CExchangeScreen::Update() {
     ownOffer_->Money() = std::atoi(moneyField_->text_.c_str());
     net::ClientPublishParty(net::GameClient());
 }
-EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);
 
 // --- the left button -------------------------------------------------------------------------------
 
@@ -95,7 +91,6 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x0062CF70, CExchangeScreen::OnLButtonDown);
 
 // --- the exchange went through -------------------------------------------------------------------
 
@@ -108,7 +103,6 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
     LocalPlayerData()->Money() = money;
     GameRejoin();
 }
-EI_REWRITTEN(0x0062D210, CExchangeScreen::OnExchangeDone);
 
 // --- Create --------------------------------------------------------------------------------------
 
@@ -195,7 +189,6 @@ void CExchangeScreen::CreateScreen() {
     AddSurface(NewSurface(interface_, 0xD2, 0x10E));
     AddSurface(NewSurface(interface_, 0x6E, 0xAA));
 }
-EI_REWRITTEN(0x0062C250, CExchangeScreen::CreateScreen);
 
 // --- Draw ----------------------------------------------------------------------------------------
 
@@ -301,7 +294,6 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     AsContainer(this)->CUiContainer::Draw(pass);
     return 1;
 }
-EI_REWRITTEN(0x0062C9C0, CExchangeScreen::Draw);
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
 
@@ -312,7 +304,6 @@ constexpr int kOfferLimit = 8;
 } // namespace
 
 bool CExchangeScreen::CanMove(CItem*, int) { return true; }
-EI_REWRITTEN(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {   // CanMove here
@@ -338,4 +329,3 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         return;
     }
 }
-EI_REWRITTEN(0x0062D100, CExchangeScreen::MoveOffered);

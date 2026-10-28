@@ -2,8 +2,6 @@
 // server controller's copy, combat_save.cpp; the party's records, party_save.cpp). See unit.h.
 #include "unit.h"
 
-#include "ei/hook.h"
-
 namespace {
 // The size the block had in older saves, by format version.
 constexpr int kVersionFlagsOnly = 0x45;     // below: up to the flags (0x6F8)
@@ -21,7 +19,5 @@ int UnitStats::LoadFrom(CStream* stream) {
     else size = sizeof(UnitStats);
     return stream->Read(this, size);
 }
-EI_REWRITTEN(0x005287A0, UnitStats::LoadFrom);
 
 void UnitStats::SaveTo(CStream* stream) { stream->Write(this, sizeof(UnitStats)); }
-EI_REWRITTEN(0x00528800, UnitStats::SaveTo);

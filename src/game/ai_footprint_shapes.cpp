@@ -6,7 +6,6 @@
 #include "ai_map.h"
 #include "core_maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"
@@ -113,6 +112,3 @@ void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius
             AddCell(this, x, y);
         }
 }
-
-EI_REWRITTEN(0x005B2A00, FootprintCellSet::AlongDirection);
-EI_REWRITTEN(0x005B2760, FootprintCellSet::DiscAt);

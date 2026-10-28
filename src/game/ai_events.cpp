@@ -8,7 +8,6 @@
 #include "resource.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -45,7 +44,6 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     pool->vtable = mfc::impl::StaticListClass::Vtable();
     pool->RemoveAll();
 }
-EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 
 namespace {
 // The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
@@ -56,9 +54,6 @@ void __cdecl ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
     libcrt::AtExit(DestroyEventPool);
 }
-
-EI_REWRITTEN(0x005C8F90, ConstructEventPool);
-EI_REWRITTEN(0x005C8FB0, DestroyEventPool);
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).
@@ -90,7 +85,6 @@ void AIEventTable::Advance(int now) {
         slots[tick & kWheelMask][side] = nullptr;
     }
 }
-EI_REWRITTEN(0x005C9530, AIEventTable::Advance);
 
 void AIEventTable::ForgetUnit(CUnitServer* controller) {
     CUnit* unit = controller->unit;
@@ -108,7 +102,6 @@ void AIEventTable::ForgetUnit(CUnitServer* controller) {
         }
     }
 }
-EI_REWRITTEN(0x005C97B0, AIEventTable::ForgetUnit);
 
 void AIEventTable::Load(CStream* stream) {
     for (;;) {
@@ -145,7 +138,6 @@ void AIEventTable::Load(CStream* stream) {
         slot = event;
     }
 }
-EI_REWRITTEN(0x005CAE30, AIEventTable::Load);
 
 void AIEventTable::Save(CStream* stream) {
     for (int y = 0; y < height; ++y) {
@@ -170,7 +162,6 @@ void AIEventTable::Save(CStream* stream) {
     const char end = 0;
     stream->Write(&end, 1);
 }
-EI_REWRITTEN(0x005CAFA0, AIEventTable::Save);
 
 // ---- Setup for a map ----------------------------------------------------------------------------------
 
@@ -230,4 +221,3 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     archive->CMappedResource::Destroy();
     return 1;
 }
-EI_REWRITTEN(0x005C9310, AIEventTable::Setup);

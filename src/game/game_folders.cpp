@@ -4,8 +4,6 @@
 // initialisers' objects").
 #include "game_singletons.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 constinit lib::StaticObject<mfc::CString> g_registryRoot = /*007AF450*/ {};
@@ -53,14 +51,3 @@ void __cdecl ConstructDiscFolder() {
     g_discFolder.Construct();
     libcrt::AtExit(DestroyDiscFolder);
 }
-
-EI_REWRITTEN(0x0055E760, ConstructRegistryRoot);
-EI_REWRITTEN(0x0055E7A0, ConstructStartFolder);
-EI_REWRITTEN(0x0055E7E0, ConstructDataFolder);
-EI_REWRITTEN(0x0055E820, ConstructTextFolder);
-EI_REWRITTEN(0x0055E860, ConstructDiscFolder);
-EI_REWRITTEN(0x0055E780, DestroyRegistryRoot);
-EI_REWRITTEN(0x0055E7C0, DestroyStartFolder);
-EI_REWRITTEN(0x0055E800, DestroyDataFolder);
-EI_REWRITTEN(0x0055E840, DestroyTextFolder);
-EI_REWRITTEN(0x0055E880, DestroyDiscFolder);

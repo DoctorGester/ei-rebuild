@@ -4,7 +4,6 @@
 #include "ui.h"
 #include "ui_screens.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -41,7 +40,6 @@ CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum
     CUiScrollbar::SetPosition(0);
     accumulated_ = 0.0f;
 }
-EI_REWRITTEN_SPECIAL(0x0065AEA0, CUiScrollbar::CUiScrollbar);
 
 void CUiScrollbar::SetPosition(int position) {
     if (position < 0) position = 0;
@@ -63,7 +61,6 @@ void CUiScrollbar::SetPosition(int position) {
     thumb_.top = centre - 14;
     thumb_.bottom = centre + 14;
 }
-EI_REWRITTEN(0x0065B0C0, CUiScrollbar::SetPosition);
 
 void CUiScrollbar::SetRect(const RECT* rect) {
     rect_ = *rect;
@@ -91,9 +88,6 @@ void CUiScrollbar::SetRect(const RECT* rect) {
     position_ = position - 1;
     SetPosition(position);
 }
-EI_REWRITTEN(0x0065B490, CUiScrollbar::SetRect);
-
-EI_REWRITTEN_SPECIAL(0x0065BC30, CUiSlider::CUiSlider);
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
@@ -145,7 +139,6 @@ void CUiSlider::SetPosition(int position) {
     thumb_.left = centre - kSliderThumbHalfWidth;
     thumb_.right = centre + kSliderThumbHalfWidth;
 }
-EI_REWRITTEN(0x0065B730, CUiSlider::SetPosition);
 
 void CUiSlider::OnMouseMove(int, int x, int y) {
     if (state_ == kDragging) {
@@ -156,7 +149,3 @@ void CUiSlider::OnMouseMove(int, int x, int y) {
     }
     handled_ = true;
 }
-
-EI_REWRITTEN(0x0065B1A0, CUiScrollbar::OnMouseMove);
-EI_REWRITTEN(0x0065B430, CUiScrollbar::OnWheel);
-EI_REWRITTEN(0x0065B810, CUiSlider::OnMouseMove);

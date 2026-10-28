@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "library_trees.h"
 #include "lib/nan_audit.h"
@@ -55,14 +54,6 @@ std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= 
 float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<double>(a) + b) + c); }
 
 } // namespace
-
-
-// SetAtGrow / SetSize. The original's SetAtGrow(-1) stores through the null array it has just freed; ours does
-// too (data[-1] of null), both fault.
-EI_REWRITTEN(0x00519E80, AlignedPtrArray::SetAtGrow);
-
-EI_REWRITTEN(0x00519D70, AlignedPtrArray::SetSize);
-
 
 namespace {
 // The box being grown, as float bits (the original selects bits, never loading them twice).
@@ -138,8 +129,6 @@ void CObject3D::ComputeBounds() {
     bounds.center.y = centerY;
     bounds.center.z = centerZ;
 }
-EI_REWRITTEN(0x00518310, CObject3D::ComputeBounds);
-
 
 void CObject3D::SetFigureScale(const float* newScale) {
     EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
@@ -169,8 +158,6 @@ void CObject3D::SetFigureScale(const float* newScale) {
     if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);
     ComputeBounds();
 }
-EI_REWRITTEN(0x00517700, CObject3D::SetFigureScale);
-
 
 int CObject3D::AddPart(CFigureMesh* part) {
     for (int k = 0; k < parts.size; ++k)
@@ -182,8 +169,6 @@ int CObject3D::AddPart(CFigureMesh* part) {
     if (!attached) return 1;
     return Specific()->OnPartAdded(part);
 }
-EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
-
 
 void CObject3D::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return;
@@ -214,4 +199,3 @@ void CObject3D::LoadFigures() {
     Specific()->ApplyMaterials();
     flags_ |= kFlagFiguresLoaded;
 }
-EI_REWRITTEN(0x00517500, CObject3D::LoadFigures);

@@ -6,7 +6,6 @@
 #include "core_maths.h"
 #include "core_transform.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 
@@ -256,11 +255,3 @@ void CTransformObject::SetHeading(const float* dir) {
     const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(kHeadingOffset)));
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
-
-EI_REWRITTEN(0x00401570, CTransformObject::WorldMatrix);
-EI_REWRITTEN(0x00401E50, CTransformObject::Rotate);
-EI_REWRITTEN(0x00402220, CTransformObject::SetHeading);
-EI_REWRITTEN(0x00401680, CTransformObject::TiltTowards);
-EI_REWRITTEN(0x00401940, CTransformObject::TurnTowards);
-EI_REWRITTEN(0x00401B50, CTransformObject::RollTowards);
-EI_REWRITTEN(0x00401F00, CTransformObject::TurnUpTowards);

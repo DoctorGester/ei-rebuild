@@ -7,7 +7,6 @@
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
 #include "game_hashes.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -85,7 +84,6 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     nearby.RemoveAll();
     return blocker;
 }
-EI_REWRITTEN(0x005B7BB0, CAIMap::BlockingUnitAt);
 
 const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
@@ -98,7 +96,6 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->climb = climb.data + climb.size / 2;
     return out->climb;
 }
-EI_REWRITTEN(0x005B9510, CAIMap::CostContext);
 
 void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
     // The original also asks the unit for its movement speeds twice and divides by one of them, but never uses
@@ -131,7 +128,6 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
         node = next;
     }
 }
-EI_REWRITTEN(0x005BA400, CAIMap::SetStepSpeeds);
 
 bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
@@ -150,8 +146,6 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];
     return cost > 0 && cost < kExpensive;
 }
-EI_REWRITTEN(0x005BA5A0, CAIMap::StandsOnCheapCell);
-
 
 namespace {
 void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
@@ -202,7 +196,6 @@ void FogGrid::Grow(int x, int y, int n) {
     gamecrt::operator_delete(old.data);
     gamecrt::operator_delete(old.rows);
 }
-EI_REWRITTEN(0x005C8D40, FogGrid::Grow);
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
                               float targetHeight, FogGrid* grid) {
@@ -244,7 +237,6 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
         }
     }
 }
-EI_REWRITTEN(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
 // The shape cache's map (UnitShapes()->shapes): an STLport hash_map<ShapeHandle, RefPtr>, the game's
@@ -266,13 +258,11 @@ ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
     value.Share(shared->ptr);
     return this;
 }
-EI_REWRITTEN(0x005BE370, ShapePair::Construct);
 
 void __fastcall DestroyShapePair(ShapePair* pair) {
     pair->value.Destroy();
     ReleaseHandle(&pair->key);
 }
-EI_REWRITTEN(0x005BE280, DestroyShapePair);
 
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeHandle handle;
@@ -309,4 +299,3 @@ void* CAIMap::UnitShape(float standingHeight) {
     ReleaseHandle(&handle);
     return shape;
 }
-EI_REWRITTEN(0x005B8350, CAIMap::UnitShape);

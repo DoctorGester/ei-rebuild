@@ -4,7 +4,6 @@
 
 #include "ai_map.h"   // FootprintPart
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 namespace {
@@ -25,27 +24,22 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
         ++attached->refCount_;
     }
 }
-EI_REWRITTEN(0x005161A0, CObject3D::SetSpecific);
 
 void CObject3D::SetPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ |= mask;
 }
-EI_REWRITTEN(0x00517910, CObject3D::SetPartFlags);
 
 void CObject3D::ClearPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ &= ~mask;
 }
-EI_REWRITTEN(0x00517950, CObject3D::ClearPartFlags);
 
 void CObject3D::SetPartsFlatColour(std::uint32_t value) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour_ = value;
 }
-EI_REWRITTEN(0x00519500, CObject3D::SetPartsFlatColour);
 
 void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular_ = value;
 }
-EI_REWRITTEN(0x00519530, CObject3D::SetPartsFlatSpecular);
 
 void CObject3D::SetAnimationState(CFigureAnimationState* state) {
     if (animation) {
@@ -58,28 +52,23 @@ void CObject3D::SetAnimationState(CFigureAnimationState* state) {
         animation->owner = this;
     }
 }
-EI_REWRITTEN(0x005187D0, CObject3D::SetAnimationState);
 
 void CObject3D::PlayAnimation(FigureAnimation* figureAnimation, int) {
     if (animation) animation->Play(figureAnimation);
 }
-EI_REWRITTEN(0x005187B0, CObject3D::PlayAnimation);
 
 int CObject3D::PlayAnimationSecond(int, FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
     return 1;
 }
-EI_REWRITTEN(0x00518840, CObject3D::PlayAnimationSecond);
 
 int CObject3D::AttachPartMesh(CEngineObject* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }
-EI_REWRITTEN(0x00518820, CObject3D::AttachPartMesh);
 
 void CObject3D::RestartPose() {
     if (!animation) return;
     animation->SetTime(kFirstFrame);
     animation->PlaceIfChanged();
 }
-EI_REWRITTEN(0x00518860, CObject3D::RestartPose);

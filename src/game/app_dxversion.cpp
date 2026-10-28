@@ -2,7 +2,6 @@
 // up to 0x800; as in the SDK sample, some interfaces are never released. See docs/notes/app.md. With the
 // system's DDRAW.DLL (none in the exe's folder, such as dgVoodoo's) nothing is probed and the result is 0x800:
 // the probe cost half a second and failed now and then with several games on the machine.
-#include "ei/hook.h"
 #include "game_strings.h"
 #include "lib/gameapi.h"
 
@@ -167,6 +166,5 @@ std::uint32_t __cdecl GetDxVersion() {
     gameapi::FreeLibrary(d3d8);
     return 0x800;
 }
-EI_REWRITTEN(0x0045E310, GetDxVersion);
 
 } // namespace app

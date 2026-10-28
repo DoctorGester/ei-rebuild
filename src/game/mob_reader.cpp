@@ -15,7 +15,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -138,7 +137,6 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CSt
     } while (size_ != consumed_);
     return flag;
 }
-EI_REWRITTEN(0x00481F00, MobFile::ReadChunks);
 
 bool MobFile::Load(void*, int keepIds) {
     MobRecords records;
@@ -185,6 +183,5 @@ bool MobFile::Load(void*, int keepIds) {
     records.byId.Destroy();
     return true;
 }
-EI_REWRITTEN(0x00481660, MobFile::Load);
 
 } // namespace mapspec

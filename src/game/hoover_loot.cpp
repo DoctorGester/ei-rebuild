@@ -12,7 +12,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 
@@ -109,4 +108,3 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
     cunit->flags_ |= 0x100000;
     return 1;
 }
-EI_REWRITTEN(0x00461CB0, CHoover::CollectLoot);

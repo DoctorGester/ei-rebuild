@@ -12,7 +12,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "ei/x87.h"
@@ -81,8 +80,6 @@ void AIViewer::Prepare(CUnit* self) {
     facing = -axis;
 }
 
-EI_REWRITTEN(0x005CA410, AIViewer::Prepare);
-
 void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
     self->flags_ |= kFlagNearbyListed;
@@ -114,8 +111,6 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         }
     }
 }
-
-EI_REWRITTEN(0x005CA1D0, AIViewer::Refresh);
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = self->ServerController();
@@ -185,8 +180,6 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     }
 }
 
-EI_REWRITTEN(0x005CA5A0, AIViewer::See);
-
 void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
@@ -237,8 +230,6 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     See(self, memory);
 }
 
-EI_REWRITTEN(0x005CAA00, AIViewer::Update);
-
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     Vector3 axis;
     seer->localRotation_.AxisY(&axis);
@@ -266,4 +257,3 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     float peripheral = mine->stats.peripheralRange;
     if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
 }
-EI_REWRITTEN(0x005CD210, MarkSightCells);

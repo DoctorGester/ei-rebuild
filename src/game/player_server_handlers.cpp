@@ -28,7 +28,6 @@
 #include "lib/text_case.h"
 #include "lib/mfc_slots.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -93,9 +92,6 @@ void __cdecl ConstructReceivedMessages() {
     new (&*g_receivedMessages) CMemoryStream();
     libcrt::AtExit(DestroyReceivedMessages);
 }
-
-EI_REWRITTEN(0x0066C4D0, ConstructReceivedMessages);
-EI_REWRITTEN(0x0066C520, DestroyReceivedMessages);
 
 // --- The leader died ----------------------------------------------------------------------
 
@@ -301,14 +297,6 @@ int CPlayerServer::OnUseOrder() {
     return 1;
 }
 
-EI_REWRITTEN(0x0066F4C0, CPlayerServer::OnLeaderDied);
-EI_REWRITTEN(0x00670670, UseOrderDistanceSquared);
-EI_REWRITTEN(0x006706A0, AIPath::Construct);
-EI_REWRITTEN(0x00670730, AIPath::TargetPoint);
-EI_REWRITTEN(0x00670760, AIOrder::MakeUse);
-EI_REWRITTEN(0x006707D0, AIOrder::AimPoint);
-EI_REWRITTEN(0x00670310, CPlayerServer::OnUseOrder);
-
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
 namespace {
@@ -398,7 +386,6 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
         offsets->data[i] = Vector3{dx, dy, 0.0f};
     }
 }
-EI_REWRITTEN(0x0066FD70, FormationOffsets);
 
 void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (state_ != 1) return;
@@ -432,7 +419,6 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     out_.Write(&entrance, 4);
     Flush();
 }
-EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
@@ -449,7 +435,6 @@ void CPlayerServer::LeaveAndFlush() {
     }
     Flush();
 }
-EI_REWRITTEN(0x0066D020, CPlayerServer::LeaveAndFlush);
 
 int CPlayerServer::OnRefreshParty() {
     Owner()->ForgetKnownObjects();
@@ -589,7 +574,6 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
     }
     return 1;
 }
-EI_REWRITTEN(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
     PlayerLoginMessage login;
@@ -640,19 +624,6 @@ int CPlayerServer::OnLogin() {
     state_ = 1;
     return 1;
 }
-EI_REWRITTEN(0x0066F890, CPlayerServer::OnLogin);
-
-EI_REWRITTEN(0x0066FAA0, CPlayerServer::OnRefreshParty);
-EI_REWRITTEN(0x00670C20, CPlayerServer::OnTakeExit);
-EI_REWRITTEN(0x00670DA0, CPlayerServer::OnJoined);
-EI_REWRITTEN(0x00670E00, CPlayerServer::OnLeaveToZone);
-EI_REWRITTEN(0x00670EB0, CPlayerServer::OnBriefingDone);
-EI_REWRITTEN(0x00670F50, CPlayerServer::OnNewParty);
-EI_REWRITTEN(0x00671060, CPlayerServer::OnResume);
-EI_REWRITTEN(0x0066FFF0, CPlayerServer::OnWalk);
-EI_REWRITTEN(0x0066FBD0, CPlayerServer::OnGoTo);
-EI_REWRITTEN(0x00670190, CPlayerServer::OnAttack);
-EI_REWRITTEN(0x00670B60, CPlayerServer::OnPartyUpdate);
 
 // --- Party resends, message 0x19 -----------------------------------------------------------
 
@@ -670,7 +641,6 @@ void CPlayerServer::SendPartyUpdate() {
     out_.Write(&type, 1);
     out_.WriteSized(&block);
 }
-EI_REWRITTEN(0x0066F0C0, CPlayerServer::SendPartyUpdate);
 
 void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
@@ -680,7 +650,6 @@ void CPlayerServer::ResendParty() {
     SendParty();
     TheServerWorld()->ClearPlayerItems(player);
 }
-EI_REWRITTEN(0x0066F450, CPlayerServer::ResendParty);
 
 void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     std::uint8_t type = kMessage19;
@@ -688,4 +657,3 @@ void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     out_.Write(&a, 1);
     out_.Write(&b, 4);
 }
-EI_REWRITTEN(0x0066F840, CPlayerServer::SendPair19);

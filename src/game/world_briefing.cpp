@@ -22,7 +22,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "game_flow_data.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -123,9 +122,6 @@ using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
 void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
 void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 
-EI_REWRITTEN(0x005809C0, DestroyQuestFiles);
-EI_REWRITTEN(0x00581090, DestroyQuestFolders);
-
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
@@ -212,7 +208,6 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     }
     return true;
 }
-EI_REWRITTEN(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
@@ -305,12 +300,3 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     if (found) texts->ReadLine(&name, 1);
     return std::construct_at(out, name);
 }
-
-EI_REWRITTEN(0x00580840, GameFlow::OnVariableChanged);
-EI_REWRITTEN(0x005810A0, GameFlow::RegisterQuests);
-EI_REWRITTEN(0x005814C0, SessionMapNameInto);
-EI_REWRITTEN(0x0057FC90, BriefingSpeakerInto);
-EI_REWRITTEN(0x00580040, GameFlow::ForgetBriefing);
-EI_REWRITTEN(0x00580F10, UnloadQuestTexts);
-EI_REWRITTEN(0x0057FDE0, BriefingVariableInto);
-EI_REWRITTEN(0x0057FF40, GameFlow::MarkBriefing);

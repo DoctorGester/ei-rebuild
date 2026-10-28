@@ -7,8 +7,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -61,7 +59,6 @@ CItem* CItem::Clone(CSpellManager* spells) {
     copy->Release();
     return nullptr;
 }
-EI_REWRITTEN(0x0069FF70, CItem::Clone);
 
 BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
@@ -127,14 +124,6 @@ BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-EI_REWRITTEN(0x0069FFC0, CItem::CopyTo);
-EI_REWRITTEN(0x006A0730, CItemWeapon::CopyTo);
-EI_REWRITTEN(0x006A3140, CItemArmor::CopyTo);
-EI_REWRITTEN(0x006A3C50, CItemQuick::CopyTo);
-EI_REWRITTEN(0x006A4540, CItemQuest::CopyTo);
-EI_REWRITTEN(0x006A4B50, CItemLoot::CopyTo);
-EI_REWRITTEN(0x006A57F0, CItemSpell::CopyTo);
-
 // --- The party's items --------------------------------------------------------------------------
 
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
@@ -154,7 +143,6 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     ++copy->refCount_;
     return copy;
 }
-EI_REWRITTEN(0x00661DB0, CParty::AddItem);
 
 CItem* CParty::RemoveItem(CItem* item, int all) {
     for (int i = 0; i < items_.size; ++i) {
@@ -170,7 +158,6 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00661F30, CParty::RemoveItem);
 
 namespace {
 constexpr int kQuestItemClassId = 0x14;   // CItemQuest
@@ -182,33 +169,23 @@ void CParty::RemoveQuestItems() {
         if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
     }
 }
-EI_REWRITTEN(0x00661FB0, CParty::RemoveQuestItems);
 
 void CParty::ReleaseAllItems() {
     for (int i = 0; i < items_.size; ++i) items_.data[i]->Release();
     items_.SetSize(0, -1);
 }
-EI_REWRITTEN(0x00661FE0, CParty::ReleaseAllItems);
 
 // --- The party unit records' item lists ---------------------------------------------------------
 
 CItem* PartyUnitRecord::AddWeapon(CItem* item) { return AddEntry(weapons, item); }
-EI_REWRITTEN(0x006608D0, PartyUnitRecord::AddWeapon);
 CItem* PartyUnitRecord::AddQuickItem(CItem* item) { return AddEntry(quickItems, item); }
-EI_REWRITTEN(0x00660AB0, PartyUnitRecord::AddQuickItem);
 CItem* PartyUnitRecord::AddArmor(CItem* item) { return AddEntry(armor, item); }
-EI_REWRITTEN(0x00660C90, PartyUnitRecord::AddArmor);
 CItem* PartyUnitRecord::AddSpell(CItem* item) { return AddEntry(spells, item); }
-EI_REWRITTEN(0x00660E70, PartyUnitRecord::AddSpell);
 
 void PartyUnitRecord::RemoveWeapon(CItem* entry) { RemoveEntry(weapons, entry); }
-EI_REWRITTEN(0x00660A50, PartyUnitRecord::RemoveWeapon);
 void PartyUnitRecord::RemoveQuickItem(CItem* entry) { RemoveEntry(quickItems, entry); }
-EI_REWRITTEN(0x00660C30, PartyUnitRecord::RemoveQuickItem);
 void PartyUnitRecord::RemoveArmor(CItem* entry) { RemoveEntry(armor, entry); }
-EI_REWRITTEN(0x00660E10, PartyUnitRecord::RemoveArmor);
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
-EI_REWRITTEN(0x00660FF0, PartyUnitRecord::RemoveSpell);
 
 // --- The weight a unit record carries ---------------------------------------------
 
@@ -229,4 +206,3 @@ float PartyUnitRecord::CarriedWeight() const {
     AddListWeight(weight, armor);
     return weight;
 }
-EI_REWRITTEN(0x00660840, PartyUnitRecord::CarriedWeight);

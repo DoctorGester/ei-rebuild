@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_hashes.h"
 #include "game_data.h"
@@ -308,10 +307,3 @@ int CWorldServer::SendZone(CPlayer* player) {
     }
     return result;
 }
-
-EI_REWRITTEN(0x0058B750, CWorldServer::SyncPlayer);
-EI_REWRITTEN(0x0058C890, CWorldServer::SendZone);
-EI_REWRITTEN(0x0058C4D0, FreeCollected);
-EI_REWRITTEN(0x0058C4B0, FreeAdded);
-EI_REWRITTEN(0x0058C490, FreeKept);
-EI_REWRITTEN(0x0058C470, FreeRemoved);

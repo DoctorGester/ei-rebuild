@@ -5,7 +5,6 @@
 #include "game_strings.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 
@@ -147,7 +146,6 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     *out = name;
     return true;
 }
-EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
@@ -266,22 +264,3 @@ mfc::CString CItemLoot::PictureName() {
         name = str::Format(kLootPicture, Number(GetPrototype()));
     return name;
 }
-
-// --- The virtual slots' entry points (rule 4): the name built in the caller's result -------------
-
-EI_REWRITTEN(0x006A0840, CItemWeapon::ModelName);
-EI_REWRITTEN(0x006A0F70, CItemWeapon::FirstListName);
-EI_REWRITTEN(0x006A2750, CItemWeapon::FigureName);
-EI_REWRITTEN(0x006A27E0, CItemWeapon::PictureName);
-EI_REWRITTEN(0x006A3240, CItemArmor::ModelName);
-EI_REWRITTEN(0x006A36A0, CItemArmor::FirstListName);
-EI_REWRITTEN(0x006A3720, CItemArmor::FigureName);
-EI_REWRITTEN(0x006A37B0, CItemArmor::PictureName);
-EI_REWRITTEN(0x006A3CD0, CItemQuick::FigureName);
-EI_REWRITTEN(0x006A4040, CItemQuick::PictureName);
-EI_REWRITTEN(0x006A45C0, CItemQuest::FigureName);
-EI_REWRITTEN(0x006A47B0, CItemQuest::PictureName);
-EI_REWRITTEN(0x006A5820, CItemSpell::FigureName);
-EI_REWRITTEN(0x006A58E0, CItemSpell::PictureName);
-EI_REWRITTEN(0x006A4B90, CItemLoot::FigureName);
-EI_REWRITTEN(0x006A5030, CItemLoot::PictureName);
