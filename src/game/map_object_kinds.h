@@ -1,7 +1,7 @@
 #pragma once
 
-// The map object classes without members of their own (map_object_kinds.cpp): CTree (class id 0x52), CStone
-// (0x53), CBuilding (0x54) and CStuffObject (0x56), all 0x238 bytes and made by the map object factory. Real
+// The map object classes without members of their own (map_object_kinds.cpp): CTree, CStone, CBuilding and
+// CStuffObject, all 0x238 bytes and made by the map object factory. Real
 // virtual classes. Each overrides only the destructor, class name and class id.
 
 #include "map_object.h"
@@ -10,19 +10,19 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-template <int ClassId>
+template <ClassId Id>
 class PlainMapObject : public CMapObject {
 public:
     PlainMapObject();
     ~PlainMapObject() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 };
 
 // Kept: the map object kinds are the class names (one instance of PlainMapObject per class id).
-// Constructor, destructor, deleting destructorand two more virtuals.
-using CTree = PlainMapObject<0x52>;
-using CStone = PlainMapObject<0x53>;
-using CBuilding = PlainMapObject<0x54>;
-using CStuffObject = PlainMapObject<0x56>;
+// Constructor, destructor, deleting destructor and two more virtuals.
+using CTree = PlainMapObject<kClassTree>;
+using CStone = PlainMapObject<kClassStone>;
+using CBuilding = PlainMapObject<kClassBuilding>;
+using CStuffObject = PlainMapObject<kClassStuffObject>;
 

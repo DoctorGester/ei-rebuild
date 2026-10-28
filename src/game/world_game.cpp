@@ -57,6 +57,7 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "save_versions.h"
 
 #include <algorithm>
 #include <cmath>
@@ -279,8 +280,6 @@ struct EntryPicks {
 };
 
 constexpr unsigned kMagicMissionFile = 0x102;
-constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals come from mission.sav
-constexpr int kVersionInputInMission = 0x47;     // below: the input state too
 
 // StartZone's modes (also stored as the campaign mode, the server world's sessionKind_).
 constexpr int kModeFromRecord = 0;   // by the zone record's kind: 0 -> 1, 1 -> 4, 2 -> 3
@@ -305,8 +304,6 @@ void DestroyLastResources() { g_lastResources.Destroy(); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 const char* ResourcesPath() { return options::g_options->resourcesPath_.c_str(); }
 
-constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
-constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
 void StreamLoadScripts(CMemoryStream* a0, CStream* a2) { a0->ReadSized(a2); }
 
 void DestroyGameFlow() { g_gameFlow->Destruct(); }
@@ -991,8 +988,8 @@ int LoadMission(CStream* file) {
                       kSaveOldestVersion, file))
         return 0;
     int version = static_cast<int>(mission.version_);
-    if (version < kVersionGlobalsInMission) g_camera->Load(&mission);
-    if (static_cast<int>(mission.version_) < kVersionInputInMission) {
+    if (version < kVersionScenarioGlobals) g_camera->Load(&mission);
+    if (static_cast<int>(mission.version_) < kVersionScenarioInput) {
         // Old saves: the input state, then the rest goes to the save stream.
         g_saveStream->Resize(0);
         g_interface->LoadState(&mission);
@@ -1267,14 +1264,14 @@ int GameFlow::LoadGame(const std::string& slot) {
     }
     g_partyManager->Load(&scenario);
     int version = static_cast<int>(scenario.version_);
-    if (version >= kScenarioScriptsVersion) {
+    if (version >= kVersionScenarioInput) {
         ScriptsReset(&g_saveStream.Get());
         g_interface->LoadState(&scenario);
         StreamLoadScripts(&scenario, &g_saveStream.Get());
         version = static_cast<int>(scenario.version_);
         g_saveStream->version_ = static_cast<std::uint32_t>(version);
     }
-    if (version >= kScenarioGlobalsVersion) g_camera->Load(&scenario);
+    if (version >= kVersionScenarioGlobals) g_camera->Load(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other

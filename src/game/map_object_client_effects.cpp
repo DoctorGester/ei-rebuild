@@ -146,7 +146,6 @@ constexpr std::uint32_t kLightNew = 0x580;
 constexpr std::uint32_t kLightFlag40 = 0x40;
 constexpr int kPointLight = 0x31;
 constexpr float kLightHeight = 2.0f;
-constexpr int kUnitClassId = 0x50;
 
 // The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::g_options->questLight_.red; }
@@ -392,7 +391,7 @@ void CMapObjectClientSpecific::ShowLight() {
     light->flags_ &= ~kLightHidden;
     g_clientWorld->terrain_->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
-    if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
+    if (mapObject && mapObject->GetClassId() == kClassUnit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {

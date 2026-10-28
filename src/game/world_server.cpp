@@ -40,8 +40,6 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
-
 template <typename Map>
 void EraseId(Map& map, unsigned id) {
     map.map.erase(id);
@@ -185,7 +183,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) aiMap_.sectorMap.Remove(*slot);
+    if (object->GetClassId() != kClassMagicTrap) aiMap_.sectorMap.Remove(*slot);   // magic traps are not in it
 
     hash400::RemoveKey(updateMap_.map, id);
     EraseId(objects_, id);

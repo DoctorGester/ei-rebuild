@@ -93,7 +93,7 @@ void CItemQuest::InitFromRecord(const ItemRecordHead* record) {
 void CItemLoot::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordAs<LootItemRecord>(record);
-    kind_ = r->category;
-    recordType_ = r->recordType;
+    kind_ = static_cast<LootKind>(r->category);
+    recordType_ = static_cast<LootRecordType>(r->recordType);
     index_ = r->index;
 }

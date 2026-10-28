@@ -30,7 +30,7 @@ public:
     // The vtable: the class 0x42 mesh's (CPlainFigureMesh) but for
     // 0, 11 and 12.
     const char* GetClassName() override;   // "CSkyObject"
-    int GetClassId() override;             // 0x20
+    ClassId GetClassId() override;
 
     // Lights the vertices. Each vertex's haze (distances_) is recomputed
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).

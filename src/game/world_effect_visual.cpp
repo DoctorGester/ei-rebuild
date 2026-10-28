@@ -16,6 +16,7 @@
 #include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "save_versions.h"
 
 #include <bit>
 #include <cstring>
@@ -215,7 +216,7 @@ void CEffectPointLight::Load(CStream* stream) {
     stream->ReadValue(range_);
     stream->ReadValue(velocity_);
     moving_ = IsMoving(velocity_);
-    if (Version(stream) < 0x67) return;
+    if (Version(stream) < kVersionLightFlags) return;
     stream->ReadValue(lightFlags_);
 }
 
@@ -292,7 +293,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     field->ReadFloat16(&typeParam_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
-    if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
+    if (GetClassId() == kClassEffectParticle && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
         CUnit* unit = ObjectWorld(this)->FindUnit(unitId_);
         if (unit != nullptr) {
@@ -416,9 +417,9 @@ void CEffectParticle::Load(CStream* stream) {
     moving_ = IsMoving(velocity_);
     stream->ReadValue(startTick_);
     stream->ReadValue(target_);
-    if (Version(stream) < 0x43) return;
+    if (Version(stream) < kVersionEffectUnitId) return;
     stream->ReadValue(unitId_);
-    if (Version(stream) < 0x58) return;
+    if (Version(stream) < kVersionEffectAlpha) return;
     stream->ReadValue(alpha_);
     stream->ReadValue(typeParam_);
 }

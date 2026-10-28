@@ -26,7 +26,6 @@ const char* const kWrongObjectCount = "Wrong number of script %s object paramete
 const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
 
 // Class id of the sound object an FX source places (CBaseManager::CreateObject).
-constexpr int kClassSound = 0x48;   // CEffectSound
 
 // Compared with 0.0 (a NaN counts as zero).
 bool IsZero(float value) {
@@ -61,7 +60,7 @@ void RespawnFxSources(CScript* script) {
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
-        auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassSound, -1);
+        auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassEffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
         float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
         float y = yOffset + fx.position.y;

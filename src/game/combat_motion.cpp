@@ -38,9 +38,6 @@ constexpr int kStateAnimation = 3;   // an animation order plays
 constexpr int kStateEmote = 4;       // an emote plays
 constexpr int kStateActing = 5;
 constexpr int kStateChasing = 6;
-constexpr int kOrderMove = 1;
-constexpr int kOrderAttack = 3;
-constexpr int kOrderNone = 9;
 constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = 0x80580000;
 constexpr std::uint32_t kKeyMoveOnce = 0x40000000;
@@ -582,13 +579,13 @@ void CUnitServer::ResyncWithUnit() {
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
-    if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {   // the first is always true
+    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) {   // the first is always true
         action2.kind = kOrderNone;
         action2.target.Reset();
         action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
-        action2.kind = 0;
+        action2.kind = kOrderIdle;
         action2.target.Assign(nullptr);
         action2.modifier = 0;
     }
@@ -678,7 +675,7 @@ void CUnitServer::ResetController() {
     effectObject = nullptr;
     if (effect) effect->Release();
     actingCheckTime = -1;
-    action.kind = 0;
+    action.kind = kOrderIdle;
     action2.kind = kOrderNone;
     nextAttackTime = 0;
     interceptTime = 0;

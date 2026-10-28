@@ -32,6 +32,7 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include "save_versions.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -46,15 +47,6 @@ namespace {
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
 // Save format versions (WorldStream::version_) at which fields were added.
-constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
-constexpr int kVersionRainBoltTick = 0x74;
-constexpr int kVersionCountdowns = 0x4E;
-constexpr int kVersionPlayerLists = 0x55;
-constexpr int kVersionPlayerByte = 0x49;       // before: a byte that is read and dropped
-constexpr int kVersionPlayerGroup = 0x46;      // before: a script group that is read and dropped
-constexpr int kVersionMobFiles = 0x60;
-constexpr int kVersionSharedObjects = 0x6E;
-constexpr int kVersionMapObjectName = 0x59;
 
 // Progress screen stages LoadSave shows.
 constexpr int kProgressStart = 0;
@@ -230,7 +222,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit)
+        if (object->GetClassId() != kClassUnit)
             otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (!object->name2.empty())
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);

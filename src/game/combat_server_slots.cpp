@@ -4,13 +4,11 @@
 
 namespace {
 const char* const kServerName = "CUnitServer";
-constexpr int kClassServer = 0x3E;
-constexpr int kOrderNone = 9;
 } // namespace
 
 // Class name and id.
 const char* CUnitServer::GetClassName() { return kServerName; }
-int CUnitServer::GetClassId() { return kClassServer; }
+ClassId CUnitServer::GetClassId() { return kClassUnitServer; }
 
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 

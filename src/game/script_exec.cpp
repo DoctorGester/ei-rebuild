@@ -57,9 +57,6 @@ bool IsZero(float value) {
 
 int Round(float value) { return x87::fistp(value); }
 
-constexpr int kClassLever = 0x5D;
-constexpr int kClassQuestItem = 0x14;
-
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 constexpr float kColourScale = 0.003921569f;
@@ -658,7 +655,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             CItem* item = g_serverWorld->CreateItemNamed(Text(cmd, 0));
-            if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
+            if (item && item->GetClassId() == kClassItemQuest) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)

@@ -43,7 +43,6 @@ const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 const char* DefaultMusic() { return options::g_options->defaultStreamingSound_.c_str(); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
-constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return g_clientWorld->LocalView(); }
 
 } // namespace
@@ -156,7 +155,7 @@ void GameStopSounds(int stopStream) { g_clientWorld->sounds_->StopAll(static_cas
 
 void GameStopAmbience() { g_clientWorld->terrain_->StopAmbience(); }
 
-void GameStartAmbience() { g_clientWorld->terrain_->landscapeFlags |= kTerrainAmbience; }
+void GameStartAmbience() { g_clientWorld->terrain_->landscapeFlags |= kLandscapeAmbience; }
 
 int GamePlayMusic(const char* name) {
     return g_clientWorld->sounds_->RequestStream(name ? name : DefaultMusic(), 4);

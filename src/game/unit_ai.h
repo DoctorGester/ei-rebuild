@@ -36,21 +36,46 @@ struct CountedUnits : std::list<CUnit*> {
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 
+// What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is kOrderNone when nothing is
+// queued; a queued kOrderIdle stops the current order and the unit stands.
+enum UnitOrderKind : int {
+    kOrderIdle = 0,
+    kOrderMove = 1,
+    kOrderTurn = 2,
+    kOrderAttack = 3,
+    kOrderCastAt = 4,       // a spell (or a quick item's) at a point
+    kOrderCastOn = 5,       // a spell (or a quick item's) on a target
+    kOrderUse = 6,          // a use or a skill on a target (source: UseSource)
+    kOrderAnimation = 7,
+    kOrderEmote = 8,
+    kOrderNone = 9,
+    kOrderUseItem = 10,     // a kCategoryConsumable quick item (source: the quick slot)
+    kOrderStop = 11,
+};
+
+// AIOrder::source of a kOrderUse order (CUnitServer::UseSkill).
+enum UseSource : std::uint32_t {
+    kSourceUse = 0,
+    kSourceSteal = 1,
+    kSourceTame = 2,
+    kSourceSearchBody = 0x18A95,
+};
+
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
-    // Kind 9 (none): the object released and cleared, the flag cleared.
+    // kOrderNone: the object released and cleared, the flag cleared.
     void Clear();
-    // Clear, then an attack (3, 6) on `object` (referenced).
+    // Clear, then an attack on `object` (referenced) at every body part (source 6).
     void MakeAttack(CMapObject* object);
-    // Clear, then a cast (5) of `spell` at `object` (referenced).
+    // Clear, then a cast of `spell` on `object` (referenced).
     void MakeCast(int spell, CMapObject* object);
-    // Clear, then a use (6) of `object` with `what`.
+    // Clear, then a use of `object` with `what`.
     void MakeUse(CMapObject* object, int what);
     // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    int kind;                       // 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
-    std::uint32_t source;           // 6 for an attack, the spell for a cast; 0x18A95 for a skill used on a target (kind 6)
+    UnitOrderKind kind;
+    std::uint32_t source;           // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
     AIRefTo<CMapObject> target;     // counted
     Vector3 point;                  // target point; left uninitialised by the AI's orders
     // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
@@ -83,7 +108,7 @@ struct AIMoveOrder {
 };
 
 // Mode types, as the brain names them in its "new motivation" message.
-enum AIModeType {
+enum AIModeType : int {
     kModeGuard = 0,
     kModePatrol = 1,
     kModeSentry = 2,
@@ -110,7 +135,7 @@ public:
     // 0.4 * random) and clear the controller's busy flag.
     virtual void Enter(AIBrain* brain);
     virtual void Leave(AIBrain*) {}
-    virtual int GetType() = 0;
+    virtual AIModeType GetType() = 0;
     // True for most modes; AddMode replaces a mode of another type when both answer true.
     virtual bool Exclusive() { return true; }
     virtual void OnObjectDeleted(CEngineObject*) {}
@@ -142,7 +167,7 @@ public:
     // When idle: walk to a free place near the point (after 100 failures, near the unit) and look around
     // there.
     void Execute(AIBrain* brain) override;
-    int GetType() override { return kModeGuard; }
+    AIModeType GetType() override { return kModeGuard; }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -169,7 +194,7 @@ public:
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.
     void Execute(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
     PatrolPoint* LastPoint();
     // The point count, per point its position, look count and per look angle, time, wait and (from version
     // 0x44) the stop flag byte; then `current`.
@@ -194,7 +219,7 @@ public:
     SentryMode* Clone() override;
     void Set(const Vector3* point);
     void Execute(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -209,7 +234,7 @@ public:
     int OnShutdown() override;
     FollowMode* Clone() override;
     void Execute(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
     void OnObjectDeleted(CEngineObject* object) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -232,7 +257,7 @@ public:
     void Enter(AIBrain* brain) override;
     // Clears busy; remark 3.
     void Leave(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // The original leaves these unset, but Evaluate keeps a point that compares the same (a NaN always does)
@@ -270,7 +295,7 @@ public:
     void Enter(AIBrain* brain) override;
     // Forgets the noticed level when the enemy is gone or dead, drops the enemy, clears busy; remark 4.
     void Leave(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
     void OnObjectDeleted(CEngineObject* object) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -291,7 +316,7 @@ public:
     // charge (-1000).
     int Evaluate(AIBrain* brain) override;
     void Execute(AIBrain*) override {}
-    int GetType() override;
+    AIModeType GetType() override;
 };
 
 // Fear: run from an enemy.
@@ -305,7 +330,7 @@ public:
     ~FearMode() override;
     int OnShutdown() override;
     FearMode* Clone() override;
-    int GetType() override;
+    AIModeType GetType() override;
     // Remembers a seen object and calms `spread`; 15000 for a ranged unit that can run, 3000 while it sees an
     // enemy, 350 in shelter, else noticedLevel / 6 or -1000. See docs/notes/unit_ai.md, "FearMode::Evaluate".
     int Evaluate(AIBrain* brain) override;
@@ -343,7 +368,7 @@ public:
     int OnShutdown() override;
     PlayerMode* Clone() override;
     int Evaluate(AIBrain* brain) override;
-    int GetType() override;
+    AIModeType GetType() override;
 
     // State 0: follow the leader (unless the leader is moving itself) and fight; state 1: wait for the
     // commanded action to end; state 2: walk to `point` (staying with the party unless the player controls
@@ -411,7 +436,7 @@ public:
     int OnShutdown() override;
     TamedMode* Clone() override;
     int Evaluate(AIBrain* brain) override;   // always 100000000
-    int GetType() override;
+    AIModeType GetType() override;
 };
 
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
@@ -466,20 +491,38 @@ struct AIReports : std::vector<AIReport> {
 };
 
 // One way the unit can attack or help: a weapon (part -1) or a spell.
+// What an AI attack option does (AIAttackOption::kind). The spells' kinds by spell type: the arrows and the two
+// curse magics attack, Fireball, Invoke Lightning and Column of Acid hit an area, the walls and the acid fog hit an
+// area for a time, Stun, Weaken and Feeblemind curse an enemy, the protections, Antimagic and Strengthen protect,
+// the sights, Detect Life, Invisibility, Silence, Lichdom, Regeneration and Speed enhance, Healing heals; the rest
+// the AI does not use.
+enum AIOptionKind : int {
+    kOptionWeapon = 0,         // the unit's weapon or natural attack
+    kOptionSpellAttack = 1,
+    kOptionAreaAttack = 2,
+    kOptionLastingArea = 3,    // effect: the spell's duration
+    kOptionCurse = 4,          // on enemies (the weapons list); effect: the spell type
+    kOptionProtect = 5,        // on allies; effect: the spell type
+    kOptionEnhance = 6,        // on allies, not when only allies are chosen; effect: the spell type
+    kOptionHeal = 7,
+    kOptionUnused = 8,
+};
+
 struct AIAttackOption {
-    // How much the option counts: kind 0 its largest damage, 1..3 that * 1.3, 4..6 1, 7 10, other kinds 0.
+    // How much the option counts: a weapon its largest damage, a spell attack that * 1.3, a curse, protection or
+    // enhancement 1, healing 10, other kinds 0.
     double Weight() const;
     // The option from / to a save. Before version 0x5A only the part, a dropped dword and the damage were
     // saved: the kind becomes part >= 0, the range 1, the rest 0.
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 
-    int kind;                       // 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
+    AIOptionKind kind;
     int part;                       // -1 a weapon, else the spell
     float range;
     int maxCount;                   // cap on the group-size bonus
-    float radius;                   // area of kinds 2 and 3
-    int effect;                     // effect type (kinds 4..6), strength (kind 3)
+    float radius;                   // the area of an area attack, the healing of kOptionHeal
+    int effect;                     // see AIOptionKind
     DamageWords damage;             // measured against the target's protection
 };
 
@@ -526,11 +569,11 @@ struct AIAttention {
     // spells (kinds 1..4) into `weapons`, helping spells (5..7) into `spells`; a unit whose id is a text key
     // gets only the weapon. Then `healWeight` is the largest Weight of the `weapons` options.
     void Build(CUnit* unit);
-    void InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius, int effect);
-    DamageWords* AddWeaponOption(int kind, int part, float range, int maxCount, float radius, int effect);
-    DamageWords* AddSpellOption(int kind, int part, float range, int maxCount, float radius, int effect);
+    void InitOption(AIAttackOption* option, AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
+    DamageWords* AddWeaponOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
+    DamageWords* AddSpellOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
     // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
-    int SpellKind(const CSpell* spell);
+    AIOptionKind SpellKind(const CSpell* spell);
 
     std::vector<AIAttackOption> weapons;
     std::vector<AIAttackOption> spells;
@@ -615,7 +658,7 @@ struct AIBrain {
     // message), its Execute runs, and the brain carries out its action.
     void Think();
 
-    AIMode* FindMode(int type);
+    AIMode* FindMode(AIModeType type);
     PatrolMode* FindPatrolMode();
     PlayerMode* FindPlayerMode();   // (the Tamed mode is a Player mode too)
     CMapObject* LeaderOrFollowed();
@@ -688,7 +731,7 @@ struct AIBrain {
     // unless it is an ally, become alerted in alert mode 1, and remember a unit in the perception memory.
     void SetSeen(CMapObject* object);
     void AttackTarget(CMapObject* object);
-    // Action 5: use something on `object` (kind 0 a point/object, 1 and 2 units, 0x18A95 a special unit use).
+    // Action 5: use something on `object` (`kind` the use order's UseSource).
     void UseOn(CMapObject* object, int kind, int a, int b);
 
     // Action 6 (follow `target`): every few ticks walk to where the leader is or will be

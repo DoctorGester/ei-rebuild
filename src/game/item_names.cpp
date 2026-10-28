@@ -75,8 +75,6 @@ std::string PictureNameOf(const NamedRecordTable<Record>& table, const char* con
     return name;
 }
 
-enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
-enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
 
 } // namespace
 

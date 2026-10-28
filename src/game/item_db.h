@@ -22,6 +22,37 @@ class ChunkArchive;
 // 0/1 in all 32 bits: callers test all of them.
 using BOOL = int;
 
+// CEngineObject::type_ of an item: which database its prototype lives in.
+enum ItemKind : int {
+    kItemWeapon = 0x3004,
+    kItemArmor = 0x3005,
+    kItemQuick = 0x3006,
+    kItemLoot = 0x3007,
+    kItemSpell = 0x3008,   // a spell container; prototype in the quick item database
+    kItemQuest = 0x3009,
+};
+
+// The category of a quick item prototype (CItem::GetCategory). The game's data has 0 (the danger sensor), 5 (the
+// wands) and 8 (the potions, and the scrolls' "spell container" prototype).
+enum QuickItemCategory : int {
+    kCategoryConsumable = 2,   // used up by the use-item order (kind 10); no prototype in the game's data has it
+    kCategoryWand = 5,         // casts the spell the item constructor put in, paid from its charge
+    kCategoryPotion = 8,       // casts the spell its prototype's spellText makes, on the user only; used up
+};
+
+// What a loot item stands for (a loot prototype's category, CItemLoot::kind_): itself (its own price), a material,
+// or a record of another database (kLootRecord, the record type saying which).
+enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
+// The database of a kLootRecord loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
+// weapon, armour and quick item blueprints ("instruction ..."), spells and spell modifiers.
+enum LootRecordType : std::uint32_t {
+    kRecordWeapon = 0,
+    kRecordArmor = 1,
+    kRecordQuick = 2,
+    kRecordSpell = 3,
+    kRecordModifier = 4,
+};
+
 namespace itemdb {
 
 // A spell prototype: the fields the camp's spell maker reads.
@@ -99,7 +130,7 @@ struct SpellModifierRecord {
 class ItemRecordHead {
 public:
     // The item kind the record makes (CItemConstructor::BeginCreateItem's kind).
-    virtual int Kind() = 0;
+    virtual ItemKind Kind() = 0;
 
     // Not virtual: the records' tables have only Kind.
     ~ItemRecordHead();
@@ -130,7 +161,7 @@ public:
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).
     std::uint8_t buildable;
-    // the category (5 wands, 8 quick items whose prototype names their spell), a quest
+    // the category (QuickItemCategory), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
 
@@ -155,7 +186,7 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 struct WeaponRecord : ItemRecordHead {
     WeaponRecord();
     WeaponRecord(const WeaponRecord& from);
-    int Kind() override;                        // 0x3004
+    ItemKind Kind() override;
     // category..skillBonus and reach..damageTypes: attackBonus and defenceBonus are not copied.
     void CopyOwn(const WeaponRecord* source);
     // The head, then fields 0x15-0x1E.
@@ -176,7 +207,7 @@ struct WeaponRecord : ItemRecordHead {
 struct ArmorRecord : ItemRecordHead {
     ArmorRecord() {}                            // (user-provided: new ArmorRecord() leaves the bytes as they are)
     ArmorRecord(const ArmorRecord& from);
-    int Kind() override;                        // 0x3005
+    ItemKind Kind() override;
     // category..othersFlags; showsWounds and the rest are not copied.
     void CopyOwn(const ArmorRecord* source);
     // The head, then the two rows, showsWounds, layer and unreadFields.
@@ -201,7 +232,7 @@ struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord();
     QuickItemRecord(const QuickItemRecord& from);
     ~QuickItemRecord();
-    int Kind() override;                        // 0x3006
+    ItemKind Kind() override;
     // actionValue and attributeBonus; the category, unreadFields and spellText are not copied (spellText is constructed
     // empty).
     void CopyOwn(const QuickItemRecord* source);
@@ -212,7 +243,7 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t actionValue;              // CItemQuick::actionValue_
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string spellText;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::string spellText;                // the spell text of a kCategoryPotion item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
 };
 
@@ -221,7 +252,7 @@ struct QuestItemRecord : ItemRecordHead {
     QuestItemRecord() {  }
     QuestItemRecord(const QuestItemRecord& from);
     ~QuestItemRecord();
-    int Kind() override;                        // 0x3009
+    ItemKind Kind() override;
     // The category only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
@@ -234,7 +265,7 @@ struct QuestItemRecord : ItemRecordHead {
 struct LootItemRecord : ItemRecordHead {
     LootItemRecord() {}
     LootItemRecord(const LootItemRecord& from);
-    int Kind() override;                        // 0x3007
+    ItemKind Kind() override;
     // category, recordType and index.
     void CopyOwn(const LootItemRecord* source);
     // The head, then category, recordType, index.

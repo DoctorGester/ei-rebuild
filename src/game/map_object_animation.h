@@ -35,7 +35,7 @@ struct AnimationTrack : CEngineObject {
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // DestroyTrack's reset; returns 1.
     int CreateTrack();

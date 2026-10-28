@@ -26,7 +26,6 @@ constexpr std::uint32_t kOneBits = 0x3F800000u;
 constexpr int kAllLocations = 6;
 constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
-constexpr int kClassUnitServer = 0x3E;
 constexpr float kHalfBack = -0.5f;
 
 // Remarks (party messages through CUnitServer) when an item wears out or breaks.
@@ -235,7 +234,7 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
     CItemWeapon* weapon = nullptr;
-    if (controller->GetClassId() == kClassPartyController) {
+    if (controller->GetClassId() == kClassUnitClientSpecific) {
         PartyUnitRecord* record = player ? player->Party()->Find(id_) : nullptr;
         if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons))) weapon = AsWeapon(record->weapons[slot]);
     } else if (slot < 4) {

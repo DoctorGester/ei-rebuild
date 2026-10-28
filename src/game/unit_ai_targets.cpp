@@ -81,7 +81,7 @@ double AIDistance2(const Vector3* a, const Vector3* b) {
 }
 
 void AIOrder::Clear() {
-    kind = 9;
+    kind = kOrderNone;
     if (target) target->Release();
     target = nullptr;
     pointIsUseSpot = 0;
@@ -89,7 +89,7 @@ void AIOrder::Clear() {
 
 void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
-    kind = 3;
+    kind = kOrderAttack;
     source = 6;
     if (object) {
         ++object->refCount_;
@@ -99,7 +99,7 @@ void AIOrder::MakeAttack(CMapObject* object) {
 
 void AIOrder::MakeCast(int spell, CMapObject* object) {
     Clear();
-    kind = 5;
+    kind = kOrderCastOn;
     if (object) {
         ++object->refCount_;
         target = object;
@@ -173,7 +173,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     CUnit* self = brain->owner->unit;
     const AIAttackOption* option = FindOption(choice->part);
     if (!option) return false;
-    if (option->kind < 2 || option->kind > 3) return true;
+    if (option->kind != kOptionAreaAttack && option->kind != kOptionLastingArea) return true;
     EI_NAN_AUDIT(PrototypeSize(self));
     if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
     Vector3 at = *PositionOf(target);
@@ -202,19 +202,19 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     int cap = option->maxCount;
     std::uint32_t damage = 0;   // only the low 16 bits count
     switch (option->kind) {
-    case 0:
+    case kOptionWeapon:
         damage = Excess(option, candidate);
         score = static_cast<float>(static_cast<double>(static_cast<int>(damage & 0xFFFF)) * kDamageWeight + score);
         break;
-    case 1:
-    case 2:
-    case 3: {
-        if (option->kind == 1) {
+    case kOptionSpellAttack:
+    case kOptionAreaAttack:
+    case kOptionLastingArea: {
+        if (option->kind == kOptionSpellAttack) {
             damage = Excess(option, candidate);
         } else {
-            if (option->kind == 3 && control->state == 0) return kNoScore;
+            if (option->kind == kOptionLastingArea && control->state == 0) return kNoScore;
             damage = GroupExcess(option, group, candidate);
-            if (option->kind == 3) damage *= static_cast<std::uint32_t>(option->effect / 4 / 2);
+            if (option->kind == kOptionLastingArea) damage *= static_cast<std::uint32_t>(option->effect / 4 / 2);
             ++others;   // the group without the one left out
         }
         int words = static_cast<int>(damage & 0xFFFF);
@@ -255,7 +255,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     if (score < threshold) return score;
     double reach = 0.0;
     float scale = 1.0f;
-    if (option->kind < 0 || option->kind > 4) {
+    if (option->kind < kOptionWeapon || option->kind > kOptionCurse) {
         reach = option->range;
         scale = 10.0f;
     }
@@ -264,7 +264,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
     if (result < threshold) return result;
-    if (option->kind >= 0 && option->kind <= 3) {
+    if (option->kind >= kOptionWeapon && option->kind <= kOptionLastingArea) {
         int hits = (damage & 0xFFFF) == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / static_cast<int>(damage & 0xFFFF);
         result -= static_cast<double>(hits) * kHitWeight;
     }
@@ -325,7 +325,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* c
             auto* ally = *node;
             for (int i = 0; i < std::ssize(spells); ++i) {
                 const AIAttackOption* option = &spells[i];
-                if (alliesOnly && option->kind == 6) continue;
+                if (alliesOnly && option->kind == kOptionEnhance) continue;
                 double s = Score(from, self, &allies, held, ally, best, option);
                 if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});
             }

@@ -10,8 +10,6 @@
 namespace {
 constexpr const char* kClientClassName = "CMapObjectClientSpecific";
 constexpr const char* kServerClassName = "CMapObjectServer";
-constexpr int kClientClassId = 0x3A;
-constexpr int kServerClassId = 0x39;
 constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits show their number
 
 // A particle source as the counted engine object it is (effects.h declares only its own members).
@@ -41,7 +39,7 @@ void CMapObjectClientSpecific::Hit(int damage, int kind) {
 
 // Class name and id.
 const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; }
-int CMapObjectClientSpecific::GetClassId() { return kClientClassId; }
+ClassId CMapObjectClientSpecific::GetClassId() { return kClassMapObjectClientSpecific; }
 
 // Class name and id.
 EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
@@ -49,7 +47,7 @@ EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
 EffectParticle::~EffectParticle() = default;
 
 const char* CMapObjectServer::GetClassName() { return kServerClassName; }
-int CMapObjectServer::GetClassId() { return kServerClassId; }
+ClassId CMapObjectServer::GetClassId() { return kClassMapObjectServer; }
 
 // --- The client companion's particle records and the network records ---------------------------------
 

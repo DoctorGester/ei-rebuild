@@ -19,7 +19,6 @@
 namespace {
 
 constexpr const char* kClassName = "CSkyObject";
-constexpr int kClassId = 0x20;
 constexpr float kColourScale = 255.0f;
 constexpr float kLightScale = 150.0f;
 constexpr float kHorizon = 1.0f;
@@ -49,7 +48,7 @@ CSkyObject::CSkyObject() {
 CSkyObject::~CSkyObject() {  }
 
 const char* CSkyObject::GetClassName() { return kClassName; }
-int CSkyObject::GetClassId() { return kClassId; }
+ClassId CSkyObject::GetClassId() { return kClassSkyObject; }
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);

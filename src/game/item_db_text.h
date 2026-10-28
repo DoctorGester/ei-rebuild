@@ -54,7 +54,7 @@ public:
     int Create() override;
     void Destroy() override { ClearSources(); }
     const char* GetClassName() override;
-    int GetClassId() override;              // class id 0x2A
+    ClassId GetClassId() override;
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.

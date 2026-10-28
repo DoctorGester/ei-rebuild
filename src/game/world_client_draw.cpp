@@ -349,10 +349,10 @@ int CWorldClient::DrawPass() {
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits->clear();
-    static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
-                                         FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
-                                         FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
-                                         FrameList::Shadow52,    FrameList::TouchedModels};
+    static const FrameList kCleared[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,
+                                         FrameList::VisibleUnits, FrameList::VisibleTrees, FrameList::ShadowBuildings,
+                                         FrameList::ShadowOther, FrameList::ShadowLevers, FrameList::ShadowUnits,
+                                         FrameList::ShadowTrees, FrameList::TouchedModels};
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
     const float* position = &CameraAnchor(camera_)->x;
@@ -421,17 +421,17 @@ int CWorldClient::DrawPass() {
         state.alphaTest = true;
     }
     if (flags_ & 0x40) {
-        SortByModel(FrameList::Visible54);
+        SortByModel(FrameList::VisibleBuildings);
         SortByModel(FrameList::VisibleOther);
-        SortByModel(FrameList::Visible5D);
-        SortByModel(FrameList::Visible52);
+        SortByModel(FrameList::VisibleLevers);
+        SortByModel(FrameList::VisibleTrees);
         state.alphaReference = 0xC8;
         DrawEach(FrameList::VisibleOther, kDraw);
-        DrawEach(FrameList::Visible5D, kDrawUnit);
-        CMapObject** end = FrameObjects(FrameList::Visible5D).data() + FrameObjects(FrameList::Visible5D).size();
-        for (CMapObject** p = FrameObjects(FrameList::Visible5D).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
-        DrawEach(FrameList::Visible54, kDraw);
-        DrawEach(FrameList::Visible52, kDraw);
+        DrawEach(FrameList::VisibleLevers, kDrawUnit);
+        CMapObject** end = FrameObjects(FrameList::VisibleLevers).data() + FrameObjects(FrameList::VisibleLevers).size();
+        for (CMapObject** p = FrameObjects(FrameList::VisibleLevers).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
+        DrawEach(FrameList::VisibleBuildings, kDraw);
+        DrawEach(FrameList::VisibleTrees, kDraw);
     }
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
@@ -455,10 +455,10 @@ int CWorldClient::DrawPass() {
 
     // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
     if (flags_ & 0x200) {
-        SortByModel(FrameList::Shadow54);
+        SortByModel(FrameList::ShadowBuildings);
         SortByModel(FrameList::ShadowOther);
-        SortByModel(FrameList::Shadow5D);
-        SortByModel(FrameList::Shadow52);
+        SortByModel(FrameList::ShadowLevers);
+        SortByModel(FrameList::ShadowTrees);
         Matrix4 matrix = {};
         matrix.m[15] = 1.0f;
         matrix.m[10] = 1.0f;
@@ -478,10 +478,10 @@ int CWorldClient::DrawPass() {
         state.stages[0].combiner = kAlphaPassStage;
         state.alphaTest = false;
         state.depthWrite = false;
-        DrawEach(FrameList::Shadow5D, kDrawShadow);
+        DrawEach(FrameList::ShadowLevers, kDrawShadow);
         DrawEach(FrameList::ShadowOther, kDrawShadow);
-        DrawEach(FrameList::Shadow54, kDrawShadow);
-        DrawEach(FrameList::Shadow52, kDrawShadow);
+        DrawEach(FrameList::ShadowBuildings, kDrawShadow);
+        DrawEach(FrameList::ShadowTrees, kDrawShadow);
         DrawEach(FrameList::ShadowUnits, kDrawShadow);
         state.depthWrite = true;
         PopMatrix(device->stacks_[kStackScene2]);
@@ -529,13 +529,13 @@ int CWorldClient::DrawPass() {
     }
 
     g_deferredUnits->clear();
-    static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
-                                        FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
+    static const FrameList kCopied[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,
+                                        FrameList::VisibleUnits, FrameList::VisibleTrees, FrameList::ShadowBuildings,
                                         FrameList::ShadowOther};
     for (FrameList list : kCopied) FrameObjects(list).clear();
-    FrameObjects(FrameList::Shadow5D).clear();
+    FrameObjects(FrameList::ShadowLevers).clear();
     FrameObjects(FrameList::ShadowUnits).clear();
-    FrameObjects(FrameList::Shadow52).clear();
+    FrameObjects(FrameList::ShadowTrees).clear();
     FrameObjects(FrameList::TouchedModels).clear();
     return 1;
 }

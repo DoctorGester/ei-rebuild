@@ -164,6 +164,12 @@ does not need a second pass:
   ids in its comment, read with the same byte counts; a field nothing reads outside any format is deleted with
   its clears and copies (check literal-size memset / memcpy and `offsetof` ranges first); bytes a save or packet
   carries as a block stay as padding (`unused_XX`, `reserved`);
+- kinds, class ids, flag words and save versions are named by the one enum or constant in the owning header (C45),
+  not by a local copy of its values or a bare number: `ClassId` (engine_object.h; GetClassId returns it), `ItemKind`,
+  `QuickItemCategory`, `LootKind`, `LootRecordType` (item_db.h), `UnitOrderKind`, `UseSource`, `AIModeType`,
+  `AIOptionKind` (unit_ai.h), `AIRemark` (ai_alarm.h), `LandscapeFlag`, `SectorStage` (terrain.h), the
+  `kVersion*` a load tests (save_versions.h). A manager's creation type is not a class id (the map object factory
+  makes class kClassUnit from types 0x32..0x34; the spell manager's are `SpellObjectType`);
 - new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find
   with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings");
 - containers are `std::` (`lib::HashMap` / `lib::HashMultimap`, `src/lib/hash_map.h`, where STLport's walk order is

@@ -14,8 +14,6 @@ namespace {
 // The class names are the exe's strings (GetClassName returns their addresses).
 constexpr const char* kManagerClassName = "CServerSpecificManager";
 constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
-constexpr int kManagerClassId = 0x31;
-constexpr int kTorchSpecClassId = 0x42;
 
 enum ServerObjectType {
     kObject3DServer = 0x46,
@@ -34,7 +32,7 @@ CServerSpecificManager::CServerSpecificManager() {}
 CServerSpecificManager::~CServerSpecificManager() {}
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
-int CServerSpecificManager::GetClassId() { return kManagerClassId; }
+ClassId CServerSpecificManager::GetClassId() { return kClassServerSpecificManager; }
 
 // Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
@@ -64,5 +62,5 @@ CTorchObjectSpec::CTorchObjectSpec() {
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
 
 const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
-int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }
+ClassId CTorchObjectSpec::GetClassId() { return kClassTorchObjectSpec; }
 int CTorchObjectSpec::RunTick() { return 1; }

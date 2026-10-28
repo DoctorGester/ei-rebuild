@@ -28,14 +28,7 @@ using namespace itemdb;
 namespace {
 
 
-constexpr int kClassWeapon = 0x11;
-constexpr int kClassArmor = 0x12;
-constexpr int kClassQuick = 0x13;
-constexpr int kClassQuest = 0x14;    // QuestItems()
-constexpr int kClassLoot = 0x15;     // Loot()
-constexpr int kClassSpell = 0x16;    // spell container; quick item table
 
-constexpr int kCategoryWand = 8;     // quick item category whose spell comes from the prototype
 constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
@@ -52,12 +45,12 @@ constexpr float kDefaultChargeRate = 0.001f;
 // Build); null for other classes (and when the allocation fails).
 ItemRecordHead* NewRecord(int classId) {
     switch (classId) {
-    case kClassWeapon: return new WeaponRecord();
-    case kClassArmor: return new ArmorRecord();
-    case kClassQuick:
-    case kClassSpell: return new QuickItemRecord();
-    case kClassQuest: return new QuestItemRecord();
-    case kClassLoot: return new LootItemRecord();
+    case kClassItemWeapon: return new WeaponRecord();
+    case kClassItemArmor: return new ArmorRecord();
+    case kClassItemQuick:
+    case kClassItemSpell: return new QuickItemRecord();
+    case kClassItemQuest: return new QuestItemRecord();
+    case kClassItemLoot: return new LootItemRecord();
     default: return nullptr;
     }
 }
@@ -106,7 +99,7 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
 std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHead* prototype,
                         const MaterialRecordHead* material) {
     switch (classId) {
-    case kClassWeapon: {
+    case kClassItemWeapon: {
         auto* to = RecordAs<WeaponRecord>(record);
         auto* from = RecordAs<WeaponRecord>(prototype);
         to->reach = from->reach;
@@ -116,7 +109,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         to->damageSpread = spread * factor2;
         return IndexIn(g_itemDatabase->weapons, prototype);
     }
-    case kClassArmor: {
+    case kClassItemArmor: {
         auto* to = RecordAs<ArmorRecord>(record);
         auto* from = RecordAs<ArmorRecord>(prototype);
         to->firstFlags = from->firstFlags | material->armourFlags;
@@ -131,20 +124,20 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         }
         return IndexIn(g_itemDatabase->armors, prototype);
     }
-    case kClassQuick:
-    case kClassSpell:
+    case kClassItemQuick:
+    case kClassItemSpell:
         RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
         return IndexIn(g_itemDatabase->quickItems, prototype);
-    case kClassQuest:
+    case kClassItemQuest:
         record->category = prototype->category;
         return IndexIn(g_itemDatabase->questItems, prototype);
-    case kClassLoot: {
+    case kClassItemLoot: {
         auto* to = RecordAs<LootItemRecord>(record);
         auto* from = RecordAs<LootItemRecord>(prototype);
         to->category = from->category;
         to->recordType = from->recordType;
-        // Kind 1 (a material) takes the material's index when one is given.
-        if (from->category == 1 && material)
+        // A material takes the material's index when one is given.
+        if (from->category == kLootMaterial && material)
             to->index = material->number;
         else
             to->index = from->index;
@@ -154,9 +147,6 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         return 0;   // not reached: the record of an unknown class is null and faulted above
     }
 }
-
-constexpr int kKindSpellContainer = 0x3008;
-constexpr int kLootKindTable = 2;             // a loot item (class 0x15) naming a table
 
 const char* const kSpellContainer = "spell container";
 const char* const kMaterialType = "material";
@@ -170,19 +160,19 @@ int TableIndex(const Table& table, const Record* record) {
 }
 
 // The table index of a loot item's second name part.
-int LootTableIndex(int which, std::string_view name) {
-    if (which < 0 || which > 4) return 0;
+int LootTableIndex(LootRecordType which, std::string_view name) {
+    if (which > kRecordModifier) return 0;
     std::string key(name);
     ItemDatabase& items = *g_itemDatabase;
     SpellDatabase& spells = *g_spellDatabase;
     switch (which) {
-    case 0:
+    case kRecordWeapon:
         return TableIndex(items.weapons, items.weapons.names[key]);
-    case 1:
+    case kRecordArmor:
         return TableIndex(items.armors, items.armors.names[key]);
-    case 2:
+    case kRecordQuick:
         return TableIndex(items.quickItems, items.quickItems.names[key]);
-    case 3:
+    case kRecordSpell:
         return TableIndex(spells.spells, spells.spells.byCode[key]);
     default:
         return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
@@ -265,7 +255,7 @@ CItemConstructor::CItemConstructor() {
 CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
 
 const char* CItemConstructor::GetClassName() { return "CItemConstructor"; }
-int CItemConstructor::GetClassId() { return 0x1C; }
+ClassId CItemConstructor::GetClassId() { return kClassItemConstructor; }
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;
@@ -327,7 +317,7 @@ BOOL CItemConstructor::Cancel() {
 
 BOOL CItemConstructor::Build() {
     int classId = item_->GetClassId();
-    if ((classId == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return 0;
+    if ((classId == kClassItemWeapon || item_->GetClassId() == kClassItemArmor) && !material_) return 0;
 
     const ItemRecordHead* prototype = prototype_;
     const MaterialRecordHead* material = material_;
@@ -336,7 +326,7 @@ BOOL CItemConstructor::Build() {
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
     item_->InitFromRecord(record);
-    if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
+    if (item_->GetClassId() == kClassItemQuick && static_cast<int>(prototype->category) == kCategoryPotion) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
         spell_ = spell;
@@ -383,7 +373,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         if (spell) {
             QuickItemTable& quickItems = g_itemDatabase->quickItems;
             int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-            item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
+            item = (CItem*)MakeItem(kItemSpell, index, 0, -1);
             if (item) item->AttachSpell(spell);
         }
         return item;
@@ -427,9 +417,8 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);
-    if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size() > 1) {
-        int which = static_cast<int>(loot->recordType_);
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts[1]));
+    if (item->GetClassId() == kClassItemLoot && loot->kind_ == kLootRecord && parts.size() > 1) {
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
     }
     return item;
 }
@@ -481,7 +470,7 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase->quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-    CItem* item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
+    CItem* item = (CItem*)MakeItem(kItemSpell, index, 0, -1);
     if (item) item->AttachSpell(spell);
     return item;
 }
@@ -496,7 +485,7 @@ void CItemManager::ListQuickItemNames(std::vector<std::string>* names) {
 }
 
 bool CItemConstructor::MagicCapacity(float* level, float* power) {
-    if ((item_->GetClassId() == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return false;
+    if ((item_->GetClassId() == kClassItemWeapon || item_->GetClassId() == kClassItemArmor) && !material_) return false;
     const ItemRecordHead* prototype = prototype_;
     const MaterialRecordHead* material = material_;
     if (material) {

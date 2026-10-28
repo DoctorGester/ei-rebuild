@@ -30,15 +30,15 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             *kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
-            case 1: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
-            case 2: world->TellParties(server->unit, 0x32); what = "idleSound = AAn4XyU"; break;
-            case 3: what = "back from Suspection"; break;
-            case 4: what = "back from Aggression"; break;
-            case 5: world->TellParties(server->unit, 0x2F); what = "to Suspection"; break;
-            case 6: world->TellParties(server->unit, 0x2E); what = "to Aggression"; break;
-            case 7: what = "to Alarm!"; break;
-            case 8: what = "ALARM ALARM ALARM"; break;
-            case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
+            case kRemarkIdle: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
+            case kRemarkFightingIdle: world->TellParties(server->unit, 0x32); what = "idleSound = AAn4XyU"; break;
+            case kRemarkCalmFromSuspicion: what = "back from Suspection"; break;
+            case kRemarkCalmFromAggression: what = "back from Aggression"; break;
+            case kRemarkSuspicion: world->TellParties(server->unit, 0x2F); what = "to Suspection"; break;
+            case kRemarkAggression: world->TellParties(server->unit, 0x2E); what = "to Aggression"; break;
+            case kRemarkToAlarm: what = "to Alarm!"; break;
+            case kRemarkAlarm: what = "ALARM ALARM ALARM"; break;
+            case kRemarkKill: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
             console::EndLine(*kAlarmLog << what);
@@ -73,7 +73,7 @@ void AIAlarm::Reset() {
     timer = 0;
 }
 
-void AIAlarm::Raise(int newLevel) { pending = newLevel > pending ? newLevel : pending; }
+void AIAlarm::Raise(AIRemark newLevel) { pending = newLevel > pending ? newLevel : pending; }
 
 void AIAlarm::Load(CStream* stream) {
     stream->ReadValue(level);

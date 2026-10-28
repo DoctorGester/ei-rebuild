@@ -17,6 +17,7 @@
 #include "../lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "save_versions.h"
 
 #include <bit>
 #include <cmath>
@@ -33,7 +34,6 @@ constexpr float kGroundClearance = 1.0f;
 constexpr float kLightDrift = 0.0001f;          // the light's velocity x (keeps it "moving")
 constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = 0x840;
-constexpr int kClassArrowFigure = 0x5B;
 
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
@@ -50,7 +50,7 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
+constexpr int kStuffObjectType = 0x38;   // the map object factory's type of a CStuffObject: the drawn arrow
 
 } // namespace
 
@@ -71,7 +71,7 @@ int CEffectMissile::Steer() {
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
         float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
-        if (GetClassId() == kClassArrowFigure) speed = speed + speed;
+        if (GetClassId() == kClassEffectArrowFigure) speed = speed + speed;
         EI_NAN_AUDIT(distance);
         if (distance < speed) {   // within one step
             flying = 0;
@@ -216,7 +216,7 @@ void CEffectArrow::Load(CStream* s) {
     s->ReadValue(lightRange_);
     s->ReadValue(particleType_);
     s->ReadValue(particleSize_);
-    if (static_cast<int>(s->version_) < 0x43) return;
+    if (static_cast<int>(s->version_) < kVersionMissileCaster) return;
     s->ReadValue(casterId_);
     s->ReadValue(fromCaster_);
 }
@@ -294,7 +294,7 @@ void CEffectArrowFigure::Start(int update) {
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
     int id = g_clientWorld->nextClientObjectId_--;
-    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kClassFigureObject, id);
+    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kStuffObjectType, id);
     if (object != figure_) {
         figure_.Reset();
         if (object != nullptr) ++object->refCount_;

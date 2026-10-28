@@ -58,7 +58,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // `context` is the scene renderer.
     int DrawParts(CSceneRenderer* context, tagRECT* dirty) override { return Draw(context, dirty); }
     int DrawPartsShadow(CSceneRenderer* context) override { return DrawShadow(context); }

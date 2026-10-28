@@ -45,8 +45,6 @@ void RemoveEntry(std::vector<CItem*>& list, CItem* entry) {
     }
 }
 
-constexpr int kQuestItemClassId = 0x14;   // CItemQuest
-
 // One running sum over the lists, in this order.
 void AddListWeight(float& weight, const std::vector<CItem*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) {
@@ -167,7 +165,7 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
 void CParty::RemoveQuestItems() {
     for (int i = std::ssize(items_) - 1; i >= 0; --i) {
         CItem* item = items_[i];
-        if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
+        if (item->GetClassId() == kClassItemQuest) RemoveItem(item, 1);
     }
 }
 

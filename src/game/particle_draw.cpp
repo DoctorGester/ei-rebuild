@@ -31,7 +31,7 @@ const Quaternion& CameraRotation() { return g_camera->localRotation_; }
 bool AttachedToHiddenUnit(const CParticleSource* s) {
     CEngineObject* object = s->attachedTo;
     if (!object) return false;
-    return object->GetClassId() == 0x50 && !(object->flags_ & 0x400000);
+    return object->GetClassId() == kClassUnit && !(object->flags_ & 0x400000);
 }
 
 } // namespace

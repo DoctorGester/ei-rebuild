@@ -4,7 +4,6 @@
 #include "unit.h"
 
 namespace {
-constexpr int kClassMapObjectServer = 0x39;
 } // namespace
 
 void CMapObject::ClearProtectionBases() {

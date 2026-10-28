@@ -392,7 +392,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
             y += 1.0;
         }
     }
-    built |= 1;
+    built |= kSectorLoaded;
     return 1;
 }
 
@@ -422,7 +422,7 @@ void SectorData::Build() {
     FillTiles(*this, tileWords, counts);
     ComputeBounds(*this);
     owner->LightSector(this);   // terrain_lights.cpp
-    built |= 2;
+    built |= kSectorBuilt;
 
     if (hasWater) {
         // The water materials present in the sector, then their levels.
@@ -486,7 +486,7 @@ int Terrain::SurfaceClass(float x, float y) {
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;
-    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, 2, 1);
+    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, kSectorBuilt, 1);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
@@ -510,8 +510,8 @@ namespace terrain {
 
 std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     if (wanted & built) return 1;
-    if (wanted >= 2 && !(built & 2)) Build();
-    if (wanted >= 4 && !(built & 4))
+    if (wanted >= kSectorBuilt && !(built & kSectorBuilt)) Build();
+    if (wanted >= kSectorLit && !(built & kSectorLit))
         Light(terrain, 0, 0, 0, 0x20, 0x20);
     return wanted & built;
 }

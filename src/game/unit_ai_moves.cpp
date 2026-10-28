@@ -56,7 +56,6 @@ static_assert(std::bit_cast<std::uint32_t>(kSideOffset) == 0x3FAEB851u);
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;
-constexpr int kOrderMove = 1;
 
 constexpr float kSamePointSq = 0.01f;
 

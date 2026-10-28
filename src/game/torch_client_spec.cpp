@@ -27,7 +27,6 @@ constexpr int kWarmUpTicks = 0x3C;
 constexpr float kShowFarFactor = 3.0f;
 constexpr float kSetFarFactor = 5.0f;
 constexpr float kSoundNear = 1.0f;
-constexpr int kTorchClassId = 0x41;
 // "CTorchObjectClientSpecific".
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
@@ -172,4 +171,4 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 
 int CTorchObjectClientSpec::RunTick() { return 1; }
 const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }
-int CTorchObjectClientSpec::GetClassId() { return kTorchClassId; }
+ClassId CTorchObjectClientSpec::GetClassId() { return kClassTorchObjectClientSpec; }

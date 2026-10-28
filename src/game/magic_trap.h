@@ -26,7 +26,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;                   // "CMagicTrapObject"
-    int GetClassId() override;
+    ClassId GetClassId() override;
     bool IsSynchronised() override { return true; }
 
     // The map object part, the spell's id (-1: none), the circles (count, then 12 bytes each), the units inside

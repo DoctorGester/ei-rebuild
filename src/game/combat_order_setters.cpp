@@ -20,9 +20,6 @@
 
 
 namespace {
-constexpr int kOrderUse = 6;            // UnitAction kinds
-constexpr int kOrderAnimation = 7;
-constexpr int kOrderEmote = 8;
 constexpr int kStateStopped = 6;        // CUnitServer::state after StopAction
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
@@ -32,10 +29,6 @@ constexpr std::uint32_t kUntameable = 0x32;
 constexpr int kMessageMoveStyle = 9;    // CPlayerServer::SendObject0B code
 
 // Sources of a kind 6 order (CUnitServer::UseSkill reads them).
-constexpr std::uint32_t kSourceUse = 0;
-constexpr std::uint32_t kSourceSteal = 1;
-constexpr std::uint32_t kSourceTame = 2;
-constexpr std::uint32_t kSourceSearchBody = 0x18A95;
 
 // The planner's shout codes per order (its second argument).
 constexpr int kShoutSteal = 6;
@@ -161,7 +154,7 @@ void CUnitServer::StopAction() {
     action.Reset();
     action2.Reset();
     // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.
-    if (action.kind != 0 && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
+    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
 }
 
 BOOL CUnitServer::HasOtherArmour() {

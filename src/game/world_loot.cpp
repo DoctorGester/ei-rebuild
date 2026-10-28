@@ -18,7 +18,6 @@
 namespace {
 
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
-constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
 
 } // namespace
@@ -82,7 +81,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             for (auto node = items.begin(); node != items.end();) {
                 auto next = std::next(node);
                 CItem* item = *node;
-                if (item->GetClassId() == kClassQuestItem) {
+                if (item->GetClassId() == kClassItemQuest) {
                     quest.push_back(item);
                     items.erase(node);
                 }

@@ -98,17 +98,17 @@ int CItemArmor::GetTypeGroup() {
 
 float CItemLoot::GetPrice() {
     switch (kind_) {
-    case 0: return price_;
-    case 1: return MaterialAt(index_)->unitPrice;
-    case 2: break;
+    case kLootSelf: return price_;
+    case kLootMaterial: return MaterialAt(index_)->unitPrice;
+    case kLootRecord: break;
     default: return -1.0f;
     }
     switch (recordType_) {
-    case 0: return WeaponAt(index_)->price;
-    case 1: return ArmorAt(index_)->price;
-    case 2: return QuickItemAt(index_)->price;
-    case 3: return SpellAt(index_)->price;
-    case 4: return SpellModifierAt(index_)->price;
+    case kRecordWeapon: return WeaponAt(index_)->price;
+    case kRecordArmor: return ArmorAt(index_)->price;
+    case kRecordQuick: return QuickItemAt(index_)->price;
+    case kRecordSpell: return SpellAt(index_)->price;
+    case kRecordModifier: return SpellModifierAt(index_)->price;
     default: return -1.0f;
     }
 }

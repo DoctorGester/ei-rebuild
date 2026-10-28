@@ -73,7 +73,7 @@ public:
     // Power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     void DrawGlow(CSceneRenderer* device, const Vector3* position, float size);
     // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
@@ -120,7 +120,7 @@ public:
     CLightningManager();
     ~CLightningManager() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // A new bolt.
     CEngineObject* NewObject(int type) override;
     // Draws every bolt it owns (its object list), then drops the references of the new-bolt list and

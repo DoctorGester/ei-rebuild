@@ -5118,3 +5118,17 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C44"]
 note = "Left by C43/C44. attackRoll (uint32 of float bits: set in combat.cpp, spell.cpp, literal 0x42C80000u in script_exec.cpp, masked & 0x7FFFFFFF, compared as float) and the unit_db float-bits fields become float with the FLT_MAX / sign cases checked (x87::CopyBits where bits must survive; the harness digest reader compiles against these headers, so a harness-key change may follow). Inline item_stock / script_save / script_effects / core_stream_diff / world_unit_set's WriteInt, PutByte, PutWord where the width is clear; rename world_save.cpp's local T ReadValue<T>(CStream*). Goldens must stay the same."
+
+[[ticket]]
+id = "C45a"
+title = "Party message / unit ack codes as one enum"
+group = "cleanup"
+depends = ["C45"]
+note = "C45 follow-up. The codes CPlayerServer::SendObject0B / CUnitServer::Shout / TellParties carry (unit acks, acks_db.h kinds 0..0x32) are local kMessage* constants in about ten combat and unit files with duplicates (0x0C kMessageCannotReach / kMessageOutOfReach, 0x11 kMessageNoCharge / kMessageScienceFailed), raw Shout(0x20) / Shout(0x21) in unit_ai_modes.cpp, the planner's kShout* and AIAlarm's TellParties(0x2E..0x32). One enum in the acks or player messages header; names from the acks database's speech lists."
+
+[[ticket]]
+id = "C45b"
+title = "Map object factory types as one enum"
+group = "cleanup"
+depends = ["C45"]
+note = "C45 follow-up. CMapObjectManager's creation types (type_: 0x32..0x34 units, 0x35 tree .. 0x3C lever, 0x300D animation state, 0x3010 trap; unit_create_stats.cpp kFactory) are spelled as kUnitTypeHero (unit.h), kTypeHumanoid (player_client.cpp), kStuffObjectType (world_effect_missile.cpp, world_effect_moshka.cpp), kBody (unit_skins.cpp) and raw numbers; the specific managers' ('E'..'K', 0x46..0x4B) likewise. One MapObjectType enum in unit_create.h, then the ~363 remaining raw flag tests (flags_ bits per class) by owner, as C45 did for landscapeFlags."

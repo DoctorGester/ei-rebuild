@@ -21,7 +21,6 @@
 #undef GetClassName
 
 namespace {
-constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 const char* const kBackslash = "\\";
 
@@ -163,7 +162,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
-int CSoundManager::GetClassId() { return kSoundManagerClassId; }
+ClassId CSoundManager::GetClassId() { return kClassSoundManager; }
 
 int CSoundManager::CreateBody() {
     Reset();

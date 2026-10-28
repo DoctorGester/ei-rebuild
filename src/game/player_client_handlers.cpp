@@ -29,8 +29,6 @@ namespace {
 
 constexpr int kStateLoggedIn = 2;
 constexpr int kGameStateBetweenZones = 3;
-constexpr int kPlatformClassA = 0x54;
-constexpr int kPlatformClassB = 0x5D;
 constexpr std::uint32_t kFlagGone = 1;              // a removed object's flags_
 constexpr std::uint32_t kUnitFlagHidden = 0x10;
 constexpr std::uint32_t kUnitFlagLit = 0x100;
@@ -214,7 +212,7 @@ int CPlayerClient::OnObjectChanged() {
     CMapObject* object = node->second;
     if (object->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
-    if (classId == kPlatformClassA || classId == kPlatformClassB)
+    if (classId == kClassBuilding || classId == kClassLever)
         ClientWorld()->RefreshPlatforms(object);   // the client's own
     return 1;
 }

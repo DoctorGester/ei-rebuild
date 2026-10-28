@@ -58,7 +58,7 @@ inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
     {"hr", "hd", "", "", "", "", ""},
 };
 
-// One layer of a composed skin: what it is (0x32 the unit's own skin, 0x3005 armour, 0x3004 a weapon; 0
+// One layer of a composed skin: what it is (0x32 the unit's own skin, kItemArmor armour, kItemWeapon a weapon; 0
 // none), the packed item id or prototype index, and the armour slot / weapon type.
 struct SkinLayer {
     int kind = 0;
@@ -86,7 +86,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
 

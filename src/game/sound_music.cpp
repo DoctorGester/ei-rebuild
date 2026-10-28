@@ -64,7 +64,6 @@ void PlayThemeFile(CMusicSystem* music, std::string_view allod, std::string Musi
     g_clientWorld->sounds_->RequestStream(path, 4);
 }
 
-constexpr int kMusicClassId = 0xE;
 // "CMusicSystem".
 const char* MusicClassNameText() { return "CMusicSystem"; }
 
@@ -259,4 +258,4 @@ void CMusicSystem::FadeIn() { g_clientWorld->sounds_->FadeInStream(); }
 
 // GetClassName and GetClassId.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }
-int CMusicSystem::GetClassId() { return kMusicClassId; }
+ClassId CMusicSystem::GetClassId() { return kClassMusicSystem; }

@@ -247,7 +247,7 @@ void HandOverSceneLights(CWorldClient* world) {
 
 void HandOverTerrainCasters(CWorldClient* world) {
     Terrain* terrain = world->terrain_;
-    if (!terrain || !terrain->mapLoaded || !(terrain->landscapeFlags & 0x10) || !terrain->sectorGrid) return;
+    if (!terrain || !terrain->mapLoaded || !(terrain->landscapeFlags & kLandscapeSunShadows) || !terrain->sectorGrid) return;
     render::ShadowCasterRect area;
     if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
     constexpr float kSector = 32.0f;   // vertices a sector side, one unit apart

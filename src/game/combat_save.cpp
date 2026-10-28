@@ -13,19 +13,11 @@
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
+#include "save_versions.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
 
-constexpr int kVersionPlanDirection = 0x48;   // plan +0x38 and the orders' +0x18 byte
-constexpr int kVersionFixedMaximum = 0x50;    // older saves take stats +0x6FC from the server object
-constexpr int kVersion180 = 0x44;
-constexpr int kVersionUnused = 0x48;
-constexpr int kVersion18E = 0x4A;
-constexpr int kVersion8E4 = 0x4C;
-constexpr int kVersion938 = 0x54;
-constexpr int kVersionPendingHit = 0x69;
-constexpr int kVersion93C = 0x73;
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
 int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
@@ -158,7 +150,7 @@ void CUnitServer::Load(CStream* stream) {
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
-    if (stream->version_ < kVersionFixedMaximum)
+    if (stream->version_ < kVersionFixedMaxHitPoints)
         stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
     stream->ReadValue(tameStage);
@@ -178,20 +170,20 @@ void CUnitServer::Load(CStream* stream) {
     stream->ReadValue(followsLeader);
     AssignCounted(followedLeader, ReadUnit(stream, g_serverWorld->objectManager_));
 
-    if (stream->version_ < kVersion180) return;
+    if (stream->version_ < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);
-    if (stream->version_ < kVersionUnused) return;
+    if (stream->version_ < kVersionUnusedDword) return;
     int unused;
     stream->ReadValue(unused);
-    if (stream->version_ < kVersion18E) return;
+    if (stream->version_ < kVersionSearchingTarget) return;
     stream->ReadValue(searchingTarget);
-    if (stream->version_ < kVersion8E4) return;
+    if (stream->version_ < kVersionProtection) return;
     stream->ReadValue(protection);
-    if (stream->version_ < kVersion938) return;
+    if (stream->version_ < kVersionBoredTicks) return;
     stream->ReadValue(boredTicks);
     if (stream->version_ < kVersionPendingHit) return;
     stream->ReadValue(pendingHit);
-    if (stream->version_ < kVersion93C) return;
+    if (stream->version_ < kVersionWaitFrame) return;
     stream->WriteValue(waitFrame);    // sic: written, not read
 }
 

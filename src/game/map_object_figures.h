@@ -130,7 +130,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     int OnPartAdded(CFigureMesh* part) override;
     CFigureMesh* RemoveFromPartSets(const char* name) override;
     int OnPartRemoved(CFigureMesh* part) override;
@@ -164,7 +164,7 @@ struct FigureBone : CEngineObject {
     void Destroy() override;
     const char* GetName() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     int CreateBone();
     void DestroyBone();
@@ -208,7 +208,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     int CreateState();
     void DestroyState();

@@ -23,7 +23,6 @@ constexpr int kLeverField = 5;            // the network field and the MarkChang
 constexpr int kPartScale = 1;
 constexpr std::uint32_t kDisabled = 0x80000;   // flags_
 constexpr std::uint32_t kKeyById = 8;           // lock mask bit: the id names the key
-constexpr int kClassLever = 0x5D;
 constexpr float kNextStateDuration = -10.0f;   // SetState(-1, -10): the model's default
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
@@ -209,4 +208,4 @@ bool Lever::ApplyKey(const LockKey* key) {
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
 const char* Lever::GetClassName() { return kLeverClassName; }
-int Lever::GetClassId() { return kClassLever; }
+ClassId Lever::GetClassId() { return kClassLever; }

@@ -84,7 +84,7 @@ public:
     void Destroy() override;               // Clear
     const char* GetName() override;
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x44
+    ClassId GetClassId() override;
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
     // rebuilds the rotation matrix from the stored quaternion.
     void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;

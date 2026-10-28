@@ -68,7 +68,6 @@ std::unordered_map<std::string, QuestBriefingRecord*>& BriefingRecords() { retur
 
 constexpr int kStateRewards = 4;
 constexpr int kQuestNameParts = 3;
-constexpr int kClassQuestItem = 0x14;
 constexpr int kSoundPriority = 0x100;
 constexpr int kSoundVolume = 100;
 constexpr float kSecondsPerCharacter = 0.05f;
@@ -236,7 +235,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 if (auto* player = g_serverWorld->GetPlayer(0)) {
                     for (auto node = player->items_.begin(); node != player->items_.end(); ++node) {
                         CItem* item = *node;
-                        if (item->GetClassId() != kClassQuestItem) continue;
+                        if (item->GetClassId() != kClassItemQuest) continue;
                         texts->FormatItemName(item, &name);
                         line = str::Format(NameLine(), label, name);
                         add();

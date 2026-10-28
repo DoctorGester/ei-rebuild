@@ -73,7 +73,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Starts recording into ".\camera\" + `name` (1 when the file
     // can be made). The other stops recording (the file name emptied); returns 1.

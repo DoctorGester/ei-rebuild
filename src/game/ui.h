@@ -486,7 +486,7 @@ public:
     int Create() override;
     void Destroy() override {}
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
     virtual BOOL Draw(CSceneRenderer* pass) { return DrawBase(pass); }
@@ -734,7 +734,7 @@ public:
     // over (a plain rectangle without one).
     void AddItem(std::string_view model, std::string_view image);
     // The unit's four quick items in the bottom row (sprites Rebirth-patched); for the local player's unit
-    // up to four of the player's 0x3009 items in the top row.
+    // up to four of the player's kItemQuest items in the top row.
     void SetUnit(CUnit* unit);
 
     struct Entry {
@@ -886,7 +886,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // The quads get z 0 and w 1, the vertices a zero normal index.
     void SetQuadCount(int count);

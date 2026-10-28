@@ -52,7 +52,7 @@ public:
     // The name's text
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     std::string name;
     MaterialColors colors;
@@ -70,7 +70,7 @@ public:
     CMaterialManager();
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: "CMaterialManager"
-    int GetClassId() override;
+    ClassId GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 
     // Rebirth-patched. CBaseManager's Create (0 when it fails); the archive "materials.res" of the text

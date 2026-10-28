@@ -21,10 +21,7 @@
 namespace {
 
 constexpr const char* kServerClassName = "CObject3DServer";
-constexpr int kServerClassId = 0x38;
 // The shadow switches by the object's class: units (0x50), class 0x52, any other.
-constexpr int kClassUnit = 0x50;
-constexpr int kClass52 = 0x52;
 constexpr std::uint32_t kHalfShown = 0x20;
 constexpr int kOutsideView = 2;
 
@@ -34,7 +31,7 @@ int Setting(const int& setting) { return static_cast<const volatile int&>(settin
 int ShadowSwitchOf(CObject3D* object) {
     int classId = object->GetClassId();
     if (classId == kClassUnit) return Setting(options::g_options->unitShadow_);
-    if (classId == kClass52) return Setting(options::g_options->floraShadow_);
+    if (classId == kClassTree) return Setting(options::g_options->floraShadow_);
     return Setting(options::g_options->buildingShadow_);
 }
 
@@ -96,7 +93,7 @@ void CObject3DServer::Destroy() { object = nullptr; }
 
 // Class name and id.
 const char* CObject3DServer::GetClassName() { return kServerClassName; }
-int CObject3DServer::GetClassId() { return kServerClassId; }
+ClassId CObject3DServer::GetClassId() { return kClassObject3DServer; }
 
 // The part virtuals: no parts; 0.
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }

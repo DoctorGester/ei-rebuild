@@ -17,7 +17,6 @@
 
 namespace {
 
-constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
 template <typename T>
@@ -85,13 +84,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     }
     tamerSide = tamer->side;
     brain.StopAction();
-    if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
+    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) {
         action2.kind = kOrderNone;
         action2.target.Reset();
         action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
-        action2.kind = 0;
+        action2.kind = kOrderIdle;
         if (action2.target) {
             action2.target.Reset();
             action2.target = nullptr;

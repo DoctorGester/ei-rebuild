@@ -49,8 +49,6 @@ constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figur
 constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
-constexpr int kClassUnit50 = 0x50;
-constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
@@ -261,7 +259,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
     }
     LoadParts(model, names);
     int classId = GetClassId();
-    if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
+    if ((classId == kClassBuilding || GetClassId() == kClassUnit) && animation) {
         animation->Play(nullptr);
         animation->UpdatePose();
     }

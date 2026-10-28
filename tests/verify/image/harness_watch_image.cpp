@@ -11,7 +11,7 @@ void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation) {
     CWorldClient* c = &g_clientWorld.Get();
     if (!c) return nullptr;
     for (CMapObject* object : c->objects_) {
-        if (object && static_cast<unsigned>(object->id_) == id && object->GetClassId() == world::kClassUnit) {
+        if (object && static_cast<unsigned>(object->id_) == id && object->GetClassId() == kClassUnit) {
             auto* unit = static_cast<CUnit*>(object);
             *flags = reinterpret_cast<std::uint32_t*>(&unit->flags_);
             *rotation = reinterpret_cast<std::uint32_t*>(&unit->localRotation_);

@@ -129,7 +129,7 @@ int CFigureMesh::Create() { return CreateMesh(); }
 void CFigureMesh::Destroy() { Clear(); }
 const char* CFigureMesh::GetName() { return name_.c_str(); }
 const char* CFigureMesh::GetClassName() { return "CFigure"; }
-int CFigureMesh::GetClassId() { return 0x44; }
+ClassId CFigureMesh::GetClassId() { return kClassFigureMesh; }
 
 // --- Drawer and owner ---------------------------------------------------------------------------
 

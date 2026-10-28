@@ -18,7 +18,7 @@
 CClientSpecificManager::CClientSpecificManager() {}
 CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
-int CClientSpecificManager::GetClassId() { return 0x30; }
+ClassId CClientSpecificManager::GetClassId() { return kClassClientSpecificManager; }
 
 CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {

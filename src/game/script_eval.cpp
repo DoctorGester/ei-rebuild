@@ -80,8 +80,6 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 
 // ---- Game state reached by the functions --------------------------------------------------------
 
-constexpr int kClassLever = 0x5D;
-
 // The companion holding a map object's vitals. Scripts run on the server, so it is the
 // CMapObjectServer (not checked).
 CMapObjectServer* ServerHalf(CEngineObject* object) {

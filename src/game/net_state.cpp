@@ -22,8 +22,6 @@ namespace {
 // The world (ObjectWorld) as the base class.
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
-constexpr int kClassServerController = 0x3E;
-
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
 
@@ -95,7 +93,7 @@ void CUnit::WriteNetState() {
         PutWord(field, (unit->flags_ & 0x40000000) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
-        if (unit->controller->GetClassId() == kClassServerController)
+        if (unit->controller->GetClassId() == kClassUnitServer)
             unit->Controller()->RefreshEquipment();
     }
     if (DeltaField* field = state->BeginField(6)) {
@@ -198,7 +196,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         field->ReadRaw(&effect->ticksLeft, 2);
         field->ReadRaw(&effect->ending, 1);
     }
-    if (GetClassId() != world::kClassUnit)
+    if (GetClassId() != kClassUnit)
         companion->EffectsChanged(first == 0);
     complete &= SnapshotConsumed();
     field->EndField();

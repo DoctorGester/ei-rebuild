@@ -16,7 +16,6 @@
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
-constexpr int kUnitClassId = 0x50;
 constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
@@ -147,7 +146,7 @@ const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::GetClassName() { return kUnitClassName; }
-int CUnit::GetClassId() { return kUnitClassId; }
+ClassId CUnit::GetClassId() { return kClassUnit; }
 bool CUnit::IsSynchronised() { return true; }
 Vector3* CUnit::EyePoint(Vector3* out) {
     StandPoint(&out->x);

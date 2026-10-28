@@ -35,13 +35,11 @@ constexpr int kNoiseKind = 0x1A;
 
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 // PropagateHostility's squared call radius: the original rounds it to a float through this global.
 float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
 constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
-constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
 constexpr int kMessageKilled = 0x30;
 constexpr int kMessageScienceFailed = 0x11;
@@ -80,13 +78,13 @@ void PlayerMessage(CPlayerServer* messages, CUnit* unit, int code) {
 }
 
 void CUnitServer::DropQueuedOrder() {
-    action2.kind = 9;
+    action2.kind = kOrderNone;
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
-    action2.kind = 0;
+    action2.kind = kOrderIdle;
     if (action2.target) {
         action2.target->Release();
         action2.target = nullptr;
@@ -96,7 +94,7 @@ void CUnitServer::DropQueuedOrder() {
 
 void CUnitServer::FinishAction(int location) {
     switch (action.kind) {
-    case 3: {
+    case kOrderAttack: {
         DeliverAttack(action.target, &pendingHit);
         CUnit* target = UnitOrNull(action.target);
         if (!target) return;
@@ -108,29 +106,29 @@ void CUnitServer::FinishAction(int location) {
         action.source = 6;
         return;
     }
-    case 4:
-    case 5:
+    case kOrderCastAt:
+    case kOrderCastOn:
         FinishCast();
         break;
-    case 6:
+    case kOrderUse:
         UseSkill(action.target);
         break;
-    case 10: {
+    case kOrderUseItem: {
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetCategory() == kQuickItemConsumable) {
+        if (item && item->GetCategory() == kCategoryConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
             g_serverWorld->UseQuickItem(unit);
             item->Release();
         }
-        action.kind = 9;
+        action.kind = kOrderNone;
         if (action.target) action.target->Release();
         action.target = nullptr;
         action.pointIsUseSpot = 0;
         action.param = 0;
         action.modifier = 0;
-        if (action2.kind == 9 && action.kind != 0) DropQueuedOrder();
+        if (action2.kind == kOrderNone && action.kind != kOrderIdle) DropQueuedOrder();
         return;
     }
     default:
@@ -139,7 +137,7 @@ void CUnitServer::FinishAction(int location) {
     action.Clear();
     action.param = 0;
     action.modifier = 0;
-    if (action2.kind == 9) Idle();
+    if (action2.kind == kOrderNone) Idle();
 }
 
 void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
@@ -329,7 +327,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(killer->player->Server(), killer, kMessageKilled);
         } else if (unit->player) {
-            attacker->ServerController()->voice.Raise(9);
+            attacker->ServerController()->voice.Raise(kRemarkKill);
         }
         if (attacker->GetClassId() == kClassUnit) {
             CUnitServer* theirs = attacker->ServerController();
@@ -357,7 +355,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 
 void CUnitServer::UseSkill(CMapObject* target) {
     CWorldServer* world = ServerWorld();
-    if (action.kind == 6 && action.source == kSkillOnTarget) {
+    if (action.kind == kOrderUse && action.source == kSourceSearchBody) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
         if (CPlayer* player = unit->player) g_serverWorld->Loot(looted, player);
@@ -367,7 +365,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         return;
     }
     std::uint32_t skill = action.source;
-    if (skill != 1 && skill != 0) return;
+    if (skill != kSourceSteal && skill != kSourceUse) return;
     CUnit* other = UnitOrNull(target);
     float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
@@ -376,21 +374,21 @@ void CUnitServer::UseSkill(CMapObject* target) {
     *kCombatLog << "Unit" << static_cast<long>(unit->id_) << " is using skill ";
     const char* name;
     switch (action.source) {
-    case 0: name = "science"; break;
-    case 1: name = "stealing"; break;
-    case 2: name = "tame"; break;
+    case kSourceUse: name = "science"; break;
+    case kSourceSteal: name = "stealing"; break;
+    case kSourceTame: name = "tame"; break;
     default: name = "unknown"; break;
     }
     console::EndLine(*kCombatLog << name << " his_skill = " << mine << " target_skill = " << theirs);
 
     skill = action.source;
-    if (skill != 0 && theirs >= mine) {
+    if (skill != kSourceUse && theirs >= mine) {
         DiplomacyOf(world)->OnAttack(unit, other);
         return;
     }
     int message;
     switch (skill) {
-    case 0: {
+    case kSourceUse: {
         LockKey record = {1, 0, 0};
         auto* items = world->ItemFactory();
         CItem* studied = FindItem(items, action.param);
@@ -402,7 +400,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         message = kMessageScienceFailed;
         break;
     }
-    case 1: {
+    case kSourceSteal: {
         if (!other) return;
         if (other->player) return;
         CItem* item = other->TakeRandomItem();
@@ -423,7 +421,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         message = kMessageStealFailed;
         break;
     }
-    case 2: {
+    case kSourceTame: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
         if (other->ServerController()->TryTame(unit, mine) != 0) return;
@@ -439,8 +437,8 @@ void CUnitServer::UseSkill(CMapObject* target) {
 }
 
 void CUnitServer::Idle() {
-    if (action.kind == 0) return;
-    if (action2.kind == 7 || action2.kind == 8) return;
+    if (action.kind == kOrderIdle) return;
+    if (action2.kind == kOrderAnimation || action2.kind == kOrderEmote) return;
     DropQueuedOrder();
 }
 

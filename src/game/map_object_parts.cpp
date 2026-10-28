@@ -13,7 +13,6 @@
 
 
 namespace {
-constexpr int kClassUnit = 0x50;
 constexpr std::uint32_t kKindMask = 0x3C0000;         // FigureAnimation::key
 constexpr std::uint32_t kKindSkill = 0x40000;
 constexpr std::uint32_t kNumberMask = 0x3FC00000;

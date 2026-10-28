@@ -33,8 +33,6 @@ namespace {
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 
 constexpr int kLayerSkin = 0x32;
-constexpr int kLayerArmour = 0x3005;
-constexpr int kLayerWeapon = 0x3004;
 constexpr int kDetailedLayers = 8;
 constexpr int kSimpleLayers = 2;
 constexpr int kFlagDetailed = 0x100;
@@ -373,7 +371,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* 
         if (id != kNone) {
             if (const itemdb::ArmorRecord* armour = armours.At(id >> 16)) {
                 (*out)[0].id = id;
-                (*out)[0].kind = kLayerArmour;
+                (*out)[0].kind = kItemArmor;
                 (*out)[0].slot = armour->type;
             }
         }
@@ -381,7 +379,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* 
         if (hand < 4 && (id = weaponIds[hand]) != kNone) {
             if (const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16)) {
                 (*out)[1].id = id;
-                (*out)[1].kind = kLayerWeapon;
+                (*out)[1].kind = kItemWeapon;
                 (*out)[1].slot = weapon->type;
             }
         }
@@ -397,7 +395,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* 
         const itemdb::ArmorRecord* armour = armours.At(id >> 16);
         if (!armour) continue;
         (*out)[k + 1].id = id;
-        (*out)[k + 1].kind = kLayerArmour;
+        (*out)[k + 1].kind = kItemArmor;
         (*out)[k + 1].slot = armour->type;
     }
 }

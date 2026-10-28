@@ -24,7 +24,6 @@ namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr std::uint32_t kFlagShowInPanel = 0x400000;
-constexpr int kCategoryWand = 8;
 
 // Cursor shapes ('s index).
 constexpr int kCursorAttack = 1;
@@ -175,12 +174,12 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
-    case 3: {   // a quick item on a unit (a wand not on the user itself)
+    case 3: {   // a quick item on a unit (a potion only on the user itself)
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         if (!first || first->CanUseQuickItem(pendingSlot_) != 0) break;
         CItem* item = first->GetQuickItem(pendingSlot_);
-        if (item && item->GetCategory() == kCategoryWand && unit != first) break;
+        if (item && item->GetCategory() == kCategoryPotion && unit != first) break;
         shape = kCursorCast;
         break;
     }

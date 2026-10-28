@@ -4,34 +4,34 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
-template <int ClassId> constexpr const char* kName = nullptr;
-template <> constexpr const char* kName<0x52> = "CTree";
-template <> constexpr const char* kName<0x53> = "CStone";
-template <> constexpr const char* kName<0x54> = "CBuilding";
-template <> constexpr const char* kName<0x56> = "CStuffObject";
+template <ClassId Id> constexpr const char* kName = nullptr;
+template <> constexpr const char* kName<kClassTree> = "CTree";
+template <> constexpr const char* kName<kClassStone> = "CStone";
+template <> constexpr const char* kName<kClassBuilding> = "CBuilding";
+template <> constexpr const char* kName<kClassStuffObject> = "CStuffObject";
 } // namespace
 
-template <int ClassId>
-PlainMapObject<ClassId>::PlainMapObject() {
+template <ClassId Id>
+PlainMapObject<Id>::PlainMapObject() {
     CreateMapObject();
 }
 
-template <int ClassId>
-PlainMapObject<ClassId>::~PlainMapObject() {
+template <ClassId Id>
+PlainMapObject<Id>::~PlainMapObject() {
     DestroyMapObject();
 }
 
-template <int ClassId>
-const char* PlainMapObject<ClassId>::GetClassName() {
-    return kName<ClassId>;
+template <ClassId Id>
+const char* PlainMapObject<Id>::GetClassName() {
+    return kName<Id>;
 }
 
-template <int ClassId>
-int PlainMapObject<ClassId>::GetClassId() {
-    return ClassId;
+template <ClassId Id>
+ClassId PlainMapObject<Id>::GetClassId() {
+    return Id;
 }
 
-template class PlainMapObject<0x52>;
-template class PlainMapObject<0x53>;
-template class PlainMapObject<0x54>;
-template class PlainMapObject<0x56>;
+template class PlainMapObject<kClassTree>;
+template class PlainMapObject<kClassStone>;
+template class PlainMapObject<kClassBuilding>;
+template class PlainMapObject<kClassStuffObject>;

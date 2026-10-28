@@ -37,7 +37,6 @@ void ReadProcessorInfo();
 
 class CSysInfo final : public CEngineObject {
 public:
-    static constexpr int kClassId = 0xD;
     // flags_ bits.
     static constexpr std::uint32_t kMmx = 0x8;       // always set by Collect
     static constexpr std::uint32_t kSse = 0x10;
@@ -52,7 +51,7 @@ public:
     int Create() override;                  // everything collected; 1
     void Destroy() override {}              // empty
     const char* GetClassName() override;    // "CSysInfo"
-    int GetClassId() override;              // 0xD
+    ClassId GetClassId() override;
 
     // Everything below filled from the system; returns 1.
     int Collect();

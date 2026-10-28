@@ -322,11 +322,11 @@ public:
     // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
     // deletes the constructors' part lists except the first of each.
     void Close();
-    // A weapon 0x3004 or armour 0x3005, 0x3006 or 0x3008 off the current hero into the player's items
+    // A weapon kItemWeapon or armour kItemArmor, kItemQuick or kItemSpell off the current hero into the player's items
     // (whose result it returns; 0 for other kinds).
     CItem* TakeOff(CItem* item);
-    // A weapon (at most 4), armour (the same body part's taken off first), a 0x3006 item (at most 4) or a
-    // 0x3008 item (at most 8). Other kinds and full slots do nothing.
+    // A weapon (at most 4), armour (the same body part's taken off first), a kItemQuick item (at most 4) or a
+    // kItemSpell item (at most 8). Other kinds and full slots do nothing.
     void PutOn(CItem* item);
     // Pages 0 / 1 put the item on the hero; the others move it into the page's slots (with Shift and a
     // kind-one item the whole stack).

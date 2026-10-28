@@ -8,16 +8,13 @@
 
 class CEngineObject;
 
-// GetClassName / GetClassId of the vtable named in the comment.
+// GetClassName of the vtable named in the comment.
 const char* I3DFigureClassName(CEngineObject*);           // "CI3DFigure"
-int I3DFigureClassId(CEngineObject*);                     // 0x46
 const char* FigureClientSpecificClassName(CEngineObject*);   // "CFigureClientSpecific"
-int FigureClientSpecificClassId(CEngineObject*);          // 0x36
 // The interface objects' base (53 window classes keep these): Create answers 1, the name is "Sorry, no
-// other way.", the id 0x45.
+// other way.".
 int UiObjectCreate(CEngineObject*);
 const char* UiObjectClassName(CEngineObject*);
-int UiObjectClassId(CEngineObject*);
 
 // The lightning and fog managers' Init is CBaseManager::Init; the particle, lightning and fog
 // managers' class names and ids, the item manager's folder name are their classes' overrides.

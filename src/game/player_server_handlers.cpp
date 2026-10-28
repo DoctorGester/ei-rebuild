@@ -51,7 +51,6 @@ constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
 constexpr float kUnknownZ = -1313.0f;                 // lastPosition_.z after a revival
 constexpr std::uint32_t kFlagBlocked = 0x800000;      // a unit the use order leaves out
-constexpr int kOrderUse = 6;                          // AIOrder::kind
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 

@@ -41,7 +41,7 @@ void AIAttention::LookAround(AIBrain* brain, int reachArg) {
                 int flags = 0x1C;
                 if (brain->owner->unit->player) {
                     AIOrder order{};
-                    order.kind = 3;
+                    order.kind = kOrderAttack;
                     order.source = 6;
                     ++chosen->refCount_;
                     order.target = chosen;

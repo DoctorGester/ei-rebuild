@@ -31,19 +31,13 @@ const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // Item fields read by the strips: a loot item's record type and record index.
-int ItemSubKind(const CItem* item) { return static_cast<int>(AsLoot(item)->recordType_); }
 std::uint32_t ItemRecord(const CItem* item) { return AsLoot(item)->index_; }
-
-constexpr int kTypeWeapon = 0x3004;
-constexpr int kTypeArmor = 0x3006;
-constexpr int kTypeQuick = 0x3007;
-constexpr int kTypeSpellContainer = 0x3008;
 
 bool TabKeysEnabled() { return options::g_options->switchFilters_ != 0; }
 
-// The item as loot (type 0x3007), or null.
+// The item as loot (type kItemLoot), or null.
 const CItemLoot* LootOrNull(const CItem* item) {
-    return item->type_ == kTypeQuick ? AsLoot(item) : nullptr;
+    return item->type_ == kItemLoot ? AsLoot(item) : nullptr;
 }
 
 } // namespace
@@ -53,26 +47,26 @@ const CItemLoot* LootOrNull(const CItem* item) {
 // The predicates need no object (the original's read no `this` either): static functions.
 bool UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ == 3;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ == kRecordSpell;
 }
 
 bool UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ == 4;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ == kRecordModifier;
 }
 
 BOOL UiItemKinds::IsSpellContainer(const CItem* item) {
-    return item->type_ == kTypeSpellContainer;
+    return item->type_ == kItemSpell;
 }
 
 bool UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
+    return loot && loot->kind_ == kLootRecord && loot->recordType_ <= kRecordQuick;
 }
 
-bool UiItemKinds::IsKindOne(const CItem* item) {
+bool UiItemKinds::IsMaterial(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == 1;
+    return loot && loot->kind_ == kLootMaterial;
 }
 
 bool UiItemKinds::IsBuildable(const CItem* item) {
@@ -80,8 +74,8 @@ bool UiItemKinds::IsBuildable(const CItem* item) {
     const itemdb::ItemRecordHead* prototype = object->GetPrototype();
     if (prototype && !prototype->buildable) return false;
     int type = object->type_;
-    if (type == kTypeWeapon || type == 0x3005) return true;
-    if (type != kTypeArmor) return false;
+    if (type == kItemWeapon || type == kItemArmor) return true;
+    if (type != kItemQuick) return false;
     prototype = object->GetPrototype();
     return prototype &&
            text::CompareIgnoringCase(prototype->materialClass, game::NoneText()) != 0;
@@ -146,12 +140,12 @@ void CUiItemStrip::CycleTab(int first, int count) {
 }
 
 int CUiItemStrip::ItemTab(const CItem* item) {
-    if (UiItemKinds::IsPart(item) || UiItemKinds::IsKindOne(item)) return 0;
+    if (UiItemKinds::IsPart(item) || UiItemKinds::IsMaterial(item)) return 0;
     if (UiItemKinds::IsSpell(item) || UiItemKinds::IsModifier(item)) return 1;
     int type = item->type_;
-    if (type == kTypeWeapon || type == 0x3005 || type == kTypeArmor || type == kTypeSpellContainer) return 2;
-    if (type == kTypeQuick) return 3;
-    return (type != 0x3009) + 4;
+    if (type == kItemWeapon || type == kItemArmor || type == kItemQuick || type == kItemSpell) return 2;
+    if (type == kItemLoot) return 3;
+    return (type != kItemQuest) + 4;
 }
 
 int CUiItemStrip::SpellTab(const CItem* item) {
@@ -174,18 +168,18 @@ int CUiItemStrip::SpellTab(const CItem* item) {
 
 int CUiItemStrip::ArmorTab(const CItem* item) {
     if (UiItemKinds::IsPart(item)) {
-        switch (ItemSubKind(item)) {
-        case 0: return 0;
-        case 1: {
+        switch (AsLoot(item)->recordType_) {
+        case kRecordWeapon: return 0;
+        case kRecordArmor: {
             auto* armor = itemdb::ArmorAt(ItemRecord(item));
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
-        case 2: return 3;
+        case kRecordQuick: return 3;
         default: return 5;
         }
     }
-    if (item->type_ == kTypeArmor) return 3;
-    return UiItemKinds::IsKindOne(item) ? 4 : 5;
+    if (item->type_ == kItemQuick) return 3;
+    return UiItemKinds::IsMaterial(item) ? 4 : 5;
 }
 
 void CForwardingStrip::RebuildList() {
@@ -460,15 +454,15 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     if (mode == 0) {
         bool equipped = true;
         switch (item->type_) {
-        case kTypeWeapon:
+        case kItemWeapon:
             weapon_ = item;
             weaponPanel_->ShowWeapon(item);
             break;
-        case kTypeArmor:
+        case kItemQuick:
             armor_ = item;
             weaponPanel_->ShowArmour(item);
             break;
-        case kTypeSpellContainer:
+        case kItemSpell:
             spellContainer_ = item;
             spellPanel_->ShowEntry(item);
             break;
@@ -482,7 +476,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
 }
 
 bool CMpHeroScreen::CanEquip(CItem* item, int) {
-    if (item->type_ != kTypeSpellContainer) return true;
+    if (item->type_ != kItemSpell) return true;
     CSpell* spell = item->spell_;
     if (!spell) return true;
     return HeroCanUseSpell(&HeroRecord()->stats, spell);

@@ -13,7 +13,6 @@
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";
-constexpr int kClassTorch = 0x57;
 constexpr int kTypeTorchSpec = 0x4B;
 constexpr int kTorchField = 4;
 } // namespace
@@ -88,4 +87,4 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
 }
 
 const char* CTorchObject::GetClassName() { return kTorchClassName; }
-int CTorchObject::GetClassId() { return kClassTorch; }
+ClassId CTorchObject::GetClassId() { return kClassTorchObject; }

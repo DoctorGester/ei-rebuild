@@ -9,6 +9,7 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/str.h"
+#include "save_versions.h"
 
 #include <cstring>
 #include <memory>
@@ -49,9 +50,9 @@ void CInterface3D::LoadState(CStream* stream) {
     stream->ReadValue(hudPanelsIn_[2]);
     stream->ReadValue(hudBodyPart_);
     stream->ReadValue(hudTopPage_);
-    if (Version(stream) < 0x47) return;
+    if (Version(stream) < kVersionFastGame) return;
     stream->ReadValue(fastGame_);
-    if (Version(stream) < 0x56) return;
+    if (Version(stream) < kVersionInterfaceList) return;
     // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
     // the original's local string).
     std::string last;
@@ -63,9 +64,9 @@ void CInterface3D::LoadState(CStream* stream) {
         stream->ReadValue(value);
     }
     ReadInto(stream, &messageText_);
-    if (Version(stream) >= 0x5D) {
+    if (Version(stream) >= kVersionMessageFlag) {
         stream->ReadValue(messageFlag_);
-        if (Version(stream) >= 0x5F) ReadInto(stream, &savedText_);
+        if (Version(stream) >= kVersionSavedText) ReadInto(stream, &savedText_);
     }
 }
 

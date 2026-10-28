@@ -33,7 +33,6 @@ constexpr float kOverkill = -5.0f;
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
 constexpr std::uint32_t kFlagSideChanged = 0x80000;
-constexpr int kClassQuickItem = 0x13;
 
 // Globals read by the formulas.
 
@@ -44,7 +43,9 @@ float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 // The party of the unit's player.
 CParty* RecordsOf(CPlayer* player) { return player->Party(); }
 
-bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassPartyController; }
+// The units of a player's party have a client-specific controller; their items live in the player's inventory
+// records.
+bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassUnitClientSpecific; }
 
 // Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
 // already there (whatever its slot), -1 when full.
@@ -267,10 +268,10 @@ int CUnit::CanCastSpell(std::uint32_t slot) {
 
 int CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* object = GetQuickItem(slot);
-    if (!object || object->GetClassId() != kClassQuickItem) return 3;
+    if (!object || object->GetClassId() != kClassItemQuick) return 3;
     CItem* item = object;
-    if (item->GetCategory() != 5 && item->GetCategory() != 8) return 3;
-    if (item->GetCategory() == 5) {
+    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return 3;
+    if (item->GetCategory() == kCategoryWand) {
         EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
         if (item->charge_ < SpellCost(item->spell_)) return 1;
     }

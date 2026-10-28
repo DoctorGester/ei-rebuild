@@ -80,7 +80,7 @@ public:
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
     void Leave() override { LeaveAndFlush(); }
@@ -308,7 +308,7 @@ public:
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     BOOL CreatePlayer();
     void DestroyPlayer();
@@ -334,7 +334,7 @@ public:
     void GiveItems(const std::list<CItem*>* items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
-    // 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item a unit of the player
+    // 1 when a given loot item (kItemQuest) has `kind` (CItemLoot::kind_), or an item a unit of the player
     // carries has it (any class; the walk stops at a null unit).
     BOOL HasLoot(int kind);
     // The first given loot item of `kind` / item with id `id`: the connection's ItemTaken, out of the list,

@@ -31,6 +31,7 @@
 #include "game_singletons.h"
 #include "camera.h"
 #include "ui_cursor.h"
+#include "save_versions.h"
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
@@ -65,14 +66,14 @@ void CBattleScreen::CreateScreen() {
         std::uint8_t serverFlag;
         stream->ReadValue(serverFlag);
         GameSetServerPaused(serverFlag);
-        if (SaveVersion() >= 0x47) {
+        if (SaveVersion() >= kVersionBattleText) {
             int unused;
             stream->ReadValue(unused);
             std::string raw;
             std::string* text = stream->ReadString(&raw);
             savedText = *text;
         }
-        if (SaveVersion() >= 0x62) {
+        if (SaveVersion() >= kVersionPendingExit) {
             stream->ReadValue(exitPending_);
             stream->ReadValue(pendingExit_);
         }

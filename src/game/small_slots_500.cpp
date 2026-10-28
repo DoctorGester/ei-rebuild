@@ -12,19 +12,16 @@ namespace {
 constexpr const char* kTrackClassName = "CAnimationTrack";
 constexpr const char* kBoneClassName = "CAnimationNode";
 constexpr const char* kStateClassName = "CAnimationSystem2";
-constexpr int kTrackClassId = 0x22;
-constexpr int kBoneClassId = 0x21;
-constexpr int kStateClassId = 0x21;   // the same id as the bones'
 
 } // namespace
 
 const char* AnimationTrack::GetClassName() { return kTrackClassName; }
-int AnimationTrack::GetClassId() { return kTrackClassId; }
+ClassId AnimationTrack::GetClassId() { return kClassAnimationTrack; }
 
 const char* FigureBone::GetName() { return name.c_str(); }
 const char* FigureBone::GetClassName() { return kBoneClassName; }
-int FigureBone::GetClassId() { return kBoneClassId; }
+ClassId FigureBone::GetClassId() { return kClassFigureBone; }
 
 const char* CFigureAnimationState::GetClassName() { return kStateClassName; }
-int CFigureAnimationState::GetClassId() { return kStateClassId; }
+ClassId CFigureAnimationState::GetClassId() { return kClassFigureAnimationState; }
 

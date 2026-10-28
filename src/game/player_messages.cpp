@@ -311,7 +311,7 @@ CPlayerServer::~CPlayerServer() {
 }
 
 const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }
-int CPlayerServer::GetClassId() { return 0x3B; }
+ClassId CPlayerServer::GetClassId() { return kClassPlayerServer; }
 
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);

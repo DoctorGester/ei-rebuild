@@ -12,8 +12,6 @@
 #include <cstdint>
 #include <list>
 
-constexpr int kClassUnitServer = 0x3E;
-
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
@@ -160,7 +158,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }
@@ -187,6 +185,8 @@ public:
     bool IsFighting();
     // A carrier with enough charge (category 5), or a spell the party unit has the mana for.
     bool CanCast(const AIOrder* order);
+    // The current or the queued order is of `kind`.
+    bool HasOrder(UnitOrderKind kind) const { return action.kind == kind || action2.kind == kind; }
     // The point of the first move order (action, then action2). 0/1.
     BOOL GetMovePoint(float* out);
     float ActionDistance(const AIOrder* order);
@@ -255,7 +255,7 @@ public:
     // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
     // to the sides; 0 without an attacker or with a non-zero `hitKind`.
     std::uint32_t HitDirection(CUnit* attacker, int hitKind);
-    // Kind 6 with source 0x18A95 (a talk / trade order), else science (0) and stealing (1).
+    // A kOrderUse: kSourceSearchBody loots the body; else science (kSourceUse) and stealing.
     void UseSkill(CMapObject* target);
     // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
     // up of kind 0 (sic).
@@ -293,14 +293,14 @@ public:
     void SetWantedWeapon(int slot);
     // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a
     // living unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body
-    // (0x18A95; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
+    // (kSourceSearchBody; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
     void OrderSteal(CMapObject* target, int run);
     void OrderTame(CMapObject* target, int run);
     void OrderUse(CMapObject* target, int spot, int run);
     void OrderSearchBody(CMapObject* target, int run);
     // Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the world does not share it with
-    // this unit's id; else when a living unit of the brain's nearby list is searching it (kind 6, source
-    // 0x18A95) in state 5 or with its flag set.
+    // this unit's id; else when a living unit of the brain's nearby list is searching it (kOrderUse,
+    // kSourceSearchBody) in state 5 or with its flag set.
     bool TargetBusy(CMapObject* target);
     // `name` from the figure's animation database as the queued order: kind 8 for keys with bit 31, else 7;
     // param = the entry's index dword.

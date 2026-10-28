@@ -117,7 +117,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, std::list<HeldPtr<CSpell
 }
 
 // The common body of the three instruction generators: the source records are copied to a scratch vector, then
-// each (except one named `skip`) becomes an item of kind 0x3007 with the class-0x15 prototype named at
+// each (except one named `skip`) becomes an item of kind kItemLoot with the class-0x15 prototype named at
 // `prototypeName`, no material, index_ the record's index in `table` and count_ a random count.
 template <typename Record>
 void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecordHead*>& source, const char* prototypeName,
@@ -132,7 +132,7 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         if (skip && str::Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(0x3007, -1);
+        ctor->BeginCreateItem(kItemLoot, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
@@ -222,7 +222,7 @@ int ModifierIndex(const itemdb::SpellModifierRecord* record) {
 }
 
 // The common body of the spell and modifier instruction generators: the source copied to its scratch vector,
-// then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record, its index,
+// then an item of kind kItemLoot with the class-0x15 prototype named at `prototypeName` per record, its index,
 // count_ a random count. The scratch is emptied at the end.
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& source, std::vector<Record*>& taken,
@@ -236,7 +236,7 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
     for (Record* record : taken) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(0x3007, -1);
+        ctor->BeginCreateItem(kItemLoot, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
@@ -318,7 +318,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
-        if (item->type_ == 0x3006 && item->GetCategory() == 8)
+        if (item->type_ == kItemQuick && item->GetCategory() == kCategoryPotion)
             item->count_ = static_cast<std::uint32_t>(libcrt::Rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
     }
@@ -349,7 +349,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(game::MaterialText());
     for (StockMaterial* e = taken.data(); e != taken.data() + taken.size(); ++e) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(0x3007, -1);
+        ctor->BeginCreateItem(kItemLoot, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e->record);
         int range = e->maxCount - e->minCount + 1;
@@ -569,7 +569,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     itemdb::QuickItemRecord* prototype = g_itemDatabase->quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(0x3008, -1);
+        ctor->BeginCreateItem(kItemSpell, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         ctor->SetSpellObject(spell);

@@ -12,6 +12,7 @@
 #include <string>
 
 #include "lib/nan_audit.h"
+#include "save_versions.h"
 
 #include <cmath>
 #include <memory>
@@ -43,7 +44,6 @@ bool ZoneExit::Contains(float x, float y) const {
 // ---- Stream form and the string reader ------------------
 
 namespace {
-constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x38 and the angle saved from here on
 } // namespace
 
 void CStream::ReadInto(std::string* out) {
@@ -65,7 +65,7 @@ void ZoneExit::Read(CStream* stream) {
     hasDeployAngle = 0;
     deployAngle = 0;
     angle = 0;
-    if (static_cast<int>(stream->version_) >= static_cast<int>(kExitExtrasVersion)) {
+    if (static_cast<int>(stream->version_) >= static_cast<int>(kVersionExitExtras)) {
         stream->ReadValue(hasDeployAngle);
         stream->ReadValue(deployAngle);
         stream->ReadValue(angle);

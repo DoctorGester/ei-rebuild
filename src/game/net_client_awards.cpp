@@ -22,8 +22,6 @@ namespace net {
 
 namespace {
 
-constexpr int kClassQuestItem = 0x14;
-
 // Player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return g_serverWorld->GetPlayer(0); }
 
@@ -84,7 +82,7 @@ void ClientSession::ApplyAwards() {
                 std::list<CItem*>::iterator  current = position;
                 ++position;
                 CEngineObject* owned = *current;
-                if (owned->GetClassId() == kClassQuestItem) player->TakeItem(owned->id_);
+                if (owned->GetClassId() == kClassItemQuest) player->TakeItem(owned->id_);
             }
             break;
         default:

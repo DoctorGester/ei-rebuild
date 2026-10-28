@@ -77,10 +77,9 @@ void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RE
 // A part's prototype by its record type (weapons, armour, quick items), or null.
 const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
     switch (part->recordType_) {
-    case 0: return itemdb::WeaponAt(part->index_);
-    case 1: return itemdb::ArmorAt(part->index_);
-    case 2:
-        return itemdb::QuickItemAt(part->index_);
+    case kRecordWeapon: return itemdb::WeaponAt(part->index_);
+    case kRecordArmor: return itemdb::ArmorAt(part->index_);
+    case kRecordQuick: return itemdb::QuickItemAt(part->index_);
     default: return nullptr;
     }
 }
@@ -264,13 +263,13 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
             hasPart = true;
             // Another record type keeps the part found before.
             auto* loot = AsLoot(item);
-            if (loot->recordType_ <= 2) part = PartRecord(loot);
+            if (loot->recordType_ <= kRecordQuick) part = PartRecord(loot);
         } else if (IsSpellContainer(item)) {
             cell.x = 350.0f;
             cell.y = 350.0f;
             DrawItem(owner_, pass, &cell);
             hasBlueprint = true;
-        } else if (UiItemKinds::IsKindOne(item)) {
+        } else if (UiItemKinds::IsMaterial(item)) {
             ++materials;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;

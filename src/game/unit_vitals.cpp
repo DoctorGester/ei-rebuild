@@ -40,7 +40,6 @@ constexpr float kKeyedUnknown044 = -2.0f;
 constexpr float kUnkeyedRateBase = 15.0f;                           // 0x41700000
 
 constexpr int kRegenPeriod = 15;
-constexpr int kClassServerObject = 0x39;
 constexpr int kSlotArms = 2;
 constexpr int kSlotLegs = 3;
 
@@ -94,7 +93,7 @@ float EffectValueField(const MapEffect& effect) {
 
 UnitVitals* ServerVitals(CUnit* unit) {
     CMapObjectServer* server = unit->ServerCompanion();
-    return server->GetClassId() == kClassServerObject ? &server->vitals : nullptr;
+    return server->GetClassId() == kClassMapObjectServer ? &server->vitals : nullptr;
 }
 
 // strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k), the numerator stored as a

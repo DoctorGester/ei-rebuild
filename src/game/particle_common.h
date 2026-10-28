@@ -57,11 +57,8 @@ inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 // The attached object as a map object: the callbacks call its slots past CObject3D's (the
 // carriers are units).
 inline CMapObject* Carrier(CObject3D* object) { return static_cast<CMapObject*>(object); }
-// The attached object's class and its radius (units: the unit's size).
-inline int ClassOf(CObject3D* object) { return object->GetClassId(); }
+// The attached object's radius (units: the unit's size).
 inline double UnitScale(CObject3D* object) { return Carrier(object)->Radius(); }
-
-constexpr int kUnitClass = 0x50;
 
 #define EI_P_ONE 1.0f
 #define EI_P_ZERO 0.0f

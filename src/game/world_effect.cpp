@@ -9,6 +9,7 @@
 #include <cstring>
 #include <string>
 #include "game_singletons.h"
+#include "save_versions.h"
 
 
 using namespace effect;
@@ -160,9 +161,9 @@ void CEffectSound::Load(CStream* stream) {
     stream->ReadValue(radius_);
     stream->ReadValue(velocity_);
     moving_ = IsMoving(velocity_);
-    if (Version(stream) < 0x5C) return;
+    if (Version(stream) < kVersionSoundLooping) return;
     stream->ReadValue(looping_);
-    if (Version(stream) < 0x6D) return;
+    if (Version(stream) < kVersionSoundNoFade) return;
     stream->ReadValue(noFade_);
 }
 
@@ -220,7 +221,7 @@ void CEffectSoundSeq::Load(CStream* stream) {
     stream->ReadValue(volume_);
     stream->ReadValue(radius_);
     moving_ = IsMoving(velocity_);
-    if (Version(stream) < 0x6D) return;
+    if (Version(stream) < kVersionSoundNoFade) return;
     stream->ReadValue(noFade_);
 }
 

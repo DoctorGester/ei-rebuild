@@ -147,7 +147,7 @@ void Terrain::PlayAmbience() {
         for (int column = 0; column < 3; ++column) {
             int sx = centreX + column - 1;
             Cell& cell = cells[column * 3 + row];
-            auto* sector = SectorAt(sx, sy, 2, 1);
+            auto* sector = SectorAt(sx, sy, kSectorBuilt, 1);
             if (!sector) {
                 cell.soundClass = -1;
                 cell.weight = 0.0f;
@@ -261,7 +261,7 @@ void Terrain::PlayAmbience() {
 }
 
 void Terrain::StopAmbience() {
-    landscapeFlags &= ~8u;
+    landscapeFlags &= ~kLandscapeAmbience;
     for (int slot = 0; slot < 3; ++slot) {
         ambientSounds[slot] = g_clientWorld->sounds_->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;

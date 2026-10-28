@@ -26,7 +26,7 @@ public:
     void Load(CStream* stream) override;                      // LoadTorch
     void Save(CStream* stream) override;                      // SaveTorch
     const char* GetClassName() override;                   // "CTorchObject"
-    int GetClassId() override;                             // 0x57
+    ClassId GetClassId() override;
     void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return Slot29True(); }
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
