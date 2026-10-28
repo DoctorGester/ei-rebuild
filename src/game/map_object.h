@@ -27,12 +27,10 @@ struct DeltaState;
 struct MapEffect {
     std::uint8_t type;
     std::uint8_t power;
-    std::uint8_t unused_02[2];
     int ticksLeft;                  // counted down once per world update; removed at 0
     std::uint32_t value;            // a float (EffectValue) or a sound handle
     std::uint32_t strength;         // a float (saved; Rebirth compares it)
     std::uint8_t ending;            // the client plays no end sound when set
-    std::uint8_t unused_11[3];
 
     // Type, power, ticksLeft, value and ending cleared (strength not).
     MapEffect* Construct();

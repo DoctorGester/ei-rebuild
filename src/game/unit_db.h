@@ -53,7 +53,6 @@ struct UnitPrototypeRecord {
     float viewHeight;               // 0x26 the height of its eyes for a dialogue's camera
     float shake;                    // 0x28 the camera shake of its steps and attacks
     std::string soundFolder;       // 8 (when set, the action sounds come from here, not the model's)
-    std::uint8_t unused_38[0x10];  // not serialised
     float hitPoints;                // 9
     float mana;                     // 10
     std::uint32_t level;            // 0x29 (CUnit::Level of a unit without a text key)
@@ -94,7 +93,6 @@ struct UnitNpcRecord {
     float stats[3];                 // 3, 4, 5 (strength, dexterity, intelligence)
     std::uint8_t attributes[3];     // 6 (three bytes)
     std::uint8_t skills[8];         // 7 (eight bytes)
-    std::uint8_t unused_23;        // not serialised
     std::vector<std::string> skillNames;       // 8 (the skill level records it learns)
     std::vector<std::string> startWeapons;     // 9: item names a multiplayer hero starts with
     std::vector<std::string> startQuickItems;  // 10: its quick items
@@ -102,7 +100,6 @@ struct UnitNpcRecord {
     float experienceFloor;          // 12: its starting experience, which it keeps when it dies in a network game
     int startMoney;                 // 13: money its party starts with
     std::uint8_t voiced;                // 14 (one byte): the multiplayer hero screen offers it as a voice
-    std::uint8_t unused_5D[3];
 };
 
 // One of a model's six body slots (serialised as fields 0..3 of chunk 0x0C + slot): the skill
@@ -144,10 +141,8 @@ struct UnitModelRecord {
     std::uint32_t castEffect;           // 0x29 nonzero: its casts show an effect
     std::string hitMaterial;       // 0x2C the material its hit sounds use ("stone", "leather", ...)
     std::uint8_t swapFeet;          // 0x2D (one byte) the first step is the right foot
-    std::uint8_t unused_11D[3];
     std::uint32_t sizeScale;            // 0x2E (float bits) multiplies the unit's size for its size classes
     std::string soundFolder;       // 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
-    std::uint8_t unused_128[0x10]; // not serialised
     std::vector<std::string> soundNames;       // 0x23 (the .wav files of each are counted)
     // The number of sound files of each soundNames entry (counted at startup; not serialised).
     std::vector<std::uint32_t> soundCounts;
@@ -261,7 +256,6 @@ struct SkillLevelRecord {
     // (floats), [6] its worth exponent, [7] the level's value.
     std::uint32_t values[10];
     std::uint8_t learnable;         // 22 (one byte; UnitStats::CanLearn)
-    std::uint8_t unused_41[3];
 
     int RequiredSkill() const { return static_cast<int>(values[0]); }
     std::uint32_t RequiredSkillValue() const { return values[2]; }

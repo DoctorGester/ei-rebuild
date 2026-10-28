@@ -58,7 +58,6 @@ struct SpellRecord {
     // which modifiers it accepts, one byte per kind by code letter: 'r', 't', 'a', 'e', 'd'; the item info
     // shows the level when the 'e' byte is set.
     std::uint8_t allowedModifiers[5];
-    std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
 
@@ -131,7 +130,6 @@ public:
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).
     std::uint8_t buildable;
-    std::uint8_t unused_69[3];
     // the category (5 wands, 8 quick items whose prototype names their spell), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
@@ -158,7 +156,7 @@ struct WeaponRecord : ItemRecordHead {
     WeaponRecord();
     WeaponRecord(const WeaponRecord& from);
     int Kind() override;                        // 0x3004
-    // category..unused_7D and reach..damageTypes: attackBonus and defenceBonus are not copied.
+    // category..skillBonus and reach..damageTypes: attackBonus and defenceBonus are not copied.
     void CopyOwn(const WeaponRecord* source);
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
@@ -194,10 +192,8 @@ struct ArmorRecord : ItemRecordHead {
     float absorbOthers[7];              // item absorb_[1]
     std::uint32_t othersFlags;
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
-    std::uint8_t unused_B5[3];
     std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
     std::uint8_t unreadFields[11];      // archive fields 0x19 (3 bytes) and 0x1A (8); nothing reads them
-    std::uint8_t unused_C7[1];
 };
 
 // A quick item prototype (potions, wands, scrolls).

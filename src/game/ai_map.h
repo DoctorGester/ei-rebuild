@@ -240,7 +240,6 @@ struct SearchNode {
     bool usable;                // false on the window's border and outside a rectangle
     bool settled;               // expanded, or the start
     std::int8_t direction;      // 1..8: the way back to the cell it was reached from; 0 none
-    std::uint8_t unused_13;
 };
 
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
@@ -507,7 +506,6 @@ struct PathSmoother {
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
 
     std::uint8_t level;             // standing level
-    std::uint8_t unused_01[3];
     int sizeClass;
     CAIMap* map;
     int x, y;                       // the current cell

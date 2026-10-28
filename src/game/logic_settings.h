@@ -16,7 +16,6 @@ struct LogicSettings {
     LogicSettings* Construct();
 
     bool loaded;                       // never set by Load
-    std::uint8_t unused_01[3];
     // [Logic]
     float guardStayTime;
     float sentryStayTime;

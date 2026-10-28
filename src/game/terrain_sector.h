@@ -93,10 +93,7 @@ struct AnimatedTile {
     int speed;              // from the speed table by texture class
 };
 
-struct SectorBox : ClipBounds {
-    std::uint32_t unused_2C[3];
-};
-inline const ClipBounds* BoundsOf(const SectorBox& box) { return &box; }
+using SectorBox = ClipBounds;
 
 // CTransformPipeline::ClipTest's verdicts as the sector keeps them (clipMode, quarterMode): 0 inside the
 // view, 1 crossing its edge, 2 outside (-1 is stored as 2).
@@ -206,11 +203,9 @@ struct TerrainMaterial {
     std::uint8_t opacityByte;           // opacity * 255
     std::uint8_t pad_19[3];
     Vector3 colour;                     // waveColour * the file's light factor, each capped at 1
-    std::uint8_t unused_28[4];          // not written by the map loader
     float priority;                     // lowest wins where water materials meet; also scales the waves
     float warpSpeed;                    // from the map file; nothing reads it
     float level;                        // water level offset
 };
 
-static_assert(offsetof(TerrainMaterial, priority) == 0x2C);
 } // namespace terrain
