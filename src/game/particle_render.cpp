@@ -53,10 +53,7 @@ void ConstructArrays() {
         libcrt::AtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
-        std::construct_at(&Vertices());
         g_arraysConstructed |= 2;
-        Vertices().capacity = 0;
-        Vertices().clear();
         libcrt::AtExit(FreeVertices);
     }
 }

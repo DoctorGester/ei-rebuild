@@ -89,9 +89,7 @@ void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray*
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
     if (StaticsGuard() & bit) return;
-    std::construct_at(&array);
     StaticsGuard() |= bit;
-    array.capacity = 0;
     array.clear();
     libcrt::AtExit(destructor);
 }

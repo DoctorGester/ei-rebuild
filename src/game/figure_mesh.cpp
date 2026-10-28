@@ -341,9 +341,9 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
 
 template <typename T>
 void LoadArray(std::vector<T>& array, char** cursor, int count) {
-    array.SetSize(count);
+    array.resize(static_cast<std::size_t>(count));
     if (count != 0) {
-        std::memcpy(array.data, *cursor, static_cast<std::size_t>(count) * sizeof(T));
+        std::memcpy(array.data(), *cursor, static_cast<std::size_t>(count) * sizeof(T));
         *cursor += count * static_cast<int>(sizeof(T));
     }
 }
@@ -661,28 +661,8 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
     if (!offsets_.empty()) {
         const VertexPacket* source = buffers_.vertices;
         std::vector<VertexPacket>& moved = OffsetVertices();
-        // Sized like SetSize, except that a larger buffer is not given the old contents (they are
-        // all rewritten below) and 0 allocates an empty buffer instead of freeing it.
-        int packets = buffers_.vertexCount;
-        if (!moved.data) {
-            moved.resize(packets);
-        } else if (packets <= static_cast<int>(moved.capacity())) {
-            moved.resize(packets);
-        } else {
-            int step = moved.growBy;
-            if (step == 0) {
-                step = std::ssize(moved) / 8;
-                if (step < 4) step = 4;
-                else if (step > 0x400) step = 0x400;
-            }
-            int newCapacity = static_cast<int>(moved.capacity()) + step;
-            if (packets >= newCapacity) newCapacity = packets;
-            VertexPacket* fresh = lib::AlignedArray<VertexPacket>::Allocate(newCapacity);
-            lib::FreeStorage(moved);
-            moved.data = fresh;
-            moved.size = packets;
-            moved.capacity = newCapacity;
-        }
+        // Every element is rewritten below.
+        moved.resize(static_cast<std::size_t>(buffers_.vertexCount));
         // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.
         for (int i = 0; i < std::ssize(moved) * 4; ++i) {
             const float* from = &source[i >> 2].block[0][i & 3];

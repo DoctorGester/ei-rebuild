@@ -32,12 +32,11 @@ const T* FileArray(const char* at) {
     return reinterpret_cast<const T*>(at);
 }
 
-// Appends `count` elements to an aligned array; returns where they start.
+// Appends `count` elements to an array; returns where they start.
 template <typename T>
 int Append(std::vector<T>& array, const T* from, int count) {
-    int start = array.size;
-    array.SetSize(start + count);
-    if (count) std::memcpy(array.data + start, from, static_cast<std::size_t>(count) * sizeof(T));
+    const int start = static_cast<int>(std::ssize(array));
+    array.insert(array.end(), from, from + count);
     return start;
 }
 
@@ -259,13 +258,10 @@ bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* ver
 
 namespace {
 
-// Moves the elements after [start, start + count) down over them and shortens the array (the
-// capacity and block stay).
+// Removes [start, start + count): the elements after it move down (the capacity stays).
 template <typename T>
-void CloseGap(T* data, int& size, int start, int count) {
-    int after = size - start - count;
-    if (after != 0) std::memmove(data + start, data + start + count, static_cast<std::size_t>(after) * sizeof(T));
-    size -= count;
+void CloseGap(std::vector<T>& array, int start, int count) {
+    array.erase(array.begin() + start, array.begin() + start + count);
 }
 
 constexpr int kNoRect = 2000000000;
@@ -306,12 +302,12 @@ bool CLinkMesh::RemovePart(const std::string* name) {
     LinkPartRanges removed = node->second;
     ranges_.Erase(node);
 
-    CloseGap(vertices_.data(), std::ssize(vertices_), removed.vertices.start, removed.vertices.count);
-    CloseGap(normals_.data(), std::ssize(normals_), removed.normals.start, removed.normals.count);
-    CloseGap(texCoords_.data(), std::ssize(texCoords_), removed.texCoords.start, removed.texCoords.count);
-    CloseGap(corners_.data(), std::ssize(corners_), removed.corners.start, removed.corners.count);
-    CloseGap(words_.data(), std::ssize(words_), removed.words.start, removed.words.count);
-    CloseGap(indices_.data(), std::ssize(indices_), removed.indices.start, removed.indices.count);
+    CloseGap(vertices_, removed.vertices.start, removed.vertices.count);
+    CloseGap(normals_, removed.normals.start, removed.normals.count);
+    CloseGap(texCoords_, removed.texCoords.start, removed.texCoords.count);
+    CloseGap(corners_, removed.corners.start, removed.corners.count);
+    CloseGap(words_, removed.words.start, removed.words.count);
+    CloseGap(indices_, removed.indices.start, removed.indices.count);
 
     for (LinkRangeMap::Node* n = ranges_.begin(); n != ranges_.end(); n = LinkRangeMap::Next(n)) {
         LinkPartRanges& r = n->second;

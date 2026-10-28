@@ -1,9 +1,7 @@
 #pragma once
 
-// The Direct3D device's mesh work buffers, shared by its mesh draws and its flat-coloured draw
-//: engine aligned arrays (lib::AlignedArray). The game's inlined SetSize calls per-size
-// allocators (TL vertices, words, 16 bytes, bytes), which AlignedArray::Allocate matches. See
-// docs/notes/models.md ("Mesh draws").
+// The Direct3D device's mesh work buffers (vectors), shared by its mesh draws and its flat-coloured draw.
+// See docs/notes/models.md ("Mesh draws").
 
 #include "clip.h"
 

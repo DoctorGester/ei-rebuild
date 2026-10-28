@@ -84,12 +84,7 @@ int PartGroup::ReleaseParts() {
         parts[i]->Release();
         parts[i] = nullptr;
     }
-    if (!parts.empty()) {
-        lib::FreeStorage(parts);
-        std::construct_at(&parts);
-    }
-    parts.capacity = 0;
-    parts.clear();
+    lib::FreeStorage(parts);
     return 1;
 }
 
@@ -112,11 +107,6 @@ void TextureParts::Destruct() {
 }
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
-    textures = {};
-    materials = {};
-    vertices = {};
-    texCoords = {};
-    indices = {};
     texture = nullptr;
     std::memset(&sphere, 0, 0x38);
     woundsTexture = nullptr;

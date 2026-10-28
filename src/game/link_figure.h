@@ -234,8 +234,7 @@ public:
 };
 static_assert(offsetof(CLinkMesh, refCount_) == 0x04);
 // corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
-static_assert(sizeof(*CLinkMesh::corners_.data) == sizeof(MeshCorner) && sizeof(MeshCorner) == 6);
-static_assert(sizeof(*CLinkMesh::words_.data) == 4 && sizeof(*CLinkMesh::indices_.data) == 2);
+static_assert(sizeof(MeshCorner) == 6);
 
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor; `out` gets
 // the characters up to the first zero byte (copied through a static buffer) and keeps its old text for length

@@ -47,26 +47,26 @@ constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
 
-// Element helpers (DestroyRecords is in terrain_lights.cpp): the flag arrays' and the tile lists'
-// instantiations.
+// Element helpers (DestroyRecords is in terrain_lights.cpp): the flag arrays' instantiation.
 constexpr auto ConstructFlagArrays = mfc::impl::ConstructElementsAt<mfc::impl::ByteArrays>;
 constexpr auto DestroyFlagArrays = mfc::impl::DestructElementsAt<mfc::impl::ByteArrays>;
-constexpr auto ConstructTileLists = mfc::impl::ConstructElementsAt<mfc::impl::AlignedArrays>;
-constexpr auto DestroyTileLists = mfc::impl::DestructElementsAt<mfc::impl::AlignedArrays>;
 
 } // namespace
 
 // The sector's CArray element policies. The records start zeroed (inlined) and release their lights when
-// dropped; the flag arrays and tile lists go through helpers that match the loops inlined in their
-// SetSize(0) (the CByteArray destructor through its vtable, one per tile list).
+// dropped; the flag arrays go through helpers that match the loops inlined in their SetSize(0) (the CByteArray
+// destructor through its vtable); the tile lists are vectors, moved where the CArray relocates them.
 void RecordElements::Construct(SectorVertex* records, int count) {
     std::memset(static_cast<void*>(records), 0, sizeof(SectorVertex) * count);
 }
 void RecordElements::Destruct(SectorVertex* records, int count) { DestroyRecords(records, count); }
 void FlagArrayElements::Construct(FlagArray* arrays, int count) { ConstructFlagArrays(arrays, count); }
 void FlagArrayElements::Destruct(FlagArray* arrays, int count) { DestroyFlagArrays(arrays, count); }
-void TileListElements::Construct(TileList* lists, int count) { ConstructTileLists(lists, count); }
-void TileListElements::Destruct(TileList* lists, int count) { DestroyTileLists(lists, count); }
+void TileListElements::Construct(TileList* lists, int count) {
+    for (; count--; ++lists) std::construct_at(lists);
+}
+void TileListElements::Destruct(TileList* lists, int count) { std::destroy_n(lists, count); }
+void TileListElements::Relocate(TileList* to, TileList* from, int count) { mfc::MoveElements(to, from, count); }
 
 namespace {
 

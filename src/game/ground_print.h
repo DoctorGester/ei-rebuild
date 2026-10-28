@@ -7,6 +7,8 @@
 // once (the decal projector) and draws it with an alpha that fades over the print's life. See
 // docs/notes/models.md.
 
+#include "ground_decal.h"   // DecalTexCoord
+
 #include "lib/containers.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
@@ -18,7 +20,6 @@
 class CStream;
 class CTexture;
 struct VertexPacket;
-struct DecalTexCoord;
 
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {

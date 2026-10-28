@@ -3,6 +3,7 @@
 #include "figure.h"
 
 #include "figure_mesh.h"
+#include "record_arrays.h"
 
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
@@ -29,7 +30,7 @@ CAnimationNode* CAnimationNode::Construct() {
     std::construct_at(&rotationKeys_);
     std::construct_at(&translationKeys_);
     normals_.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    morphFrames_.Construct(mfc::impl::AlignedAt8ArrayClass::Vtable());
+    morphFrames_.Construct(recordarrays::MorphFrameArrayClass::Vtable());
     defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     std::construct_at(&pointsB_);
@@ -71,7 +72,7 @@ void CAnimationNode::DestructBody() {
     spare000_ = 0;
     lib::FreeStorage(pointsA_);
     lib::FreeStorage(pointsB_);
-    morphFrames_.vtable = mfc::impl::AlignedAt8ArrayClass::Vtable();
+    morphFrames_.vtable = recordarrays::MorphFrameArrayClass::Vtable();
     morphFrames_.FreeData();
     normals_.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     normals_.FreeData();

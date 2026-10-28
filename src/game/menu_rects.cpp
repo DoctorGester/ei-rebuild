@@ -51,7 +51,7 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
         reg->Destroy();
         return result;
     }
-    IntArray values{nullptr, 0, 0, 0};
+    IntArray values;
     for (const MenuRect& entry : kRects) {
         values.clear();
         reg->GetIntArray(entry.section, entry.name, &values);

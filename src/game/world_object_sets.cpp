@@ -18,7 +18,7 @@
 #include <vector>
 #include "game_data.h"
 
-// {data, size, capacity, growBy} of world objects; the game compares and sorts them by address.
+// A set of world objects; the game compares and sorts them by address.
 using ObjectSet = std::vector<CEngineObject*>;
 
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
@@ -93,8 +93,7 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
             (*added)[addedCount++] = *c++;
             ++c[-1]->refCount_;
         }
-        sent->resize(std::ssize(*current));
-        if (!current->empty()) std::memcpy(sent->data(), current->data(), static_cast<std::size_t>(std::ssize(*current)) * 4);
+        *sent = *current;
     }
     added->resize(addedCount);
     gone->resize(goneCount);

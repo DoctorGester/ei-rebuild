@@ -8,6 +8,7 @@
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
+#include "game/figure.h"
 #include "game/figure_mesh.h"
 #include "game/game_lists.h"
 #include "game/map_spec.h"
@@ -125,10 +126,14 @@ struct SubCallArrayClass final : SubCallBaseClass {
 // CArray<DeltaField>.
 struct DeltaFieldArrayClass final
     : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
-using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
-// The terrain's 16-byte records, an aligned block at +0.
+using TerrainTileLists = ArrayAbi<terrain::TileList, terrain::TileListElements>;
+// The terrain sectors' tile lists (one vector per texture page).
 struct TerrainAlignedArrayClass final
-    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::AlignedArrays::Serialize> {};
+    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainTileLists::Destruct<TerrainAlignedArrayClass>, &TerrainTileLists::Serialize> {};
+// CAnimationNode's morph frames (their point vectors).
+using MorphFrames = ArrayAbi<AnimationMorphFrame, AnimationMorphFrameElements>;
+struct MorphFrameArrayClass final
+    : mfc::impl::CompiledCollection<MorphFrameArrayClass, &MorphFrames::Destruct<MorphFrameArrayClass>, &MorphFrames::Serialize> {};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 // A terrain sector's vertex records.

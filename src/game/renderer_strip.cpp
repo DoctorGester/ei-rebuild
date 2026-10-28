@@ -26,8 +26,7 @@ namespace {
 
 using devicebuffers::ProjectedVertex;
 
-// The engine's aligned arrays (lib::AlignedArray; the SetSize calls,
-// for the element sizes, which AlignedArray::Allocate matches).
+// The strip's work buffers.
 constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};
 std::vector<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
 void __cdecl FreeStrip() { lib::FreeStorage(g_strip); }
@@ -109,8 +108,8 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
 void AddQuad(int count, bool firstBySetAtGrow) {
     if (firstBySetAtGrow) {
-        lib::SetAtGrow(Indices(), std::ssize(Indices()), static_cast<unsigned short>(count - 4));
-        lib::SetAtGrow(Indices(), std::ssize(Indices()), static_cast<unsigned short>(count - 3));
+        Indices().push_back(static_cast<unsigned short>(count - 4));
+        Indices().push_back(static_cast<unsigned short>(count - 3));
     } else {
         Indices().push_back(static_cast<unsigned short>(count - 4));
         Indices().push_back(static_cast<unsigned short>(count - 3));
@@ -122,7 +121,6 @@ void AddQuad(int count, bool firstBySetAtGrow) {
 }
 
 TLVertex* StripAt(int i) { return Strip().data() + i; }
-TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
@@ -241,16 +239,17 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
     StripAt(std::ssize(Projected()) - 1)->color = 0x00FFFFFF;
 
     int count = 0;
+    TLVertex* ribbon = Ribbon().data();
     std::uint32_t widthBits;
     std::memcpy(&widthBits, &width, 4);
     if (clipped == 0) {
         bool started = false;
         for (int i = 1; i < std::ssize(Strip()); ++i) {
-            if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), RibbonData(), &count, widthBits);
+            if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), &ribbon, &count, widthBits);
             g_currentU = g_currentU + step;
             float direction[2];
             StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
-            EmitSection(StripAt(i), direction, RibbonData(), &count, width);
+            EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, true);
         }
@@ -267,12 +266,12 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
             if (!started) {
                 float direction[2];
                 StripDirection(direction, i, 1, &Strip());
-                EmitSection(StripAt(i - 1), direction, RibbonData(), &count, width);
+                EmitSection(StripAt(i - 1), direction, &ribbon, &count, width);
             }
             g_currentU = g_currentU + step;
             float direction[2];
             StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
-            EmitSection(StripAt(i), direction, RibbonData(), &count, width);
+            EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, false);
         }

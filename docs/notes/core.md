@@ -262,19 +262,19 @@ to which template:
 - `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk (`Next`)
   and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable / NewAssoc
   (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
-- `lib::AlignedArray<T>` (`src/lib/containers.h`, 0x10 bytes: data, size, capacity, growBy): the engine's arrays in 32-byte
-  aligned blocks (operator new of count * sizeof(T) + 0x24, the block pointer stored before the data; `AllocAligned32` /
-  `FreeAligned32`). The per-size allocators 00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00452E90, 00453A10,
-  00468F70, 004ECB50, 004ECB70, 004F65B0, 00600A80, 00695B00-00695B40, 00476EF0, 00477250 all compute the same. SetSize(n,
-  growBy) keeps the contents (no element construction); SetSizeDiscard is the renderer's inlined variant that drops them
-  when it grows; Add / SetAtGrow take the element by value; RemoveAt shifts down; RemoveAll frees; `Copy` = operator=.
-  Registered on it: 005A6E70 (figure mesh colours), 0044F960 / 0044FA90 / 00452FC0 (ui_mesh_build sprite arrays), 004F57B0
-  (`TriangleIndexArray`, 6-byte triangles), 006003D0 / 006004E0 / 00600730 / 00600840 / 00600950 / 00601D00 SetSize and
-  006005F0 SetAtGrow (`UiPtrArray<T>` = `AlignedArray<T*>`), AlignedPtrArray = `AlignedArray<void*>` SetAtGrow / SetSize /
-  Add 00519E80 / 00519D70 / 00519A10 and copies (SetAtGrow(-1) faults like the original's), the scene loader's vertex
-  arrays (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`, `DwordBuffer`; 00452AF0, 0044FBB0, 0044F410, 0044F1D0,
-  0044F1B0), `CUiRegion::points_`, unit_skins' texture set bytes. The animation / figure loader copies (0044F1B0-00454A30)
-  are in aligned_arrays.cpp (element types `Blob<K>`).
+- The engine's aligned arrays (game.exe: data, size, capacity, growBy in 32-byte aligned blocks, new slots left
+  uninitialised, relocated by memcpy, no destructor) are `std::vector` (C14e, a scripted retype; the build has no SIMD, so
+  the alignment was not kept). `lib::FreeStorage(v)` frees the storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i,
+  x)` grows to i + 1. A record holding a vector in an `mfc::CArray` needs typed elements (construct_at, destroy_n and
+  `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`, `BlocksAt8`, `AlignedArrays`); a raw-lifetime owner
+  (operator_new + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
+  new slots where the original kept stale ones: a site that reads a slot before writing it differs. named_data.py formats
+  a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 39 game.exe addresses of aligned arrays).
+  `lib::AlignedArray<T>` (`src/lib/containers.h`) remains for the declarations C14a's files (scene_loader, ui_item_info)
+  reach and the figure mesh / party / unit / ui item arrays tied to them (figure.h parts, figure_mesh, link_figure colours,
+  unit.h weapons / items / spells, party.h, ui.h `UiPtrArray`, world.h items), and its static Allocate / Free still back
+  the renderer's raw blocks (renderer_lines, particle_emitters, render_helper's matrix stack, texture_compose,
+  link_figure's packets).
 - STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /

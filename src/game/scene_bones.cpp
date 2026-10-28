@@ -9,7 +9,6 @@
 #include "figure.h"
 #include "object_maths.h"
 #include "scene_loader.h"
-#include "game_arrays.h"
 
 #include "../lib/containers.h"
 #include "../lib/crt.h"
@@ -18,15 +17,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace scene {
 namespace {
 
 using PointArray = lib::AlignedArray<Vector3>;
 
-
-// Element helpers [pointer, count]: the morph frame constructor (mfc::impl::Plain24's) and destructor.
-constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
 // Out-of-line SetSize [size, growth or -1]: the morph frames'; the aligned arrays' (a frame's points, the children;
 // a frame's points copied) are their members.
 
@@ -113,7 +110,8 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
         out.next = frame;
         out.points.resize(KeyPoints(node, 0).size);
         if (key >= node->morphKeys.size) {
-            frames.data[index].points = KeyPoints(node, key - 1);
+            const PointArray& last = KeyPoints(node, key - 1);
+            frames.data[index].points.assign(last.data, last.data + last.size);
             continue;
         }
         for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
@@ -147,18 +145,15 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     std::memcpy(&bone->restRotation_, &node->restRotation, sizeof(Quaternion));
     std::memcpy(&bone->restPosition_, &node->restPivot, sizeof(Vector3));
     if (node->morphKeys.size != 0) {
-        PointArray& a = bone->pointsA_;
-        a.SetSize(KeyPoints(node, 0).size);
-        std::memset(a.data, 0, static_cast<std::size_t>(a.size) * sizeof(Vector3));
-        PointArray& b = bone->pointsB_;
-        b.SetSize(KeyPoints(node, 0).size);
-        std::memset(b.data, 0, static_cast<std::size_t>(b.size) * sizeof(Vector3));
+        const auto points = static_cast<std::size_t>(KeyPoints(node, 0).size);
+        bone->pointsA_.assign(points, Vector3{});
+        bone->pointsB_.assign(points, Vector3{});
     }
 
     CopyRotationKeys(bone, node);
     CopyTranslationKeys(bone, node);
     if (node->morphKeys.size == 0) {
-        mfc::impl::ArrayAs<gamearrays::BlocksAt8>(bone->morphFrames_).SetSize(0, -1);
+        bone->morphFrames_.SetSize(0, -1);
     } else {
         bone->morphFrames_.SetSize(node->positionKeys.size);
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);
@@ -184,8 +179,11 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
 } // namespace scene
 
 void AnimationMorphFrameElements::Construct(AnimationMorphFrame* frames, int count) {
-    mfc::PlainElements<AnimationMorphFrame>::Construct(frames, count);
+    for (; count--; ++frames) std::construct_at(frames);
 }
 void AnimationMorphFrameElements::Destruct(AnimationMorphFrame* frames, int count) {
-    scene::DestroyMorphFrames(frames, count);
+    std::destroy_n(frames, count);
+}
+void AnimationMorphFrameElements::Relocate(AnimationMorphFrame* to, AnimationMorphFrame* from, int count) {
+    mfc::MoveElements(to, from, count);
 }

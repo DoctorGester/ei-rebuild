@@ -126,6 +126,7 @@ using TileList = std::vector<TileVertex>;
 struct TileListElements {
     static void Construct(TileList* lists, int count);
     static void Destruct(TileList* lists, int count);
+    static void Relocate(TileList* to, TileList* from, int count);
 };
 
 struct SectorData {

@@ -106,9 +106,10 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         mfc::CString name;
         mfc::CString out;
         SkinRequest request{};
-        // Six level bytes in 32-byte aligned storage (the block kept before them).
+        // Six level bytes.
         request.layers.resize(kBodyParts);
-        if (WoundLevels(&request.layers.data)) {
+        std::uint8_t* levels = request.layers.data();
+        if (WoundLevels(&levels)) {
             bool hero = unit->type_ == kTypeHero;
             request.flags = hero ? kHeroTextureSize : kTextureSize;
             for (int i = 0; i < kBodyParts; ++i) {
@@ -121,7 +122,6 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             name.Format(kWoundCacheName, unit->id_);
             result = TheTextureManager()->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
         }
-        lib::FreeStorage(request.layers);
     }
     return result;
 }

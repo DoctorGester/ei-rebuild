@@ -360,8 +360,8 @@ int Terrain::SetupPages(int count) {
             name = str::Format("%sL%2.2i", textF8.c_str(), i - count);
             if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
             ++extraPages;
-            lib::SetAtGrow(pageTextures, std::ssize(pageTextures), nullptr);
-            lib::SetAtGrow(pageMaterials, std::ssize(pageMaterials), nullptr);
+            pageTextures.push_back(nullptr);
+            pageMaterials.push_back(nullptr);
         }
         CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name.c_str());
         pageTextures[i] = texture;

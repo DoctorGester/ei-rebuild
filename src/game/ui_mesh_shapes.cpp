@@ -80,7 +80,7 @@ void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.
 void AddQuadIndices(CUiMesh* sprite, int first) {
     for (std::uint16_t corner : kQuadCorners)
-        lib::SetAtGrow(sprite->indices_, std::ssize(sprite->indices_), static_cast<std::uint16_t>(first + corner));
+        sprite->indices_.push_back(static_cast<std::uint16_t>(first + corner));
 }
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
@@ -268,7 +268,7 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     texels[3].u = 0.0f;
     texels[3].v = 0.0f;
     indices_.clear();
-    for (std::uint16_t corner = 0; corner < 3; ++corner) lib::SetAtGrow(indices_, std::ssize(indices_), corner);
+    for (std::uint16_t corner = 0; corner < 3; ++corner) indices_.push_back(corner);
 
     SetFlatPackets(this, 1);
     // The first point is the origin; the fourth is not drawn.

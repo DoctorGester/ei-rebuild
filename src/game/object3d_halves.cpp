@@ -54,12 +54,7 @@ std::uint32_t CObject3DClientSpecific::ShadowsShown() {
 void CObject3DClientSpecific::ClearShadow() {
     vertices.clear();
     texCoords.clear();
-    if (!indices.empty()) {
-        lib::FreeStorage(indices);
-        std::construct_at(&indices);
-    }
-    indices.capacity = 0;
-    indices.clear();
+    lib::FreeStorage(indices);
     CTexture* old = texture;
     texture = nullptr;
     if (old) old->Release();

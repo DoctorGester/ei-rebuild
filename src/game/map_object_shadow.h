@@ -20,9 +20,8 @@
 
 #include <windows.h>   // RECT
 
-struct DecalTexCoord;
-
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
+#include "ground_decal.h"      // DecalTexCoord
 #include "material.h"   // CMaterial
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 

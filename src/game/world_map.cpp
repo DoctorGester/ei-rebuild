@@ -273,7 +273,7 @@ void CWorldServer::SendFreshObjects() {
             id = static_cast<unsigned>(object->id_);
             hash400::RemoveKey(otherMapObjects_.map, id);
         }
-        lib::SetAtGrow(objects, std::ssize(objects), object);
+        objects.push_back(object);
         node = next;
     }
     state->SendObjectsAdded(&objects);

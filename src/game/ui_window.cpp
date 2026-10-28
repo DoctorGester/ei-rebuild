@@ -87,7 +87,6 @@ void CUiRegion::AddPoint(int x, int y) {
         if (x > bounds_.right) bounds_.right = x;
         if (y > bounds_.bottom) bounds_.bottom = y;
     }
-    // The vertex array is a lib::AlignedArray of 8-byte points.
     int index = std::ssize(points_);
     points_.resize(index + 1);
     points_[index].x = x;

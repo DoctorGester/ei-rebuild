@@ -53,8 +53,8 @@ using SpriteArray = mfc::CArray<Sprite>;
 
 // --- The statics ---------------------------------------------------------------------------------
 
-// Engine aligned arrays (lib::AlignedArray) and a CByteArray / CWordArray (mfc::CArray layout; their
-// SetSize is MFC's afxcoll code, called through its address).
+// Vectors and a CByteArray / CWordArray (mfc::CArray layout; their SetSize is MFC's afxcoll code, called
+// through its address).
 using devicebuffers::ProjectedVertex;
 constinit std::vector<ProjectedVertex> g_unused = /*007AEFA0*/ {};
 std::vector<ProjectedVertex>& Unused() { return g_unused; }  // sized only

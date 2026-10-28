@@ -238,7 +238,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) lib::SetAtGrow(RemovedIds(), std::ssize(RemovedIds()), static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -248,14 +248,14 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) lib::SetAtGrow(RemovedIds(), std::ssize(RemovedIds()), static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             const CUnitServer* controller = unit->ServerController();
             if (controller->moveMode2.flag4 == 0 && controller->brain.alwaysUpdated == 0 &&
                 controller->brain.memory.seesEnemy == 0)
-                lib::SetAtGrow(SleepingIds(), std::ssize(SleepingIds()), static_cast<unsigned>(object->id_));
+                SleepingIds().push_back(static_cast<unsigned>(object->id_));
             else
                 unit->updateCountdown = UpdateCountdownFor(object);
         }

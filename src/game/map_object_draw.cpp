@@ -1,7 +1,6 @@
 // Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
 #include "engine_object.h"
-#include "game_arrays.h"          // aligned::AllocateDwords
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -94,18 +93,16 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     if (object->animation) object->animation->UpdatePose();
 
     // The lights within reach (the list starts with room for 16).
-    LightList list{nullptr, 0, 0, 0};
+    LightList list;
+    list.reserve(0x10);
     ObjectListIteratorOf<CLight> lights{};
     CLight* light = lights.First(TheLightFactory());
-    list.data = reinterpret_cast<CLight**>(aligned::AllocateDwords(0x10));
-    list.capacity = 0x10;
-    list.size = 0;
     for (; light; light = lights.Next()) {
         if (context->sun_ == light) continue;
         if (!InReach(object, light)) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
-        lib::SetAtGrow(list, std::ssize(list), light);
+        list.push_back(light);
     }
 
     // The object's matrix, and its extra scale when it has one.

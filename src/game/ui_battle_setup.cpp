@@ -44,10 +44,7 @@ bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 // The panels Create builds inline (they have no constructors of their own).
 CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
 
-CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    for (UiPointArray* points : {&viewPolygon_, &visibleArea_}) {
-    }
-}
+CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
 
 
 void CBattleScreen::CreateScreen() {

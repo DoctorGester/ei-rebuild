@@ -257,12 +257,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     auto& sorted = terrain::SortedSectors();
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
-        sorted = {nullptr, 0, 0, 0};
         libcrt::AtExit(terrain::FreeSortedSectors);
-    }
-    if (!sorted.data) {
-        sorted.data = sorted.Allocate(0);
-        sorted.capacity = 0;
     }
     sorted.clear();
     for (SectorCache::Node* node = sectorCache.head; node; node = node->next) {

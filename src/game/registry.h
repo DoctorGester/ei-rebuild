@@ -12,8 +12,7 @@
 #include "resource.h"
 #include "string_arg.h"
 
-// The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
-// the inlined SetSize allocates through the engine's aligned allocators).
+// The int / float arrays the registry fills.
 using DwordArray = std::vector<std::uint32_t>;
 using IntArray = std::vector<std::int32_t>;
 

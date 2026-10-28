@@ -119,7 +119,7 @@ void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
 // SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
 // objects (CEffect). The next element as that class; the loops read the data pointer once.
 template <typename T>
-T* NextAs(CEngineObject**& next) {
+T* NextAs(CEngineObject* const*& next) {
     return static_cast<T*>(*next++);
 }
 
@@ -163,7 +163,7 @@ int CPlayerServer::Flush() {
 }
 
 int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
         bool isUnit = object->GetClassId() == world::kClassUnit;
@@ -199,7 +199,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(Owner());
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
@@ -213,7 +213,7 @@ int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
         int id = object->id_;
@@ -226,7 +226,7 @@ int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
         if (effect->flags_ & kFlagDeltaPending) effect->SendDelta();
@@ -243,7 +243,7 @@ int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(Owner());
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
@@ -257,7 +257,7 @@ int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data();
+    CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
         WriteByte(&out_, kMessageTimedRemoved);
@@ -336,10 +336,8 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
         Forget(known, object->id_);
         object->Release();
         for (int i = 0; i < std::ssize(sentObjects_); ++i) {
-            CEngineObject** data = sentObjects_.data();
-            if (data[i] != object) continue;
-            std::memmove(&data[i], &data[i + 1], static_cast<std::size_t>(std::ssize(sentObjects_) - i - 1) * 4);
-            sentObjects_.pop_back();
+            if (sentObjects_[i] != object) continue;
+            sentObjects_.erase(sentObjects_.begin() + i);
             object->Release();
             --i;
         }

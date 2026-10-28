@@ -258,7 +258,6 @@ constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 
 // PCMWAVEFORMAT, as Open fills it.
-#pragma pack(push, 2)
 struct PcmFormat {
     std::uint16_t formatTag;
     std::uint16_t channels;
@@ -267,7 +266,6 @@ struct PcmFormat {
     std::uint16_t blockAlign;
     std::uint16_t bitsPerSample;
 };
-#pragma pack(pop)
 static_assert(sizeof(PcmFormat) == 0x10);
 
 void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }

@@ -37,7 +37,7 @@ void __cdecl ConstructSpellFootprint() {
     libcrt::AtExit(FreeSpellFootprint);
 }
 
-void FootprintCellSet::SetSize(int size, int grow) { cells.resize(size); }
+void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
 
 namespace {
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
@@ -50,7 +50,7 @@ FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
 void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     int bucket = (cell.x + cell.y) & 15;
     int index = std::ssize(set->cells);
-    set->SetSize(index + 1, -1);
+    set->SetSize(index + 1);
     set->cells[index] = cell;
     set->cells[std::ssize(set->cells) - 1].next = set->buckets[bucket];
     set->buckets[bucket] = std::ssize(set->cells) - 1;
@@ -99,7 +99,7 @@ namespace {
 const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
 
 void ResetCellSet(FootprintCellSet* set) {
-    set->SetSize(0, -1);
+    set->SetSize(0);
     if (set->hashed) {
         for (int& b : set->buckets) b = -1;
     }

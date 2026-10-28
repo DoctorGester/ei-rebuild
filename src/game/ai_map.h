@@ -53,8 +53,8 @@ struct FootprintCellSet {
     // first footprint empties them).
     FootprintCellSet* Construct();
 
-    // Resizes the array to `size` (0 frees it; 32-byte aligned storage); `growBy` != -1 also sets the step.
-    void SetSize(int size, int growBy);
+    // Resizes the array to `size`.
+    void SetSize(int size);
 
     // Adds a top-face sample: raises `high` of the cell (x, y) to `height`, lowering the
     // kind and transparency to the given ones; a new cell gets low = 0x7FFFFFFF.

@@ -49,6 +49,7 @@ struct AnimationMorphFrame {
 struct AnimationMorphFrameElements {
     static void Construct(AnimationMorphFrame* frames, int count);
     static void Destruct(AnimationMorphFrame* frames, int count);
+    static void Relocate(AnimationMorphFrame* to, AnimationMorphFrame* from, int count);
 };
 
 // An animated node of a figure (one bone). The fake units' skeletons build them from scene nodes (BuildBone).

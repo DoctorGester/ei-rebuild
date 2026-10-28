@@ -17,13 +17,8 @@ bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return object->AcceptsAnimation(animation);
 }
 
-// The candidate list: an aligned array of the database's entries (AlignedPtrArray's code).
+// The candidate list: the database's entries.
 using AnimationList = std::vector<FigureAnimation*>;
-
-// The local list's storage (32-byte aligned; the block from operator new kept before it).
-void FreeCandidates(AnimationList& list) {
-    if (!list.empty()) gamecrt::operator_delete(list[-1]);
-}
 
 // rand() scaled to 0..count-1 as the game does.
 int RandomIndex(int count) { return (gamecrt::rand() * count / kRandMax) % count; }
@@ -39,13 +34,12 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         std::uint32_t entryKey = entry->key;
         bool variant = wanted == 0 ? (entryKey & kKeyLowBits) == 0 : (~entryKey & key & kKeyLowBits) == 0;
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
-        if (Accepts(this, entry)) lib::SetAtGrow(candidates, std::ssize(candidates), entry);
+        if (Accepts(this, entry)) candidates.push_back(entry);
     }
     FigureAnimation** list = candidates.data();
     int count = std::ssize(candidates);
     if (count < 2) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
-        FreeCandidates(candidates);
         return only;
     }
     std::uint32_t percent = static_cast<std::uint32_t>((gamecrt::rand() * 100 / kRandMax) % 100);
@@ -58,7 +52,6 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         }
     }
     if (count > 0) picked = list[RandomIndex(count)];
-    FreeCandidates(candidates);
     return picked;
 }
 
@@ -75,10 +68,8 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
         candidates[index] = entry;
     }
     if (candidates.empty()) {
-        FreeCandidates(candidates);
         return nullptr;
     }
     FigureAnimation* picked = candidates[RandomIndex(std::ssize(candidates))];
-    FreeCandidates(candidates);
     return picked;
 }

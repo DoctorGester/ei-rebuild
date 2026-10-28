@@ -9,6 +9,7 @@
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
+#include "clip.h"   // TLVertex
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"   // ClipBounds
@@ -26,7 +27,6 @@
 
 #undef GetClassName
 
-struct TLVertex;
 struct VertexPacket;
 
 // One particle (from the source's pool). The source's tick saves the "prev" fields before calling the update

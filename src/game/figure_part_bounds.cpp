@@ -22,7 +22,7 @@ constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 
 void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     if (!(ContextOf(this)->flags_ & kShowBounds)) return;
-    LineBatch lines{-1, {nullptr, 0, 0, 0}, 0, 0xFFFF0000u, 0};
+    LineBatch lines{-1, {}, 0, 0xFFFF0000u, 0};
     const ClipBounds& bounds = mesh_->box_.bounds;
     const float* origin = &bounds.center.x;
     const float* nearExtent = &bounds.boxMin.x;

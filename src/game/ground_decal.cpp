@@ -30,33 +30,6 @@ float Project(const Vector3& axis, const Vector3& p, float offset) {
     return DotUnrounded<Sum3::ZYX>(axis, p) + offset;
 }
 
-// Keeps the buffer and sets the size to 0; a missing buffer is allocated for 0 elements (the
-// growth branch for a negative capacity is the template's, never taken).
-template <typename T>
-void EmptyKeepingBuffer(std::vector<T>* a) {
-    if (a->empty()) {
-        a->resize(0);
-        return;
-    }
-    if (static_cast<int>(a->capacity()) >= 0) {
-        a->clear();
-        return;
-    }
-    int step = a->growBy;
-    if (step == 0) {
-        step = std::ssize(*a) / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int capacity = step + static_cast<int>(a->capacity());
-    if (capacity <= 0) capacity = 0;
-    T* fresh = lib::AlignedArray<T>::Allocate(capacity);
-    lib::FreeStorage(*a);
-    a->data = fresh;
-    a->size = 0;
-    a->capacity = capacity;
-}
-
 } // namespace
 
 double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>(*this); }
@@ -146,9 +119,9 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTex
     texCoords_ = texCoords;
     vertexCount_ = 0;
     indexCount_ = 0;
-    EmptyKeepingBuffer(texCoords);
-    EmptyKeepingBuffer(points_);
-    EmptyKeepingBuffer(indices_);
+    texCoords->clear();
+    points_->clear();
+    indices_->clear();
 
     const float* m = *corners;
     Vector3 origin = {m[3], m[7], m[11]};
