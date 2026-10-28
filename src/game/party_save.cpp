@@ -18,11 +18,6 @@
 
 namespace {
 
-void WriteText(CStream* stream, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
-}
-
 template <typename T>
 void WriteValue(CStream* stream, T value) {
     stream->Write(&value, sizeof(value));
@@ -111,11 +106,11 @@ void PartyUnitRecord::Load(CStream* stream) {
 }
 
 void PartyUnitRecord::Save(CStream* stream) {
-    WriteText(stream, texts[0]);
-    WriteText(stream, texts[2]);
-    WriteText(stream, texts[3]);
-    WriteText(stream, texts[4]);
-    WriteText(stream, texts[5]);
+    stream->WriteString(texts[0]);
+    stream->WriteString(texts[2]);
+    stream->WriteString(texts[3]);
+    stream->WriteString(texts[4]);
+    stream->WriteString(texts[5]);
     WriteValue(stream, unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
@@ -123,13 +118,13 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteItemIds(stream, quickItems);
     WriteItemIds(stream, armor);
     WriteItemIds(stream, spells);
-    WriteText(stream, texts[1]);
+    stream->WriteString(texts[1]);
     stream->Write(&moveMode2, 4);
     WriteValue(stream, weaponIndex);
     WriteValue(stream, selected);
     WriteValue(stream, leaderId);
     stream->Write(&fightAtWill, 4);
-    WriteText(stream, texts[6]);
+    stream->WriteString(texts[6]);
 }
 
 void CParty::LoadParty(CStream* stream, int loadVariables) {
@@ -162,7 +157,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
-    WriteText(stream, zone_);
+    stream->WriteString(zone_);
     WriteValue(stream, entrance_);
     itemManager_->Save(stream);
     spellManager_->Save(stream);

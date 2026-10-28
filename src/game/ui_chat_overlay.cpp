@@ -97,15 +97,10 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     std::string source = text;
     std::string ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
-    // With EI_UTF8 a character is its whole UTF-8 sequence, so a word wider than a line is broken
-    // between characters and measured as text.
-    for (const char* p = source.c_str(); CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
-        ch.assign(1, p[0]);
-        if constexpr (text::kUtf8) {
-            for (int k = 1; k < text::CharacterLength(p); ++k) ch += p[k];
-        } else {
-            if (libcrt::Isleadbyte(static_cast<signed char>(*p))) ch += p[1];
-        }
+    // A character is its whole UTF-8 sequence, so a word wider than a line is broken between characters and
+    // measured as text.
+    for (const char* p = source.c_str(); CharAt(p) != 0; p += text::CharacterLength(p)) {
+        ch.assign(p, static_cast<std::size_t>(text::CharacterLength(p)));
         int c = CharAt(p);
         if (mark) {
             if (static_cast<unsigned>(c) >= '0' && static_cast<unsigned>(c) < '8')
@@ -301,7 +296,7 @@ void CChatOverlay::OnChar(int key, int, int) {
     std::string line = text::Typed(str::Left(typed_, caret_).c_str(), key) + str::Mid(typed_, caret_);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
-    // than that would never be counted in one. Without EI_UTF8 it follows from the character count.
+    // than that would never be counted in one.
     if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
         TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
         typed_ = line;

@@ -1,4 +1,4 @@
-// Asset text to UTF-8 and back at the ANSI calls; typed text by character. See asset_text.h.
+// Asset text to UTF-8 and back; lengths, cuts and typed text by character. See asset_text.h.
 #include "asset_text.h"
 
 #include <algorithm>
@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include <string>
+#include <utility>
 #include <windows.h>
 
 namespace text {
@@ -32,122 +33,134 @@ std::wstring Widen(std::string_view bytes, unsigned from, DWORD flags) {
     return wide;
 }
 
-std::string Narrow(const std::wstring& wide, unsigned to) {
+// `wide` in `to`; with WC_NO_BEST_FIT_CHARS a character `to` has no byte for becomes its default character ('?').
+std::string Narrow(const std::wstring& wide, unsigned to, DWORD flags) {
     const int size = static_cast<int>(wide.size());
-    const int count = WideCharToMultiByte(to, 0, wide.data(), size, nullptr, 0, nullptr, nullptr);
+    const int count = WideCharToMultiByte(to, flags, wide.data(), size, nullptr, 0, nullptr, nullptr);
     std::string bytes(static_cast<std::size_t>(count > 0 ? count : 0), '\0');
-    if (count > 0) WideCharToMultiByte(to, 0, wide.data(), size, bytes.data(), count, nullptr, nullptr);
+    if (count > 0) WideCharToMultiByte(to, flags, wide.data(), size, bytes.data(), count, nullptr, nullptr);
     return bytes;
+}
+
+constexpr std::size_t kEscapeLength = 5;   // "\007C" and the three colour bytes
+
+bool IsTrailByte(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
+
+// A colour escape starts at `text[i]`.
+bool IsEscape(std::string_view text, std::size_t i) {
+    return text[i] == '\007' && i + 1 < text.size() && text[i + 1] == 'C';
+}
+
+// Where the colour escape at or after `from` starts (`text.size()` for none).
+std::size_t NextEscape(std::string_view text, std::size_t from) {
+    for (std::size_t i = from; i < text.size(); ++i)
+        if (IsEscape(text, i)) return i;
+    return text.size();
 }
 
 } // namespace
 
+// A colour escape's three bytes are raw (the game builds them), so they are copied as they are, and only the text
+// between escapes is converted.
 std::string FromAssetText(std::string_view bytes, unsigned codepage) {
-    if constexpr (!kUtf8) {
-        (void)codepage;
-        return std::string(bytes);
-    } else {
-        if (IsAscii(bytes)) return std::string(bytes);
-        // Every byte of the single-byte code pages the game's data uses maps to one character and back
-        // (1250-1252 checked: all 255 non-zero bytes), so the ANSI boundary restores the asset's bytes.
-        return Narrow(Widen(bytes, codepage, 0), CP_UTF8);
+    if (IsAscii(bytes)) return std::string(bytes);
+    // Every byte of the single-byte code pages the game's data uses maps to one character and back
+    // (1250-1252 checked: all 255 non-zero bytes), so ToAssetText restores the asset's bytes.
+    std::string text;
+    for (std::size_t i = 0; i < bytes.size();) {
+        const std::size_t escape = NextEscape(bytes, i);
+        const std::string_view plain = bytes.substr(i, escape - i);
+        text += IsAscii(plain) ? std::string(plain) : Narrow(Widen(plain, codepage, 0), CP_UTF8, 0);
+        const std::size_t length = (std::min)(kEscapeLength, bytes.size() - escape);
+        text.append(bytes.data() + escape, length);
+        i = escape + length;
     }
+    return text;
 }
 
 void FromAssetText(std::string* text, unsigned codepage) {
-    if constexpr (kUtf8) {
-        if (IsAscii(*text)) return;
-        *text = FromAssetText(std::string_view(*text), codepage);
-    } else {
-        (void)text;
-        (void)codepage;
-    }
+    if (IsAscii(*text)) return;
+    *text = FromAssetText(std::string_view(*text), codepage);
 }
 
 bool ToAssetText(std::string_view text, std::string* out, unsigned codepage) {
-    if constexpr (kUtf8) {
-        if (IsAscii(text)) return false;
-        const std::wstring wide = Widen(text, CP_UTF8, MB_ERR_INVALID_CHARS);
-        if (wide.empty()) return false;   // not UTF-8: 8-bit text that has not been converted yet
-        *out = Narrow(wide, codepage);
-        return true;
-    } else {
-        (void)text;
-        (void)out;
-        (void)codepage;
-        return false;
+    if (IsAscii(text)) return false;
+    std::string bytes;
+    bool converted = false;
+    for (std::size_t i = 0; i < text.size();) {
+        const std::size_t escape = NextEscape(text, i);
+        const std::string_view plain = text.substr(i, escape - i);
+        if (IsAscii(plain)) {
+            bytes += plain;
+        } else {
+            const std::wstring wide = Widen(plain, CP_UTF8, MB_ERR_INVALID_CHARS);
+            if (wide.empty()) return false;   // not UTF-8: 8-bit text that has not been converted
+            bytes += Narrow(wide, codepage, WC_NO_BEST_FIT_CHARS);
+            converted = true;
+        }
+        const std::size_t length = (std::min)(kEscapeLength, text.size() - escape);
+        bytes.append(text.data() + escape, length);
+        i = escape + length;
     }
+    if (!converted) return false;   // ASCII but for the escapes' bytes
+    *out = std::move(bytes);
+    return true;
+}
+
+std::string ToAssetText(std::string_view text, unsigned codepage) {
+    std::string bytes;
+    if (!ToAssetText(text, &bytes, codepage)) return std::string(text);
+    return bytes;
 }
 
 int CharacterCount(std::string_view text) {
-    if constexpr (!kUtf8) {
-        return static_cast<int>(text.size());
-    } else {
-        constexpr std::size_t kEscapeLength = 5;   // "\007C" and the three colour bytes
-        int count = 0;
-        for (std::size_t i = 0; i < text.size();) {
-            if (text[i] == '\007' && i + 1 < text.size() && text[i + 1] == 'C') {
-                const std::size_t length = (std::min)(kEscapeLength, text.size() - i);
-                count += static_cast<int>(length);
-                i += length;
-                continue;
-            }
-            // A UTF-8 sequence counts by its lead byte; the continuation bytes (10xxxxxx) do not count.
-            if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) ++count;
-            ++i;
+    int count = 0;
+    for (std::size_t i = 0; i < text.size();) {
+        if (IsEscape(text, i)) {
+            const std::size_t length = (std::min)(kEscapeLength, text.size() - i);
+            count += static_cast<int>(length);
+            i += length;
+            continue;
         }
-        return count;
+        // A UTF-8 sequence counts by its lead byte; the continuation bytes (10xxxxxx) do not count.
+        if (!IsTrailByte(text[i])) ++count;
+        ++i;
     }
+    return count;
 }
 
 // ---- Lengths and cuts by character ----------------------------------------------------------------
 
-namespace {
-bool IsTrailByte(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
-} // namespace
-
 int CharacterLength(const char* p) {
-    if constexpr (!kUtf8) {
-        (void)p;
-        return 1;
-    } else {
-        int length = 1;
-        while (IsTrailByte(p[length])) ++length;
-        return length;
-    }
+    int length = 1;
+    while (IsTrailByte(p[length])) ++length;
+    return length;
 }
 
 int CharacterBytes(std::string_view text, int characters) {
     if (characters <= 0) return 0;
-    if constexpr (!kUtf8) {
-        return static_cast<int>((std::min)(text.size(), static_cast<std::size_t>(characters)));
-    } else {
-        // CharacterCount's characters: a colour escape by its bytes, a UTF-8 sequence once.
-        constexpr std::size_t kEscapeLength = 5;
-        int count = 0;
-        std::size_t i = 0;
-        while (i < text.size() && count < characters) {
-            if (text[i] == '\007' && i + 1 < text.size() && text[i + 1] == 'C') {
-                const std::size_t length = (std::min)({kEscapeLength, text.size() - i,
-                                                       static_cast<std::size_t>(characters - count)});
-                count += static_cast<int>(length);
-                i += length;
-                continue;
-            }
-            ++i;
-            while (i < text.size() && IsTrailByte(text[i])) ++i;
-            ++count;
+    // CharacterCount's characters: a colour escape by its bytes, a UTF-8 sequence once.
+    int count = 0;
+    std::size_t i = 0;
+    while (i < text.size() && count < characters) {
+        if (IsEscape(text, i)) {
+            const std::size_t length = (std::min)({kEscapeLength, text.size() - i,
+                                                   static_cast<std::size_t>(characters - count)});
+            count += static_cast<int>(length);
+            i += length;
+            continue;
         }
-        return static_cast<int>(i);
+        ++i;
+        while (i < text.size() && IsTrailByte(text[i])) ++i;
+        ++count;
     }
+    return static_cast<int>(i);
 }
 
 std::size_t FittingBytes(std::string_view text, std::size_t room) {
     if (text.size() <= room) return text.size();
     std::size_t n = room;
-    if constexpr (kUtf8) {
-        while (n > 0 && IsTrailByte(text[n])) --n;
-    }
+    while (n > 0 && IsTrailByte(text[n])) --n;
     return n;
 }
 
@@ -186,64 +199,34 @@ std::string Utf8Of(int character) {
     return bytes;
 }
 
-bool IsContinuation(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
-
 } // namespace
 
-std::string Typed(const std::string& head, int character) {
-    if constexpr (kUtf8) {
-        return head + Utf8Of(character).c_str();
-    } else {
-        return head + static_cast<char>(character);
-    }
-}
+std::string Typed(const std::string& head, int character) { return head + Utf8Of(character).c_str(); }
 
-int TypedLength(int character) {
-    if constexpr (kUtf8) {
-        return static_cast<int>(Utf8Of(character).size());
-    } else {
-        (void)character;
-        return 1;
-    }
-}
+int TypedLength(int character) { return static_cast<int>(Utf8Of(character).size()); }
 
 int NextCharacter(const std::string& text, int at) {
-    if constexpr (!kUtf8) {
-        (void)text;
-        return at + 1;
-    } else {
-        const std::string_view bytes = Bytes(text);
-        if (at < 0 || at >= static_cast<int>(bytes.size())) return at + 1;
-        std::size_t next = static_cast<std::size_t>(at) + 1;
-        while (next < bytes.size() && IsContinuation(bytes[next])) ++next;
-        return static_cast<int>(next);
-    }
+    const std::string_view bytes = Bytes(text);
+    if (at < 0 || at >= static_cast<int>(bytes.size())) return at + 1;
+    std::size_t next = static_cast<std::size_t>(at) + 1;
+    while (next < bytes.size() && IsTrailByte(bytes[next])) ++next;
+    return static_cast<int>(next);
 }
 
 int PreviousCharacter(const std::string& text, int at) {
-    if constexpr (!kUtf8) {
-        (void)text;
-        return at - 1;
-    } else {
-        const std::string_view bytes = Bytes(text);
-        if (at <= 0 || at > static_cast<int>(bytes.size())) return at - 1;
-        std::size_t previous = static_cast<std::size_t>(at) - 1;
-        while (previous > 0 && IsContinuation(bytes[previous])) --previous;
-        return static_cast<int>(previous);
-    }
+    const std::string_view bytes = Bytes(text);
+    if (at <= 0 || at > static_cast<int>(bytes.size())) return at - 1;
+    std::size_t previous = static_cast<std::size_t>(at) - 1;
+    while (previous > 0 && IsTrailByte(bytes[previous])) --previous;
+    return static_cast<int>(previous);
 }
 
 int CharacterStart(const std::string& text, int at) {
-    if constexpr (!kUtf8) {
-        (void)text;
-        return at;
-    } else {
-        const std::string_view bytes = Bytes(text);
-        if (at <= 0 || at >= static_cast<int>(bytes.size())) return at;
-        std::size_t start = static_cast<std::size_t>(at);
-        while (start > 0 && IsContinuation(bytes[start])) --start;
-        return static_cast<int>(start);
-    }
+    const std::string_view bytes = Bytes(text);
+    if (at <= 0 || at >= static_cast<int>(bytes.size())) return at;
+    std::size_t start = static_cast<std::size_t>(at);
+    while (start > 0 && IsTrailByte(bytes[start])) --start;
+    return static_cast<int>(start);
 }
 
 } // namespace text

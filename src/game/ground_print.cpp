@@ -189,8 +189,7 @@ void GroundPrint::Save(CStream* stream) {
     Write(stream, halfLength_);
     Write(stream, growth_);
     Write(stream, life_);
-    const char* name = texture_.name.data();
-    stream->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
+    stream->WriteString(texture_.name.data());
     Write(stream, uvOffset_.x);
     Write(stream, uvOffset_.y);
     Write(stream, uvScale_.x);

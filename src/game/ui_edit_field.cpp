@@ -41,7 +41,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
             caret_ = 0;
             changed_ = true;
         }
-        // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
+        // By character (a UTF-8 character's bytes).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
                 const int previous = text::PreviousCharacter(text, caret_);
@@ -99,12 +99,10 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     return size.cx;
 }
 
-// The class of typed character `key` that charClasses_ admits or not. With EI_UTF8 a character past ASCII
-// is a code point: a letter when Windows calls it one (8-bit characters go to the CRT).
+// The class of typed character `key` that charClasses_ admits or not. A character past ASCII is a code point: a
+// letter when Windows calls it one.
 std::uint32_t CharClass(int key) {
-    if constexpr (text::kUtf8) {
-        if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
-    }
+    if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
     const char c = static_cast<char>(key);
     if (gamecrt::isdigit(key) != 0) return kClassDigit;
     if (libcrt::Isalpha(key) != 0 || c == ' ') return kClassLetter;

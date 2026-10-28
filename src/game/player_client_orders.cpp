@@ -215,7 +215,7 @@ int CPlayerClient::TakeExit(int exit) {
 int CPlayerClient::RequestZone(const char* zone, int entrance) {
     Rejoin();
     WriteType(out_, kGoToZone);
-    out_.Write(zone, static_cast<std::uint32_t>(std::strlen(zone) + 1));
+    out_.WriteString(zone);
     out_.Write(&entrance, 4);
     return static_cast<int>(out_.position_);
 }

@@ -117,7 +117,7 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
-// EI_UTF8: the window is a Unicode one, so WM_CHAR carries a UTF-16 unit, and a character
+// The window is a Unicode one, so WM_CHAR carries a UTF-16 unit, and a character
 // past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
 // half of a pair waits for the second (a half that comes alone is dropped).
 unsigned g_highSurrogate = 0;
@@ -181,10 +181,8 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_CHAR:
-        if constexpr (text::kUtf8) {
-            w = TypedCharacter(wParam);
-            if (w < 0) return Handled();
-        }
+        w = TypedCharacter(wParam);
+        if (w < 0) return Handled();
         input->OnChar(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYDOWN:
@@ -291,7 +289,7 @@ int ShowMessageBox(const char* text, int flags) {
         device->lastLoadResult_ = result;
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }
-    // EI_UTF8: the image's MessageBoxA takes UTF-8.
+    // The image's MessageBoxA takes UTF-8.
     int answer = gameapi::MessageBoxA(g_mainWindow, text, g_windowTitle, static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);
     return answer;

@@ -45,7 +45,7 @@ int Clamp(int value, int high) {
 int PromptWidth(CDC* dc, const std::string& input, int count) {
     std::string text = std::string(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide
+    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // measured wide
     return size.cx;
 }
 
@@ -159,20 +159,12 @@ namespace {
 constexpr int kHistoryDepth = 30;
 
 std::string MidOf(const std::string& s, int first) { return str::Mid(s, first); }
-// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code page as
-// addon's helpers do (EI_UTF8: from UTF-8).
+// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted from UTF-8 (addon's helpers convert
+// with the ANSI code page).
 void CopyToClipboard(const char* first, const char* last) {
     int count = static_cast<int>(last - first);
     std::wstring wide;
-    if constexpr (::text::kUtf8) {
-        if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
-    } else {
-        int n = count > 0 ? MultiByteToWideChar(CP_ACP, 0, first, count, nullptr, 0) : 0;
-        if (n > 0) {
-            wide.resize(static_cast<std::size_t>(n));
-            MultiByteToWideChar(CP_ACP, 0, first, count, &wide[0], n);
-        }
-    }
+    if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
     HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
     if (!memory) return;
     void* locked = GlobalLock(memory);
@@ -202,23 +194,12 @@ std::string ClipboardText() {
         }
         CloseClipboard();
     }
-    if constexpr (::text::kUtf8) {
-        return ::text::Narrow(wide);
-    } else {
-        std::string narrow;
-        int count = static_cast<int>(wide.size());
-        int n = count > 0 ? WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, nullptr, 0, nullptr, nullptr) : 0;
-        if (n > 0) {
-            narrow.resize(static_cast<std::size_t>(n));
-            WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, &narrow[0], n, nullptr, nullptr);
-        }
-        return narrow;
-    }
+    return ::text::Narrow(wide);
 }
 
 } // namespace
 
-// Typed characters (with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
+// Typed characters (code points, stored as UTF-8; the caret is a byte offset at a
 // character's start and moves by character). Backspace deletes the selection or the character before the caret,
 // Enter enters the line (into the history, at most 30, echoed with "> ", then executed), Escape
 // clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is
@@ -299,7 +280,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             std::string head = Left(input_, low);
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
-            position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
+            position = ::text::CharacterStart(input_, position);   // never inside a character
             caret_ = position;
             anchor_ = position;
             DrawInput();

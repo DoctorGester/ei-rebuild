@@ -176,7 +176,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
             std::string typed;
             {
                 std::string head = str::Left(name, cursor_);
-                typed = text::Typed(head, key) + tail;   // with EI_UTF8 the character's UTF-8 bytes
+                typed = text::Typed(head, key) + tail;   // the character's UTF-8 bytes
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
                 name = typed;

@@ -39,11 +39,6 @@ void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
 }
 
-void WriteString(CStream* stream, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    stream->Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
-}
-
 template <typename T>
 void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
@@ -196,7 +191,7 @@ void CUnit::LoadUnit(CStream* stream) {
 void CUnit::SaveUnit(CStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
-    WriteString(stream, scriptName);
+    stream->WriteString(scriptName);
     WriteCopy(stream, relationsA);
     WriteCopy<int>(stream, player ? player->playerId_ : -1);
     WriteCopy(stream, side);
@@ -231,9 +226,9 @@ void CUnit::SaveUnit(CStream* stream) {
     // The prototype's name (the record's first field is a CString; a record out of range is copied from
     // address 0), then the second prototype's or "".
     std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name;
-    WriteString(stream, prototypeName);
+    stream->WriteString(prototypeName);
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
     if (second) prototypeName = second->name;
     else prototypeName = "";
-    WriteString(stream, prototypeName);
+    stream->WriteString(prototypeName);
 }

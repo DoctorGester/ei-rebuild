@@ -15,7 +15,7 @@
 //   "Data"=hex:01,02                     REG_BINARY
 //   "Lines"=hex(7):61,00,00              any other type, or a string the quoted form cannot hold
 // "@" names a key's default value; lines starting with ';' are comments. Every value round-trips bit for bit:
-// the bytes are what the game's ANSI registry call gave (UTF-8 with EI_UTF8).
+// the bytes are what the game's ANSI registry call gave (UTF-8).
 // Harness runs (verify build, tests/verify/harness_settings.h) pin a file of their own (Pin): written from the
 // committed registry snapshot, read only (or writable, to check the options save), every read of a value it lacks
 // reported. The one-time import reads a RegistrySource, the registry's or a test's stand-in (SetImportSource).

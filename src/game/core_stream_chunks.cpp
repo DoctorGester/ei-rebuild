@@ -2,9 +2,12 @@
 // stream access goes through the virtual functions, in the game's order.
 #include "core_streams.h"
 
+#include "asset_text.h"
+
 #include "lib/crt.h"
 
 #include <cstdint>
+#include <string>
 
 bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     std::uint32_t size = 0;
@@ -48,4 +51,7 @@ void CStream::ReadText(char* buffer, int capacity) {
         if (c == 0) break;
     }
     buffer[capacity - 1] = 0;
+    std::string text(buffer);
+    text::FromAssetText(&text);
+    text::CopyFitting(buffer, static_cast<std::size_t>(capacity), text.c_str());
 }

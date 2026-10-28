@@ -193,8 +193,8 @@ bool RouteImageCalls() {
 
 // The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export, or nullptr.
 // Called during ei_hook.dll's static initialisation, before this file's: the table is a function's static (made
-// at its first call), the flags are zero-initialised. With EI_UTF8 the calls that take or give text take their
-// UTF-8 versions (game/system_text.h).
+// at its first call), the flags are zero-initialised. The calls that take or give text take their UTF-8 versions
+// (game/system_text.h).
 const void* ImageRoute(const char* dll, const char* function) {
     for (int i = 0; i < kRoutes; ++i) {
         const Route& r = Routes()[i];
@@ -246,10 +246,10 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs the
     // functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
-    // initialiser) is the host CRT's, set at its own start-up; with EI_UTF8 a single-byte one, so the host's
-    // multibyte string functions (_splitpath, _mbschr ...) see no lead bytes whatever the system's ANSI code
-    // page.
-    if constexpr (EI_UTF8 != 0) _setmbcp(_MB_CP_SBCS);
+    // initialiser) is the host CRT's, set at its own start-up; here a single-byte one, so the host's multibyte
+    // string functions (_splitpath, _mbschr ...) see no lead bytes whatever the system's ANSI code page (the text
+    // is UTF-8).
+    _setmbcp(_MB_CP_SBCS);
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();

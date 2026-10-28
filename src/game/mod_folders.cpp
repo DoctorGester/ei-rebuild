@@ -66,13 +66,13 @@ std::string WithSlash(std::string path) {
 
 // addon's 10025B50: the archive table's key, CharLowerA's lower case of the path.
 std::string Lower(std::string text) {
-    if (!text.empty()) text::sys::CharLowerA(text.data());
+    if (!text.empty()) text::utf8::CharLowerA(text.data());
     return text;
 }
 
 // addon's 1001B9B3: the path names a file (GetFileAttributes; not a folder).
 bool FileExists(const std::string& path) {
-    DWORD attributes = text::sys::GetFileAttributesA(path.c_str());
+    DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
@@ -197,7 +197,7 @@ struct MapsListing {
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
     WIN32_FIND_DATAA found;
-    HANDLE find = text::sys::FindFirstFileA(pattern.c_str(), &found);
+    HANDLE find = text::utf8::FindFirstFileA(pattern.c_str(), &found);
     if (find == INVALID_HANDLE_VALUE) return;
     do {
         if (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -213,7 +213,7 @@ void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list)
         if (!list.hasQuestList && length >= 3 && std::strcmp(found.cFileName + length - 3, ".mq") == 0)
             list.hasQuestList = true;
         list.names.push_back(found.cFileName);
-    } while (text::sys::FindNextFileA(find, &found));
+    } while (text::utf8::FindNextFileA(find, &found));
     FindClose(find);
 }
 
@@ -266,7 +266,7 @@ void OnOpenResource(CMappedResource* res, const char* path) {
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
     char lower[MAX_PATH];
     strncpy_s(lower, path, _TRUNCATE);
-    text::sys::CharLowerA(lower);
+    text::utf8::CharLowerA(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
     if (config.ignored.count(lower) != 0) tables.ignored.insert(res);

@@ -88,13 +88,11 @@ void NamedFloatTable::Load(CStream* stream) {
 
 void NamedFloatTable::Save(CStream* stream) {
     for (const Node* node = First(); node; node = Next(node)) {
-        const char* key = node->value.key;
-        stream->Write(key, static_cast<std::uint32_t>(std::strlen(key) + 1));
+        stream->WriteString(node->value.key);
         float value = node->value.mapped;
         stream->Write(&value, 4);
     }
-    std::string end;
-    stream->Write(end.c_str(), static_cast<std::uint32_t>(std::strlen(end.c_str()) + 1));
+    stream->WriteString("");   // the end
 }
 
 void* FindCommandByKey(int key) {

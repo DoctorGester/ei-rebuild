@@ -78,15 +78,11 @@ int Fflush(gamecrt::CrtFile* stream) { return std::fflush(Host(stream)); }
 bool AtEnd(gamecrt::CrtFile* stream) { return std::feof(Host(stream)) != 0; }
 bool Failed(gamecrt::CrtFile* stream) { return std::ferror(Host(stream)) != 0; }
 // _fullpath into a caller's buffer: GetFullPathNameA, null when it fails or does not fit (an empty
-// path is the current directory; EI_UTF8: through the image's GetCurrentDirectoryA, in UTF-8).
+// path is the current directory, through the image's GetCurrentDirectoryA, in UTF-8).
 char* Fullpath(char* out, const char* path, std::size_t size) {
     if (!path || !*path) {
-        if constexpr (text::kUtf8) {
-            const DWORD length = gameapi::GetCurrentDirectoryA(static_cast<DWORD>(size), out);
-            return length != 0 && length < size ? out : nullptr;
-        } else {
-            return _getcwd(out, static_cast<int>(size));
-        }
+        const DWORD length = gameapi::GetCurrentDirectoryA(static_cast<DWORD>(size), out);
+        return length != 0 && length < size ? out : nullptr;
     }
     char* part;
     const DWORD length = gameapi::GetFullPathNameA(path, static_cast<DWORD>(size), out, &part);

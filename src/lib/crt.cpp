@@ -111,20 +111,16 @@ namespace libcrt {
 
 namespace {
 
-// EI_UTF8 (text_case.h): every string is UTF-8, so case and character classes do not come from
-// the locale or the ANSI code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has
-// no class and no case of its own, and is never a double-byte lead byte; the string compares and _mbslwr
-// change case by text_case.h's table.
-constexpr bool kUtf8 = EI_UTF8 != 0;
+// Every string is UTF-8 (text_case.h), so case and character classes do not come from the locale or the ANSI
+// code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has no class and no case of its
+// own, and is never a double-byte lead byte; the string compares and _mbslwr change case by text_case.h's table.
 // A byte (as the int the class functions take) past ASCII, or EOF.
 bool PastAscii(int c) { return c < 0 || c >= 0x80; }
 
 } // namespace
 
-// The string and character functions are the host CRT's (both suites goldens the same), under the host's
-// locale (crt_locale_data.h); with EI_UTF8 the case and class functions keep text_case.h's answers. These
-// names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp) and
-// for the EI_UTF8 branches.
+// The plain string functions are the host CRT's; the case and class functions answer for UTF-8 (text_case.h).
+// These names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp).
 int Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 
 char* Strncpy(char* to, const char* from, std::size_t n) {
@@ -133,112 +129,60 @@ char* Strncpy(char* to, const char* from, std::size_t n) {
 }
 
 int Stricmp(const char* a, const char* b) {
-    if constexpr (kUtf8) {
-        return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
-    } else {
-        return _stricmp(a, b);
-    }
+    return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
 }
 
 int Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
-    if constexpr (kUtf8) {
-        return text::CompareIgnoringCase(a, b, n, true);
-    } else {
-        return _strnicmp(a, b, n);
-    }
+    return text::CompareIgnoringCase(a, b, n, true);
 }
 
 int Memicmp(const void* a, const void* b, std::size_t n) {
-    if constexpr (kUtf8) {
-        return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
-    } else {
-        return _memicmp(a, b, n);
-    }
+    return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
 }
 
-int Mbscmp(const unsigned char* a, const unsigned char* b) { return _mbscmp(a, b); }
+int Mbscmp(const unsigned char* a, const unsigned char* b) {
+    return std::strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
+}
 
 int Mbsicmp(const unsigned char* a, const unsigned char* b) {
-    if constexpr (kUtf8) {
-        return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-    } else {
-        return _mbsicmp(a, b);
-    }
+    return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
 
 unsigned char* Mbsinc(const unsigned char* p) {
-    if constexpr (kUtf8) {
-        return const_cast<unsigned char*>(p + 1);
-    } else {
-        return _mbsinc(p);
-    }
+    return const_cast<unsigned char*>(p + 1);
 }
 
-int Ismbblead(unsigned c) {
-    if constexpr (kUtf8) {
-        (void)c;
-        return 0;
-    } else {
-        return _ismbblead(c);
-    }
+int Ismbblead(unsigned) {
+    return 0;
 }
 
-int Isleadbyte(int c) {
-    if constexpr (kUtf8) {
-        (void)c;
-        return 0;
-    } else {
-        return isleadbyte(c);
-    }
+int Isleadbyte(int) {
+    return 0;
 }
 
 int Tolower(int c) {
-    if constexpr (kUtf8) {
-        return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
-    } else {
-        return tolower(c);
-    }
+    return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
 }
 
 int Toupper(int c) {
-    if constexpr (kUtf8) {
-        return c >= 'a' && c <= 'z' ? c - 0x20 : c;
-    } else {
-        return toupper(c);
-    }
+    return c >= 'a' && c <= 'z' ? c - 0x20 : c;
 }
 
 int Isalpha(int c) {
-    if constexpr (kUtf8) {
-        return PastAscii(c) ? 0 : isalpha(c);
-    } else {
-        return isalpha(c);
-    }
+    return PastAscii(c) ? 0 : isalpha(c);
 }
 
 int Isdigit(int c) {
-    if constexpr (kUtf8) {
-        return PastAscii(c) ? 0 : isdigit(c);
-    } else {
-        return isdigit(c);
-    }
+    return PastAscii(c) ? 0 : isdigit(c);
 }
 
 int Isspace(int c) {
-    if constexpr (kUtf8) {
-        return PastAscii(c) ? 0 : isspace(c);
-    } else {
-        return isspace(c);
-    }
+    return PastAscii(c) ? 0 : isspace(c);
 }
 
 int Isprint(int c) {
-    if constexpr (kUtf8) {
-        return PastAscii(c) ? 0 : isprint(c);
-    } else {
-        return isprint(c);
-    }
+    return PastAscii(c) ? 0 : isprint(c);
 }
 
 namespace {
@@ -323,24 +267,17 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
     }
 }
 
-int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) { return _mbsncmp(a, b, n); }
+// `n` bytes: there are no double-byte characters (the callers compare ASCII prefixes).
+int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
+    return std::strncmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b), n);
+}
 
-std::size_t Mbclen(const unsigned char* c) {
-    if constexpr (kUtf8) {
-        (void)c;
-        return 1;
-    } else {
-        return _mbclen(c);
-    }
+std::size_t Mbclen(const unsigned char*) {
+    return 1;
 }
 
 unsigned char* Mbslwr(unsigned char* text) {
-    if constexpr (kUtf8) {
-        text::LowerInPlace(reinterpret_cast<char*>(text));
-    } else {
-#pragma warning(suppress : 4996)
-        _mbslwr(text);
-    }
+    text::LowerInPlace(reinterpret_cast<char*>(text));
     return text;
 }
 

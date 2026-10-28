@@ -3,6 +3,7 @@
 // (net_classes.h; no factory).
 // More: docs/notes/comments-c22i.md, "net_messages.cpp".
 #include "net_messages.h"
+#include "asset_text.h"
 #include "game_lists.h"
 #include "net_connection.h"
 
@@ -65,11 +66,16 @@ void TakeBytes(BufferCursor* cursor, void* to, std::size_t n) {
     std::memcpy(to, cursor->p, n);
     cursor->p += n;
 }
-void PutString(BufferCursor* cursor, const std::string& s) { PutBytes(cursor, s.data(), std::strlen(s.data()) + 1); }
+// Text on the wire is in the asset code page, as vanilla peers send it (asset_text.h).
+void PutString(BufferCursor* cursor, const std::string& s) {
+    const std::string bytes = text::ToAssetText(std::string_view(s.c_str()));
+    PutBytes(cursor, bytes.c_str(), bytes.size() + 1);
+}
 void TakeString(BufferCursor* cursor, std::string& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
     std::size_t length = std::strlen(text);
     s.assign(text, text + length);
+    text::FromAssetText(&s);
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.

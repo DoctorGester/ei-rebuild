@@ -67,10 +67,6 @@ const char* TextSqueezedTo() { return " squeezed to "; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { out->Write(&value, 4); }
-void WriteText(BitStream* out, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    out->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
-}
 
 // Appends all of `from` (sought to 0) to `out`, the pending bits of `out` stored first.
 void WriteStateStream(BitStream* out, BitStream* from) {
@@ -174,20 +170,20 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         Vector3 scale;
         std::memcpy(&scale, &object->scale, sizeof(scale));
         out_.Write(&scale, sizeof(scale));
-        WriteText(&out_, object->name2);
-        WriteText(&out_, object->name);
+        out_.WriteString(object->name2);
+        out_.WriteString(object->name);
         auto* server = object->ServerCompanion();
-        WriteText(&out_, server->name78);
-        WriteText(&out_, server->name7C);
+        out_.WriteString(server->name78);
+        out_.WriteString(server->name7C);
         std::uint32_t count = static_cast<std::uint32_t>(server->strings.size());
         out_.Write(&count, 2);
-        for (const std::string& text : server->strings) WriteText(&out_, text);
+        for (const std::string& text : server->strings) out_.WriteString(text);
         std::uint32_t prototype = 0;
         if (isUnit) {
-            WriteText(&out_, object->GetName());
+            out_.WriteString(object->GetName());
             prototype = static_cast<std::uint32_t>(UnitOrNull(object)->prototype23C);
         } else {
-            WriteText(&out_, game::EmptyText());
+            out_.WriteString(game::EmptyText());
         }
         WriteDword(&out_, prototype);
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();

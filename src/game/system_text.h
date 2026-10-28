@@ -1,23 +1,21 @@
 #pragma once
 
-// Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). With EI_UTF8 every
-// string inside the game is UTF-8, so the Windows calls that take or give text (file names, the registry,
-// the window title, the message box, key names, resource strings) are the wide ones, converting at the call:
+// Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
+// so the Windows calls that take or give text (file names, the registry, the window title, the message box, key
+// names, resource strings) are the wide ones, converting at the call:
 //   - the game's imports (gameapi.h, and through it CFile, CFileFind and the CRT's file calls): the image's
 //     slot of each ANSI call below takes its UTF-8 version (text::utf8, SystemRoute; image_imports.cpp asks
 //     for it), so a call through gameapi:: passes and receives UTF-8. The harness takes those slots after,
 //     as it does the ANSI exports' (its redirects work on the bytes).
-//   - the direct calls of our own code: text::sys, the UTF-8 version with EI_UTF8 and the ANSI call itself
-//     without.
-// Without EI_UTF8 nothing is routed and text::sys is the ANSI calls: nothing changes.
+//   - the direct calls of our own code: text::utf8 by name.
 // Text going in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI call took it (8-bit text
 // that has not crossed text::FromAssetText). Text coming out is UTF-8.
 // The windows are Unicode ones: RegisterClassExA registers the class wide, and DefWindowProcA,
-// GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h,
-// "Typing").
+// GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed
+// character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h, "Typing").
 // The interface's text is drawn and measured wide: DrawTextA, GetTextExtentPoint32A and CreateFontIndirectA's
 // slots lead to the wide calls.
-// Case: CharUpperA / CharLowerA's slots and text::sys change UTF-8 case by lib/text_case.h's table.
+// Case: CharUpperA / CharLowerA's slots and text::utf8 change UTF-8 case by lib/text_case.h's table.
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
 // ASCII); SendMessageA to the titles' RichEdit control (RTF names its own code page).
@@ -37,11 +35,11 @@ std::wstring Wide(std::string_view text);
 // UTF-16 as UTF-8.
 std::string Narrow(std::wstring_view wide);
 
-// The UTF-8 version the image's slot of `dll`!`function` takes (with EI_UTF8), else nullptr.
+// The UTF-8 version the image's slot of `dll`!`function` takes, else nullptr.
 const void* SystemRoute(const char* dll, const char* function);
 
 // The UTF-8 versions of the ANSI calls: the same arguments and results, with the text in UTF-8 (the sizes of
-// text buffers in bytes, as the ANSI calls count them). Compiled in both builds; used with EI_UTF8.
+// text buffers in bytes, as the ANSI calls count them).
 namespace utf8 {
 
 // Files.
@@ -105,28 +103,5 @@ LPSTR WINAPI CharUpperA(LPSTR text);
 LPSTR WINAPI CharLowerA(LPSTR text);
 
 } // namespace utf8
-
-// The calls our own code makes directly (not through the game's imports): UTF-8 with EI_UTF8, else ANSI.
-namespace sys {
-#if EI_UTF8
-using utf8::CharLowerA;
-using utf8::CharUpperA;
-using utf8::FindFirstFileA;
-using utf8::FindNextFileA;
-using utf8::GetFileAttributesA;
-using utf8::LoadCursorFromFileA;
-using utf8::RegOpenKeyExA;
-using utf8::RegQueryValueExA;
-#else
-using ::CharLowerA;
-using ::CharUpperA;
-using ::FindFirstFileA;
-using ::FindNextFileA;
-using ::GetFileAttributesA;
-using ::LoadCursorFromFileA;
-using ::RegOpenKeyExA;
-using ::RegQueryValueExA;
-#endif
-} // namespace sys
 
 } // namespace text

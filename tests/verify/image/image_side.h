@@ -277,7 +277,7 @@ void Report(std::FILE* f);
 std::string Failure();
 } // namespace uicompare
 
-// ---- the UTF-8 build's checks (harness_utf8.cpp; image/harness_utf8_image.cpp)
+// ---- the UTF-8 checks (harness_utf8.cpp; image/harness_utf8_image.cpp)
 
 namespace utf8files {
 std::string Check(const char* savesDir);

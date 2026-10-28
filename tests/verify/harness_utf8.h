@@ -1,14 +1,16 @@
 #pragma once
 
-// The UTF-8 build's file names (EI_UTF8, ticket U2; verify build only, harness_utf8.cpp): at harness start a
-// folder and a file with Cyrillic names are made, listed, read back and removed through the game's own file
-// calls (game.exe's import slots: the image's UTF-8 versions under the harness's saves redirect, the calls
-// CFile, CFileFind and the CRT make), and the name on disk is checked as UTF-16. Without EI_UTF8 nothing runs.
+// The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/utf8_typing.txt, which has no
+// original run: game.exe's text is in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp);
+// in game.exe each step fails.
 
 #include <windows.h>
 
 #include <string>
 
+// File names (ticket U2): "utf8files" makes, lists, reads back and removes a folder and a file with Cyrillic names
+// through the game's own file calls (the image's UTF-8 versions in its import slots, under the harness's saves
+// redirect: the calls CFile, CFileFind and the CRT make), and checks the name on disk as UTF-16.
 namespace ei::verify::utf8files {
 
 // The check, under the game's saves folder (the harness's saves redirect takes it to the run's overlay):
@@ -17,8 +19,7 @@ std::string Check(const char* savesDir);
 
 } // namespace ei::verify::utf8files
 
-// Typing in the UTF-8 build (EI_UTF8, ticket U4; tests/scenarios/utf8_typing.txt). The game window is a Unicode
-// one there, so a typed character reaches the game as UTF-16. Without EI_UTF8 both steps are skipped.
+// Typing (ticket U4). The game window is a Unicode one, so a typed character reaches the game as UTF-16.
 namespace ei::verify::utf8typing {
 
 // "typeunicode <text>": each UTF-16 unit of <text> (UTF-8 in the scenario; a character past U+FFFF is two)
@@ -32,8 +33,7 @@ std::string CheckConsoleLine(const std::string& argument);
 
 } // namespace ei::verify::utf8typing
 
-// The UTF-8 build's text audit (EI_UTF8, ticket U5; tests/scenarios/utf8_typing.txt, its steps marked "utf8").
-// Both need the standalone image (our code on our data).
+// The text audit (ticket U5).
 namespace ei::verify::utf8text {
 
 // "utf8text": case and classes without the locale (lib/text_case.h): the CRT's case-insensitive compares

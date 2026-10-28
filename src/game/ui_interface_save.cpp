@@ -101,8 +101,8 @@ void CInterface3D::SaveState(CStream* stream) {
     stream->Write(&value, 4);
     value = 0;   // the obsolete list LoadState skips: no entries
     stream->Write(&value, 4);
-    stream->Write(messageText_.c_str(), static_cast<std::uint32_t>(std::strlen(messageText_.c_str()) + 1));
+    stream->WriteString(messageText_);
     value = messageFlag_;
     stream->Write(&value, 4);
-    stream->Write(savedText_.c_str(), static_cast<std::uint32_t>(std::strlen(savedText_.c_str()) + 1));
+    stream->WriteString(savedText_);
 }

@@ -71,8 +71,7 @@ struct LocalFileStream {
     CStream* Stream() { return &s; }
     // A string with its terminating zero.
     void WriteText(std::string_view text) {
-        const gamecrt::TerminatedText terminated(text);
-        Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
+        Stream()->WriteString(text);
     }
 };
 

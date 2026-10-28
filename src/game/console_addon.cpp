@@ -181,7 +181,7 @@ void Register(CommandMap* map, const char* name, CommandHandler handler) {
 const std::vector<std::string>& AutoExecLines() {
     static std::vector<std::string> lines = [] {
         std::vector<std::string> result;
-        // The lines as the game holds its text (the ANSI code page, EI_UTF8: UTF-8; settings_file.h's bytes).
+        // The lines as the game holds its text (UTF-8; settings_file.h's bytes).
         constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
         DWORD type = 0, size = 0;
         if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, nullptr, &size) == 0 && size != 0) {
@@ -197,7 +197,7 @@ const std::vector<std::string>& AutoExecLines() {
                 }
             }
         }
-        DWORD attributes = text::sys::GetFileAttributesA("2utoexec.cfg");
+        DWORD attributes = text::utf8::GetFileAttributesA("2utoexec.cfg");
         if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
             std::ifstream file("2utoexec.cfg");
             std::string line;

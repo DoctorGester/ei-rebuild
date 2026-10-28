@@ -227,8 +227,7 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&velocity_, 12);
     std::memcpy(&copy, &arrived_, 4);
     s->Write(&copy, 4);
-    const char* name = soundName_.c_str();
-    s->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
+    s->WriteString(soundName_);
     s->Write(&lightColor_, 12);
     std::memcpy(&copy, &lightRange_, 4);
     s->Write(&copy, 4);
