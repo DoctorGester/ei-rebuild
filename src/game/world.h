@@ -632,10 +632,10 @@ void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std
 struct SectorGrid {
     std::unique_ptr<std::list<HeldPtr<CMapObject>>[]> cells_;
     std::unique_ptr<std::list<HeldPtr<CMapObject>>*[]> rows_;   // row y: its lists
-    int unknown08_, unknown0C_;           // (resized when they change)
+    int allocatedWidth_, allocatedHeight_;  // the cells allocated (Resize: when they change)
     std::uint32_t width_;                 // cells along x
     std::uint32_t height_;                // cells along y
-    // unknown08_ x unknown0C_ empty cells, then the row pointers.
+    // allocatedWidth_ x allocatedHeight_ empty cells, then the row pointers.
     void Allocate();
     // When the storage has another size: Free, the size taken, then Allocate.
     void Resize(int width, int height);

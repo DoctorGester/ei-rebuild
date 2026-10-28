@@ -399,7 +399,7 @@ void AIBrain::AttackTarget(CMapObject* object) {
         order.kind = 3;
         order.source = 6;
         order.target = nullptr;
-        order.flag18 = 0;
+        order.pointIsUseSpot = 0;
         if (object) {
             order.target = object;
             ++object->refCount_;

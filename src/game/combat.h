@@ -23,7 +23,7 @@ struct UnitAction : AIOrder {
 
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);
-// Kind 9, the target released, flag18, param and modifier cleared.
+// Kind 9, the target released, pointIsUseSpot, param and modifier cleared.
     void Reset();
     void Retarget(CMapObject* object) {
         if (object == target) return;
@@ -99,7 +99,10 @@ bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, cons
 
 struct MoveModeState {
     int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
-    std::uint8_t flag4;         // read for mode 2
+    // Set while the unit attacks (SyncMoveModes) and by the AI's suspicion, aggression and fear modes (cleared
+    // when they end): mode 2 then takes the guarded walk / cast animations (not a hero's own walk), the unit
+    // cannot be backstabbed and does not fall asleep (moveMode2's, read by the hit code and the world update).
+    std::uint8_t onGuard;
     std::uint8_t wasMode3;
 };
 
@@ -193,7 +196,7 @@ public:
     // 1 << the weapon type (natural weapon types 7 and above: 0).
     std::uint32_t WeaponTypeMask();
     // Animation bits of a movement mode: 0 0x30000, 1 0x20000, 2 0x10000 (only with
-    // `flag4` or for units other than heroes), 4 0x8000, else 0.
+    // `onGuard` or for units other than heroes), 4 0x8000, else 0.
     std::uint32_t MoveModeMask(const MoveModeState* mode);
     // log(experience / considerModifier) / log(considerLogBase), rounded.
     int Level() override;
@@ -337,7 +340,7 @@ public:
     // Kind 9 and cleared, then kind 0 (Idle and FinishAction).
     void DropQueuedOrder();
 
-    // What a cast (kinds 4, 5) or an order on a unit must see: false for a point order with flag18, a missing
+    // What a cast (kinds 4, 5) or an order on a unit must see: false for an order to a use spot (pointIsUseSpot), a missing
     // spell, a spell whose prototype lacks needsSight, or (other kinds) a target that is not a unit.
     bool FindSightTarget(const AIOrder* order, struct SightTarget* out);
     // Can the unit carry out `order` at `time` with its target at `point`: in range for AI units, no living
@@ -430,7 +433,7 @@ public:
     // facing its direction.
     void PlayAnimationOrder(const AnimationSteps& steps);
     void PlayEmoteOrder(const AnimationSteps& steps);
-    // The emote 0xFE for a hero walking (mode 2 without flag4), else the idle entry of the weapon and movement
+    // The emote 0xFE for a hero walking (mode 2 without onGuard), else the idle entry of the weapon and movement
     // key (| 0x80580000), if any.
     void BuildIdle(AnimationSteps* steps);
     AnimationSteps* IdleAnimation();
@@ -478,7 +481,7 @@ public:
 
     // --- The way to an order's target.
     // For a use order on a target (kind 6, source 0): the reachable spot the target offers (for the unit's
-    // size) whose path is cheapest becomes the order's point (flag18 set), its path into `motionOrder` (if
+    // size) whose path is cheapest becomes the order's point (pointIsUseSpot set), its path into `motionOrder` (if
     // given); false when no spot can be reached. Every order's point gets z -1 first.
     bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
     // Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks until the order's
@@ -569,13 +572,6 @@ public:
     AIAlarm voice;                  // the voice / alarm
 
     AIBrain* Brain() { return &brain; }
-
-    // The movement mode's flag4 is also read by the hit code: while it is set the unit cannot be backstabbed
-    // (checked on the target's controller and on the defender).
-    std::uint8_t NoBackstab() const { return moveMode2.flag4; }
-    // The AI modes that keep the unit occupied (fear, aggression, ...) set the same byte.
-    void SetBusy(std::uint8_t busy) { moveMode2.flag4 = busy; }
-    std::uint8_t Busy() const { return moveMode2.flag4; }
 
     void AddHostileMask(std::uint32_t mask);
 };

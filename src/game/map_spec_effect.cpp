@@ -216,7 +216,7 @@ void SoundSpec::Save() {
     WriteInt(0xCC06, minInterval);
     WriteInt(0xCC07, maxInterval);
     WriteByte(0xCC0D, ambient);
-    WriteByte(0xCC0E, field0E);
+    WriteByte(0xCC0E, unreadChunk);
     EndWrite();
 }
 
@@ -235,7 +235,7 @@ void SoundSpec::OnChunk() {
         break;
     case 0xCC0B: radius = c.ReadInt(); break;
     case 0xCC0D: ambient = c.ReadByte() == 1; break;
-    case 0xCC0E: field0E = c.ReadByte() == 1; break;
+    case 0xCC0E: unreadChunk = c.ReadByte() == 1; break;
     default: break;
     }
 }

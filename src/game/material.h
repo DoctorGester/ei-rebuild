@@ -57,9 +57,7 @@ public:
     MaterialColors colors;
     std::vector<MaterialEntry> entries;
     std::string name2;                      // (the scene file's second name)
-    int spare90;                            // 0 after Create; nothing reads it
     std::string name3;                      // (the scene file's third name)
-    int spare98;                            // 0 after Create; nothing reads it
 };
 
 // The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's pointer;

@@ -158,7 +158,7 @@ void CTradePanel::BuildLists() {
         if (HasPerkText(table, text))
             texts->ReadLine(&text, 1);
         else
-            text = record->field0;
+            text = record->displayName;
         if (level > 1)
             row->name = str::Format("%s (%s%d)", text.c_str(),
                                    perkLevel.c_str(), level);
@@ -189,7 +189,7 @@ void CTradePanel::BuildLists() {
         if (HasPerkText(table, text))
             row->name = ReadPerkLine(texts);
         else
-            row->name = record->field0;
+            row->name = record->displayName;
         row->price = stats->SkillPrice(record);
         row->key = record->name;
         row->learnable = true;

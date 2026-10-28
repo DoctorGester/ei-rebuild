@@ -105,12 +105,12 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
     return FtolQuotient(frameCount, speed);
 }
 
-// Key bits of the mode being left / entered (mode 2 without flag4 is a hero's own walk).
+// Key bits of the mode being left / entered (mode 2 without onGuard is a hero's own walk).
 std::uint32_t LeaveBits(const MoveModeState* from, const CUnit* unit) {
     switch (from->mode) {
     case 0: return 0x30000;
     case 1: return 0x20000;
-    case 2: return !from->flag4 && unit->type_ == kUnitTypeHeroes ? 0 : 0x10000;
+    case 2: return !from->onGuard && unit->type_ == kUnitTypeHeroes ? 0 : 0x10000;
     case 4: return 0x8000;
     default: return 0;
     }
@@ -120,7 +120,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
     switch (to->mode) {
     case 0: return 0x1000000;
     case 1: return 0xC00000;
-    case 2: return !to->flag4 && unit->type_ == kUnitTypeHeroes ? 0x400000 : 0x800000;
+    case 2: return !to->onGuard && unit->type_ == kUnitTypeHeroes ? 0x400000 : 0x800000;
     case 4: return 0x1400000;
     default: return 0;
     }
@@ -235,7 +235,7 @@ int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, 
 bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
     *steps = {};
     if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
-    if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
+    if (from->mode == to->mode && (from->mode != 2 || from->onGuard == to->onGuard)) return false;
 
     std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
     key |= EnterBits(to, unit);
@@ -303,7 +303,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
         if (moveMode.mode == 1) {
             key |= kKeyCastStanding;
         } else {
-            if (moveMode.flag4) key |= kKeyFlag10000;
+            if (moveMode.onGuard) key |= kKeyFlag10000;
             key |= (g_random.Next() & 1) ? kKeyCastB : kKeyCastA;
         }
     } else {
@@ -475,7 +475,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         CMapObject* other = order.target;
         float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(std::bit_cast<float>(stats.modelField8)) + kOne) * myRadius;
+            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + kOne) * myRadius;
             span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;

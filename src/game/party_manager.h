@@ -36,7 +36,7 @@ CParty* PartyAt(PartyMap& parties, int key);
 struct PartyManager {
     PartyMap parties;                           // (LoadParty / StoreParty)
     std::vector<PartyManagerEntry> entries;
-    int field3;                         // field 3 of the archive (nothing reads it)
+    int unreadField;                    // archive field 3 (4 bytes); nothing reads it
     NamedPartyRecords records;
     TemplateTable templates;
 
@@ -50,7 +50,7 @@ struct PartyManager {
     // freed, the records' two strings, the entries, then the parties.
     void Destruct();
     // The constructor: no parties (193 buckets), no entries, no records with two empty strings, no templates;
-    // field3 is left as it is. It runs from a static initialiser. Returns this.
+    // unreadField is left as it is. It runs from a static initialiser. Returns this.
     PartyManager* Construct();
     // The records' BeginRedeploy / EndRedeploy the script's redeploy.
     void BeginRedeploy(CParty* party);

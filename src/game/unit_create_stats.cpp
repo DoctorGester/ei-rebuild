@@ -285,8 +285,8 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
         for (UnitStatLayer& layer : slot.layers) {
             layer.layerMask = 0;
             layer.state = 0;
-            layer.spareA = 0;
-            layer.spareB = 0;
+            layer.reserved[0] = 0;
+            layer.reserved[1] = 0;
             std::memset(layer.absorb, 0, sizeof(layer.absorb));
         }
     }
@@ -335,7 +335,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         SetBits(stats->rateBase, kRate15);
         CopyDword(stats->speedBase, prototype->speed);
     }
-    CopyDword(stats->attackCategory, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
@@ -346,7 +346,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     stats->sideCone = RightAngleCosine();
     CopyDword(stats->movementKind, model->movementKind);
     SetAttributesAndSkills(stats, prototype, npc);
-    CopyDword(stats->modelField8, model->field8);
+    CopyDword(stats->reachHeightScale, model->reachHeightScale);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
     auto smallClass = static_cast<std::int16_t>(model->sizeClassSmall);
     stats->sizeClass20 = smallClass;
@@ -393,7 +393,7 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
         SetBits(stats->rateBase, kRate15);
         SetBits(stats->rate, kRate15);
     }
-    CopyDword(stats->attackCategory, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);
@@ -404,7 +404,7 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
     stats->sideCone = RightAngleCosine();
     CopyDword(stats->movementKind, model->movementKind);
     SetAttributesAndSkills(stats, prototype, npc);
-    CopyDword(stats->modelField8, model->field8);
+    CopyDword(stats->reachHeightScale, model->reachHeightScale);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
     auto smallClass = static_cast<std::int16_t>(model->sizeClassSmall);
     stats->sizeClass20 = smallClass;

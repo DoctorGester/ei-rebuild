@@ -149,9 +149,6 @@ struct SectorData {
     std::vector<int> classCounts;       // 16 texture classes
     int lastUsed;                       // owner frame of the last use
     int relightCountdown;               // frames until the lighting is dropped (RelightTick), -1 none
-    std::uint8_t spare38C;              // cleared with the rest; nothing reads it
-    std::uint8_t pad_38D[3];
-    int spare390;                       // cleared with the rest; nothing reads it
 
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
     int Load(CMappedResource* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);

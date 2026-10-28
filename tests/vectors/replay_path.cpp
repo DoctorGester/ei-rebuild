@@ -357,8 +357,8 @@ void ReadPath(Reader& r, AIPath& path) {
     path.goal = r.Get<Vector3>();
     path.reached = r.Get<bool>();
     path.failed = r.Get<bool>();
-    path.flag6E = r.Get<bool>();
-    path.flag6F = r.Get<bool>();
+    path.mayExcludeRegions = r.Get<bool>();
+    path.firstSearch = r.Get<bool>();
     const std::uint32_t excluded = r.Get<std::uint32_t>();
     if (excluded && excluded < 0x10000) {
         path.excludedBlocks.resize(excluded);
@@ -404,7 +404,7 @@ std::string DescribePath(const std::vector<std::uint8_t>& bytes) {
     char text[256];
     std::snprintf(text, sizeof(text), "order %d (%g,%g) steps %d cells %d target (%g,%g) flags %d%d%d%d excluded %d smoothing %d",
                   p.motionOrder.kind, p.motionOrder.x, p.motionOrder.y, std::ssize(p.steps), std::ssize(p.cells), p.targetX,
-                  p.targetY, p.reached, p.failed, p.flag6E, p.flag6F, std::ssize(p.excludedBlocks), p.smoothing);
+                  p.targetY, p.reached, p.failed, p.mayExcludeRegions, p.firstSearch, std::ssize(p.excludedBlocks), p.smoothing);
     return text;
 }
 

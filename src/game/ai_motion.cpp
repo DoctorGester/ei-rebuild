@@ -213,8 +213,8 @@ void AIPath::Clear() {
     targetY = 0.0f;
     reached = true;
     failed = false;
-    flag6E = false;
-    flag6F = true;
+    mayExcludeRegions = false;
+    firstSearch = true;
     lib::FreeStorage(excludedBlocks);
     smoothing = 0;
 }

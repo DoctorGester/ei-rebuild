@@ -38,9 +38,9 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
     ItemsParty()->Create();
     SpellsParty()->Create();
     type = -1;
-    flag0C = 0;
-    flag0D = 0;
-    flag38 = 1;
+    sellsItems = 0;
+    sellsSpells = 0;
+    restockDue = 1;
 }
 
 void ItemStock::Destruct() {
@@ -62,7 +62,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
 }
 
 void ClassTemplateGenerateItems(ClassTemplate* t) {
-    if (!t->flag0C) return;
+    if (!t->sellsItems) return;
     std::list<CItem*> list;
     t->ItemsParty()->Clear(1, 0);
     ItemStock& stock = t->allowed;
@@ -80,7 +80,7 @@ void ClassTemplateGenerateItems(ClassTemplate* t) {
 }
 
 void ClassTemplateGenerateMagic(ClassTemplate* t) {
-    if (!t->flag0D) return;
+    if (!t->sellsSpells) return;
     std::list<CItem*> list;
     t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;

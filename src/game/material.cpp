@@ -26,14 +26,12 @@ constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
     {0x15, "skin.mat"},    {0x16, "stone.mat"}, {0x17, "magic.mat"}, {0x19, "metal.mat"},
 };
 
-// The names, alpha and the two ints the constructor and Create reset (in their order).
+// The names and alpha the constructor and Create reset (in their order).
 void ResetFields(CMaterial* m) {
     m->name = game::NoneText();
     m->colors.diffuse.w = 1.0f;
     m->name2 = game::NoneText();
-    m->spare90 = 0;
     m->name3 = game::NoneText();
-    m->spare98 = 0;
 }
 
 // The table's colours for `key`; an absent key is entered with the default the game builds (its key copied

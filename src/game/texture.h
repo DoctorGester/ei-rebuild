@@ -306,7 +306,6 @@ public:
     std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
     PixelFormat format_;
     CDXSurface* surface_;       // counted
-    std::uint32_t spare64_;     // nothing reads it
 
     CTextureManager* Manager() const;
 };

@@ -253,7 +253,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
                 found = true;
                 first.flags = 0x200;
             } else {
-                int flag = path->flag6E || path->flag6F ? 1 : 0;
+                int flag = path->mayExcludeRegions || path->firstSearch ? 1 : 0;
                 int rangeCells = WorldToCell(range);
                 found = PlanLongPath(unit, ux, uy, gx, gy, path, flag, rangeCells);
                 if (!found) goto done;
@@ -283,7 +283,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
 done:
     SectorMap()->Add(unit);
     if (!found) path->failed = true;
-    path->flag6F = false;
+    path->firstSearch = false;
     return found;
 }
 

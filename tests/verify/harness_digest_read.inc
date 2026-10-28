@@ -147,7 +147,7 @@ void ReadController(CUnit* u, Builder& b) {
     }
     auto* c = static_cast<CUnitServer*>(controller);
     b.Int("state", c->state);
-    b.Unsigned("busy", c->Busy());
+    b.Unsigned("busy", c->moveMode2.onGuard);
     b.Unsigned("inCombat", c->orderStopped);
     b.Int("command", c->action.kind);
     b.Int("commandTarget", IdOf(c->action.target));

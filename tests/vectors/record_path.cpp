@@ -306,7 +306,7 @@ struct OriginalPath {
     Vector3 goal;
     bool reached;
     std::uint8_t failed;
-    bool flag6E, flag6F;
+    bool mayExcludeRegions, firstSearch;
     ei::verify::exe::Vector<BlockPoint> excludedBlocks;
     int smoothing;
 };

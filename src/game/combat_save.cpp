@@ -71,7 +71,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
-    if (stream->version_ >= kVersionPlanDirection) stream->Read(&order->flag18, 1);
+    if (stream->version_ >= kVersionPlanDirection) stream->Read(&order->pointIsUseSpot, 1);
 }
 
 void SaveOrder(CStream* stream, UnitAction* order) {
@@ -81,7 +81,7 @@ void SaveOrder(CStream* stream, UnitAction* order) {
     stream->Write(&order->point, 0xC);
     WriteCopy(stream, order->param);
     WriteCopy(stream, order->modifier);
-    WriteCopy(stream, order->flag18);
+    WriteCopy(stream, order->pointIsUseSpot);
 }
 
 // The plan object's fields after its list (plan + 0x18 ..).

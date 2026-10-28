@@ -9,7 +9,7 @@
 void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp, 4);
-    ar->Field(2, &field2, 4);
+    ar->Field(2, &unreadField, 4);
     ar->Field(3, &zone, 4);
     ar->StringField(4, &text);
     ar->Field(5, &money, 4);

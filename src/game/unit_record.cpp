@@ -58,7 +58,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     s.sightCone = r.sightCone;
     s.peripheralRange = r.peripheralRange;
     s.sideCone = r.sideCone;
-    s.modelField8 = r.modelField8;
+    s.reachHeightScale = r.reachHeightScale;
     s.sizeClass = r.sizeClass;
     s.sizeClass20 = r.sizeClassSmall;
     s.sizeClass60 = r.sizeClassSmall;

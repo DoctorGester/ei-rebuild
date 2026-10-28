@@ -46,7 +46,7 @@ void PathOrder::WriteState(DeltaField* field) {
     field->WriteDelta(&order->arg5, 4);
     field->WriteDelta(&order->arg6, 4);
     field->WriteDelta(&order->arg7, 4);
-    // Each step: a 16-bit header (bits 0-1 x code, 2-3 y code, 4-5 the low bits of unknown_6, 6-15
+    // Each step: a 16-bit header (bits 0-1 x code, 2-3 y code, 4-5 the low bits of terrainBits, 6-15
     // the flags up to 0x3FF), then the coordinates the codes say are written out.
     std::int16_t previousX = 0, previousY = 0;
     for (auto node = steps.begin(); node != steps.end(); ++node) {

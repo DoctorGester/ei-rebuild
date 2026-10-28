@@ -304,7 +304,7 @@ public:
                               unsigned indexCount) = 0;
     virtual int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                               CTexture* textureA, CTexture* textureB) = 0;
-    virtual int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
+    virtual int DrawFigure(CFigureMesh* figure, const void* rotation, const void* position, CMaterial* material, int alpha,
                            tagRECT* screen) = 0;
     virtual void DrawLineList(LineBatch* lines) = 0;
     virtual int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length,
@@ -420,7 +420,7 @@ public:
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on. The second and third arguments are not read there.
-    int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
+    int DrawFigure(CFigureMesh* figure, const void* rotation, const void* position, CMaterial* material, int alpha,
                    tagRECT* screen) override;
     void DrawLineList(LineBatch* lines) override;
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:

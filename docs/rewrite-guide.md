@@ -153,8 +153,15 @@ does not need a second pass:
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
   field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`). Getters stay where they are
   virtual (GetClassName, the manager context's slots), compute or convert (`return this`, a dereference of a
-  `lib::StaticObject` that order of construction needs), name an unnamed field (`NoBackstab()` for `moveMode2.flag4`,
-  a pair message's `ConnectionRef()`), or are the only const view of a file's state (the renderer's `FrameNumber()`);
+  `lib::StaticObject` that order of construction needs), give a base class's shared field its meaning in a
+  subclass (a pair message's `ConnectionRef()` for `second_`), or are the only const view of a file's state (the
+  renderer's `FrameNumber()`). A field is named by what it means, not through a getter (C40);
+- no member named after its offset or format id (`flag18`, `field1B`, `spareDC_`, `unknown08_`; C40): a field
+  something reads is named from its setters and readers; a fixed format's field nothing reads (an archive field,
+  a map chunk) goes to the record's skip block (`unreadFields`, `unreadField`, `unreadText`, ...) with the format's
+  ids in its comment, read with the same byte counts; a field nothing reads outside any format is deleted with
+  its clears and copies (check literal-size memset / memcpy and `offsetof` ranges first); bytes a save or packet
+  carries as a block stay as padding (`unused_XX`, `reserved`);
 - new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find
   with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings");
 - containers are `std::` (`lib::HashMap` / `lib::HashMultimap`, `src/lib/hash_map.h`, where STLport's walk order is

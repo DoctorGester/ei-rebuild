@@ -53,7 +53,9 @@ struct AIOrder {
     std::uint32_t source;           // 6 for an attack, the spell for a cast; 0x18A95 for a skill used on a target (kind 6)
     AIRefTo<CMapObject> target;     // counted
     Vector3 point;                  // target point; left uninitialised by the AI's orders
-    std::uint8_t flag18;
+    // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
+    // (no sight or range checks against the target; reach 0.2).
+    std::uint8_t pointIsUseSpot;
 };
 
 // One remembered look direction of the current move.

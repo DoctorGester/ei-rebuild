@@ -88,7 +88,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
         action2.target.Reset();
-        action2.flag18 = 0;
+        action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = 0;

@@ -85,7 +85,7 @@ void AIOrder::Clear() {
     kind = 9;
     if (target) target->Release();
     target = nullptr;
-    flag18 = 0;
+    pointIsUseSpot = 0;
 }
 
 void AIOrder::MakeAttack(CMapObject* object) {

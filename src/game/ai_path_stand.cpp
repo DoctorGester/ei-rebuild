@@ -36,8 +36,8 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->targetY = 0.0f;
     path->reached = true;
     path->failed = false;
-    path->flag6E = false;
-    path->flag6F = true;
+    path->mayExcludeRegions = false;
+    path->firstSearch = true;
     path->excludedBlocks.clear();
     path->smoothing = 0;
     path->reached = true;

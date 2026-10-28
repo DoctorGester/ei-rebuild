@@ -45,11 +45,11 @@ CWorldClient::CWorldClient() {
     dynamicMaxId_ = 0;
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
-    objectGrid_.unknown08_ = 1;
-    objectGrid_.unknown0C_ = 1;
+    objectGrid_.allocatedWidth_ = 1;
+    objectGrid_.allocatedHeight_ = 1;
     objectGrid_.Allocate();
-    secondGrid_.unknown08_ = 1;
-    secondGrid_.unknown0C_ = 1;
+    secondGrid_.allocatedWidth_ = 1;
+    secondGrid_.allocatedHeight_ = 1;
     secondGrid_.Allocate();
     handle_.ptr = nullptr;
     flags_ |= kClientFlags;

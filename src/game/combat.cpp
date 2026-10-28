@@ -278,7 +278,7 @@ BOOL CUnitServer::GetMovePoint(float* out) {
 }
 
 float CUnitServer::ActionDistance(const AIOrder* order) {
-    if (order->flag18) return kPointTwo;
+    if (order->pointIsUseSpot) return kPointTwo;
     int kind = order->kind;
     CMapObject* target = order->target;
     if (kind >= 4 && kind <= 5) {
@@ -349,7 +349,7 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     case 0: return 0x30000;
     case 1: return 0x20000;
     case 2:
-        if (mode->flag4 || unit->type_ != kUnitTypeHero) return 0x10000;
+        if (mode->onGuard || unit->type_ != kUnitTypeHero) return 0x10000;
         return 0;
     case 4: return 0x8000;
     default: return 0;
@@ -449,7 +449,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
     if (!(HasElementalDamage(hit) & 0xFF)) {
-        if (NoBackstab()) hit->backstabFactor = kOne;
+        if (moveMode2.onGuard) hit->backstabFactor = kOne;
         if (attacker) {
             bool backstab = hit->backstabFactor > kOne;
             roll = AttackRoll(attacker->ServerController(), backstab);

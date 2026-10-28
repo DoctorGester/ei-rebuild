@@ -16,7 +16,7 @@ the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vecto
   `alarm.Raise`. **CUnitServer** (`combat.h`) embeds the same `AIBrain brain` and `AIAlarm voice` and includes `unit_ai.h`; the brain offset
   constants in `combat_actions.cpp` and `combat_motion.cpp` are members (`callRadius`, `memory`, `unknown_0F4` the nearby list, `visible`,
   `AIBrain::kActionFollow`).
-- **Orders.** `UnitAction` (`combat.h`, 0x24 bytes) is an `AIOrder` (`unit_ai.h`: kind, source, the counted `target`, point, flag18) plus
+- **Orders.** `UnitAction` (`combat.h`, 0x24 bytes) is an `AIOrder` (`unit_ai.h`: kind, source, the counted `target`, point, pointIsUseSpot) plus
   `param` and `modifier`; the AI builds only the AIOrder on the stack, and `CanReachAndPlan` / `From` and the planning under them
   (`CanPlanAction`, `PlanAction`, `CanActFrom`, `FindSightTarget`, `ActionDistance`, `CanReachTarget`, `CanCast`, `TimeUntilAction`) take a
   `const AIOrder*`, so nothing reads past it. The brain's action point and looks are one `AIMoveOrder move` (+0x008; 00545B20 clears it).

@@ -30,7 +30,7 @@ void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value)
 
 // The "quest" section into the quest record.
 void ReadQuest(CFileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
-    quest->field2 = 0;
+    quest->unreadField = 0;
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
         const char* text = name.c_str();

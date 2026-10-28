@@ -58,7 +58,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 9, &hitPoints);
     Dword(ar, 10, &mana);
     Dword(ar, 11, &protectionScale);
-    Dword(ar, 12, &field12);
+    Dword(ar, 12, &attackCategory);
     Dword(ar, 13, &speed);
     Dword(ar, 14, &combat[0]);
     Dword(ar, 15, &combat[1]);
@@ -75,7 +75,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x1A, valuesE0, sizeof(valuesE0));
     if (ar->EnterChunk(0x1B)) {
         Dword(ar, 0, &gold.chance);
-        Dword(ar, 1, &gold.field1);
+        Dword(ar, 1, &gold.unreadField);
         Dword(ar, 2, &gold.minimum);
         Dword(ar, 3, &gold.maximum);
         ar->LeaveChunk();
@@ -106,11 +106,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 1, &objectClass);
     Dword(ar, 2, &hitPointRegen);
     Dword(ar, 3, &manaRegen);
-    Dword(ar, 4, &field4);
+    Dword(ar, 4, &unreadField);
     Dword(ar, 5, &movementKind);
     Dword(ar, 6, &angle);
     ar->Field(7, modeSpeeds, sizeof(modeSpeeds));
-    Dword(ar, 8, &field8);
+    Dword(ar, 8, &reachHeightScale);
     Dword(ar, 9, &sizeClass);
     Dword(ar, 10, &sizeClassSmall);
     ar->Field(11, damageWeights, sizeof(damageWeights));
@@ -121,8 +121,8 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
         }
     }
     ar->StringField(0x1E, &figureName);
-    ar->SerializeStrings(0x1F, &field1F, ar);
-    ar->SerializeStrings(0x20, &field20, ar);
+    ar->SerializeStrings(0x1F, &unreadLists[0], ar);
+    ar->SerializeStrings(0x20, &unreadLists[1], ar);
     Dword(ar, 0x21, &height);
     ar->StringField(0x22, &soundFolder);
     ar->SerializeStrings(0x23, &soundNames, ar);
@@ -145,7 +145,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
 
 void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
-    Dword(ar, 1, &field1);
+    Dword(ar, 1, &unreadField);
     Dword(ar, 2, &experience);
     Dword(ar, 3, &stats[0]);
     Dword(ar, 4, &stats[1]);
@@ -165,7 +165,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
 
 void UnitGoldRoll::Serialize(ChunkArchive* ar) {
     Dword(ar, 0, &chance);
-    Dword(ar, 1, &field1);
+    Dword(ar, 1, &unreadField);
     Dword(ar, 2, &minimum);
     Dword(ar, 3, &maximum);
 }
@@ -207,15 +207,15 @@ void ChunkArchive::SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* rec
 
 void SkillRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
-    ar->StringField(1, &field1);
-    Dword(ar, 2, &field2);
+    ar->StringField(1, &unreadText);
+    Dword(ar, 2, &unreadField);
     InlineStrings(ar, 10, &statNames);
 }
 
 void SkillLevelRecord::Serialize(ChunkArchive* ar) {
-    ar->StringField(0, &field0);
+    ar->StringField(0, &displayName);
     ar->StringField(1, &name);
-    Dword(ar, 2, &field2);
+    Dword(ar, 2, &unreadField);
     ar->StringField(10, &requiredLevelName);
     ar->StringField(11, &requiredSkillName);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);

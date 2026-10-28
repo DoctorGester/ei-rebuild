@@ -444,7 +444,6 @@ public:
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
     CObject3DSpecific* attached;    // the side half: AttachSpecific accepts (type 0x46)
     CFigureAnimationState* animation;   // the figure's animation state
-    std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
     std::list<CParticleSource*> effectSources;   // the particle sources attached to the object

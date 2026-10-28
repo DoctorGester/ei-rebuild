@@ -1,7 +1,7 @@
 #pragma once
 
 // A class template's stock lists (ClassTemplate::allowed and ::magic) and the trader stock generation over
-// them, run when the camp opens with the template's flag38 set: weapons, armors and quick items, then their
+// them, run when the camp opens with the template's restockDue set: weapons, armors and quick items, then their
 // instructions and materials. Each generated item goes to a list of raw CItem pointers (counted once). See
 // docs/notes/items_spells.md ("Trader stock").
 

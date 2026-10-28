@@ -7,7 +7,7 @@
 
 
 namespace {
-constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
+constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / variant: none (a pause)
 constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of no plan
 
 } // namespace

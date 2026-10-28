@@ -561,7 +561,6 @@ public:
     void RedrawRegionTips();
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
-    std::uint8_t spareA0_[0xD8 - 0xA0];       // zeroed by the constructor; nothing reads it
     RECT rect_;                               // layout coordinates
     int enabled_;
     CEngineObject* blackMaterial_;            // given to every sprite (AddSprite)

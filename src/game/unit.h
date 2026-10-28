@@ -522,8 +522,7 @@ struct UnitStatLayer {
     float absorb[7];                // per damage type
     float spareAbsorb[7];               // zeroed by ClearOuterLayers only; nothing reads it
     int state;                      // > 1: the layer is there
-    int spareA;                         // zeroed by the builders; nothing reads it
-    int spareB;                         // zeroed by the builders; nothing reads it
+    int reserved[2];                    // zeroed by the builders, saved with the stats; nothing reads them
 };
 static_assert(sizeof(UnitStatLayer) == 0x48);
 
@@ -750,7 +749,8 @@ struct UnitStats {
     float armsFactor;
     int movementKind;                   // the model's: 1 legs (load factor), 2 on the water (no size classes)
     // The combat values.
-    std::uint32_t modelField8;      // from the model (UnitModelRecord::field8)
+    std::uint32_t reachHeightScale; // from the model: a non-hero strikes low when the target's
+                                    // standing height plus (this + 1) x its own radius passes the distance
     std::int16_t sizeClass;         // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
     std::int16_t unused_06A;
     std::int16_t sizeClass20;       // the same for 0.2 times the size
@@ -758,7 +758,7 @@ struct UnitStats {
     float combat[5];                // reach, attack, attack spread, defence, speed (the prototype's)
     float damage;
     float damageSpread;
-    float attackCategory;           // the natural attack's category (UnitPrototypeRecord::field12)
+    float attackCategory;           // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7];         // the natural attack's, per damage type
     int naturalWeapon;              // weapon type of the natural attack (0x10: none / spells only)
     UnitStatPair valuesB0[6];

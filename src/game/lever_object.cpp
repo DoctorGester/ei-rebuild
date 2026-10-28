@@ -41,7 +41,7 @@ void ResetLever(Lever* self) {
     self->state = 0;
     self->stateCount = 1;
     self->cycling = 0;
-    self->flag260 = 0;
+    self->directUseBlocked = 0;
     self->keepsMapFlag = 0;
 }
 } // namespace
@@ -86,7 +86,7 @@ void Lever::LoadLever(CStream* stream) {
     stream->Read(&stateCount, 4);
     stream->Read(&cycling, 4);
     lock.ReadFrom(stream);
-    stream->Read(&flag260, 1);
+    stream->Read(&directUseBlocked, 1);
     stream->Read(&keepsMapFlag, 1);
 }
 
@@ -99,7 +99,7 @@ void Lever::SaveLever(CStream* stream) {
     value = static_cast<std::uint32_t>(cycling);
     stream->Write(&value, 4);
     lock.WriteTo(stream);
-    std::uint8_t byte = flag260;
+    std::uint8_t byte = directUseBlocked;
     stream->Write(&byte, 1);
     byte = keepsMapFlag;
     stream->Write(&byte, 1);
@@ -169,7 +169,7 @@ void Lever::SetUp(const LeverSetup* setup) {
     stateCount = setup->stateCount;
     cycling = setup->cycling != 0 ? 1 : 0;
     lock = setup->lock;
-    flag260 = setup->flag260;
+    directUseBlocked = setup->directUseBlocked;
     keepsMapFlag = setup->keepsMapFlag;
     if (stateCount > 1) scale.y = static_cast<float>(static_cast<double>(state) / (stateCount - 1));
     else scale.y = 0.0f;

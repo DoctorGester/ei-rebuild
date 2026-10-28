@@ -30,7 +30,7 @@ void InlineStrings(ChunkArchive* ar, int id, std::vector<Text>* strings);
 // is within `chance`.
 struct UnitGoldRoll {
     float chance;                   // percent
-    std::uint32_t field1;               // field 1 (nothing reads it)
+    std::uint32_t unreadField;          // field 1 (4 bytes); nothing reads it
     float minimum;
     float maximum;
 
@@ -59,7 +59,7 @@ struct UnitPrototypeRecord {
     std::uint32_t level;            // 0x29 (CUnit::Level of a unit without a text key)
     std::uint32_t experienceValue;      // 0x2B the experience its death awards
     float protectionScale;          // 11
-    std::uint32_t field12;              // 12 (UnitStats::attackCategory)
+    std::uint32_t attackCategory;       // 12 (float bits; UnitStats::attackCategory)
     float speed;                    // 13
     float combat[5];                // 14, 15, 0x24, 16, 17
     std::uint32_t naturalWeapon;    // 0x12
@@ -89,7 +89,7 @@ struct UnitNpcRecord {
     void Serialize(ChunkArchive* ar);
 
     std::string name;              // field 0 (the prototype's name)
-    std::uint32_t field1;               // 1 (nothing reads it)
+    std::uint32_t unreadField;          // 1 (4 bytes); nothing reads it
     float experience;               // 2
     float stats[3];                 // 3, 4, 5 (strength, dexterity, intelligence)
     std::uint8_t attributes[3];     // 6 (three bytes)
@@ -124,20 +124,19 @@ struct UnitModelRecord {
     int objectClass;                // 1
     float hitPointRegen;            // 2
     float manaRegen;                // 3
-    std::uint32_t field4;               // 4 (nothing reads it)
+    std::uint32_t unreadField;          // 4 (4 bytes); nothing reads it
     std::uint32_t movementKind;         // 5 (UnitStats::movementKind)
     float angle;                    // 6 (degrees)
     std::uint32_t modeSpeeds[4];    // 7
     std::uint32_t actionSpeeds[6];  // 0x24 (float bits; copied to CUnit::actionSpeeds)
-    std::uint32_t field8;               // 8 (UnitStats::modelField8; nothing reads it)
+    std::uint32_t reachHeightScale;     // 8 (float bits; UnitStats::reachHeightScale)
     std::uint32_t sizeClass;        // 9
     std::uint32_t sizeClassSmall;   // 10
     std::uint32_t damageWeights[7]; // 11
     float protection[7];            // 0x27
     UnitModelSlot slots[6];         // chunks 0x0C..0x11
     std::string figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
-    std::vector<std::string> field1F;              // 0x1F (nothing reads it)
-    std::vector<std::string> field20;              // 0x20 (nothing reads it)
+    std::vector<std::string> unreadLists[2];       // 0x1F and 0x20 (string lists); nothing reads them
     float height;                   // 0x21 (the object stands this much lower)
     std::uint32_t bloodKind;        // 0x28 1..4 blood (particles 0x200F / 0x2031..0x2033 and a decal), 5..8 particles only
     int footprintKind;              // 0x2A the footprint texture (-1: none)
@@ -239,8 +238,9 @@ struct SkillRecord {
     void Serialize(ChunkArchive* ar);
 
     std::string name;                   // field 0
-    std::string field1;                 // 1 (nothing reads it)
-    std::uint32_t field2;               // 2 (nothing reads it)
+    // fields 1 (a string) and 2 (4 bytes); nothing reads them
+    std::string unreadText;
+    std::uint32_t unreadField;
     // Chunk 10: the stats it counts; the first one's first letter picks the stat ('s' strength, 'd'
     // dexterity, 'i' intelligence; UnitStats::SkillWithBonus).
     std::vector<std::string> statNames;
@@ -251,9 +251,9 @@ struct SkillLevelRecord {
     // Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
 
-    std::string field0;                 // field 0 (the trade panel's display name of the perk)
+    std::string displayName;            // field 0 (the trade panel's name of the perk)
     std::string name;                   // 1 (the lookups compare it, _mbsicmp)
-    std::uint32_t field2;               // 2 (nothing reads it)
+    std::uint32_t unreadField;          // 2 (4 bytes); nothing reads it
     std::string requiredLevelName;      // 10 the level record it requires ("none")
     std::uint32_t exclusionGroup;       // 0x17 levels of one group exclude each other across skills (CanLearn)
     std::string requiredSkillName;      // 11 names the skill byte it requires ("none")

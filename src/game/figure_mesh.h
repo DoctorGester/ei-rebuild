@@ -94,7 +94,7 @@ public:
     // CPlainFigureMesh::LoadTransform reads it back.
     void SaveTransform(lib::File* file) override;
     // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
-    // words, indices), spareDC_ and the bounds.
+    // words, indices) and the bounds.
     virtual void CopyFigure(const CFigureMesh* other);
     // Loads the mesh from memory at *cursor once (flags_ 0x20 set afterwards): data whose first dword starts
     // with "FIG" through LoadFig, other data through LoadOld.
@@ -168,7 +168,6 @@ public:
     // CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
     std::uint32_t flatColour_;
     std::uint32_t flatSpecular_;
-    std::uint32_t spareDC_;             // cleared by Create, copied by CopyFrom; nothing reads it
     // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
     Matrix4 poseMatrix_;
     std::string name_;

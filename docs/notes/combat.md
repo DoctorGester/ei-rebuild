@@ -36,8 +36,8 @@ compared with 1 by MotionOver, Replan and PathTo, so the rewrites read it as a b
 +0xA4 point to path to and its range; +0xA9 / +0xAA path flags (+0x6D, +0x6E no player); +0xC4 plan (OrderPlan; +0xF0
 location, +0xF4 notSkill); +0x144 a hit reaction plays, +0x148 `savedQueue` (time +0x15C); +0x145 last path blocked, +0x146
 pending path, +0x147 moving; +0x164 state (0 idle, 1 moving, 2 turning, 3 rest of an action's animation, 4 as 2 for hit
-reactions, 5 acting, 6 what an order leaves, "chasing"); +0x168 / +0x170 {mode, flag4, wasMode3} move records (+0x174 =
-flag4 of the second is also "cannot be backstabbed"); +0x178 updates in mode 3 without a cheap cell; +0x180 update at which
+reactions, 5 acting, 6 what an order leaves, "chasing"); +0x168 / +0x170 {mode, onGuard, wasMode3} move records (+0x174 =
+the second's onGuard: attacking or an AI suspicion / aggression / fear mode; also "cannot be backstabbed"); +0x178 updates in mode 3 without a cheap cell; +0x180 update at which
 the size class is refreshed while acting; +0x184 next attack's time; +0x18D death reported; +0x190 / +0x1B4 current /
 queued UnitAction (kinds 1 move, 2 turn, 3 attack, 4 / 5 cast spell / quick item, 6 use or skill (source 0x18A95 talk, 0
 science, 1 stealing, 2 taming), 7 play animation, 8 emote, 9 none, 10 use quick item, 11 stop; source = spell slot or quick

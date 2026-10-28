@@ -115,7 +115,7 @@ public:
     int type;                           // weapon / armour class
     // the class of material it is made of ("none": a potion, without a material).
     std::string materialClass;
-    std::uint32_t field4;               // archive field 4 (nothing reads it)
+    std::uint32_t unreadHeadField;      // archive field 4 (4 bytes); nothing reads it
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
     std::vector<std::string> list20;    // the first list name (FirstListName)
@@ -165,8 +165,7 @@ struct WeaponRecord : ItemRecordHead {
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
-    std::uint8_t field16[8];            // archive field 0x16 (nothing reads it)
-    std::uint8_t field1B[3];            // archive field 0x1B (nothing reads it)
+    std::uint8_t unreadFields[11];      // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
     std::uint8_t skillBonus[2];         // the wielder's weapon skill bonus (skill 0 / 1)
     std::uint8_t unused_7D[0x84 - 0x7D];
     float attackBonus;                  // added to the wielder's attack (WeaponStat84)
@@ -184,7 +183,7 @@ struct ArmorRecord : ItemRecordHead {
     int Kind() override;                        // 0x3005
     // category..othersFlags; showsWounds and the rest are not copied.
     void CopyOwn(const ArmorRecord* source);
-    // The head, then the two rows and showsWounds..field1A.
+    // The head, then the two rows, showsWounds, layer and unreadFields.
     void Serialize(ChunkArchive* ar);
     float FirstFactor() const { return std::bit_cast<float>(category); }
 
@@ -199,8 +198,7 @@ struct ArmorRecord : ItemRecordHead {
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint8_t unused_B5[3];
     std::uint32_t layer;                // the lower one's texture goes first (ArmorFieldB8)
-    std::uint8_t field19[3];            // archive field 0x19 (nothing reads it)
-    std::uint8_t field1A[8];            // archive field 0x1A (nothing reads it)
+    std::uint8_t unreadFields[11];      // archive fields 0x19 (3 bytes) and 0x1A (8); nothing reads them
     std::uint8_t unused_C7[1];
 };
 
@@ -210,19 +208,18 @@ struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord(const QuickItemRecord& from);
     ~QuickItemRecord();
     int Kind() override;                        // 0x3006
-    // value70 and attributeBonus..field1B; the category, field17, field18 and text7C are not copied (text7C is
-    // constructed empty).
+    // value70 and attributeBonus; the category, unreadFields and text7C are not copied (text7C is constructed
+    // empty).
     void CopyOwn(const QuickItemRecord* source);
-    // The head, then category..field18, text7C and attributeBonus..field1B.
+    // The head, then category (0x15), value70 (0x16), unreadFields (0x17, 0x18), text7C (0x19), attributeBonus
+    // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
 
     std::uint32_t value70;              // CItemQuick::actionValue_
-    std::uint8_t field17[4];            // archive field 0x17 (nothing reads it)
-    std::uint8_t field18[4];            // archive field 0x18 (nothing reads it)
+    // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
+    std::uint8_t unreadFields[16];
     std::string text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
-    std::uint8_t field1B[8];            // archive field 0x1B (nothing reads it)
-    std::uint8_t unused_8B[1];
 };
 
 // A quest item prototype with a list of zone names (QuestItemInfo reads the list).
@@ -266,7 +263,7 @@ struct MaterialRecordHead {
     float magicPower;                   // added to the prototype's charge (CItemConstructor::MagicCapacity)
     std::uint32_t magicLevel;           // added to the prototype's magicLevel
     float conditionFactor;              // multiplies the prototype's condition
-    std::uint32_t field9;               // archive field 9 (nothing reads it)
+    std::uint32_t unreadField;          // archive field 9 (4 bytes); nothing reads it
     float damageFactor;                 // multiplies a weapon's damage and spread
     float absorbFactors[7];             // multiply an armour's absorption per damage type (one field)
     std::uint32_t armourFlags;          // or'ed into the flag dwords of an armour's rows

@@ -25,7 +25,7 @@ struct QuestRecord {
 
     std::string name;
     float exp;
-    std::uint32_t field2;           // archive field 2 (0 when loaded from the quests); nothing else reads it
+    std::uint32_t unreadField;      // archive field 2 (4 bytes; 0 when loaded from the quests); nothing reads it
     float money;
     int zone;                       // the zone index
     int order;
