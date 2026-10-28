@@ -35,8 +35,8 @@ namespace {
 
 
 
-SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
-int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecords()); }
+SkillLevelRecord* SkillRecords() { return SkillDb()->levels.data(); }
+int SkillCount() { return static_cast<int>(SkillDb()->levels.size()); }
 
 // The rows are pushed as copies of an empty row. The original's row has uninitialised price,
 // level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours

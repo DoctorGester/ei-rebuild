@@ -628,7 +628,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
-        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().begin : -1);
+        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().records.data() : -1);
         unit->SetPrototype23CByName(record->texts[6].c_str());
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2].c_str(), &parts, 1)) return;

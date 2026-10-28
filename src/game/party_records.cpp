@@ -14,7 +14,6 @@
 #include "game_hashes.h"
 #include "lib/mfc.h"
 
-#include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
 #include <bit>
@@ -39,35 +38,18 @@ PartyRecord* NewRecord() {
     return record;
 }
 
-using Elements = stlp::CountedPtrElement<PartyRecord>;
-
-void Release(PartyRecord* record) {
-    if (record && --record->refs_ == 0) delete record;
-}
-
 const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
 
 } // namespace
 
 void PartyRecordsReset(NamedPartyRecords* list) {
-    PartyRecord** end = list->records.Finish();
-    PartyRecord** newEnd = stlp::CopyAssigned<PartyRecord*, Elements>(end, end, list->records.Start());
-    for (PartyRecord** p = newEnd; p != end; ++p) Release(*p);
-    list->records.Finish() = newEnd;
+    list->records.clear();
     list->text0C = game::EmptyText();
     list->text10 = game::EmptyText();
 
-    PartyRecord* temp = NewRecord();
-    if (temp) ++temp->refs_;
-    if (list->records.Finish() == list->records.EndOfStorage()) {
-        list->records.InsertOverflow<Elements>(list->records.Finish(), temp, 1);
-    } else {
-        if (list->records.Finish()) Elements::Construct(list->records.Finish(), temp);
-        ++list->records.Finish();
-    }
-    Release(temp);
+    list->records.emplace_back(NewRecord());
 
-    CParty* party = (*list->records.Start())->Party();
+    CParty* party = list->records.front()->Party();
     party->AddMember(kHero, kHumanHero, game::EmptyText());
     party->zone_ = kFirstZone;
     party->entrance_ = 0;
@@ -76,9 +58,9 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 
 CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
-    for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (MbsCmp(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->Party();
-        if (MbsCmp(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->Party();
+    for (PartyRecord* record : records) {
+        if (MbsCmp(NameOf(record), name) == 0) return record->Party();
+        if (MbsCmp(NameOf(record), game::EmptyText()) == 0) unnamed = record->Party();
     }
     return unnamed;
 }
@@ -86,37 +68,14 @@ CParty* NamedPartyRecords::Find(const char* name) const {
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
     record->name = name;
-    PartyRecord* temp = record;
-    if (temp) ++temp->refs_;
-    if (records.Finish() == records.EndOfStorage()) {
-        records.InsertOverflow<Elements>(records.Finish(), temp, 1);
-    } else {
-        if (records.Finish()) {
-            *records.Finish() = temp;
-            if (temp) ++temp->refs_;
-        }
-        ++records.Finish();
-    }
-    Release(temp);
+    records.emplace_back(record);
 }
 
 void NamedPartyRecords::Remove(const char* name) {
-    for (unsigned i = 0; i < static_cast<unsigned>(records.Finish() - records.Start()); ++i) {
-        if (MbsCmp(NameOf(records.Start()[i]), name) != 0) continue;
-        // erase(i): the tail moved down one slot by counted assignment, the last slot released.
-        // The index still advances, so the record moved into slot i is not tested.
-        PartyRecord** p = records.Start() + i;
-        if (p + 1 != records.Finish()) {
-            for (int n = static_cast<int>(records.Finish() - (p + 1)); n > 0; --n, ++p) {
-                PartyRecord* next = p[1];
-                PartyRecord* old = p[0];
-                p[0] = next;
-                if (next) ++next->refs_;
-                Release(old);
-            }
-        }
-        --records.Finish();
-        Release(*records.Finish());
+    for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
+        if (MbsCmp(NameOf(records[i]), name) != 0) continue;
+        // The index still advances, so the record moved into slot i is not tested (original behaviour).
+        records.erase(records.begin() + i);
     }
 }
 

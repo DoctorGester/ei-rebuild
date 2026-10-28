@@ -72,7 +72,7 @@ int RandomQuarter() { return gamecrt::rand() * 4 / 0x7FFF % 4; }
 
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
-const Record* EntryAt(const stlp::vector<Record>& table, CWorldClient* world, float x, float y) {
+const Record* EntryAt(const std::vector<Record>& table, CWorldClient* world, float x, float y) {
     auto surface = static_cast<std::uint32_t>(world->terrain_->SurfaceClass(x, y));
     return surface < table.size() ? &table[surface] : nullptr;
 }

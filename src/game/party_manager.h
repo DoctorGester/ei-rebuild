@@ -56,7 +56,7 @@ using PartyMap = gamehash::PartyTable;
 
 struct PartyManager {
     PartyMap parties;                           // (LoadParty / StoreParty)
-    stlp::vector<PartyManagerEntry> entries;
+    std::vector<PartyManagerEntry> entries;
     int field3;                         // field 3 of the archive (nothing reads it)
     NamedPartyRecords records;
     ClassTemplateVector templates;

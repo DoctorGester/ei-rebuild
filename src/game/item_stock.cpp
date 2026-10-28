@@ -343,7 +343,8 @@ void ClearModifierList(SpellModifierList& list) { list.clear(); }
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
     spellMap.Clear();
     modifierMap.Clear();
-    for (SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
+    for (const SpellRecipe& listed : *recipes) {
+        const SpellRecipe* recipe = &listed;
         if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
         itemdb::SpellRecord* spell = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), recipe->spell);   // keyed by the recipe's spell name
         if (!spell) continue;
@@ -360,7 +361,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         pair->Construct(recipe->spell, list);
         StockRecipeList* entries = &spellMap.FindOrInsert(pair.object).mapped;
         pair->Destruct();
-        entries->insert(entries->end(), recipe);   // the recipe lists hold raw record pointers
+        entries->insert(entries->end(), const_cast<SpellRecipe*>(recipe));   // the recipe lists hold raw record pointers
     }
 
     for (Modifier** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {

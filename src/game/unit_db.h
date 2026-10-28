@@ -42,7 +42,6 @@ struct UnitGoldRoll {
 static_assert(sizeof(UnitGoldRoll) == 0x10);
 
 struct UnitPrototypeRecord {
-    UnitPrototypeRecord* DeleteScalar(unsigned flags);
     void Serialize(ChunkArchive* ar);
 
     std::string name;              // field 0
@@ -170,7 +169,6 @@ struct UnitModelRecord {
 
 // A unit database level record (the fourth table).
 struct UnitLevelRecord {
-    UnitLevelRecord* DeleteScalar(unsigned flags);
     // The name as field 0, valuesA / valuesB as fields 1 / 2, vitalMask as 3 and slotType as 4.
     void Serialize(ChunkArchive* ar);
 
@@ -181,15 +179,6 @@ struct UnitLevelRecord {
     std::uint32_t vitalMask;        // 3 the slot's vital mask (UnitStatSlot::vitalMask)
 };
 
-namespace unitdb {
-void DestroyPrototypeRecord(UnitPrototypeRecord* record);
-void DestroyNpcRecord(UnitNpcRecord* record);
-void DestroyModelRecord(UnitModelRecord* record);
-void DestroyModelSlot(UnitModelSlot* slot);
-void DestroyLevelRecord(UnitLevelRecord* record);
-void DestroyStringRange(std::string* first, std::string* last);
-} // namespace unitdb
-
 // The model table: the records and an index by name, as the prototype tables.
 struct UnitModelTable {
     using NameIndex = stlp::hash_map<std::string, UnitModelRecord*, stlp::StringHash>;
@@ -199,9 +188,7 @@ struct UnitModelTable {
     UnitModelRecord* FindByName(const char* name);
     UnitModelRecord* At(std::uint32_t index);
 
-    UnitModelRecord* begin;
-    UnitModelRecord* end;
-    UnitModelRecord* endOfStorage;
+    std::vector<UnitModelRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(UnitModelTable, byName) == 0x0C && sizeof(UnitModelTable) == 0x20);
@@ -213,9 +200,7 @@ struct UnitLevelTable {
     // As UnitModelTable::FindByName.
     UnitLevelRecord* FindByName(const char* name);
 
-    UnitLevelRecord* begin;
-    UnitLevelRecord* end;
-    UnitLevelRecord* endOfStorage;
+    std::vector<UnitLevelRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(UnitLevelTable, byName) == 0x0C && sizeof(UnitLevelTable) == 0x20);
@@ -252,7 +237,7 @@ inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return Pro
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
-    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().begin));
+    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().records.data()));
 }
 inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName.Subscript(name); }
 } // namespace unitdb
@@ -263,7 +248,6 @@ inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().
 struct SkillRecord {
     // Fields 0..2 and chunk 10 (the stat names, InlineStrings).
     void Serialize(ChunkArchive* ar);
-    void Destruct();
 
     std::string name;                   // field 0
     std::string field1;                 // 1 (nothing reads it)
@@ -277,7 +261,6 @@ struct SkillRecord {
 struct SkillLevelRecord {
     // Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
 
     std::string field0;                 // field 0 (the trade panel's display name of the perk)
     std::string name;                   // 1 (the lookups compare it, _mbsicmp)
@@ -315,23 +298,22 @@ struct SkillDatabase {
     void Reset();
     SkillDatabase* Construct();
 
-    stlp::vector<SkillRecord> skills;
-    stlp::vector<SkillLevelRecord> levels;
+    std::vector<SkillRecord> skills;
+    std::vector<SkillLevelRecord> levels;
 };
-static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
 extern lib::StaticObject<SkillDatabase> g_skillDatabase;
 inline SkillDatabase* SkillDb() { return &*g_skillDatabase; }
 namespace unitdb {
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
-    stlp::vector<SkillLevelRecord>& levels = SkillDb()->levels;
-    return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
+    std::vector<SkillLevelRecord>& levels = SkillDb()->levels;
+    return index < levels.size() ? &levels[index] : nullptr;
 }
 inline SkillRecord* SkillAt(std::uint32_t index) {
-    stlp::vector<SkillRecord>& skills = SkillDb()->skills;
-    return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
+    std::vector<SkillRecord>& skills = SkillDb()->skills;
+    return index < skills.size() ? &skills[index] : nullptr;
 }
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
     UnitLevelTable& levels = Database().levels;
-    return index < static_cast<std::uint32_t>(levels.end - levels.begin) ? levels.begin + index : nullptr;
+    return index < levels.records.size() ? &levels.records[index] : nullptr;
 }
 } // namespace unitdb

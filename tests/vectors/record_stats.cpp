@@ -213,13 +213,25 @@ std::uint16_t __fastcall MaxRecord(const std::uint16_t* damage) {
 
 // ---- SV4d: what the formulas read of the game's settings and the skill database ----
 
+// game.exe's STLport vector<T>: start, finish, end of storage.
+template <typename T>
+struct OriginalVector {
+    T* start;
+    T* finish;
+    T* eos;
+
+    std::uint32_t size() const { return static_cast<std::uint32_t>(finish - start); }
+    T* begin() const { return start; }
+    T& operator[](std::size_t i) const { return start[i]; }
+};
+
 // game.exe's skill records: their names are CStrings (a char pointer each) where ours are std::strings (larger), so
 // the recorders read them through game.exe's layout, not unit_db.h's.
 struct OriginalSkillRecord {
     mfc::CString name;
     mfc::CString field1;
     std::uint32_t field2;
-    stlp::vector<mfc::CString> statNames;
+    OriginalVector<mfc::CString> statNames;
 };
 static_assert(offsetof(OriginalSkillRecord, statNames) == 0x0C && sizeof(OriginalSkillRecord) == 0x18);
 struct OriginalSkillLevelRecord {
@@ -237,8 +249,8 @@ struct OriginalSkillLevelRecord {
 };
 static_assert(offsetof(OriginalSkillLevelRecord, values) == 0x18 && sizeof(OriginalSkillLevelRecord) == 0x44);
 struct OriginalSkillDatabase {
-    stlp::vector<OriginalSkillRecord> skills;
-    stlp::vector<OriginalSkillLevelRecord> levels;
+    OriginalVector<OriginalSkillRecord> skills;
+    OriginalVector<OriginalSkillLevelRecord> levels;
 };
 
 // game.exe's skill database (007AF268): the recording runs the original, which fills its own (H30).
@@ -246,12 +258,12 @@ OriginalSkillDatabase* GameSkillDb() { return &ei::OriginalGameData<OriginalSkil
 
 // Its level record and skill record `index`, or null past the end (as unitdb::SkillLevelAt / SkillAt).
 const OriginalSkillLevelRecord* GameSkillLevelAt(std::uint32_t index) {
-    const stlp::vector<OriginalSkillLevelRecord>& levels = GameSkillDb()->levels;
-    return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
+    const OriginalVector<OriginalSkillLevelRecord>& levels = GameSkillDb()->levels;
+    return index < levels.size() ? levels.start + index : nullptr;
 }
 const OriginalSkillRecord* GameSkillAt(std::uint32_t index) {
-    const stlp::vector<OriginalSkillRecord>& skills = GameSkillDb()->skills;
-    return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
+    const OriginalVector<OriginalSkillRecord>& skills = GameSkillDb()->skills;
+    return index < skills.size() ? skills.start + index : nullptr;
 }
 
 // Level record `index` as a LevelView.

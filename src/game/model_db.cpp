@@ -1,7 +1,7 @@
 // Databases read at startup from database.res (prints.db, acks.db) and the world's water level changes.
 #include "acks_db.h"
 #include "model.h"
-#include "record_vectors.h"
+#include "chunk_archive.h"
 #include "terrain.h"
 
 #include "lib/crt.h"
@@ -9,41 +9,11 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
-#include <type_traits>
+#include <vector>
 
 // The rest of the archive is in chunk_archive.cpp.
 
 namespace {
-
-// The body shared by the vector serialisers (one instantiation per record type, `Abi` the vector's
-// instantiation: its element policy destroys a record, ResizeDefault is its resize(n)). Loading destroys the
-// old records, resizes to the number of record chunks and reads each; saving writes the records in order.
-// prints.db records serialise through their vtable, acks.db records by a direct call.
-template <typename Abi>
-void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
-    using Record = std::remove_pointer_t<decltype(v->begin())>;
-    if (!ar->EnterChunk(id)) return;
-    int count;
-    if (ar->loading_) {
-        // erase(begin(), end()): the tail copy is empty; the old records are destroyed in order.
-        Record* end = v->end();
-        for (Record* p = v->begin(); p != end; ++p) Abi::Element::Destroy(p);
-        v->Finish() = v->Start();
-        count = ar->CountChunks(1);
-        v->template ResizeDefault<typename Abi::Element>(static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(v->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        Record* record = v->begin() + i;
-        if (ar->EnterChunk(1)) {
-            record->Serialize(ar);
-            ar->LeaveChunk();
-        }
-    }
-    ar->LeaveChunk();
-}
 
 // Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
 void TripleChunk(ChunkArchive* ar, int id, void* first, void* second, void* third) {
@@ -58,20 +28,20 @@ void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id
 
 } // namespace
 
-void ChunkArchive::SerializePrints(int id, stlp::vector<PrintRecord>* records, void*) {
-    SerializeArray<recordvec::PrintVector>(this, id, records);
+void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records, void*) {
+    RecordChunks(this, id, records, &PrintRecord::Serialize);
 }
-void ChunkArchive::SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void*) {
-    SerializeArray<recordvec::Print2Vector>(this, id, records);
+void ChunkArchive::SerializePrints2(int id, std::vector<PrintRecord2>* records, void*) {
+    RecordChunks(this, id, records, &PrintRecord2::Serialize);
 }
-void ChunkArchive::SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void*) {
-    SerializeArray<recordvec::UnitAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks(int id, std::vector<acks::UnitAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::UnitAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void*) {
-    SerializeArray<recordvec::ModelAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks2(int id, std::vector<acks::ModelAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::ModelAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void*) {
-    SerializeArray<recordvec::ExtraAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::ExtraAcks::Serialize);
 }
 
 // ---- prints.db records ----------------------------------------------------------------------------

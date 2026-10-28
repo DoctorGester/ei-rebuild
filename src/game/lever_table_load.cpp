@@ -52,6 +52,5 @@ int LeverRecordTable::Load(const char* folder) {
 }
 
 LeverRecordTable::LeverRecordTable() {
-    records.ConstructEmpty();
     byName.InitBuckets(100);
 }

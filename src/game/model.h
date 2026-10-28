@@ -690,11 +690,11 @@ struct PrintsDatabase {
     // The exit function's work: the tables from the last.
     void Destruct();
 
-    stlp::vector<PrintRecord> blood;
+    std::vector<PrintRecord> blood;
     NameIndex<PrintRecord> bloodByName;
-    stlp::vector<PrintRecord2> footprints;
+    std::vector<PrintRecord2> footprints;
     NameIndex<PrintRecord2> footprintsByName;
-    stlp::vector<PrintRecord> scorch;
+    std::vector<PrintRecord> scorch;
     NameIndex<PrintRecord> scorchByName;
 };
 static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);

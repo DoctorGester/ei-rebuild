@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "lib/stlp.h"
 #include "lib/static_object.h"
@@ -15,7 +17,7 @@
 
 namespace acks {
 
-struct Speeches : stlp::vector<SpeechRecord> {
+struct Speeches : std::vector<SpeechRecord> {
     // A random speech among those whose chance is at least `roll` (the game's rand()); null, without drawing,
     // when there is none. A null list answers null too.
     const SpeechRecord* Pick(int roll) const;
@@ -30,18 +32,27 @@ struct EnvironmentSpeech {
     std::uint32_t environment;
 };
 
-struct EnvironmentSpeeches : stlp::vector<EnvironmentSpeech> {
+struct EnvironmentSpeeches : std::vector<EnvironmentSpeech> {
     // The same among the speeches whose environment flags include `environment`.
     const SpeechRecord* Pick(std::uint32_t environment, int roll) const;
 };
 static_assert(sizeof(EnvironmentSpeeches) == 0xC);
 
-// The part every record type starts with.
+// The part every record type starts with. By default an empty name and an empty map of 193 buckets (its functor
+// bytes are an uninitialised stack byte in the game, 0 here). A copy's map still points into the source record's
+// lists (STLport's copy constructor and operator=, over _M_copy_from), as in the game.
 struct AckRecordHead {
+    AckRecordHead() { speeches.Construct(100, 0, 0, 0); }
+    AckRecordHead(const AckRecordHead& from) : name(from.name) { speeches.CopyConstruct(from.speeches); }
+    AckRecordHead& operator=(const AckRecordHead& from) {
+        name = from.name;
+        speeches.Assign(from.speeches);
+        return *this;
+    }
+    ~AckRecordHead() { speeches.Destroy(); }
+
     std::string name;
     stlp::hash_map<int, SpeechList*, stlp::IntHash> speeches;   // by ack kind
-
-    void Destruct();
 };
 
 // Table 0: per unit prototype name.
@@ -50,7 +61,6 @@ struct UnitAcks {
     // element, the speech's fields 1 sound, 2 chance, 3 text, 4 name (and 10 the environment flags). Loading
     // empties each list first and sizes it to the number of speech chunks.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
 
     AckRecordHead head;
     SpeechList lists[33];                                   // the speech lists the map points into
@@ -62,7 +72,6 @@ struct UnitAcks {
 struct ModelAcks {
     // The name, then the lists as chunks 10..14.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
 
     AckRecordHead head;
     SpeechList lists[5];
@@ -72,7 +81,6 @@ struct ModelAcks {
 struct ExtraAcks {
     // The name, then the lists as chunks 10 and 11.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
 
     AckRecordHead head;
     SpeechList lists[2];
@@ -86,7 +94,7 @@ struct AckTable {
     // Null past the end (the extras' table only, used by the loader).
     Record* RecordAt(std::uint32_t index);
 
-    stlp::vector<Record> records;
+    std::vector<Record> records;
     stlp::hash_map<std::string, Record*, stlp::StringHash> byName;
 };
 static_assert(sizeof(AckTable<UnitAcks>) == 0x20);

@@ -239,13 +239,11 @@ void CMpHeroScreen::CreateScreen() {
     VoiceList& maleVoices = voiceLists_[0];
     VoiceList& femaleVoices = voiceLists_[1];
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
-    const int count = static_cast<int>(creatures.end - creatures.begin);
+    const int count = static_cast<int>(creatures.records.size());
     for (int i = 0; i < count; ++i) {
         // The vector's checked access, repeated like the original.
-        auto creature = [&creatures, i]() {
-            const UnitNpcRecord* first = creatures.begin;
-            const UnitNpcRecord* last = creatures.end;
-            return static_cast<std::uint32_t>(i) < static_cast<std::uint32_t>(last - first) ? first + i : nullptr;
+        auto creature = [&creatures, i]() -> const UnitNpcRecord* {
+            return static_cast<std::uint32_t>(i) < creatures.records.size() ? &creatures.records[i] : nullptr;
         };
         const UnitPrototypeRecord* prototype;
         {

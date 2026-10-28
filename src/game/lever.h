@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // The spots a use order may go to.
 using LeverSpots = UseSpotArray;
@@ -24,7 +25,6 @@ using LeverSpots = UseSpotArray;
 // A model's record in the lever table, read from Levers.ldb by field id. The spot offsets are in the
 // lever's own frame (along its facing's X and Y axes).
 struct LeverRecord {
-    LeverRecord* Assign(const LeverRecord* from);
     void Archive(ChunkArchive* archive);
     std::string name;           // field 0
     float spots[2][2];          // field 1: {along, across}
@@ -36,7 +36,7 @@ struct LeverRecord {
     std::string text28;
 };
 
-// The lever table: the records (an STLport vector) and their index by model name.
+// The lever table: the records and their index by model name.
 
 struct LeverRecordTable {
     using NameIndex = stlp::hash_map<std::string, LeverRecord*, stlp::StringHash>;
@@ -52,7 +52,7 @@ struct LeverRecordTable {
     // The record filed under `name`, or null; like the index's operator[], an unknown name gets a null entry.
     LeverRecord* Named(const char* name) { return stlp::NamedSlot<LeverRecord>(byName, std::string(name)); }
 
-    stlp::vector<LeverRecord> records;
+    std::vector<LeverRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);

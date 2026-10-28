@@ -11,8 +11,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "record_lifetime.h"
-#include "record_vectors.h"   // vector::resize of the speech lists
 
 #include "lib/crt.h"
 #include "game_data.h"
@@ -62,11 +60,11 @@ template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 // rand() draws as gathering them into a temporary vector first.
 const SpeechRecord* Speeches::Pick(int roll) const {
     int count = 0;
-    for (const SpeechRecord* s = begin(); s != end(); ++s)
-        if (s->chance >= roll) ++count;
+    for (const SpeechRecord& s : *this)
+        if (s.chance >= roll) ++count;
     if (count == 0) return nullptr;
     int chosen = gamecrt::rand() * count / 0x7FFF % count;
-    for (const SpeechRecord* s = begin();; ++s)
+    for (const SpeechRecord* s = data();; ++s)
         if (s->chance >= roll && chosen-- == 0) return s;
 }
 
@@ -75,11 +73,11 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
         return (s.environment & environment) == environment && s.speech.chance >= roll;
     };
     int count = 0;
-    for (const EnvironmentSpeech* s = begin(); s != end(); ++s)
-        if (eligible(*s)) ++count;
+    for (const EnvironmentSpeech& s : *this)
+        if (eligible(s)) ++count;
     if (count == 0) return nullptr;
     int chosen = gamecrt::rand() * count / 0x7FFF % count;
-    for (const EnvironmentSpeech* s = begin();; ++s)
+    for (const EnvironmentSpeech* s = data();; ++s)
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }
 
@@ -158,10 +156,10 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     UnitAcks* record = Database().units.Find(prototype->name.c_str());
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
-    for (const SpeechRecord* s = record->namedSpeeches.begin(); s != record->namedSpeeches.end(); ++s) {
-        if (s->name.size() == length && std::memcmp(s->name.data(), name, length) == 0) {
-            unit->Controller()->Say(s, alternate ? 0x2B : 0x2A);
-            return s;
+    for (const SpeechRecord& s : record->namedSpeeches) {
+        if (s.name.size() == length && std::memcmp(s.name.data(), name, length) == 0) {
+            unit->Controller()->Say(&s, alternate ? 0x2B : 0x2A);
+            return &s;
         }
     }
     return nullptr;
@@ -171,35 +169,11 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
 
 namespace {
 
-void SpeechFields(ChunkArchive* ar, SpeechRecord* speech) {
-    ar->StringField(1, &speech->sound);
-    ar->Field(2, &speech->chance, 4);
-    ar->StringField(3, &speech->text);
-    ar->StringField(4, &speech->name);
-}
-
-// Chunk `id` of a list, if present: loading empties the list (its elements destroyed in order) and
-// sizes it to the number of element chunks (id 1); then element i is chunk 1's (i + 1)-th occurrence.
-template <typename T, typename Abi, typename Fields>
-void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list, void (Abi::*resize)(std::size_t), Fields fields) {
-    if (!ar->EnterChunk(id)) return;
-    int count;
-    if (ar->loading_) {
-        list->clear();
-        count = ar->CountChunks(1);
-        (static_cast<Abi*>(list)->*resize)(static_cast<std::size_t>(count));
-    } else {
-        count = static_cast<int>(list->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        T* element = &(*list)[static_cast<std::size_t>(i)];
-        if (ar->EnterChunk(1)) {
-            fields(element);
-            ar->LeaveChunk();
-        }
-    }
-    ar->LeaveChunk();
+void SpeechFields(SpeechRecord& speech, ChunkArchive* ar) {
+    ar->StringField(1, &speech.sound);
+    ar->Field(2, &speech.chance, 4);
+    ar->StringField(3, &speech.text);
+    ar->StringField(4, &speech.name);
 }
 
 } // namespace
@@ -210,14 +184,13 @@ using namespace acks;
 
 void ChunkArchive::SerializeSpeechList(int id, Speeches* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, list, &recordvec::SpeechVector::ResizeDefault,
-              [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
+    RecordChunks(ar, id, static_cast<std::vector<SpeechRecord>*>(list), SpeechFields);
 }
 void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, list, &recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
-        SpeechFields(ar, &speech->speech);
-        ar->Field(10, &speech->environment, 4);
+    RecordChunks(ar, id, static_cast<std::vector<EnvironmentSpeech>*>(list), [](EnvironmentSpeech& speech, ChunkArchive* ar) {
+        SpeechFields(speech.speech, ar);
+        ar->Field(10, &speech.environment, 4);
     });
 }
 
@@ -264,31 +237,6 @@ void ModelAcks::Serialize(ChunkArchive* ar) {
 void ExtraAcks::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &head.name);
     Lists(ar, lists);
-}
-
-// ---- The records' destructors -------------------------------------------------------------
-
-void AckRecordHead::Destruct() {
-    speeches.Destroy();
-    std::destroy_at(&name);
-}
-
-void UnitAcks::Destruct() {
-    records::DestroyVector(namedSpeeches);
-    records::DestroyVector(environmentSpeeches);
-    for (int i = 32; i >= 0; --i) records::DestroyVector(lists[i]);
-    head.Destruct();
-}
-
-void ModelAcks::Destruct() {
-    for (int i = 4; i >= 0; --i) records::DestroyVector(lists[i]);
-    head.Destruct();
-}
-
-void ExtraAcks::Destruct() {
-    records::DestroyVector(lists[1]);
-    records::DestroyVector(lists[0]);
-    head.Destruct();
 }
 
 } // namespace acks

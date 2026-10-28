@@ -105,22 +105,14 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     std::memcpy(t->weights, weights, sizeof(t->weights));
     ClassTemplateFill(t);
 
-    ClassTemplate* temp = t;
-    if (temp) ++temp->refs_;
-    if (v->Finish() == v->EndOfStorage()) {
-        v->InsertOverflow<stlp::CountedPtrElement<ClassTemplate>>(v->Finish(), temp, 1);
-    } else {
-        if (v->Finish()) stlp::CountedPtrElement<ClassTemplate>::Construct(v->Finish(), temp);
-        ++v->Finish();
-    }
-    if (temp && --temp->refs_ == 0) delete temp;
+    v->emplace_back(t);
 }
 
 } // namespace
 
 void TemplateTable::Build(unsigned fourClasses) {
     TemplateTable* v = this;
-    v->EraseRange<stlp::CountedPtrElement<ClassTemplate>>(v->begin(), v->end());
+    v->clear();
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights);
         AddTemplate(v, 3, 1, 1, kDefaultWeights);

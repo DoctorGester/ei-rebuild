@@ -2,55 +2,36 @@
 // again in place, which the resource switch runs before it loads the databases of another resource folder
 // (the skill database's is SkillDatabase::Reset, unit_db.cpp). Each table's members go last to first: the
 // name index (hash_map::Destroy: every chain from its head, each node's key string then the node, then the
-// buckets), then the records through their vector's element policy (record_vectors.h: each record in order,
-// then the storage). The constructors are database_construct.cpp's.
+// buckets), then the records. The constructors are database_construct.cpp's.
 #include "item_db.h"
-#include "record_vectors.h"
 #include "unit_db.h"
+
+#include <memory>
 
 namespace {
 
 constexpr std::size_t kBuckets = 100;   // each index asks for 100 buckets (STLport: 193)
 
-template <typename R>
-stlp::vector<R>& RecordsOf(void* table) {
-    return *static_cast<stlp::vector<R>*>(table);
-}
-
-// ~vector<R>() as the element policy `Abi` destroys it.
-template <typename Abi>
-void DestroyRecords(void* table) {
-    Abi::Destruct(&RecordsOf<typename Abi::Vector::value_type>(table));
-}
-
-template <typename Abi, typename Table>
+template <typename Table>
 void DestroyUnitTable(Table& table) {
     table.byName.Destroy();
-    DestroyRecords<Abi>(&table);
+    std::destroy_at(&table.records);
 }
 
 // A unit table as the database's constructor builds it: no records, an empty index.
 template <typename Table>
 void ConstructUnitTable(Table& table) {
-    table.begin = nullptr;
-    table.end = nullptr;
-    table.endOfStorage = nullptr;
+    std::construct_at(&table.records);
     table.byName.InitBuckets(kBuckets);
-}
-
-template <typename Abi, typename Record>
-void DestroyItemTable(itemdb::NamedRecordTable<Record>& table) {
-    table.names.Destroy();
-    Abi::Destruct(&table.records);
 }
 
 } // namespace
 
 void UnitDatabase::Reset() {
-    DestroyUnitTable<recordvec::UnitLevelVector>(levels);
-    DestroyUnitTable<recordvec::UnitModelVector>(models);
-    DestroyUnitTable<recordvec::UnitNpcVector>(npcs);
-    DestroyUnitTable<recordvec::UnitPrototypeVector>(prototypes);
+    DestroyUnitTable(levels);
+    DestroyUnitTable(models);
+    DestroyUnitTable(npcs);
+    DestroyUnitTable(prototypes);
     ConstructUnitTable(prototypes);
     ConstructUnitTable(npcs);
     ConstructUnitTable(models);
@@ -65,12 +46,7 @@ void SpellDatabase::Reset() {
 }
 
 void ItemDatabase::Reset() {
-    DestroyItemTable<recordvec::LootVector>(loot);
-    DestroyItemTable<recordvec::QuestItemVector>(questItems);
-    DestroyItemTable<recordvec::QuickItemVector>(quickItems);
-    DestroyItemTable<recordvec::ArmorVector>(armors);
-    DestroyItemTable<recordvec::WeaponVector>(weapons);
-    DestroyItemTable<recordvec::MaterialVector>(materials);
+    DestructBody();
     Construct();
 }
 

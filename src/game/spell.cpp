@@ -204,7 +204,7 @@ char* SpellCodeByName(const char* name) {
 }
 
 char* SpellModifierCodeByName(const char* name) {
-    const SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
+    SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
         const SpellModifierRecord* modifier = modifiers.At(i);
         const char* modifierName = modifier->name.c_str();

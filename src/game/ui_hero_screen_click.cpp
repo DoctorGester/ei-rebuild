@@ -396,12 +396,12 @@ void CMpHeroScreen::PlayVoice() {
     // them in a temporary vector).
     int count = 0;
     const acks::EnvironmentSpeeches& entries = set->environmentSpeeches;
-    for (const acks::EnvironmentSpeech* e = entries.begin(); e != entries.end(); ++e)
-        if (IsVoice(*e)) ++count;
+    for (const acks::EnvironmentSpeech& e : entries)
+        if (IsVoice(e)) ++count;
     if (count == 0) return;
     auto nth = [&](int rank) -> const acks::EnvironmentSpeech* {
-        for (const acks::EnvironmentSpeech* e = entries.begin(); e != entries.end(); ++e)
-            if (IsVoice(*e) && rank-- == 0) return e;
+        for (const acks::EnvironmentSpeech& e : entries)
+            if (IsVoice(e) && rank-- == 0) return &e;
         return nullptr;
     };
     int index = gamecrt::rand() * count / 0x7FFF % count;

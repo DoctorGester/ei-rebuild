@@ -13,6 +13,7 @@ struct PartyManager;
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class ClassTemplate : public CRefCounted {
 public:
@@ -50,7 +51,7 @@ static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 static_assert(sizeof(ItemStock) == 0xB8);
 
 // Counted pointers.
-struct TemplateTable : stlp::vector<ClassTemplate*> {
+struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
     // Releases the templates, then builds new ones: four (classes 1, 3, 4, 5) when `fourClasses` (low byte) is
     // set, else five (1 to 5, the fifth with zero weights).
     void Build(unsigned fourClasses);

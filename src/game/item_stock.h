@@ -50,7 +50,7 @@ using StockStringVector = std::vector<std::string>;
 using SpellRecipe = itemdb::SpellListRecord;
 
 // A vector of spell recipes (the spell database's lists for weapons, armors and scrolls).
-using SpellRecipeVector = stlp::vector<SpellRecipe>;
+using SpellRecipeVector = std::vector<SpellRecipe>;
 
 // The recipe map (ItemStock::spellMap): recipe lists by spell name.
 using StockRecipeMap = stlp::hashtable<stlp::StringListTraits>;

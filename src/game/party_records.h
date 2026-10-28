@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CPlayer;
 
@@ -32,7 +33,7 @@ public:
 // created, an empty name). The application's start registers it with the class registry as class 2.
 CRefCounted* CreatePartyRecord();
 
-// The named records: an STLport vector of counted pointers, then two strings.
+// The named records: counted pointers, then two strings.
 struct NamedPartyRecords {
     // The party of the first record named `name` (_mbscmp), else of the last unnamed record, else null.
     CParty* Find(const char* name) const;
@@ -41,7 +42,7 @@ struct NamedPartyRecords {
     // Removes the records named `name`; after a removal the record moved into
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
-    stlp::vector<PartyRecord*> records;
+    std::vector<CountedPtr<PartyRecord>> records;
     std::string text0C;
     std::string text10;
 

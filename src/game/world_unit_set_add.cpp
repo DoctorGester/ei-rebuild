@@ -24,8 +24,8 @@ namespace {
 using gamehash::DressedTable;
 using gamehash::FiguredGroupsTable;
 using gamehash::FiguredTable;
-using recordvec::DressedUnitElement;
-using recordvec::FiguredUnitElement;
+using gamehash::DressedUnitElement;
+using gamehash::FiguredUnitElement;
 using IdElement = stlp::PlainElement<std::uint32_t>;
 using NameElement = stlp::ObjectElement<std::string>;
 

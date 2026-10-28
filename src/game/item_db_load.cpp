@@ -4,22 +4,13 @@
 
 #include "chunk_archive.h"
 #include "core_streams.h"
-#include "record_vectors.h"
 
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "lib/stlp_vector.h"
 
 #include <functional>
 #include <type_traits>
 #include <vector>
-
-namespace {
-// An item record's destructor (the kinds' are not reachable as member pointers), for the tables'
-// loaders and destructor.
-template <typename Record>
-void DestroyItemRecord(Record* record) { record->~Record(); }
-} // namespace
 
 namespace {
 
@@ -37,9 +28,9 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
     else
         archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
-    for (Record* record = table->records.begin(); record != table->records.end(); ++record) {
-        std::string name(record->text04.c_str());
-        stlp::NamedSlot<Record>(table->names, name) = record;
+    for (Record& record : table->records) {
+        std::string name(record.text04.c_str());
+        stlp::NamedSlot<Record>(table->names, name) = &record;
     }
 }
 
@@ -59,63 +50,24 @@ template void LootItemTable::Load(CStream*, int);
 
 // --- The tables' vector serialisers ----------------------------------------------------------
 
-namespace {
-
-using ResizeFn = void (*)(void* records, unsigned count);
-
-// The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading destroys the old
-// records (erase(begin, end): the tail copy is empty) and resizes to the number of record chunks first.
-template <typename Record, typename Destroy, typename Serialize>
-void SerializeItemRecords(ChunkArchive* ar, int id, stlp::vector<Record>* vector, Destroy destroy, ResizeFn resize, Serialize serialize) {
-    if (!ar->EnterChunk(id)) return;
-    auto& records = *vector;
-    int count;
-    if (ar->loading_) {
-        Record* end = records.end();
-        for (Record* p = records.begin(); p != end; ++p) std::invoke(destroy, p);
-        records.Finish() = records.begin();
-        count = ar->CountChunks(1);
-        resize(vector, static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(records.size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        Record* record = records.begin() + i;
-        if (ar->EnterChunk(1)) {
-            (record->*serialize)(ar);
-            ar->LeaveChunk();
-        }
-    }
-    ar->LeaveChunk();
+void ChunkArchive::SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::QuickItemRecord::Serialize);
+}
+void ChunkArchive::SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::QuestItemRecord::Serialize);
+}
+void ChunkArchive::SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::LootItemRecord::Serialize);
 }
 
-} // namespace
-
-void ChunkArchive::SerializeQuickItems(int id, stlp::vector<itemdb::QuickItemRecord>* records, void*) {
-    SerializeItemRecords<itemdb::QuickItemRecord>(this, id, records,
-                                    &DestroyItemRecord<itemdb::QuickItemRecord>, recordvec::ResizeUntyped<recordvec::QuickItemVector>, &itemdb::QuickItemRecord::Serialize);
+void ChunkArchive::SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::MaterialRecordHead::Serialize);
 }
-void ChunkArchive::SerializeLoot(int id, stlp::vector<itemdb::QuestItemRecord>* records, void*) {
-    SerializeItemRecords<itemdb::QuestItemRecord>(this, id, records,
-                                    &DestroyItemRecord<itemdb::QuestItemRecord>, recordvec::ResizeUntyped<recordvec::QuestItemVector>, &itemdb::QuestItemRecord::Serialize);
+void ChunkArchive::SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::WeaponRecord::Serialize);
 }
-void ChunkArchive::SerializeQuestItems(int id, stlp::vector<itemdb::LootItemRecord>* records, void*) {
-    SerializeItemRecords<itemdb::LootItemRecord>(this, id, records,
-                                    &DestroyItemRecord<itemdb::LootItemRecord>, recordvec::ResizeUntyped<recordvec::LootVector>, &itemdb::LootItemRecord::Serialize);
-}
-
-void ChunkArchive::SerializeMaterials(int id, stlp::vector<itemdb::MaterialRecordHead>* records, void*) {
-    SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, records,
-                                    &itemdb::MaterialRecordHead::Destruct, recordvec::ResizeUntyped<recordvec::MaterialVector>, &itemdb::MaterialRecordHead::Serialize);
-}
-void ChunkArchive::SerializeWeapons(int id, stlp::vector<itemdb::WeaponRecord>* records, void*) {
-    SerializeItemRecords<itemdb::WeaponRecord>(this, id, records,
-                                    &DestroyItemRecord<itemdb::WeaponRecord>, recordvec::ResizeUntyped<recordvec::WeaponVector>, &itemdb::WeaponRecord::Serialize);
-}
-void ChunkArchive::SerializeArmors(int id, stlp::vector<itemdb::ArmorRecord>* records, void*) {
-    SerializeItemRecords<itemdb::ArmorRecord>(this, id, records,
-                                    &DestroyItemRecord<itemdb::ArmorRecord>, recordvec::ResizeUntyped<recordvec::ArmorVector>, &itemdb::ArmorRecord::Serialize);
+void ChunkArchive::SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::ArmorRecord::Serialize);
 }
 
 // --- The spell database's vectors and records ----------------------------------------------
@@ -210,41 +162,23 @@ void ChunkArchive::IntVectorField(int id, std::vector<int>* values, void*) {
     LeaveChunk();
 }
 
-void ChunkArchive::SerializeSpells(int id, stlp::vector<itemdb::SpellRecord>* records, void*) {
-    SerializeItemRecords<itemdb::SpellRecord>(this, id, records,
-                                    &itemdb::SpellRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellVector>, &itemdb::SpellRecord::Serialize);
+void ChunkArchive::SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::SpellRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellModifiers(int id, stlp::vector<itemdb::SpellModifierRecord>* records, void*) {
-    SerializeItemRecords<itemdb::SpellModifierRecord>(this, id, records,
-                                    &itemdb::SpellModifierRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellModifierVector>, &itemdb::SpellModifierRecord::Serialize);
+void ChunkArchive::SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::SpellModifierRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRecord>* records, void*) {
-    SerializeItemRecords<itemdb::SpellListRecord>(this, id, records,
-                                    &itemdb::SpellListRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellListVector>, &itemdb::SpellListRecord::Serialize);
+void ChunkArchive::SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records, void*) {
+    RecordChunks(this, id, records, &itemdb::SpellListRecord::Serialize);
 }
 
 // --- The database's destructor ---------------------------------------------------------------
 
-namespace {
-
-// One table: the name index (its clear, then its buckets; the materials' as a whole), the records in order,
-// the vector's storage (STLport's deallocate of the capacity in whole records).
-template <typename Record, typename Destroy>
-void DestroyTable(itemdb::NamedRecordTable<Record>& table, Destroy destroy) {
-    table.names.Destroy();
-    Record* end = table.records.end();
-    for (Record* record = table.records.begin(); record != end; ++record) std::invoke(destroy, record);
-    if (table.records.begin() != nullptr)
-        stlp::deallocate(table.records.begin(), table.records.Capacity() * sizeof(Record));
-}
-
-} // namespace
-
 void itemdb::ItemDatabase::DestructBody() {
-    DestroyTable(loot, &DestroyItemRecord<LootItemRecord>);
-    DestroyTable(questItems, &DestroyItemRecord<QuestItemRecord>);
-    DestroyTable(quickItems, &DestroyItemRecord<QuickItemRecord>);
-    DestroyTable(armors, &DestroyItemRecord<ArmorRecord>);
-    DestroyTable(weapons, &DestroyItemRecord<WeaponRecord>);
-    DestroyTable(materials, &MaterialRecordHead::Destruct);
+    loot.Destruct();
+    questItems.Destruct();
+    quickItems.Destruct();
+    armors.Destruct();
+    weapons.Destruct();
+    materials.Destruct();
 }

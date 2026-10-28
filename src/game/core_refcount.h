@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 class ChunkArchive;
 
@@ -91,6 +92,36 @@ template <typename T>
 void ReleaseCounted(T* object) {
     if (object && --object->refs_ == 0) delete object;
 }
+
+// A counted pointer that holds its reference (a container's element): made from a pointer or copied, it takes a
+// reference; destroyed, it drops one and deletes the object with the last (ReleaseCounted). Assigning takes the
+// new reference before the old one is dropped. A move hands the reference over.
+template <typename T>
+class CountedPtr {
+public:
+    CountedPtr() = default;
+    CountedPtr(T* object) : object_(object) {
+        if (object_) ++object_->refs_;
+    }
+    CountedPtr(const CountedPtr& other) : CountedPtr(other.object_) {}
+    CountedPtr(CountedPtr&& other) noexcept : object_(std::exchange(other.object_, nullptr)) {}
+    CountedPtr& operator=(const CountedPtr& other) {
+        AssignCounted(object_, other.object_);
+        return *this;
+    }
+    CountedPtr& operator=(CountedPtr&& other) noexcept {
+        std::swap(object_, other.object_);
+        return *this;
+    }
+    ~CountedPtr() { ReleaseCounted(object_); }
+
+    T* get() const { return object_; }
+    operator T*() const { return object_; }
+    T* operator->() const { return object_; }
+
+private:
+    T* object_ = nullptr;
+};
 
 // The owner's release of a typed slot (RefPtr::Destroy): a still-shared object is detached and shut down first,
 // then the slot's content (reloaded: the shutdown may have changed it) is released.

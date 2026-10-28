@@ -37,12 +37,10 @@ int QuestDatabase::Load(const char* folder) {
 
     // The serialisers' unused third argument is a stack slot the game has not written yet.
     LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, nullptr, [this] {
-        for (QuestRecord* record = quests.begin(); record != quests.end(); ++record)
-            questsByName[record->name] = record;
+        for (QuestRecord& record : quests) questsByName[record.name] = &record;
     });
     LoadTable(stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, nullptr, [this] {
-        for (QuestBriefingRecord* record = briefings.records.begin(); record != briefings.records.end(); ++record)
-            briefings.index[record->name] = record;
+        for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
     });
 
     resource.Get()->CMappedResource::CloseFile(data);

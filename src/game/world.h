@@ -672,12 +672,16 @@ static_assert(sizeof(PlatformSet) == 0x38);
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
 // records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
 // records by prototype. All three maps hash a key to itself.
-namespace recordvec { struct FiguredUnitElement; struct DressedUnitElement; }
-namespace gamehash { struct FiguredTableElement; }
+namespace gamehash {
+struct FiguredTableElement;
+// The records in the tables: copied and destroyed by their own members.
+using FiguredUnitElement = stlp::ObjectElement<FiguredUnitRecord>;
+using DressedUnitElement = stlp::ObjectElement<DressedUnitRecord>;
+} // namespace gamehash
 struct UnitSet {
-    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, gamehash::FiguredUnitElement>>;
     using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
-    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>>;
+    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, gamehash::DressedUnitElement>>;
 
     // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -700,8 +704,7 @@ static_assert(sizeof(UnitSet) == 0x28);
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
 // of names; then a count and per dressed record the prototype, the two arrays, the byte and a dword.
 // Both vectors are resized to the counts.
-void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
-                              stlp::vector<DressedUnitRecord>* dressed);
+void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
 struct SectorCellObjects : stlp::list<CMapObject*> {
@@ -869,7 +872,7 @@ public:
     void MoveObject(CMapObject* object, const float* position) override;
     virtual void MoveObject2(CMapObject* object, const float* position);   // the second grid's move
 
-    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
+    void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
     // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
     // the game).
     int Render();

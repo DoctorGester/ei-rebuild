@@ -30,7 +30,7 @@ constexpr int kCarriedGrowMax = 0x400;
 
 // The index of prototype record `record` (one of the table's), or -1 without one.
 int PrototypeIndexOf(const UnitPrototypeRecord* record) {
-    return record ? static_cast<int>(record - unitdb::PrototypeTable().begin) : -1;
+    return record ? static_cast<int>(record - unitdb::PrototypeTable().records.data()) : -1;
 }
 
 // Writes `value` from a stack copy, as for most scalars.

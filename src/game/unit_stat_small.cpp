@@ -15,13 +15,6 @@
 namespace {
 // The game's settings (globals read at the time of the call).
 int Difficulty() { return options::TheOptions()->difficulty_; }
-
-// Element `index` of the records between `begin` and `end`, or null past the end (the count is a signed
-// division, the comparison unsigned).
-template <typename T>
-T* RecordAt(T* begin, T* end, std::uint32_t index) {
-    return index < static_cast<std::uint32_t>(end - begin) ? begin + index : nullptr;
-}
 } // namespace
 
 void AttackParams::ScaleForDifficulty(int keyed) {
@@ -33,9 +26,9 @@ void AttackParams::ScaleForDifficulty(int keyed) {
 
 // --- Database records ---------------------------------------------------------------------------------
 
-UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return RecordAt(begin, end, index); }
+UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return unitdb::RecordAt(records, index); }
 
 // Prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {
-    return RecordAt(begin, end, index);
+    return unitdb::RecordAt(records, index);
 }
