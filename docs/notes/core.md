@@ -237,9 +237,9 @@ to which template:
   006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
   vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray share
   the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA,
-  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
-  registered at MFC's addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, ...); nothing in src/game
-  uses it since C14a batch 14 (the public `mfc::CStringArray` and `console::CStringArray` went).
+  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one), `mfc::impl::CStringArray` in C14i
+  (nothing used it since C14a batch 14; its runtime class 00796EE8 and the initialiser 0070BE81 that linked it went
+  with it).
   Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
   SetAtGrow forwarded); `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080, `ZoneExitsSetSizeOriginal`); world_save's
   id / object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 the aligned
@@ -498,8 +498,7 @@ to which template:
   nothing, even after a full chunk. `mfc::CString` (mfc.h) keeps its constructors, assignments, GetLength and the
   `const char*` conversion: the tests' Original* layouts of game.exe's objects (record_script*.cpp,
   script_original.h, script_load_vectors.h, record_stats.cpp) hold it, ei_vectors gives it its own core
-  (replay_mfc.cpp). src/lib's MFC has its own `mfc::impl::CString` (mfc_string.h: CFile names, CArchive's text,
-  CFileFind's root, impl::CStringArray, the exceptions' messages), and the harness views have `exe::CString`.
+  (replay_mfc.cpp); the harness views have `exe::CString`. src/lib's MFC is on std::string since C14i (below).
 - Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
   at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
   body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.

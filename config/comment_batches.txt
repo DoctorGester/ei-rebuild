@@ -160,8 +160,6 @@ src/lib/mfc_state.cpp
 src/lib/mfc_state.h
 src/lib/mfc_static_objects.cpp
 src/lib/mfc_static_objects.h
-src/lib/mfc_string.cpp
-src/lib/mfc_string.h
 src/lib/mfc_thread.cpp
 src/lib/mfc_thread.h
 src/lib/mfc_time.cpp
@@ -1976,8 +1974,6 @@ src/lib/mfc_state.cpp
 src/lib/mfc_state.h
 src/lib/mfc_static_objects.cpp
 src/lib/mfc_static_objects.h
-src/lib/mfc_string.cpp
-src/lib/mfc_string.h
 src/lib/mfc_thread.cpp
 src/lib/mfc_thread.h
 src/lib/mfc_time.cpp

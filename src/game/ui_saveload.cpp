@@ -31,7 +31,6 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 #include <cstdint>

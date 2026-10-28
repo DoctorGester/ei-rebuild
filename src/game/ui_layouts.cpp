@@ -29,7 +29,6 @@
 #include "record_lists.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "figure_manager.h"
 #include "lib/str.h"
 

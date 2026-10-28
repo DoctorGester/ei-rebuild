@@ -30,7 +30,6 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "camera.h"
 
 

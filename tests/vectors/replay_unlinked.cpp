@@ -86,8 +86,8 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSour
 void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
 // The game CRT's ports (crt.cpp, crt_file.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: the node allocator (stlp.cpp), the multibyte string functions CString uses
-// (mfc_string.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
+// that no replay reaches: the node allocator (stlp.cpp), the multibyte lower case str::MakeLower uses
+// (str.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
 // fwrite (crt_format.cpp); replay_crt.cpp has the ones the replays call.
 void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
 void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
@@ -97,8 +97,7 @@ void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 std::size_t libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
 
-// The library's exceptions and resources (mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
-// TRY link, mfc_file.cpp).
+// The library's exceptions and resources (mfc_archive.cpp, mfc.cpp's TRY link, mfc_file.cpp).
 mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc_file.cpp's CFile opens
 const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
 BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")

@@ -7,6 +7,8 @@
 #include "mfc_time.h"
 #include "game/game_data.h"
 
+#include <string>
+
 namespace mfc::impl {
 
 // CFileStatus (0x118 bytes): what CFile::GetStatus fills in.
@@ -21,8 +23,9 @@ struct CFileStatus {
 };
 static_assert(sizeof(CFileStatus) == 0x118);
 
-// CFile (0x10 bytes). The virtual members are reached through the object's
-// vtable where game.exe dispatches (mfc::CFileVirtuals); the bodies here are the slots'.
+// CFile. The virtual members are reached through the object's vtable where game.exe dispatches
+// (mfc::CFileVirtuals); the bodies here are the slots'. The destructor is not virtual: the table is the
+// `vtable` field, and the deleting destructor its slot 1.
 struct CFile {
     enum OpenFlags : unsigned {
         modeRead = 0x0000, modeWrite = 0x0001, modeReadWrite = 0x0002, shareCompat = 0x0000,
@@ -33,24 +36,27 @@ struct CFile {
     static constexpr HANDLE kNoFile = INVALID_HANDLE_VALUE;   // CFile::hFileNull
 
     void* vtable;
-    HANDLE handle;
-    BOOL closeOnDelete;
-    CString fileName;       // m_strFileName (the full path)
+    HANDLE handle = kNoFile;
+    BOOL closeOnDelete = FALSE;
+    std::string fileName;   // m_strFileName (the full path)
 
     static void* Vtable();
 
-    CFile* Construct();
-    CFile* ConstructHandle(HANDLE file);                        // CFile(int hFile)
-    CFile* ConstructOpen(const char* path, unsigned flags);     // (throws a CFileException*)
-    void Destruct();
+    CFile();
+    explicit CFile(HANDLE file);                    // CFile(int hFile)
+    CFile(const char* path, unsigned flags);        // (throws a CFileException*)
+    // Closes the file when it owns the handle.
+    ~CFile();
+    CFile(const CFile&) = delete;
+    CFile& operator=(const CFile&) = delete;
     CFile* DeletingDestructor(unsigned flags);
 
     unsigned long GetPosition() const;
     // Slots 4-6: the name part of GetStatus's path (AfxGetFileName), its title (AfxGetFileTitle) and the
     // whole path.
-    CString GetFileName() const;
-    CString GetFileTitle() const;
-    CString GetFilePath() const;
+    std::string GetFileName() const;
+    std::string GetFileTitle() const;
+    std::string GetFilePath() const;
     // The cleared status with the file's name; with an open file also its times
     // (a missing creation or access time is the modification time), size and attributes. FALSE when
     // the handle's times or size cannot be read.
@@ -70,17 +76,17 @@ struct CFile {
     void Close();
     unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);   // (slot 20: 0)
 };
-static_assert(sizeof(CFile) == 0x10);
 
-// CStdioFile (0x14 bytes): a CFile with a CRT stream over its handle.
+// CStdioFile: a CFile with a CRT stream over its handle.
 struct CStdioFile : CFile {
-    gamecrt::CrtFile* stream;
+    gamecrt::CrtFile* stream = nullptr;
 
     static void* Vtable();
 
-    CStdioFile* Construct();
-    CStdioFile* ConstructOpen(const char* path, unsigned flags);    // (throws a CFileException*)
-    void Destruct();
+    CStdioFile();
+    CStdioFile(const char* path, unsigned flags);   // (throws a CFileException*)
+    // Closes the stream when it owns the handle.
+    ~CStdioFile();
     CStdioFile* DeletingDestructor(unsigned flags);
 
     unsigned long GetPosition() const;
@@ -97,31 +103,32 @@ struct CStdioFile : CFile {
     BOOL ReadLine(std::string& text);                           // (slot 22: ReadString(CString&), into a string)
     char* ReadString(char* buffer, unsigned size);
 };
-static_assert(sizeof(CStdioFile) == 0x14);
 
-// CFileFind (0x1C bytes). The found entries are WIN32_FIND_DATA blocks from
-// operator new: FindNextFile swaps the next one in.
+// CFileFind. The found entries are WIN32_FIND_DATA blocks from operator new: FindNextFile swaps the next
+// one in. The destructor is not virtual (as CFile's).
 struct CFileFind {
     void* vtable;
-    WIN32_FIND_DATAA* found;
-    WIN32_FIND_DATAA* next;
-    HANDLE context;             // m_hContext (null or INVALID_HANDLE_VALUE when none)
-    BOOL gotLast;
-    CString root;
-    char separator;             // m_chDirSeparator ('\\')
+    WIN32_FIND_DATAA* found = nullptr;
+    WIN32_FIND_DATAA* next = nullptr;
+    HANDLE context = nullptr;   // m_hContext (null or INVALID_HANDLE_VALUE when none)
+    BOOL gotLast = FALSE;
+    std::string root;
+    char separator = '\\';      // m_chDirSeparator
 
     static void* Vtable();
 
-    CFileFind* Construct();
-    void Destruct();
+    CFileFind();
+    ~CFileFind();
+    CFileFind(const CFileFind&) = delete;
+    CFileFind& operator=(const CFileFind&) = delete;
     CFileFind* DeletingDestructor(unsigned flags);
     void Close();
 
-    CString GetFileName() const;
-    CString GetFilePath() const;
-    CString GetFileTitle() const;
-    CString GetFileURL() const;
-    CString GetRoot() const;
+    std::string GetFileName() const;
+    std::string GetFilePath() const;
+    std::string GetFileTitle() const;
+    std::string GetFileURL() const;
+    std::string GetRoot() const;
     BOOL GetLastWriteTime(CTime* time) const;
     BOOL GetLastWriteFileTime(FILETIME* time) const;
     BOOL GetLastAccessTime(CTime* time) const;
@@ -135,14 +142,11 @@ struct CFileFind {
     BOOL CloseContext();                                        // (slot 18: FindClose's result)
     unsigned long GetLength() const;                            // (the low dword of the size)
 };
-static_assert(sizeof(CFileFind) == 0x1C);
 
 // AfxFullPath: `path` made absolute into `out` (_MAX_PATH bytes); the case of the last part as on
 // disk on a file system that does not store Unicode, upper case where case is not preserved.
 // FALSE when the path cannot be resolved (then copied as given) or the volume cannot be queried.
 BOOL FullPath(char* out, const char* path);
-// AfxGetRoot: the root of `path` ("x:\" or "\\server\share\") into `root`.
-void GetRoot(const char* path, CString& root);
 
 // AfxGetFileName: the part of `path` after its last backslash, '/' or ':' into `name` (at most `max` bytes,
 // lstrcpyn); with a null `name` the size it needs (with the terminator), else 0.

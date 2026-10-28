@@ -335,9 +335,8 @@ What C25a named or dropped of its list, still the code's form:
 - **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
-- **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
-  PchNil() read `g_dataNil` (ours; nothing of ours makes a string in game.exe's runs, H30). game.exe's cells 00796E48 /
-  00796E4C stay in image_cells.inc, unread.
+- **MFC's empty string**: no CString of ours is left (C14i: src/lib's MFC is on std::string). game.exe's cells
+  00796E48 / 00796E4C (`_afxInitData` and its character) stay in image_cells.inc, unread.
 - **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
   header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
   (counted, left out of the cells like LEFT_STRUCTURES): zero in the image.
@@ -496,13 +495,13 @@ kinds given.
     array where the original read the neighbouring .rdata; no database has one).
   - **Pointers to game.exe's records** (C18e): MFC's 41 CRuntimeClass records are named as one piece
     (lib/mfc_runtime_class.h: the 36 in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
-    the 5 serializable ones in .data, which AfxClassInit links into the module state's list: CStringArray / CWordArray /
-    CDWordArray / CByteArray in mfc_coll.cpp, CDib in game/dib.cpp, `constinit CRuntimeClass g_classCDib`; TYPES has
+    the serializable ones in .data, which AfxClassInit links into the module state's list: CWordArray /
+    CDWordArray / CByteArray in mfc_coll.cpp, CDib in game/dib.cpp (CStringArray's 00796EE8 went in C14i), `constinit CRuntimeClass g_classCDib`; TYPES has
     `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
     base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
     (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
     create function it points at had to be ours (the check compares the registration): the ten that were unported
-    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones) are small ports registered at their
+    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's) are small ports registered at their
     addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
     the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
@@ -791,8 +790,7 @@ kinds given.
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate) and `_pnhHeap`
       (`g_heapNewHandler` 007CAAD8); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
       `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
-      function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the four string allocators
-      (mfc_string.h `g_stringAlloc64` .. `512`, 007C8B80 .. 007C8B08), the
+      function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
       (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
       (`g_afxLockInit` 007C8E80, `g_afxLockInitLock` 007C8EC8, `g_afxResourceLocks` 007C8EE0, `g_afxCriticalWin32s` /
@@ -1349,7 +1347,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
+  - **The library kind**: MFC's CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
     CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
@@ -1796,9 +1794,15 @@ the `--no-hooks` suite) keeps the registry.
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString** (mfc_string, `mfc::impl::CString`, `CFixedAlloc`, the five string pools 007C8B08..007C8B80 and
-  007C8D18). 00700EFE is MakeLower (it calls `_mbslwr`); 00700EEC is the real MakeUpper, unreached.
-- **Collections**: mfc_coll (CStringArray, one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
+- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (CFile's and the
+  exceptions' file names, CFileFind's root, the archive's string operators, CTime::Format, the resource strings:
+  mfc_resource.h `LoadResourceString` / `AfxFormatString1`); the static initialisers of CString's four fixed
+  allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
+  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). CFile, CStdioFile and
+  CFileFind have real constructors and destructors (the vtable stays a field); mfc.h's facades build them in place
+  over a mirror of their members. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
+  real MakeUpper, unreached.
+- **Collections**: mfc_coll (one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
   the instantiation's ConstructElements does after MFC's memset (nothing, an inlined constructor, or
   `EachElements<T, Init, Destroy>`). CList / CMap / CPlex (mfc_list: `ListAbi`, `MapAbi`, HashKey `key >> 4`); node
   sizes from each NewNode's CPlex::Create. FreeDataChain returns 0: the original leaves the caller's EAX, which
@@ -2217,8 +2221,8 @@ state, which the image replaces with its own (mfc_gdi.cpp).
 ### lib/mfc_runtime_class.h
 
 MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in .rdata)
-and the 5 serializable ones (CByteArray, CDWordArray, CStringArray, CWordArray in mfc_coll.cpp, CDib in
-game/dib.cpp) in .data, where the static initialisers link them into the module state's class list (AfxClassInit
+and the serializable ones (CByteArray, CDWordArray, CWordArray in mfc_coll.cpp, CDib in game/dib.cpp; CStringArray's
+went in C14i) in .data, where the static initialisers link them into the module state's class list (AfxClassInit
 writes m_pNextClass). Each record names its base's record and its create function (ours, registered at the game's
 address: the pointers are compared by tools/named_data.py, "Pointer elements"). The hierarchy is one piece: a
 record's base is a named range, and game.exe's data holds no pointer into a named range, so CObject's record (the

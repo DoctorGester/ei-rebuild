@@ -100,6 +100,13 @@ UNREAD = [
     (0x0078F7EC, 0x0078F824, 15, 'the units\' model folders by kind ("heroes\\human\\male", ...), read by the dead '
                                  '00532650 only'),
     (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands", read by the dead 00602190 only'),
+    # The CRuntimeClass records of MFC classes no code of ours makes any more (they were named ranges until then):
+    # each record's class name and base class (kClassCObject 00745D20).
+    (0x00746778, 0x00746788, 2, "CUIntArray's runtime class record (the class went in C20o)"),
+    (0x007469B0, 0x007469C0, 2, "CTempWnd's runtime class record (the class went in C20o)"),
+    (0x007471B0, 0x007471E8, 4, "CTempMenu's and CMenu's runtime class records (the classes went in C20o)"),
+    (0x00796EE8, 0x00796EF8, 2, "CStringArray's runtime class record (the class went in C14i; its initialiser "
+                                "0070BE81 is gen_static_init.py's UNUSED_INITIALISERS)"),
 ]
 
 # Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets

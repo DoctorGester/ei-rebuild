@@ -1,4 +1,4 @@
-// std::string helpers with CString's answers (str.h). The bodies follow MFC 4.2's (mfc_string.cpp).
+// std::string helpers with CString's answers (str.h). The bodies follow MFC 4.2's (strcore.cpp, strex.cpp).
 #include "str.h"
 
 #include "crt.h"

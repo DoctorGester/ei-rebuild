@@ -56,7 +56,6 @@
 #include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "game/game_slots.h"
 #include "game/record_arrays.h"
 #include "system_text.h"

@@ -4,12 +4,14 @@
 // written out for the standalone exe (docs/notes/standalone.md section 2). Same layout and allocator as the
 // copies linked into game.exe (mfc_coll.cpp).
 
-#include "mfc_string.h"
+#include "mfc.h"
 #include "game/game_data.h"
 
 #include <cstdint>
 
 namespace mfc::impl {
+
+struct CArchive;
 
 // CWordArray / CDWordArray / CByteArray (0x14 bytes): vtable, data, size, allocated
 // size, growth step (0: size / 8 clamped to 4..1024). The three are one source with another element
@@ -45,28 +47,5 @@ using CWordArray = PlainArray<std::uint16_t, WordArrayClass>;
 using CDWordArray = PlainArray<std::uint32_t, DWordArrayClass>;
 using CByteArray = PlainArray<std::uint8_t, ByteArrayClass>;
 static_assert(sizeof(CWordArray) == 0x14);
-
-// CStringArray (0x14 bytes): the same layout over CStrings; new elements are empty strings, removed
-// ones are released.
-struct CStringArray {
-    void* vtable;
-    CString* data;
-    int size;
-    int maxSize;
-    int growBy;
-
-    static void* Vtable();   // compiled (mfc_coll.cpp) in place
-
-    CStringArray* Construct();
-    void Destruct();
-    CStringArray* DeletingDestructor(unsigned flags);   // (vtable slot 1)
-    void SetSize(int newSize, int newGrowBy);
-    void Serialize(CArchive* ar);                       // (vtable slot 2)
-
-    // array_s.cpp's element helpers (cdecl).
-    static void ConstructElements(CString* elements, int count);
-    static void DestructElements(CString* elements, int count);
-};
-static_assert(sizeof(CStringArray) == 0x14);
 
 } // namespace mfc::impl

@@ -85,11 +85,11 @@ CTime* CTime::CurrentTime(CTime* out) {
     return out;
 }
 
-CString CTime::Format(const char* format) const {
+std::string CTime::Format(const char* format) const {
     char buffer[128];
     const std::tm* at = Localtime(&time);
     if (!at || !Strftime(buffer, sizeof(buffer), format, at)) buffer[0] = '\0';
-    return CString(buffer);
+    return buffer;
 }
 
 } // namespace mfc::impl

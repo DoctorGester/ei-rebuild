@@ -4,7 +4,11 @@
 // strftime (32-bit forms), with the current time from GetLocalTime through the game's import table as VC6's
 // time() takes it (so the harness's fixed date applies).
 
-#include "mfc_string.h"
+#include "mfc.h"
+
+#include <windows.h>
+
+#include <string>
 
 namespace mfc::impl {
 
@@ -21,7 +25,7 @@ struct CTime {
     // CTime::GetCurrentTime into `out` (returned).
     static CTime* CurrentTime(CTime* out);
     // strftime of the local time into at most 127 characters (empty when it does not fit).
-    CString Format(const char* format) const;
+    std::string Format(const char* format) const;
 };
 static_assert(sizeof(CTime) == 4);
 

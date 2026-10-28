@@ -14,14 +14,10 @@ template <>
 void Strings::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
         ar->WriteCount(static_cast<unsigned long>(size));
-        for (int i = 0; i < size; ++i) StoreText(*ar, CString(data[i].c_str(), static_cast<int>(data[i].size())));
+        for (int i = 0; i < size; ++i) StoreText(*ar, data[i]);
     } else {
         SetSize(static_cast<int>(ar->ReadCount()), -1);
-        for (int i = 0; i < size; ++i) {
-            CString text;
-            LoadText(*ar, text);
-            data[i].assign(static_cast<const char*>(text), static_cast<std::size_t>(text.GetLength()));
-        }
+        for (int i = 0; i < size; ++i) LoadText(*ar, data[i]);
     }
 }
 

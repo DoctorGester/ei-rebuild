@@ -2,7 +2,6 @@
 #include "mfc_resource.h"
 #include "crt_locale_data.h"
 
-#include "gameapi.h"
 #include "game/game_data.h"
 
 #include <algorithm>
@@ -94,53 +93,29 @@ int AfxLoadString(unsigned id, char* buffer, unsigned size) {
     return length;
 }
 
-void AfxFormatStrings(CString& out, const char* format, const char* const* strings, int count) {
-    int total = 0;
-    for (const char* at = format; *at != '\0';) {
-        int index = 0;
-        if (Reference(at, index)) {
-            at += 2;
-            if (index >= count)
-                ++total;
-            else if (strings[index])
-                total += gameapi::lstrlenA(strings[index]);
-        } else {
-            if (IsLeadByte(*at)) {
-                ++total;
-                ++at;
-            }
-            ++at;
-            ++total;
-        }
-    }
-
-    char* to = out.GetBuffer(total);
-    for (const char* at = format; *at != '\0';) {
-        int index = 0;
-        if (Reference(at, index)) {
-            at += 2;
-            if (index >= count) {
-                *to++ = '?';
-            } else if (strings[index]) {
-                gameapi::lstrcpyA(to, strings[index]);
-                to += gameapi::lstrlenA(to);
-            }
-        } else {
-            if (IsLeadByte(*at)) *to++ = *at++;
-            *to++ = *at++;
-        }
-    }
-    out.ReleaseBuffer(static_cast<int>(to - static_cast<const char*>(out)));
+// The table's strings are short: one fixed buffer holds any of them.
+std::string LoadResourceString(unsigned id) {
+    char text[kFormatLength];
+    AfxLoadString(id, text, kFormatLength);
+    return text;
 }
 
-void AfxFormatStringsId(CString& out, unsigned formatId, const char* const* strings, int count) {
+std::string AfxFormatString1(unsigned formatId, const char* string) {
     char format[kFormatLength];
-    if (AfxLoadString(formatId, format, kFormatLength) != 0) AfxFormatStrings(out, format, strings, count);
-}
-
-void AfxFormatString1(CString& out, unsigned formatId, const char* string) {
-    const char* strings[1] = {string};
-    AfxFormatStringsId(out, formatId, strings, 1);
+    std::string out;
+    if (AfxLoadString(formatId, format, kFormatLength) == 0) return out;
+    for (const char* at = format; *at != '\0';) {
+        int index = 0;
+        if (Reference(at, index)) {
+            at += 2;
+            if (index != 0) out += '?';
+            else if (string) out += string;
+        } else {
+            if (IsLeadByte(*at) && at[1] != '\0') out += *at++;
+            out += *at++;
+        }
+    }
+    return out;
 }
 
 } // namespace mfc::impl

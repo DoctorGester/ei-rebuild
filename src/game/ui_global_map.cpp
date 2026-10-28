@@ -34,7 +34,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 #include <cmath>

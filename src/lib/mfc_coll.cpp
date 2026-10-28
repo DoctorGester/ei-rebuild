@@ -1,4 +1,4 @@
-// MFC 4.2's CStringArray and plain arrays (mfc_coll.h).
+// MFC 4.2's plain arrays (mfc_coll.h).
 #include "mfc_archive.h"
 #include "mfc_coll.h"
 #include "mfc_runtime_class.h"
@@ -105,83 +105,9 @@ template struct PlainArray<std::uint32_t, DWordArrayClass>;
 template struct PlainArray<std::uint8_t, ByteArrayClass>;
 
 
-void CStringArray::ConstructElements(CString* elements, int count) {
-    for (; count--; ++elements) ::new (elements) CString;
-}
-
-void CStringArray::DestructElements(CString* elements, int count) {
-    for (; count--; ++elements) elements->~CString();
-}
-
-CStringArray* CStringArray::Construct() {
-    vtable = Vtable();
-    data = nullptr;
-    growBy = 0;
-    maxSize = 0;
-    size = 0;
-    return this;
-}
-
-void CStringArray::Destruct() {
-    vtable = Vtable();
-    DestructElements(data, size);
-    gamecrt::operator_delete(data);
-}
-
-CStringArray* CStringArray::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-// As the plain arrays, with the elements constructed as empty strings and released when cut off;
-// a reallocation moves the strings bytewise.
-void CStringArray::SetSize(int newSize, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (newSize == 0) {
-        DestructElements(data, size);
-        gamecrt::operator_delete(data);
-        data = nullptr;
-        size = maxSize = 0;
-    } else if (!data) {
-        data = gamecrt::operator_new_array<CString>(static_cast<std::size_t>(newSize));
-        ConstructElements(data, newSize);
-        size = maxSize = newSize;
-    } else if (newSize <= maxSize) {
-        if (newSize > size) ConstructElements(data + size, newSize - size);
-        else if (size > newSize) DestructElements(data + newSize, size - newSize);
-        size = newSize;
-    } else {
-        int step = GrowthStep(growBy, size);
-        int newMax = newSize < maxSize + step ? maxSize + step : newSize;
-        auto* fresh = gamecrt::operator_new_array<CString>(static_cast<std::size_t>(newMax));
-        std::memcpy(static_cast<void*>(fresh), data, static_cast<std::size_t>(size) * sizeof(CString));
-        ConstructElements(fresh + size, newSize - size);
-        gamecrt::operator_delete(data);
-        data = fresh;
-        size = newSize;
-        maxSize = newMax;
-    }
-}
-
-void CStringArray::Serialize(CArchive* ar) {
-    if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(size));
-        for (int i = 0; i < size; ++i) mfc::impl::StoreText(*ar, data[i]);
-    } else {
-        SetSize(static_cast<int>(ar->ReadCount()), -1);
-        for (int i = 0; i < size; ++i) mfc::impl::LoadText(*ar, data[i]);
-    }
-}
-
 // ---- The serializable classes' runtime classes ----------------------------------------------------
 
 // The create functions: a new array from operator new, constructed; null when out of memory.
-void* __stdcall CreateCStringArray() {
-    auto* array = gamecrt::operator_new_as<CStringArray>();
-    return array ? array->Construct() : nullptr;
-}
-
 void* __stdcall CreateCWordArray() {
     auto* array = gamecrt::operator_new_as<CWordArray>();
     return array ? array->Construct() : nullptr;
@@ -204,12 +130,11 @@ namespace {
 
 // IMPLEMENT_SERIAL (schema 0): the record is linked into the module state's class list by the class's static
 // initialiser (AfxClassInit writes m_pNextClass).
-constinit CRuntimeClass g_classCStringArray = /*00796EE8*/ {"CStringArray", 0x14, 0, &CreateCStringArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCWordArray = /*00796F20*/ {"CWordArray", 0x14, 0, &CreateCWordArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCDWordArray = /*00797140*/ {"CDWordArray", 0x14, 0, &CreateCDWordArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCByteArray = /*00797198*/ {"CByteArray", 0x14, 0, &CreateCByteArray, &kClassCObject, nullptr};
 
-// The arrays' compiled tables in place (CStringArray, CWordArray, CDWordArray and CByteArray): 0 GetRuntimeClass
+// The arrays' compiled tables in place (CWordArray, CDWordArray and CByteArray): 0 GetRuntimeClass
 // (the class's record), 1 the deleting destructor, 2 Serialize.
 template <typename Self, typename Array, const CRuntimeClass* kClass>
 struct ArrayTable : ei::CompiledTag<Self> {
@@ -220,7 +145,6 @@ struct ArrayTable : ei::CompiledTag<Self> {
 private:
     Array* This() { return this->template ObjectAs<Array>(); }
 };
-struct StringArrayTable final : ArrayTable<StringArrayTable, CStringArray, &g_classCStringArray> {};
 struct WordArrayTable final : ArrayTable<WordArrayTable, CWordArray, &g_classCWordArray> {};
 struct DWordArrayTable final : ArrayTable<DWordArrayTable, CDWordArray, &g_classCDWordArray> {};
 struct ByteArrayTable final : ArrayTable<ByteArrayTable, CByteArray, &g_classCByteArray> {};
@@ -228,12 +152,10 @@ struct ByteArrayTable final : ArrayTable<ByteArrayTable, CByteArray, &g_classCBy
 } // namespace
 
 // The static initialisers (the exe's list holds the first instruction of each: a jump to the body).
-void LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
 void LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
 void LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
 void LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
 
-void* CStringArray::Vtable() { return StringArrayTable::Vtable(); }
 void* WordArrayClass::Vtable() { return WordArrayTable::Vtable(); }
 void* DWordArrayClass::Vtable() { return DWordArrayTable::Vtable(); }
 void* ByteArrayClass::Vtable() { return ByteArrayTable::Vtable(); }
