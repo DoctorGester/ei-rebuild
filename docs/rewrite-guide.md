@@ -78,7 +78,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    gets its constructor and destructor; plain arrays are `new T[n]` / `delete[]`, a block of a byte count
    other than its type's (a header with what follows it) `::operator new(bytes)` / `::operator delete`. An
    engine object whose constructor leaves fields the game reads is `new (kZeroed) T(...)` (engine_object.h).
-   `gamecrt::operator_new` / `operator_delete` are left only for the script's MFC records. Containers are
+   Containers are
    `std::` (the last `mfc::` ones until C14 finishes). Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction

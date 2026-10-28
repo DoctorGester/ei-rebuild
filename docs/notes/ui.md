@@ -316,7 +316,7 @@ Hazards and facts:
   3 never equips quick items.
 - **Battle screen Create** reads its part of a save (007AFDF8; from 0x47 an int and a string appended to the top panel's text and,
   on page 0, the message log; from 0x62 +0x18C and +0x188), builds the unit panel, map, clock, movement and top panels inline
-  (owner +0x148; each panel from `operator_new_as<T>()` with a size assert, the window base and its setup called directly)
+  (owner +0x148; each panel a `new` of its class with the interface and the screen)
   and puts the "pers <name>" texts into the map<int, CString> at +0x1F0.
 - **Global map**: positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, each step stored; `turn` =
   spin about z by +0x1FC times a tilt of 0.8 pi about x, inlined with its own operand order: `TurnProduct`); markers come from the
