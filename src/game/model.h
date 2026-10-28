@@ -399,8 +399,8 @@ public:
     // A black rectangle (left, top, right, bottom in screen pixels) of `alpha` over the current blend state,
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
-    // The primary surface's gamma ramp from the options' brightness, contrast and gamma (kept for GetGamma);
-    // false without a device or DDCAPS2_PRIMARYGAMMA, else whether SetGammaRamp succeeded.
+    // The renderer's gamma ramp (applied as the frame goes to the window) from the options' brightness,
+    // contrast and gamma (kept for GetGamma); false without a device.
     bool SetGamma(float brightness, float contrast, float gamma) override;
     void GetGamma(float* brightness, float* contrast, float* gamma) const override;
     // After a switch back (WM_ACTIVATE): a full-screen device gets its cooperative level and display mode

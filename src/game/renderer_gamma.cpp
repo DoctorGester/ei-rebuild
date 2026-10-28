@@ -1,14 +1,11 @@
-// The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (game.exe's
-// primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame goes to
-// the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
+// The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (the new
+// renderer's, applied as the frame goes to the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
 // changes; no caller reads the result. See docs/notes/renderer.md.
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, Surface
 
 #include "render/render.h"
 #include "lib/nan_audit.h"
-
-#include <ddraw.h>
 
 #include <bit>
 #include <cmath>
@@ -32,8 +29,8 @@ float AtLeast(float v, float limit) {
 }
 float Clamp(float v, float lo, float hi) { return AtLeast(AtMost(v, hi), lo); }
 
-// The ramp of the clamped, halved settings: every channel the same.
-void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma) {
+// The ramp of the clamped, halved settings (one table: every channel the same).
+void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast, float gamma) {
     float scale = std::fabs(contrast) * 4.0f + 1.0f;
     EI_NAN_AUDIT(contrast, gamma);
     if (contrast < 0.0f) scale = 1.0f / scale;
@@ -47,10 +44,8 @@ void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma)
                                              scale + offset);
         value = Clamp(value, 0.0f, 1.0f);
         value = Clamp(value + brightness, 0.0f, 1.0f);
-        auto level = static_cast<WORD>(static_cast<int>(value * kRampScale));   // _ftol: truncated
-        ramp.red[i] = level;
-        ramp.green[i] = level;
-        ramp.blue[i] = level;
+        auto level = static_cast<std::uint16_t>(static_cast<int>(value * kRampScale));   // _ftol: truncated
+        ramp[i] = level;
     }
 }
 
@@ -59,15 +54,14 @@ void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma)
 bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     CTextureDevice* device = device_;
     if (!device) return false;
-    // No primary surface: the new renderer applies the ramp as the frame goes to the window
-    // (render::SetGammaRamp), so there is always gamma control (DirectDraw answers false without
-    // DDCAPS2_PRIMARYGAMMA, else SetGammaRamp's success).
+    // The renderer applies the ramp as the frame goes to the window (render::SetGammaRamp), so there is
+    // always gamma control.
     brightness_ = brightness;
     contrast_ = contrast;
     gamma_ = gamma;
-    DDGAMMARAMP ramp;
+    std::uint16_t ramp[kLevels];
     BuildRamp(ramp, Clamp(brightness, -1.0f, 1.0f) * 0.5f, Clamp(contrast, -1.0f, 1.0f) * 0.5f,
               Clamp(gamma, -1.0f, 1.0f) * 0.5f);
-    render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
+    render::SetGammaRamp(ramp, ramp, ramp);
     return true;
 }
