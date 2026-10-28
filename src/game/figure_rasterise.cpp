@@ -35,7 +35,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Po
         std::atexit(FreeTexturePoints);
     }
     uv.resize(buffers.texCoordCount);
-    float scale = 255.0f /*0073C370*/;
+    float scale = 255.0f;
     for (int i = 0; i < buffers.texCoordCount; ++i) {
         const float* source = &buffers.texCoords[i].u;
         uv[i].x = x87::fistp(static_cast<float>(source[0] * scale));

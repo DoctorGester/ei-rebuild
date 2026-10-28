@@ -45,7 +45,7 @@ constexpr float kMinComponent = 0.01f;
 // The world clock: whole ticks (FILD) and the fraction of the current one.
 // The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
-float CellSize() { return 1.0f /*007441D0*/; }
+float CellSize() { return 1.0f; }
 
 inline bool SignClear(float v) {
     std::uint32_t bits;

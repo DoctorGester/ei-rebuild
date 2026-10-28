@@ -96,7 +96,7 @@ void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 
 const char* SoundCancel() { return game::CancelSoundText(); }
 // The points the three attributes must add up to (a float in the exe's data).
-float AttributePoints() { return 75.0f /*00741C98*/; }
+float AttributePoints() { return 75.0f; }
 
 void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 

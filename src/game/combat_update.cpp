@@ -62,7 +62,7 @@ constexpr int kRemarkBored = 0x29;
 // --- Helpers --------------------------------------------------------------------------------------
 
 // How much faster a dead body sinks every update.
-float SinkAcceleration() { return 0.01f /*0073C548*/; }
+float SinkAcceleration() { return 0.01f; }
 int TickOf(const CWorld* world) { return world->tick_; }
 int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
 // A CPlayerServer on the server.

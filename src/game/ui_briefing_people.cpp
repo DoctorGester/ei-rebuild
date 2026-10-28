@@ -28,7 +28,7 @@
 
 namespace {
 
-float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
+float TurnedOver() { return 3.1415927f; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
 // The seven speakers' places (800 x 600 layout).

@@ -279,7 +279,7 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
 
 // 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f, left unrounded.
 double WheelZoomFactor(int delta) {
-    return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);
+    return libcrt::CiPow(2.5, static_cast<double>(delta) * 0.00083333335f);
 }
 
 } // namespace

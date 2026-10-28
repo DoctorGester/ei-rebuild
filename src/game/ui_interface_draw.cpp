@@ -27,7 +27,7 @@
 namespace {
 
 // The bars' share of the screen height.
-float LetterboxShare() { return 0.217f /*00740150*/; }
+float LetterboxShare() { return 0.217f; }
 
 constexpr float kOpaque = 255.0f;
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
@@ -160,7 +160,7 @@ void CInterface3D::DrawOverlays() {
         if (fpsSurface_) {
             std::string rate;
             float perSecond =
-                static_cast<float>(fpsFrames_) * 1000.0f /*0073C34C*/ / static_cast<float>(static_cast<int>(elapsed));
+                static_cast<float>(fpsFrames_) * 1000.0f / static_cast<float>(static_cast<int>(elapsed));
             rate = str::Format("%.1f", static_cast<double>(perSecond));
             UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();

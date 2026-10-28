@@ -67,12 +67,12 @@ constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0), on (-0.08984375); the selected game
 // type tab's frame is an immediate in the code.
-float FrameOff() { return 0.0f /*0073B858*/; }
-float FrameOn() { return (-0.08984375f /*00741DA0*/); }
-float RefreshPeriod() { return 0.5f /*0073B86C*/; }   // 0.5 s
-float MillisecondsPerSecond() { return 1000.0f /*0073C34C*/; }
-float BarWidth() { return 355.0f /*00741E84*/; }
-float BarLeft() { return 225.0f /*00741E80*/; }
+float FrameOff() { return 0.0f; }
+float FrameOn() { return (-0.08984375f); }
+float RefreshPeriod() { return 0.5f; }   // 0.5 s
+float MillisecondsPerSecond() { return 1000.0f; }
+float BarWidth() { return 355.0f; }
+float BarLeft() { return 225.0f; }
 constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 
 constexpr int kRegionConnect = 0, kRegionBack = 1, kRegionMaster = 2, kRegionAddress = 3, kRegionUnlisted = 4,
@@ -107,7 +107,7 @@ const char* MenuButtonLabel() { return "button03_multiplayer"; }
 const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
 const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
 const char* NameEnd() { return "|"; }
-float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
+float MenuTurn() { return kMenuTilt * 1.2f; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands).
 constexpr float kExtendedSelectionRight = 381.5f;

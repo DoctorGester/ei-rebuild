@@ -13,7 +13,7 @@ namespace {
 
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
-float CellSize() { return 1.0f /*007441D0*/; }
+float CellSize() { return 1.0f; }
 
 // Select idioms (FCOMP; C0 picks): the lower of `a` and `b` (a when unordered), and `a` raised to `bound`
 // (bound when unordered).

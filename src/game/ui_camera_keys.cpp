@@ -74,5 +74,5 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
     g_camera->SetTurnRate(static_cast<float>(D(GameFloat(options::g_options->cameraRotate_.powerKeyboard)) * D(GameFloat(options::g_options->cameraRotate_.speed)) * D(y_)));
     g_camera->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(options::g_options->cameraZoom_.powerKeyboard)) * D(GameFloat(options::g_options->cameraZoom_.speed)) * D(z_))));
     g_camera->SetTiltRate(
-        static_cast<float>(D(GameFloat(options::g_options->cameraPitch_.powerKeyboard)) * D(GameFloat(options::g_options->cameraPitch_.speed)) * D(x_) * D(50.0f /*0074023C*/)));
+        static_cast<float>(D(GameFloat(options::g_options->cameraPitch_.powerKeyboard)) * D(GameFloat(options::g_options->cameraPitch_.speed)) * D(x_) * D(50.0f)));
 }

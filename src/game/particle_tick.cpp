@@ -20,11 +20,11 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
-#define EI_ZERO 0.0f /*0073B858*/          // the z of the up axis the side is crossed with
-#define EI_ONE 1.0f /*0073B84C*/
-#define EI_HALF 0.5f /*0073B86C*/
-#define EI_STILL 0.001 /*0073BA88*/        // below this the source is not moving
-#define EI_DEGENERATE 1e-10 /*0073CE00*/
+#define EI_ZERO 0.0f   // the z of the up axis the side is crossed with
+#define EI_ONE 1.0f
+#define EI_HALF 0.5f
+#define EI_STILL 0.001   // below this the source is not moving
+#define EI_DEGENERATE 1e-10
 
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f

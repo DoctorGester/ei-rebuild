@@ -331,7 +331,7 @@ private:
     void Init(std::uint8_t flag);
 };
 // A new Fear mode's distance, which `distance` returns to.
-inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
+inline float FearDefaultDistance() { return 10.0f; }
 
 // Player: the party's units.
 class PlayerMode : public AIActionMode {

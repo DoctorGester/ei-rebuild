@@ -28,8 +28,8 @@ std::uint8_t g_guard = /*007C2F68*/ {};
 } // namespace
 
 void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
-    double scale = static_cast<double>(1.0f /*0073B84C*/) /
-                   (static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
+    double scale = static_cast<double>(1.0f) /
+                   (static_cast<double>(1.0f) * 0.5f);
     int x = static_cast<int>(scale * position->x);
     int y = static_cast<int>(scale * position->y);
     if (!(g_guard & 1)) {

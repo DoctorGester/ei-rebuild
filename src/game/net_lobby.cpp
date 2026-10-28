@@ -111,7 +111,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 ServerEntryBase::ServerEntryBase() {
     std::memset(&address_, 0, sizeof(address_));
     SetBits(timeout_, 0);
-    ping_ = 9.999f /*0073BFA0*/;
+    ping_ = 9.999f;
     foreign_ = 0;
     state_ = kLocal;
 }
@@ -240,11 +240,11 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     auto query = v.QueriesFind(from);
     if (local) {
         e->state_ = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
-        e->timeout_ = 20.0f /*0073BF98*/;
+        e->timeout_ = 20.0f;
     } else if (query != end) {
         e->state_ = ServerEntry::kAsked;
         auto count = static_cast<std::uint32_t>(v.list.size());
-        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f /*0073B86C*/ + 20.0f /*0073BF98*/);   // FILD qword
+        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f + 20.0f);   // FILD qword
     } else {
         if (node == servers_.end()) {
             entry.Destroy();
@@ -458,7 +458,7 @@ void ClientBase::Tick(double dt) {
                     node = servers_.erase(node);
                     continue;
                 }
-                e->ping_ = 9.999f /*0073BFA0*/;
+                e->ping_ = 9.999f;
             }
         }
         ++node;
@@ -468,7 +468,7 @@ void ClientBase::Tick(double dt) {
     double left = static_cast<double>(retryTimer_) - dt;
     retryTimer_ = static_cast<float>(left);
     if (left > 0.0) return;
-    if (retryInterval_ > 3.0f /*0073BAA4*/) {
+    if (retryInterval_ > 3.0f) {
         LogLine("Connection failed");
         joinState_ = kNotJoined;
         return;
@@ -544,7 +544,7 @@ void ServerBase::Tick(double dt) {
         float& age = node->age;
         double sum = static_cast<double>(age) + dt;
         age = static_cast<float>(sum);
-        if (sum > static_cast<double>(60.0f /*0073BF9C*/)) {
+        if (sum > static_cast<double>(60.0f)) {
             LogAddressLine("Accept period elapsed for ", &node->address);
             node = joins_.erase(node);
         } else {

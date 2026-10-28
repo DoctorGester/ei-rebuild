@@ -289,7 +289,7 @@ void LastFps(std::vector<std::string>*) {
     auto* timer = &g_sceneRenderer.Get();
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
-    double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
+    double fps = 1000.0f / x87::FromUnsigned(ms);
     EndLine(os << fps);
 }
 

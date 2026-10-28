@@ -54,7 +54,7 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
+float HalfCell() { return 1.0f * 0.5f; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -507,7 +507,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
     float dx = point->x - unit->localPosition_.x;
     float dy = point->y - unit->localPosition_.y;
     float dz = point->z - unit->localPosition_.z;
-    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
+    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
         CSectorMap* sectors = &world->aiMap_.sectorMap;
         sectors->FindUnitsInRadius(point, list, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
@@ -561,7 +561,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);
-        bool stillFar = reached * 0.010000001f /*0073F0B8*/ > left;   // unordered: not far
+        bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
             self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;

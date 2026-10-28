@@ -98,20 +98,20 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
-        sprite->Place(static_cast<float>(left + right) * 0.5f /*0073B86C*/, 32.0f, 7.0f);
+        sprite->Place(static_cast<float>(left + right) * 0.5f, 32.0f, 7.0f);
         sprite->SetScale(0.3f);
         Vector3 axis{1.0f, 0.0f, 0.0f};
         Quaternion turn;
         // pi * 1.05, passed as a float.
         sprite->localRotation_ =
-            *turn.SetAxisAngle(axis, 3.1415927f /*007410D0*/ * 1.05f /*0073CEE0*/);
+            *turn.SetAxisAngle(axis, 3.1415927f * 1.05f);
     } else {
         sprite = AddBlankSprite();
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
-    sprite->textureOffsetU_ = static_cast<float>(u) * 0.00390625f /*0073EEB8*/;
-    sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f /*0073EEB8*/;
+    sprite->textureOffsetU_ = static_cast<float>(u) * 0.00390625f;
+    sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f;
     sprite->texture_ = objects_[std::ssize(objects_) - 1];
     ++portraits_;
     AddRegion()->SetRect(left, 0, right, 0x50);

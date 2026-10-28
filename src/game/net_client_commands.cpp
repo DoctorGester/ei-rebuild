@@ -73,7 +73,7 @@ double ClientSession::BufferRatio(GameBuffer* buffer) {
         return buffer->PositionOf(buffer->high);
     };
     if (streamSize() < 4) {
-        return 0.0f /*0073B858*/;
+        return 0.0f;
     }
     buffer->Seek(0);
     std::uint32_t stored;

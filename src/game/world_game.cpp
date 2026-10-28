@@ -176,14 +176,14 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
             std::string variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = static_cast<int>(libcrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
+        int ticks = static_cast<int>(libcrt::Ftol((static_cast<double>(now) - left) * 100.0f));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
         const ZoneExit* exit = &zoneRecord->exits[entrance];
         Vector3 point;
-        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f /*0073B86C*/);
-        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
+        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
+        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
             g_serverWorld->WakeUnitsAround(&point, kCatchUpRadius);
@@ -1075,7 +1075,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        g_serverWorld->SetTime(static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
+        g_serverWorld->SetTime(static_cast<float>(minute) * 0.016666668f + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu: the first script command queue runs in the menu too.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) g_serverWorld->scriptsActive_ = 1;

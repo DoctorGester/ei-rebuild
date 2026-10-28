@@ -46,7 +46,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
     std::string s(text, text + std::strlen(text));
-    const std::size_t npos = 0xFFFFFFFFu /*0073BDE8*/;
+    const std::size_t npos = 0xFFFFFFFFu;
     int number = defaultPort;
     std::size_t colon = npos;
     if (s.size() != 0) {

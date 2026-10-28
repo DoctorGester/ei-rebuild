@@ -86,8 +86,8 @@ constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`, rounded to the nearest integer through a float.
 int ScaledExperience(const CUnit* unit, float amount) {
-    double base = 1.04 /*0073E128*/;
-    float offset = 25.0f /*0073E124*/;
+    double base = 1.04;
+    float offset = 25.0f;
     float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->params.intelligence) - offset) * amount);
     return x87::RoundToInt(scaled);
 }

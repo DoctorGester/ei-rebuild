@@ -304,7 +304,7 @@ void SkipRecords34(char** cursor) {
 }
 
 // The limit on the squared distance of the position from the origin (the float 1e8).
-inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
+inline float FarLimit() { return 100000000.0f; }
 
 // Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
 // as a mask on the float bits, so a NaN on either side takes the point.

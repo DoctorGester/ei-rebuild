@@ -28,8 +28,8 @@
 namespace {
 
 // Values read from the exe's memory (rule 9).
-float Half() { return 0.5f /*0073B86C*/; }
-float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
+float Half() { return 0.5f; }
+float CellSize() { return 1.0f; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
 constexpr int kClassQuestItem = 0x14;

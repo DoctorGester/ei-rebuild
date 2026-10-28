@@ -43,7 +43,7 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
 }
 
 // The cell size (1) the light bounds are divided by.
-float CellSize() { return 1.0f /*00744160*/; }
+float CellSize() { return 1.0f; }
 
 bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
 

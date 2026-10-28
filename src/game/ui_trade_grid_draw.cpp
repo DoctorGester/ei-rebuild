@@ -45,7 +45,7 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, std::vector<CItem*>* list
     for (int i = 0; i < count; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
-        ItemCell cell{items[i], static_cast<float>(x) + 250.0f /*0073BF48*/, static_cast<float>(y) + yOffset,
+        ItemCell cell{items[i], static_cast<float>(x) + 250.0f, static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
         grid->owner_->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
@@ -80,9 +80,9 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     auto* surface = surfaces_[0];
     surface->GetDC();
     surface->Clear();
-    DrawItems(this, pass, bought_, surface, text, 150.0f /*0073D618*/, 48.0f, 24.0f, 0x0F, 0x41,
+    DrawItems(this, pass, bought_, surface, text, 150.0f, 48.0f, 24.0f, 0x0F, 0x41,
               buyKind_);
-    DrawItems(this, pass, sold_, surface, text, 350.0f /*00741F18*/, 12.0f, 6.0f, 0xD7, 0x109,
+    DrawItems(this, pass, sold_, surface, text, 350.0f, 12.0f, 6.0f, 0xD7, 0x109,
               sellKind_);
     surface->ReleaseDC();
     ui = interface_;

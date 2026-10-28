@@ -34,7 +34,7 @@ constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a se
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
-    return kHudQuarterTurn * 0.14285715f /*0073CDCC*/;
+    return kHudQuarterTurn * 0.14285715f;
 }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;

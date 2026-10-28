@@ -50,13 +50,13 @@ constexpr COLORREF kColourText = 0xA7D7E4;
 constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
-float ConstOne() { return 1.0f /*0073B84C*/; }
-float ConstFromStep() { return 50.0f /*0074023C*/; }   // value = setting * 50
-float ConstToStep() { return 0.02f /*00742B80*/; }     // setting = value * 0.02
-float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // setting 20's value
-float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // setting 20 from it
-float ConstHalf() { return 0.5f /*0073B86C*/; }       // the slider's centre
-float ConstThumbLift() { return 0.1f /*0073B850*/; }  // the thumb above the track
+float ConstOne() { return 1.0f; }
+float ConstFromStep() { return 50.0f; }   // value = setting * 50
+float ConstToStep() { return 0.02f; }     // setting = value * 0.02
+float ConstScrollFrom() { return 4.0f; } // setting 20's value
+float ConstScrollTo() { return 0.25f; }   // setting 20 from it
+float ConstHalf() { return 0.5f; }       // the slider's centre
+float ConstThumbLift() { return 0.1f; }  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).

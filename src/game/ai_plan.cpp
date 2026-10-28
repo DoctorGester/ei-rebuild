@@ -28,8 +28,8 @@ struct Waypoint {
 SpiralCache g_spiral = /*007C2F58*/ {};
 std::uint8_t g_spiralGuard = /*007C2F60*/ {};
 
-double Threshold() { return 15.0 /*0073F0A8*/; }
-float Half() { return 0.5f /*0073B86C*/; }
+double Threshold() { return 15.0; }
+float Half() { return 0.5f; }
 
 } // namespace
 

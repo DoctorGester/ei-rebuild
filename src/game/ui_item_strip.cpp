@@ -56,15 +56,15 @@ void CUiItemStrip::Build(char top) {
     AddRect(this, 50, top_, 750, top_ + 100);
 
     const float y = static_cast<float>(top_);
-    const float hundred = 100.0f /*0073BAB0*/;
+    const float hundred = 100.0f;
     // The ends' faces.
-    float depth = scale_ * 0.8f /*0073CCA8*/;
+    float depth = scale_ * 0.8f;
     AddBlankSprite()->SetRectangleVanilla(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
-    depth = scale_ * 0.8f /*0073CCA8*/;
+    depth = scale_ * 0.8f;
     AddBlankSprite()->SetRectangleVanilla(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
-    const float y5 = 5.0f /*0073BF34*/, y35 = 35.0f /*007403E0*/, y65 = 65.0f /*00741350*/,
-                y95 = 95.0f /*00741F08*/;
+    const float y5 = 5.0f, y35 = 35.0f, y65 = 65.0f,
+                y95 = 95.0f;
     struct Tab {
         float left, right;
         int u0, u1;
@@ -75,20 +75,20 @@ void CUiItemStrip::Build(char top) {
         const float bottoms[3] = {y35, y65, y95};
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
-            depth = scale_ * 0.6f /*0073CDE0*/;
+            depth = scale_ * 0.6f;
             AddBlankSprite()->SetRectangleVanilla(depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = AddBlankSprite();
-    frame->Framed(scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(scale_ * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
     AddBlankSprite()->SetGridVanilla(scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
-    const float fifty = 50.0f /*0074023C*/, hundredFifty = 150.0f /*0073D618*/;
+    const float fifty = 50.0f, hundredFifty = 150.0f;
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = AddBlankSprite();
         const float fx = static_cast<float>(x);
@@ -105,10 +105,10 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    const float hundred = 100.0f /*0073BAB0*/, fifty = 50.0f /*0074023C*/, one = 1.0f /*0073B84C*/;
+    const float hundred = 100.0f, fifty = 50.0f, one = 1.0f;
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;
-    SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
+    SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f ? dim : 0.0f;
     SceneMesh(1)->textureOffsetU_ = static_cast<float>(std::ssize(list_) - 7) > position_[tab_] ? dim : 0.0f;
 
     SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
@@ -132,7 +132,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         cell.mode = mode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
-        cell.depth = scale_ * 1.5f /*0073C51C*/;
+        cell.depth = scale_ * 1.5f;
         owner_->DrawItem(pass, &cell);   // the owner screen's item cell draw
     }
 
@@ -178,17 +178,17 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
 // --- The strip's per-frame scroll ---------------------------------------------------
 
 void CUiItemStrip::Update() {
-    const float zero = 0.0f /*0073B858*/;
-    const float repeat = 0.1f /*00741EC0*/;      // seconds per slot while an arrow is held
-    const float nearDistance = 0.5f /*00741EB4*/;  // slots: closer than this the scroll eases out
-    const float easeDivisor = 0.25f /*00741EB8*/;
-    const float accel = 15.0f /*00741EBC*/;       // slots/s^2
-    const float maxSpeed = 7.0f /*00741EB0*/;    // slots/s
-    const float half = 0.5f /*0073B86C*/;
-    const float snapLow = 0.01f /*0073C548*/;
-    const float snapPending = 0.02f /*0073CCD8*/;
-    const float snapHigh = 0.99f /*00741F0C*/;
-    const float one = 1.0f /*0073B84C*/;
+    const float zero = 0.0f;
+    const float repeat = 0.1f;      // seconds per slot while an arrow is held
+    const float nearDistance = 0.5f;  // slots: closer than this the scroll eases out
+    const float easeDivisor = 0.25f;
+    const float accel = 15.0f;       // slots/s^2
+    const float maxSpeed = 7.0f;    // slots/s
+    const float half = 0.5f;
+    const float snapLow = 0.01f;
+    const float snapPending = 0.02f;
+    const float snapHigh = 0.99f;
+    const float one = 1.0f;
     const float dt = static_cast<float>(CUiContainer::FrameTime());
 
     // An arrow held: one slot at once, then one more every `repeat` seconds.

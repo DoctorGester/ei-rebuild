@@ -41,7 +41,7 @@ void CItemScreen::BestPartySkill(int, int* skill, int* mana) {
 
 CUnit* CItemScreen::HeroUnit(int) { return nullptr; }
 
-double CItemScreen::Weight() { return 0.0 /*0073B858*/; }
+double CItemScreen::Weight() { return 0.0; }
 
 int CItemScreen::Price(CItem*, int) { return 0; }
 

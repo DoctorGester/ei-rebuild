@@ -24,16 +24,16 @@ namespace {
 int g_weatherDelay = /*007C2DFC*/ {};
 
 // Constants read from the exe (rule 9).
-double MapScale() { return 1.1920928957853683e-7 /*0073FA40*/; }        // 2^-23: a random word to map coordinates
-double OffsetScale() { return 3.259629011913116e-8 /*0073FA38*/; }     // a random word to 0..140
-float OffsetCentre() { return 70.0f /*0073FA34*/; }
-float MinDistance2() { return 900.0f /*0073FA30*/; }
-double BoltScale() { return 1.1827796700370451e-7 /*0073FA28*/; }
-double BoltSpread() { return 9.31322574832319e-10 /*0073FA20*/; }
-float Two() { return 2.0f /*0073CDB8*/; }
-float Five() { return 5.0f /*0073BF34*/; }
-float BoltHeight() { return 40.0f /*0073D72C*/; }
-float One() { return 1.0f /*0073B84C*/; }
+double MapScale() { return 1.1920928957853683e-7; }        // 2^-23: a random word to map coordinates
+double OffsetScale() { return 3.259629011913116e-8; }     // a random word to 0..140
+float OffsetCentre() { return 70.0f; }
+float MinDistance2() { return 900.0f; }
+double BoltScale() { return 1.1827796700370451e-7; }
+double BoltSpread() { return 9.31322574832319e-10; }
+float Two() { return 2.0f; }
+float Five() { return 5.0f; }
+float BoltHeight() { return 40.0f; }
+float One() { return 1.0f; }
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
@@ -127,7 +127,7 @@ void ShowRainBolt(CWorldServer* world) {
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 CScript& ScriptQueue() { return *g_serverWorld->SecondScript(); }   // a command queue (adds a line)
 
-float Half() { return 0.5f /*0073B86C*/; }
+float Half() { return 0.5f; }
 
 } // namespace
 

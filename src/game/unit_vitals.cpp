@@ -63,8 +63,8 @@ double ExperienceCurve(const float* base, const float* experience, const float* 
 
 // 1.04 (a double) ^ (intelligence - 25) through _CIpow, unrounded.
 double IntelligenceFactor(const float* intelligence) {
-    return libcrt::CiPow(1.04 /*0073E128*/,
-                         static_cast<double>(*intelligence) - 25.0f /*0073E124*/);
+    return libcrt::CiPow(1.04,
+                         static_cast<double>(*intelligence) - 25.0f);
 }
 
 // The level value of skill `skill` (0 without a level or a record), unsigned and exact.
@@ -158,7 +158,7 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
 // 1.61 (a double) ^ (level / divisor) * factor through _CIpow, unrounded: the experience a skill or
 // attribute level is worth.
 double LevelWorth(int level) {
-    return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / g_logicSettings.skillVal[1]) *
+    return libcrt::CiPow(1.61, static_cast<double>(level) / g_logicSettings.skillVal[1]) *
            g_logicSettings.skillVal[0];
 }
 

@@ -32,7 +32,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     const UnitRecordStats& r = stats;
     CItemManager* factory = g_serverWorld->itemManager_;
     CUnit* unit = target;
-    const float k0 = 0.0f /*0073B858*/;
+    const float k0 = 0.0f;
     EI_NAN_AUDIT(r.speed, r.rate);
     bool noStats = r.speed == k0 && r.maxHitPoints == 0 && r.rate == k0;
     if (noStats || applyStats == 0) {

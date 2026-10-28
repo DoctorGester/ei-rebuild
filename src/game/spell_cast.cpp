@@ -33,7 +33,7 @@ constexpr int kClassSpellContainer = 0x3003;
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(libcrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
 // sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
-double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f /*00743A7C*/); }
+double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f); }
 
 // field += strength * base, stored as a float, then kept only when above zero (a branch-free select: 0 <
 // value or NaN keeps it, anything else gives +0).

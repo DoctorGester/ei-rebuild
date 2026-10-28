@@ -52,12 +52,12 @@ constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0.001
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
-float Pi() { return 3.1415927f /*007440D8*/; }
+float Pi() { return 3.1415927f; }
 constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
 // The fade step every fade request uses (1/96), copied as a dword.
-std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
+std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }
 // StopStream's fade-out step, loaded and tested as a float.
-float StopFadeStep() { return 0.010416667f /*007440E8*/; }
+float StopFadeStep() { return 0.010416667f; }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
 std::list<WaveRecord>::iterator& CacheEntry(std::unordered_map<std::string, std::list<WaveRecord>::iterator>& cache, const SoundSlot* slot) { return cache[slot->name]; }

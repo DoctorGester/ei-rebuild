@@ -55,7 +55,7 @@ const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
 // 2.0: a unit level at most this asks the client to refresh the party.
-float LowLevel() { return 2.0f /*0073CDB8*/; }
+float LowLevel() { return 2.0f; }
 
 // The texts of the traffic log (read from the exe).
 const char* TextServerToClient() { return "server to client, size = "; }

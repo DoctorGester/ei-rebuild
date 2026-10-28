@@ -42,7 +42,7 @@ constexpr int kLayoutHeight = 600;
 constexpr int kSurfaceFormat = 5;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
 // exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by a static initialiser).
-float AppearTime() { return 0.0f /*00742F2C*/; }
+float AppearTime() { return 0.0f; }
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {

@@ -29,16 +29,16 @@ namespace {
 constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
 // The constants of this code (all floats in .rdata).
-double One() { return 1.0 /*00744160 f*/; }          // 1: vertex spacing
-double SectorCells() { return 32.0 /*0073CA90 f*/; }
-double Half() { return 0.5 /*0073B86C f*/; }
-double MinusHalf() { return (-0.5 /*0073CDC8 f*/); }
-double OffsetScale() { return 0.007936508394777775 /*00744190 f*/; }  // 1/126: vertex displacement per unit
-double HeightUnit() { return 0.000015259254723787308 /*0073FD84 f*/; }   // 1/65534 (37800100)
-double NormalScale() { return 0.0010000000474974513 /*0074040C f*/; }  // 0.001
-double NormalBias() { return 1000.0 /*0073C34C f*/; }
-double VOne() { return 1.0 /*0073B84C f*/; }         // 1: v = 1 - v
-double Zero() { return 0.0 /*0073B858 f*/; }
+double One() { return 1.0; }          // 1: vertex spacing
+double SectorCells() { return 32.0; }
+double Half() { return 0.5; }
+double MinusHalf() { return (-0.5); }
+double OffsetScale() { return 0.007936508394777775; }  // 1/126: vertex displacement per unit
+double HeightUnit() { return 0.000015259254723787308; }   // 1/65534 (37800100)
+double NormalScale() { return 0.0010000000474974513; }  // 0.001
+double NormalBias() { return 1000.0; }
+double VOne() { return 1.0; }         // 1: v = 1 - v
+double Zero() { return 0.0; }
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
@@ -487,7 +487,7 @@ const float* Terrain::TileUv(int rotation, int index, int page) {
 }
 
 int Terrain::SurfaceClass(float x, float y) {
-    double unit = 1.0 /*007441D0 f*/;
+    double unit = 1.0;
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;

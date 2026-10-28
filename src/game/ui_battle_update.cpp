@@ -375,7 +375,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
-                                    0.14285715f /*0073CDCC*/;   // 1/7
+                                    0.14285715f;   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
@@ -397,8 +397,8 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
     std::string text;
     std::string title;
     text::Split(name, &parts, '.');
-    const float complete = 2.0f /*0073CDB8*/;
-    const float failed = 3.0f /*0073BAA4*/;
+    const float complete = 2.0f;
+    const float failed = 3.0f;
     if (parts.size() == 3) {
         const char* key;
         if (Equal(value, complete)) {
@@ -428,7 +428,7 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
             double current = LocalPlayerVariable(variable);
             // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);
-            if (current == static_cast<double>(0.0f /*0073B858*/)) return;
+            if (current == static_cast<double>(0.0f)) return;
         }
         const char* key;
         if (Equal(value, complete)) {

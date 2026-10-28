@@ -79,7 +79,7 @@ constexpr float kPercent = 100.0f;
 constexpr float kPi = 3.14159274f;
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
-float CellSize() { return 1.0f /*007441D0*/; }
+float CellSize() { return 1.0f; }
 // pi / 2 (a static initialiser: the constant * 0.5).
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi * 0.5
 

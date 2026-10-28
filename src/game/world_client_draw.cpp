@@ -112,14 +112,14 @@ float LandscapeDrawRadius() {
 void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
 
 // The object margin around the camera when collecting what to draw (100.0).
-float ObjectsDrawMargin() { return 100.0f /*0073BAB0*/; }
+float ObjectsDrawMargin() { return 100.0f; }
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
-float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
+float MapEdgeMargin() { return 1.0f; }
 // The length of the shadows' projection along the camera's Z axis.
-float ShadowLength() { return (-0.02f /*0073F750*/); }
+float ShadowLength() { return (-0.02f); }
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }

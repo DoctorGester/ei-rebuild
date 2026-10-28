@@ -62,10 +62,10 @@ inline double UnitScale(CObject3D* object) { return Carrier(object)->Radius(); }
 
 constexpr int kUnitClass = 0x50;
 
-#define EI_P_ONE 1.0f /*0073B84C*/
-#define EI_P_ZERO 0.0f /*0073B858*/
-#define EI_P_SCALE_2 4.656612874161595e-10 /*0073C508*/     // ~2^-31
-#define EI_P_SCALE_1 2.3283064370807974e-10 /*0073C468*/     // ~2^-32
+#define EI_P_ONE 1.0f
+#define EI_P_ZERO 0.0f
+#define EI_P_SCALE_2 4.656612874161595e-10   // ~2^-31
+#define EI_P_SCALE_1 2.3283064370807974e-10   // ~2^-32
 
 // Next() * 2^-31 - 1: a random value in [-1, 1), rounded to float.
 inline float SignedUnit() { return static_cast<float>(Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE)); }

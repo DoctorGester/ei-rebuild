@@ -44,8 +44,8 @@ constexpr float kSpinDegrees = 30.0f;
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
-double Pi() { return 3.141592653589793 /*00744238*/; }
-double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
+double Pi() { return 3.141592653589793; }
+double PerDegree() { return 0.005555555555555556; }
 bool BloodPrintsOn() { return options::g_options->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::g_options->enableFootprints_ != 0; }
 bool ScorchMarksOn() { return options::g_options->enableFireprints_ != 0; }

@@ -100,10 +100,10 @@ public:
 
     Vector3 Centre() const {
         float depth = map_->depth_;
-        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f /*0074015C*/) - D(1.0f /*0073B84C*/)) *
-                        D(0.48157462f /*0074209C*/) * D(depth));
-        float y = static_cast<float>((D(map_->centreY_) * D(0.0025f /*0074015C*/) - D(0.75f /*0073C524*/)) *
-                        D(0.48157462f /*0074209C*/) * D(depth));
+        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f) - D(1.0f)) *
+                        D(0.48157462f) * D(depth));
+        float y = static_cast<float>((D(map_->centreY_) * D(0.0025f) - D(0.75f)) *
+                        D(0.48157462f) * D(depth));
         return Vector3{x, y, depth};
     }
     Vector3 ModelPoint(const Vector3& local) const {
@@ -155,10 +155,10 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
-    int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
-    int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
-    int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
+    int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f)));
+    int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f)));
+    int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f)));
+    int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f)));
     map->AddRegion()->SetRect(left, top, right, bottom);
 }
 
@@ -224,14 +224,14 @@ void CGlobalMap::CreateScreen() {
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
-        q.SetAxisAngle(axis, static_cast<float>(D(3.1415927f /*00742098*/) * D(0.8f /*0073CCA8*/)));   // pi * 0.8
+        q.SetAxisAngle(axis, static_cast<float>(D(3.1415927f) * D(0.8f)));   // pi * 0.8
         std::memcpy(&turn_, &q, 16);
     }
     MapBuilder builder(this);
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f /*0073CDB8*/))};
+        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f))};
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
         builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
@@ -306,7 +306,7 @@ void CGlobalMap::CreateScreen() {
                     Vector3 local = quests_[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
-                    sprite->SetScale(0.3f /*007420D0*/);
+                    sprite->SetScale(0.3f);
                     builder.Turn(sprite);
                     SetWhite(sprite);
                     float x, y, depth;
@@ -326,7 +326,7 @@ void CGlobalMap::CreateScreen() {
             variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;
             double state = D(LocalPlayerVariable(variable));
-            double two = D(2.0f /*0073CDB8*/);
+            double two = D(2.0f);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
             if (!NonEmpty(way->figure)) continue;
@@ -348,7 +348,7 @@ void CGlobalMap::CreateScreen() {
             Vector3 local = links_[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
-            sprite->SetScale(0.3f /*007420D0*/);
+            sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
             AddMarkerRegion(this, sprite);
@@ -405,7 +405,7 @@ void CGlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));
+    int minutes = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f)));
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -493,8 +493,8 @@ void CGlobalMap::Update() {
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
-        float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f /*00742098*/) *
-                                 D(0.25f /*0073C3B0*/) +
+        float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f) *
+                                 D(0.25f) +
                              D(angle_));
         angle_ = turned;
         angle_ = FmodStored(turned, &kGlobalMapFullTurn);
@@ -503,11 +503,11 @@ void CGlobalMap::Update() {
         Quaternion spin;
         spin.SetAngleAxis(angle_, up);
         Quaternion tilt;
-        tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f /*00742098*/) * D(0.8f /*0073CCA8*/)));
+        tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f) * D(0.8f)));
         Quaternion turn = TurnProduct(spin, tilt);
         std::memcpy(&turn_, &turn, 16);
         EI_NAN_AUDIT(turn_.w);
-        if (D(turn_.w) < D(0.0f /*0073B858*/)) {
+        if (D(turn_.w) < D(0.0f)) {
             turn_.w = -turn_.w;
             turn_.x = -turn_.x;
             turn_.y = -turn_.y;
@@ -534,22 +534,22 @@ void CGlobalMap::Update() {
             builder.Turn(sprite);
             float x, y, depth;
             sprite->GetPlacement(&x, &y, &depth);
-            int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
-            int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
-            int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
-            int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
+            int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f)));
+            int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f)));
+            int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f)));
+            int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f)));
             regions_[3 + i]->SetRect(left, top, right, bottom);
         }
     }
 
     double time = FrameTime() + D(bobTime_);
     bobTime_ = static_cast<float>(time);
-    double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
+    double bob = D(0.5f) - x87::fcos(time * D(5.0f)) * D(0.2f);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(SceneMesh(0), builder.ModelPoint(above));
-    SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
-    SetFrameFraction(sceneObjects_[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);
-    SetFrameFraction(sceneObjects_[markerCount_ + 5], bobTime_, 0.033333335f /*007420E0*/);
+    SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f);
+    SetFrameFraction(sceneObjects_[markerCount_ + 4], bobTime_, 0.016666668f);
+    SetFrameFraction(sceneObjects_[markerCount_ + 5], bobTime_, 0.033333335f);
 
     if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;

@@ -36,7 +36,7 @@ std::list<SharedRefTo<VariableMessage>>::iterator ServerSession::FindOrAddVariab
 // Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
 void ServerSession::SetVariable(const std::string* name, float value) {
     EI_NAN_AUDIT(value);
-    if (value != 0.0f /*0073B858*/) {
+    if (value != 0.0f) {
         VariableMessage* variable = FindOrAddVariable(name)->Get();
         std::memcpy(&variable->value_, &value, 4);
         variable->serial_ = g_variableSerial;
@@ -66,7 +66,7 @@ void ServerSession::RaiseVariable(const std::string* name, float value) {
     ++g_variableSerial;
     ++found->Get()->version_;
     EI_NAN_AUDIT(found->Get()->value_);
-    if (found->Get()->value_ == 0.0f /*0073B858*/) {
+    if (found->Get()->value_ == 0.0f) {
         auto node = FindVariable(name);
         if (node != variables_.end()) variables_.erase(node);
     }
@@ -82,7 +82,7 @@ void ServerSession::RemoveVariable(const std::string* name) {
 double ServerSession::GetVariable(const std::string* name) {
     auto node = FindVariable(name);
     if (node != variables_.end()) return node->Get()->value_;
-    return 0.0f /*0073B858*/;
+    return 0.0f;
 }
 
 } // namespace net

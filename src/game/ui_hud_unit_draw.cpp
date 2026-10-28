@@ -27,16 +27,16 @@
 namespace {
 
 // The constants read at run time.
-float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 1 / 400, half the layout's width
-float One() { return 1.0f /*0073B84C*/; }
-float DepthUnit() { return 0.48157462f /*007423FC*/; }        // the layout's half height at depth 1
-float ModelDepth() { return 9.0f /*0074242C*/; }       // how far in front of the camera the model stands
-float ModelDrop() { return 0.25f /*0073C3B0*/; }        // of the view's half height below the centre
-float TurnAboutZ() { return 0.05f /*0073C52C*/; }
-float TurnAboutX() { return 1.15f /*00742AE8*/; }
-float SecondTurnAboutZ() { return 0.4f /*0073B868*/; }
-float BarHeight() { return 15.0f /*00742430*/; }
-float PanelHeight() { return 220.0f /*00742AE4*/; }
+float LayoutUnit() { return 0.0025f; }       // 1 / 400, half the layout's width
+float One() { return 1.0f; }
+float DepthUnit() { return 0.48157462f; }        // the layout's half height at depth 1
+float ModelDepth() { return 9.0f; }       // how far in front of the camera the model stands
+float ModelDrop() { return 0.25f; }        // of the view's half height below the centre
+float TurnAboutZ() { return 0.05f; }
+float TurnAboutX() { return 1.15f; }
+float SecondTurnAboutZ() { return 0.4f; }
+float BarHeight() { return 15.0f; }
+float PanelHeight() { return 220.0f; }
 constexpr int kBackground = 0;        // scene objects
 constexpr int kHeightBar = 8;
 constexpr int kMoreMark = 9;

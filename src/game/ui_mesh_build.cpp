@@ -81,7 +81,7 @@ void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
 // is used unrounded in the same expression.
 
 double CircleAngle(int j, int n) {
-    const double turn = static_cast<double>(j) * 3.1415927f /*00740154*/;
+    const double turn = static_cast<double>(j) * 3.1415927f;
     return (turn + turn) / n;
 }
 
@@ -100,9 +100,9 @@ float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w,
 // 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const double angle = CircleAngle(j, n);
-    const double scale = 0.00390625f /*0073EEB8*/;
+    const double scale = 0.00390625f;
     if (!sine) return static_cast<float>((x87::fcos(angle) * radius + centre) * scale);
-    return static_cast<float>(1.0f /*0073B84C*/ - (x87::fsin(angle) * radius + centre) * scale);
+    return static_cast<float>(1.0f - (x87::fsin(angle) * radius + centre) * scale);
 }
 
 } // namespace

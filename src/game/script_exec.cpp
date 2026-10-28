@@ -62,7 +62,7 @@ constexpr int kClassQuestItem = 0x14;
 
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
-float ColourScale() { return 0.003921569f /*0073C36C*/; }
+float ColourScale() { return 0.003921569f; }
 
 
 bool ServerActive() {

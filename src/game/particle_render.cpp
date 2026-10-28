@@ -28,7 +28,7 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-#define EI_ONE 1.0f /*0073B84C*/
+#define EI_ONE 1.0f
 
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 void FreeVertices() { lib::FreeStorage(g_vertices); }
