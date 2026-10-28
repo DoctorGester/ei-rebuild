@@ -575,8 +575,9 @@ record, modifier descriptions reached by none): `DescribeStats` (005F1590, 4.9 K
 "points at the current indices"; S with arrays poisoned 0xCD; every scenario); surface helpers `CaptureScreen`, `Rgb565Copy`
 (the save picture), `Greyscale` ((2r + 4g + b) / 16), `SwapContents` (O), `PixelAt` (`ui_surface_pixels.cpp`; S; ui_screens),
 constructors / destructor body (`ui_surface_create.cpp`; O; the picture window is dead); `DrawHeroFace` 005ED7B0 (EI_Plugin's
-fix at +0xD9 keeps the original under the plugin), `ItemFigureTexture` (256x256 from "<name>.mmp" via converter 007AF06C slot 5;
-locks without DDLOCK_WAIT, left held if the error report returns 0), `CUiWindow::DrawHeroPreview` 005EC300 (O) (`ui_item_view.cpp`;
+fix at +0xD9 keeps the original under the plugin), `ItemFigureTexture` (256x256 from "<name>.mmp"; the original
+unpacked it via converter 007AF06C slot 5 and packed 1:5:5:5 under the device lock; R28: drawn on the GPU,
+`render::DrawIntoTexture`, as CopyImage is), `CUiWindow::DrawHeroPreview` 005EC300 (O) (`ui_item_view.cpp`;
 S on pixels); `CItemScreen::CreateBase`, `CItemIconWindow::Build`, `TrimItemModels` / `TrimItemTextures` (O).
 
 Facts: the camp creates the description panel (+0x164 at 600, 100) and the help panel (+0x1DC at 0, 100); the owner (+0x14C) is the
