@@ -947,7 +947,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         console::EndLine(console::g_netLogOut << kAcceptedPlayer << id);
         node = next;
     }
-    // The list's inlined destructor: every reference released, then the blocks.
+    // The list's destructor: every reference released, then the blocks.
     for (auto node = joined.begin(); node != joined.end(); ++node) ReleaseSession(*node);
     joined.clear();
 }
@@ -1528,7 +1528,7 @@ void SavedParties::Reload() {
         if (entry->ReadFile(folder_.c_str())) {
             NamedFloatTable* variables = &entry->Party()->variables_;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
-                // Rebirth's PersistentGlobalVars: the inlined clear is skipped and the table is cleared
+                // Rebirth's PersistentGlobalVars: the clear is skipped and the table is cleared
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {

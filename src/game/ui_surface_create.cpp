@@ -29,7 +29,7 @@ std::uint32_t SurfaceBytes(CDXSurface* holder) {
 }
 
 // Puts `made` (counted once more, may be null) into the surface's holder and drops the previous one's
-// reference through the inlined body of the reference release (the deleting destructor at zero).
+// reference through the body of the reference release (the deleting destructor at zero).
 void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
     CDXSurface* previous = self->holder_;
     self->holder_ = made;

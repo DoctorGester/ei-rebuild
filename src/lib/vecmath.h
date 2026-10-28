@@ -275,7 +275,7 @@ __forceinline float DistanceSquaredZYX(const Vector3& a, const Vector3& b) { ret
 __forceinline float DistanceZYX(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZYX>(a, b); }
 __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
 
-// The rotated Y axis of q as Quaternion::AxisY and the game's inlined copies of it compute it: (2(yx - wz), (w^2
+// The rotated Y axis of q as Quaternion::AxisY and the game's copies of it compute it: (2(yx - wz), (w^2
 // - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition, each component
 // rounded to float (they store it before negating), nothing stored before that. Precise: /fp:fast had turned
 // these ports' written-out 2(yz + wx) into (2wx + yz) + yz (a second rounding) and one copy's
@@ -358,7 +358,7 @@ __forceinline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
            static_cast<T>(a.x) * b.x;
 }
 
-// A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the inlined
+// A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the
 // copies of Quaternion::AxisX that keep them on the FPU).
 template <typename T>
 struct AxisUnrounded {

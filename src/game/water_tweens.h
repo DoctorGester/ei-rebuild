@@ -30,7 +30,7 @@ struct WaterTweens : std::vector<TweenEntry> {
     void Save(CStream* stream) const;
     // Reads the array and applies each entry's value to `terrain`.
     void Load(CStream* stream, Terrain* terrain);
-    // Reads the array only (the inlined SetSize of another CArray instantiation).
+    // Reads the array only (the resize of another array instantiation).
     void LoadEntries(CStream* stream);
     // The read part of both loads: the count (the game reads it into a slot that still holds
     // `unread` if the stream writes nothing), SetSize, then the entries.

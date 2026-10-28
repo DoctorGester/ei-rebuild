@@ -21,7 +21,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::s
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
     } else {
-        // The inlined strcpy / strcat into a 0x200-byte buffer (no bounds check, like the original).
+        // The strcpy / strcat into a 0x200-byte buffer (no bounds check, like the original).
         char path[0x200];
         std::size_t length = directory.size();
         std::memcpy(path, directory.data(), length);

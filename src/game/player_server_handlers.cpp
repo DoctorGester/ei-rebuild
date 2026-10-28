@@ -64,7 +64,7 @@ float CellScaleB() { return 0.5f; }
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).
+// Appends `object` to `list` with a counted reference (as the brain's lists do).
 void AddCounted(std::list<CUnit*>& list, CUnit* object) {
     list.push_back(object);
     ++object->refCount_;

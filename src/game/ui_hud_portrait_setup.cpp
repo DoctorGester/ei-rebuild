@@ -30,7 +30,7 @@ float Pi() { return 3.1415927f; }
 float Thin() { return 0.2f; }
 float Fat() { return 0.8f; }
 
-// The inlined strcmp(a, b) == 0.
+// True when the two texts are equal (strcmp(a, b) == 0).
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.

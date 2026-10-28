@@ -3,7 +3,7 @@
 // x87 transcendental instructions, exactly as the original code used them.
 //
 // The modern CRT's sin/cos/exp use SSE2 code paths and do not round the same way as FSIN/FCOS/
-// the inlined exp, so game maths goes through these. Arguments arrive as double (exact for the float
+// VC6's inline exp, so game maths goes through these. Arguments arrive as double (exact for the float
 // and 0.5-scaled values the game passes) and the result is returned without being rounded.
 // Square roots are plain std::sqrt (FSQRT at the precision control on this target; docs/notes/cleanup-tooling.md, "SSE2 build").
 // fistp stays an instruction, inlined (R16c4): the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).

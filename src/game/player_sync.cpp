@@ -127,7 +127,7 @@ void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
     for (auto node = items->begin(); node != items->end(); ++node)
         WriteDword(&out_, static_cast<std::uint32_t>((*node)->id_));
     WriteDword(&out_, 0xFFFFFFFFu);
-    gathered.clear();   // the lists' inlined destructors
+    gathered.clear();
     spells.clear();
 }
 

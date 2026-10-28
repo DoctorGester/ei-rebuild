@@ -11,7 +11,7 @@ constexpr int kStoppedTypeA = 0x2001;
 constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
 
-// The inlined iterator destructor: the manager's count drops without a release.
+// The iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
 }

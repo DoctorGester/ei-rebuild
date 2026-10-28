@@ -57,7 +57,7 @@ net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::Playe
 CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return ui->ActiveWindowAs<CBriefingScreen>(); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
-// The inlined strcmp(a, b) == 0.
+// True when the two texts are equal (strcmp(a, b) == 0).
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 } // namespace

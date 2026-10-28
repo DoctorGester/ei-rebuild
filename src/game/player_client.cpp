@@ -397,7 +397,7 @@ int CPlayerClient::OnItemsReceived() {
         player_->GiveItems(&items, flag);
         g_interface->OnItemsPicked(&items, money - before, flag);
     }
-    items.clear();   // the list's inlined destructor
+    items.clear();
     return result;
 }
 
@@ -417,7 +417,7 @@ int CPlayerClient::OnParty() {
                 if (item->chargeMax_ > item->charge_)
                     recharging.push_back(static_cast<std::uint32_t>(item->id_));
             }
-            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
+            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's destructor
         }
         if (IsMultiplayerClient()) {
             // A multiplayer client keeps its variables.

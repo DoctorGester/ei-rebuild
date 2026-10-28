@@ -14,7 +14,7 @@ namespace {
 constexpr int kPlayerType = 0x300A;      // a CPlayer
 constexpr int kConnectionType = 0x49;    // the side's player connection (CPlayerServer / CPlayerClient)
 
-// Walks every player of `manager`, as the original's inlined iterator does (the manager counted
+// Walks every player of `manager`, as the original's iterator does (the manager counted
 // while it walks).
 template <typename F> void ForEachPlayer(CPlayerManager* manager, F f) {
     PlayerIterator it;

@@ -88,7 +88,7 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
 // One component of a 6-corner value (corner k at c[3 * k]), in the four roundings the original's
 // register allocation produced in the old-format loaders (each was read off the instruction
 // stream; see the notes):
-// PerOp: every operation rounded (the inlined Vector3 operators).
+// PerOp: every operation rounded (the Vector3 operators).
 // Kept:  the two s-blends stored, everything else on the FPU.
 // StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
 // FPU; then per operation.
