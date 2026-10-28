@@ -27,16 +27,6 @@ const char* const kFloatFormat = "%f";
 const char* const kLongFloatFormat = "%lf";
 constexpr char kListSeparator = ',';
 
-// MFC CString members not in lib/mfc.h, called on existing strings.
-struct TextOps : mfc::CString {
-    int Find(char c) const;
-    int Find(char c, int start) const;
-    void TrimLeft();
-    void TrimRight();
-    void AppendChar(char c);
-};
-TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
-
 // MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
 
@@ -49,10 +39,10 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 // The list as integers in a temporary aligned int array (an atoi loop).
 // Returns 0 when the value is empty (the temporary then stays empty).
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
-    console::CStringArray codes;
+    std::vector<std::string> codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
-    temp.SetSize(codes.GetSize(), -1);
-    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
+    temp.SetSize(static_cast<int>(codes.size()), -1);
+    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }
 
@@ -75,11 +65,11 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
     temp.Construct();
     BOOL ok;
     {
-        console::CStringArray codes;
+        std::vector<std::string> codes;
         ok = ini->GetList(section, key, &codes, kListSeparator);
         if (ok) {
-            temp.SetSize(codes.GetSize(), -1);
-            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
+            temp.SetSize(static_cast<int>(codes.size()), -1);
+            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
         }
     }
     if (ok) {
@@ -91,12 +81,6 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
 }
 
 } // namespace
-
-int TextOps::Find(char c) const { return mfc::CString::Find(c); }
-int TextOps::Find(char c, int start) const { return mfc::CString::Find(c, start); }
-void TextOps::TrimLeft() { mfc::CString::TrimLeft(); }
-void TextOps::TrimRight() { mfc::CString::TrimRight(); }
-void TextOps::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 
 // --- Construction ----------------------------------------------------------------------------------
 
@@ -117,24 +101,24 @@ EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------
 
-BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
-    mfc::CString item;
+BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
+    std::string item;
     char buffer[0x5000];
     gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_.c_str());
-    out->SetSize(0, -1);
+    out->clear();
     if (buffer[0] == '\0') return 0;
     const char* start = buffer;
     for (int i = 0; i < static_cast<int>(sizeof(buffer)); ++i) {
         if (buffer[i] != '\0') continue;
         // One "key=value" entry ends here.
         item = start;
-        int equals = Ops(item).Find('=');
+        int equals = str::Find(item, '=');
         if (equals != -1) {
-            item = item.Left(equals);
-            Ops(item).TrimLeft();
-            Ops(item).TrimRight();
+            item = str::Left(item, equals);
+            str::TrimLeft(item);
+            str::TrimRight(item);
         }
-        out->SetAtGrow(out->GetSize(), item);
+        out->push_back(item);
         start = buffer + i + 1;
         if (*start == '\0') return 1;   // the double terminator
     }
@@ -150,17 +134,17 @@ mfc::CString CIniFile::GetString(const char* section, const char* key, const cha
 }
 EI_REWRITTEN(0x00696030, CIniFile::GetString);
 
-BOOL CIniFile::GetList(const char* section, const char* key, mfc::CStringArray* out, char separator) {
-    mfc::CString value = ReadString(this, section, key, game::EmptyText());
-    mfc::CString item;
-    if (value.GetLength() == 0) return 0;
-    Ops(value).AppendChar(separator);
+BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
+    std::string value = ReadString(this, section, key, game::EmptyText()).GetString();
+    std::string item;
+    if (value.empty()) return 0;
+    value += separator;
     int start = 0;
-    for (int end = Ops(value).Find(separator); end != -1; end = Ops(value).Find(separator, start)) {
-        item = Ops(value).Mid(start, end - start);
-        Ops(item).TrimLeft();
-        Ops(item).TrimRight();
-        out->SetAtGrow(out->GetSize(), item);
+    for (int end = str::Find(value, separator); end != -1; end = str::Find(value, separator, start)) {
+        item = str::Mid(value, start, end - start);
+        str::TrimLeft(item);
+        str::TrimRight(item);
+        out->push_back(item);
         start = end + 1;
     }
     return 1;
@@ -168,11 +152,11 @@ BOOL CIniFile::GetList(const char* section, const char* key, mfc::CStringArray* 
 EI_REWRITTEN(0x00696090, CIniFile::GetList);
 
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
-    console::CStringArray codes;
+    std::vector<std::string> codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
-    int count = codes.GetSize();
+    int count = static_cast<int>(codes.size());
     out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
+    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }
 EI_REWRITTEN(0x00696830, CIniFile::GetIntArray);

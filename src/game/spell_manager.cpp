@@ -119,13 +119,13 @@ const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 // again each time).
 namespace {
 template <typename Record>
-void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, mfc::CStringArray* names) {
-    names->SetSize(static_cast<int>(table.Count()), -1);
-    for (int i = 0; i < static_cast<int>(table.Count()); ++i) names->data[i] = table.At(static_cast<std::uint32_t>(i))->name;
+void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, std::vector<std::string>* names) {
+    names->resize(table.Count());
+    for (std::uint32_t i = 0; i < table.Count(); ++i) (*names)[i] = table.At(i)->name;
 }
 } // namespace
-void CSpellManager::ListSpellNames(mfc::CStringArray* names) { ListRecordNames(itemdb::TheSpellDatabase().spells, names); }
-void CSpellManager::ListModifierNames(mfc::CStringArray* names) {
+void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(itemdb::TheSpellDatabase().spells, names); }
+void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
     ListRecordNames(itemdb::TheSpellDatabase().modifiers, names);
 }
 EI_REWRITTEN(0x00689570, CSpellManager::ListSpellNames);

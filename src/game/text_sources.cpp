@@ -166,21 +166,21 @@ void* TextSources::FindText(const char* key, std::uint32_t* size) {
     return data ? AsGameText(source, data, size) : nullptr;
 }
 
-void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
-    console::CStringArray found;
-    out->SetSize(0, -1);
+void TextSources::ListKeys(std::vector<std::string>* out, const char* pattern) {
+    std::vector<std::string> found;
+    out->clear();
     for (TextSourceNode* node = head->next; node != head; node = node->next) {
         node->data.source->ListFiles(&found, pattern);
-        out->Append(found);
+        out->insert(out->end(), found.begin(), found.end());
     }
 }
 EI_REWRITTEN(0x004DEC40, TextSources::ListKeys);
 
-void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
+void CTextManager::ListKeys(std::vector<std::string>* out, const char* pattern) {
     sources_.ListKeys(out, pattern);
     // EI_UTF8: the names in UTF-8, as Find takes them (one person's key holds Cyrillic).
     if constexpr (text::kUtf8) {
-        for (int i = 0; i < out->GetSize(); ++i) text::FromAssetText(&(*out)[i]);
+        for (std::string& name : *out) text::FromAssetText(&name);
     }
 }
 EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);

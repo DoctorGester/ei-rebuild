@@ -177,16 +177,16 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
 }
 
 // Rebirth's ResOverride sends every call to addon.
-void CMappedResource::ListFiles(mfc::CStringArray* stringArray, const char* pattern) const {
+void CMappedResource::ListFiles(std::vector<std::string>* names, const char* pattern) const {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        modfolders::ListFiles(this, stringArray, pattern);
+        modfolders::ListFiles(this, names, pattern);
         return;
     }
-    ListFilesPlain(stringArray, pattern);
+    ListFilesPlain(names, pattern);
 }
 
-void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const {
-    stringArray->SetSize(0, -1);
+void CMappedResource::ListFilesPlain(std::vector<std::string>* names, const char* pattern) const {
+    names->clear();
     for (std::uint32_t i = 0; i < header_.count; ++i) {
         const ResEntry& entry = entries_[i];
         char name[0x400];
@@ -203,7 +203,7 @@ void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char*
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
-        stringArray->SetAtGrow(stringArray->size, name);
+        names->push_back(name);
     }
 }
 

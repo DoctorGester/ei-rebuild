@@ -10,6 +10,7 @@
 
 #include "../lib/mfc.h"
 #include "lib/static_object.h"
+#include "lib/str.h"
 #include "ei/hook.h"
 #include "record_vectors.h"
 #include "text_split.h"
@@ -37,7 +38,7 @@ stlp::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &
 void PushPlace(QuestRecord* quest, float value) { quest->places.PushBack<PlaceElement>(value); }
 
 // The "quest" section into the quest record.
-void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
+void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->field2 = 0;
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText())).GetString();
@@ -50,11 +51,11 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     quest->order = reg.GetInt(game::questwords::Quest(), game::questwords::Order(), 0);
     reg.GetStringArray(game::questwords::Quest(), game::questwords::QuestPlaces(), &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
-    for (int i = 0; i < places.GetSize(); ++i) {
+    for (std::string& place : places) {
         console::CStringArray parts;
-        places[i].TrimLeft('{');
-        places[i].TrimRight('}');
-        text::Split(places[i], &parts, ';');
+        str::TrimLeft(place, '{');
+        str::TrimRight(place, '}');
+        text::Split(place.c_str(), &parts, ';');
         if (parts.GetSize() == 2) {
             float x = static_cast<float>(std::atof(parts[0]));
             PushPlace(quest, x);
@@ -99,13 +100,13 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
 void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
-    console::CStringArray strings;
+    std::vector<std::string> strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
     stlp::vector<std::string>* v = List(briefing, list);
     v->EraseRange<ListElement>(v->begin(), v->end());   // erase(begin, end) or clear(): the same
-    v->Reserve<ListElement>(strings.GetSize());
-    for (int i = 0; i < strings.GetSize(); ++i) {
-        if (strings[i].GetLength() != 0) v->PushBack<ListElement>(strings[i].GetString());
+    v->Reserve<ListElement>(strings.size());
+    for (const std::string& listed : strings) {
+        if (!listed.empty()) v->PushBack<ListElement>(listed);
     }
 }
 
@@ -158,7 +159,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
     quest->places.ConstructEmpty();
     std::construct_at(&quest->text);
     {
-        console::CStringArray places;
+        std::vector<std::string> places;
         ReadQuest(reg, quest, places);
         AddQuest(db, quest);
 
@@ -178,12 +179,12 @@ EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
-    console::CStringArray strings;
+    std::vector<std::string> strings;
     registry->GetStringArray(section, key, &strings);
     list->EraseRange<ListElement>(list->begin(), list->end());
-    list->Reserve<ListElement>(strings.GetSize());
-    for (int i = 0; i < strings.GetSize(); ++i) {
-        if (strings[i].GetLength() != 0) list->PushBack<ListElement>(strings[i].GetString());
+    list->Reserve<ListElement>(strings.size());
+    for (const std::string& listed : strings) {
+        if (!listed.empty()) list->PushBack<ListElement>(listed);
     }
 }
 EI_REWRITTEN(0x006AE740, ReadStringList);

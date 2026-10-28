@@ -11,12 +11,10 @@
 // and colliding names are chained through ResEntry::next (-1 ends the chain).
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "lib/stlp.h"
-
-namespace mfc {
-struct CStringArray;
-}
 
 // BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
 using BOOL = int;
@@ -114,12 +112,12 @@ public:
     // it): the in-place archives of the loaders and screens.
     void Destroy();
 
-    // Fills an MFC CStringArray with the names of the entries that
+    // Fills `names` with the names of the entries that
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
-    void ListFiles(mfc::CStringArray* stringArray, const char* pattern) const;
+    void ListFiles(std::vector<std::string>* names, const char* pattern) const;
     // ListFiles without Rebirth's ResOverride (see GetFilePlain).
-    void ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const;
+    void ListFilesPlain(std::vector<std::string>* names, const char* pattern) const;
 
     int fd_;                    // CRT file descriptor, -1 when closed
     char* image_;                // archive image when opened with OpenFromMemory

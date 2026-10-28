@@ -43,7 +43,7 @@ struct TextSources : stlp::list<TextSource> {
     // (ResOverride redirects the call).
     void* Find(const char* key, std::uint32_t* size);
     void* FindText(const char* key, std::uint32_t* size);
-    void ListKeys(mfc::CStringArray* out, const char* pattern);
+    void ListKeys(std::vector<std::string>* out, const char* pattern);
 };
 static_assert(sizeof(TextSources) == 4);
 
@@ -105,7 +105,7 @@ public:
     void RemoveSource(const char* path);
     void ClearSources();
     // The names matching `pattern` ("pers *") of every archive into `out`.
-    void ListKeys(mfc::CStringArray* out, const char* pattern);
+    void ListKeys(std::vector<std::string>* out, const char* pattern);
 
     TextSources sources_;
     const char* cursor_;    // read position in the current text

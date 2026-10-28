@@ -4,15 +4,13 @@
 // More: docs/notes/comments-c22i.md, "registry.h".
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "resource.h"
 #include "string_arg.h"
-
-namespace console {
-class CStringArray;
-}
 
 // The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
 // the inlined SetSize allocates through the engine's aligned allocators).
@@ -46,7 +44,7 @@ public:
     const std::uint8_t* FindData(const char* section, const char* key, unsigned type, int* isScalar);
 
     // The names of all sections into `out` (in table order). Returns 1.
-    BOOL GetSectionNames(console::CStringArray* out);
+    BOOL GetSectionNames(std::vector<std::string>* out);
 
     // Identical copies. An int value, a float one truncated (_ftol), or `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);
@@ -64,7 +62,7 @@ public:
     BOOL GetIntArray(const char* section, const char* key, IntArray* out);
     BOOL GetFloatArray(const char* section, const char* key, DwordArray* out);
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
-    BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);
+    BOOL GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
     BOOL attached_;               // 1: the data is not ours (Attach)
     CMappedFile file_;

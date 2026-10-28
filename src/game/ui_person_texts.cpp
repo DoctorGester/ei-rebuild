@@ -8,6 +8,7 @@
 
 #include "console.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "library_trees.h"
 #include "game_singletons.h"
 
@@ -22,15 +23,15 @@ constexpr int kPersonPrefixLength = 5;                                          
 
 void LoadPersonTexts(PersonTextMap* map) {
     CTextManager* texts = TheTextManager();
-    console::CStringArray keys;
+    std::vector<std::string> keys;
     std::string line;
     texts->ListKeys(&keys, PersonPattern());
-    for (int i = 0; i < keys.size; ++i) {
-        if (!texts->CTextManager::Open(keys[i])) continue;
+    for (const std::string& textKey : keys) {
+        if (!texts->CTextManager::Open(textKey.c_str())) continue;
         texts->ReadLine(&line, 1);
         int key;
         {
-            std::string name = console::Ops(keys[i]).Mid(kPersonPrefixLength).GetString();
+            std::string name = str::Mid(textKey, kPersonPrefixLength);
             key = TextKeyFromName(name.c_str());
         }
         PersonTextNode* node = map->lower_bound(key);

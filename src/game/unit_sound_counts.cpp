@@ -55,10 +55,9 @@ bool StartsWith(const char* file, const char* name) {
 } // namespace
 
 void UnitDatabase::CountSoundFiles(void* sounds) {
-    mfc::CStringArray files;
-    files.Construct();
+    std::vector<std::string> files;
     static_cast<CSoundManager*>(sounds)->ListWaveFiles(&files, kSoundPattern);
-    for (int i = 0; i < files.size; ++i) files.data[i].MakeLower();
+    for (std::string& file : files) str::MakeLower(file);
 
     int modelCount = static_cast<int>(models.end - models.begin);
     for (int m = 0; m < modelCount; ++m) {
@@ -69,12 +68,11 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
             model->soundCounts[n] = 0;
             std::string& name = model->soundNames.begin()[n];
             str::MakeLower(name);
-            for (int f = 0; f < files.size; ++f) {
-                if (StartsWith(files.data[f], name.c_str())) ++model->soundCounts[n];
+            for (const std::string& file : files) {
+                if (StartsWith(file.c_str(), name.c_str())) ++model->soundCounts[n];
             }
         }
     }
-    files.Destruct();
 }
 
 EI_REWRITTEN(0x0053A8E0, UnitDatabase::CountSoundFiles);

@@ -22,13 +22,6 @@
 
 namespace {
 
-void ListWeapons(CItemManager* db, void*, console::CStringArray* names) { db->ListWeaponNames(names); }
-void ListArmors(CItemManager* db, void*, console::CStringArray* names) { db->ListArmorNames(names); }
-void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db->ListQuickItemNames(names); }
-void ListFourthKind(CItemManager* db, void*, console::CStringArray* names) { db->ListMaterialNames(names); }
-void ListSpells(CSpellManager* db, void*, console::CStringArray* names) { db->ListSpellNames(names); }
-void ListModifiers(CSpellManager* db, void*, console::CStringArray* names) { db->ListModifierNames(names); }
-
 // The template's class bit in a record's class mask (the shift is modulo 32).
 bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
     std::uint32_t bit = 1u << ((static_cast<unsigned>(t->type) - 1) & 31);
@@ -41,38 +34,36 @@ ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 } // namespace
 
 void __fastcall ClassTemplateFill(ClassTemplate* t) {
-    console::CStringArray names;
+    std::vector<std::string> names;
     CItemManager* items = t->ItemsParty()->ItemManager();
     CSpellManager* spells = t->SpellsParty()->SpellManager();
 
     itemdb::ItemDatabase& db = itemdb::TheItemDatabase();
-    ListWeapons(items, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        itemdb::WeaponRecord* record = db.weapons.Named(names.data[i]);
+    items->ListWeaponNames(&names);
+    for (const std::string& name : names) {
+        itemdb::WeaponRecord* record = db.weapons.Named(name.c_str());
         if (record && Allowed(t, record->classMask)) AllList(t)->AddWeapon(record);
     }
-    ListArmors(items, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        itemdb::ArmorRecord* record = db.armors.Named(names.data[i]);
+    items->ListArmorNames(&names);
+    for (const std::string& name : names) {
+        itemdb::ArmorRecord* record = db.armors.Named(name.c_str());
         if (record && Allowed(t, record->classMask)) AllList(t)->AddArmor(record);
     }
-    ListQuickItems(items, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        std::string key(names.data[i]);
+    items->ListQuickItemNames(&names);
+    for (const std::string& key : names) {
         itemdb::QuickItemRecord* record = stlp::NamedSlot<itemdb::QuickItemRecord>(db.quickItems.names, key);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
-    ListFourthKind(items, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        std::string key(names.data[i]);
+    items->ListMaterialNames(&names);
+    for (const std::string& key : names) {
         itemdb::MaterialRecordHead* record = stlp::NamedSlot<itemdb::MaterialRecordHead>(db.materials.names, key);
         if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
     }
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
-    ListSpells(spells, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        const char* code = SpellCodeByName(names.data[i]);
+    spells->ListSpellNames(&names);
+    for (const std::string& name : names) {
+        const char* code = SpellCodeByName(name.c_str());
         std::string key(code);
         itemdb::SpellRecord* record = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), key);
         if (record && Allowed(t, record->classMask)) {
@@ -80,9 +71,9 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
             AllList(t)->AddSpell(record);
         }
     }
-    ListModifiers(spells, nullptr, &names);
-    for (int i = 0; i < names.size; ++i) {
-        const char* code = SpellModifierCodeByName(names.data[i]);
+    spells->ListModifierNames(&names);
+    for (const std::string& name : names) {
+        const char* code = SpellModifierCodeByName(name.c_str());
         std::string key(code);
         auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
         if (record && Allowed(t, record->classMask)) {

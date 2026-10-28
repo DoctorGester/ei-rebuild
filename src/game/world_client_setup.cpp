@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -44,16 +45,16 @@ UnitDatabase* Units() { return &unitdb::Database(); }
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
-void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, DwordArray& values, const char* section,
+void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour, DwordArray& values, const char* section,
                LightColour* table) {
-    keys.SetSize(0, -1);
+    keys.clear();
     ini.GetKeyNames(section, &keys);
     int previous = 0;
-    for (int i = 0; i < keys.size; ++i) {
-        hour = console::Ops(keys[i]).Mid(4, 2);
-        int index = std::atoi(hour);
+    for (const std::string& key : keys) {
+        hour = str::Mid(key, 4, 2);
+        int index = std::atoi(hour.c_str());
         values.SetSize(0, -1);      // the sky section frees the block inline (the same state)
-        ini.GetIntArray(section, keys[i], &values);
+        ini.GetIntArray(section, key.c_str(), &values);
         LightColour& to = table[index];
         to.r = static_cast<float>(static_cast<double>(static_cast<int>(values.data[0])) * kByteToUnit);
         to.g = static_cast<float>(static_cast<double>(static_cast<int>(values.data[1])) * kByteToUnit);
@@ -79,8 +80,8 @@ void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, D
 } // namespace
 
 int CWorldClient::LoadLights(const char* file) {
-    console::CStringArray keys;
-    mfc::CString hour;
+    std::vector<std::string> keys;
+    std::string hour;
     DwordArray values{};
     CIniFile ini;   // the empty path, freed at the end
     {

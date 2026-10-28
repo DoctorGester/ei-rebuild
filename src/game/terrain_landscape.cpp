@@ -482,14 +482,14 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     ClearMap();
     std::string name = path;
     if (!archive.OpenResource(name.c_str(), 0)) return 0;
-    console::CStringArray files;
+    std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
     int dot = str::ReverseFind(name, '.');
     if (dot > 0) textFC = str::Left(name, dot);
     else textFC = name;
     // (An archive without a map file is not tested for either.)
-    const mfc::CString& first = files.data[0];
-    textF8 = first.Left(first.Find('.'));
+    const std::string& first = files[0];
+    textF8 = str::Left(first, str::Find(first, '.'));
 
     // The messages are passed to FatalError as its format string.
     std::uint32_t size = 0;
