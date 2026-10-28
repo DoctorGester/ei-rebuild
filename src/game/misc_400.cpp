@@ -19,13 +19,13 @@ const char* CClientSpecificManager::ClassName() { return "CClientSpecificManager
 ClassId CClientSpecificManager::GetClassId() { return ClassId::ClientSpecificManager; }
 
 CEngineObject* CClientSpecificManager::NewObject(int type) {
-    switch (type) {
-    case 'E': return new FigureMeshDrawer();
-    case 'F': return new CObject3DClientSpecific();
-    case 'G': return new CMapObjectClientSpecific();
-    case 'H': return new CUnitClientSpecific();
-    case 'I': return new CPlayerClient();
-    case 'K': return new CTorchObjectClientSpec();
+    switch (static_cast<SideObjectType>(type)) {
+    case SideObjectType::Drawer: return new FigureMeshDrawer();
+    case SideObjectType::Object3D: return new CObject3DClientSpecific();
+    case SideObjectType::MapObject: return new CMapObjectClientSpecific();
+    case SideObjectType::Unit: return new CUnitClientSpecific();
+    case SideObjectType::Player: return new CPlayerClient();
+    case SideObjectType::Torch: return new CTorchObjectClientSpec();
     default: return nullptr;
     }
 }

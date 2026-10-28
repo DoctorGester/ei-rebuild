@@ -17,7 +17,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 
 
 } // namespace
@@ -43,7 +42,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         return false;   // a living unit of a player
     }
 
-    if (unit->flags_ & kFlagSharedLoot) {
+    if (unit->flags_ & MapObjectFlag::Shared) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
         std::list<SharedObject>& list = sharedObjects_;
         auto node = std::ranges::find(list, unit->id_, &SharedObject::objectId);

@@ -22,7 +22,6 @@
 
 namespace {
 
-constexpr std::uint32_t kArmed = 0x80000;   // flags_
 
 bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
@@ -62,7 +61,7 @@ void ClearVictims(MagicTrap* trap) {
     inside.clear();
 }
 
-constexpr std::uint32_t kTrapFlags = 0x80040;
+constexpr MapObjectFlag kTrapFlags = MapObjectFlag::Armed | MapObjectFlag::NotDrawn;
 constexpr std::uint32_t kDefaultPeriod = 10;
 // The fields saved after the points: period, countdown, single target, sides.
 void* TailFields(MagicTrap* trap, int i) {
@@ -95,7 +94,7 @@ void MagicTrap::UpdateVictims() {
         node = next;
     }
 
-    if (!(flags_ & kArmed)) return;
+    if (!(flags_ & MapObjectFlag::Armed)) return;
     CWorldServer* context = ServerWorld();
     std::list<CUnit*> found;
     std::list<CUnit*> newcomers;
@@ -307,7 +306,7 @@ int MagicTrap::UpdateTrap() {
 void MagicTrap::FireAtOccupants() {
     CWorldServer* context = ServerWorld();
     std::list<CUnit*> found;
-    if (flags_ & kArmed) {
+    if (flags_ & MapObjectFlag::Armed) {
         FindTrapVictims(context, &area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);
     }

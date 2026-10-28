@@ -26,7 +26,6 @@
 namespace {
 
 constexpr std::uint8_t kMessageGameState = 0x07;
-constexpr std::uint32_t kFlagBlocked = 0x800000;
 constexpr int kDirtyGameState = 0x10;                 // the player's +0x130
 constexpr int kTextPause = 0xC;                       // the session's announcement for a pause
 constexpr int kStateJoined = 1;
@@ -42,7 +41,7 @@ CUnit* FindUnit(CPlayer* player, int id) {
     return player->WorldContext()->FindUnit(id);
 }
 bool Alive(CUnit* unit) { return unit->IsDead() == 0; }
-bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }
+bool Able(CUnit* unit) { return unit && !(unit->flags_ & MapObjectFlag::Blocked) && Alive(unit); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).
 #pragma pack(push, 1)

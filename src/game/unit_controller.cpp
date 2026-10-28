@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 
 namespace {
-constexpr std::uint32_t kFlagRelationsChanged = 0x80000;   // flags_
 constexpr int kPartRelations = 11;                          // MarkChanged parts
 constexpr int kPartPath = 10;
 
@@ -25,7 +24,7 @@ void ReleaseSlots(Item** slots, int count) {
 void CUnit::SetHostileMask(std::uint32_t mask) {
     relationsA = mask;
     Controller()->HostileMaskChanged();
-    flags_ |= kFlagRelationsChanged;
+    flags_ |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 

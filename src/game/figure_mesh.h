@@ -1,6 +1,6 @@
 #pragma once
 
-// Figure meshes: the figure part objects created by the figure factory (class ids 0x41-0x44) and their
+// Figure meshes: the figure part objects created by the figure factory (the figure manager's types 0x41-0x44) and their
 // loaders. See docs/notes/world.md, "Figure meshes".
 
 #include "core_transform.h"
@@ -42,7 +42,7 @@ struct TexCoord {
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
-// What the renderer draws from (CFigureMesh::buffers_): pointers and counts of the mesh's arrays (class 0x41
+// What the renderer draws from (CFigureMesh::buffers_): pointers and counts of the mesh's arrays (type 0x41
 // points the last four into the loaded file data instead).
 struct MeshBuffers {
     VertexPacket* vertices;
@@ -73,7 +73,7 @@ class CMaterial;
 
 class CLight;
 
-// The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived: 0x41
+// The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived (by the figure manager's type): 0x41
 // CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
 class CFigureMesh : public CTransformObject {
 public:
@@ -144,7 +144,7 @@ private:
 public:
 
     // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part was last
-    // drawn), 0x80 hidden; type_ the class id (0x41-0x44). CTransformObject: localPosition_ relative to the
+    // drawn), 0x80 hidden; type_ the figure manager's type (0x41-0x44; the class id is ClassId::FigureMesh). CTransformObject: localPosition_ relative to the
     // object (a bone places it), worldPosition_ UpdateWorld's moved position, localRotation_ and worldRotation_.
     // The part -> object matrix: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
@@ -183,7 +183,7 @@ public:
     std::vector<NormalPacket> normals_;
 };
 
-// Class 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
+// Figure type 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
 // are not attached).
 class CSharedFigureMesh : public CFigureMesh {
 public:
@@ -199,7 +199,8 @@ public:
     void LoadOld(char** cursor, float s, float t, float u) override;
 };
 
-// Class 0x42: a mesh that owns all its arrays (the figure manager's attached parts). CUiMesh (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
+// Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). CUiMesh (type 0x43, class id
+// 0x46, ui.h) and CSkyObject (type 0x44, class id 0x20, sky_object.h) derive from it.
 class CPlainFigureMesh : public CFigureMesh {
 public:
     CPlainFigureMesh();

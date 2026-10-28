@@ -33,7 +33,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         return out;
     }
     MotionOrder* order = &path->motionOrder;
-    if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
+    if (order->kind == kOrderPath && !(unit->flags_ & MapObjectFlag::Planned)) {
         float toCells = 2.0f;
         Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         position.x = toCells * position.x;

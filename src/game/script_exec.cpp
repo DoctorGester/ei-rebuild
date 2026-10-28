@@ -529,18 +529,18 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xC6:   // DeleteArea(area)
             script->DeleteArea(Round(f[0]));
             break;
-        case 0xC2: {   // HideObject(object, hide): flags_ bit 0x10000
+        case 0xC2: {   // HideObject(object, hide): MapObjectFlag::Invisible
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (IsZero(f[0])) object->flags_ &= ~0x10000u;
-            else object->flags_ |= 0x10000u;
+            if (IsZero(f[0])) object->flags_ &= ~MapObjectFlag::Invisible;
+            else object->flags_ |= MapObjectFlag::Invisible;
             break;
         }
-        case 0x95: {   // ActivateTrap(object, on): flags_ bit 0x80000
+        case 0x95: {   // ActivateTrap(object, on): MapObjectFlag::Armed
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (IsZero(f[0])) object->flags_ &= ~0x80000u;
-            else object->flags_ |= 0x80000u;
+            if (IsZero(f[0])) object->flags_ &= ~MapObjectFlag::Armed;
+            else object->flags_ |= MapObjectFlag::Armed;
             break;
         }
         case 0x8E:   // SetCP(object, x, y, z)
@@ -581,11 +581,11 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        case 0x32: {   // BlockUnit(unit, on): flags_ bit 0x800000
+        case 0x32: {   // BlockUnit(unit, on): MapObjectFlag::Blocked
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != ClassId::Unit) break;
-            if (IsZero(f[0])) unit->flags_ &= ~0x800000u;
-            else unit->flags_ |= 0x800000u;
+            if (IsZero(f[0])) unit->flags_ &= ~MapObjectFlag::Blocked;
+            else unit->flags_ |= MapObjectFlag::Blocked;
             break;
         }
         case 0x36: {   // SetPlayer(unit, player)

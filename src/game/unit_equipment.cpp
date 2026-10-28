@@ -18,7 +18,6 @@
 #include <vector>
 
 namespace {
-constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
 
 // Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
 // still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
@@ -52,7 +51,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const std::string& nam
         game::FatalError(game::equipmenttexts::NoPrototype(), name);
         return 0;
     }
-    if (unit->type_ == kTypeArmed) {
+    if (unit->MapType() == MapObjectType::Hero) {
         // The loop bounds are read again on every pass.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CItem* armour = items->CreateItem(prototype->armourNames.begin()[i]);

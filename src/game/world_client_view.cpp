@@ -22,7 +22,6 @@
 
 namespace {
 
-constexpr int kTypeHero = 0x32;           // CEngineObject::type_ of heroes
 constexpr std::uint32_t kFlagVisible = 0x20;
 constexpr std::uint32_t kFlagTouchModel = 0x200;
 constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
@@ -153,7 +152,7 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
         if (object && Object3D(object)->attached) {
             bool process = true;
             if (object->GetClassId() == ClassId::Unit) {
-                if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
+                if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
                     object->AdvanceTime(animTime);

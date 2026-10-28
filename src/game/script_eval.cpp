@@ -235,7 +235,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xE3: { // WasLooted
         *result = 1.0f;
         CEngineObject* o = objectArgs[0]->object;
-        if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 20) & 1));
+        if (o) *result = static_cast<float>(lib::Has(o->flags_, MapObjectFlag::LootTaken));
         return;
     }
     case 0xBF:   // GetFutureX
@@ -496,7 +496,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xE6: { // IsUnitBlocked
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
-        if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 23) & 1));
+        if (o) *result = static_cast<float>(lib::Has(o->flags_, MapObjectFlag::Blocked));
         return;
     }
     default:

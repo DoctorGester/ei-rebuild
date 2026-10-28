@@ -90,7 +90,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 
 ### Creation, databases, save, network
 
-- Factory (CMapObjectManager slot 14, 00512730) by class id: 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
+- Factory (CMapObjectManager slot 14, 00512730) by type (MapObjectType in unit_create.h; the side halves' types are SideObjectType in base_manager.h, the flags_ bits MapObjectFlag in map_object.h): 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
   (the fake unit, 0x580, 004466D0: dead, none made since C35l), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0), 0x3C (0x264), 0x300D (0x78), 0x3010 (0x23C). The zone
   loader then calls `ApplyPrototype` (00513B60): without a prototype defaults (005134F0) and "Can't find prototype %s for
   object %d"; units get vitals / statistics from the records (005136D0: hit points / mana from prototype +0x48 / +0x4C,

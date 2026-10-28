@@ -1,8 +1,8 @@
 // The surface holder (Surface, surface.h): a holder of the screen's pixel format, one from an .mmp picture, the texture
 // holders and the destructor; the pixel formats and their channels. Used for the interface windows, the software
 // cursor, the movies and the textures. No holder has a DirectDraw surface: the pixels live in memory the new renderer
-// owns (render::NewSurfaceMemory, a DIB section), which game code works on directly (DirectPixels). See
-// docs/notes/renderer.md, sections 6 and 7.
+// owns (render::NewSurfaceMemory, a DIB section), which game code works on directly (DirectPixels); a texture has none
+// (decoded from its file or drawn on the GPU). See docs/notes/renderer.md, sections 6 and 7.
 #include "surface.h"
 
 #include "dx_errors.h"
@@ -12,15 +12,11 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 
-#include "../hook/log.h"
-
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
 
 namespace {
-
-int g_clientFailures = 0;
 
 // Memory of the new renderer's for `holder`, `width` x `height` pixels in `format` (16 or 32-bit RGB). False when
 // there is none.
@@ -201,21 +197,6 @@ Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, 
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    return holder;
-}
-
-Surface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const PixelFormat& format) {
-    if (!device) return nullptr;
-    auto* holder = new Surface(device);
-    if (!AttachMemory(holder, width, height, format)) {
-        if (g_clientFailures++ < 5)
-            ei::Log("cpuwindows: no memory for a %dx%d texture (%d bits)", width, height, format.bitsPerPixel);
-        ::operator delete(holder);   // not counted in yet: no destructor
-        return nullptr;
-    }
-    holder->width = width;
-    holder->height = height;
-    holder->bitsPerPixel = format.bitsPerPixel;
     return holder;
 }
 

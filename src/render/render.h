@@ -155,7 +155,7 @@ ShadowInfo ShadowState();
 // TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
 // reuse counts are the harness build's only.
 struct FrameStats {
-    enum Upload { Mmp, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
+    enum Upload { Mmp, WindowSurface, Movie, Small, UploadKinds };
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
 // Hand-over: meshes are BeginMesh with corners built; stateReads are the passes' reads of the render state (ReadPassState).
@@ -208,10 +208,9 @@ void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
 
-// Off-screen surfaces (interface windows, the software cursor, movies), system-memory pictures and some
-// texture holders (save / load pictures, shadow and .bmp textures) keep their pixels in memory the renderer
-// owns, with no DirectDraw surface; the renderer reads a holder's (Surface) pixels there wherever it
-// draws it, a texture again whenever the memory changed.
+// Off-screen surfaces (interface windows, the software cursor, movies) and system-memory pictures keep their
+// pixels in memory the renderer owns, with no DirectDraw surface; the renderer reads a holder's (Surface)
+// pixels there wherever it draws it. No texture has such memory (they are decoded or drawn on the GPU).
 // The memory: a zeroed top-down DIB section (GDI can draw into it through a memory DC), 16 or 32 bits a
 // pixel, channels at the masks (`alphaMask` 0 without alpha).
 struct SurfaceMemory {
@@ -282,28 +281,48 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 // The unit's face blink.
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
-// An image the game has drawn into a texture on the GPU (ComposeTexture): an .mmp file's pixels after its header
-// and extra block, 0xAARRGGBB with premultiplied alpha, rows from the top; `packed` ("PNT3"): groups of four
-// pixels, where a group's first pixel has alpha 0 and is not 0, that word instead counts target bytes left as
-// they are. What the renderer decodes of a file is shared by `name` while a texture holds it.
+// How an image's pixels are stored (TextureImage).
+enum class ImageLayout : std::uint8_t {
+    Argb,     // 0xAARRGGBB with premultiplied alpha
+    Pnt3,     // "PNT3": Argb in groups of four pixels, where a group's first pixel has alpha 0 and is not 0, that word
+              // instead counts target bytes left as they are
+    Rgb565,   // 16 bits 5:6:5, opaque (shot.sav's pictures)
+};
+// An image the game has drawn into a texture on the GPU (ComposeTexture, DrawIntoTexture): an .mmp file's pixels after
+// its header and extra block, or another file's picture, rows from the top. What the renderer decodes of a file is
+// shared by `name` while a texture holds it; an image without a name is decoded for its draw only.
 struct TextureImage {
     const char* name;
     const void* pixels;
     std::uint32_t bytes;   // the pixels' bytes in the file
     int width, height;
-    bool packed;
+    ImageLayout layout;
 };
 // The texture of `holder` composed on the GPU: `size` x `size` texels of transparent black, each image (`size`
 // square) drawn over the last (premultiplied: what is there x (1 - the image's alpha) + the image), the levels
 // below made from it; the texture shows the levels from `mip` on, `levels` of them (its size `size` >> `mip`).
 // Kept until the holder goes, made again on a new device. False when not made (nothing shown).
 bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count);
-// A texture of `holder` the game draws into on the GPU (DrawIntoTexture): `width` x `height` texels, one level, all
-// transparent black; with `oneBitAlpha` what is drawn into it keeps only the alpha's top bit (a 1:5:5:5 texture's).
-bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha);
+// What a texture the game draws into (BlankTexture) keeps of the alpha drawn into it, and what it starts as.
+enum class BlankAlpha : std::uint8_t {
+    None,     // no alpha (a 5:6:5 texture's): opaque black, everything drawn into it opaque
+    OneBit,   // only the alpha's top bit (a 1:5:5:5 texture's): transparent black
+    Full,     // transparent black
+};
+// A texture of `holder` the game draws into on the GPU (DrawIntoTexture, DrawClouds): `width` x `height` texels; with
+// `mipmapped` the levels below the first are made from it after each draw, else it has one level.
+bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped);
 // The rectangle `width` x `height` at `image`'s top-left put into the texture at (x, y), replacing what is there
 // (clipped to the texture); without an image that rectangle is filled with opaque white.
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height);
+// One frame of the global map's clouds (DrawClouds): 256 x 256 grey levels of value noise summed from four 32 x 32
+// layers, each made from three random words (CGlobalMapClouds, global_map_clouds.cpp).
+struct CloudFrame {
+    std::uint32_t words[4][3];   // each layer's a, b, c
+};
+// The whole 256 x 256 texture of `holder` (BlankTexture) made the clouds: each texel white with the alpha `ramp`[g],
+// g = (frame `to`'s grey level x `blend` + `from`'s x (256 - `blend`)) / 256.
+void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]);
 
 void BeginMesh(void* device, const MeshDraw& mesh);
 void MeshPass(void* device);
@@ -337,14 +356,11 @@ struct Rect {
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
 // The game wrote `written` (null: all) of the holder's SurfaceMemory: a window surface is read again only
 // where marked, and only the rows and columns that differ. Writers: the DC release, DirectPixels for
-// writing, CopyFrameTo. A texture holder's memory is read again only when marked and changed.
+// writing, a canvas read back.
 void SurfaceWritten(const void* holder, const Rect* written);
-// Harness build only: window surfaces and memory textures whose memory changed with no mark (stale pixels in
-// the product; the run fails), and the first one's description.
+// Harness build only: window surfaces whose memory changed with no mark (stale pixels in the product; the run
+// fails), and the first one's description.
 int MissedSurfaceWrites(const char** first);
-// Harness build only ("memorytextures"): memory textures updated in place with GPU-made levels (on, the
-// default), or made again with CPU box-filtered levels (off, for frame comparisons).
-void SetMemoryTexturesInPlace(bool on);
 
 // A movie's decoded frame (R, G, B, X bytes), kept for `key` (the video object) until the next one.
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height);

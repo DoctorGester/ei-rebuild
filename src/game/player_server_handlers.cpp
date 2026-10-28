@@ -49,7 +49,6 @@ constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below
 constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
 constexpr float kUnknownZ = -1313.0f;                 // lastPosition_.z after a revival
-constexpr std::uint32_t kFlagBlocked = 0x800000;      // a unit the use order leaves out
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
@@ -79,7 +78,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
         int id = 0;
         in.ReadValue(id);
         CUnit* unit = FindUnit(id);
-        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
+        if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
 }
 
@@ -253,7 +252,7 @@ int CPlayerServer::OnUseOrder() {
         int id = 0;
         in.ReadValue(id);
         CUnit* unit = FindUnit(id);
-        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(units, std::ssize(units), unit);
+        if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;
     int skillWord = 0;

@@ -2,8 +2,8 @@
 
 // The game's surfaces and textures without DirectDraw (surface.cpp): the surface holder (Surface), the pixel format
 // of its memory and the pixel code's access to it. A holder's pixels live in memory the new renderer owns
-// (render::SurfaceMemory, a DIB section), which game code reads and writes directly (DirectPixels); a texture the
-// renderer decodes from its .mmp file has no memory. See docs/notes/renderer.md, sections 6 and 7.
+// (render::SurfaceMemory, a DIB section), which game code reads and writes directly (DirectPixels); a texture
+// has none (the renderer decodes it from its file or draws it on the GPU). See docs/notes/renderer.md, sections 6 and 7.
 
 #include "renderer_base.h"
 
@@ -80,15 +80,10 @@ struct SurfacePixels {
 // surface's next blit.
 bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads = false);
 
-// A texture holder (the holder count one higher) with the renderer's memory of `width` x `height` pixels in `format`
-// (16 or 32-bit RGB). For the textures the game writes on the CPU (the texture manager's: the save / load pictures, the
-// global map's weather, the item pictures; .bmp textures); the writers use DirectPixels. Null when the memory cannot be
-// made (the callers then throw ThrowSurfaceNotMade).
-Surface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const PixelFormat& format);
-
 // A texture holder (the holder count one higher) with no memory, for a texture the renderer decodes from its file (the
 // texture manager's .mmp textures: render::TextureFromMmp keyed by the holder) or draws on the GPU (the composed
-// textures: render::ComposeTexture). The game's code writes no pixels of it. Null only when its allocation fails.
+// textures: render::ComposeTexture; the ones the game draws into: render::BlankTexture). The game's code writes no
+// pixels of it; no texture has memory. Null only when its allocation fails.
 Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, int bitsPerPixel);
 
 // What happens when a holder's memory cannot be made: the game's error "Can't create DDSurface %d %d ..." thrown with

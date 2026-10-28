@@ -16,8 +16,6 @@
 namespace {
 constexpr float kScaleStep = 0.4f;
 static_assert(std::bit_cast<std::uint32_t>(kScaleStep) == 0x3ECCCCCDu);
-constexpr std::uint32_t kFlagDirty = 2;
-constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 
 // The original's branch-free max(0, v): 0 against v, as a mask selecting v's bits
 // (also a NaN's), else 0.
@@ -59,7 +57,6 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
     }
 }
 
-constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
 
 } // namespace
 
@@ -69,7 +66,7 @@ CWorld* CMapObject::World() { return ObjectWorld(this); }
 
 void CMapObject::MarkChanged(int part) {
     if (part >= 0) netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | (1u << (part & 31)));
-    flags_ |= kFlagDirty;
+    flags_ |= MapObjectFlag::Changed;
     if (refCount_ == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
@@ -100,7 +97,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
     netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 8);   // part 3
-    flags_ |= kFlagDirty;
+    flags_ |= MapObjectFlag::Changed;
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
@@ -121,7 +118,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
 void CMapObject::ClearEffects() {
     effects = {};
     netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 8);   // part 3
-    flags_ |= kFlagDirty;
+    flags_ |= MapObjectFlag::Changed;
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
@@ -154,7 +151,7 @@ void CMapObject::RecomputeScale() {
             double step = strengthLevel * static_cast<double>(kScaleStep);   // rounded to a float
             float stepRounded = static_cast<float>(step);
             StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
-            if (type_ != kTypeHero)
+            if (MapType() != MapObjectType::Hero)
                 StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
         }
     } else if (total != 0.0f) {
@@ -165,7 +162,7 @@ void CMapObject::RecomputeScale() {
         StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
     }
     netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 2);   // part 1
-    flags_ |= kFlagDirty;
+    flags_ |= MapObjectFlag::Changed;
     if (refCount_ == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
@@ -217,7 +214,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
 }
 
 void CMapObject::AttachObject(CEngineObject* object) {
-    if (!object || object->type_ != kTypeMapCompanion) {
+    if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
         CObject3D::AttachSpecific(object);   // the 3D object's attach virtual
         return;
     }
@@ -236,8 +233,8 @@ int CMapObject::PackVitals() {
     return 1;
 }
 
-std::uint32_t CMapObject::IsInvisible() { return (flags_ >> 16) & 1; }
+std::uint32_t CMapObject::IsInvisible() { return lib::Has(flags_, MapObjectFlag::Invisible); }
 
-std::uint32_t CMapObject::IsStunned() { return (flags_ >> 18) & 1; }
+std::uint32_t CMapObject::IsStunned() { return lib::Has(flags_, MapObjectFlag::Stunned); }
 
-std::uint32_t CMapObject::Flag20000() { return (flags_ >> 17) & 1; }
+std::uint32_t CMapObject::Flag20000() { return lib::Has(flags_, MapObjectFlag::Synchronised); }

@@ -598,7 +598,7 @@ public:
 struct UnitSet {
     using FiguredGroup = lib::HashMultimap<std::uint32_t, FiguredUnitRecord>;   // by scale key
 
-    // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
+    // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (MapObjectType::Hero), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
     // extraWeapon 0xFF and the texts their companion holds. A figured record of the same prototype, scale key and ids
     // gets modelNumber -1, else the record (modelNumber the unit's id) joins its prototype's group; then the same for

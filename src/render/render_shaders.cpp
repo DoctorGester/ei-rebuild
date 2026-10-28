@@ -43,6 +43,9 @@ namespace {
 #include "shaders/perf_overlay_ps.h"
 #include "shaders/texture_compose_vs.h"
 #include "shaders/texture_compose_ps.h"
+#include "shaders/texture_clouds_vs.h"
+#include "shaders/texture_clouds_frame_ps.h"
+#include "shaders/texture_clouds_ps.h"
 
 static_assert(kSmoothSamples == 8, "a depth_from_multisampled shader for each count up to it (CMakeLists.txt)");
 
@@ -67,6 +70,8 @@ const ShaderBytecode kUiRgb565Shader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_rgb565_ps
 const ShaderBytecode kUiBlitShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_blit_ps)};
 const ShaderBytecode kPerfOverlayShader{SG_RANGE(perf_overlay_vs), SG_RANGE(perf_overlay_ps)};
 const ShaderBytecode kTextureComposeShader{SG_RANGE(texture_compose_vs), SG_RANGE(texture_compose_ps)};
+const ShaderBytecode kCloudFrameShader{SG_RANGE(texture_clouds_vs), SG_RANGE(texture_clouds_frame_ps)};
+const ShaderBytecode kCloudsShader{SG_RANGE(texture_clouds_vs), SG_RANGE(texture_clouds_ps)};
 
 ShaderBytecode DepthFromMultisampledShader(int samples) {
     switch (samples) {

@@ -6,8 +6,8 @@ cbuffer vs_params : register(b0) {
     float4 target;   // x, y: the target's width, height
 };
 cbuffer fs_params : register(b0) {
-    int4 offset;     // x, y: the image texel drawn at target texel (0, 0); z: 1 to fill with `colour`; w: 1 to keep
-                     // only the alpha's top bit (a 1:5:5:5 texture's)
+    int4 offset;     // x, y: the image texel drawn at target texel (0, 0); z: 1 to fill with `colour`; w: the alpha kept
+                     // (render::BlankAlpha: 0 none, opaque; 1 only its top bit, a 1:5:5:5 texture's; 2 all)
     float4 colour;
 };
 
@@ -22,6 +22,7 @@ float4 vs_main(uint id : SV_VertexID) : SV_Position {
 float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
     if (offset.z != 0) return colour;
     float4 c = tex0.Load(int3(int2(pos.xy) + offset.xy, 0));
-    if (offset.w != 0) c.a = c.a >= 0.5 ? 1.0 : 0.0;
+    if (offset.w == 0) c.a = 1.0;
+    else if (offset.w == 1) c.a = c.a >= 0.5 ? 1.0 : 0.0;
     return c;
 }

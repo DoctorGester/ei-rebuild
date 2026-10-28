@@ -15,8 +15,6 @@
 #include <cstring>
 
 namespace {
-constexpr int kTypeOtherUnit = 0x33;            // CEngineObject::type_ (kUnitTypeHero 0x32 .. 0x34: units)
-constexpr int kTypeLastUnit = 0x34;
 constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
 
 // Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
@@ -65,7 +63,7 @@ Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
 } // namespace
 
 FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
-    if (type_ < kUnitTypeHero || type_ > kTypeLastUnit) return nullptr;
+    if (!IsUnitType(MapType())) return nullptr;
     if (FigureAnimation* entry = CallRandomAnimation(this, key)) return entry;
     std::uint32_t kind = key & kKindBits;
     if (FigureAnimation* entry = CallRandomAnimation(this, kind)) return entry;
@@ -90,7 +88,7 @@ double CUnit::BodyExtent() {
         if (part < 0) return kNoExtent;
     }
     float extentScale = kExtentScale;
-    if (type_ == kTypeOtherUnit && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
+    if (MapType() == MapObjectType::Creature && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
     const Vector3& corner = partBoxes[part].bounds.boxMax;
     double y = corner.y;
     double x = corner.x;
@@ -110,7 +108,7 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     Vector3 local = {0.0f, 0.0f, 0.0f};
     auto* world = WorldContext();
     if (!world->IsServer()) {
-        if (type_ == kUnitTypeHero) {
+        if (MapType() == MapObjectType::Hero) {
             if (CFigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 PartWorldPosition(&at.x, hand);

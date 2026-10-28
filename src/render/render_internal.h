@@ -67,7 +67,7 @@ extern const ShaderBytecode kPresentShader;
 extern const ShaderBytecode kIntoMultisampledShader;
 extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, kDilateShader;
 extern const ShaderBytecode kPerfOverlayShader;
-extern const ShaderBytecode kTextureComposeShader;
+extern const ShaderBytecode kTextureComposeShader, kCloudFrameShader, kCloudsShader;
 extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
     kUiRgb565Shader, kUiBlitShader;
 // `samples` 2, 4 or 8; null ranges otherwise.
@@ -581,11 +581,11 @@ void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
 
-// A CTexture or a surface holder (Surface) as a texture view with its mip levels: from its SurfaceMemory
-// (again when changed), else what was decoded for it; white when there is none. Valid until the next Present.
+// A CTexture or a texture's holder (Surface) as a texture view with its mip levels: what was decoded or drawn for it;
+// white when there is none. Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
-// render::TextureFromMmp: kept until the holder goes; nothing for a holder with SurfaceMemory.
+// render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 void ForgetHolder(const void* holder);
 // A window surface (CUiSurface's holder) as one level, read from its SurfaceMemory when that changed (none
@@ -609,9 +609,16 @@ struct ComposeImage {
     std::vector<std::uint8_t> rgba;
 };
 std::shared_ptr<const ComposeImage> DecodeComposeImage(const TextureImage& image);
-// One image drawn into the texture's first level.
+// The global map's clouds drawn into a texture (render::DrawClouds).
+struct CloudsDraw {
+    CloudFrame from{}, to{};
+    int blend = 0;
+    std::uint8_t ramp[256] = {};
+};
+// One image drawn into the texture's first level, or the clouds.
 struct ComposeStep {
-    std::shared_ptr<const ComposeImage> image;   // null: `to` filled white
+    std::shared_ptr<const ComposeImage> image;   // null: `to` filled white (unless `clouds`)
+    std::shared_ptr<const CloudsDraw> clouds;    // the clouds over all of `to`
     bool over = true;                            // over what is there (premultiplied alpha), else replacing it
     int fromX = 0, fromY = 0;                    // the image texel drawn at `to`'s top-left texel
     Rect to{};                                   // first-level texels
@@ -621,15 +628,14 @@ struct ComposeRecipe {
     int width = 0, height = 0;   // the first level
     int levels = 1;              // the image's levels (the ones below the first made by the GPU)
     int firstLevel = 0;          // the first level the texture shows
-    bool opaque = false;         // cleared to opaque black, else transparent black
-    bool oneBitAlpha = false;    // what is drawn keeps only the alpha's top bit (a 1:5:5:5 texture's)
+    BlankAlpha alpha = BlankAlpha::Full;   // what is drawn keeps of the alpha (None: cleared to opaque black)
     std::vector<ComposeStep> steps;
 };
 // The image of `recipe` made and drawn, with a view of the levels it shows; false (nothing made) on failure.
 bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view);
 // More steps drawn into an image MakeComposed made for `recipe` (its levels made again).
 void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep* steps, std::size_t count);
-// The device is lost: the pipelines go (made again at the next use).
+// The device is lost: the pipelines and the clouds' frames go (made again at the next use).
 void DestroyCompose();
 // render::ComposeTexture's entry for `holder` (render_textures.cpp); RemakeComposed draws every composed texture
 // again on a new device (no pass in progress).

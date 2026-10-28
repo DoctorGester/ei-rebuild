@@ -22,7 +22,6 @@ namespace {
 constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // targetFlags_: also hits the target itself
 constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
-constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 // The prototype index in the packed id.
@@ -62,8 +61,8 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
         if (IsHostileType(SpellType(spell))) {
             victim->ServerController()->brain.SetSeen(caster);
             diplomacy_.OnAttack(caster, victim);
-            target->flags_ |= kFlagFought;
-            caster->flags_ |= kFlagFought;
+            target->flags_ |= MapObjectFlag::RelationsChanged;
+            caster->flags_ |= MapObjectFlag::RelationsChanged;
         }
     }
 }

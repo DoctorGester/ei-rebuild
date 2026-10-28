@@ -57,7 +57,6 @@ using mapspec::ObjectSpec;
 using mapspec::Spec;
 using mapspec::UnitSpec;
 
-constexpr int kTypeHero = 0x32;                        // the map objects manager's type of hero prototypes
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kGameResultLost = 2;
@@ -188,9 +187,9 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         message->skinTexture = record->texts[4];
         message->parts.clear();
         const char* prototypeName = record->texts[5].c_str();
-        int type = PrototypeObjectClass(prototypeName);
-        message->parentId = type;
-        if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
+        MapObjectType type = PrototypeObjectClass(prototypeName);
+        message->parentId = static_cast<int>(type);
+        if (type == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
 
         int id = static_cast<int>(record->unitId);
         message->id = id;
@@ -313,7 +312,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
     auto created = [this, spec]<class T>(std::type_identity<T>) {
-        return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->id);
+        return MapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
     auto allowed = [this](CMapObject* object) {
         return (object->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
@@ -391,7 +390,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         place(object);
         object->MarkChanged(2);
         object->MarkChanged(4);
-        if (spec->visible == 0) object->flags_ |= 8;
+        if (spec->visible == 0) object->flags_ |= MapObjectFlag::Hidden;
         objectManager->GiveDefaults(object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         object->SetUpAnimatedFigure(spec->texture);
@@ -403,7 +402,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         aiMap_.sectorMap.Add(object);
         int result = object->id_;
-        if (object->flags_ & 2) object->WriteChangedState();
+        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
@@ -416,14 +415,14 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         ++object->refCount_;
         object->WriteFullState();
         object->MarkChanged(2);
-        object->flags_ |= 8;
+        object->flags_ |= MapObjectFlag::Hidden;
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != ClassId::Unit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
-        if (object->flags_ & 2) object->WriteChangedState();
+        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
         object->SetUp(&static_cast<mapspec::TrapSpec*>(message)->trap);
         return result;
     }
@@ -440,10 +439,10 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object = lever = created(std::type_identity<Lever>{});
         else
             object = created(std::type_identity<CMapObject>{});
-        if (spec->shadow) object->flags_ |= 0x20000;
+        if (spec->shadow) object->flags_ |= MapObjectFlag::Synchronised;
         if (str::Compare(spec->model,
                             game::kEmptyText) != 0)
-            object->flags_ |= 0x20000;
+            object->flags_ |= MapObjectFlag::Synchronised;
         if (!allowed(object)) return refuse(object);
         int id = object->id_;
         if (id == -1) return -1;
@@ -500,7 +499,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(6);
         object->MarkChanged(7);
         object->MarkChanged(8);
-        if (spec->visible == 0) object->flags_ |= 8;
+        if (spec->visible == 0) object->flags_ |= MapObjectFlag::Hidden;
         object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
@@ -509,7 +508,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (object->GetClassId() != ClassId::Unit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         aiMap_.sectorMap.Add(object);
         int result = object->id_;
-        if (object->flags_ & 2) object->WriteChangedState();
+        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
         if (type >= 8 && type <= 9) {
             object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);

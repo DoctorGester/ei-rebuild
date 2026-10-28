@@ -245,7 +245,7 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
         CUnit* other = *node;
         ++node;
         if (!diplomacy->IsAllied(other->side, side)) continue;
-        other->flags_ |= 0x2000000;
+        other->flags_ |= MapObjectFlag::SeeAll;
         CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);
         std::list<CUnit*>* watched = &controller->brain.memory.visible;
@@ -266,8 +266,8 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
 }
 
 void CUnitServer::PropagateHostility() {
-    if (!(unit->flags_ & 0x80000)) return;
-    unit->flags_ &= ~0x80000u;
+    if (!(unit->flags_ & MapObjectFlag::RelationsChanged)) return;
+    unit->flags_ &= ~MapObjectFlag::RelationsChanged;
     claimedHostile |= unit->relationsA;
     CWorldServer* world = ServerWorld();
     double radius = brain.callRadius;
@@ -300,15 +300,15 @@ void CUnitServer::PropagateHostility() {
 
 void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CWorldServer* world = ServerWorld();
-    if (unit->type_ < 0x32 || unit->type_ > 0x36) {
-        unit->flags_ |= 1;
+    if (unit->MapType() < MapObjectType::Hero || unit->MapType() > MapObjectType::Building) {
+        unit->flags_ |= MapObjectFlag::Removed;
         return;
     }
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         TriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == ClassId::Unit) DiplomacyOf(world)->OnAttack(attacker, unit);
         brain.SetSeen(attacker);
-        unit->flags_ |= 0x80000;
+        unit->flags_ |= MapObjectFlag::RelationsChanged;
         PropagateHostility();
         std::uint32_t direction = HitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
@@ -343,7 +343,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (CPlayer* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
-        if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
+        if (IsMultiplayerClient() & 0xFF) unit->flags_ |= MapObjectFlag::Shared;
     }
 }
 

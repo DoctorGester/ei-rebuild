@@ -336,7 +336,7 @@ public:
     void RefreshStats() override;
     // The hero preview turns while a turn button is held.
     void Update() override;
-    // Wrapping; fatal after a full round without a hero (prototype class 0x32).
+    // Wrapping; fatal after a full round without a hero (prototype class MapObjectType::Hero).
     void NextHero() override;
     void PreviousHero() override;
     // The unit's own name, else the text of "pers <record name>".

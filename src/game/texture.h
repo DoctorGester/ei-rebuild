@@ -166,9 +166,13 @@ public:
     void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
-    // A square surface header->width wide (the height is not read) in the new renderer's memory, one level.
+    // A square texture header->width wide (the height is not read) the game draws into on the GPU (TakeBlankHolder).
     // Returns 1.
     int CreateBlank(CTextureDevice* device, const MmpHeader* header);
+    // A new holder in surface_ of a `width` x `height` texture the game draws into on the GPU (render::BlankTexture),
+    // keeping what format_ keeps of the alpha; with `mipmapped` its levels made after each draw. The game's error for
+    // a surface that cannot be made when format_ is none.
+    void TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped);
     // A 24-bit .bmp and, when `alphaPath` is an 8-bit .bmp, its alpha. 1 (also when already loaded); 0 when
     // the .bmp cannot be opened.
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);

@@ -5183,3 +5183,48 @@ title = "Host without a fixed base or game.exe range guard"
 group = "cleanup"
 model = "sonnet"
 note = "User 2026-10-28: the standalone exe's fixed base (CMakeLists /DYNAMICBASE:NO /FIXED:NO /BASE:0x01000000, the 'temporary' of 2026-10-21) can go. It only kept ASLR from loading the host inside 0x400000-0x7D7000 so the host's ReserveGameRange guard was whole. With 0 raw game addresses the guard is a safety net only: remove the base, ReserveGameRange / OnGameRange / EiStandaloneRangeTaken in host.cpp and standalone_main.cpp's read of it, and the IMAGE_TIES row in tools/dashboard_data.py; also standalone_main.cpp's CheckGuard and its start-up log line. Keep the fault reports that still work without the reservation (OnOldCode, image_data.cpp's OnOldData, StrayGameAddress): free memory faults too; say in the report whether any of them become unreachable. Update docs/notes/standalone.md section 2. play.cmd and goldens unchanged."
+
+[[ticket]]
+id = "C49"
+title = "One reference-counting idiom (G9)"
+group = "cleanup"
+model = "opus"
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G9: script the 4-line counted assign to x.Assign(o) and Reset pairs; delete the non-counting operator=(T*) so the compiler lists raw stores; merge the 11 counted-pointer types into an intrusive Ref<T> plus AddRef/Release for manual sites. RAII destructors after C50."
+
+[[ticket]]
+id = "C50"
+title = "Real constructors instead of pseudo-constructors and static-init emulation (G11)"
+group = "cleanup"
+model = "opus"
+depends = ["C49"]
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G11: default member initialisers and real ctors/dtors bottom-up per owner; Reset only where an object is reused; lib::StaticObject / atexit(Free...) / guard bits to function-local statics, plain globals or members (heap layout not preserved). By hand; split into batches by subsystem (C50a..)."
+
+[[ticket]]
+id = "C51"
+title = "bool and void instead of BOOL, int-as-bool and always-1 returns (G10)"
+group = "cleanup"
+model = "sonnet"
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G10: bool everywhere except byte-exact structs; always-1 returns to void unless an interface needs the value; int Is*/Has*/Can* predicates to bool; virtual signatures changed together."
+
+[[ticket]]
+id = "C52"
+title = "Return values instead of out-parameters (G12)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C51"]
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G12: std::string* out / vector out-params returned by value; const Vector3* never-null inputs to const Vector3&. One function at a time, the compiler lists callers."
+
+[[ticket]]
+id = "C53"
+title = "Layout scaffolding, forwarders and meaningless parameters (G13-G15)"
+group = "cleanup"
+model = "sonnet"
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G13: sizeof asserts and pad_/unused_ fields only on file/save/packet structs. G14: inline one-line wrappers and misnamed field forwarders. G15: remove parameters every caller passes the same constant; name the rest after their use (no a/b/argN)."
+
+[[ticket]]
+id = "C54"
+title = "Tier 2 style in the interface files"
+group = "cleanup"
+model = "opus"
+depends = ["P8"]
+note = "Style review Tier 2 (G9-G15) for src/game/ui_*.* and src/render/render_ui*, left out of C49-C53 for the native UI track. Whatever the P tickets did not already rewrite."

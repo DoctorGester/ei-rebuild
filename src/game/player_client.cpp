@@ -109,7 +109,6 @@ constexpr std::uint8_t kRequestRecording = 2;
 bool MarkersShown() { return options::g_options->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
-constexpr int kTypeHumanoid = 0x32;         // type_ of units with heads and the "mo%d" skins
 constexpr std::uint32_t kHeaderFlagHidden = 8;
 constexpr std::uint32_t kFlagNoParts = 0x200;
 constexpr std::uint32_t kFlagCow = 0x10000000;
@@ -453,7 +452,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.ReadValue(value);
     if (kind != kKindNoPath) {
-        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(kUnitTypeHero, -1);
+        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
         ++walker->refCount_;
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
@@ -537,7 +536,7 @@ int CPlayerClient::OnNewObject() {
     in_.ReadValue(prototypeValue);
 
     auto* world = player_->WorldContext();
-    CMapObject* created = world->objectManager_->CreateObjectAs<CMapObject>(header.type, header.id);
+    CMapObject* created = world->objectManager_->CreateObjectAs<CMapObject>(static_cast<MapObjectType>(header.type), header.id);
     if (created == nullptr) return 0;
     CMapObject* object = created;
     CObject3D* figure = object;
@@ -560,7 +559,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;
     if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags_ |= kFlagCow;
-    if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
+    if (created->MapType() == MapObjectType::Hero && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
             if (str::Compare(parts[i], TextHairPart()) != 0) continue;
@@ -594,7 +593,7 @@ int CPlayerClient::OnNewObject() {
     figure->PlayAnimation(nullptr);
     figure->RestartPose();
     std::optional<std::string_view> to = std::string_view(textureTo);
-    if (created->type_ == kTypeHumanoid) {
+    if (created->MapType() == MapObjectType::Hero) {
         std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id_);
         std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id_);
     } else if (Same(textureTo, TextNone())) {

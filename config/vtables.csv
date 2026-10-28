@@ -133,7 +133,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073CFD0,18,,game,004981B0 00498310,004982F0,CParticleSource,src/game/effects.h,a particle source (CParticleSource)
 0073D018,3,,game,004981B0 00498310 00498CA0 005627C0 0056FD40,007005E3,ClientListClass,-,CList (the client map's lists (world_client_maps 0056FD40)); stored only by game.exe (ours is a std::list)
 0073D024,3,,game,00498E60 00498E80,007005E3,ParticleDepthArrayClass,-,CArray (the particles' draw order 007A9C50); stored only by game.exe (ours is a std::vector)
-0073D030,3,,game,00499DC0 00499E30 00499E90,006E73EB,CCloudNoise,src/game/global_map_clouds.h,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
+0073D030,3,,game,00499DC0 00499E30 00499E90,006E73EB,CCloudNoise,-,the cloud noise base (slots 0 / 1 _purecall); stored only by game.exe (00499DC0 / 00499E30 / 00499E90: its constructor and destructors); ours is the one class CGlobalMapClouds
 0073D0C4,2,,game,004A6580 004A6A90,004A6A70,ClassTemplate,src/game/class_templates.h,a hero class template (ClassTemplate)
 0073D110,3,,game,004B5ED0 004BC870 004C00D0 004C8AF0 004C8F00 004CB7E0 004CBDB0 004CC890 004CC9B0 004CEB80 004CECB0 0058DFF0 00596E70 005D4CD0 0066C540 0066E130 0066E430,007005E3,ScriptGroupClass,-,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table); stored only by game.exe (ours is a std::vector)
 0073D11C,3,,game,004B5EF0 004BC8A0 004BC9A0 004BCA20 004BCAE0 004BE090 004BE490 004BEC80 004C1BE0 004C2030 004C2290 004C3B20 004C3DC0 004C81B0 004C8AF0 004C8E20 004C8F00 004CBEF0 0058DFF0 005D4CD0 0066E130 0066E430,007005E3,ObjectRefArrayClass,-,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290); stored only by game.exe (ours is a std::vector)
@@ -435,7 +435,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00741DD8,42,,game,0061E2F0,0061E440,CMasterRequestBox,src/game/ui_screens.h,the master server request box (CMasterRequestBox)
 00741F78,13,,game,0062AE90 00632D70,0062B770,COptionsWindow,src/game/ui.h,the options window's input side
 00741FAC,42,,game,0062AE90 00632D70,0062B160,COptionsWindow,src/game/ui.h,the options window (COptionsWindow)
-007420D4,3,,game,0062D350,0049A090,CGlobalMapClouds,src/game/global_map_clouds.h,the global map's clouds (CCloudNoise)
+007420D4,3,,game,0062D350,0049A090,CGlobalMapClouds,src/game/global_map_clouds.h,the global map's clouds (derived from CCloudNoise; ours has no virtual functions)
 00742118,13,,game,00632D70,006345F0,CMpHeroScreen,src/game/ui_screens.h,the hero screen's input side
 0074214C,55,,game,00632D70,00633240,CMpHeroScreen,src/game/ui_screens.h,the multiplayer hero screen (CMpHeroScreen)
 00742228,13,,game,00632D70 006335E0,006345E0,CDifficultyBox,src/game/ui.h,the difficulty question's input side

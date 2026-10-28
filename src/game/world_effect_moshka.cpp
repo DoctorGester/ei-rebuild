@@ -27,7 +27,6 @@
 
 namespace {
 
-constexpr int kStuffObjectType = 0x38;        // the map object factory's type of a CStuffObject: the bird's figure
 constexpr int kBirdParticles = 0x203C;        // the particle type the figure carries
 constexpr float kBirdParticleScale = 0.5f;
 
@@ -232,7 +231,7 @@ void CEffectMoshka::Follow(int objectId) {
     std::string model = game::MoshkaModelText();
     std::string texture = game::MoshkaTextureText();
     int id = g_clientWorld->nextClientObjectId_--;
-    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kStuffObjectType, id);
+    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
     bird_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.

@@ -64,7 +64,8 @@ none may be devirtualised.
   record as a `CRefCounted` (base vtable 0073BB68).
 - Named slots: `CPixelConverter` 1 `SetChannelMasks`, 10 `DecodeDxt` (8 / 9 the DLL's triangle rasterisers, `Unused8` / `Unused9`; R28 removed the class); `CFigureCache` 5 `Clear` (004F7020), 6
   `ScaledFigure` (004F75E0) (now `CLinkFigureLoader`, cleanup-figures.md); `CUnitController` 21 `Heal(amountBits)` returning int (the amount is
-  pushed as bits, as the original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `CCloudNoise` 0 `MakeLayer` / 1 `Generate` (real classes since C28f);
+  pushed as bits, as the original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `CCloudNoise` 0 `MakeLayer` / 1 `Generate` (real classes since C28f; R28b
+  folded them into the plain `CGlobalMapClouds`, the noise built on the GPU);
   `AIStream` 0 `DeletingDestruct` (the verify streams' overrides renamed).
 - `menu_rects` calls the owner's `CBaseManager::GetFile` (slot 19), `text_reader` the archive's `CMappedResource::GetFile` (slot 5),
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).

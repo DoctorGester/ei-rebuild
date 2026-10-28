@@ -27,8 +27,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagInvisible = 0x10000;     // CEngineObject::flags_ of the object
-constexpr std::uint32_t kFlagStunned = 0x40000;
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // power / 16
@@ -260,10 +258,10 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         added.present = 1;
         switch (type) {
         case kInvisibility:
-            CompanionOwner(this)->flags_ |= kFlagInvisible;
+            CompanionOwner(this)->flags_ |= MapObjectFlag::Invisible;
             break;
         case kStun:
-            CompanionOwner(this)->flags_ |= kFlagStunned;
+            CompanionOwner(this)->flags_ |= MapObjectFlag::Stunned;
             break;
         case kLichdom:
         case kStrengthen:
@@ -293,12 +291,12 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         switch (record->type) {
         case kStun:
             if (OtherRecordOfType(particles, i, kStun)) break;
-            CompanionOwner(this)->flags_ &= ~kFlagStunned;
+            CompanionOwner(this)->flags_ &= ~MapObjectFlag::Stunned;
             CompanionOwner(this)->ClientSpecific()->ClearPartTints();
             break;
         case kInvisibility:
             if (OtherRecordOfType(particles, i, kInvisibility)) break;
-            CompanionOwner(this)->flags_ &= ~kFlagInvisible;
+            CompanionOwner(this)->flags_ &= ~MapObjectFlag::Invisible;
             CompanionOwner(this)->ClientSpecific()->ResetPartAlpha();
             break;
         case kLichdom:

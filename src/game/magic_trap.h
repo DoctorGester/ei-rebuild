@@ -1,6 +1,6 @@
 #pragma once
 
-// Magic traps (map objects of class id 0x3B; the zone file's "MagicTrap" records). flags_ bit 0x80000 is
+// Magic traps (map objects of the factory type MapObjectType::MagicTrap, class id 0x61; the zone file's "MagicTrap" records). MapObjectFlag::Armed is
 // "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
 
 #include "map_object.h"

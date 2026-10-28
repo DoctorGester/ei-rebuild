@@ -15,7 +15,6 @@ namespace {
 // The server world's object by id.
 CEngineObject* FindObject(int id) { return g_serverWorld->FindObject(static_cast<unsigned>(id)); }
 
-constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
 // The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live
 // objects' ids are unique, so only copies of one reference are equal and any sort gives the game's qsort's order.
@@ -40,7 +39,7 @@ CUnitServer* ScriptObjectRef::GetUnitPerception() const {
 }
 
 void ScriptObjectRef::ReleaseIfDeleted() {
-    if (object && (object->flags_ & kDeleted)) object = nullptr;
+    if (object && (object->flags_ & MapObjectFlag::Removed)) object = nullptr;
 }
 
 void ScriptObjectRef::Load(CStream* stream) {

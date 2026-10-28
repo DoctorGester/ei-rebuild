@@ -18,7 +18,6 @@
 // keeps on the FPU stack are double locals, values it stores are floats.
 
 namespace {
-constexpr std::uint32_t kFlagFiguresLoaded = 0x80;   // flags_
 constexpr std::uint32_t kFlagPartsMarked = 0x200;    // flags_ of a non-unit object
 constexpr std::uint32_t kPartFlagStatic = 8;         // flags_ of its parts
 constexpr std::uint32_t kBoundsValid = 1 | 2;
@@ -154,7 +153,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
 }
 
 void CObject3D::LoadFigures() {
-    if (flags_ & kFlagFiguresLoaded) return;
+    if (flags_ & MapObjectFlag::FiguresLoaded) return;
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
     {
@@ -180,5 +179,5 @@ void CObject3D::LoadFigures() {
         flags_ |= kFlagPartsMarked;
     }
     attached->ApplyMaterials();
-    flags_ |= kFlagFiguresLoaded;
+    flags_ |= MapObjectFlag::FiguresLoaded;
 }

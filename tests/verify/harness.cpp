@@ -321,13 +321,6 @@
 //                             draw; check requires that no check of a kept mesh against a fresh build
 //                             (every 16th frame, render::MeshCacheState) found it stale. Ignored in a
 //                             run of the original code
-//   memorytextures inplace|remake
-//                             the image's textures in the renderer's memory (shadow textures, the global
-//                             map's, the CPU-written ones) updated in place with their levels made on
-//                             the GPU (render::SetMemoryTexturesInPlace, R16b; the default) or made
-//                             again as new images with their levels made on the CPU (remake: as before
-//                             R16b); every one is read again at its next use. Ignored in a run of the
-//                             original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time, morphed meshes; R16e: the
@@ -2235,7 +2228,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "smooth" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "memorytextures" || verb == "shadowcheck" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "smooth" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.

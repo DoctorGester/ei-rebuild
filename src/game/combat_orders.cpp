@@ -24,7 +24,6 @@ constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
-constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 constexpr float kReachHeight = 1.5f;
 
 
@@ -69,7 +68,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     CSpell* spell;
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
-        if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
+        if (!carrier) return !(self->unit->flags_ & MapObjectFlag::NoCasting);
         spell = carrier->spell_;
     } else {
         spell = self->unit->GetSpellObject(source);
@@ -80,7 +79,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
             self->stats.SpellSchoolSkill(SpellPrototype(spell)->school));
         if (x87::fistp(skill) < needed) return false;
     }
-    return !(self->unit->flags_ & kFlagSpellBlocked);
+    return !(self->unit->flags_ & MapObjectFlag::NoCasting);
 }
 
 } // namespace

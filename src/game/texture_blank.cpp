@@ -1,8 +1,7 @@
-// The texture manager's new texture and the blank surface it gets. The 1:5:5:5 ones (kind 0x20: the item pictures and the
-// image atlases CopyImage fills, ui_item_view.cpp) are drawn into on the GPU (render::BlankTexture / DrawIntoTexture);
-// the others (the save / load screen's pictures, the global map's weather) have only the new renderer's memory
-// (NewMemoryTextureHolder, surface.cpp), which their writers fill through DirectPixels (ui_global_map.cpp,
-// ui_saveload.cpp) and the new renderer reads. See docs/notes/renderer.md (section 7).
+// The texture manager's new texture and the blank texture it gets, which the game draws into on the GPU
+// (render::BlankTexture): the 1:5:5:5 ones (kind 0x20: the item pictures and the image atlases CopyImage fills,
+// ui_item_view.cpp) and the save / load screen's pictures (ui_saveload.cpp) through render::DrawIntoTexture, the global
+// map's weather through render::DrawClouds (ui_global_map.cpp). See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "surface.h"
@@ -15,7 +14,7 @@
 namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
-constexpr std::uint32_t kGpuDrawnFormat = 0x5551;
+constexpr std::uint32_t kAtlasFormat = 0x5551;   // the item pictures and image atlases
 
 // The formats of the texture kinds: the texture format and the channels it writes into the header (mask, shift,
 // bits; the header's other fields stay zero).
@@ -42,24 +41,26 @@ const BlankFormat* FormatOfKind(int kind) {
 } // namespace
 
 
-int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
-    // A square of header->width (the height is not read), one level. Without the memory (another kind's texture has no
-    // format) the error for a surface that cannot be made ends the game.
-    const std::uint32_t size = header->width;
+void CTexture::TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped) {
     const PixelFormat format = TextureFormat(format_);
-    Surface* surface;
-    if (format_ == kGpuDrawnFormat) {
-        // The 1:5:5:5 textures (the item pictures, the image atlases CopyImage fills) are drawn into on the GPU.
-        surface = NewDecodedTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format.bitsPerPixel);
-        if (surface) render::BlankTexture(surface, static_cast<int>(size), static_cast<int>(size), true);
-    } else {
-        surface = NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format);
-    }
-    if (!surface) ThrowSurfaceNotMade(0, 0);
+    // Without a format (another kind's texture) the error for a surface that cannot be made ends the game.
+    Surface* holder = format.bitsPerPixel ? NewDecodedTextureHolder(device, width, height, format.bitsPerPixel) : nullptr;
+    if (!holder) ThrowSurfaceNotMade(0, 0);
+    const render::BlankAlpha alpha = !format.alphaMask           ? render::BlankAlpha::None
+                                     : format.alphaMask == 0x8000 ? render::BlankAlpha::OneBit
+                                                                  : render::BlankAlpha::Full;
+    render::BlankTexture(holder, width, height, alpha, mipmapped);
     Surface* previous = surface_;
-    surface_ = surface;
-    ++surface->refs_;
+    surface_ = holder;
+    ++holder->refs_;
     if (previous) previous->Release();
+}
+
+int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
+    // A square of header->width (the height is not read). The atlases keep one level, as the original's every blank
+    // texture (a level below would mix neighbouring cells); the others get their levels made after each draw.
+    const auto size = static_cast<int>(header->width);
+    TakeBlankHolder(device, size, size, format_ != kAtlasFormat);
     // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
     uploadResult_ = 0;
     return 1;

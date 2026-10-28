@@ -27,7 +27,6 @@ constexpr int kStyleRun = 3;
 constexpr std::uint32_t kUntameable = 0x32;
 
 constexpr std::uint32_t kEmoteKeyBit = 0x80000000u;   // FigureAnimation::key: an emote (kind 8)
-constexpr std::uint32_t kFlagShared = 0x20000000u;    // CEngineObject::flags_: on the world's shared list
 constexpr int kStateActing = 5;                       // CUnitServer::state
 
 CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
@@ -99,7 +98,7 @@ void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
 }
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
-    if (target->flags_ & kFlagShared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
+    if (target->flags_ & MapObjectFlag::Shared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto& node : ai->memory.nearby) {
         auto* other = node;

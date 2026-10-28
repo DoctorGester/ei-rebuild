@@ -213,7 +213,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
 
         ++object->refCount_;
         object->MarkChanged(-1);
-        if (object->type_ != 0x3B) {
+        if (object->MapType() != MapObjectType::MagicTrap) {
             object->SetUpAnimatedFigure(object->name);
             aiMap_.sectorMap.Add(object);
         }
