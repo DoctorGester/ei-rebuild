@@ -34,9 +34,9 @@ template <std::floating_point T> float Float(T) = delete;
 // Figure manager: the model named `name`.
 // Part: remembers its owner.
 // Animation state: a part was added.
-void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
+void AnimationAddPart(void* state, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
 // Animation state: rescale to x, y, z.
-void AnimationSetScale(void* state, void*, float x, float y, float z) {
+void AnimationSetScale(void* state, float x, float y, float z) {
     static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
 }
 
@@ -148,7 +148,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
             part->box_.bounds.radius = fitted.radius;
         }
     }
-    if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);
+    if (animation) AnimationSetScale(animation, scale.x, scale.y, scale.z);
     ComputeBounds();
 }
 
@@ -170,7 +170,7 @@ void CObject3D::LoadFigures() {
         lib::SetAtGrow(parts, std::ssize(parts), part);
         ++part->refCount_;
         part->SetObject(this);
-        if (animation) AnimationAddPart(animation, nullptr, part);
+        if (animation) AnimationAddPart(animation, part);
         if (attached) attached->OnPartAdded(part);
     }
     pendingParts.clear();

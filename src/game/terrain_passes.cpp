@@ -138,7 +138,7 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
                 renderer->SetTexture(0, pageTextures[page % (pages + 2)]);
                 bound = true;
             }
-            return sector->DrawPage(renderer, this, page, 0) != 0;
+            return sector->DrawPage(renderer, page) != 0;
         });
         if (!drawn) return 0;
     }

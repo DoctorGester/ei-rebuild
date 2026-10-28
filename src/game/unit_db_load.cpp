@@ -26,19 +26,19 @@ constexpr int kModelSlots = 6;
 using dbfile::FillStream;
 using dbfile::LocalResource;
 
-// The tables' vector serialisers (id, vector, unused; ChunkArchive::SerializeUnitLevels / SerializeModels /
+// The tables' vector serialisers (id, vector; ChunkArchive::SerializeUnitLevels / SerializeModels /
 // SerializePrototypes / SerializeNpcs, unit_db.cpp).
 template <typename Record>
-using SerializeTable = void (ChunkArchive::*)(int, std::vector<Record>*, void*);
+using SerializeTable = void (ChunkArchive::*)(int, std::vector<Record>*);
 
 // One pass over the file: an archive of its own opened for loading, the table's records read as chunk `id`
 // and, after the archive is closed, each entered into the name index under its name (operator[]; a record of
-// a name seen before replaces the earlier one). `levels` is the serialisers' unused third argument.
+// a name seen before replaces the earlier one).
 template <typename Table, typename Record>
-void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table, void* levels) {
+void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
-    (archive.*serialize)(id, &table.records, levels);
+    (archive.*serialize)(id, &table.records);
     archive.Close(stream);
     for (Record& record : table.records) {
         std::string key(record.name);
@@ -81,10 +81,10 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, levels, &levels);
-    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, models, &levels);
-    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, prototypes, &levels);
-    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, npcs, &levels);
+    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, levels);
+    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, models);
+    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, prototypes);
+    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, npcs);
 
     resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
@@ -124,7 +124,7 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
         CMemoryStream* stream = &local;
         FillStream(*stream, data, size);
         ar.Open(stream, 1, 1);
-        ar.SerializeSkills(kSkillsChunk, &skills, nullptr);
+        ar.SerializeSkills(kSkillsChunk, &skills);
         // The level records, inlined: as ChunkArchive::SerializeSkillLevels, with the vector's
         // clear and the record's chunk out of line.
         if (ar.EnterChunk(kSkillLevelsChunk)) {

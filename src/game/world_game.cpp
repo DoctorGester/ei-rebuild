@@ -307,7 +307,7 @@ const char* ResourcesPath() { return options::g_options->resourcesPath_.c_str();
 
 constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
 constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
-void StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
+void StreamLoadScripts(CMemoryStream* a0, CStream* a2) { a0->ReadSized(a2); }
 
 void DestroyGameFlow() { g_gameFlow->Destruct(); }
 
@@ -1271,7 +1271,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(&g_saveStream.Get());
         g_interface->LoadState(&scenario);
-        StreamLoadScripts(&scenario, nullptr, &g_saveStream.Get());
+        StreamLoadScripts(&scenario, &g_saveStream.Get());
         version = static_cast<int>(scenario.version_);
         g_saveStream->version_ = static_cast<std::uint32_t>(version);
     }

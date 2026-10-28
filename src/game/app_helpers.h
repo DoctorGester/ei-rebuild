@@ -23,6 +23,6 @@ void DelayedProtectionCheck();
 void ConstructProtectionChecks();
 
 // (app_registry.cpp): a class the chunk archives can hold, by id and factory.
-void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
-                                     ChunkArchive::Factory factory);
+void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t id,
+                          ChunkArchive::Factory factory);
 } // namespace app

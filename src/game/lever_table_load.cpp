@@ -32,12 +32,11 @@ int LeverRecordTable::Load(const std::string& folder) {
     CMemoryStream local;
     FillStream(local, data, size);
 
-    // The records as chunk 1 of an archive opened for loading (the file's size is the serialiser's
-    // unused third argument), then every record entered under its model's name: a record of a name
+    // The records as chunk 1 of an archive opened for loading, then every record entered under its model's name: a record of a name
     // seen before replaces the earlier one.
     ChunkArchive archive;
     archive.Open(&local, 1, 1);
-    archive.SerializeLevers(1, &records, static_cast<int>(size));
+    archive.SerializeLevers(1, &records);
     archive.Close(&local);
     for (LeverRecord& record : records) {
         std::string key(record.name);

@@ -1296,7 +1296,7 @@ class Names:
         if re.match(r'static\b', head):
             self.problems.append(f'{rel}: {port.name} ({a:08X}) is static: give it external linkage')
             return None
-        if not re.fullmatch(r'void(?:\s+__cdecl)?', head) or params not in ('', 'void'):
+        if head != 'void' or params not in ('', 'void'):
             self.problems.append(f'{rel}: {port.name} ({a:08X}) is `{head} {last}({params})`: declare it in a header')
             return None
         return expr, None, ('::'.join(full), f'void {last}();')

@@ -384,8 +384,8 @@ struct CRegionMap {
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCells* chain);
     // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
-    // cell / 128. The first argument is not read.
-    void MeasureBlockEdges(void* unused, int bx, int by);
+    // cell / 128.
+    void MeasureBlockEdges(int bx, int by);
     // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the tables.
     void Attach(class CAIMap* map);
     // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.

@@ -22,7 +22,7 @@ build; the list and why each runs are in build.cmd). The others are run by hand 
 Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): naked functions, files with
 `#pragma float_control`, unknown_XXX fields,
 `At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
-`0x0073xxxx`-`0x008Fxxxx`), `__fastcall Fn(T* self, void*)` shims, struct names defined in several files, and the rest listed in its output.
+`0x0073xxxx`-`0x008Fxxxx`), `Fn(T* self, void*)` shims (the old thiscall shape, with or without `__fastcall`; src has two left, the harness hooks' stand-ins), struct names defined in several files, and the rest listed in its output.
 
 ## Redundant pointer casts (`cast_scan.py`, C21)
 

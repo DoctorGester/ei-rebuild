@@ -48,14 +48,13 @@ inline int ReportNoDatabase(const std::string& folder) {
 
 // One table's pass over the stream: an archive of its own (the out-of-line constructor)
 // opened for loading, the table's records read as chunk `id` by the archive's vector serialiser
-// `serialize` (the chunk id, the vector, an unused argument), the archive closed; `index` then
+// `serialize` (the chunk id, the vector), the archive closed; `index` then
 // files the records, and the archive is destroyed.
 template <typename Records, typename Table, typename Index>
-void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*, void*), Table* table,
-               void* unused, Index index) {
+void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*), Table* table, Index index) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
-    (archive.*serialize)(id, table, unused);
+    (archive.*serialize)(id, table);
     archive.Close(stream);
     index();
 }

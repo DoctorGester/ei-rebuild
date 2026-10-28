@@ -84,10 +84,10 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         secondGold.Serialize(ar);
         ar->LeaveChunk();
     }
-    ar->SerializeStrings(0x1D, &lootItems, ar);
+    ar->SerializeStrings(0x1D, &lootItems);
     ar->Field(0x1E, skills3to5, sizeof(skills3to5));
-    ar->SerializeStrings(0x1F, &spellNames, ar);
-    ar->SerializeStrings(0x20, &armourNames, ar);
+    ar->SerializeStrings(0x1F, &spellNames);
+    ar->SerializeStrings(0x20, &armourNames);
     ar->StringField(0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
@@ -121,11 +121,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
         }
     }
     ar->StringField(0x1E, &figureName);
-    ar->SerializeStrings(0x1F, &unreadLists[0], ar);
-    ar->SerializeStrings(0x20, &unreadLists[1], ar);
+    ar->SerializeStrings(0x1F, &unreadLists[0]);
+    ar->SerializeStrings(0x20, &unreadLists[1]);
     Dword(ar, 0x21, &height);
     ar->StringField(0x22, &soundFolder);
-    ar->SerializeStrings(0x23, &soundNames, ar);
+    ar->SerializeStrings(0x23, &soundNames);
     ar->Field(0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
@@ -152,7 +152,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 5, &stats[2]);
     ar->Field(6, attributes, sizeof(attributes));
     ar->Field(7, skills, sizeof(skills));
-    ar->SerializeStrings(8, &skillNames, ar);
+    ar->SerializeStrings(8, &skillNames);
     InlineStrings(ar, 9, &startWeapons);
     InlineStrings(ar, 10, &startQuickItems);
     InlineStrings(ar, 11, &startSpells);
@@ -185,21 +185,21 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 4, &slotType);
 }
 
-void ChunkArchive::SerializeStrings(int id, std::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
+void ChunkArchive::SerializeStrings(int id, std::vector<std::string>* strings) { InlineStrings(this, id, strings); }
 
-void ChunkArchive::SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records, void*) {
+void ChunkArchive::SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records) {
     RecordChunks(this, id, records, &UnitPrototypeRecord::Serialize);
 }
 
-void ChunkArchive::SerializeNpcs(int id, std::vector<UnitNpcRecord>* records, void*) {
+void ChunkArchive::SerializeNpcs(int id, std::vector<UnitNpcRecord>* records) {
     RecordChunks(this, id, records, &UnitNpcRecord::Serialize);
 }
 
-void ChunkArchive::SerializeModels(int id, std::vector<UnitModelRecord>* records, void*) {
+void ChunkArchive::SerializeModels(int id, std::vector<UnitModelRecord>* records) {
     RecordChunks(this, id, records, &UnitModelRecord::Serialize);
 }
 
-void ChunkArchive::SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records, void*) {
+void ChunkArchive::SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records) {
     RecordChunks(this, id, records, &UnitLevelRecord::Serialize);
 }
 
@@ -229,7 +229,7 @@ void SkillDatabase::Reset() {
     lib::FreeStorage(skills);
 }
 
-void ChunkArchive::SerializeSkills(int id, std::vector<SkillRecord>* skills, void*) {
+void ChunkArchive::SerializeSkills(int id, std::vector<SkillRecord>* skills) {
     RecordChunks(this, id, skills, &SkillRecord::Serialize);
 }
 

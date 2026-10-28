@@ -47,7 +47,7 @@ template <class R, class... P, class... A>
 void Call(R(__stdcall* fn)(P...), A... args) {
     fn(Argument<P>(args)...);
 }
-// A method by its name, on the object the original passed in ECX.
+// A method by its name, on the object the original called it on.
 template <class R, class C, class... P, class O, class... A>
 void Call(R (C::*method)(P...), O object, A... args) {
     (Argument<C*>(object)->*method)(Argument<P>(args)...);

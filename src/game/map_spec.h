@@ -323,7 +323,7 @@ public:
     // Reads the file, applies its player relations, makes every record's world object (traps learn their
     // hostile players, units their alarm records), frees the records, then loads the scripts unless
     // `keepIds`' low byte is set. Returns true.
-    bool Load(void* unused, int keepIds);
+    bool Load(int keepIds);
 };
 
 } // namespace mapspec

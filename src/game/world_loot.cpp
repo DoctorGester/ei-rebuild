@@ -26,11 +26,9 @@ constexpr int kClassQuestItem = 0x14;                     // given to player 0 i
 bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     std::list<CItem*> items;
     std::list<CItem*> second;
-    std::list<CEngineObject*> third;
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
-        third.clear();
         second.clear();
         items.clear();
     };
@@ -63,7 +61,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         return true;
     }
 
-    if (!hoover_->CollectLoot(this, unit, &items, &second, &third, &gold)) {
+    if (!hoover_->CollectLoot(this, unit, &items, &second, &gold)) {
         destroy();
         return false;
     }

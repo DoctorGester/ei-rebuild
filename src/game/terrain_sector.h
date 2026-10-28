@@ -108,7 +108,7 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
                                   int remove);
 
 struct SectorData {
-    int DrawPage(void* context, void* /*unused*/, int page, int /*unused*/);
+    int DrawPage(void* context, int page);
     std::uint8_t hasSpecular;           // a specular light reached a vertex (Light clears it)
     std::uint8_t pad_001[3];
     std::uint32_t built;                // 1 loaded, 2 geometry, 4 lit

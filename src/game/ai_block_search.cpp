@@ -133,7 +133,7 @@ void CRegionMap::UpdateBlocks(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
         if (progress) progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kFirstPassShare));
     }
     for (int y = y0; y < y1; ++y) {
-        for (int x = x0; x < x1; ++x) MeasureBlockEdges(aiMap, x, y);
+        for (int x = x0; x < x1; ++x) MeasureBlockEdges(x, y);
         if (progress)
             progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kSecondPassShare + kFirstPassShare));
     }

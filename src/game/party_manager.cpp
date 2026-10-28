@@ -52,11 +52,11 @@ CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 // The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
 // argument (a stack leftover).
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
-    ar->SerializeParties(1, &manager->parties, nullptr);
-    ar->SerializePartyEntries(2, &manager->entries, nullptr);
+    ar->SerializeParties(1, &manager->parties);
+    ar->SerializePartyEntries(2, &manager->entries);
     ar->Field(3, &manager->unreadField, 4);
     if (ar->EnterChunk(4)) {
-        ar->SerializeClassTemplates(1, &manager->templates, nullptr);
+        ar->SerializeClassTemplates(1, &manager->templates);
         ar->LeaveChunk();
     }
     if (ar->EnterChunk(5)) {
@@ -71,7 +71,7 @@ void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
 
 void ChunkArchive::IntField(int id, int* value) { Field(id, value, 4); }
 
-void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
+void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
     if (!EnterChunk(id)) return;
     if (loading_) {
         parties->clear();
@@ -105,7 +105,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     LeaveChunk();
 }
 
-void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries, void*) {
+void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries) {
     RecordChunks(this, id, entries, [](PartyManagerEntry& entry, ChunkArchive* ar) {
         ar->StringField(1, &entry.name);
         ar->StringField(2, &entry.text);
@@ -131,7 +131,7 @@ void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>*
     });
 }
 
-void ChunkArchive::SerializeClassTemplates(int id, TemplateTable* templates, void*) {
+void ChunkArchive::SerializeClassTemplates(int id, TemplateTable* templates) {
     ObjectRefFields(this, id, templates);
 }
 

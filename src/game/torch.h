@@ -56,7 +56,7 @@ public:
     // (the spec's own reader, which applies it through the spec's slots); the result and-ed with "the snapshot
     // was consumed".
     std::uint32_t ReadTorchNetState(int first);
-    // AL = 1.
+    // true.
     bool Slot29True();
 
     CTorchObjectSpec* spec;         // a counted reference

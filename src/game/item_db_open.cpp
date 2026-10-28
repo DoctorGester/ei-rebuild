@@ -73,18 +73,16 @@ int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     CMemoryStream local;
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
-    // The serialisers' unused third argument: the file's size.
-    void* const unused = reinterpret_cast<void*>(static_cast<std::uintptr_t>(size));
 
-    LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells.records, unused,
+    LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells.records,
               [this] { FileByCode(spells); });
-    LoadTable(stream, kModifiersChunk, &ChunkArchive::SerializeSpellModifiers, &modifiers.records, unused,
+    LoadTable(stream, kModifiersChunk, &ChunkArchive::SerializeSpellModifiers, &modifiers.records,
               [this] { FileByCode(modifiers); });
 
     // The three lists through one archive, built and destroyed in place.
     ChunkArchive ar;
     ar.Open(stream, 1, 1);
-    for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i], unused);
+    for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i]);
     ar.Close(stream);
     resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
@@ -106,12 +104,11 @@ int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument is the file's data here.
-    LoadTable(stream, kMaterialsChunk, &ChunkArchive::SerializeMaterials, &materials.records, data,
+    LoadTable(stream, kMaterialsChunk, &ChunkArchive::SerializeMaterials, &materials.records,
               [this] { FileRecords(materials, MaterialKey); });
-    LoadTable(stream, kWeaponsChunk, &ChunkArchive::SerializeWeapons, &weapons.records, data,
+    LoadTable(stream, kWeaponsChunk, &ChunkArchive::SerializeWeapons, &weapons.records,
               [this] { FileRecords(weapons, ItemName); });
-    LoadTable(stream, kArmorsChunk, &ChunkArchive::SerializeArmors, &armors.records, data,
+    LoadTable(stream, kArmorsChunk, &ChunkArchive::SerializeArmors, &armors.records,
               [this] { FileRecords(armors, ItemName); });
     quickItems.Load(stream, kQuickItemsChunk);
     questItems.Load(stream, kQuestItemsChunk);

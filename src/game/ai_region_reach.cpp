@@ -428,7 +428,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
     path->push_front(cellAt(x, y));
 }
 
-void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
+void CRegionMap::MeasureBlockEdges(int bx, int by) {
     const int* dx = StepX();
     const int* dy = StepY();
     LocalSearch* search = &local;

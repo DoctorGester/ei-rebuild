@@ -76,13 +76,12 @@ int PrintsDatabase::Load(const std::string& folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument is the file's data.
     const auto name = [](auto& record) -> const std::string& { return record.name; };
-    LoadTable(stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood, data,
+    LoadTable(stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood,
               [&] { FileRecords(blood, bloodByName, name); });
-    LoadTable(stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints, data,
+    LoadTable(stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints,
               [&] { FileRecords(footprints, footprintsByName, name); });
-    LoadTable(stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch, data,
+    LoadTable(stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
               [&] { FileRecords(scorch, scorchByName, name); });
 
     resource.Get()->CMappedResource::CloseFile(data);
@@ -106,14 +105,12 @@ int AckDatabase::Load(const std::string& folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument: unwritten stack memory for the
-    // first table, the model table's address for the other two.
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
-    LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records, nullptr,
+    LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records,
               [&] { FileRecords(units.records, units.byName, name); });
-    LoadTable(stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records, &models,
+    LoadTable(stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records,
               [&] { FileRecords(models.records, models.byName, name); });
-    LoadTable(stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records, &models,
+    LoadTable(stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
     resource.Get()->CMappedResource::CloseFile(data);

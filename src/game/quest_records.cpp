@@ -35,16 +35,16 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp, 4);
     ar->Field(2, &money, 4);
-    ar->SerializeStrings(3, &lists[0], ar);
+    ar->SerializeStrings(3, &lists[0]);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
     ar->Field(10, &specials, 4);
 }
 
-void ChunkArchive::SerializeQuests(int id, std::vector<QuestRecord>* quests, void*) {
+void ChunkArchive::SerializeQuests(int id, std::vector<QuestRecord>* quests) {
     RecordChunks(this, id, quests, &QuestRecord::Serialize);
 }
 
-void ChunkArchive::SerializeBriefings(int id, std::vector<QuestBriefingRecord>* briefings, void*) {
+void ChunkArchive::SerializeBriefings(int id, std::vector<QuestBriefingRecord>* briefings) {
     RecordChunks(this, id, briefings, &QuestBriefingRecord::Serialize);
 }

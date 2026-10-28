@@ -27,19 +27,19 @@ void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id
 
 } // namespace
 
-void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records, void*) {
+void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records) {
     RecordChunks(this, id, records, &PrintRecord::Serialize);
 }
-void ChunkArchive::SerializePrints2(int id, std::vector<PrintRecord2>* records, void*) {
+void ChunkArchive::SerializePrints2(int id, std::vector<PrintRecord2>* records) {
     RecordChunks(this, id, records, &PrintRecord2::Serialize);
 }
-void ChunkArchive::SerializeAcks(int id, std::vector<acks::UnitAcks>* records, void*) {
+void ChunkArchive::SerializeAcks(int id, std::vector<acks::UnitAcks>* records) {
     RecordChunks(this, id, records, &acks::UnitAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks2(int id, std::vector<acks::ModelAcks>* records, void*) {
+void ChunkArchive::SerializeAcks2(int id, std::vector<acks::ModelAcks>* records) {
     RecordChunks(this, id, records, &acks::ModelAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void*) {
+void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records) {
     RecordChunks(this, id, records, &acks::ExtraAcks::Serialize);
 }
 

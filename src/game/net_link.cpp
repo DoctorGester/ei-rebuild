@@ -252,7 +252,7 @@ bool FramedLink::HasIncoming() {
     CStream* inbox = &inbox_;
     if (inbox->Size() < 4) return false;
     inbox->Seek(0);
-    std::uint32_t length = 0;   // the original's slot holds the pushed ECX; the read always fills it
+    std::uint32_t length = 0;   // the read always fills it
     inbox->Read(&length, 4);
     std::uint32_t size = inbox->Size();
     return size >= length + 4;

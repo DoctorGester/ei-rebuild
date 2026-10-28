@@ -35,7 +35,7 @@ namespace {
 
 // The hero screen's own methods (on the window): the mode (Rebirth-patched), create the hero, the
 // statistics page's next, continue to the connection screen, rename, the voice's sound.
-void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
+void SetMode(CMpHeroScreen* screen, int mode) { screen->SetModeVanilla(mode); }
 void MpHeroCreate(CMpHeroScreen*);
 void MpHeroAddNew(CMpHeroScreen*);
 void MpHeroContinue(CMpHeroScreen*);
@@ -147,7 +147,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_[0]->Clear();
     surfaces_[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
-    SetMode(this, nullptr, kModeNewHero);
+    SetMode(this, kModeNewHero);
     nameEdit_->SetText(HeroRecord()->texts[0]);
 }
 
@@ -202,7 +202,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
             BackToNewHero();
         } else if (mode_ == kModeNewHero) {
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            SetMode(this, nullptr, kModeList);
+            SetMode(this, kModeList);
         }
         handled_ = true;
         return;
@@ -257,7 +257,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         switch (region) {
         case 0:
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            SetMode(this, nullptr, 9);
+            SetMode(this, 9);
             return;
         case 1:
             MpHeroCreate(this);
@@ -351,7 +351,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         surfaces_[0]->Clear();
         surfaces_[0]->ReleaseDC();
         turn_ = 0.0f;
-        SetMode(this, nullptr, 10);
+        SetMode(this, 10);
         nameEdit_->SetText(game::kEmptyText);
         return;
     case 6:
@@ -500,7 +500,7 @@ void CMpHeroScreen::CreateHero() {
     hero->texts[0] = name;
     statsPanel_->SetHero(0, name);
     RefreshStats();
-    SetMode(this, nullptr, kModeStats);
+    SetMode(this, kModeStats);
 }
 // --- A hero deleted, the message box's answer ------------------------------------------
 
@@ -550,7 +550,7 @@ void CMpHeroScreen::OnMessageResult(int result) {
         hero->Party()->Assign(LocalPlayerData());
         hero->WriteFile(HeroesFolder());
     }
-    SetMode(this, nullptr, kModeList);
+    SetMode(this, kModeList);
 }
 
 // --- The new hero added to the list --------------------------------------------------
@@ -598,5 +598,5 @@ void CMpHeroScreen::AddNewHero() {
     record->WriteFile(HeroesFolder());
     RefreshHeroScroll();
     DrawHeroList();
-    SetMode(this, nullptr, kModeList);
+    SetMode(this, kModeList);
 }

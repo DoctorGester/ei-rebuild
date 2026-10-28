@@ -17,6 +17,6 @@ void LeverRecord::Archive(ChunkArchive* archive) {
     archive->StringField(7, &unreadTextLast);
 }
 
-void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list, int /*unused*/) {
+void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
     RecordChunks(this, id, list, &LeverRecord::Archive);
 }

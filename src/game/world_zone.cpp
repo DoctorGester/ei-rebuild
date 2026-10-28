@@ -103,7 +103,7 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
-        bool read = root->Load(this, keepIds);
+        bool read = root->Load(keepIds);
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }

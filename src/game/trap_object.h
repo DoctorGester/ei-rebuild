@@ -39,16 +39,15 @@ public:
     // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
     // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
     int UpdateTrap();
-    // An armed trap disarms when `key` accepts (always);
-    // AL 1, else 0. The second argument is not read.
+    // An armed trap disarms when `key` accepts (always); returns true. The second argument is not read.
     bool Disarm(const LockKey* key, int unused);
-    // The check's EAX (1).
+    // The check's result (1).
     int KeyFits(const LockKey* key);
     // Load / Save. The map object part, then
     // +0x238.
     void LoadTrapObject(CStream* stream);
     void SaveTrapObject(CStream* stream);
-    bool Slot29True();   // AL = 1
+    bool Slot29True();   // true
     int Slot38One();     // 1
 
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)

@@ -255,7 +255,7 @@ function render(data) {
     stat('Pointer static_casts', fmt(t.pointer_static_casts || 0), down('pointer_static_casts')) +
     stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('reinterpret_casts')) +
     stat('Game data addresses', fmt(t.data_addresses || 0), `${fmt(t.named_ranges || 0)} ranges named so far`) +
-    stat('Hook shims', fmt(t.fastcall_shims || 0), '__fastcall Fn(T* self, void*)') +
+    stat('Hook shims', fmt(t.fastcall_shims || 0), 'Fn(T* self, void*)') +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
     stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in tests/scenarios');
   const peakRows = (group, rows) => rows.map(([name, key]) => {
@@ -269,7 +269,7 @@ function render(data) {
     ['Code cells (game.exe data holding its code addresses)', 'code_cells'], ['of them C++ EH tables', 'code_cells_eh'],
     ['of them vtable slots', 'code_cells_vtable'], ['of them static initialisers', 'code_cells_static_init'],
     ['of them other tables', 'code_cells_other'], ['Pointer cells (game.exe data pointing into its data)', 'pointer_cells'],
-    ['__fastcall hook shims', 'fastcall_shims'],
+    ['Fn(T* self, void*) shims', 'fastcall_shims'],
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
     ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
     ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
@@ -297,7 +297,7 @@ function render(data) {
     lineChart(h, [{ name: 'static_cast to a pointer', color: accent, get: tr('pointer_static_casts') },
                   { name: 'reinterpret_cast', color: '#4a6fa5', get: tr('reinterpret_casts') }],
       { title: 'Casts', note: 'Typing debt: void* parameters, base-class fields and raw memory views (C15, C21).' }),
-    lineChart(h, [{ name: '__fastcall shims', color: accent, get: tr('fastcall_shims') },
+    lineChart(h, [{ name: 'Fn(T* self, void*) shims', color: accent, get: tr('fastcall_shims') },
                   { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
       { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11) and duplicated layouts.' }),
     lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],

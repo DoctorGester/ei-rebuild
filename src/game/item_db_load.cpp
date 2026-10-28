@@ -20,11 +20,11 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
     ChunkArchive archive;
     archive.Open(source, 1, 1);
     if constexpr (std::is_same_v<Record, itemdb::QuickItemRecord>)
-        archive.SerializeQuickItems(field, &table->records, nullptr);
+        archive.SerializeQuickItems(field, &table->records);
     else if constexpr (std::is_same_v<Record, itemdb::QuestItemRecord>)
-        archive.SerializeLoot(field, &table->records, nullptr);
+        archive.SerializeLoot(field, &table->records);
     else
-        archive.SerializeQuestItems(field, &table->records, nullptr);
+        archive.SerializeQuestItems(field, &table->records);
     archive.Close(source);
     for (Record& record : table->records) {
         std::string name = record.name;
@@ -67,23 +67,23 @@ template void LootItemTable::Load(CStream*, int);
 
 // --- The tables' vector serialisers ----------------------------------------------------------
 
-void ChunkArchive::SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records, void*) {
+void ChunkArchive::SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records) {
     RecordChunks(this, id, records, &itemdb::QuickItemRecord::Serialize);
 }
-void ChunkArchive::SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records, void*) {
+void ChunkArchive::SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records) {
     RecordChunks(this, id, records, &itemdb::QuestItemRecord::Serialize);
 }
-void ChunkArchive::SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records, void*) {
+void ChunkArchive::SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records) {
     RecordChunks(this, id, records, &itemdb::LootItemRecord::Serialize);
 }
 
-void ChunkArchive::SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records, void*) {
+void ChunkArchive::SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records) {
     RecordChunks(this, id, records, &itemdb::MaterialRecordHead::Serialize);
 }
-void ChunkArchive::SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records, void*) {
+void ChunkArchive::SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records) {
     RecordChunks(this, id, records, &itemdb::WeaponRecord::Serialize);
 }
-void ChunkArchive::SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records, void*) {
+void ChunkArchive::SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records) {
     RecordChunks(this, id, records, &itemdb::ArmorRecord::Serialize);
 }
 
@@ -106,8 +106,8 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(13, &duration, 4);
     ar->Field(14, &castTime, 4);
     ar->Field(15, &needsSight, 4);
-    ar->IntVectorField(16, &unreadIdListA, ar);
-    ar->IntVectorField(17, &unreadIdListB, ar);
+    ar->IntVectorField(16, &unreadIdListA);
+    ar->IntVectorField(17, &unreadIdListB);
     ar->Field(18, &icon, 4);
     ar->Field(19, &school, 4);
     ar->Field(20, allowedModifiers, 5);
@@ -136,7 +136,7 @@ void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
     ar->Field(5, &classMask, 4);
 }
 
-void ChunkArchive::IntVectorField(int id, std::vector<int>* values, void*) {
+void ChunkArchive::IntVectorField(int id, std::vector<int>* values) {
     if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
@@ -156,13 +156,13 @@ void ChunkArchive::IntVectorField(int id, std::vector<int>* values, void*) {
     LeaveChunk();
 }
 
-void ChunkArchive::SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records, void*) {
+void ChunkArchive::SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records) {
     RecordChunks(this, id, records, &itemdb::SpellRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records, void*) {
+void ChunkArchive::SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records) {
     RecordChunks(this, id, records, &itemdb::SpellModifierRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records, void*) {
+void ChunkArchive::SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records) {
     RecordChunks(this, id, records, &itemdb::SpellListRecord::Serialize);
 }
 

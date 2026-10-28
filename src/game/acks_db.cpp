@@ -65,7 +65,7 @@ constexpr ListChunk kUnitChunks[] = {
 // The lists of a record as chunks 10, 11, ... in order.
 template <std::size_t N>
 void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
-    for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i], ar);
+    for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i]);
 }
 
 } // namespace
@@ -197,11 +197,11 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
 
 using namespace acks;
 
-void ChunkArchive::SerializeSpeechList(int id, Speeches* list, void*) {
+void ChunkArchive::SerializeSpeechList(int id, Speeches* list) {
     ChunkArchive* ar = this;
     RecordChunks(ar, id, static_cast<std::vector<SpeechRecord>*>(list), SpeechFields);
 }
-void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* list, void*) {
+void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* list) {
     ChunkArchive* ar = this;
     RecordChunks(ar, id, static_cast<std::vector<EnvironmentSpeech>*>(list), [](EnvironmentSpeech& speech, ChunkArchive* ar) {
         SpeechFields(speech.speech, ar);
@@ -214,9 +214,9 @@ namespace acks {
 void UnitAcks::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &head.name);
     for (const ListChunk& chunk : kUnitChunks) {
-        if (chunk.list == kEnvironment) ar->SerializeEnvironmentSpeeches(chunk.id, &environmentSpeeches, ar);
-        else if (chunk.list == kNamed) ar->SerializeSpeechList(chunk.id, &namedSpeeches, ar);
-        else ar->SerializeSpeechList(chunk.id, &lists[chunk.list], ar);
+        if (chunk.list == kEnvironment) ar->SerializeEnvironmentSpeeches(chunk.id, &environmentSpeeches);
+        else if (chunk.list == kNamed) ar->SerializeSpeechList(chunk.id, &namedSpeeches);
+        else ar->SerializeSpeechList(chunk.id, &lists[chunk.list]);
     }
 }
 

@@ -27,7 +27,7 @@ void ClientApplyParty(ClientSession* self);      // net_client_party.cpp
 namespace {
 
 inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
-inline void FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
+inline void FlowLoadZoneQuests(void*, const char* a2) { LoadZoneQuests(a2); }
 
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
@@ -220,7 +220,7 @@ void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     auto* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(&g_gameFlow.Get(), nullptr, message->text_.data());
+    FlowLoadZoneQuests(&g_gameFlow.Get(), message->text_.data());
     g_gameFlow->RegisterQuests(message->text_.data());
 }
 void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }

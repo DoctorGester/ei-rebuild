@@ -116,61 +116,61 @@ public:
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
     // (`occurrence` selects the record); loading replaces the vector's contents. The third argument (the
     // callers pass the database file's data) is unused.
-    void SerializePrints(int id, std::vector<PrintRecord>* records, void* unused);
-    void SerializePrints2(int id, std::vector<PrintRecord2>* records, void* unused);
-    void SerializeAcks(int id, std::vector<acks::UnitAcks>* records, void* unused);
-    void SerializeAcks2(int id, std::vector<acks::ModelAcks>* records, void* unused);
-    void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void* unused);
+    void SerializePrints(int id, std::vector<PrintRecord>* records);
+    void SerializePrints2(int id, std::vector<PrintRecord2>* records);
+    void SerializeAcks(int id, std::vector<acks::UnitAcks>* records);
+    void SerializeAcks2(int id, std::vector<acks::ModelAcks>* records);
+    void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records);
 
     // The party manager's chunks. The third argument is unused but popped. Loading empties the container
     // first and takes one record per chunk 1. The parties by key (party_manager.h, PartyMap): per party a chunk
     // 1 (field 1: the key) and a chunk 2 (CParty::ArchiveParty); loading inserts each key (PartyAt).
-    void SerializeParties(int id, lib::HashMap<int, CParty>* parties, void* unused);
+    void SerializeParties(int id, lib::HashMap<int, CParty>* parties);
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
-    void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries, void* unused);
+    void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries);
     // The class templates (counted pointers) as object references (field 1 per chunk 1).
-    void SerializeClassTemplates(int id, TemplateTable* templates, void* unused);
+    void SerializeClassTemplates(int id, TemplateTable* templates);
     void IntField(int id, int* value);
 
     // As chunk `id`; the third argument (the archive again) is unused.
-    void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
-    void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
+    void SerializeSpeechList(int id, acks::Speeches* list);
+    void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list);
     // The lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
-    void SerializeLevers(int id, std::vector<LeverRecord>* list, int unused);
+    void SerializeLevers(int id, std::vector<LeverRecord>* list);
 
     // The item database's vectors, one chunk 1 per record (the third argument unused).
-    void SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records, void* unused);
-    void SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records, void* unused);
-    void SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records, void* unused);
-    void SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records, void* unused);
-    void SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records, void* unused);
-    void SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records, void* unused);
+    void SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records);
+    void SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records);
+    void SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records);
+    void SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records);
+    void SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records);
+    void SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records);
 
     // The spell database's vectors, as the item database's.
-    void SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records, void* unused);
-    void SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records, void* unused);
-    void SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records, void* unused);
+    void SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records);
+    void SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records);
+    void SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records);
     // vector<int> as chunk `id`: one field 1 per
     // value; loading empties the vector and refills it with as many zeros as there are fields.
-    void IntVectorField(int id, std::vector<int>* values, void* unused);
+    void IntVectorField(int id, std::vector<int>* values);
 
     // The quest database's vectors: one chunk 1 per record (its Serialize); loading destroys the records and
     // resizes the vector to the record chunks first.
-    void SerializeQuests(int id, std::vector<QuestRecord>* quests, void* unused);
-    void SerializeBriefings(int id, std::vector<QuestBriefingRecord>* briefings, void* unused);
+    void SerializeQuests(int id, std::vector<QuestRecord>* quests);
+    void SerializeBriefings(int id, std::vector<QuestBriefingRecord>* briefings);
 
     // The skill database's vectors, the same shape.
-    void SerializeSkills(int id, std::vector<SkillRecord>* skills, void* unused);
+    void SerializeSkills(int id, std::vector<SkillRecord>* skills);
     void SkillLevelChunk(int id, SkillLevelRecord* record);
     // The unit database's vectors, the same shape.
-    void SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records, void* unused);
-    void SerializeNpcs(int id, std::vector<UnitNpcRecord>* records, void* unused);
-    void SerializeModels(int id, std::vector<UnitModelRecord>* records, void* unused);
-    void SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records, void* unused);
+    void SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records);
+    void SerializeNpcs(int id, std::vector<UnitNpcRecord>* records);
+    void SerializeModels(int id, std::vector<UnitModelRecord>* records);
+    void SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records);
     // A vector of strings as chunk `id` (InlineStrings).
-    void SerializeStrings(int id, std::vector<std::string>* strings, void* unused);
+    void SerializeStrings(int id, std::vector<std::string>* strings);
 
     ChunkArchive();
     ~ChunkArchive();

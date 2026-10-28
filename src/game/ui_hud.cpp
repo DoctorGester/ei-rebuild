@@ -103,10 +103,10 @@ Vector3 PositionOf(const CUnit* unit) {
 }
 
 // The battle screen's own commands (the flag argument is a byte of the interface).
-void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
+void ScreenCastOn(CBattleScreen* screen, CUnit* target, char quick, int ctrl) {
     screen->UseOnUnit(target, quick, ctrl);
 }
-void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
+void ScreenCastAt(CBattleScreen* screen, Vector3 at, CUnit* unit, int quick) {
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 
@@ -755,7 +755,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 1:   // a spell on a unit
         if (!unit || unitDead(unit) || !first) return;
         // Rebirth's FixSpellSelfCasting #1 (MOV CL,0): the cast no longer passes the Ctrl flag.
-        ScreenCastOn(this, nullptr, unit,
+        ScreenCastOn(this, unit,
                      ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? '\0' : ctrl(), 0);
         return;
     case 2:   // a spell on a point
@@ -763,14 +763,14 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (IsZero(at.x) && IsZero(at.y)) return;
         if (!first) return;
-        ScreenCastAt(this, nullptr, at, living, pendingAction_ == 4 ? 1 : 0);
+        ScreenCastAt(this, at, living, pendingAction_ == 4 ? 1 : 0);
         return;
     }
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
         CItem* item = first->GetQuickItem(pendingSlot_);
         if (item && item->GetCategory() == kCategoryWand && unit != first) return;
-        ScreenCastOn(this, nullptr, unit, 1, 0);
+        ScreenCastOn(this, unit, 1, 0);
         return;
     }
     case 5: {   // use an item on an object

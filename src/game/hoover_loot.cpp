@@ -56,7 +56,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, std::list<CItem*>* items, void* /*unused*/, int* gold) {
+int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, std::list<CItem*>* items, int* gold) {
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     CItemManager* manager = world->ItemFactory();

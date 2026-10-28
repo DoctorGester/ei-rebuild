@@ -676,8 +676,8 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         return kExitDeclined;
     }
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
-    app::TypeRegistryRegister(&g_classRegistry.Get(), nullptr, 1, CreateClassTemplate);
-    app::TypeRegistryRegister(&g_classRegistry.Get(), nullptr, 2, CreatePartyRecord);
+    app::TypeRegistryRegister(&g_classRegistry.Get(), 1, CreateClassTemplate);
+    app::TypeRegistryRegister(&g_classRegistry.Get(), 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 

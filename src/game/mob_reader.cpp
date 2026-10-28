@@ -137,7 +137,7 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
     return flag;
 }
 
-bool MobFile::Load(void*, int keepIds) {
+bool MobFile::Load(int keepIds) {
     MobRecords records;
     records.maxId = 0;
     ZoneDiplomacy zoneDiplomacy;

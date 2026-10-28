@@ -10,7 +10,7 @@
 #include "render/render.h"
 
 // Returns 1 (the game's draw returned 0 when the context failed to draw).
-int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int /*unused*/) {
+int terrain::SectorData::DrawPage(void* context, int page) {
     if (clipMode == 2) return 1;
     if (hasWater) ApplyWaterLevels();
     render::TerrainPage(this, context, page);

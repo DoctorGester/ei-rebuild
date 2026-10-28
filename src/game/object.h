@@ -29,5 +29,5 @@ public:
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
     int CollectLoot(CWorld* world, CUnit* unit, std::list<CItem*>* dropList,
-                    std::list<CItem*>* itemList, void* unused, int* gold);
+                    std::list<CItem*>* itemList, int* gold);
 };

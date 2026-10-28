@@ -48,8 +48,10 @@ def own_at_helpers(sources):
 
 
 def fastcall_shims(sources):
-    """(all, with exactly two parameters): hook shims `__fastcall Fn(T* self, void*, ...) {`, not naked."""
-    shim = re.compile(r'\b__fastcall\s+(?:\w+::)?\w+\s*\(\s*[^(),]*\*\s*\w*\s*,\s*void\s*\*\s*\w*\s*'
+    """(all, with exactly two parameters): functions in the old thiscall-as-fastcall shape `Fn(T* self, void*, ...) {`
+    (with or without the `__fastcall` keyword; the second parameter unnamed or called edx / unused), not naked."""
+    shim = re.compile(r'\b(?:__fastcall\s+)?(?:\w+::)?\w+\s*\(\s*[^(),]*\*\s*\w*\s*,\s*void\s*\*\s*(?:/\*\s*\w+\s*\*/\s*)?'
+                      r'(?:edx|unused)?\s*'
                       r'((?:,[^()]*)?)\)\s*(?:const\s*)?\{')
     extra_parameters = []
     for s in sources:
@@ -105,7 +107,7 @@ def cleanup_artefacts(sources):
         + counts(RAW_ACCESS_COUNTS)
         + [('files defining their own At()', f'{own_at_helpers(sources):,}'),
            ('game data addresses (distinct)', f'{data_addresses(sources):,}'),
-           ('__fastcall Fn(T* self, void*) shims', f'{shims:,} ({shims_two:,} with exactly two parameters)'),
+           ('Fn(T* self, void*) shims', f'{shims:,} ({shims_two:,} with exactly two parameters)'),
            ('struct names defined in several files', f'{structs_defined_twice(sources):,}')]
         + counts(HOOK_ERA_COUNTS))
 
