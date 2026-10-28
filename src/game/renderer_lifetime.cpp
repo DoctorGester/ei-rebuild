@@ -29,7 +29,8 @@
 namespace {
 
 constexpr float kColourScale = 255.0f;
-constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 1 / 255
+constexpr float kInverseColourScale = 0.003921569f;   // 1 / 255
+static_assert(std::bit_cast<std::uint32_t>(kInverseColourScale) == 0x3B808081u);
 constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
 // TransformAmbientColour: what SetBaseColour gave the transform object last.
 float g_transformAmbientColour[3] = {};

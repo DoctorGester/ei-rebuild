@@ -74,13 +74,16 @@ constexpr float kWriteOffsetXY = -16.0f;
 constexpr float kWriteScaleXY = 120.46875f;
 constexpr float kWriteOffsetZ = -32.0f;
 constexpr float kWriteScaleZ = 341.328125f;
-const float kReadScaleXY = std::bit_cast<float>(0x3C080088u);
+constexpr float kReadScaleXY = 0.008300908f;
+static_assert(std::bit_cast<std::uint32_t>(kReadScaleXY) == 0x3C080088u);
 constexpr float kReadOffsetXY = 16.0f;
-const float kReadScaleZ = std::bit_cast<float>(0x3B4000C0u);
+constexpr float kReadScaleZ = 0.0029297322f;
+static_assert(std::bit_cast<std::uint32_t>(kReadScaleZ) == 0x3B4000C0u);
 constexpr float kReadOffsetZ = 32.0f;
 constexpr float kWriteOffset2D = -32.0f;
 constexpr float kWriteScale2D = 60.234375f;
-const float kReadScale2D = std::bit_cast<float>(0x3C880088u);
+constexpr float kReadScale2D = 0.016601816f;
+static_assert(std::bit_cast<std::uint32_t>(kReadScale2D) == 0x3C880088u);
 constexpr float kReadOffset2D = 32.0f;
 
 int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
@@ -88,7 +91,8 @@ int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast
 float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
 
 constexpr float kRangeSteps = 65535.0f;
-const float kRangeStep = std::bit_cast<float>(0x37800080u);      // (1 / 65535)
+constexpr float kRangeStep = 0.000015259022f;      // (1 / 65535)
+static_assert(std::bit_cast<std::uint32_t>(kRangeStep) == 0x37800080u);
 
 void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
 

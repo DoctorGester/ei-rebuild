@@ -14,7 +14,8 @@
 namespace {
 
 // The arrow's proportions: the unit length is a third of the size.
-const float kThird = std::bit_cast<float>(0x3EAAAAABu);   // 1/3
+constexpr float kThird = 0.33333334f;   // 1/3
+static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kWing = 3.0f;          // half the width of the arrow's back
 constexpr float kShoulder = 1.4f;      // the shoulders, along y
 constexpr float kNotch = 4.0f;         // the notch in the back, along -y

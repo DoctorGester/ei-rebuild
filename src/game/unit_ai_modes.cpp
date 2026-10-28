@@ -25,7 +25,8 @@ constexpr int kPriority = 50;
 constexpr int kNoPriority = -1000;
 // (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
-constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
+constexpr float kDecayBase = 0.8f;
+static_assert(std::bit_cast<std::uint32_t>(kDecayBase) == 0x3F4CCCCDu);
 const std::uint32_t* Diplomacy() { return g_serverWorld->diplomacy_.allied_; }
 
 // The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
@@ -59,7 +60,8 @@ constexpr float kNearX = 35.0f;
 constexpr float kNearY = 80.0f;
 constexpr float kNoWander = -1.0f;
 constexpr float kStandRadius = 5.0f;
-constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // (0.2)
+constexpr float kArrivedSq = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kArrivedSq) == 0x3E4CCCCDu);
 constexpr float kCloseSq = 25.0f;
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
 constexpr int kRemarkIdle = 1;

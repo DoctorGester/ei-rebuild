@@ -31,7 +31,8 @@
 
 namespace {
 
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
+constexpr float kThird = 0.33333334f;
+static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr std::uint32_t kStat25 = 0x41C80000;                    // 25.0
 constexpr std::uint32_t kRate15 = 0x41700000;                    // 15.0
 constexpr std::uint32_t kDefaultStat = 0x42480000;               // 50.0
@@ -147,9 +148,11 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
 }
 
 constexpr float kOneF = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // (0.01)
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kTwelve = 12.0f;
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
+constexpr float kPointTwo = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTenF = 10.0f;
 constexpr std::uint32_t kMinusTwo = 0xC0000000u;
 constexpr int kSkillBodyB0 = 15;

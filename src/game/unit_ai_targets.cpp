@@ -36,8 +36,10 @@ constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
-const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // -1e30
-const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // and the starting best: -1e20
+constexpr float kNoScore = -1e30f;
+static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
+constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
+static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 

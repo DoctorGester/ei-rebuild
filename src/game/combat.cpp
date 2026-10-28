@@ -32,10 +32,14 @@
 // locals.
 
 namespace {
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
-constexpr float kPointSix = std::bit_cast<float>(0x3F19999Au);      // 0.6
+constexpr float kPointOne = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kPointOne) == 0x3DCCCCCDu);
+constexpr float kPointTwo = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
+constexpr float kPointThree = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
+constexpr float kPointSix = 0.6f;
+static_assert(std::bit_cast<std::uint32_t>(kPointSix) == 0x3F19999Au);
 constexpr float kOnePointFive = 1.5f;
 constexpr float kFive = 5.0f;
 constexpr float kTen = 10.0f;
@@ -44,31 +48,43 @@ constexpr float kFifteen = 15.0f;
 constexpr float kSpeedScale = 20.0f;
 constexpr float kCalledShotHead = 25.0f;
 constexpr float kHundred = 100.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
-constexpr float kHitMark = std::bit_cast<float>(0x7F7FFFFFu);       // FLT_MAX
-constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // -FLT_MAX
-constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
-constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
+constexpr float kHitMark = 3.4028235e38f;       // FLT_MAX
+static_assert(std::bit_cast<std::uint32_t>(kHitMark) == 0x7F7FFFFFu);
+constexpr float kMissMark = -3.4028235e38f;      // -FLT_MAX
+static_assert(std::bit_cast<std::uint32_t>(kMissMark) == 0xFF7FFFFFu);
+constexpr float kMeleeFloor = 0.6f;
+static_assert(std::bit_cast<std::uint32_t>(kMeleeFloor) == 0x3F19999Au);
+constexpr float kMeleeFloorParty = 0.20000002f; // 0.20000002 (sic)
+static_assert(std::bit_cast<std::uint32_t>(kMeleeFloorParty) == 0x3E4CCCCEu);
 
-constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // 1.89
+constexpr float kHeroSizeCap = 1.89f;
+static_assert(std::bit_cast<std::uint32_t>(kHeroSizeCap) == 0x3FF1EB85u);
 constexpr float kLoadOverloaded = 1.5f;
-constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0.85
-constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 1.7
+constexpr float kLoadHeavy = 0.85f;
+static_assert(std::bit_cast<std::uint32_t>(kLoadHeavy) == 0x3F59999Au);
+constexpr float kSizeHeavy = 1.7f;
+static_assert(std::bit_cast<std::uint32_t>(kSizeHeavy) == 0x3FD9999Au);
 constexpr float kSizeSmall = kPointSix;
-constexpr float kSizeMedium = std::bit_cast<float>(0x3F99999Au);    // 1.2
-constexpr float kSizeLarge = std::bit_cast<float>(0x3FF33333u);     // 1.9
+constexpr float kSizeMedium = 1.2f;
+static_assert(std::bit_cast<std::uint32_t>(kSizeMedium) == 0x3F99999Au);
+constexpr float kSizeLarge = 1.9f;
+static_assert(std::bit_cast<std::uint32_t>(kSizeLarge) == 0x3FF33333u);
 constexpr float kSizeScale20 = kPointTwo;                           // 0.2
 constexpr float kWorldFactorScale = kPercent;                       // 0.01
 constexpr float kMode0Factor2 = 0.5f;
 constexpr float kMode1Factor2 = 0.75f;
 constexpr float kMode0Factor3 = 1.0f;
-constexpr float kIdleMode0Factor0 = std::bit_cast<float>(0x3ECCCCCDu);  // 0.4
+constexpr float kIdleMode0Factor0 = 0.4f;
+static_assert(std::bit_cast<std::uint32_t>(kIdleMode0Factor0) == 0x3ECCCCCDu);
 constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0.2
 constexpr float kIdleMode3Scale = 2.0f;
 constexpr float kIdleMode3Factor1 = 0.5f;
 constexpr float kCastingFactor2 = 1.5f;
 constexpr float kSpeedFast = kSizeMedium;                           // 1.2
-constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0.15
+constexpr float kSpeedSlow = 0.15f;
+static_assert(std::bit_cast<std::uint32_t>(kSpeedSlow) == 0x3E19999Au);
 
 constexpr int kClassQuickItem = 0x13;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;

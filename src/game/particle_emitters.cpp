@@ -32,7 +32,8 @@ double Range(float min, float max) { return g_random.Range(min, max); }
 
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
-constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
+constexpr float kTwoPi = 6.28318f;
+static_assert(std::bit_cast<std::uint32_t>(kTwoPi) == 0x40C90FD0u);
 #define EI_POINT_THREE 0.3f
 #define EI_QUARTER 0.25f
 #define EI_ONE 1.0f
@@ -101,7 +102,8 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
     p->state = index + 1;
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
-    p->aux0 = std::bit_cast<float>(0x3DCCCCCDu);     // 0.1
+    static_assert(std::bit_cast<std::uint32_t>(0.1f) == 0x3DCCCCCDu);
+    p->aux0 = 0.1f;     // 0.1
     ++points[0].bolt.emitted;
     if (p->frameTimer == 0) return 1;
     std::uint32_t roll = g_random.Next();

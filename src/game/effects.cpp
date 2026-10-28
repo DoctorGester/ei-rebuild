@@ -21,19 +21,28 @@ namespace {
 
 // The 2^-32 scale of the random range helpers; its last bit is set (sic).
 constexpr double kRandomScale = std::bit_cast<double>(0x3DF0000000100000ull);
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);
+constexpr float kPointThree = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
 constexpr float kCloudAlpha = 4.5f;
-constexpr float kSmokeGrowth = std::bit_cast<float>(0x3F87AE14u);      // 1.06
-constexpr float kSmokeDrift = std::bit_cast<float>(0x3E19999Au);       // 0.15
-constexpr float kDebrisDamping = std::bit_cast<float>(0x3F59999Au);    // 0.85
-constexpr float kDebrisGravity = std::bit_cast<float>(0x3D6147AEu);    // 0.055
+constexpr float kSmokeGrowth = 1.06f;
+static_assert(std::bit_cast<std::uint32_t>(kSmokeGrowth) == 0x3F87AE14u);
+constexpr float kSmokeDrift = 0.15f;
+static_assert(std::bit_cast<std::uint32_t>(kSmokeDrift) == 0x3E19999Au);
+constexpr float kDebrisDamping = 0.85f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisDamping) == 0x3F59999Au);
+constexpr float kDebrisGravity = 0.055f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisGravity) == 0x3D6147AEu);
 constexpr float kDebrisFadeIn = 4.0f;
-constexpr float kDebrisGrowth = std::bit_cast<float>(0x3F90A3D7u);     // 1.13
-constexpr float kTendrilDensity = std::bit_cast<float>(0x41649249u);   // 14.285714
+constexpr float kDebrisGrowth = 1.13f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisGrowth) == 0x3F90A3D7u);
+constexpr float kTendrilDensity = 14.285714f;
+static_assert(std::bit_cast<std::uint32_t>(kTendrilDensity) == 0x41649249u);
 constexpr double kMushroomWidth = 0.2;
-constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0.12
+constexpr float kMushroomRise = 0.12f;
+static_assert(std::bit_cast<std::uint32_t>(kMushroomRise) == 0x3DF5C28Fu);
 constexpr double kOrbitMinRadius = 0.01;
-constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 1.6
+constexpr float kSphereScale = 1.6f;
+static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 

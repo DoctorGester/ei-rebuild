@@ -40,7 +40,8 @@ constexpr float kAllySpace = 2.5f;                  // x the standing height
 constexpr float kRangePerDistance = 3.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kDetourFactor = 5000.0f;
-constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // (1 / 3)
+constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
+static_assert(std::bit_cast<std::uint32_t>(kCooldownPerDistance) == 0x3EAAAAABu);
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -50,7 +51,8 @@ constexpr int kLeaderFirstStep = 6;
 constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
 constexpr float kOnTheWaySq = 1.3f;
-constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // (1.365)
+constexpr float kSideOffset = 1.3649999f;    // (1.365)
+static_assert(std::bit_cast<std::uint32_t>(kSideOffset) == 0x3FAEB851u);
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;

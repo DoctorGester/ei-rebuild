@@ -46,7 +46,8 @@ constexpr std::uint32_t kKeyIdle = 0x80580000;
 constexpr std::uint32_t kKeyMoveOnce = 0x40000000;
 constexpr std::uint32_t kKeyMoveLoop = 0x80000000;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
+constexpr float kNoRange = 1e38f;
+static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;

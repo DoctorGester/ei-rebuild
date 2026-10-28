@@ -63,11 +63,15 @@ constexpr int kPointBufferSize = 0x1000;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 
-constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0.3
-constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0.6
-constexpr float kBlue = std::bit_cast<float>(0x3DCCCCCDu);    // 0.1
+constexpr float kRed = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kRed) == 0x3E99999Au);
+constexpr float kGreen = 0.6f;
+static_assert(std::bit_cast<std::uint32_t>(kGreen) == 0x3F19999Au);
+constexpr float kBlue = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kBlue) == 0x3DCCCCCDu);
 constexpr float kStrongFactor = 10.0f;
-constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // -tan(20 degrees)
+constexpr float kTiltSlope = -0.36397f;  // -tan(20 degrees)
+static_assert(std::bit_cast<std::uint32_t>(kTiltSlope) == 0xBEBA5A47u);
 constexpr float kFarSquared = 1e10f;
 
 // pi, 1/180 and 20: volatile, so the product is formed at run time with the FPU's precision like the

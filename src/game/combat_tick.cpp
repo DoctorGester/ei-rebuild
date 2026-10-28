@@ -28,10 +28,14 @@
 #include <list>
 
 namespace {
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
-constexpr float kNearPoint = std::bit_cast<float>(0x3DB851ECu);     // 0.09
-constexpr float kShort = std::bit_cast<float>(0x3F7FBE77u);         // 0.999
-constexpr float kLong = std::bit_cast<float>(0x3A83126Fu);          // 0.001
+constexpr float kPointOne = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kPointOne) == 0x3DCCCCCDu);
+constexpr float kNearPoint = 0.09f;
+static_assert(std::bit_cast<std::uint32_t>(kNearPoint) == 0x3DB851ECu);
+constexpr float kShort = 0.999f;
+static_assert(std::bit_cast<std::uint32_t>(kShort) == 0x3F7FBE77u);
+constexpr float kLong = 0.001f;
+static_assert(std::bit_cast<std::uint32_t>(kLong) == 0x3A83126Fu);
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;

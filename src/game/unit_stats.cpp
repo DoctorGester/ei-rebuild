@@ -15,13 +15,18 @@
 namespace {
 constexpr float kStatBase = 25.0f;
 constexpr float kTwelve = 12.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kFactorBase = 15.0f;
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
-constexpr float kPointSeven = std::bit_cast<float>(0x3F333333u);    // 0.7
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
+constexpr float kPointThree = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
+constexpr float kPointSeven = 0.7f;
+static_assert(std::bit_cast<std::uint32_t>(kPointSeven) == 0x3F333333u);
+constexpr float kPointTwo = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr int kDamageWords = 7;   // words 1..7 of a damage / protection block
-constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0.8
+constexpr float kPointEight = 0.8f;
+static_assert(std::bit_cast<std::uint32_t>(kPointEight) == 0x3F4CCCCDu);
 
 // Skill levels 21 and 22 index the level table from these bases.
 constexpr int kScaledStrengthSkill = 21;   // skillLevels[21] and [22]: the two skills these read

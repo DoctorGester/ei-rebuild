@@ -16,7 +16,8 @@
 
 namespace {
 
-const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255
+constexpr float kLevelStep = 0.003921569f;   // 1/255
+static_assert(std::bit_cast<std::uint32_t>(kLevelStep) == 0x3B808081u);
 constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 

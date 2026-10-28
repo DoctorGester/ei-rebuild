@@ -38,9 +38,11 @@ constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
 // pi * (1 / 180) as the original's arithmetic leaves it at 24-bit precision (not the folded double).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
-const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 1/24 (the sun turns once a day)
+constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
+static_assert(std::bit_cast<std::uint32_t>(kPerHour) == 0x3D2AAAABu);
 // A cave's sun: (0.5, 0.5, -0.70710677).
-const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
+static_assert(std::bit_cast<std::uint32_t>(-0.707106f) == 0xBF3504E6u);
+const Vector3 kCaveSun = {0.5f, 0.5f, -0.707106f};
 
 // The hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
 using worlddata::g_lastLitHour;

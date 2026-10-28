@@ -24,15 +24,22 @@
 // locals.
 
 namespace {
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
-constexpr float kMinusPointThree = std::bit_cast<float>(0xBE99999Au); // -0.3
-constexpr float kPointNine = std::bit_cast<float>(0x3F666666u);     // 0.9
-constexpr float kRangeSlack = std::bit_cast<float>(0x3F866666u);    // 1.05
+constexpr float kPointOne = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kPointOne) == 0x3DCCCCCDu);
+constexpr float kPointThree = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
+constexpr float kMinusPointThree = -0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kMinusPointThree) == 0xBE99999Au);
+constexpr float kPointNine = 0.9f;
+static_assert(std::bit_cast<std::uint32_t>(kPointNine) == 0x3F666666u);
+constexpr float kRangeSlack = 1.05f;
+static_assert(std::bit_cast<std::uint32_t>(kRangeSlack) == 0x3F866666u);
 constexpr float kMeleeReach = 3.0f;
 constexpr float kFifteen = 15.0f;
-constexpr float kPi = std::bit_cast<float>(0x40490FDBu);
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
+constexpr float kPi = 3.1415927f;
+static_assert(std::bit_cast<std::uint32_t>(kPi) == 0x40490FDBu);
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kNearSq = 10.0f;
 constexpr double kFrontCosine = 0.5;
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with pointIsUseSpot

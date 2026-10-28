@@ -14,7 +14,8 @@
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
 
 namespace {
-constexpr float kScaleStep = std::bit_cast<float>(0x3ECCCCCDu);   // 0.4
+constexpr float kScaleStep = 0.4f;
+static_assert(std::bit_cast<std::uint32_t>(kScaleStep) == 0x3ECCCCCDu);
 constexpr std::uint32_t kFlagDirty = 2;
 constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 constexpr int kClassMapObjectServer = 0x39;

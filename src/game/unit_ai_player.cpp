@@ -21,9 +21,11 @@ constexpr int kAttackHow = 6;
 constexpr int kAttackFlags = 0x1C;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
 constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
-constexpr float kReachScale = std::bit_cast<float>(0x3F8CCCCDu);    // (1.1)
+constexpr float kReachScale = 1.1f;
+static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
-constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
+constexpr float kStandingSlack = 1.4f;
+static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }

@@ -27,10 +27,12 @@ constexpr float kQuarter = 0.25f;
 constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 3.14159, sic
 constexpr float kVolumeScale = 100.0f;
 constexpr float kDensityScale = 64.0f;
-constexpr float kFogMinAlpha = std::bit_cast<float>(0x3C23D70Au);      // 0.01
+constexpr float kFogMinAlpha = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kFogMinAlpha) == 0x3C23D70Au);
 // Random jitter of a fog cell centre (2^-33 with its last bit set).
 constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
-constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
+constexpr float kFar = 1e30f;
+static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 
 
 // Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register

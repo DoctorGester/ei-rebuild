@@ -88,7 +88,8 @@ struct LocalUnitMotion {
         motion.Clear();
         motion.speedScale = 0.5f;
         motion.segment = -1;
-        motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
+        static_assert(std::bit_cast<std::uint32_t>(1e10f) == 0x501502F9u);
+        motion.baseTurnRate = 1e10f;   // 1e10
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;

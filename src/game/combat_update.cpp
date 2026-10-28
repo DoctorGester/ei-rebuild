@@ -54,7 +54,8 @@ constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // CSpell::targetFlags_
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
-constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38: OrderPlan.rangeSq of no plan
+constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
+static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 constexpr int kRemarkBored = 0x29;

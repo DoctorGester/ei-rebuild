@@ -388,7 +388,8 @@ void LoadDatabases() {
 
 // ---- The main loop ---------------------------------------------------------------------------------
 
-constexpr float kOneTenth = std::bit_cast<float>(0x3DCCCCCDu);
+constexpr float kOneTenth = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kOneTenth) == 0x3DCCCCCDu);
 constexpr float kSlowest = kOneTenth;   // the client speed's limits
 constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;

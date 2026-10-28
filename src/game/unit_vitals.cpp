@@ -20,14 +20,20 @@
 // double locals; values stored to a float are float locals.
 
 namespace {
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
-constexpr float kPercentB = std::bit_cast<float>(0x3C23D70Au);      // 0.01, a second copy
-constexpr float kHitPointEffect = std::bit_cast<float>(0x3BA3D70Au);  // 0.005
-constexpr float kDamageEffect = std::bit_cast<float>(0x3B449BA6u);  // 0.003
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
+constexpr float kPercentB = 0.01f;      // 0.01, a second copy
+static_assert(std::bit_cast<std::uint32_t>(kPercentB) == 0x3C23D70Au);
+constexpr float kHitPointEffect = 0.005f;
+static_assert(std::bit_cast<std::uint32_t>(kHitPointEffect) == 0x3BA3D70Au);
+constexpr float kDamageEffect = 0.003f;
+static_assert(std::bit_cast<std::uint32_t>(kDamageEffect) == 0x3B449BA6u);
 constexpr float kTwelve = 12.0f;
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
+constexpr float kPointTwo = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTen = 10.0f;
-constexpr float kRevived = std::bit_cast<float>(0x3A83126Fu);       // 0.001
+constexpr float kRevived = 0.001f;
+static_assert(std::bit_cast<std::uint32_t>(kRevived) == 0x3A83126Fu);
 constexpr double kMinHeal = 0.001;                                  // a double
 constexpr std::uint32_t kNoCapacity = 0x49742400u;                  // 1000000.0f
 constexpr std::uint32_t kKeyedUnknown044 = 0xC0000000u;             // -2.0f

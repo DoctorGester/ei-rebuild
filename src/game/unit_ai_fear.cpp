@@ -33,15 +33,19 @@ constexpr int kCommandWalk = 1;             // CUnitServer::command / nextComman
 constexpr int kLargeSizeClass = 6;
 
 constexpr float kThree = 3.0f;
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
+constexpr float kThird = 0.33333334f;
+static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kSeenScale = 1.5f;
-constexpr float kMaxLoadFactor = std::bit_cast<float>(0x3F19999Au); // (0.6)
+constexpr float kMaxLoadFactor = 0.6f;
+static_assert(std::bit_cast<std::uint32_t>(kMaxLoadFactor) == 0x3F19999Au);
 constexpr float kFlightStep = 5.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kSmoothingScale = 5000.0f;
-constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // (1e30)
+constexpr float kFar = 1e30f;
+static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 constexpr float kDistanceWeight = 30.0f;
-constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // (1 / 31)
+constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
+static_assert(std::bit_cast<std::uint32_t>(kDistanceDivisor) == 0x3D042108u);
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
 constexpr float kNoWander = -1.0f;

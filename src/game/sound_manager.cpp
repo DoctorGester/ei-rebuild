@@ -44,10 +44,13 @@ float AbsBits(float f) {
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
-constexpr float kMilesScale = std::bit_cast<float>(0x3C5013A9u);  // 0.0127
+constexpr float kMilesScale = 0.0127f;
+static_assert(std::bit_cast<std::uint32_t>(kMilesScale) == 0x3C5013A9u);
 constexpr float kLevelMax = 127.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0.01
-constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0.001
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
+constexpr float kEmitterMargin = 0.001f;
+static_assert(std::bit_cast<std::uint32_t>(kEmitterMargin) == 0x3A83126Fu);
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
