@@ -36,7 +36,6 @@ constexpr float kHearingScale = 2.0f;     // unit perception scale
 constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
-constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)
 
 // Dirty bits (CPlayer::dirty_) SyncPlayer sends.
 constexpr std::uint32_t kDirtyZone = 0x01;
@@ -115,7 +114,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     if (world->sessionKind_ == kKindNoRangeTest) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !(object->flags_ & kFlagHidden)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !(object->flags_ & MapObjectFlag::Invisible)) *out++ = object;
         }
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {

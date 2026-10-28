@@ -9,6 +9,8 @@
 #include "maths.h"
 #include "net_delta.h"          // DeltaState
 
+#include "lib/bit_flags.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -63,6 +65,32 @@ constexpr int kWeaken = 0x1E;          // scale down
 constexpr int kEnlarge = 0x25;         // scale up (x, y and z)
 constexpr int kShrink = 0x26;          // scale down
 } // namespace mapeffect
+
+// The bits of CEngineObject::flags_ on the map objects (the word is saved and sent as the number). Bits that mean
+// something else per class have one name each (the same number).
+enum class MapObjectFlag : std::uint32_t {
+    Removed = 0x1,              // gone from the world: its id is sent on
+    Changed = 0x2,              // MarkChanged: the network state is not written yet
+    Hidden = 0x8,               // not drawn (a spec with visible 0; the client's draw test sets and clears it)
+    NotDrawn = 0x40,            // never drawn (traps)
+    FiguresLoaded = 0x80,       // the figure is loaded
+    Detached = 0x1000,          // its parts are passed to the figure manager
+    Invisible = 0x10000,        // HideObject
+    Synchronised = 0x20000,     // IsSynchronised
+    Stunned = 0x40000,          // IsStunned
+    RelationsChanged = 0x80000, // units: the hostile mask changed, PropagateHostility is due
+    Armed = 0x80000,            // traps: ActivateTrap
+    Disabled = 0x80000,         // levers
+    ArmedFresh = 0x100000,      // traps: armed since the last update
+    LootTaken = 0x100000,       // units: the loot was collected
+    Blocked = 0x800000,         // units: BlockUnit; also set while the unit speaks
+    Frozen = 0x1000000,         // units: no updates of orders and animation
+    SeeAll = 0x2000000,         // units: sees every unit once
+    Planned = 0x8000000,        // units: set on the target while a cast is planned
+    NoCasting = 0x10000000,     // units: no spells
+    Shared = 0x20000000,        // on the world's shared list (a shared loot record or unit)
+};
+template <> inline constexpr bool lib::kBitFlags<MapObjectFlag> = true;
 
 struct DamageInfo;
 struct UnitVitals;

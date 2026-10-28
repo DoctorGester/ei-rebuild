@@ -13,7 +13,6 @@
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
-constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 
 // The world gives the ground and water surface heights at (x, y), unrounded.
@@ -41,7 +40,7 @@ void CUnit::EffectsChanged() {
 void CUnit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
 
 void CUnit::LoadFigures() {
-    if (flags_ & kFlagFiguresLoaded) return;
+    if (flags_ & MapObjectFlag::FiguresLoaded) return;
     CObject3D::LoadFigures();
     Controller()->FiguresLoaded();
 }

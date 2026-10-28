@@ -20,7 +20,6 @@
 #include <memory>
 
 namespace {
-constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load
 
 
 
@@ -78,7 +77,7 @@ CPlayer* PlayerById(CUnit* unit, int id) {
 void CUnit::LoadUnit(CStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
-    flags_ &= ~kFlag800000;
+    flags_ &= ~MapObjectFlag::Blocked;
     stream->ReadInto(&scriptName);
     stream->ReadValue(relationsA);
     int playerId;

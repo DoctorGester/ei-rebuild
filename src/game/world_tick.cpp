@@ -164,7 +164,7 @@ void CWorldServer::UpdateUnits() {
         for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
             CEngineObject* object = node->second;
             object->RunTick();
-            if (object->flags_ & 1) g_removedIds.push_back(static_cast<unsigned>(object->id_));
+            if (object->flags_ & MapObjectFlag::Removed) g_removedIds.push_back(static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -174,7 +174,7 @@ void CWorldServer::UpdateUnits() {
         for (auto node = awake.begin(); node != awake.end() && node->second; ++node) {
             CEngineObject* object = node->second;
             object->RunTick();
-            if (object->flags_ & 1) g_removedIds.push_back(static_cast<unsigned>(object->id_));
+            if (object->flags_ & MapObjectFlag::Removed) g_removedIds.push_back(static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
@@ -206,7 +206,7 @@ void CWorldServer::TickSleepingEffects() {
     // companion, and is asleep gets one tick taken off each effect; when one runs out, the object goes back into
     // the update map, whose update removes it.
     for (const auto& [id, object] : mapObjects_.map) {
-        if ((object->flags_ & 1) || object->refCount_ == 0 || std::ssize(object->effects) == 0) continue;
+        if ((object->flags_ & MapObjectFlag::Removed) || object->refCount_ == 0 || std::ssize(object->effects) == 0) continue;
         if (object->updateCountdown > 0 || !object->companion) continue;
         bool expired = false;
         for (int i = 0; i < std::ssize(object->effects); ++i) {

@@ -51,8 +51,6 @@ constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillSource = 6;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr std::uint32_t kFlagNoCasting = 0x10000000;     // CUnit flags_
-constexpr std::uint32_t kFlagPlanned = 0x8000000;        // set on the target while planning
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;     // CSpell::targetFlags_: aimed at no object
 constexpr std::uint32_t kSpellKindStrike = 0x28;         // the spell's kind
 constexpr std::uint32_t kSpellKindCurse = 0x29;
@@ -226,7 +224,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
 
     if (order->kind == kOrderCastAt || order->kind == kOrderCastOn) {
-        if (unit->flags_ & kFlagNoCasting) return false;
+        if (unit->flags_ & MapObjectFlag::NoCasting) return false;
     } else if (NeedsClearWay(this, order) && SomeoneInTheWay(this, order, point, time)) {
         return false;
     }
@@ -428,8 +426,8 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 bool CUnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan{};
     CMapObject* target = order->target;
-    if (IsUnit(target)) target->flags_ |= kFlagPlanned;
+    if (IsUnit(target)) target->flags_ |= MapObjectFlag::Planned;
     bool result = PlanAction(order, &plan);
-    if (IsUnit(target)) target->flags_ &= ~kFlagPlanned;
+    if (IsUnit(target)) target->flags_ &= ~MapObjectFlag::Planned;
     return result;
 }

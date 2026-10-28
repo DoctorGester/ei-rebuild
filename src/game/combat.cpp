@@ -92,7 +92,6 @@ constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr int kNoNaturalWeapon = 0x10;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
 float DifficultyAttackFactor() {
     int difficulty = options::g_options->difficulty_;
@@ -374,8 +373,8 @@ int CUnitServer::Level() {
 }
 
 void CUnitServer::EffectsChanged() {
-    if (unit->HasEffect(0x20) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
-    else unit->flags_ &= ~kFlagSpellBlocked;
+    if (unit->HasEffect(0x20) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
+    else unit->flags_ &= ~MapObjectFlag::NoCasting;
 }
 
 void CUnitServer::GetAttackParams(AttackParams* out) {

@@ -23,7 +23,6 @@
 // The light's distance test and position must round like the original's.
 
 namespace {
-constexpr std::uint32_t kFlagDestroyed = 1;          // CEngineObject::flags_ bit set on death
 constexpr std::uint32_t kFlagHidden = 0x80;          // the light's flags_: not shown
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
 constexpr int kSoundStench = 0x13;
@@ -77,7 +76,7 @@ BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();
-        owner->flags_ |= kFlagDestroyed;
+        owner->flags_ |= MapObjectFlag::Removed;
     }
     return 1;
 }

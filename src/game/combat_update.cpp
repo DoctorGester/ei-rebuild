@@ -41,8 +41,6 @@ constexpr int kStateRecovering = 3;   // the rest of an action's animation plays
 constexpr int kStateWaiting = 4;
 constexpr int kStateActing = 5;       // the planned action runs
 constexpr int kStateChasing = 6;
-constexpr std::uint32_t kFlagFrozen = 0x1000000;      // CUnit flags_: no updates of orders and animation
-constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // CSpell::targetFlags_
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
@@ -173,7 +171,7 @@ int CUnitServer::RunTick() {
         brain.Think();
         unit->flags_ &= ~kFlagSeen8000;
         PropagateHostility();
-        if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
+        if ((unit->flags_ & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 && state >= 0 &&
             (state <= kStateTurning || state == kStateChasing)) {
             UpdateOrders();
             UpdateState();
@@ -222,7 +220,7 @@ void CUnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
     if (state == kStateActing && !ActionInReach()) EndOrder(0);
-    if (unit->flags_ & kFlagFrozen) {
+    if (unit->flags_ & MapObjectFlag::Frozen) {
         frozen = 1;
         hitDirection = 0xFFFFFFFFu;
         return;
@@ -518,11 +516,11 @@ void CUnitServer::TickAction() {
 bool CUnitServer::ActionInReach() {
     int kind = action.kind;
     bool cast = kind == kOrderCastAt || kind == kOrderCastOn;
-    if (cast && (unit->flags_ & kFlagNoCasting)) return false;
+    if (cast && (unit->flags_ & MapObjectFlag::NoCasting)) return false;
     if (kind == kOrderCastAt || kind == kOrderUseItem) return true;
     if (kind != kOrderAttack && kind != kOrderUse && kind != kOrderCastOn) return false;
     CMapObject* target = action.target;
-    if (cast && (unit->flags_ & kFlagNoCasting)) return false;
+    if (cast && (unit->flags_ & MapObjectFlag::NoCasting)) return false;
     if (!target) {
         if (!cast) return false;
         CSpell* spell = SpellOfSource(action.source);

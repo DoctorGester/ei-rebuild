@@ -32,7 +32,6 @@ constexpr float kOverkill = -5.0f;
 
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
-constexpr std::uint32_t kFlagSideChanged = 0x80000;
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
@@ -91,7 +90,7 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
     if (relationsA == merged) return;
     relationsA = merged;
-    flags_ |= kFlagSideChanged;
+    flags_ |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
@@ -102,7 +101,7 @@ void CUnit::SetRelationsB(std::uint32_t mask) {
 
 void CUnit::SetSide(int value) {
     side = value;
-    flags_ |= kFlagSideChanged;
+    flags_ |= MapObjectFlag::RelationsChanged;
     if (controller) MarkChanged(kPartRelations);
 }
 
@@ -154,9 +153,9 @@ void CUnit::SetFlag40000000Off(bool on) {
 
 std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
-        flags_ |= 0x1000000u;
+        flags_ |= MapObjectFlag::Frozen;
     } else {
-        flags_ &= ~0x1000000u;
+        flags_ &= ~MapObjectFlag::Frozen;
     }
     return flags_;
 }

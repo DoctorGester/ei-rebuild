@@ -14,7 +14,6 @@
 #include <list>
 
 namespace {
-constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
 constexpr int kQueuedDelay = 3;
 constexpr std::uint32_t kRepeatAfter = 5000;          // ms before the same speech plays again
 constexpr int kSpeechPriority = 1;
@@ -53,8 +52,8 @@ bool SoundBusy(int handle) {
 void SetTalking(int unitId, bool talking) {
     CEngineObject* serverUnit = g_serverWorld->FindUnit(unitId);
     if (!serverUnit) return;
-    if (talking) serverUnit->flags_ |= kFlagTalking;
-    else serverUnit->flags_ &= ~kFlagTalking;
+    if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
+    else serverUnit->flags_ &= ~MapObjectFlag::Blocked;
 }
 
 // Erases the queued speeches `filter` picks.

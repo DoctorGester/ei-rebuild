@@ -30,7 +30,6 @@ namespace {
 constexpr float kHeroHalfWidth = 0.5f;
 constexpr std::uint32_t kBoundsSphere = 1;       // bounds.flags: radius valid
 constexpr std::uint32_t kBoundsBox = 2;          // bounds.flags: box valid
-constexpr std::uint32_t kFlagFigureLoadedBits = 0x80;   // flags_: the figure is loaded
 
 // FootprintPart::flags set here.
 constexpr std::uint32_t kBoxLoaded = 4;
@@ -38,13 +37,11 @@ constexpr std::uint32_t kBoxBase = 0x400;        // a part named "BASE..."
 constexpr std::uint32_t kBoxCrown = 0x90;        // "CROWN..."
 constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
 
-constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
 constexpr std::uint32_t kBoxEmptyMark = 0x800;
 constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";
 constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
-constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
     return object->WorldContext()->FigureLoader();
@@ -122,7 +119,7 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
 // --- Bounds of the placed parts -----------------------------------------------------------------
 
 void CObject3D::UpdatePartBounds() {
-    if (!(flags_ & kFlagFigureLoadedBits)) return;
+    if (!(flags_ & MapObjectFlag::FiguresLoaded)) return;
     float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
     for (int i = 0; i < std::ssize(parts); ++i) {
@@ -170,7 +167,7 @@ void CObject3D::CollectPartsByPrefix(std::string_view prefix, std::vector<CFigur
 
 CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name, partName, flags_ & kFlagDetached);
+    CFigureMesh* part = manager->NewPart(name, partName, flags_ & MapObjectFlag::Detached);
     if (!part) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
@@ -259,7 +256,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         animation->UpdatePose();
     }
     ComputeBounds();
-    if (arg == 0 && !figure) flags_ &= ~kFlagFigureLoaded;
-    else flags_ |= kFlagFigureLoaded;
+    if (arg == 0 && !figure) flags_ &= ~MapObjectFlag::FiguresLoaded;
+    else flags_ |= MapObjectFlag::FiguresLoaded;
     return 1;
 }

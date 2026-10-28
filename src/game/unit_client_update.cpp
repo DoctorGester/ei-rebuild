@@ -20,7 +20,6 @@
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
-constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
 constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;         // FigureAnimation::key
 constexpr std::uint32_t kKeyMovement = 0x38000;
@@ -41,8 +40,8 @@ bool SoundBusy(int handle) {
 void SetTalking(const CUnit* unit, bool talking) {
     CEngineObject* serverUnit = g_serverWorld->FindUnit(unit->id_);
     if (!serverUnit) return;
-    if (talking) serverUnit->flags_ |= kFlagTalking;
-    else serverUnit->flags_ &= ~kFlagTalking;
+    if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
+    else serverUnit->flags_ &= ~MapObjectFlag::Blocked;
 }
 
 // The drawn parts take `alpha`.
