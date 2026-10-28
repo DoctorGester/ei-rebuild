@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #undef GetClassName
 
@@ -907,7 +908,7 @@ public:
     UnitVitals vitals;
     std::string name78;
     std::string name7C;
-    mfc::CStringArray strings;
+    std::vector<std::string> strings;
 };
 static_assert(offsetof(CMapObjectServer, name78) == 0x78);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);

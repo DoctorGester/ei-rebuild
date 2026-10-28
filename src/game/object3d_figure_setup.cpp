@@ -101,7 +101,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         animation->UpdatePose();
         int count = animation->bones.count;
         SetBoxCount(this, count);
-        partNames.SetSize(animation->bones.count, -1);
+        partNames.resize(static_cast<std::size_t>(animation->bones.count));
 
         FigureModel* figureModel;
         {
@@ -218,8 +218,6 @@ constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figur
 constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
-// An MFC CStringArray as the figure loader reads it.
-using PartNameArray = mfc::CStringArray;
 } // namespace
 
 // Add (SetAtGrow at the size; RET 4).
@@ -277,7 +275,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
 }
 EI_REWRITTEN(0x00517240, CObject3D::LoadPart);
 
-int CObject3D::LoadParts(const char* model, const PartNameArray* names, std::uint32_t arg) {
+int CObject3D::LoadParts(const char* model, const std::vector<std::string>* names, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* cached;
     {
@@ -286,8 +284,8 @@ int CObject3D::LoadParts(const char* model, const PartNameArray* names, std::uin
     }
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
-    for (int i = 0; i < names->size; ++i) {
-        if (!LoadPart(((*names)[i]).GetString(), cached, arg)) game::DebugLog(kCantCreatePart, model, ((*names)[i]).GetString());
+    for (const std::string& part : *names) {
+        if (!LoadPart(part.c_str(), cached, arg)) game::DebugLog(kCantCreatePart, model, part.c_str());
     }
     return 1;
 }
@@ -302,13 +300,13 @@ constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 // The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the game
 // sizes it with helper calls and assigns each name).
-void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
-    int count = names->size;
+void FillPieceNames(stlp::vector<stlp::string>& pieces, const std::vector<std::string>* names) {
+    int count = static_cast<int>(names->size());
     if (count > 0) {
         auto* start = stlp::allocate_as<stlp::string>(static_cast<std::size_t>(count));
         pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
-            const char* text = ((*names)[i]).GetString();
+            const char* text = (*names)[i].c_str();
             new (&start[i]) stlp::string(text, text + std::strlen(text));
         }
         pieces.Finish() = start + count;
@@ -326,13 +324,13 @@ CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
 }
 } // namespace
 
-int CObject3D::MakeFigure(const char* model, PartNameArray* names, std::uint32_t arg) {
+int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, std::uint32_t arg) {
     name = model;
     if (animation) {
         animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
-    if (names->size == 0 && animation) {
+    if (names->empty() && animation) {
         animation->CollectBoneNames(names);
         stlp::string key(model, model + std::strlen(model));
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);

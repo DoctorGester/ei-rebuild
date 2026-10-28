@@ -8,7 +8,6 @@
 
 #include "base_manager.h"
 #include "camera.h"
-#include "console.h"
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -25,6 +24,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -310,7 +310,7 @@ void CEffectArrowFigure::Start(int update) {
     CObject3D* figure = figure_;
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     figure->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)

@@ -29,6 +29,7 @@
 #include "map_object_figures.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -39,6 +40,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -541,7 +543,7 @@ void RemovePartNamed(CObject3D* object, const char* name) {
 
 int CPlayerClient::OnNewObject() {
     app::DelayedProtectionCheck();
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     std::string scriptName;
     std::string secondName;
     NewObjectHeader header;
@@ -563,7 +565,7 @@ int CPlayerClient::OnNewObject() {
     in_.ReadText(textureTo, kTextSize);
     std::uint16_t count = 0;   // read into the low half of a stack dword
     in_.Read(&count, 2);
-    parts.SetSize(count, -1);
+    parts.resize(count);
     for (std::uint16_t i = 0; i < count; ++i) {
         in_.ReadText(part, kTextSize);
         parts[i] = part;
@@ -602,11 +604,11 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags_ |= kFlagCow;
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
-        for (int i = 0; i < parts.GetSize(); ++i) {
-            if (gamecrt::mbscmp(parts[i], TextHairPart()) != 0) continue;
+        for (std::size_t i = 0; i < parts.size(); ++i) {
+            if (gamecrt::mbscmp(parts[i].c_str(), TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
-            if (hair == -1) parts.RemoveAt(i, 1);
-            else parts[i].Format(TextHairFormat(), hair);
+            if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
+            else parts[i] = str::Format(TextHairFormat(), hair);
             break;
         }
     }

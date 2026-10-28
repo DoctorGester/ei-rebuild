@@ -11,7 +11,8 @@
 #include "lib/vecmath.h"
 
 #include <cstring>
-#include <memory>
+#include <string>
+#include <vector>
 
 // --- Footprint cell sets -------------------------------------------------------------------------
 
@@ -103,12 +104,6 @@ EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 // --- Footprints ----------------------------------------------------------------------------------
 
 namespace {
-// A CStringArray element by value (a CString copy-constructed into `out`).
-mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
-    std::construct_at(out, names->data[index]);
-    return out;
-}
-
 const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
 
 void ResetCellSet(FootprintCellSet* set) {
@@ -134,20 +129,14 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
     // Part names: the server companion's string array if it has any, else the object's own (the AI map lives on
     // the server, so the companion is a CMapObjectServer).
     auto* server = object->ServerCompanion();
-    const mfc::CStringArray* names = &server->strings;
-    if (names->size == 0) names = &object->partNames;
+    const std::vector<std::string>* names = &server->strings;
+    if (names->empty()) names = &object->partNames;
 
     bool hasBridge = false;
-    for (int n = 0; n < names->size; ++n) {
-        int index;
-        {
-            mfc::CString name(mfc::CString::kUnset);
-            index = object->FindPartIndex(*StringArrayGetAt(names, &name, n));
-        }
+    for (const std::string& name : *names) {
+        int index = object->FindPartIndex(name.c_str());
         if (index < 0) {
-            const char* objectName = object->name.c_str();
-            mfc::CString name(mfc::CString::kUnset);
-            game::FatalError(PartNotFoundFormat(), (*StringArrayGetAt(names, &name, n)).GetString(), objectName);
+            game::FatalError(PartNotFoundFormat(), name.c_str(), object->name.c_str());
             continue;
         }
         const FootprintPart* part = &object->partBoxes[index];

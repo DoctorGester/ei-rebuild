@@ -19,7 +19,6 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "camera.h"
-#include "console.h"
 #include "core_streams.h"
 #include "effects.h"
 #include "game_strings.h"
@@ -66,6 +65,7 @@
 
 #include <new>
 #include <string>
+#include <vector>
 #include <windows.h>
 
 #include <cmath>
@@ -629,7 +629,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
     std::string hair;
     for (int i = 0; i < party->size; ++i) {
         auto* record = party->data[i];
-        console::CStringArray parts;
+        std::vector<std::string> parts;
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
@@ -637,10 +637,10 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                 int number = prototype->hair;
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);
-                    parts.SetAtGrow(parts.GetSize(), hair);
+                    parts.push_back(hair);
                 }
             } else {
-                parts.SetAtGrow(parts.GetSize(), name);
+                parts.push_back(name);
             }
         }
         auto* manager = MapObjectManager();
