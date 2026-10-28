@@ -1257,7 +1257,7 @@ address,name,library,signature,notes
 004A6990,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 004A7EA0,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (ClassTemplate)"
 004A8300,counted_ptr<T> add-reference,STLport,,"A-S9: count +1 (0055763D, 004A826E)"
-004A8930,stlp::string::string(const string&),STLport,,A-S9: node-pool copy with the length_error path (stlp.h names it)
+004A8930,stlp::string::string(const string&),STLport,,A-S9: node-pool copy with the length_error path
 004A8A50,"stlp::hash_map<CString,float>::hash_map(const hash_map&)",STLport,,A-S9: the party variables' table (FloatTableCopyConstructOriginal)
 004A8AD0,"stlp::hash_map<CString,float>::operator=",STLport,,"A-S9: the party variables' table: clear, functors, _M_copy_from 004AA950"
 004A8B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"

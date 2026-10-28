@@ -63,7 +63,6 @@ address,name,file
 004DA7F0,GrowingBuffer::GrowingBuffer,src/game/game_buffer.cpp
 004DB870,ConstructUnreadSet,src/game/buffered_file.cpp
 004DB890,DestroyUnreadSet,src/game/buffered_file.cpp
-004DC830,Map8::ConstructDefault,src/lib/stlp_hash.cpp
 004DDCB0,SysInfoStaticTwoPi,src/game/sys_info.cpp
 004DDCBA,SysInfoInitTwoPi,src/game/sys_info.cpp
 004DDCCD,SysInfoStaticHalfPi,src/game/sys_info.cpp
@@ -241,7 +240,6 @@ address,name,file
 0065F580,SavedParties::Construct,src/game/party_file.cpp
 00668B40,ConstructPartyIdSet,src/game/player_client.cpp
 00668B60,DestroyPartyIdSet,src/game/player_client.cpp
-0066B320,Map8::ConstructDefault,src/lib/stlp_hash.cpp
 0066C4D0,ConstructReceivedMessages,src/game/player_server_handlers.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
 0066C520,DestroyReceivedMessages,src/game/player_server_handlers.cpp

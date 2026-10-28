@@ -139,8 +139,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
    and chunk ids of a file format stay (they are the format); `static_assert`s are code, not comments.
 4. **Slot numbers.** `// 26` after a virtual, `// 9: LoadLever`, "Virtual slot 31 (...):",
    "Slots 11 / 12:". The virtual's name is the reference. They stay only where code still indexes a
-   vtable or builds one by number (compiled_vtable.h, game_data.h's slot
-   helpers, a `Vtable()` table) until those are converted.
+   vtable or builds one by number (game_data.h's slot helpers) until those are converted.
 5. **Registers and instructions.** "in ST0", "(EAX)", "AL = 1", "Callers test AL", "FCOMP + TEST
    AH,0x41: ...", "RET 4", "__fastcall", "(inlined)". Keep the behaviour they imply when the code does
    not show it ("a NaN counts as night"), without the instruction.
@@ -189,7 +188,7 @@ Before:
 ```cpp
 class CStream;   // core_streams.h
 ...
-    mfc::CString name;          // +0x00 (field 0)
+    std::string name;           // +0x00 (field 0)
     float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
 ...
     LeverRecord* begin;             // +0x00
@@ -226,7 +225,7 @@ After:
 ```cpp
 class CStream;
 ...
-    mfc::CString name;          // field 0
+    std::string name;           // field 0
     float farScale;             // field 3: the spots' distance factor when scale.z is 1
 ...
     LeverRecord* begin;

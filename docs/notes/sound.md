@@ -94,7 +94,7 @@ Every function carries its address in its source comment (grep it); the per-func
   DeletingDestruct 006B62B0, ClearWaveSources, AddWaveSource, LoadWaveFile, SetPath 006BAE20 (startup 00456440 calls SetPath and
   AddWaveSource), SoundStreamRead 006BA950 (the stream file's read callback, stream thread), Construct 006B6040, DestructBody 006B65D0,
   ResetStream 006BA9C0 (runs on the manager's +0x100, a `__fastcall` shim), `Open` 006B6A30 (RET 0x14: window, reverb, DirectSound device
-  index, rate, unused; +0x1C8 / +0x244 the stream / MIDI threads (`mfc::CWinThread`), +0x248 their quit flag; the sound option 0079BCC0 = 2
+  index, rate, unused; +0x1C8 / +0x244 the stream / MIDI threads (`CWinThread`), +0x248 their quit flag; the sound option 0079BCC0 = 2
   opens the wave mapper), `Close` 006B6D80 (slot 3; frees each cached wave's own name where the original's RemoveHead 006BC6F0 copies it
   out and frees the copy, node-pool order only), `Reset` 006B73E0.
 
@@ -139,7 +139,7 @@ goes through a naked helper. Miles is called through game.exe's import table (00
   006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
 - Live game code left in 006B4000-006C0000: terrain sector pieces around 006BF4A0 (`models.md`; Construct 006BF5F0 and Project
   006BFC80 are done).
-- A-H15 layout: +0x168 / +0x178 and the MIDI part's +0x1E4 / +0x1F4 are 32-byte aligned arrays (`lib::AlignedArray`;
+- A-H15 layout: +0x168 / +0x178 and the MIDI part's +0x1E4 / +0x1F4 are 32-byte aligned arrays (`AlignedArray`;
   `markers` is the first); the MIDI part (+0x1CC) has two CStrings (+0x1DC / +0x1E0), a fader (+0x20C) and a lock (+0x22C).
   The constructor's hash maps get zero functor bytes where the original copies three uninitialised stack bytes (unused).
   The hash map members (006BBF90 / 006BC2B0 / 006BCE00 / 006BD100 / 006BC4D0 / 006BC510), DestructElements 006BE210 and

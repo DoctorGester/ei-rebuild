@@ -26,9 +26,8 @@ shim, stub or workaround lands.
 
 ## Classes (C28)
 
-- Hand-built tables: `static void* Vtable()` accessors, `ei::SetVtable`, the slot templates of
-  `engine_object_class.h` and `compiled_vtable.h`, slot calls by number, and the
-  `__declspec(novtable)` classes whose constructors store a table. They become real virtual classes.
+- Hand-built tables: `ei::SetVtable`, slot calls by number and `__declspec(novtable)` classes whose constructors
+  store a table. They become real virtual classes.
 - `...Hook` / `__fastcall Fn(T* self, void*)` shims and `...Impl` slot bodies, which only existed
   because a pointer to a virtual member could not be registered.
 - `offsetof` / `sizeof` asserts: kept only where bytes leave the process (save files, network packets)
@@ -39,9 +38,8 @@ shim, stub or workaround lands.
 
 ## Library code (C14a-d, C26)
 
-- `mfc::` (CString, CArray, CList, CTypedPtrList, CFile, CFileFind, CArchive, CPlex), `stlp::` (string,
-  vector, list, map, hash_map on the game's node pool): standard types by scripted rewrites (C14a
-  strings, C14b arrays and lists, C14c maps, C14d archives).
+- Strings, collections, files and archives are standard types and `src/lib`'s small classes (file_io.h, gdi.h,
+  thread.h, calendar.h, hash_map.h, intro_sort.h): no MFC or STLport class of ours is left (C14a-d).
 - `gamecrt::`: the host CRT, family by family, except where a golden proves the game's differs (C26;
   those go to C18r as our own CRT).
 
@@ -58,9 +56,9 @@ shim, stub or workaround lands.
 
 - `gamecrt::tolower` / `strnicmp` use the game CRT's locale tables (Cyrillic archive names).
   A modern replacement must give identical results for bytes 0x80-0xFF.
-- STLport `hash_map<void*, ...>` iteration order depends on pointer values, so allocation order can
-  change the order in which `CMappedResource::FreeAllFiles` frees files. Harmless so far, but check
-  before swapping allocators or containers (C14c).
+- A hash map keyed by pointer values iterates in an order that depends on the pointers (the original's STLport
+  `hash_map<void*, ...>`), so allocation order can change the order in which `CMappedResource::FreeAllFiles` frees
+  files. Harmless so far, but check before swapping allocators or containers (C14c).
 - `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
 - x87 maths (`/arch:IA32 /fp:precise`, `include/ei/x87.h`) and the FPU control word the game runs with
   (Direct3D sets single precision) must stay the same until the SSE2 switch (C16d), or float results drift.

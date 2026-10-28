@@ -19,7 +19,7 @@ is still left. The units themselves are in `units.md`; the conventions are those
   are qualified. `StandPoint` is not an override (it takes `float*`, the slot `Vector3*`).
 - `CUnitController` slots 36 / 37 return `bool` (AL); slot 33 (`SetWeaponModels`) returns EAX, which SendEquipment
   passes on.
-- Field names: `scriptName` is an `mfc::CString`; +0x254..+0x260 `animationEntry`, `secondEntry`, `actionSound`,
+- Field names: `scriptName` is a `std::string`; +0x254..+0x260 `animationEntry`, `secondEntry`, `actionSound`,
   `animationStart`, `motionMode`, `pathTimeShift` (setters SetAnimationEntries / SetMotionMode / SetPathTimeShift);
   +0x270 `pendingWeapon`; +0x328 `unitRadius`; +0x4B0 `actionSpeeds[6]` (from `UnitModelRecord::actionSpeeds`).
 - 005327D0 is `CUnit::ActionSpeed(const FigureAnimation*)`: it reads the entry's key (bits 18-21, the action kind), not
@@ -39,7 +39,7 @@ is still left. The units themselves are in `units.md`; the conventions are those
 - `UnitParams params` is CUnit's member at +0x330 and `UnitMotion motion` at +0x27C (unit_motion.h, which unit.h
   includes; ai_motion.h keeps OrderOf). The unit panel's "body parts" (+0x374) are the params' slots' kind / current /
   maximum (the maximum is unsigned: the panel, the wounds and the network fraction read it so).
-- `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists could be `mfc::CArray`.
+- `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists are `std::vector`s.
 - `UnequipArmour` / `ReleaseAllItems` call controller slot 27 as `ArmourTakenOff`: the original reads the vtable before
   the item's GetType, the virtual call after it; GetType reads the item only, so nothing can tell.
 - Item fields used as floats through the item family's names: condition `CItem::condition_` / `conditionMax_` are floats
@@ -66,8 +66,6 @@ fake_unit, class_templates (and class_template_stock), hoover_loot, zone_records
 - Class masks named in item_db.h: `SpellRecord::classMask`, `SpellModifierRecord::classMask`,
   `ItemRecordHead::classMask`, `MaterialRecordHead::classMask`.
 - `ClassTemplate::ItemsParty()` / `SpellsParty()` (the parties are `PartyStorage`, party_storage.h: the template's Construct / Destruct build them).
-- `mfc::CObjectVirtuals` (GetRuntimeClass, the deleting destructor, Serialize) for MFC objects called through their
-  vtable.
 - `DiplomacyConstruct` takes `ZoneDiplomacy*`.
 - unit_skins' `TextureSet` (the texture cache's composition request, not an STL set) is `SkinComposition`.
 - New members shadowed locals named `damage` / `combat` in UnitStats methods (C4458): unit_hits' DamageSlot and
@@ -120,7 +118,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   parameters and locals that hide a data member (C4458) are renamed (`In` suffix, `newName`); a member of a class in a named
   namespace needs qualified helper names, and a helper with the same name as a member needs `::`. The qualified-call rename
   does not see dependent names (`self->Record::Serialize` in a template) or calls on value objects: the linker names them.
-- **What stays a shim**: shims on aliases of lib / mfc / stlp templates (no member can be added); `void*` / `uint8_t*` selfs
+- **What stays a shim**: shims on aliases of library templates (no member can be added); `void*` / `uint8_t*` selfs
   and pointer-to-pointer selfs; the `!self` tests of the CInterface3D scale entries (ECX 0 is reachable with Rebirth's
   code); `EquipBuild` / `QuickStripBuild` (`int` against `bool`); shims whose return value differs from the slot's
   (CMemoryStream::Write returns `position_`, DriverLink::SendBytes `bool ? 1 : 0`); Rebirth-patched input handlers
@@ -128,19 +126,10 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   call-through blocks (no body to move). UI input shims are registered as `InputForward<&Class::Method>::Call` and
   `UiInput::DeleteWindow<&Class::Delete>` (ui_screens.h: the self is the input sub-object, the window found with
   `WindowFromInput`). Classes added for the factories: `CClientSpecificManager`, `CEffectManager` (base_manager.h).
-- **Container Abi types are derived.** The src/lib `*Abi` wrappers (ArrayAbi, ListAbi, MapAbi, VectorAbi, stlp
-  ListAbi / DequeAbi / HashtableAbi / TreeAbi, the pair structs) derive from the container, so the instantiation's
-  functions are the container's own members (`CArray::SetSize`, `CList::NewNode`, `hashtable::Resize`, ...) or members of the
-  Abi type, registered by member pointer; calls on an untyped container are `static_cast<Abi*>(container)->Member(args)`.
-  A member that has the container's name (`Clear<E>`) hides it: call `Base::template Name<E>()`. Out-pointer iterators stay
-  `Node** out` parameters. Types the original calls the members on get derived structs (`BridgeHeights`, `PatrolPoints`,
-  `GlobalMapZoneTable`, `MpAddresses`, `PartyMembers`, `SectorCellObjects`, `CountedUnits`; check_cleanup forbids new
-  `...Array` / `...List` / `...Map` struct names in game files, so a `using OldName = New;` follows). `ScalarDelete<&Destruct>`
-  (mfc_slots.h) is the one shared deleting-destructor shim. Left as shims: the serialiser templates (SerializeCArray / CList
-  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (gone with C14q),
-  free-function `void*` selfs, and the Rebirth-patched input handlers.
-- **Constants with homes.** Vtables are the classes' `Vtable()` accessors (C19; C28 replaces them with real virtual
-  classes). Texts are accessors in `game_strings.h`
+- **Container Abi types are gone.** The src/lib `*Abi` wrappers and the serialiser templates went with the MFC and STLport
+  containers (C14); check_cleanup forbids new `...Array` / `...List` / `...Map` struct names in game files, so a
+  `using OldName = New;` follows a renamed type.
+- **Constants with homes.** Vtables are the compiler's (C19, C28). Texts are accessors in `game_strings.h`
   (`game::mapwords`, `questwords`, `savewords`, `briefingwords`, `zonetexts`, `equipmenttexts`, `menutexts`, `nettexts`,
   `menukeytexts`, `consoletexts`, `weathertexts`; they return `Text(address)` so ei_vectors reads the stand-in data); floats
   are `worlddata::One()` / `Zero()` / `Half()` and the `const float&` (`ExeFloatRef`) effect constants in world_data.h;

@@ -100,11 +100,11 @@ timed objects the client knows (each counted once; +0x3C / +0x6C the highest id)
 CPlayerClient (00743180, not 00743188: Pump is slot 6, ReceiveMessages slot 23); their slot bodies have their own names
 (`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `CPlayer::Server()` and `CWorldClient::LocalView()`
 are the static_casts of `connection_`. CPlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
-(`mfc::CArray<UnitPlacement>`, SetSize 0059C3D0 = `PlacementsSetSizeOriginal` in originals_gameplay.h), +0x88 / +0x28B0 send /
+(`CArray<UnitPlacement>`, SetSize 0059C3D0 = `PlacementsSetSizeOriginal` in originals_gameplay.h), +0x88 / +0x28B0 send /
 receive coders, +0x50D8 / +0x50E8 sent object arrays, +0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer.
 CPlayerClient +0x1C player, +0x20 state, +0x24 / +0x28 handler table (00667230), +0x34 received stream, +0x5C requests, +0x85
 send-party flag, +0x88 / +0x28B0 coders, +0x50D8 `array50D8_` (unit ids). Both handler tables store the handlers' game
-addresses (40 client types, 25 server types), so rewritten handlers run through their hooks; handlers_ is a lib::AlignedArray
+addresses (40 client types, 25 server types), so rewritten handlers run through their hooks; handlers_ is a AlignedArray
 (allocators 0066BE00 / 00671240 are AllocAligned32). 0047B670 (object map clear) is `ObjectMapClearOriginal` in
 originals_world.h.
 
@@ -173,7 +173,7 @@ Kept: the login's two 64-byte text buffers are sent with uninitialised bytes aft
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its
 `manager40_` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
 with the object made and unreleased; OnLeaderDied in a network game with a party of more than one record reads two
-uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `mfc::CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt
+uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt
 in library.csv); the AIPath is destroyed through 00546100; CPlayer::Clear's unit loop stops at the first map entry without a
 unit; the constructor's maps keep their uninitialised functor bytes; HasLoot reads +0x4C of every carried item whatever its
 class; ReleaseTamedUnits (like Clear's sibling walks) goes on from the node of a unit SetPlayer has just erased, reading the

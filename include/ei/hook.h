@@ -55,11 +55,11 @@ int UnexpectedSkips();
 // game.exe at its addresses, its data in ei_hook.dll's storage, its resources the host's own. standalone.cpp.
 bool Standalone();
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (the guarded
-// code section, a compiled table's unported slot), before the process ends: the harness (verify build) puts it in
+// code section), before the process ends: the harness (verify build) puts it in
 // its report.
 void SetMissingCodeHandler(void (*handler)(const char* what));
-// The image reached game.exe's code at `address` with no code of ours for it (the guarded code section, a
-// compiled table's unported slot: compiled_vtable.h's UnportedSlot): "no code at <address>, [esp] <caller>"
+// The image reached game.exe's code at `address` with no code of ours for it (the guarded code section):
+// "no code at <address>, [esp] <caller>"
 // reported (the handler above, tools/resolve_crash.py), then the process ends. hook/standalone_main.cpp.
 [[noreturn]] void ReportNoCode(std::uintptr_t address, std::uintptr_t caller);
 

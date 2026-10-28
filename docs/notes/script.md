@@ -334,7 +334,7 @@ Facts:
 - MFC naming traps: Mid / Right in core.md ("MFC CString: Mid and Right"); 006FE216 is TrimLeft() and 006FE11F TrimRight()
   (ini_file.cpp's TextOps names them the other way round; the calls are right).
 - Text archive list: Add keeps a failed archive in the list (unlike `CLinkFigureLoader::AddArchive`) and returns
-  OpenResource's result; nodes go back to the 0x18-byte list through `stlp::deallocate`. Not ported: 004DEBC0 (`Find`),
+  OpenResource's result; nodes go back to the 0x18-byte list (the original's STLport node pool). Not ported: 004DEBC0 (`Find`),
   004DEC40 (Rebirth) and its forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2).
 - Zone exit `Contains`: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes);
   otherwise the point is turned by -angle about the centre (centre x and the x offset kept unrounded) and a NaN turned x is
@@ -350,11 +350,11 @@ Facts:
   ((z + y) + x) + offset: the wrapper compares within 1e-3 + 1e-5 relative (`NearClipped`). In the verify build the original
   004D8490 calls the hooked 004D7BD0, so a corner within rounding of a clip line changes the triangles that follow (why X17
   disabled the three).
-- Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers stlp::map<string, LinkPartHeader 0x50>
+- Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers STLport map<string, LinkPartHeader 0x50>
   +0x14, morph coefficients +0x30, six aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte
-  corners (`lib::AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
+  corners (`AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
   (`ITransformPipeline`, 3DfpFPU.dll's; slot 7 FitBounds). The loader (model.h, 7 slots): `figureSets_` +0x10, `renderer_`
-  +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline_`), the cache `stlp::map<string,
+  +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline_`), the cache `STLport map<string,
   CLinkMesh*>` +0x28. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s),
   lerp(c6,c7,s), t), u), old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u) (`MorphFig8Packet`,
   `MorphOldPacket`). Forwarders: 004F9E50, 004FBD80 (the cache's insert_equal; 004F7B10 inlines the descent and calls
@@ -448,8 +448,8 @@ them is below.
 
 - Text manager (`text_sources.cpp`, `item_db_text.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
   `GetFile` result (the size through the out pointer); null without one. 004DEC40 `TextSourcesListKeys`: every source's keys
-  matching the pattern appended to the caller's array through a temporary `CStringArray` (`mfc::CStringArray::Append`,
-  006FEB01, a forwarder in mfc.h); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and
+  matching the pattern appended to the caller's array through a temporary `CStringArray` (the original's `CStringArray::Append`,
+  006FEB01); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and
   `CTextManager::ListKeys` (004DEFA0) calls the original through a forwarder. 004DED20 is `CTextManager`'s Create slot:
   `setlocale(LC_CTYPE, <the pointer at 0079BE94>)`, `_setmbcp(_MB_CP_LOCALE)`, returns 1 (runs on every start). The
   interface's "pers *" listing (00607720, 00635250) has no known scenario.

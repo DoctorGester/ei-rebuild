@@ -7,13 +7,13 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 
 - **The unit set** (`world.h`): `UnitSet` holds two typed identity-hashed maps: `figured` (unit id to a `FiguredUnitMap` of `FiguredUnitRecord`)
   and `dressed` (unit id to `DressedUnitRecord`). `UnitSetEntryHead` is merged into `DressedUnitRecord`, whose `Write` (00558FA0) is a member.
-  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` builds a `UnitSet` and constructs / destroys its two `stlp::hashtable` members directly (005985E0 ... 005986B0).
+  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` builds a `UnitSet` and holds its two hash tables as `lib::HashMap`s (the original's 005985E0 ... 005986B0).
 - **CWorldServer**: `diplomacy_` is a `CDiplomacy` embedded at +0x12C64 (users pass `&diplomacy_` or read `allied_`). `aiEvents_` is the
   `AIEventTable` (world.h includes unit_ai.h; `AIEvents()` returns it). The object sets a player is sent are `std::vector<CEngineObject*>`
   (world_object_sets.cpp): the radix sort takes the address apart through `AddressWord`, the merge compares by `std::less` on the pointers.
 - **Virtual slots used instead of VCall.** CWorld: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
   CMapObject: `ReceiveHit` 31, `ApplyScience` 41, `EyePoint` 48, `PositionAt` 52, `AimPoint` 53, `IsLargeUnit` 54, `IsDead` 55, `ForgetObject` 56,
-  `UpdateMoveFactors` 57, `MoveSpeed` 59, `Radius` 60. Also CBaseManager `CreateObject`, CStream `Read` / `Write`, mfc::CFileVirtuals `Close`,
+  `UpdateMoveFactors` 57, `MoveSpeed` 59, `Radius` 60. Also CBaseManager `CreateObject`, CStream `Read` / `Write`,
   CItem `GetUse`, CParty `ItemManager`, CPlayerSource `TakeNew` / `Query`, CEngineObject `ClearState` / `Release`, CSpellEffect `DeletingDestructor`.
 - **Members instead of offsets:** `CEffect::startTick_` (timed objects), `CParty::Money()` (player gold), `CPlayerServer::partyUnits_`,
   `AIBrain::visible` / `unknown_37`, `CUnitServer::stats`, `CTextManager::cursor_`, `CWorld::shared5C_`, `CWorldServer::hoover_`,
@@ -49,7 +49,7 @@ A gap became a name when src reads or writes it through the class, else `unused_
 
 - world_client_maps.cpp calls its rewritten callees directly (nine rows left config/direct_calls_skip.csv); LoadLightsAt (00563930) and
   006B6040 stay forwarders (Rebirth patches them).
-- The client's visible list is a `stlp::list<CEngineObject*>`; BuildUnitSkins takes the typed figured and dressed record vectors.
+- The client's visible list is a `std::list<CEngineObject*>`; BuildUnitSkins takes the typed figured and dressed record vectors.
 - Unit skins: `SkinRequest::layers` is a `std::vector<std::uint8_t>`.
 
 ## C21 batch 23 (2026-10-22)

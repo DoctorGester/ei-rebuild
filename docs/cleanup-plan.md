@@ -48,12 +48,12 @@ them per file).
 
 | Artefact | Becomes | Ticket |
 |---|---|---|
-| hand-built tables (`static void* Vtable()`, `ei::SetVtable`, slot templates and slot calls), `...Hook` / `...Impl` slot shims | real virtual classes | C28 |
+| hand-built tables (`ei::SetVtable`, slot calls by number), `...Hook` / `...Impl` slot shims | real virtual classes | C28 |
 | `offsetof` / `sizeof` asserts | dropped, except where bytes leave the process or come from the data image | C28 |
 | data addresses in code | named globals (the build reads no game.exe since C25c) | C18, C18r, C18t |
 | import table cells, `gameapi::` | typed imports; direct Win32 calls except the routed ones | C18p |
 | `EI_REPLACE` registrations (the code cells went in C20 batch 1, the registrations in batch 6), then the `EI_REWRITTEN` map | nothing: no address map of game.exe's code | C20, C20e-g, C20l (done) |
-| `mfc::` / `stlp::` containers and strings, `CFile` / `CArchive` | `std::` types (scripted rewrites; iteration order kept where it feeds game logic) | C14a-d |
+| the original's MFC / STLport containers, strings, `CFile` / `CArchive` (none left in our code) | `std::` types (iteration order kept where it feeds game logic) | C14a-d |
 | `gamecrt::` | the host CRT, except the families a golden proves differ | C26 |
 | `reinterpret_cast`, pointer `static_cast` | typed fields, parameters and objects | C15, C21 |
 | `__declspec(naked)`, `__asm`, `#pragma float_control`, x87 helpers | plain C++; an SSE2 build | C16d |

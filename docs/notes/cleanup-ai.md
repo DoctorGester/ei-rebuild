@@ -3,11 +3,11 @@
 What changed in the AI files and what is left. This covers `ai_*.cpp/.h`, `unit_ai*.cpp/.h`, `sector_map.cpp` and the headers that declare
 their classes. The conventions are the ones in `cleanup-engine-base.md` and `cleanup-units.md`. The release objects were compared with a
 disassembly diff: the only differences were virtual calls replacing the VCall helpers, member loads, register and stack moves, and the shared
-`lib::AlignedArray::SetSize` replacing FootprintCellSet's own copy (same values, its three final stores in a different order).
+the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vector` since) (same values, its three final stores in a different order).
 
 ## Declarations
 
-- **CAIMap** (`ai_map.h`) embeds `CSectorMap sectorMap` at +0x124, `mfc::CArray<AreaOffset> areaLists[6]` and two `CUnitLayer`s
+- **CAIMap** (`ai_map.h`) embeds `CSectorMap sectorMap` at +0x124, `std::vector<AreaOffset> areaLists[6]` and two `CUnitLayer`s
   (`unitLayerSmall`, `unitLayerLarge`; `CUnitLayer` and `UnitLayerNode` live here; their virtual `Set` and `Merge` are slots 0 and 1). The cost
   tables are `passCosts`, `passCostsAlt` and `stepCosts`; the water patch is a `CUnitShape`. **AIPath** starts with its `MotionOrder` (in
   `ai_map.h`); its excluded blocks are a `BlockPointArray`. `sector_map.h` includes `ai_map.h` last, so files that include only `sector_map.h`
@@ -21,12 +21,12 @@ disassembly diff: the only differences were virtual calls replacing the VCall he
   (`CanPlanAction`, `PlanAction`, `CanActFrom`, `FindSightTarget`, `ActionDistance`, `CanReachTarget`, `CanCast`, `TimeUntilAction`) take a
   `const AIOrder*`, so nothing reads past it. The brain's action point and looks are one `AIMoveOrder move` (+0x008; 00545B20 clears it).
 - **UnitShapeCache** (`ai_shape_cache.h`) is a novtable class whose slot 0 is `CreateShape`; `UnitShapeHandle` is `ShapeCacheHandle`; the shape map
-  is an `stlp::hash_map`. **FootprintCellSet** holds its cells in a `std::vector<FootprintCell>`.
+  is a `std::unordered_map<float, SharedRefPtr>`. **FootprintCellSet** holds its cells in a `std::vector<FootprintCell>`.
 - **Virtual slots used.** CMapObject: `KeepsMapFlag` (43, returns bool, AL), `PositionAt` (52), `AimPoint` (53), `IsLargeUnit` (54), `IsDead` (55).
   CWorld: `ObjectWithId` (40). CStream: `Read` / `Write` (path save). CRefCounted's deleting destructor through `delete` (the original's inlined
   release).
 - **Part names in CollectFootprint** come from the server companion's string array (`CMapObjectServer` +0x80) or the object's own, read as
-  `mfc::CArray<mfc::CString>` over hand-laid fields in `unit.h` and `map_object_figures.h`.
+  `std::vector<std::string>` members in `unit.h` and `map_object_figures.h`.
 - **The player that controls a unit directly** (`unit_ai_modes.cpp`) is `CPlayer::connection_` -> `CPlayerServer::refreshPending_ == 2`.
   `CUnit::player` is still `char*` (`unit.h`).
 

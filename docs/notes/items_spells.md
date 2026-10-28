@@ -55,8 +55,8 @@ Record Serialize (A-H23, item_db_serialize.cpp; loading read twice, ours then th
 `SerializeHead` (fields 0-15), weapon, armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members),
 quick, the 0x7C kind (zone list through InlineStrings), the 0x78 kind (fields 0x15-0x17).
 
-The item database's tables are `itemdb::NamedRecordTable<Record>` (item_db.h: `stlp::vector<Record>` plus the name
-index, a typed `hash_map<string, Record*>` that stlp::NamedSlot looks up like the spell tables' code index; `At` (the bounds-checked lookup, also `WeaponAt` / `ArmorAt` / ... ), `IndexOf` (the byte offset divided by the
+The item database's tables are `itemdb::NamedRecordTable<Record>` (item_db.h: `std::vector<Record>` plus the name
+index, a typed hash map of `string` to `Record*` looked up like the spell tables' code index; `At` (the bounds-checked lookup, also `WeaponAt` / `ArmorAt` / ... ), `IndexOf` (the byte offset divided by the
 record size, signed, as the original computes it, also for a null record), `Named` (the by-name lookups 004AB720 etc.:
 a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
 
@@ -162,7 +162,7 @@ are filled elsewhere (00456440 Rebirth-patched, 0057CB50, 0057DEE0). The "can't 
 belong to a 3DS material chunk reader (004A0BA0, 004A09E0), not item code.
 
 **CTextManager** (`*(CTextManager**)0x007AF788`): `+0x1C` STLport list of text archives (node: next, prev, `+0x08`
-stlp::string name, `+0x14` CMappedResource*), `+0x20` read cursor, `+0x24` start of the current text (null: none), `+0x28`
+STLport string name, `+0x14` CMappedResource*), `+0x20` read cursor, `+0x24` start of the current text (null: none), `+0x28`
 its size. A lookup asks every archive's GetFile (slot 5) in turn; the first hit becomes the current text. The line reader
 (004DF8D0, 004DFB80) is `text_reader.cpp` (script.md).
 
@@ -412,7 +412,7 @@ all their destructors O.
 
 The scroll text constructor's float is the bar's depth, not a line height. Tokenize, Layout and DrawLines are called through
 their addresses (originals_ui.h). CUiTooltip is a CUiWindow (fields from +0x148: lines_, lineHeight_, keyWidth_, keyName_).
-Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h; CString::FindOneOf (00700ECC) in mfc.h; gamecrt::isprint
+Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h; CString::FindOneOf (00700ECC) is `str::FindOneOf`; gamecrt::isprint
 (006E944C). Quirks: SetPosition divides by the maximum without a check (0 gives the integer indefinite); the edit field's
 constructor leaves caret / editing / changed unset; NextToken's unknown BEL symbol takes the token's data pointer as its
 length should FatalError return; Layout reads the measured heights by the token's font digit, fonts 3-9 read the original's
@@ -447,7 +447,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   `CSpellManager::ListSpellNames/ListModifierNames` (`this` unused; every new game through 004A7080; S, texts compared),
   `CItemManager::CreateSpellItem` (the scroll of a spell text, O), `CItemConstructor::MagicCapacity` (trader_stock; S on
   scratch floats), the item records' slot 0 (kinds 0x3004 / 5 / 6 / 9 / 7; P), `ItemStock::AddArmor / AddWeapon / AddQuickItem /
-  AddSpell / AddModifier / AddMaterial` (`stlp::vector::push_back`; O: present once, size +1 only when new), the item
+  AddSpell / AddModifier / AddMaterial` (`push_back`; O: present once, size +1 only when new), the item
   manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest;
   O), `CItemConstructor::DeletingDestruct`, `RecordTableAt<Stride>` (armour 0x88, quick 0x80, 0x7C, 0x78; P),
   `WeaponModelName` / `WeaponRecordModelName` (P texts; the second compared only for weapon types 0..6, beyond them the
@@ -464,7 +464,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through
   their addresses; O), `PartyUnitRecord::CarriedWeight` (CItem +0x34 is the weight; weapons, quick items, spells, armour in
   one running float sum; P with CheckNear), `CParty::ArchiveParty` (a memory stream as the archive's stream field 1; loading
-  takes the archive's version; O), `SavedParties::Select` (world.h: the multiplayer heroes at 007C82A0, a `stlp::vector<MpHeroRecord>` and the party outside a game; no scenario opens
+  takes the archive's version; O), `SavedParties::Select` (world.h: the multiplayer heroes at 007C82A0, a `std::vector<MpHeroRecord>` and the party outside a game; no scenario opens
   the hero screen; O), `CPlayerClient::AppendReceived` (appends a stream to the received one, read position kept; O).
 - Input and UI: `CDirectInputMouse::Setup / Shutdown / SetActive / Poll` (input_mouse.cpp; the game's own GUID copies and
   c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1; O, SetActive S: acquire twice is harmless);

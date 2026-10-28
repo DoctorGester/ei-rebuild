@@ -272,7 +272,7 @@ Facts a worker needs that the code comments do not say:
   (1023 costs each: up to 40 degrees for the large classes, 60 at the flat cost for class 0), tileDesc.reg of aiinfo.res the
   sixteen terrain types, the three grids sized 64 x 64 cells per sector, every sector file stamped into them.
   `AttachTerrain`: open marks, cost tables, water depths, searches, region map, events, sector map, the refresh.
-  `ClimbTable` is `mfc::CArray<int>`, the terrain types `lib::AlignedArray<AITerrainType>` (+0x104 cost, +0x114 open-cell
+  `ClimbTable` is `CArray<int>`, the terrain types `AlignedArray<AITerrainType>` (+0x104 cost, +0x114 open-cell
   marks), the grids have `SearchGrid` accessors, +0 is `loaded`.
 - Static initialisers run before the hooks are installed, so their ports are registered at their addresses but a running
   game calls only the exit halves: the smoother's 81 transition tables 007C3058 (BuildSmoothTables 005C42B0, BuildSmoothEdges
@@ -296,7 +296,7 @@ Facts a worker needs that the code comments do not say:
   CWorldServer::SetUnknown6C (the client copy 00566350).
 - `CUnitShape` (ai_unit_layer.h; a real class since C28e): constructor 005B3440 (disc levels), OnShutdown 005B3540, Clone 005B34F0,
   CreateUnitShape 005B33D0 (the shape cache's slot 0). `Sector` has its members (two object lists, `freeOccluder`,
-  `occluders` as `mfc::CArray<SectorOccluder>`); ai_occluders.cpp uses them.
+  `occluders` as `CArray<SectorOccluder>`); ai_occluders.cpp uses them.
 - `UnitTextureRecords` 005683D0 (`unit_skins.cpp`): the body list is [0] body, [1] empty, [2..7] items[1..6].
 - `StepNoise` 005C9770 multiplies in the order read from the exe; not confirmed by a run.
 - Dead code (no caller in the exe, Rebirth's binaries hold the addresses): RemoveAllUnits 005939E0, 00579FB0, 00566CB0.
@@ -393,7 +393,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   `FrameDeferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
   +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
-  +0x1D4: an engine object, then an mfc::CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
+  +0x1D4: an engine object, then an CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
 - bird_ (+0x1B0) is the CEffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine
   objects (00570000 calls their slot 4). CWorldServer's +0x170..+0x2838 is its CAIMap (lib::InPlace, AIMap(); sizeof 0x26C8):
   the old aiLayer_ (+0x2468, 005B1380's argument) is its region map, occluderReplanTime_ (+0x2804) its footprintTick (the

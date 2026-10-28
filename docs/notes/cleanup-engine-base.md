@@ -10,9 +10,7 @@ the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot sh
 - The stream / manager slots (manager Create +8, Destroy +0xC, Release +0x10, Load +0x24, Save +0x28, NewObject +0x38, CreateObject +0x5C,
   ReleaseObject +0x60; stream Read +4, Write +8, Seek +0xC, Size +0x10, Position +0x14, Clear +0x18; Serialize +4) are the original's
   numbering. `progress.py` reads `class __declspec(x) Name`.
-- `stlp::hash_map` grew `ClearWith(deleteNode)`, `Functors` / `BucketVector` / `CountProxy` (the pieces the manager's inlined code constructs
-  by hand), `Pair`, `Iterator`, `First` / `After` (STLport's begin() and iterator ++); the game's own STLport / MFC instantiations are still
-  called, only the raw offsets went.
+- The manager's id maps are `lib::HashMap`s (STLport's walk order); no STLport or MFC instantiation of game.exe is called.
 - Duplicate helpers merged: `NextFreeId` (CreateObject and RegisterInstant), `AddTail` (three inlined copies), `gamecrt::rand`, FindChild /
   FindStreamChunk / ReadStreamChunk / `Ref::Reset` / ResizeToCurrent inside the archive, `Chunk::Construct` in the string-array readers,
   `game::EmptyText()` for 0079B298 (the ~40 literal uses and per-file copies are gone), `camera::` names for the camera's
@@ -57,12 +55,12 @@ Offset access, `VCall`, byte offset arithmetic, per-file vector struct and `Slot
 none may be devirtualised.
 
 - `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `primary_`, `renderTarget_` width / height, `screen_`,
-  `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted through
-  `mfc::CObjectVirtuals` slot 1 (`CDib` keeps its vtable as a field; its `Delete` is registered by address, so it is not a C++ virtual).
+  `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted
+  with `delete` (`CDib` is a real class).
 - `app_registry`: prototypes and counted pointers are `CRefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM
   pointers are `IUnknown`. Signatures (`void*`) kept for the verify wrappers.
-- CFile slots through `mfc::CFileVirtuals` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`, which also uses
-  `ei::SetVtable`); `FreeSpares` deletes the spare list through `mfc::CObjectVirtuals`.
+- Files are `lib::File` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`); `FreeSpares` deletes the
+  spare list with `delete`.
 - `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount_`),
   `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the
   record as a `CRefCounted` (base vtable 0073BB68).

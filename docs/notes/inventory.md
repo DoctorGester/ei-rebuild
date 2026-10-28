@@ -32,7 +32,7 @@ STLport and MFC template instantiations plus a few CRT exception helpers. Recogn
 ### Not marked library (game code or too generic; candidates)
 
 - **Aligned array template** (no vtable, data at +0 with the raw block at data[-1], allocation `operator new(n*size+0x24)`
-  aligned to 32): ported once as `lib::AlignedArray<T>` (core.md, "Shared containers"); the library rows
+  aligned to 32): a `std::vector` in our code (core.md, "Shared containers"); the library rows
   `CArray<LightningPoint>::SetSize` (00468C50) and `... allocate` (00468F70) are this template, not MFC CArray.
 - **Scalar deleting destructors of game classes** calling `CEngineObject::DestructBase`: 557 copies
   of one 30-byte body (00402D20, ...); one generic helper covers them.

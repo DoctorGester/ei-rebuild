@@ -35,16 +35,15 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   hand-built vtables and no layout asserts. No game.exe code shares our objects, so nothing needs the
   original memory layout; goldens don't depend on it either. Keep game.exe's byte layout only where
   bytes leave the process (save files, network packets) or come from game.exe's data image (until
-  C18/C25 finish), and say so where you do. The hand-built tables still in the code (`static void*
-  Vtable()`, `ei::SetVtable`, the slot templates of engine_object_class.h and
-  compiled_vtable.h) are C28's to convert: add no new ones.
+  C18/C25 finish), and say so where you do. Add no hand-built vtable (`static void* Vtable()`,
+  `ei::SetVtable`, slot calls by number).
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O),
-  `containers.h` (the engine's aligned arrays), `intro_sort.h` (the game's
-  std::sort, for the sorts whose order of equal keys is behaviour), `gameapi.h` (the Win32 imports; generated: the
-  ones the harness or the image routes go through the image's import slots). C14a-d move the code to
-  standard containers and strings with scripted rewrites. Add to these only when needed, in small
-  separate additions.
+  `containers.h` (helpers for the std::vector the engine's arrays are), `hash_map.h` (STLport's walk order),
+  `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `file_io.h`,
+  `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports; generated: the
+  ones the harness or the image routes go through the image's import slots). Containers and strings are standard
+  types. Add to these only when needed, in small separate additions.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (CEngineObject virtual interface),
   `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum
@@ -82,7 +81,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    count of the player list) runs that destructor at the end of its scope, not where the original freed it:
    scope it so it ends before anything it holds is deleted (CWorldServer::Destroy's iterator outlived the
    list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). Containers are
-   `std::` (the last `mfc::` ones until C14 finishes). Call the CRT functions whose game behaviour differs from the host's through
+   `std::`. Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
@@ -149,15 +148,13 @@ does not need a second pass:
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
 - new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find
-  with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings"), not a new
-  `mfc::CString`;
-- containers use the shared templates: `mfc::CArray<T>`, `mfc::CList<T>`, `mfc::CTypedPtrList<T>`
-  (`src/lib/mfc.h`), `lib::AlignedArray<T>` (the engine's 32-byte aligned arrays,
-  `src/lib/containers.h`) and `std::`. Do not declare a container layout per
-  file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
-  and do not hand-inline SetSize / RemoveAt / Add: call the template's member. Which original addresses belong
-  to which template: `docs/notes/core.md`, "Shared containers";
-  no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
+  with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings");
+- containers are `std::` (`lib::HashMap` / `lib::HashMultimap`, `src/lib/hash_map.h`, where STLport's walk order is
+  behaviour; `lib::IntroSort` for the sorts whose order of equal keys is behaviour). Do not declare a container
+  layout per file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
+  and do not hand-inline SetSize / RemoveAt / Add: call the container's member. What the original's
+  instantiations were: `docs/notes/core.md`, "Shared containers";
+  no `using` alias for a container used once (spell `std::vector<Foo>` where it is used); an alias stays only where it
   names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
   objects come from `new T` (rule 6), not a `static_cast` of a raw block (tools/progress.py counts the
@@ -171,15 +168,15 @@ does not need a second pass:
   side is `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
-  are an STLport vector are a `std::vector<T>` member. The interface's active screen is
+  are a vector are a `std::vector<T>` member. The interface's active screen is
   `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `RefPtrTo<T>` field
   read with `Get()`; the new connections a player source hands over are a `JoinedLinks`
-  (`mfc::CTypedPtrList<netlink::NetLink>`); a window's handled flag is
+  (`std::list<netlink::NetLink*>`); a window's handled flag is
   its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
-  written by a transform slot is an `mfc::CFileVirtuals*`, and so is a chunk's `Chunk::File()`. A use order's spots
-  are a `UseSpotArray` (map_object.h, `mfc::CArray<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
+  written by a transform slot is a `lib::File*`, and so is a chunk's `Chunk::File()`. A use order's spots
+  are a `UseSpotArray` (map_object.h, `std::vector<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
   connection is a `RefPtrTo<Connection>`; a session's message lists are
   `std::list<SharedRefTo<T>>` / `std::list<CountedRefTo<T>>`; a map object's
   slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.

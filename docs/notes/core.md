@@ -224,574 +224,228 @@ Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/
 
 ## Shared containers
 
-The game's container templates are declared once in `src/lib` and reused by every port (rewrite guide, "Clean code";
-`tools/check_cleanup.py` counts per-file `struct ...Array/...List` layouts: none remain). Which original addresses belong
-to which template:
-
-- `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy). MFC 4.2's SetSize /
-  SetAtGrow / Add / InsertAt / RemoveAt / Copy written once: growth to max(newSize, maxSize + step), step = growBy or
-  size / 8 clamped to 4..1024, memcpy of the old elements, only the new ones constructed, the old block freed without
-  destruction; SetSize(0) destroys and frees; RemoveAt memmoves the tail down. `Elements` is the instantiation's
-  ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default, `RawElements`
-  (nothing), or its own pair (terrain records 006C4F10 / 006C4EE0, flag arrays 006C4F90 / 006C4F60, tile lists 006C5050 /
-  006C5010; the bone's morph frames 00452E20 / 00452DF0). The
-  vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray share
-  the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA,
-  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one), `mfc::impl::CStringArray` in C14i
-  (nothing used it since C14a batch 14; its runtime class 00796EE8 and the initialiser 0070BE81 that linked it went
-  with it).
-  Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
-  SetAtGrow forwarded); `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080, `ZoneExitsSetSizeOriginal`); world_save's
-  id / object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 the aligned
-  SetSize) with their original members (005985C0, 0059CA60, 0059CC60, 004C98F0) as free forwarders; particle arrays
-  00497D50 (sprites) / 00499200 (draw order); PathCellList NewNode / AddHead / AddTail 005B1B70 / 005BD200 / 005BD2A0;
-  AILookArray SetSize / Copy 005D8EE0 / 005D8B60 (Copy assigns element by element where 005D8B60 memcpys: same bytes);
-  TweenArray RemoveAll / SetSize 006D43E0 / 006D4840; PartyMemberArray SetSize 00663FA0; the trap's targets
-  (`CArray<TargetRecord>`). Out-of-line instantiations still forwarded with the template as their type: 00557B80 (combat
-  steps), 005B16D0 (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 / 00453E00 (scene
-  corner records), 0044F7E0 (bone morph frames), 00474DB0 (scene mesh groups), the IndexArray (`CArray<uint32_t>`, 0073C800)
-  SetAtGrow / Add / destructor 004773F0 / 00476640 / 00476780; 005C4C20 (the path smoother's node pool) is
-  `CArray<SmoothNode>::SetSize`. Since C14m the plain-element ones of these (RecordPtrArray, the particle arrays, the
-  motion's points, the trap's victims and others) are `std::vector`; see "MFC CArray and CList to std (C14m, C14u)" below
-  for what is still mfc::CArray.
-- `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize) with NewNode / FreeNode /
-  RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore / InsertAfter / RemoveAt / Find / FindIndex.
-  `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's nodes: data zeroed, nothing destroyed; vtable 0073D454;
-  `ProjectileList` with FreeNode 0059C810 forwarded). The combat / ai_refresh / magic_trap / world_quests / script lists,
-  BlockCostList, the sound cache (`WaveList`, CSoundManager +0x854), ScriptDefineList / ScriptList and ai_plan's region /
-  waypoint lists are aliases. Since C14m every CTypedPtrList and the plain-element CLists are `std::list` (C14m below).
-- `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk (`Next`)
-  and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable / NewAssoc
-  (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
-- The engine's aligned arrays (game.exe: data, size, capacity, growBy in 32-byte aligned blocks, new slots left
-  uninitialised, relocated by memcpy, no destructor) are `std::vector` (C14e, a scripted retype; the build has no SIMD, so
-  the alignment was not kept). `lib::FreeStorage(v)` frees the storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i,
-  x)` grows to i + 1. A record holding a vector in an `mfc::CArray` needs typed elements (construct_at, destroy_n and
-  `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`); a raw-lifetime owner
-  (`::operator new` + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
-  new slots where the original kept stale ones: a site that reads a slot before writing it differs. named_data.py formats
-  a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 40 game.exe addresses of aligned arrays).
-  C14h: the last aligned arrays are vectors too (the scene loader's, the figure mesh / link figure / party / unit / ui item
-  arrays) and the raw aligned blocks are std (link_figure's packets, texture_compose's buffers, the renderer's line vertices,
-  the particle sources' `elements`, the transform pipeline's `MatrixStack` as a `std::array`); `lib::AlignedArray`,
-  `AllocAligned32` / `FreeAligned32` and the aligned-block element policy (`AlignedBlockAt`) are gone, `src/lib/containers.h`
-  keeps `FreeStorage` and `SetAtGrow`. game.exe's own layouts of these are only in tests/verify's views and the
-  recorders (record_maths' `ExeMatrixStack`); src/render reads the clip stack through the typed `CTransformPipeline::stacks_` now (render_terrain.cpp read it at pipeline +0x24 / +0x28 and drew no terrain once `MatrixStack` changed: the goldens did not notice, the render_shadows* / render_terrain_seams / render_loose_bmp checks did; run the render_* scenarios after a layout change); the 2DintMMX DLL's `RasterTarget` keeps its layout (its keyed triangle path is never taken: nothing allocates a keyed texture's texels).
-- STLport `vector`, `list`, the hashtable and the tree (strings are std::string; stlp::string is gone; vectors and
-  lists of plain elements are std, see C14b below; hash maps and maps are std or lib::HashMap, see C14c): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
-  next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
-  forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
-  004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
-  the original's reserve / push_back (party_records' `NamedPartyRecords`). The device's mesh buffers
-  (007AEDE0-007AEE3C): `src/game/device_buffers.h`.
-- Left off the templates: map_database.cpp's own `ArrayBody` + generic `SetSize` (allods, maps, zone exits; untyped, not
-  counted by the checker); the trap's areas array (`PlainArray`, 12-byte records) forwards to its SetSize 0046EAD0.
+The game's MFC and STLport containers are standard types in our code: nothing of `src/lib` models them any more, and
+`tools/check_cleanup.py` counts per-file `struct ...Array/...List` layouts (none remain). What the original's
+instantiations were, for reading game.exe (config/library.csv names them):
+- MFC `CArray` (0x14 bytes: vtable, data, size, maxSize, growBy; growth to max(newSize, maxSize + step), step = growBy or
+  size / 8 clamped to 4..1024), `CList` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize),
+  `CMap`, CByteArray / CWordArray / CDWordArray and CTypedPtrList: our members are `std::vector` / `std::list` /
+  `std::map`. The engine's aligned arrays (data, size, capacity, growBy in 32-byte blocks, new slots left
+  uninitialised) are `std::vector` too (the build has no SIMD, the alignment is not kept). `lib::FreeStorage(v)`
+  (src/lib/containers.h) frees a vector's storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i, x)` grows to i + 1.
+- STLport `vector` (12 bytes, as std::vector), `list` (a sentinel pointer: 4 bytes where std::list is 8), the hashtable,
+  the tree and the string: std types, or `lib::HashMap` / `lib::HashMultimap` where the walk order matters
+  ("Containers" below). Layout asserts do not survive such a retype; archive formats are element-wise, so saves and
+  messages keep their bytes.
+- game.exe's own layouts of these exist only in tests: tests/verify/exe_objects.h's views (`Vector<T>`, `List<T>`,
+  `HashTable`, `StlpList`, `exe::CString`) and the recorders' `Original*` records (record_stats.cpp's
+  `OriginalSkill*`, script_original.h). A recorder declares game.exe's layout itself, never our header with a sizeof
+  stride. Record such a change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it,
+  `vectors.py merge <runs> --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs'
+  key without EI_VECTORS, so the plain original suite only replays its cache. The path family's raw recording does
+  not replay without `tools/path_vectors.py prune` (its @AIMap records are sampled: searches on maps not kept
+  crash). Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
+  lexer reads): without that folder ei_vectors loops forever at full CPU. Replay a scratch folder with a timeout.
+  ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
+  helper defined elsewhere fails to link there; use a local helper.
+- The device's mesh buffers (007AEDE0-007AEE3C): `src/game/device_buffers.h`. src/render reads the clip stack through
+  the typed `CTransformPipeline::stacks_`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
+  terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
+  render_loose_bmp checks did: run the render_* scenarios after a layout change). The 2DintMMX DLL's `RasterTarget`
+  keeps its layout (its keyed triangle path is never taken: nothing allocates a keyed texture's texels).
 
 ## Strings: CString to std::string (C14a)
 
-- The game's text moves to `std::string`. What CString did that std::string has no member for is in `src/lib/str.h`
-  with CString's answers: `str::Find` / `ReverseFind` / `FindOneOf` (int positions, -1 when absent, the multibyte
-  CRT's searches), `Mid` / `Left` / `Right` (a start or count outside the text clamped, never a throw), `Format` (the
-  game CRT's vsprintf, `crt_format.cpp`: "1.#INF" and three-digit exponents, C26), `MakeLower`, `Remove`, the trims
-  (byte stepping, ASCII white space: `text::IsSpace`, what `_ismbcspace` answered), `Buffer` / `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) /
-  GetBufferSetLength.
-- The rewrite was a tool (tools/c14_strings.py, deleted in C20o: nothing is left to retype; the git history has it):
-  it retyped `mfc::CString` declarations and fixed what the verify build then reported, one rule per diagnostic
-  shape; a variable no rule carried stayed a CString. Batch 1 (scope `locals`): 550 of 845 local variables in src/game; the others stay CStrings because their
-  address is taken (passed to a `mfc::CString*` or `void*` parameter, cast) or a non-const reference goes to a
-  function taking `mfc::CString&` (they move with those signatures). The 49 the tool could still try after batch 1
-  all stay for now (42 address or reference, the rest CFigureStrip::Draw's kept `name`).
-- Scope `params` (batch 2): 65 `const mfc::CString&` parameters of functions defined in src/game are
-  `const std::string&`, in the definition and every declaration of the name and position. Kept CStrings: virtual
-  functions (an override retyped alone silently stops overriding), overload sets on the string type (CopyMember /
-  AssignMember of record_members.h, the cast views that static_cast the CString to a subclass (gone by batch 14), CharacterCount / CharacterBytes beside their string_view overloads), Sum and
-  Compose, and `MapsRoot`, which returns its parameter by `const mfc::CString&` (a std::string parameter would
-  return a temporary: C4172, a code-generator warning without a column). A CString given to a retyped parameter
-  passes `.GetString()` (a std::string copy of its text; the game's text has no embedded zero bytes), the seam the
-  members' retyping removes.
-- CStrings built and destroyed by hand in place (the records' own Construct / Destruct, the element policies) are
-  `std::construct_at(&field, ...)` / `std::destroy_at(&field)`: the type comes from the
-  field, so retyping a member changes them with it. A placement new of `mfc::CString` on a std::string compiles
-  silently; the forms left are typed by an explicit cast (`reinterpret_cast<mfc::CString*>(p)->~CString()`,
-  src/lib's element policies at byte offsets, `new (this)` in the CString view classes), the placement news on raw storage (a `void*` out parameter or a
-  byte array: CStream::ReadString, WriteCopy, HumanFigureName, MobFile::Load's scripts, the interface save's text),
-  and a member those reach
-  (mfc_slots.h's `StringsAt` offsets, `DestroyStringsAt`) must stay a CString until they are typed.
-- Scope `members` (batch 3): `--members Class::member ...` retypes those data members (an array member too) and
-  keeps a member no rule carries by its name (`<member>` in excluded.json; `why.txt` says where and why). A member
-  already declared std::string is counted, so its uses get the rules after a hand retype. Done: CUnit::scriptName,
-  CMapObject::name2, CScript::errorText_, ScriptErrorInfo::text, PartyUnitRecord::texts[7], the unit database's
-  prototype / NPC / model / model slot / level record strings, the item database's spell, spell modifier and material
-  record strings and the item records' head (text04, text08, materialClass) and QuickItemRecord::text7C (batch 4;
-  the kinds' CopyOwn / default constructors name their byte ranges by member now, and record_stats.cpp reads
-  game.exe's weapon skill bonus at its original +0x7B). Their classes (and the classes deriving from or
-  holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
-  bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
-  `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::
-  CopyMember / AssignMember / DefaultMember for std::string, `InlineStrings<Text>` (unit_db.cpp; a vector of either).
-  Batch 5: the 16 GameOptions strings (the loader and writer go by member pointers now: `int` / `float GameOptions::*`
-  per registry value, the camera motions and shortcuts by their structs' members; the `field` offsets went),
-  QuestItemRecord::zones (`stlp::vector<std::string>`), CSoundManager's soundPath / streamName / nextName / midiName /
-  midiNextName, MusicTheme's name / briefing / constructor (and sound_music.cpp's LocalTheme beside it; the theme
-  array's `ThemeElements::Relocate` moves the names) and CMusicSystem's credits / mainMenu / combatTrack / jingle.
-  record_stats.cpp reads game.exe's difficulty at its original options +0x250.
-  world.h: GameFlow's requestTarget_ / zone7C_, CWorldServer's zoneName_ / mobName_ / mapName_, CWorldClient's
-  zoneName_ / texturePath_ and window names, MpHeroRecord::file, SavedParties::folder_.
-  map_spec.h: the zone records' Spec::name / comment, ObjectSpec's model / texture / primaryTexture / parentIname /
-  skinTexture, FlameSpec::sound, UnitSpec::prototype, MagicTrapRecord::spell (the spec readers' ReadInto take
-  std::string&).
-  Batch 6, the interface: ui.h (CInterface3D's messageText_ / savedText_, HudPortraitSlot's face and model texts,
-  CHudUnitPanel::strings_, CHudTopPanel::pageTexts_, UiWordToken::text_, SaveEntry's four texts, CSaveLoadWindow::name_,
-  OptionSetting::text_, OptionBinding's two, CObjectivesWindow's zone names, CUiEditField::text_, CMessageBox's and
-  CHelpWindow's title / text, ChatLine's two, CChatOverlay::typed_), ui_screens.h (MpVoiceEntry, MpAddressEntry,
-  CMpHeroScreen::text_, CMpConnectScreen::hostPassword_, TitleLine, CCreditsScreen::name_) and ui_camp.h (CGlobalMap's
-  three, GlobalMapZone, GlobalMapPlace, TradeRow, CHeroStatsPanel::title_). The forwarding accessors that returned
-  `mfc::CString&` (HudPortraitSlot's FaceName / ModelPrefix / ModelSuffix, CHudTopPanel::PageText, CUiEditField::Text)
-  went; CBattleScreen::UnitName fills a `std::string*`. The global map's links and quests are `GlobalMapPlaces`
-  (typed element policy).
-  object_tables.h: AllodRecord's names, ZoneExit::target and MapRecord's eight strings. The map database's arrays are
-  typed first: `CArray<AllodRecord, AllodRecordElements>` / `CArray<MapRecord, MapRecordElements>` (game_arrays.cpp;
-  zero fill, the strings, the inner array's table), grown by CArray::SetSize (map_database.cpp's untyped SetSize over
-  `ElementFn`s went); ExitArrayClass's destructor is gamearrays::Exits' (the `ExitTargets` byte-offset policy went),
-  AllodArrayClass moved to game_arrays.h over the typed records, and the instantiations' registrations (0x004606A0,
-  0x00460720, 0x004606F0, 0x0045FBD0, 0x004600F0, 0x0045FCB0) name the typed functions.
-  Batch 7: the skill database's SkillRecord / SkillLevelRecord names (tests/vectors/record_stats.cpp reads game.exe's
-  skill database through its own `OriginalSkillRecord` / `OriginalSkillLevelRecord` / `OriginalSkillDatabase`, 0x18 /
-  0x44-byte records; replay_stats.cpp maps IndexOfLevel's recorded byte offset from game.exe's 0x44-byte records to
-  ours), CSysInfo's five, CIniFile::path_, CParty::zone_, CCamera::fileName_, CEffectArrow::soundName_,
-  CEffectSoundSeq::name_, CTorchObjectSpec::name_, CSpellContainer::name_, the briefing's BriefingSpeaker /
-  BriefingShownItem names and CBriefingScreen's topic_ / dialogueText_, Terrain's textF8 / textFC / textAE0,
-  PartyRecord::name, NamedPartyRecords' text0C / text10, PartyManagerEntry's two, CMapObjectServer's name78 / name7C,
-  AICallRecord::text (AICallElements relocates by MoveElements), ConsoleStreambuf::line_, ConsoleWindow::input_,
-  the zone table's ZoneTableEntry first / second, ItemHoverInfo::text and CObject3DClientSpecific's skinName /
-  secondSkinName, CAnimationNode's name_ and spare names and FigureBone's three names (the figure factory allocates
-  by sizeof; the classes' own sizes stay asserted in their headers). FigureBone was read through the
-  `CageInterpolator` overlay (`unused_00[0x5C]`, then the point and t / u / w: the bone's offset and morph
-  coefficients); with the bigger names it wrote the cage point over the bone's parent pointer (a crash in
-  FigureBone::Place in every scenario with a figure). The interpolations are FigureBone's members now.
-  Batch 8: the script's strings (ScriptToken::text, ScriptDefine's name / value, ScriptDefinition's name / params,
-  ScriptFxSource::name, ScriptQuestObjective::text). The recorders read game.exe's tokens, defines and definitions
-  through tests/vectors/script_original.h's `OriginalScriptToken` / `OriginalScriptDefine` /
-  `OriginalScriptDefinition` (CString layout; `OriginalDefinitions(script)` views CScript::definitions_), and
-  script_load_vectors.h's PutDefinitionsAfter takes either definition type (recording: game.exe's, replay: ours).
-  The scene's names (SceneMesh / SceneNode name and parent / FaceGroup / SceneSkin), CMaterial's name / name2 /
-  name3 and CFigureMesh's name_ / directory_ after the fake unit's arrays were typed (record_arrays.h's
-  FigureParts / SceneMeshes / Materials destroy by element type; the byte-stride `mfc::impl::FigureParts` /
-  `SceneRecords` / `FakeUnitRecords9C` and the mesh:: / node:: offset constants went). CObject3D::name (so every
-  map object grows; CMapObject's offset asserts went), CTexture::name_ (the `Name()` accessor that handed out a
-  `mfc::CString*` went: callers assign name_), TextTokenizer::word (the unused `TokenWord` overlay went) and the
-  lever records' four strings.
-  Batch 9: TextureNameRecord::name. The CArray tables (compiled tags) of string records are typed tags over their
-  records next to them: scene::TextureNameArrayClass, MemoryRecordArrayClass (the AI's heard calls, unit_ai.h),
-  GlobalMapZoneArrayClass / GlobalMapPointArrayClass / GlobalMapPathArrayClass (ui_camp.h); their slots,
-  SetSize / ConstructElements and element destructors are registered on the typed records. mfc_slots.h's
-  byte-offset string policies (StringsAt, BuiltStringsAt, NamedStrings, InitStringsAt, DestroyStringsAt) and
-  mfc_array.h's WithString went. The FX source list: batch 8 made ScriptFxSource bigger, but CreateFXSource and
-  ScriptFxSourcesLoad still built nodes through the lib's 0x34-byte FxSourceList (CPlex blocks of the old node
-  size; the new name's bytes written as a CString); they use gameslots::FxSourceNodes now, and `ListAs` / `NodeAs`
-  static_assert equal node sizes (ArrayAs already did). LocalPlayerName (00578A90) is `std::string LocalPlayerZone()`
-  (it is the party's zone; `BriefingPlayerName` went). The text manager's out parameters are `std::string*`:
-  ReadLine, ReadToHash, PeekWord, GetString, GetItemTexts, FormatItemName, text::ReplaceChar, and their callers'
-  locals, CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
-  ReadTip; Split collects into a std::string word.
-  Batch 10: ScriptStrings (the variables' names and string values, the commands' string arguments) is a
-  `mfc::CArray<std::string>`: mfc.h's `PlainElements<std::string>` builds, destroys and relocates the elements (the
-  CString one's counterpart), and `mfc::impl::Strings` (StringArrayClass, ScriptStringValuesClass) is its ABI. The
-  script's hand-inlined SetSizes of string arrays (`kStrings`, LoadFunction's InlineSetSize, addon's
-  ArgumentsSetSize) are CArray::SetSize or element-type generic; the GetAt-by-value temporaries (`TempString`) went:
-  the copies assign. ScriptStringLoad, CopyTo, CopyAt, CalcString's result, ScriptQuestAddObjective's text take
-  std::strings. The recorders read game.exe's through script_original.h's `OriginalScriptVars`,
-  `OriginalSSCCmd` / `OriginalScriptSubCall`, `OriginalScriptDecl` (`OriginalBlocks`, `OriginalGlobals`);
-  script_load_vectors.h's PutVars / PutCmd / PutCmds / PutBlocksAfter are templates over either side's types. The
-  harness digest reads the strings through `Text()`. Also: text::Join fills a std::string, Split cuts a std::string,
-  `CWorldClient::ObjectVariableName` returns the name. The first CStringArray members are
-  `std::vector<std::string>`: the HUD tooltips' `labels_` (CHudWeaponBar, CHudQuickItems, CHudSpellColumn,
-  CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
-  (the layout asserts after them went).
-  Batch 11: the ui's CStringArray members are `std::vector<std::string>`: CUiTooltip::lines_ (filled by
-  `text::Split`), CHudUnitPanel's texts_ / partLabels_, CUiSpin::texts_,
-  SaveEntry::stringArrays_, CObjectivesWindow's quests_ / objectiveTexts_, CHelpWindow::lines_, CChatWindow::texts_,
-  CTradePanel / CHeroStatsPanel / CSpellMakerPage::texts_, CCampPages::pageTitles_, CMpConnectScreen's allodNames_ /
-  texts_, CItemInfoPanel's item and skill texts (the layout asserts and the padding bytes after them went). Chunk::
-  ReadStringArray / WriteStringArray take a vector: ObjectSpec::parts, SoundSpec::sounds, UnitRecord::lists and
-  ZoneDiplomacy::names (its constructor is the old DiplomacyConstruct; MobFile::Load holds it as a local). The sound
-  names: CEffectSoundSeq / CEffectAmbientSound::names_, ReadSavedStrings and `SoundNameArray` (SoundEmitter /
-  SoundSequence names, MusicTheme's calm / combat, AddEmitter / AddSequence); CSoundManager's constructor and
-  destructor build the emitters and sequences (their Construct / Destruct functions went). CStringVector went: the
-  unit database's and the quest briefings' name lists are `stlp::vector<std::string>` (`ChunkArchive::
-  SerializeStrings`; `records::ElementOf<std::string>` is ObjectElement, so Memberwise copies them as strings).
-  tests/vectors/record_stats.cpp's OriginalSkillRecord keeps game.exe's `stlp::vector<mfc::CString>`; replay_stats.cpp's
-  stand-in skill records point their stat name vectors at std::strings. PartyForScript takes a `std::string*`.
-  Batch 12: the map objects' part names are `std::vector<std::string>`: CMapObjectServer::strings (the companion
-  takes ObjectSpec::parts by assignment), CObject3D::partNames, LoadParts / MakeFigure / CollectBoneNames and the
-  MakeFigure callers' locals (the network's new objects, the party units, the UI model, the arrow and the moshka); the
-  footprint reads the names directly (its by-value StringArrayGetAt went). Also SceneSkin::names, ParseMaterial's
-  parts, CWorldServer::mobFiles_, the item records' list20 / list50 (nothing fills them), CBriefingScreen::topics_
-  (`TopicCount()`) and SkinRequest::textures (CTextureManager::DrawLayers takes the vector; the requests are plain
-  locals, `SkinRequest request{}`, not raw storage destroyed by hand), WeaponModelParts' out parameter. CBriefingScreen and SkinRequest lost the
-  layout asserts after the new members.
-  Batch 13: the list out parameters are `std::vector<std::string>*`: CFileRegistry::GetSectionNames / GetStringArray,
-  CMappedResource::ListFiles / ListFilesPlain and modfolders::ListFiles, CIniFile::GetList / GetKeyNames (ini_file.cpp's
-  TextOps view went), TextSources / CTextManager::ListKeys, CSoundManager::ListWaveFiles, the item and spell
-  List*Names, FindListedName's list, and their callers' locals (the AI map's terrain sections and map name, the
-  figure registry's sections, the music themes' sections and calm / combat lists, the quest places and briefing lists,
-  the terrain's map list, the person texts' keys, the sound counts' files, the class templates (their by-pointer
-  List* wrappers went), the camp debug fill, the light tables' keys and hour, the movie list in PlayMovies, whose
-  path is a std::string now). The clears and appends keep the CStringArray calls' order: ListFilesPlain empties its
-  out parameter, modfolders::ListFiles and GetList append to it, so with Rebirth's ResOverride a reused scratch
-  vector (ListWaveFiles, TextSources::ListKeys) grows over the archives as game.exe's array did. `str::TrimLeft(s,
-  char)` is CString::TrimLeft(TCHAR) (the quest places' braces).
-- stlp::string is std::string in src/game (the stlp batch beside batch 12, 491 -> 0 uses outside src/lib): the members, locals,
-  parameters, the vectors (`stlp::vector<std::string>`, policy `stlp::ObjectElement<std::string>`), the trees and hash
-  maps keyed by name (stlp_hash.h's `StringKeyTraits` / `StringListTraits` / `NamedSlot` and `stlp::StringHash` hash a
-  std::string the same way: `h = 5 * h + c` over signed chars, so bucket and iteration order are kept; trees order by
-  `operator<`, unsigned bytes like STLport's memcmp). Out parameters that built a string in raw storage return it now
-  (`NetAddress::Format` / `ToString`, `CLinkMesh::CopyName`). The bridge batch removed the rest: stlp::string with
-  StringElement, StringAbi and stlp_string.cpp, stlp_pair.h's StringDwordPair / StringPair, StringHash's stlp::string
-  overload, and STLport's out_of_range (NetAddress::Parse's substr check could not fire: the colon is inside the text;
-  game.exe's out_of_range tables are retired with file `-`). The records that grew lost
-  their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
-  hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
-  `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
-- The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
-  `std::vector<std::string>` (SplitStrings went), and so do their callers' locals (the command line and sysmsg.txt
-  lines, the map database's words, the briefing / objectives / help / global map texts, the key bindings, CreateItem's
-  and CreateSpellFromText's names, the texture's path pieces, the script events' words). The console's command
-  arguments are `console::Arguments` (`std::vector<std::string>`; the handlers take `Arguments*`), ConsoleWindow's
-  commands_ / lines_ are vectors (its offset assert went; it is allocated by sizeof), Execute keeps the command as a
-  std::string (the cheat word's XOR, then cut at the first zero byte as ReleaseBuffer(-1) did) and RunScriptLine
-  builds a std::string for RunScriptText (which makes the CString that CScript::Load preprocesses in place). `str::TrimLeft(s, char)` is CString's
-  TrimLeft(TCHAR). The briefing's phrase speaker (`named` in NextPhrase) is empty for a one-word line, where the
-  original read past the array.
-- Batch 14: no CStringArray is left in src/game, and mfc.h's public `mfc::CStringArray` went (only mfc_coll.h's
-  `mfc::impl::CStringArray`, registered at its library addresses, is left). console.h's `Str` / `Ops` views and
-  `console::CStringArray` went, and so did spell_text.cpp's and item_constructor.cpp's view classes (CreateItem's bracket
-  text and CreateSpellFromText's name are std::strings). The chat overlay's and DrawWrappedText's lines, the damage
-  lists (`ItemDamageLists` fills a `std::vector<std::string>*`), the unit panel's and the scene loader's roots are
-  vectors. The console's command maps and the interface's help topics are `stlp::map<std::string, ...,
-  stlp::MbsLess>` (stlp_tree_mbs.h: `_mbscmp < 0` on the text up to its first zero byte, CStringLess's order;
-  CStringLess went), and the queued tutorial messages are a `stlp::list<std::string>`. Their nodes grew (the 0x18 asserts
-  went; the trees allocate by sizeof). RunScriptText takes a `const std::string&` and CInterface3D::TextExtent a
-  `std::string_view`. `TextSources::FindText` is `FindKeyText`: windows.h's FindText macro renamed the call but not
-  the declaration once console.h stopped coming first in text_reader.cpp.
-- The whole-tree pass (batches 15-18 at once): no `mfc::CString` is left in src/game but CStdioFile::ReadString's
-  local (MFC's ReadLine fills a CString of src/lib). A one-off script, kept out of the repository, retyped every
-  declaration and then the tool's diagnostic rules over the verify build; its shapes: `kUnset` storage
-  becomes a plain `std::string` (the callee assigns), `std::construct_at(out, a)` / `new (out) mfc::CString(a)` in a
-  function taking `mfc::CString* out` (or a `void* out` it built a CString in) becomes `*out = a`, raw
-  `alignas` storage a local whose address the call takes (its `std::destroy_at` goes), by-value parameters
-  `const std::string&` (`std::string` where the body changes them), `mfc::operator+(a, b)` -> `a + b`, the CString
-  overloads beside std::string ones went (asset_text's, record_members'). So the folders and command-line globals
-  (`lib::StaticObject<std::string>`; named_data.py still counts game.exe's range as one CString pointer), the out
-  parameters (`std::string*`: Chunk / CStream / DeltaField ReadString, the title and zone getters, TypeName,
-  MapPath ...), CItem's name virtuals, the sorts over `std::string*`, PersonTextMap (its node grew: the 0x18 assert
-  went), MpStringVector, the script's Load / QualifyName / ApplyDefines / AddParameter / ReadTextFile and the
-  registry getters are std::string. ChunkArchive::CStringField went (StringField writes the same bytes for text
-  without zero bytes); CStream::ReadInto is not a template.
-- The bridge's end (C14g): no CString is left in src/game. NamedFloatTable is `hashtable<StringFloatTraits>`
-  (stlp_hash.h: a std::string key hashed by HashChars over its bytes and compared with `==`, which for text without
-  zero bytes is the CString's hash up to its zero and _mbscmp's equality, so the buckets and their order are
-  game.exe's); its users take `node->value.key.c_str()` where a `const char*` goes. The facades of mfc.h return
-  std::string (`CFileFind::GetFilePath` / `GetFileName` / `GetTitle`, `CTime::Format`), and `impl::CStdioFile::ReadLine`
-  (slot 22, MFC's ReadString(CString&)) reads into a std::string: 128-byte chunks through a local buffer, fgets given
-  129 as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
-  nothing, even after a full chunk. mfc.h is gone (C14p): the tests' Original* layouts of game.exe's objects (record_script*.cpp,
-  script_original.h, script_load_vectors.h, record_stats.cpp) and the harness views use `exe::CString`
-  (tests/verify/exe_objects.h). src/lib's MFC is on std::string since C14i (below).
-- Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
-  at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
-  body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.
-  A rewrite that turns one statement into two (`return std::construct_at(out, a);` -> `*out = a; return out;`)
-  braces them where the statement was an if's body: unbraced, the return ran always (BriefingSpeakerInto, 8 MP
-  goldens).
-- To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
-  (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
-  change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
-  --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs' key without
-  EI_VECTORS, so the plain original suite only replays its cache. Batch 8 did it for stats and script (14
-  scenarios: 0 problems); the path family's raw recording does not replay without `tools/path_vectors.py prune`
-  (its @AIMap records are sampled: searches on maps not kept crash), so check it only through that procedure.
-  Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
-  lexer reads): without that folder ei_vectors loops forever at full CPU (batch 10). Replay a scratch folder
-  with a timeout.
-- `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
-  holding a std::string needs one (`mfc::MoveElements`: move-construct, destroy, in the direction the overlap needs): bytes are fine for MSVC's std::string at
-  _ITERATOR_DEBUG_LEVEL 0, but the /MTd build's level 2 keeps a proxy pointing back at the string.
-- The harness digest reads our std::string members through `Text(const std::string&)` in
-  tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
-- A `const char*` given to a retyped parameter builds the std::string from it: CString took a null pointer as ""
-  where std::string's constructor does not. No caller in the suite passes null; a crash there is the first place
-  to look. The same for a member assigned a `const char*`: ServerSession::LeaveZone calls
-  `GameFlow::SetNetworkZone(nullptr)`, which crashed net_pair_leave once zone7C_ was a std::string (it stores "" for
-  null now). The credits' script tokenizer gave null past a line's last word (`WordOrNull`), which TitleLine's
-  style / text took as "" while they were CStrings (now `WordOrEmpty`; every titles run crashed in between).
-  `CObject3DClientSpecific::SetSkins(first, nullptr)` (ApplyMaterials with the second skin "none") stores "" for a
-  null name now.
-- While both types exist, `mfc.h` bridges them: `CString(const std::string&)` and `operator+` of a CString and a
-  std::string (the std::string side's type). A `const mfc::CString&` parameter given a std::string binds a temporary
-  copy, which is the same text. The rewrite does not retype a variable whose address is taken: a `std::string*`
-  compiles silently through a cast or a `void*` parameter and is then read as a CString
-  (`reinterpret_cast<StringOps*>(&text)` in Tokenize, caught by the script-load vectors; `ComposeSkin(1, &name)`'s
-  `void*` target, a crash in every scenario with a hero).
-- A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
-  error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
-  member: `CMapObjectManager::NewObject`'s factory allocated 0x4DC / 0x238 / ... bytes for each class id (now
-  sizeof(T); heap corruption C0000374 about a second into every run once CUnit and CMapObject grew), and
-  `FigurePrototypeRecord` read a model record's figure name as a CString at +0xE8 (the multiplayer HUD portraits;
-  now the UnitModelRecord itself). Structs that pad up to an offset (`unused_000[0xE8]`) over another class are the
-  same hazard: `CameraSettings` (`unused_000[0xFC]`) read the options' camera block through
-  `reinterpret_cast<CameraSettings*>(options)` (camera distance 0 and the random draws off in every scenario once
-  GameOptions grew); CCamera reads the GameOptions members now. The client world allocated CMusicSystem as 0x58 bytes
-  (now sizeof). Grep `reinterpret_cast<...*>(` of the object's pointer too, not only its sizes. Element counts taken
-  from a byte difference are the same hazard: the hero screen counted its voices as `(end - begin bytes) >> 3`
-  (MpVoiceEntry was 8 bytes; a crash in DrawVoices in every multiplayer hero scenario once it grew). Grep `>> 3`,
-  `/ 0x..` and `reinterpret_cast<char*>(...end())` near the class's containers.
-- Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
-  with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
-- A function returning `const mfc::CString&` of a retyped member compiles silently and returns a reference to a
-  temporary CString built by the bridge constructor: world_game.cpp's `RecordMob` / `RecordMap` (forwarders of
-  MapRecord's members) handed LoadZoneScripts a dead path (CFileException in every zone with scripts). They went;
-  before retyping, grep `mfc::CString& Name(...) { return ...member; }` for the members.
-- A class held by value grows with its member: CParty (zone_) sits in CPlayer, ClassTemplate, PartyRecord,
-  CItemInfoPanel, ClientSession, TradeRecord and MpHeroRecord (all through `lib::InPlace<CParty>`, so their
-  sizes follow), and their layout asserts after it went too. Grep the class's embedders (`InPlace<T>`, members of
-  type T) as well as its own sizes.
-- ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
-  helper defined elsewhere (CStream::ReadInto in exit_area.cpp) fails to link there; use a local helper.
+- The game's text is `std::string`. What CString did that std::string has no member for is in `src/lib/str.h` with
+  CString's answers: `str::Find` / `ReverseFind` / `FindOneOf` (int positions, -1 when absent, the multibyte CRT's
+  searches), `Mid` / `Left` / `Right` (a start or count outside the text clamped, never a throw), `Format` (the game
+  CRT's vsprintf, `crt_format.cpp`: "1.#INF" and three-digit exponents, C26), `MakeLower`, `Remove`, `TrimLeft(s, char)`
+  (CString::TrimLeft(TCHAR)), the trims (byte stepping, ASCII white space: `text::IsSpace`, what `_ismbcspace` answered),
+  `MbsLess` (`_mbscmp < 0` on the text up to its first zero byte: the order of the maps keyed by name), `Buffer` /
+  `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) / GetBufferSetLength.
+- String lists are `std::vector<std::string>` (out parameters `std::vector<std::string>*`; the clears and appends keep
+  the original CStringArray calls' order: ListFilesPlain empties its out parameter, modfolders::ListFiles and
+  GetList append to it, so with Rebirth's ResOverride a reused scratch vector grows over the archives as game.exe's
+  array did). `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
+  name) hashes its bytes as the CString did, up to the first zero byte.
+- A reader of the original's `CString::ReadString` (CStdioFile): 128-byte chunks through a local buffer, fgets given 129
+  as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
+  nothing, even after a full chunk (`lib::TextFile`).
+- Rules from real bugs:
+  - A `const char*` given to a std::string parameter builds the string from it: CString took a null pointer as ""
+    where std::string's constructor does not. `GameFlow::SetNetworkZone(nullptr)` crashed net_pair_leave (it stores ""
+    for null now); the credits' script tokenizer gave null past a line's last word (`WordOrEmpty`);
+    `CObject3DClientSpecific::SetSkins(first, nullptr)` stores "" for a null name. A crash there is the first place
+    to look.
+  - A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
+    error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
+    member: the factory's allocation sizes are `sizeof(T)` (heap corruption C0000374 once CUnit and CMapObject grew),
+    structs that pad up to an offset (`unused_000[0xE8]`) over another class are the same hazard (`CameraSettings`
+    read the options' camera block through a `reinterpret_cast` and the camera distance was 0 once GameOptions grew),
+    and so are element counts taken from a byte difference (the hero screen counted its voices as
+    `(end - begin bytes) >> 3`): grep `reinterpret_cast<...*>(` of the object's pointer, `>> 3`, `/ 0x..` and
+    `reinterpret_cast<char*>(...end())` near the class's containers. A class held by value grows with its member (CParty
+    sits in CPlayer, ClassTemplate, PartyRecord, ClientSession, TradeRecord and MpHeroRecord through
+    `lib::InPlace<CParty>`): grep the embedders too.
+  - Casts hide retypes: a `std::string*` compiles through a cast or a `void*` parameter and is then read as another
+    string layout (`ComposeSkin`'s `void*` target crashed in every scenario with a hero); a function returning a
+    `const T&` of a retyped member can return a reference to a temporary (`RecordMob` / `RecordMap` handed
+    LoadZoneScripts a dead path).
+  - A rewrite that turns one statement into two (`return std::construct_at(out, a);` -> `*out = a; return out;`)
+    braces them where the statement was an if's body: unbraced, the return ran always (BriefingSpeakerInto, 8 MP
+    goldens).
+  - A pointer into a CString that another CString shares (refcounted buffers) outlived the local copy; a std::string's
+    does not (`CFigureStrip::Draw`'s `name`).
+  - The harness digest reads our std::string members through `Text(const std::string&)` in
+    tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
   (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
 
 ## Containers: STLport vector and list to std (C14b)
 
-- `stlp::vector<T>` and `stlp::list<T>` with a std-equivalent element policy (`PlainElement`, `ObjectElement` of a
-  string or CString, `Element<T>`) are `std::vector<T>` / `std::list<T>`. A one-off script did the retype and the
-  call shapes the compiler reports (the ticket's scratch folder, `retype_containers.py`, not committed); the hand
-  finished the rest. Kept as stlp: the record vectors and lists with their own element policy (record_vectors.h,
-  record_lists, the `*Element` structs: records without real special members), counted or held elements
-  (`CEngineObject*`, `CMapObject*` with HeldObject, `CSpell*`, RefPtr), lists held as a raw sentinel pointer
-  (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables / maps (their bucket vector is
-  stlp::vector). C14n retyped most of these (next section).
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
   construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
-  `Construct()` on a raw block, a record in an stlp container) is built and destroyed by hand with
-  `std::construct_at` / `std::destroy_at`. Destroying a std::list twice frees its sentinel twice; an element loop
-  before a destroy_at of the vector destroys the elements twice (two such were in the script's output: the hero
-  screen's voices and the exchange screen's names).
-- constinit vector globals with game-order exit functions (item_stock's scratch vectors, the frame's draw lists,
-  the quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeStorage(v)`
-  (lib/containers.h: a swap with an empty one), so the C++ destructor at our CRT's exit finds nothing to free. A
-  std::list is not constinit (its
-  constructor allocates the sentinel): the global lists are `lib::StaticObject<std::list<T>>` (static_lists.cpp)
-  with Construct / Destroy. named_data's TYPES has `std::vector` ('III', zero is empty); STATIC_OBJECT_BYTES keeps
-  game.exe's 4-byte list ranges for the std::list StaticObjects (ours are 8 bytes, zero storage).
-- What the inlined STLport bodies did is the std member: reserve / push_back / resize / erase(begin, end) / the
-  list's clear and destructor walks. `std::next(end())` is no way to the first node (`head->next` came out of the
-  script as that; fixed to begin()). lib::IntroSort takes pointers: vectors pass `data()`.
-  The hash_map's operator[] builds its value in place (`new (&n->value) Value()`), so a value holding a std::vector
-  (RenderPresetRecord) is constructed, not assigned over raw memory. StringListPair (the item stock's recipe map) is
-  a std::list.
-- Layout: std::vector is 12 bytes like STLport's; std::list is 8 (STLport's 4), so offsets after a retyped list move
-  (the stlp batch's precedent: such layout asserts go). Archive formats are element-wise (ChunkArchive's string
-  vectors, InlineStrings), so their bytes do not change.
+  `Construct()` on a raw block) is built and destroyed by hand with `std::construct_at` / `std::destroy_at`.
+  Destroying a std::list twice frees its sentinel twice; an element loop before a destroy_at of the vector destroys the
+  elements twice. The item stock looks raw (Construct / Destruct) but is a member of ClassTemplate: its maps are the
+  compiler's (a construct_at there built and freed them twice, a heap corruption at start-up).
+- constinit vector globals with game-order exit functions (item_stock's scratch vectors, the frame's draw lists, the
+  quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeStorage(v)` (a swap with an empty
+  one), so the C++ destructor at our CRT's exit finds nothing to free. A std::list is not constinit (its constructor
+  allocates the sentinel): the global lists are `lib::StaticObject<std::list<T>>` (static_lists.cpp) with Construct /
+  Destroy. named_data's TYPES has `std::vector` ('III', zero is empty); STATIC_OBJECT_BYTES keeps game.exe's list
+  ranges for the std::list StaticObjects (ours are 8 bytes, zero storage; a vector 0x14, a list 0x1C of game.exe's
+  bytes). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty bucket vector).
+- What the inlined STLport bodies did is the std member: reserve / push_back / resize / erase(begin, end) / the list's
+  clear and destructor walks. `std::next(end())` is no way to the first node (use begin()). lib::IntroSort takes
+  pointers: vectors pass `data()`. Value-initialised elements (`emplace_back()`, `resize`) zero what the original left
+  as stack bytes (save entries, connect list rows, trade rows, bindings): the fields are written before they are read.
+  `resize()` value-initialises slots where the original kept stale ones: a site that reads a slot before writing it
+  differs.
+- Walks that erase the entry they stand on step first (`next = std::next(node)`; CPlayer::ReleaseTamedUnits: the game's
+  walk read the freed node); remove(value) is an explicit walk that erases as it goes (the original destroyed each
+  element on the way, std::list::remove defers that). "No node" is a value-initialised iterator (`{}`).
+- Elements that move: an element holding a std::string or counted pointer has real special members (a move for
+  DeltaField and CMemoryStream); an element whose destructor needs a complete type its header only declares
+  (EffectParticle's CParticleSource) declares its move and destructor and defaults them in a .cpp that has the type.
 
 ## Containers: STLport hash_map, map and set to std (C14c)
 
-- `stlp::map` / `multimap` users are `std::map` / `std::multimap` (sorted, so the walks keep their order): the link
-  meshes' headers and ranges, the mesh cache (a multimap; ClearCache releases from the back as the tree did), the console
+- `std::map` / `std::multimap` (sorted, so the walks keep their order) where the original had a tree: the link meshes'
+  headers and ranges, the mesh cache (a multimap; ClearCache releases from the back as the tree did), the console
   commands, help topics and debug panel (`str::MbsLess`: _mbscmp order), the person texts, the camp's arrivals, the item
-  object caches. library_trees.h / .cpp went with their policies.
+  object caches.
 - A hash map whose walk decides something (which object goes first, what is saved or listed in which order, which
   entry a loop stops at) is `lib::HashMap<K, V[, lib::TextHash]>` (src/lib/hash_map.h): STLport's order, the prime
   bucket counts (100 asks for 193), a new key at the head of its chain, resize before each insert with the chains
-  moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order.
-  tests/vectors/replay_hash_map.cpp checks those cases. lib::HashMap holds: the world's id maps and line lists, the
-  player's objects / timed objects / units, the base manager's objects and spares, the archive's loaded objects, the
-  held particles, the fog cells, the .mob reader's records, the deferred sounds, the spell sequences and their
-  containers, the terrain lights, the named floats (party and player variables: saved, listed and walked in it), the
-  item stock's recipes (the walk feeds its random rolls), the unit prototypes by name (EI_Plugin's fallback reads
-  bucket heads) and the acks' speeches by kind (the acks dump lists them).
+  moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order. A
+  std::string key hashes `h = 5 * h + c` over signed chars up to its zero byte. tests/vectors/replay_hash_map.cpp
+  checks those cases. lib::HashMap holds: the world's id maps and line lists, the player's objects / timed objects /
+  units, the base manager's objects and spares, the archive's loaded objects, the held particles, the fog cells, the
+  .mob reader's records, the deferred sounds, the spell sequences and their containers, the terrain lights, the named
+  floats (party and player variables: saved, listed and walked in it), the item stock's recipes (the walk feeds its
+  random rolls), the unit prototypes by name (EI_Plugin's fallback reads bucket heads) and the acks' speeches by kind
+  (the acks dump lists them), the party manager's parties (`HashMap<int, CParty>`, saved chunk by chunk), UnitSet's
+  tables (Write's walk is the zone message's bytes).
 - The rest (looked up only, or walked to free or log) are `std::unordered_map` / `std::unordered_set`: the record
   tables' name and code indexes, the quests, the class and message registries, the saved numbers, the positions and
   spare counts, the bridge cells, the material colours, the pixel formats, the loaded files, the figure models and
-  sets, the render presets, the wave cache, the pending dynamic objects, and the two int sets.
-- `stlp::NamedSlot(map, key)` (operator[] with a null record for a new key) is `map[key]`; `find_or_insert({k, v})` is
-  `map[k]` (the table grows first in both). Where the original read the count after the insert (the saved numbers), the
-  slot is taken first, then the count read.
-- Lifetimes as in C14b: a map member of a class with a real constructor and destructor is the compiler's (the
-  Construct(100) / InitBuckets / Destroy calls went); construct_at / destroy_at only in raw storage (the databases'
-  tables, the ack records, FigureModel, the StaticObject registries and sets). The item stock looks raw (Construct /
-  Destruct) but is a member of ClassTemplate: its maps are the compiler's (a construct_at there built and freed them
-  twice, a heap corruption at start-up). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty
-  bucket vector).
-- Walks that erase the entry they stand on step first (CPlayer::ReleaseTamedUnits; the game's walk read the freed
-  node); the render helper's destructor collects the presets before releasing them.
-- The hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp), HashString
-  and LowerBoundDwords went; C14q did the rest (next section but one). The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
-  (begin / end, `->first` / `->second`) so harness_digest_read.inc reads both sides with one loop.
+  sets, the render presets, the wave cache, the pending dynamic objects, the unit shapes by standing height (the
+  heights are tenths above 0.2, never NaN, so float equality is the game's), and the two int sets.
+- `lib::HashMultimap` (hash_map.h) is STLport's hash_multimap: insert grows the table for one more and links the value
+  right after the first entry with its key (else at its bucket's head); equal_range ends at the entry after the equal
+  ones in walk order. UnitSet's figured groups are `HashMap<prototype, HashMultimap<scale key, FiguredUnitRecord>>`, the
+  dressed records `HashMultimap<prototype, DressedUnitRecord>`; Add reaches the group twice (`figured[prototype]` before
+  the search and before the insert), as the game's find_or_insert did: each grows the groups for one more entry, and the
+  bucket count is the walk order. A new party goes through `PartyAt` (party_records.cpp): a new party, a copy for the
+  pair, a copy of that in the map, as the game's operator[] did.
+- Where the original read the count after the insert (the saved numbers), the slot is taken first, then the count read.
+  A hash_map's operator[] builds its value in place, so a value holding a std::vector (RenderPresetRecord) is
+  constructed, not assigned over raw memory. The render helper's destructor collects the presets before releasing them.
 
 ## Containers: the kept vectors and lists (C14n)
 
-- What C14b kept for "the original's element policy" is std now: the records got real special members or none
-  (the compiler's), and the policies (record_vectors.h, record_members.h, record_lifetime.h,
-  library_containers.h, lib/stlp_vector_refs.h, the record lists' print and title policies) are gone. Since S21
-  the layout only matters for the tests' game.exe views (tests/vectors' `OriginalVector` in record_stats.cpp).
+- Records have real special members or none (the compiler's); the layout only matters for the tests' game.exe views.
 - Counted elements are RAII types: `CountedPtr<T>` (CRefCounted's refs_, core_refcount.h), `CountedRefPtr` /
-  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the
-  plain release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands
-  the reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a
-  clone, as STLport's fill insert made it (the file message's chunks).
-- The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers
-  share `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
+  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the plain
+  release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands the
+  reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a clone, as
+  STLport's fill insert made it (the file message's chunks).
+- The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers share
+  `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
 - A copy with side effects keeps the original's copies: a saved hero's (MpHeroRecord) copy loads its party again,
-  drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is
-  added (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a
-  blank's copy. Without it the multiplayer goldens differ (the hero's #unit and the random state).
-- Value-initialised elements (`emplace_back()`, `resize`) zero what the original left as stack bytes (save
-  entries, connect list rows, trade rows, bindings); the fields are written before they are read.
-- Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
-  built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
-  the item stock's spells; C14s did the rest but the net lists (section after next), C14t the net lists (the
-  section after that).
+  drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is added
+  (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a blank's copy.
+  Without it the multiplayer goldens differ (the hero's #unit and the random state). A CParty copy runs its save and
+  load (CParty::Create), so the copies are kept; `TradeRecord` holds its three CParty by value with a copy that copies
+  them in order, and RecordTrade adds a record as insert(end()) did: a blank, copied into the list, the blank destroyed
+  before the parties are assigned.
 
 ## Containers: the last STLport hash tables and trees (C14q)
 
-- No stlp hash table, tree or vector is left: stlp_hash.h, stlp_tree.h / .cpp, stlp_tree_abi.h, stlp_tree_mbs.h,
-  stlp_vector.h, game_hashes.h / .cpp and net_connection_trees.h are gone (stlp.h keeps the allocator, the lists and
-  the deque).
-- net::Connection's five trees are `std::map` members (the compiler's lifetimes; Reset destroys them by hand before
-  the placement rebuild, as the rest): the entries by sent id, by object and per priority (`std::array` of 11) hold
-  `EntryRef` (`CountedPtr<ReplicaEntry>`), the records `Record` (a `SharedRefPtr` and the version: copied with
-  Share, released as the owner), the attached ids plain values. Pointer keys compare as the game's unsigned
-  compares, the sent ids signed. Since C14s every container is a member and the destructor is the compiler's: the
-  original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
-  lists, the freed-id batches).
-  operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old, as the inlined Assign did.
-- UnitSet's tables are lib::HashMap (Write's walk is the zone message's bytes): the figured groups
-  `HashMap<prototype, HashMultimap<scale key, FiguredUnitRecord>>`, the dressed records `HashMultimap<prototype,
-  DressedUnitRecord>`. `lib::HashMultimap` (hash_map.h) is STLport's hash_multimap: insert grows the table for one
-  more and links the value right after the first entry with its key (else at its bucket's head); equal_range ends at
-  the entry after the equal ones in walk order. Add reaches the group twice (`figured[prototype]` before the search
-  and before the insert), as the game's find_or_insert did: each grows the groups for one more entry, and the bucket
-  count is the walk order.
-- The party manager's parties are `lib::HashMap<int, CParty>` (the save's chunks walk it). A new key goes through
-  `PartyAt` (party_records.cpp): a new party, a copy for the pair, a copy of that in the map, as the game's
-  operator[] did; a CParty copy runs its save and load (CParty::Create), so the copies are kept (see the saved
-  heroes above). The manager is raw storage (StaticObject): construct_at / destroy_at.
-- The unit shapes are `std::unordered_map<float, SharedRefPtr>` by standing height (looked up only;
-  `UnitShapeCache::Resolve` is the find-or-create both callers inline). The handle's key (the height's bits, the
-  game's hash) went: the heights are tenths above 0.2, never NaN, so float equality is the game's (its Get treated
-  unordered heights as equal).
+- net::Connection's five trees are `std::map` members (Reset destroys them by hand before the placement rebuild): the
+  entries by sent id, by object and per priority (`std::array` of 11) hold `EntryRef` (`CountedPtr<ReplicaEntry>`), the
+  records `Record` (a `SharedRefPtr` and the version: copied with Share, released as the owner), the attached ids plain
+  values. Pointer keys compare as the game's unsigned compares, the sent ids signed. The destructor is the compiler's:
+  the original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
+  lists, the freed-id batches). operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old,
+  as the inlined Assign did.
+- `UnitShapeCache::Resolve` is the find-or-create both callers inline.
 
 ## Containers: the record and held lists (C14s)
 
 - The sector grids' cells, the client's heroes_ and the frame's deferred units are `SectorList`
-  (`std::list<HeldPtr<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it.
-  `RemoveHeld` (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value)
-  did. A grid is `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the
-  client's destructor frees both grids where the original did (the second grid still holds objects then). The
-  client's filed objects (`MapObjectList`, `std::list<CMapObject*>`) keep their reference by hand: the original's
-  destructor freed that list without releasing (Destroy has released and emptied it by then).
-- `TradeRecord` (net_classes.h) holds its three CParty by value with a copy that copies them in order (a CParty copy
-  saves and loads the party: object ids). RecordTrade adds a record as insert(end()) did: a blank, copied into the
-  list, the blank destroyed before the parties are assigned. Erases are explicit loops (each record destroyed in the
-  walk).
+  (`std::list<HeldPtr<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
+  (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
+  `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
+  frees both grids where the original did (the second grid still holds objects then). The client's filed objects
+  (`MapObjectList`, `std::list<CMapObject*>`) keep their reference by hand: the original's destructor freed that list
+  without releasing (Destroy has released and emptied it by then).
 - The connection's lists: `SentItem` holds an `EntryRef`, `SentPacket` its items as `std::list<SentItem>`; the
-  history, chunk and freed-id lists are members (see C14q above for the teardown). Splices are std::list::splice.
+  history, chunk and freed-id lists are members. Splices are std::list::splice.
 - `LinkArchive` (model.h; the loader's `std::list<LinkArchive>`), `TextSources::archives` (item_db_text.h) and the
   loopback link's `StreamQueue` (`std::list<CMemoryStream>`): Send appends an empty stream and copies into it. The
   link's copy constructor keeps the game's queue copy (a new stream of the source's size whose Read takes the
   source's buffer: the fresh bytes are read into the source).
-- record_lists.h and library_net_lists.h / .cpp are gone; the clients' find by address is SessionBase::FindClient's
-  loop. The harness's game.exe list view (exe_objects.h `StlpList`) has begin / end (a list without a sentinel is
-  empty), so harness_digest_read.inc walks the client's objects with one range-for on both sides.
+- The clients' find by address is SessionBase::FindClient's loop.
 
 ## MFC CArray and CList to std (C14m, C14u)
 
-- Batch 1: every `mfc::CArray` / `mfc::CList` / `mfc::CTypedPtrList` with plain elements (the default PlainElements:
-  zero-filled, nothing destroyed; their elements are trivially copyable, so std's copy and value-init are the same
-  bytes) is `std::vector` / `std::list`. Scripts in the ticket's scratch folder did it (not committed): a retype, a
-  diagnostics-driven fixer, an idiom pass (AddTail + NewNode linking -> emplace / push_back, the inlined unlink +
-  FreeNode -> erase, Find -> `lib::Contains` / `std::ranges::find`, `head->data` -> front(), PlexFreeDataChain after
-  field resets -> clear()), then hand fixes.
-- Batch 2 (C14u): containers with an element policy. The element type gets its own special members first (default
-  member initializers for what the policy's Init set: Behaviour, ZoneExit, MapRecord, EffectParticle, SkinLayer's
-  0 / -1 / -1; a move for DeltaField and CMemoryStream; HeldPtr for counted pointers: SharedObject::objects,
-  EffectParticle::source, the client's exit markers), then the retype (scratch retype_u.py: by element, the policy
-  argument dropped), C14m's fixer and hand fixes (RemoveAt + memmove -> erase, SetSize(n + 1) + assign ->
-  push_back, Assign / CopyAt / CopyFrom -> the compiler's copy). Done: the AI's looks, patrol points, heard calls,
-  reports, alarm records and attack options, the path cell and block cost lists, the map spec's traps / patrols /
-  behaviours, the map database (allods, maps, zone exits), the shared objects, unit placements, the wave cache
-  (std::list, the name map holds iterators), music themes, delta fields, step speeds, the spiral's radius tree, the
-  client companion's effect particles and sounds, map effects, skin layers, the fog manager's list.
-- Batch 4 (C14za): the terrain sector's vertex records (SectorVertex: its move takes the light list, its destructor
-  returns the list to the pool), tile flags and tile lists, the terrain's water levels, the sector map's sectors (Sector
-  movable), the global map's zones, links and quests, the party's records (PartyUnitRecord: member initializers for its
-  defaults, the destructor releases its items, the move assignment releases first, so erase drops a record as the
-  original's Destruct + relocate did) and AnimationSteps (combat.md). Scripts: scratch c14za (g1.py, g2_party.py,
-  g3_steps.py, g5_includes.py; checks.py runs the guards and the memset check together).
-- Batch 5 (C14zb): the last MFC collections. The rain / snow layer's outcodes, frames and indices (CByteArray /
-  CWordArray) and the unit's carried items (an inlined CArray<CItem*> with its own vtable field) are std::vector.
-  Gone: mfc.h's CArray / CList and element policies (PlainElements, MoveElements), lib/mfc_array.h, mfc_list.h /
-  .cpp, mfc_slots.h (CompiledCollection, ScalarDeleting, ListTemporary, the Int / Float / Carried array tags),
-  mfc_coll.h / .cpp (CWordArray / CDWordArray / CByteArray, their runtime classes and Link initialisers: gen_static_init.py's
-  UNUSED_INITIALISERS), game/record_arrays.h. CPlex's CreatePlex / FreePlexChain moved to mfc.cpp. Scripts: scratch
-  c14zb (sub.py with g1_weather.spec / g1b.spec, g2_delete.py, g3_config.py, g4_vtables.py).
-- Batch 3 (C14z): the script (script.h). Every record has real special members: object references are
+- Every MFC collection of the game is a std container: plain-element ones copy as the original's bytes did (the
+  default policy zero-filled and destroyed nothing); elements with a policy have default member initializers for what
+  the policy's Init set (Behaviour, ZoneExit, MapRecord, EffectParticle, SkinLayer's 0 / -1 / -1), a move for DeltaField
+  and CMemoryStream, HeldPtr for counted pointers (SharedObject::objects, EffectParticle::source, the client's exit
+  markers) and PartyUnitRecord's destructor releases its items (its move assignment releases first, so erase drops a
+  record as the original's Destruct + relocate did).
+- The script (script.h): every record has real special members. Object references are
   `ScriptObjectRef{HeldPtr<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
-  ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only
-  `ScriptEffect<T>` whose reset is ScriptDropEffect (the timed object removed, the reference released); a nested
-  call owns its command (`std::unique_ptr<SSCCmd>`, deep-copied). CScript has a constructor (256 point light slots,
-  one temporary group and one temporary reference, then ScriptReset) and a destructor (ScriptReset, then the
-  members); the world builds its two scripts with construct_at / destroy_at. Tokens are a `std::list<ScriptToken>`
-  and a parse position (ScriptPos) its const_iterator; "Unexpected end of file" reports the list's back().line.
-  Behaviour notes: references are released by the containers' destructors, so the order of Release calls within one
-  clear can differ from the original's (no count reaches 0 earlier than before); a run left unfinished
-  (RunCommands) copies the instance's values only, as the game does.
-- The script's vector recorders read game.exe's script through script_original.h's views (exe::Vector / List); the
-  load records hold the variables' and arrays' sizes, and the replay (replay_script_load.cpp) builds a real CScript:
-  as many empty blocks as the record's counts (new blocks are hashed after them) and a token list whose first token
-  carries the tail's line.
-- Gone with it: game_arrays.h / .cpp, game_lists.h / .cpp, game_slots.h, record_arrays.cpp and the script half of
-  record_arrays.h, script_array.h, script_arrays.cpp, script_copy.cpp, script_destroy.cpp, script_parse_arrays.cpp,
-  script_vars_append.cpp, lib/mfc_array.cpp (CArray<CString>'s Serialize), 30 CompiledCollection tags (the script's,
-  mfc_slots.h's ScriptArea / ScriptIfThen / Arg* / Bindings / StringArray ones), the Construct / Destruct / Assign /
-  CopyAt / CopyFrom helpers of every script record, addon's ArgumentsSetSize. config/vtables.csv keeps the 40 tables
-  as stored only by game.exe.
-- A record that hands its references on without releasing them (the shared objects' items given at loot: the
-  original frees the node and leaks the references) uses `HeldPtr::release()`.
-- An element whose destructor needs a complete type its header only declares (EffectParticle's CParticleSource)
-  declares its move and destructor and defaults them in a .cpp that has the type.
-- The vector recorders read game.exe's objects through their own views where ours became std: record_path.cpp's
-  OriginalPath (MFC cell lists, the excluded blocks an MFC array) and OriginalRadiusTree over exe_objects.h's
-  Array / Vector / List; path_vectors.h's PutCells / PutPath are templates over both sides.
-- Counted elements in a retyped plain list (the world's counted items, the trap's victims, the armour spells' items,
-  the AI's owned modes): the release (or DestroyOwned) is explicit before erase / clear; the original's
-  DestructElements did nothing, so the counts are what they were. `ReleaseAndClear(c)` (engine_object.h) releases and
-  clears a list of engine objects.
-- Writes that compile on any pointer and corrupt a std container: `ei::SetVtable`, memset / memcpy over a struct
-  holding one, a reinterpret_cast to an MFC list type (world_party's counted AddTail was one; C14m-C14za also had
-  mfc::impl::ConstructHeader / DestructHeader / ConstructListHeader, gone in C14zb). C14m found them with temporary `= delete` overloads for std::vector /
+  ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only `ScriptEffect<T>`
+  whose reset is ScriptDropEffect (the timed object removed, the reference released); a nested call owns its command
+  (`std::unique_ptr<SSCCmd>`, deep-copied). CScript has a constructor (256 point light slots, one temporary group and
+  one temporary reference, then ScriptReset) and a destructor (ScriptReset, then the members); the world builds its two
+  scripts with construct_at / destroy_at. Tokens are a `std::list<ScriptToken>` and a parse position (ScriptPos) its
+  const_iterator; "Unexpected end of file" reports the list's back().line. References are released by the containers'
+  destructors, so the order of Release calls within one clear can differ from the original's (no count reaches 0
+  earlier than before); a run left unfinished (RunCommands) copies the instance's values only, as the game does. The
+  script's vector recorders read game.exe's script through script_original.h's views (exe::Vector / List); the replay
+  (replay_script_load.cpp) builds a real CScript: as many empty blocks as the record's counts (new blocks are hashed
+  after them) and a token list whose first token carries the tail's line.
+- A record that hands its references on without releasing them (the shared objects' items given at loot: the original
+  frees the node and leaks the references) uses `HeldPtr::release()`. Counted elements in a plain list (the world's
+  counted items, the trap's victims, the armour spells' items, the AI's owned modes): the release (or DestroyOwned) is
+  explicit before erase / clear; the original's DestructElements did nothing, so the counts are what they were.
+  `ReleaseAndClear(c)` (engine_object.h) releases and clears a list of engine objects.
+- Writes that compile on any pointer and corrupt a std container: memset / memcpy over a struct holding one, a
+  reinterpret_cast of a container to another layout, a function taking a container as `void*` (CSceneRenderer::
+  DrawSprites' point and sprite arrays: every caller's container must be retyped together; the lightning glow's records
+  stayed another array type and crashed it). Find them with temporary `= delete` overloads for std::vector /
   std::list and a forced-include check that static_asserts memset / memcpy / memmove destinations are trivially
-  copyable; repeat both on the next retype. Neither sees an explicit `(void*)` / `static_cast<void*>` argument (the
-  particles' sprite array went through ConstructHeader that way), so grep those too. A function taking a container
-  as `void*` (CSceneRenderer::DrawSprites' point and sprite arrays) needs every caller's container retyped together:
-  the lightning glow's records stayed an MFC array and crashed it.
-- "No node" is a value-initialised iterator (`{}`): ObjectListIterator's position, the terrain's sector grid entries
-  (`SectorCache::iterator`, `new ...[n]()` / `delete[]`), PendingMap values.
-- Lifetimes as C14b: members of real classes are the compiler's; raw-storage owners (`Construct()` / `DestructBody()`,
-  SceneNode, SectorData, LocalPath) use construct_at / destroy_at; list globals are `lib::StaticObject<std::list<T>>`
-  (the AI event pool, the AI's candidates). named_data's STATIC_OBJECT_BYTES has the std keys (vector 0x14, list 0x1C
-  of game.exe's bytes).
-- The harness reads game.exe's MFC layouts through tests/verify/exe_objects.h's `Vector<T>` / `List<T>` views (data(),
-  size(), begin() / end()), so harness_digest_read.inc and harness_hud_read.inc read both sides with the same std calls.
-- Gone with it: the vtable helpers of the retyped containers, 65 CompiledCollection tags (mfc_slots.h, game_slots.h,
-  game_arrays.h) and their Through / element helpers, gamelists' Refs / OwnedRefs / Holders / EngineObjects,
-  CountedEngineList.
+  copyable; neither sees an explicit `(void*)` / `static_cast<void*>` argument, so grep those too.
+- Gone from the code: the collections' vtable tags and their ABI helpers; config/vtables.csv keeps the tables as stored
+  only by game.exe.
 
 ## Open items
 
-- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) are ported (src/lib, src/game's game_* files);
-  C14a-d replace them with standard types.
 - Static initialisers run before the hooks install (004632A0 the lever table constructor, 0045E820): a port of one is
   compared at WinMain's entry instead (start-up checks; 00444740, 00458870 and others, app.md "A-E2"). `WinMain`
   (00456440) itself can be hooked and is ported (app.md).
@@ -802,8 +456,8 @@ to which template:
   string; `Next` returns the word's text and moves past the separator, the last word runs to the end of the
   text, and a position at the end gives null. `RemoveCarriageReturns` (004461E0, CString::Remove of 0x0D).
   `FindListedName` (00447F50): the entry of a CStringArray that equals a name ignoring case (`_mbsicmp`), else
-  the name; the name comes by value and is destroyed by the callee, which a C++ by-value `mfc::CString`
-  parameter reproduces. `mfc::CString` gained `Mid(first, count)` (006FD9D7) and `Remove(ch)` (006FD963).
+  the name; the name comes by value and is destroyed by the callee (ours: a `std::string` by value; `str::Mid(first,
+  count)` is 006FD9D7, `str::Remove(ch)` 006FD963).
   Checks: `Next` and `FindListedName` side by side by content; `Start` against the original `Next` on a rewound
   copy (its own original would enter `Next`'s wrapper); `RemoveCarriageReturns` ours only. The credits screen
   (0062B7D0) is the only user of the first three and the scene registry of the fourth; no scenario reaches them.
@@ -829,27 +483,22 @@ to which template:
 
 ## Containers: the net lists and the last node-pool users (C14t)
 
-- No STLport container is left and neither is its node allocator: stlp.h, stlp.cpp, stlp_alloc.h, stlp_list.h and
-  stlp_list_refs.h are gone, with libcrt::NodeAllocate / NodeDeallocate / NodeRefill / NodeChunkAlloc and their data
-  cells. The last, stlp_algo.h's sort, is lib/intro_sort.h since C14zc (standalone.md, "STLport").
 - The sessions' message lists are `std::list<SharedRefTo<T>>` (copied with Share, released as the owner) and
   `std::list<CountedRefTo<T>>` (a plain reference), core_refcount.h's SharedRefPtr / CountedRefPtr read typed with
   `Get()`. An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
-  Walks that erase step first (`next = std::next(node)`); remove(value) is an explicit walk that erases as it goes
-  (the original destroyed each element on the way, std::list::remove defers that).
 - The timed lists are `std::list<TimedEntry<SharedRefPtr / CountedRefPtr>>` (net_classes.h; the key's bits, then the
   reference). The queueing code keeps the original's temporaries: a share of a share of a copy-on-share object is a
   clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
-  clone), as before. `TimedEntry(bits, Ref)` takes the reference by value (one share, moved in).
+  clone). `TimedEntry(bits, Ref)` takes the reference by value (one share, moved in).
 - The connections are `ClientList` (`std::list<SharedRefTo<Connection>>`): FindClient returns an iterator (end() for
-  none; RemoveClient ignores end()), ClientAt went. The driver session's drivers_ / holders_ are std::list members;
-  OnShutdown clears the holders, then the drivers, as the destructor (reverse member order).
+  none; RemoveClient ignores end()). The driver session's drivers_ / holders_ are std::list members; OnShutdown clears
+  the holders, then the drivers, as the destructor (reverse member order).
 - The sessions' destructors clear the lists in their bodies where the original released them, between the counted
   pointers' releases (the compiler's destructor then frees empty lists); ClientBase's list is the compiler's.
 - The flow's changed variables (UpdateFromServer) are sorted with std::stable_sort by stamp: the server gives every
-  set its own serial (g_variableSerial), so no two variables share one and the STLport introsort's order is the same;
-  world_stamp_sort.cpp and EntryIdLess went. OnVariableChanged takes the record.
+  set its own serial (g_variableSerial), so no two variables share one and the STLport introsort's order is the same.
 - Also std: the briefing screen's movers_ and shown_ (std::list members, built with push_front), the container's
-  extra input sides (`std::vector<UiInputSide*> inputs_`), the world's local id lists (std::list<unsigned>).
+  extra input sides (`std::vector<UiInputSide*> inputs_`), the world's local id lists (std::list<unsigned>). The
+  original's node allocator has no port (standalone.md, "STLport"); `lib::IntroSort` (lib/intro_sort.h) is the sort.
 - The harness's netstate reader walks both sides with begin / end (game.exe's view of the server's connections is a
   StlpList<RefPtr>, exe_objects.h).
