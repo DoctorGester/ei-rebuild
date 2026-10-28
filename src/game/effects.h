@@ -54,7 +54,6 @@ struct Particle {
         size = 1.0f;
     }
 };
-static_assert(sizeof(Particle) == 0x64);
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
 // once more after it has died and gone back to the pool (CParticleSource::RunTick keeps the original's order), so

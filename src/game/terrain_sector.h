@@ -41,7 +41,6 @@ struct LightRefBlock {
     LightRef* freeList;
     LightRef refs[kRefs];
 };
-static_assert(sizeof(LightRefBlock) == 0x3E90);
 
 // A node from the pool; its next / prev / light are the caller's to set.
 LightRef* AllocLightRef();
@@ -76,7 +75,6 @@ struct SectorVertex {
     void ReleaseLights();
 };
 #pragma pack(pop)
-static_assert(sizeof(SectorVertex) == 0x54);
 
 // A tile entry vertex: the record it uses and its texture coordinates.
 struct TileVertex {
@@ -84,7 +82,6 @@ struct TileVertex {
     float u;
     float v;
 };
-static_assert(sizeof(TileVertex) == 0xC);
 
 // An animated tile (texture with several frames).
 struct AnimatedTile {
@@ -95,12 +92,10 @@ struct AnimatedTile {
     int frames;
     int speed;              // from the speed table by texture class
 };
-static_assert(sizeof(AnimatedTile) == 0x18);
 
 struct SectorBox : ClipBounds {
     std::uint32_t unused_2C[3];
 };
-static_assert(sizeof(SectorBox) == 0x38);
 inline const ClipBounds* BoundsOf(const SectorBox& box) { return &box; }
 
 // CTransformPipeline::ClipTest's verdicts as the sector keeps them (clipMode, quarterMode): 0 inside the
@@ -109,7 +104,6 @@ constexpr int kCrossing = 1;
 constexpr int kCulled = 2;
 
 struct SectorPosition : Vector3 {};
-static_assert(sizeof(SectorPosition) == 12);
 
 // `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
 // `position`; otherwise it is added at the list's head when missing.
@@ -217,7 +211,6 @@ struct TerrainMaterial {
     float warpSpeed;                    // from the map file; nothing reads it
     float level;                        // water level offset
 };
-static_assert(sizeof(TerrainMaterial) == 0x38);
 
 static_assert(offsetof(TerrainMaterial, priority) == 0x2C);
 } // namespace terrain

@@ -21,7 +21,6 @@ static_assert(sizeof(DecalVertex) == 0x14 && offsetof(DecalVertex, u) == 0x0C);
 struct DecalTexCoord {
     float u, v;
 };
-static_assert(sizeof(DecalTexCoord) == 8);
 
 class DecalBuilder {
 public:

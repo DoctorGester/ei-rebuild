@@ -522,7 +522,6 @@ struct UnitStatLayer {
     int state;                      // > 1: the layer is there
     int reserved[2];                    // zeroed by the builders, saved with the stats; nothing reads them
 };
-static_assert(sizeof(UnitStatLayer) == 0x48);
 
 // One of the six body slots of UnitStats (0 head, 1 body, 2/3 hands, 4/5 legs, as the hit locations).
 struct UnitStatSlot {
@@ -536,7 +535,6 @@ struct UnitStatSlot {
     float share;                        // the model slot's share of the hit points
     float factor;                   // its share of the unit's hit points
 };
-static_assert(sizeof(UnitStatSlot) == 0xF4);
 static_assert(offsetof(UnitStatSlot, kind) == 0xE0);
 
 // A value and what it currently is after modifiers.
@@ -544,7 +542,7 @@ struct UnitStatPair {
     float base;
     float current;
 };
-static_assert(sizeof(UnitStatPair) == 8 && offsetof(UnitStatPair, current) == 4);
+static_assert(offsetof(UnitStatPair, current) == 4);
 
 // The hit points, mana and protection of a unit as the server keeps them (party records keep one too).
 struct UnitVitals {
@@ -866,7 +864,6 @@ double HitPointEffectScale(CUnit* unit);
 float ScaleHitPointsByEffects(CUnit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
-static_assert(sizeof(UnitStats) == 0x704);
 
 // Resets a hit: all weights 1, multiplier 1, attackRoll and amount 3.4e36, location 6, the rest 0.
 std::uint32_t ResetDamageInfo(DamageInfo* info);

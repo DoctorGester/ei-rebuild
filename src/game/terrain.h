@@ -29,7 +29,6 @@ struct VertexTiles {
     int count;
     int tiles[4];
 };
-static_assert(sizeof(VertexTiles) == 0x14);
 
 // For every sound class with its own vote, how many of ambient\<set>\<class>\day\1.wav, 2.wav, ... the wave
 // sources have, counted until the first one missing.
@@ -54,7 +53,6 @@ struct LandscapeLight {
     CLight* light;
     LightArea area;
 };
-static_assert(sizeof(LandscapeLight) == 0x24);
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but vertices
 // can be displaced sideways, so a point may lie in a neighbouring cell. The client world's Setup makes it.

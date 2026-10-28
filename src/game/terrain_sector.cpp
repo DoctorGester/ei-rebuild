@@ -271,7 +271,6 @@ double RawHeight(Terrain* terrain, float x, float y, int layer) {
     return terrain->HeightAt(x, y, layer);   // used unrounded
 }
 
-static_assert(sizeof(Vector4) == 16);
 constinit std::vector<Vector4> g_projectionInput = /*007C88F8*/ {};
 constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
 

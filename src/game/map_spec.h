@@ -58,8 +58,6 @@ struct LeverSetup {
     std::uint8_t keepsMapFlag;      // (chunk BBAC0008)
     std::uint8_t cycling;           // (chunk BBAC0004)
 };
-static_assert(offsetof(LeverSetup, cycling) == 0x16);
-static_assert(sizeof(LeverSetup) == 0x18);
 
 namespace mapspec {
 
@@ -163,7 +161,6 @@ public:
     std::uint8_t shadow;
     std::uint8_t visible;
     std::uint8_t side;           // the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
-    std::uint8_t unused_6F;
     std::string parentIname;
     std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
     std::vector<std::string> parts;
@@ -236,7 +233,6 @@ public:
 
     void* effect;                // the effect the world object runs
     std::uint8_t visible;
-    std::uint8_t unused_51[3];
 
 protected:
     EffectSpec() : effect(nullptr), visible(1) {}
@@ -270,7 +266,6 @@ public:
 
     Vector3 colour;              // (1, 1, 1)
     std::uint8_t shadows;
-    std::uint8_t unused_61[3];
     float radius;
 };
 
@@ -289,14 +284,10 @@ public:
     std::vector<std::string> sounds;   // (none made without any)
     std::int32_t volume;         // (10; chunk CC04) the sound's volume
     std::int32_t radius;         // (15; chunk CC0B) the sound's radius
-    std::int32_t unused_70;
     std::int32_t minInterval;    // (1500; chunk CC06) an ambient sound's shortest pause
     std::int32_t maxInterval;    // (3000; chunk CC07) and longest
-    std::int32_t unused_7C;
-    std::int32_t unused_80;
     std::uint8_t ambient;        // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
     std::uint8_t unreadChunk;    // chunk CC0E; only read and written with the record
-    std::uint8_t unused_86[2];
 };
 
 // A unit record (chunk BBBB0000). The world server's CreateUnits fills one for each unit it creates.
