@@ -24,8 +24,6 @@ static_assert(sizeof(TextSource) == 0x10);
 
 // The archive list (CTextManager::sources_).
 struct TextSources : stlp::list<TextSource> {
-    // *out = the first node.
-    void Begin(Node** out);
     // *out = the next node. Returns out.
     Node** Erase(Node** out, Node* pos);
     Node* CreateNode(const TextSource* value);
@@ -38,7 +36,6 @@ struct TextSources : stlp::list<TextSource> {
     BOOL Add(const char* path, BOOL writable);
     void Remove(const char* path);
     void Clear();
-    void DestructList();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindText (ours): the same, as text: with
     // EI_UTF8 its UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
@@ -124,7 +121,5 @@ using TextSourceNode = TextSources::Node;
 
 struct TextSourceIterator {
     CTextManager::SourceNode* node;
-    // *out = node; returns `out`, which some callers use (the sector lists' End).
-    CTextManager::SourceNode** CopyTo(CTextManager::SourceNode** out);
 };
 

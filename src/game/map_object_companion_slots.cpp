@@ -34,20 +34,9 @@ EI_REWRITTEN(0x00510760, CMapObjectCompanion::Destroy);
 
 int CMapObjectCompanion::UpdateCompanion() { return 0; }
 EI_REWRITTEN(0x005106E0, CMapObjectCompanion::UpdateCompanion);
-// EffectsChanged (the server's too) and the visibility virtual: nothing.
-void CMapObjectCompanion::IgnoreArgument(int) {}
-EI_REWRITTEN(0x005106D0, CMapObjectCompanion::IgnoreArgument);
-EI_REWRITTEN(0x00510700, CMapObjectCompanion::IgnoreArgument);
-// The unused virtual (the client's too) and the server's: nothing. One byte each (too short to hook).
-void __fastcall CompanionNothing(CMapObjectCompanion*) {}
-EI_REWRITTEN(0x005104B0, CompanionNothing);
-EI_REWRITTEN(0x00515810, CompanionNothing);
 // Query (all three classes): 0.
 int CMapObjectCompanion::Query(int, int) { return 0; }
 EI_REWRITTEN(0x005104C0, CMapObjectCompanion::Query);
-// Hit (the server's too): nothing.
-void CMapObjectCompanion::HitNothing(int, int) {}
-EI_REWRITTEN(0x005106F0, CMapObjectCompanion::HitNothing);
 
 // --- The client's and the server's ---------------------------------------------------------------------
 
@@ -71,18 +60,6 @@ int CMapObjectServer::GetClassId() { return kServerClassId; }
 EI_REWRITTEN(0x005156F0, CMapObjectServer::GetClassId);
 
 // --- The client companion's particle records and the network records ---------------------------------
-
-EffectParticle* EffectParticle::Assign(const EffectParticle* other) {
-    type = other->type;
-    power = other->power;
-    CParticleSource* old = source;
-    source = other->source;
-    if (source) ++source->refCount_;
-    if (old) old->Release();
-    present = other->present;
-    return this;
-}
-EI_REWRITTEN(0x00512490, EffectParticle::Assign);
 
 void EffectParticle::ReleaseSource() {
     if (source) source->Release();

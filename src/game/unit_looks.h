@@ -21,8 +21,6 @@ using UnitIdList = stlp::vector<std::uint32_t>;
 // [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown. The server's
 // unit set (world.h, UnitSet) holds the same records; its figured records start with this head.
 struct DressedUnitRecord {
-    // Body of a virtual (registered by member pointer).
-    DressedUnitRecord* CopyConstruct(const DressedUnitRecord* from);
     // Writes the prototype (2 bytes), each id list's count and dwords (the data written even when empty),
     // the byte and the dword through `stream`'s Write (also called on a FiguredUnitRecord's head).
     void Write(CStream* stream);
@@ -43,8 +41,6 @@ static_assert(sizeof(DressedUnitRecord) == 0x24);
 // dressed copy and Write take that head), the figure's morph coefficients and the texture names (none: from
 // the prototype).
 struct FiguredUnitRecord : DressedUnitRecord {
-    // Body of a virtual (registered by member pointer).
-    FiguredUnitRecord* CopyConstruct(const FiguredUnitRecord* from);
     float morphS;                   // the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;

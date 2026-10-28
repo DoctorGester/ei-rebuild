@@ -267,13 +267,6 @@ void CFigureAnimationState::UpdatePose() {
 }
 EI_REWRITTEN(0x0050D450, CFigureAnimationState::UpdatePose);
 
-void CFigureAnimationState::Stop() {
-    queue.RemoveAll();
-    Play(nullptr);
-    changed = 1;
-}
-EI_REWRITTEN(0x0050D5A0, CFigureAnimationState::Stop);
-
 void CFigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
     {

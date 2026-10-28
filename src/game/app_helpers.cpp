@@ -49,9 +49,6 @@ double __fastcall DiskFreeSpace(const char* path) {
     return x87::FromUnsigned(sectorsPerCluster) * x87::FromUnsigned(bytesPerSector) * x87::FromUnsigned(freeClusters);
 }
 
-// Whether QuitGame posts the quit message (cleared while a timed movie plays).
-void __fastcall SetQuitAllowed(std::uint8_t allowed) { g_quitAllowed = allowed; }
-
 bool __fastcall QuitGame(int exitCode) {
     if (!g_quitAllowed) return false;
     gameapi::PostQuitMessage(exitCode);
@@ -99,16 +96,10 @@ CWorld* CEngineObject::World() const {
     return context ? context->ThisWorld() : nullptr;
 }
 
-void CEngineObject::ReleaseAndDelete() {
-    if (--refCount_ == 0) delete this;
-}
-
 EI_REWRITTEN(0x00455A90, app::DiskFreeSpace);
-EI_REWRITTEN(0x00455F10, app::SetQuitAllowed);
 EI_REWRITTEN(0x00455F20, app::QuitGame);
 EI_REWRITTEN(0x00455E20, app::MovieMode);
 EI_REWRITTEN(0x00455BA0, app::ScrambleObjects);
 EI_REWRITTEN(0x00455B50, app::DelayedProtectionCheck);
 EI_REWRITTEN(0x00455E50, app::ConstructProtectionChecks);
 EI_REWRITTEN(0x00455950, CEngineObject::World);
-EI_REWRITTEN(0x00457720, CEngineObject::ReleaseAndDelete);

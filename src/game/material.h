@@ -40,9 +40,6 @@ static_assert(sizeof(MaterialEntry) == 0x10);
 // provisional. A real virtual class: the compiler makes its vtable.
 class CMaterial : public CEngineObject {
 public:
-    void SetDiffuse(const Vector3* value);
-    void SetAmbient(const Vector3* value);
-    void SetSpecular(const Vector3* value);
     // The colour of a figure part lit on the GPU (its colour arrays; the shader lights it): white,
     // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
     std::uint32_t GpuLitColour() const;

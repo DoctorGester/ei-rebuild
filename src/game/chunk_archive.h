@@ -149,7 +149,6 @@ public:
     void SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void* unused);
     void IntField(int id, int* value);
 
-    void SerializeSpeech(int id, SpeechRecord* speech);
     // As chunk `id`; the third argument (the archive again) is unused.
     void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
     void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
@@ -180,7 +179,6 @@ public:
 
     // The skill database's vectors, the same shape.
     void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
-    void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
     void SkillLevelChunk(int id, SkillLevelRecord* record);
     // The unit database's vectors, the same shape.
     void SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void* unused);

@@ -38,7 +38,6 @@ struct LevelArrayElements {
 // For every sound class with its own vote, how many of ambient\<set>\<class>\day\1.wav, 2.wav, ... the wave
 // sources have, counted until the first one missing.
 void CountAmbientVariants(const char* set);
-int AmbientVariants(int soundClass);
 }
 
 // The area a point light reaches: the sectors it covers, and the first / last vertex column and row inside the

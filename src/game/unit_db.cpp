@@ -330,29 +330,6 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
 }
 EI_REWRITTEN(0x005207D0, ChunkArchive::SerializeSkills);
 
-void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void*) {
-    if (!EnterChunk(id)) return;
-    int count;
-    if (loading_) {
-        for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) record->Destruct();
-        levels->Finish() = levels->Start();
-        count = CountChunks(1);
-        levels->ResizeDefault<recordvec::SkillLevelVector::Element>(static_cast<std::uint32_t>(count));
-    } else {
-        count = static_cast<int>(levels->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        Current()->occurrence = i + 1;
-        SkillLevelRecord* first = levels->begin();
-        if (EnterChunk(1)) {
-            (first + i)->Serialize(this);
-            LeaveChunk();
-        }
-    }
-    LeaveChunk();
-}
-EI_REWRITTEN(0x005208C0, ChunkArchive::SerializeSkillLevels);
-
 void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {
     if (!EnterChunk(id)) return;
     record->Serialize(this);

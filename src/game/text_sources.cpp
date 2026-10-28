@@ -133,12 +133,6 @@ void TextSources::Clear() {
     sentinel->prev = sentinel;
 }
 
-void TextSources::DestructList() {
-    Clear();
-    ClearWith([](TextSource* source) { source->name.~string(); });
-    stlp::deallocate(head, sizeof(TextSourceNode));
-}
-
 BOOL CTextManager::AddSource(const char* path) {
     return sources_.Add(path, 0);
 }
@@ -207,7 +201,6 @@ EI_REWRITTEN(0x004DED20, CTextManager::Create);
 EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);
 EI_REWRITTEN(0x004DEB60, TextSources::Clear);
-EI_REWRITTEN(0x005628E0, TextSources::DestructList);
 EI_REWRITTEN(0x004DEDB0, CTextManager::AddSource);
 EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
 EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);

@@ -105,8 +105,3 @@ EI_REWRITTEN(0x0052C220, CTorchObject::ReadTorchNetState);
 const char* CTorchObject::GetClassName() { return kTorchClassName; }
 int CTorchObject::GetClassId() { return kClassTorch; }
 
-const char* __fastcall TorchClassName(CTorchObject* self) { return self->CTorchObject::GetClassName(); }
-EI_REWRITTEN(0x0052BF20, TorchClassName);
-
-int __fastcall TorchClassId(CTorchObject* self) { return self->CTorchObject::GetClassId(); }
-EI_REWRITTEN(0x0052BF30, TorchClassId);

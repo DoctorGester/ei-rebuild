@@ -13,57 +13,14 @@
 namespace stlp {
 
 struct StringAbi : string {
-    // _M_range_initialize(first, last) and the overload with the
-    // iterator tag: a block of n + 1 bytes, the range, the terminator.
-    void RangeInitialize(const char* first, const char* last);
-    void RangeInitializeTagged(const char* first, const char* last, std::uint32_t tag);
-    // basic_string(const basic_string&).
-    string* CopyConstruct(const string* from);
     // _Construct(p, value) (p in ECX, value in EDX): a copy at p unless p is null.
     static void __fastcall ConstructAt(string* p, const string* from);
-    // basic_string(const char*, const allocator&).
-    string* ConstructFromText(const char* text, const void* alloc);
     // basic_string(): empty, an 8-byte block.
     static string* __fastcall ConstructDefault(string* self);
-    // _String_base(const allocator&, n): a block of n bytes, nothing written in it (no block for n 0).
-    string* ConstructWithCapacity(const void* alloc, std::size_t n);
-    // _M_append(first, last, tag) and append(first, last) with the dispatch argument or without.
-    string* Append(const char* first, const char* last, std::uint32_t tag);
-    string* AppendRange(const char* first, const char* last);
-    // assign(first, last) (with the tag).
-    string* AssignRange(const char* first, const char* last);
-    string* AssignRangeTagged(const char* first, const char* last, std::uint32_t tag);
-    // operator=(const basic_string&): nothing for self-assignment.
-    string* AssignString(const string* from);
-    // operator=(const char*).
-    string* AssignText(const char* text);
-    // erase(first, last): the tail and terminator moved down; returns first.
-    char* Erase(char* first, char* last);
-    // substr(pos, n): out_of_range past the end.
-    string* Substr(string* out, std::size_t pos, std::size_t n) const;
-    // reserve(n): a block of max(size, n) + 1 bytes, the contents moved.
-    void Reserve(std::size_t n);
-    // push_back(c): reserve(size + max(size, 1)) when full.
-    void PushBack(char c);
     // operator<(a, b) (a in ECX, b in EDX).
     static bool __fastcall Less(const string* a, const string* b);
-    // __compare(first1, last1, first2, last2): -1, 0 or 1.
-    static int __fastcall Compare(const char* first1, const char* last1, const char* first2, const char* last2);
     // The scalar deleting destructor.
     string* DeletingDestructor(unsigned flags);
-    // _String_base::_M_allocate_block(n): a block of n bytes (none for 0), the
-    // string empty at its start; the terminator is not written.
-    void AllocateBlock(std::size_t n);
-    // operator+(const string&, const char*) (out in ECX, a in EDX) and
-    // operator+(const string&, const string&): Join. Return out.
-    static string* __fastcall PlusText(string* out, const string* a, const char* text);
-    static string* __fastcall PlusString(string* out, const string* a, const string* b);
-    // operator==(a, b) (a in ECX, b in EDX): the same size and bytes.
-    static bool __fastcall Equals(const string* a, const string* b);
-    // The body of both operator+: a temporary with room for exactly a and [first, last) and the
-    // terminator (a's bytes appended, then the range), then `out` made as a copy of it (a block of
-    // its own), then the temporary's block freed.
-    static void Join(string* out, const string& a, const char* first, const char* last);
 
     // The three words, for checks.
     static char* Start(const string& s) { return s.start_; }

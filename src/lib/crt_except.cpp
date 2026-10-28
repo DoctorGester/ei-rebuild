@@ -44,32 +44,6 @@ Exception* Exception::Construct() {
 }
 EI_REWRITTEN(0x006E7CD5, libcrt::Exception::Construct);
 
-// The text is copied when the source owns its copy (a failed allocation leaves the pointer null, still
-// marked owned), otherwise the pointer is shared.
-Exception* Exception::CopyConstruct(const Exception& source) {
-    vtable = ExceptionVtable();
-    ownsText = source.ownsText;
-    if (!ownsText) {
-        text = source.text;
-        return this;
-    }
-    const std::size_t size = std::strlen(source.text) + 1;
-    char* copy = gamecrt::operator_new_array<char>(size);
-    text = copy;
-    if (copy) std::memcpy(copy, source.text, size);
-    return this;
-}
-EI_REWRITTEN(0x006E7D3F, libcrt::Exception::CopyConstruct);
-
-Exception* Exception::Assign(const Exception& source) {
-    if (this != &source) {
-        Destruct();
-        CopyConstruct(source);
-    }
-    return this;
-}
-EI_REWRITTEN(0x006E7D89, libcrt::Exception::Assign);
-
 void Exception::Destruct() {
     vtable = ExceptionVtable();
     if (ownsText) gamecrt::operator_delete(const_cast<char*>(text));

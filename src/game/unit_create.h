@@ -88,10 +88,6 @@ struct CMapObjectManager : CResourceManager {
     // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(0) and no prototype
     // index. Returns 1.
     int GiveDefaults(CMapObject* object);
-    // The starting equipment's names of prototype `name`: the armour pieces, the two weapons and the spells.
-    // 1, or FatalError's result without the prototype.
-    int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
-                           mfc::CString* secondWeapon, mfc::CStringArray* spells);
 
     // The builders of a creature's starting statistics from its prototype; the map objects call them on their
     // owner.

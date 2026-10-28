@@ -161,15 +161,6 @@ void CItemConstructor::SetManager(CBaseManager* manager) {
 }
 EI_REWRITTEN(0x006A5C00, CItemConstructor::SetManager);
 
-void CItemConstructor::SetItem(CItem* item) {
-    if (item_) item_->Release();
-    item_ = item;
-    if (item) ++item->refCount_;
-    material_ = nullptr;
-    prototype_ = nullptr;
-}
-EI_REWRITTEN(0x006A5C20, CItemConstructor::SetItem);
-
 BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
     CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
     if (!item) return game::FatalError(kCantCreateItem);

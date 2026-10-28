@@ -109,8 +109,6 @@ public:
     // versions hold one. Sets the box and centre of `box_.bounds`.
     void LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic);
 
-    // The abstract base has no mesh to read: only marks itself loaded (flags_ 0x20).
-    void LoadNothing(char** cursor, float s, float t, float u);
     // Fits box_.bounds around the vertices; nothing without vertices.
     void FitVertexBounds();
 

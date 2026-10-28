@@ -27,8 +27,6 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
 
 // ---- CString's destructor and the unwind helpers ---------------------------------------------------
 
-void __fastcall DestroyCString(mfc::CString* self);
-
 // A local of the .mob loader whose third dword an unwind funclet clears.
 struct LoaderLocal {
     std::uint8_t unused_00[8];

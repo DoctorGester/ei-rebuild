@@ -22,8 +22,6 @@ public:
     // Fields 1 class (4 bytes), 2 / 3 the flags (1 byte each), 4 the weights and weightsTail, 5 (both parties
     // without variables, then both stocks' lists: SaveLists / LoadLists), 6 flag38 (1 byte).
     void Serialize(ChunkArchive* ar) override;
-    // The constructor run on `this` (the harness's zeroing patch calls it too).
-    ClassTemplate* Construct();
     // Both stocks take the 8 base and 8 scroll levels.
     void SetLevels(const float* base, const float* scroll);
 

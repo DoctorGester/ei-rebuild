@@ -27,14 +27,6 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
 }
 EI_REWRITTEN(0x005161A0, CObject3D::SetSpecific);
 
-void FootprintPart::SetIgnored(bool ignored) {
-    if (ignored)
-        bounds.flags |= kBoxIgnored;
-    else
-        bounds.flags &= ~kBoxIgnored;
-}
-EI_REWRITTEN(0x005174E0, FootprintPart::SetIgnored);
-
 void CObject3D::SetPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ |= mask;
 }

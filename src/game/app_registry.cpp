@@ -14,10 +14,6 @@
 
 namespace app {
 
-namespace {
-
-} // namespace
-
 void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
                                      ChunkArchive::Factory factory) {
     CRefCounted* prototype = factory();
@@ -29,12 +25,5 @@ void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
 EI_REWRITTEN(0x00458570, TypeRegistryRegister);
-
-// Destructors of WinMain's locals, reached only when an exception unwinds it: two COM pointers
-// (Release) and a counted object (deleted at its last reference).
-void __fastcall ComPointerRelease(void** self) {
-    if (void* object = *self) static_cast<IUnknown*>(object)->Release();
-}
-EI_REWRITTEN(0x00458540, ComPointerRelease);
 
 } // namespace app

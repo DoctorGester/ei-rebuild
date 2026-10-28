@@ -86,13 +86,6 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
 }
 EI_REWRITTEN(0x005FC9E0, CUiRegion::SetRect);
 
-void CUiRegion::ClearShape() {
-    points_.RemoveAll();
-    enabled_ = false;
-    rectOnly_ = false;
-}
-EI_REWRITTEN(0x005FCA40, CUiRegion::ClearShape);
-
 void CUiRegion::AddPoint(int x, int y) {
     if (widescreen::Active()) x += widescreen::PanelOffset();
     if (points_.size == 0) {
@@ -370,17 +363,6 @@ CUiModel* CUiWindow::AddModel() {
     return model;
 }
 EI_REWRITTEN(0x005FFD80, CUiWindow::AddModel);
-
-void CUiWindow::ClearModels() {
-    for (int i = 0; i < models_.size; ++i) {
-        if (CUiModel* model = models_.data[i]) {
-            model->ReleaseObject();
-            gamecrt::operator_delete(model);
-        }
-    }
-    models_.RemoveAll();
-}
-EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 

@@ -50,8 +50,6 @@ EI_REWRITTEN(0x00600A80, AllocateDwords);
 // Byte-identical copies in the HUD / items range.
 EI_REWRITTEN(0x00664910, AllocateDwords);
 EI_REWRITTEN(0x00671240, AllocateDwords);
-Blob<32>* __fastcall AllocateBlocks32(int count) { return lib::AlignedArray<Blob<32>>::Allocate(count); }
-EI_REWRITTEN(0x00452DA0, AllocateBlocks32);
 
 // ---- Destructors: the block freed (the pointer is left as it was) -------------------------------
 namespace {
@@ -60,36 +58,6 @@ void FreeAt(void* self, std::size_t offset) {
     if (data) lib::FreeAligned32(data);
 }
 } // namespace
-void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
-EI_REWRITTEN(0x00505380, ArrayFree1);
-EI_REWRITTEN(0x00509F40, ArrayFree1);
-EI_REWRITTEN(0x00509F60, ArrayFree1);
-EI_REWRITTEN(0x0050A090, ArrayFree1);
-EI_REWRITTEN(0x0050A3F0, ArrayFree1);
-EI_REWRITTEN(0x0050DAF0, ArrayFree1);
-EI_REWRITTEN(0x005199F0, ArrayFree1);
-EI_REWRITTEN(0x00519D10, ArrayFree1);
-EI_REWRITTEN(0x0051E5B0, ArrayFree1);
-EI_REWRITTEN(0x0051E8D0, ArrayFree1);
-EI_REWRITTEN(0x0051E8F0, ArrayFree1);
-EI_REWRITTEN(0x0051E910, ArrayFree1);
-EI_REWRITTEN(0x0051E930, ArrayFree1);
-EI_REWRITTEN(0x0051E950, ArrayFree1);
-EI_REWRITTEN(0x00475F20, ArrayFree1);
-EI_REWRITTEN(0x00600330, ArrayFree1);
-EI_REWRITTEN(0x00600350, ArrayFree1);
-EI_REWRITTEN(0x00600370, ArrayFree1);
-EI_REWRITTEN(0x00600390, ArrayFree1);
-EI_REWRITTEN(0x006003B0, ArrayFree1);
-EI_REWRITTEN(0x00601B50, ArrayFree1);
-EI_REWRITTEN(0x0044F1B0, ArrayFree1);
-// Byte-identical copies in the world range.
-EI_REWRITTEN(0x0058A880, ArrayFree1);
-EI_REWRITTEN(0x005995C0, ArrayFree1);
-EI_REWRITTEN(0x00599780, ArrayFree1);
-EI_REWRITTEN(0x0059A6F0, ArrayFree1);
-EI_REWRITTEN(0x005A98B0, ArrayFree1);
-EI_REWRITTEN(0x005BDEC0, ArrayFree1);
 // A record holding such an array at +8 / +4.
 void __fastcall ArrayAt8Free(void* self) { FreeAt(self, 8); }
 EI_REWRITTEN(0x00454380, ArrayAt8Free);

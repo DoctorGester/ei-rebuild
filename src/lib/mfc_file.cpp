@@ -207,10 +207,6 @@ unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) 
     return title ? 0 : static_cast<unsigned>(gameapi::lstrlenA(into) + 1);
 }
 
-const void* __fastcall FileRuntimeClass(const void*) { return &kClassCFile; }
-const void* __fastcall StdioFileRuntimeClass(const void*) { return &kClassCStdioFile; }
-const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFind; }
-
 // ---- The compiled tables --------------------------------------------------------------------
 
 namespace {
@@ -839,9 +835,6 @@ CString CFileFind::GetRoot() const { return CString(root); }
 
 EI_REWRITTEN(0x00701870, FullPath);
 EI_REWRITTEN(0x00701940, GetRoot);
-EI_REWRITTEN(0x0070BE58, FileRuntimeClass);
-EI_REWRITTEN(0x0070C15B, StdioFileRuntimeClass);
-EI_REWRITTEN(0x0070BE5E, FileFindRuntimeClass);
 
 EI_REWRITTEN(0x00701036, CFile::Construct);
 EI_REWRITTEN(0x0070106C, CFile::ConstructHandle);

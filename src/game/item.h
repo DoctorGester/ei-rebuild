@@ -339,9 +339,6 @@ public:
     // Counts a reference to `manager`, dropping the previous one's (no release).
     void SetManager(CBaseManager* manager);
 
-    // Adopts an existing item (counted; the previous one released); records cleared.
-    void SetItem(CItem* item);
-
     // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
     // set. Returns 1, or a fatal error's result.
     BOOL BeginCreateItem(int kind, int key);

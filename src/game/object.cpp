@@ -27,24 +27,3 @@ EI_REWRITTEN(0x00461C50, CHoover::GetClassId);
 
 // --- Unit and figure getters --------------------------------------------------------------------
 
-const char* __fastcall UnitGetName(const CUnit* unit) { return unit->scriptName.c_str(); }
-EI_REWRITTEN(0x00446820, UnitGetName);
-
-int __fastcall UnitGetFlag278(const CUnit* unit) { return static_cast<int>(unit->obstacle); }
-EI_REWRITTEN(0x00446890, UnitGetFlag278);
-
-int __fastcall UnitGetFlag274(const CUnit* unit) { return unit->dead; }
-EI_REWRITTEN(0x00446880, UnitGetFlag274);
-
-float __fastcall UnitGetValue328(const CUnit* unit) { return unit->unitRadius; }
-EI_REWRITTEN(0x004468A0, UnitGetValue328);
-
-const char* __fastcall FigureGetName(const CEngineObject* figure) {
-    return static_cast<const CFigureMesh*>(figure)->name_.c_str();
-}
-EI_REWRITTEN(0x00453440, FigureGetName);
-
-const char* __fastcall FakeFigureGetName(const CEngineObject* figure) {
-    return static_cast<const scene::SceneMesh*>(figure)->name.c_str();
-}
-EI_REWRITTEN(0x004547C0, FakeFigureGetName);

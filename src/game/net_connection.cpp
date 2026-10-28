@@ -106,15 +106,6 @@ std::uint16_t IdPool::Allocate() {
 }
 EI_REWRITTEN(0x00435F10, IdPool::Allocate);
 
-// Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit may be judged one call
-// apart from the original.
-int Connection::Silent() const {
-    const float factor = 3.0f /*0073BAA4*/;
-    float limit = roundTrip_ * factor;
-    return limit >= idleTime_ ? 0 : 1;   // a NaN is silent
-}
-EI_REWRITTEN(0x00433B10, Connection::Silent);
-
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
     std::uint32_t mask = 0;

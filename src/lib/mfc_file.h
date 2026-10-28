@@ -151,9 +151,4 @@ unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);
 // that fails; with a null `title` the size it needs, else 0.
 unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);
 
-// The classes' CRuntimeClass records (GetRuntimeClass).
-const void* __fastcall FileRuntimeClass(const void* self);
-const void* __fastcall StdioFileRuntimeClass(const void* self);
-const void* __fastcall FileFindRuntimeClass(const void* self);
-
 } // namespace mfc::impl

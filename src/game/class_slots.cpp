@@ -46,12 +46,8 @@ int scene::FakeUnitScene::Create() {
     skin.SetOwner(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this)));
     return CreateUnit();
 }
-int __fastcall FakeUnitCreate(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::Create(); }
-EI_REWRITTEN(0x00446AF0, FakeUnitCreate);
 
 const char* scene::FakeUnitScene::GetClassName() { return kFakeUnitName; }
-const char* __fastcall FakeUnitGetClassName(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::GetClassName(); }
-EI_REWRITTEN(0x004468D0, FakeUnitGetClassName);
 
 // ---- CUnit slots shared with the fake unit ----------------------------------------------------
 
@@ -67,26 +63,8 @@ int CUnit::ForgetObject(CEngineObject* object) {
 }
 EI_REWRITTEN(0x00446850, CUnit::ForgetObject);
 
-float __fastcall UnitForwardSpeed(CUnit* unit) {
-    float forward;
-    float backward;
-    unit->GetMoveSpeeds(&forward, &backward);
-    return forward;
-}
-EI_REWRITTEN(0x004468B0, UnitForwardSpeed);
-
 void CUnit::SetScriptName(const char* newName) { scriptName = newName; }
 EI_REWRITTEN(0x00446830, CUnit::SetScriptName);
-
-// 1 from the client's RefreshWounds, 0 from the base's.
-int __fastcall UnitRefreshWounds(CUnit* unit) { return unit->Controller()->RefreshWounds(); }
-EI_REWRITTEN(0x00446810, UnitRefreshWounds);
-
-// The server's recomputes the move factors.
-void __fastcall UnitMoveFactorsChanged(CUnit* unit) {
-    unit->Controller()->MoveFactorsChanged();
-}
-EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 
 // Of the unit, the fake unit and nine other map object classes: the visibility mode is handed to the companion
 // (the client's shows or hides the object's light); whatever it returns is passed on.

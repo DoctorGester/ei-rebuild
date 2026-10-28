@@ -58,23 +58,6 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 }
 EI_REWRITTEN(0x0049E800, Quaternion::SetAxisAngle);
 
-// *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through float temporaries:
-// the same values, negation is exact), and every component of *this is read before the first store.
-void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
-    Quaternion c = Conjugate(r);
-    double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
-    double qw = w, qx = x, qy = y, qz = z;
-    float nx = static_cast<float>(((cy * qz - cz * qy) + cx * qw) + cw * qx);
-    float ny = static_cast<float>(((cz * qx - cx * qz) + cw * qy) + cy * qw);
-    float nz = static_cast<float>(((cx * qy - cy * qx) + cw * qz) + cz * qw);
-    float nw = static_cast<float>(cw * qw - DotUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
-    y = ny;
-    z = nz;
-    w = nw;
-    x = nx;
-}
-EI_REWRITTEN(0x0049E870, Quaternion::PreMultiplyConjugate);
-
 // Out = conj(b) * a (b copied first, its vector part negated through float
 // temporaries); a is read completely before out is written. Dead: only MakeFrameRelative
 // calls it, in the fake unit scene loader; its vector check was removed.

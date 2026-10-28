@@ -36,8 +36,6 @@ struct TextureNameRecord;
 
 namespace figure {
 void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self);
-// Returns it.
-void* __fastcall ClearArray(std::uint32_t* self);
 } // namespace figure
 
 namespace scene {

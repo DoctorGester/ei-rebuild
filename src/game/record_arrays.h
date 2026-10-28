@@ -59,9 +59,6 @@ using Themes = ArrayAbi<MusicTheme, ThemeElements>;
 struct ThemeArrayClass final
     : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
-// The sound cache's wave records: the name an empty string with room for 8 bytes
-// its buffer freed (the record's destructor).
-void __fastcall DestroyWave(WaveRecord* p);
 using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
 
 // A unit's behaviour records: built by the constructor, destroyed by
@@ -86,7 +83,6 @@ struct FakeUnitRecord9CArrayClass final
 // CStringArray over the part names of a map object (the server companion's, the object's own). GetAt by value
 // (two copies), the element copy-constructed into `result`, which is returned.
 struct PartNames : mfc::CArray<mfc::CString> {
-    mfc::CString* CopyAt(mfc::CString* result, int index) const;
 };
 
 // ---- The script's command arrays ------------------------------------------------------------------
@@ -145,7 +141,6 @@ using WaterLevelElement = mfc::impl::WithArray<0x14, 0, mfc::impl::FloatArrayCla
 using WaterLevels =
     ArrayAbi<WaterLevelElement, EachElements<WaterLevelElement, mfc::impl::InitWithArray<0x14, 0, mfc::impl::FloatArrayClass>,
                                              mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>>>;
-void __fastcall DestroyWaterLevel(WaterLevelElement* p);
 // The sector map's sectors (sector_map.h).
 using Sectors = ArrayAbi<Sector, SectorElements>;
 

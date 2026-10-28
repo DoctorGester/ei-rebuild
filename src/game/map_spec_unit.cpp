@@ -320,13 +320,6 @@ UnitSpec::~UnitSpec() {
 EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);
 EI_REWRITTEN_SPECIAL(0x0046C120, UnitSpec::~UnitSpec);
 
-// The destructor of the block (the five string lists; reached only when an
-// exception unwinds the constructor).
-void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
-    for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
-}
-EI_REWRITTEN(0x0046C2F0, UnitRecordDestruct);
-
 CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
 void UnitSpec::Apply() {

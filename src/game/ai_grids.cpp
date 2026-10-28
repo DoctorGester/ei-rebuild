@@ -63,24 +63,6 @@ void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
 }
 EI_REWRITTEN(0x005BD0B0, AllocateOccluderGrid);
 
-void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid) { FreeGrid(*grid); }
-EI_REWRITTEN(0x005BD010, FreeAnyGrid);
-EI_REWRITTEN(0x00598400, FreeAnyGrid);
-EI_REWRITTEN(0x00598420, FreeAnyGrid);
-EI_REWRITTEN(0x00598440, FreeAnyGrid);
-EI_REWRITTEN(0x00598460, FreeAnyGrid);
-EI_REWRITTEN(0x00598480, FreeAnyGrid);
-EI_REWRITTEN(0x00598580, FreeAnyGrid);
-EI_REWRITTEN(0x005985A0, FreeAnyGrid);
-EI_REWRITTEN(0x00598A60, FreeAnyGrid);
-EI_REWRITTEN(0x00598A80, FreeAnyGrid);
-EI_REWRITTEN(0x00598AA0, FreeAnyGrid);
-EI_REWRITTEN(0x00598B00, FreeAnyGrid);
-EI_REWRITTEN(0x005B1450, FreeAnyGrid);
-EI_REWRITTEN(0x005BCC30, FreeAnyGrid);
-EI_REWRITTEN(0x005CD490, FreeAnyGrid);
-EI_REWRITTEN(0x0058AAB0, FreeAnyGrid);
-
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
     if (width == newWidth && height == newHeight) return;
     FreeGrid(*this);

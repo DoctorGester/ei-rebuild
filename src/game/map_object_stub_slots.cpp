@@ -22,48 +22,13 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 
 // --- Empty slots -------------------------------------------------------------------------------------
 
-// Nothing: ClearState, EffectsChanged, UpdateSizeClasses, UpdateMoveFactors, RefreshWounds.
-void __fastcall MapObjectNothing(CMapObject*) {}
-EI_REWRITTEN(0x0050E760, MapObjectNothing);
-EI_REWRITTEN(0x0050E420, MapObjectNothing);
-EI_REWRITTEN(0x0050E490, MapObjectNothing);
-EI_REWRITTEN(0x0050E520, MapObjectNothing);
-EI_REWRITTEN(0x0050E530, MapObjectNothing);
-
-// Nothing with one argument (RET 4): AdvanceTime, SetStats, SetStunned, ForgetObject.
-void CMapObject::IgnoreArgument(int) {}
-EI_REWRITTEN(0x0050E410, CMapObject::IgnoreArgument);
-EI_REWRITTEN(0x0050E480, CMapObject::IgnoreArgument);
-EI_REWRITTEN(0x0050E4A0, CMapObject::IgnoreArgument);
-EI_REWRITTEN(0x0050E510, CMapObject::IgnoreArgument);
-
-// 0: IsUsable, IsDirectUseBlocked, IsLargeUnit.
-int __fastcall MapObjectZero(CMapObject*) { return 0; }
-EI_REWRITTEN(0x0050F0C0, MapObjectZero);
-EI_REWRITTEN(0x0050F0D0, MapObjectZero);
-EI_REWRITTEN(0x0050E4F0, MapObjectZero);
-
 // No key is accepted.
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
 EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 
-// Any animation may be played (AL).
-bool CMapObject::AcceptsAnyAnimation(const void* /*animation*/) { return true; }
-EI_REWRITTEN(0x0050E400, CMapObject::AcceptsAnyAnimation);
-
 // A scaling effect came or went; 1.
 int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
 EI_REWRITTEN(0x0050E960, CMapObject::ScaleEffectChangedDefault);
-
-// The key the object asks for; none.
-int __fastcall MapObjectKeyId(CMapObject*) { return kNoKey; }
-EI_REWRITTEN(0x0050F0E0, MapObjectKeyId);
-
-// A plain object does not move; its radius is 0.75 (ST0).
-float __fastcall MapObjectMoveSpeed(CMapObject*) { return kNoSpeed; }
-EI_REWRITTEN(0x0050E540, MapObjectMoveSpeed);
-float __fastcall MapObjectRadius(CMapObject*) { return kPlainRadius; }
-EI_REWRITTEN(0x0050E550, MapObjectRadius);
 
 // --- Slots that read the object ------------------------------------------------------------------------
 

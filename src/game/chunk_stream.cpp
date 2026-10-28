@@ -213,17 +213,6 @@ Vector3* Chunk::ReadVector3(Vector3* out) {
 }
 EI_REWRITTEN(0x0042CCC0, Chunk::ReadVector3);
 
-float* Chunk::ReadQuad(float* out) {
-    std::uint32_t v[4];
-    for (auto& value : v) ReadCounted(this, &value, 4);
-    std::memcpy(&out[0], &v[2], 4);
-    std::memcpy(&out[1], &v[0], 4);
-    std::memcpy(&out[2], &v[3], 4);
-    std::memcpy(&out[3], &v[1], 4);
-    return out;
-}
-EI_REWRITTEN(0x0042CEC0, Chunk::ReadQuad);
-
 // A short read leaves the defaults (1, 0, 0, 0) in place.
 float* Chunk::ReadQuaternion(float* out) {
     std::uint32_t v[4] = {0x3F800000u, 0, 0, 0};

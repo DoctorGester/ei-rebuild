@@ -126,31 +126,6 @@ EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
 EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the quick item effect record's twin (UseQuickItem)
 EI_REWRITTEN_SPECIAL(0x0058EDD0, ObjectSpec::~ObjectSpec);
 
-// The original goes through a temporary copy of the base record; CStrings share their data either way.
-void ObjectSpec::Assign(const ObjectSpec* from) {
-    object = from->object;
-    spareId = from->spareId;
-    id = from->id;
-    position = from->position;
-    rotation = from->rotation;
-    name = from->name;
-    comment = from->comment;
-    parentId = from->parentId;
-    model = from->model;
-    texture = from->texture;
-    primaryTexture = from->primaryTexture;
-    player = from->player;
-    std::memcpy(&scale, &from->scale, sizeof(scale));
-    shadow = from->shadow;
-    visible = from->visible;
-    side = from->side;
-    parentIname = from->parentIname;
-    skinTexture = from->skinTexture;
-    parts.SetSize(0, -1);
-    parts.Copy(from->parts);
-}
-EI_REWRITTEN(0x0046A710, ObjectSpec::Assign);
-
 void ObjectSpec::WriteFields() {
     WriteStringArray(0xB00D, &parts);
     WriteByte(0xB011, side);

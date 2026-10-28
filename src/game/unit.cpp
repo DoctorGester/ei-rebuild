@@ -243,23 +243,6 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
 }
 EI_REWRITTEN(0x00531A10, CUnit::GetSpellObject);
 
-bool CUnit::HasRangedWeapon() {
-    std::uint32_t slot = activeWeapon;
-    CItemWeapon* weapon;
-    if (IsPartyUnit(this)) {
-        if (!player) return false;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= static_cast<std::uint32_t>(record->weapons.size)) return false;
-        weapon = AsWeapon(record->weapons[slot]);
-    } else {
-        if (slot >= 4) return false;
-        weapon = AsWeapon(weapons[slot]);
-    }
-    if (!weapon) return false;
-    return weapon->GetType() == 5 || weapon->GetType() == 6;
-}
-EI_REWRITTEN(0x00530FA0, CUnit::HasRangedWeapon);
-
 double CUnit::TotalItemWeight() {
     double total = kZero;   // accumulated on the FPU stack
     for (CItem* item : weapons) {

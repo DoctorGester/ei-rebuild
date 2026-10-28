@@ -12,21 +12,7 @@
 
 namespace stlp {
 
-TableWithDword* __fastcall ConstructTableWithDword(TableWithDword* self) {
-    HashtableAbi<DwordKeyTraits<8>>::ConstructDefault(&self->table);
-    self->extra = 0;
-    return self;
-}
-
 std::uint32_t __fastcall HashString(const string* s) { return s->Hash(); }
-
-void* RecordsByName::Named(const char* name) {
-    string key(name);
-    StringKeyed<4> obj(key);
-    void* record;
-    std::memcpy(&record, byName.FindOrInsert(obj).mapped, sizeof(record));
-    return record;
-}
 
 } // namespace stlp
 
@@ -113,22 +99,12 @@ EI_REWRITTEN(0x0042B9C0, Map8::Resize);
 EI_REWRITTEN(0x00405EB0, Map8::InitializeBuckets);
 EI_REWRITTEN(0x00406300, Map8::InitializeBuckets);
 EI_REWRITTEN(0x0040AA80, Map8::InitializeBuckets);
-EI_REWRITTEN(0x00571050, stlp::ConstructTableWithDword);
 
 // ~hashtable() (library.csv: "clear"): 12-byte nodes (2), 8-byte nodes (2).
 EI_REWRITTEN(0x004A8B70, Map8::Destroy);
 EI_REWRITTEN(0x005984A0, Map8::Destroy);
 EI_REWRITTEN(0x004DB8A0, Set4::Destroy);
 EI_REWRITTEN(0x00668B70, Set4::Destroy);
-EI_REWRITTEN(0x004AB720, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x004AB820, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x0052CA40, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x0052CB40, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x0069D290, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x0069D380, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x006AD580, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x00613820, stlp::RecordsByName::Named);
-EI_REWRITTEN(0x00613920, stlp::RecordsByName::Named);
 EI_REWRITTEN(0x004298D0, stlp::HashString);
 EI_REWRITTEN(0x004FB090, Map8::Begin);
 EI_REWRITTEN(0x005E0C00, Map8::Begin);

@@ -785,11 +785,9 @@ EI_REWRITTEN(0x00700E17, CString::GetBufferSetLength);
 EI_REWRITTEN(0x00700E6A, CString::LockBuffer);
 EI_REWRITTEN(0x00700E7C, CString::UnlockBuffer);
 EI_REWRITTEN(0x006FDBB7, CString::ReverseFind);
-EI_REWRITTEN(0x00700ECC, CString::FindOneOf);
 EI_REWRITTEN(0x00700EFE, CString::MakeLower);
 EI_REWRITTEN(0x006FD963, CString::Remove);
 EI_REWRITTEN(0x006FDF5F, CString::Format);
-EI_REWRITTEN(0x006FDC12, CString::FormatV);
 EI_REWRITTEN(0x006FE268, ConstructStrings);
 EI_REWRITTEN(0x006FE296, DestructStrings);
 

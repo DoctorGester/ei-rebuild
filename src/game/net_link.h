@@ -126,21 +126,8 @@ private:
 
 class ReplayLink final : public NetLink {
 public:
-    ReplayLink();
-    // Two closed files of its own.
-    ReplayLink(const ReplayLink& other);
-    ~ReplayLink() override;
 
-    int OnShutdown() override;                  // destroyed and built again in place
-    ReplayLink* Clone() override;
     bool Connected() override { return false; }
-    bool Alive() override;                      // the recording has more to read
-    bool HasIncoming() override;                // the same as Alive
-    bool Receive(CMemoryStream* stream) override;
-    void Disconnect() override;                 // closes the recording
-
-    // A replay link reading the recording `path`.
-    static ReplayLink* __stdcall Create(const char* path);
 
     FileStream replay_;          // the recording played back
 };

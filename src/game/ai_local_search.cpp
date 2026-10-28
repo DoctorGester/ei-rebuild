@@ -294,17 +294,6 @@ bool LocalSearch::Begin(CUnit* unit, int x0, int y0, int x1, int y1) {
 }
 EI_REWRITTEN(0x005C2420, LocalSearch::Begin);
 
-bool LocalSearch::BeginForClass(int sizeClassArg, int x0, int y0, int x1, int y1) {
-    map->CostContext(sizeClassArg, &costs);
-    sizeClass = sizeClassArg;
-    level = static_cast<std::uint8_t>(LevelForSizeClass(sizeClassArg));
-    if (!PlaceWindow(x0, y0, x1, y1)) return false;
-    FillCellRows(this);
-    Start(this, x0 - originX, y0 - originY);
-    return true;
-}
-EI_REWRITTEN(0x005C24F0, LocalSearch::BeginForClass);
-
 bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
     int dx = CdqAbs(x1 - x0);
     int dy = CdqAbs(y1 - y0);
@@ -331,12 +320,6 @@ bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
     return true;
 }
 EI_REWRITTEN(0x005C2B10, LocalSearch::BeginInRect);
-
-bool LocalSearch::BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy) {
-    SetUnit(unit);
-    return BeginInRect(x0, y0, x1, y1, sx, sy);
-}
-EI_REWRITTEN(0x005C2C90, LocalSearch::BeginInRectFor);
 
 bool LocalSearch::BeginInRectForClass(int sizeClassArg, int x0, int y0, int x1, int y1, int sx, int sy) {
     map->CostContext(sizeClassArg, &costs);

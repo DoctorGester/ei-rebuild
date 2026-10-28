@@ -227,38 +227,6 @@ void CWorldServer::RemoveObject(unsigned id) {
     }
 }
 
-void CWorldServer::RemoveAllUnits() {
-    auto* node = objects_.map.First();
-    if (!node) return;
-    // The next object is read before the current one is removed.
-    CEngineObject* object = node->value;
-    do {
-        unsigned id = static_cast<unsigned>(object->id_);
-        bool isUnit = object->GetClassId() == world::kClassUnit;
-        node = objects_.map.After(node);
-        object = node ? node->value : nullptr;
-        if (isUnit) RemoveObject(static_cast<int>(id));
-    } while (node);
-}
-EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);
-
-CEngineObject* ObjectMapIterator::First(ObjectIdMap* objects) {
-    map = objects;
-    node = objects->map.First();
-    table = objects;
-    return node ? node->value : nullptr;
-}
-EI_REWRITTEN(0x0059AF20, ObjectMapIterator::First);
-EI_REWRITTEN(0x0059AFF0, ObjectMapIterator::First);
-
-CEngineObject* ObjectMapIterator::Next() {
-    if (!node) return nullptr;
-    node = table->map.After(node);
-    return node ? node->value : nullptr;
-}
-EI_REWRITTEN(0x0059AF80, ObjectMapIterator::Next);
-EI_REWRITTEN(0x0059B050, ObjectMapIterator::Next);
-
 double CWorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     return AIMap()->TopHeightAt(&point);

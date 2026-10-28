@@ -76,15 +76,6 @@ EI_REWRITTEN(0x0069FD50, RefPtrRelease);
 EI_REWRITTEN(0x004A5D70, RefPtrRelease);
 EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, as an exit function (no Ghidra function)
 
-// Counted_ptr<T>'s scalar deleting destructor (the release, then operator
-// delete when bit 0 of `flags` is set). Returns the holder.
-RefPtr* RefPtr::DeleteScalar(unsigned flags) {
-    RefPtrRelease(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004AB960, RefPtr::DeleteScalar);
-
 // The holder cleared without a release (MOV [ECX],0). 17 copies.
 void __fastcall RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
 EI_REWRITTEN(0x00421360, RefPtrClear);
@@ -168,10 +159,6 @@ RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
 EI_REWRITTEN(0x0040A770, RefPtr::FromRawCounted);
 EI_REWRITTEN(0x0041DD50, RefPtr::FromRawCounted);
 
-RefPtr* RefPtr::CopyCounted(const RefPtr* from) { return FromRawCounted(from->ptr); }
-EI_REWRITTEN(0x004A5D50, RefPtr::CopyCounted);
-EI_REWRITTEN(0x004ABE30, RefPtr::CopyCounted);
-
 // Share as the instantiations emit it out of line (9 copies), returning the holder.
 RefPtr* RefPtr::ShareReturn(CRefObject* object) {
     Share(object);
@@ -187,15 +174,6 @@ EI_REWRITTEN(0x004299F0, RefPtr::ShareReturn);
 EI_REWRITTEN(0x00429A50, RefPtr::ShareReturn);
 EI_REWRITTEN(0x00429AB0, RefPtr::ShareReturn);
 
-// Assignment of an owning pointer (the game inlines Destroy and Share): from another holder
-// and from a raw object. Nothing happens when it already holds the object.
-RefPtr* RefPtr::AssignHolder(const RefPtr* other) {
-    if (other->ptr == ptr) return this;
-    Destroy();
-    Share(other->ptr);
-    return this;
-}
-EI_REWRITTEN(0x0042A770, RefPtr::AssignHolder);
 RefPtr* RefPtr::AssignObject(CRefObject* object) {
     if (object == ptr) return this;
     Destroy();

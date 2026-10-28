@@ -269,12 +269,6 @@ PlayerMode* AIBrain::FindPlayerMode() {
 }
 EI_REWRITTEN(0x005D5E60, AIBrain::FindPlayerMode);
 
-CUnit* AIBrain::PlayerModeLeader() {
-    PlayerMode* mode = FindPlayerMode();
-    return mode ? mode->leader : nullptr;
-}
-EI_REWRITTEN(0x005D5EE0, AIBrain::PlayerModeLeader);
-
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
     if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;
@@ -459,14 +453,6 @@ void AIBrain::AttackTarget(CMapObject* object) {
     owner->OrderAttack(target, 6, 0, flags);
 }
 EI_REWRITTEN(0x005D7B50, AIBrain::AttackTarget);
-
-void AIBrain::AttackWith(CMapObject* object, int how, int unknown) {
-    if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, object) == 0) return;
-    action = kActionAttack;
-    target.Assign(object);
-    owner->OrderAttack(target, how, unknown, 2);
-}
-EI_REWRITTEN(0x005D7C60, AIBrain::AttackWith);
 
 void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
     if (!object) return;

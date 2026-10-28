@@ -51,19 +51,3 @@ EI_REWRITTEN_SPECIAL(0x00529980, CStuffObject::CStuffObject);
 EI_REWRITTEN_SPECIAL(0x00529A10, CStuffObject::~CStuffObject);
 EI_REWRITTEN_SPECIAL(0x005299F0, CStuffObject::~CStuffObject);   // deleting
 
-const char* __fastcall TreeClassName(CTree* self) { return self->CTree::GetClassName(); }
-EI_REWRITTEN(0x00529730, TreeClassName);
-int __fastcall TreeClassId(CTree* self) { return self->CTree::GetClassId(); }
-EI_REWRITTEN(0x00529740, TreeClassId);
-const char* __fastcall BuildingClassName(CBuilding* self) { return self->CBuilding::GetClassName(); }
-EI_REWRITTEN(0x00529810, BuildingClassName);
-int __fastcall BuildingClassId(CBuilding* self) { return self->CBuilding::GetClassId(); }
-EI_REWRITTEN(0x00529820, BuildingClassId);
-const char* __fastcall StoneClassName(CStone* self) { return self->CStone::GetClassName(); }
-EI_REWRITTEN(0x005298F0, StoneClassName);
-int __fastcall StoneClassId(CStone* self) { return self->CStone::GetClassId(); }
-EI_REWRITTEN(0x00529900, StoneClassId);
-const char* __fastcall StuffClassName(CStuffObject* self) { return self->CStuffObject::GetClassName(); }
-EI_REWRITTEN(0x005299D0, StuffClassName);
-int __fastcall StuffClassId(CStuffObject* self) { return self->CStuffObject::GetClassId(); }
-EI_REWRITTEN(0x005299E0, StuffClassId);

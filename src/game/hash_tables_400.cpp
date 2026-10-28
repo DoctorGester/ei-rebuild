@@ -24,11 +24,6 @@ void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
     registry->factories.Destroy();
     registry->classIds.Destroy();
 }
-// The session type registry's destructor (reached from the session constructor's unwind funclets).
-void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
-    registry->byType.Destroy();
-    registry->byVtable.Destroy();
-}
 
 } // namespace hash400
 
@@ -48,4 +43,3 @@ EI_REWRITTEN(0x00599A80, hash400::RemoveKey<MapObjectIds>);
 EI_REWRITTEN(0x00599AE0, hash400::Find<MapObjectIds>);
 EI_REWRITTEN(0x00408EA0, hash400::ClassRegistryConstruct);
 EI_REWRITTEN(0x00408D60, hash400::ClassRegistryDestruct);
-EI_REWRITTEN(0x004368F0, hash400::TypeRegistryDestruct);

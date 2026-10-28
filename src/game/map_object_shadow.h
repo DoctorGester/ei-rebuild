@@ -141,7 +141,6 @@ public:
     void SetMaterialsLit(int lit);
     void SetLit(int lit) override;
     void Unused25(int) override {}
-    void EmptySlot25(int);
     // Whether shadows are drawn for the object's kind: the option above 0 and the switch of its class (units,
     // class 0x52, others each have one). With shadows off only the low byte is cleared (the original's XOR
     // AL, AL on the setting's value).

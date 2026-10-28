@@ -98,7 +98,6 @@ struct Patrols : mfc::CArray<Patrol> {
 
 // A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
-    mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(CStream* stream);
     void Write(CStream* stream) const;
     std::int32_t type;           // (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
@@ -176,9 +175,6 @@ public:
     void Save() override;                                    // the record as chunk B001
     // The common fields (also called directly by the subclasses' Save).
     virtual void WriteFields();
-
-    // Copies `from`: the base fields but its kind and chunk state, then the object's.
-    void Assign(const ObjectSpec* from);
 
     // The world object an object record makes is a map object (a unit for a unit record).
     CMapObject* MapObject() const;
