@@ -5132,3 +5132,19 @@ title = "Map object factory types as one enum"
 group = "cleanup"
 depends = ["C45"]
 note = "C45 follow-up. CMapObjectManager's creation types (type_: 0x32..0x34 units, 0x35 tree .. 0x3C lever, 0x300D animation state, 0x3010 trap; unit_create_stats.cpp kFactory) are spelled as kUnitTypeHero (unit.h), kTypeHumanoid (player_client.cpp), kStuffObjectType (world_effect_missile.cpp, world_effect_moshka.cpp), kBody (unit_skins.cpp) and raw numbers; the specific managers' ('E'..'K', 0x46..0x4B) likewise. One MapObjectType enum in unit_create.h, then the ~363 remaining raw flag tests (flags_ bits per class) by owner, as C45 did for landscapeFlags."
+
+[[ticket]]
+id = "C45c"
+title = "C45's enums to enum class"
+group = "cleanup"
+model = "sonnet"
+depends = ["C47"]
+note = "User 2026-10-28: prefer enum class. C45 added 13 plain enums (ClassId, ItemKind, QuickItemCategory, LootKind, LootRecordType, UnitOrderKind, UseSource, AIModeType, AIOptionKind, AIRemark, SpellObjectType, LandscapeFlag, SectorStage). Make each enum class; fields keep their sizes (explicit underlying type). Flag words (LandscapeFlag) get one small set of bit operators in a shared header, not per-enum casts. Where a value is stored in a byte/word the reader/writer converts once at the load/save edge. C45a/C45b and later enums are enum class from the start. Goldens unchanged."
+
+[[ticket]]
+id = "C45d"
+title = "Name the remaining magic numbers"
+group = "cleanup"
+model = "opus"
+depends = ["C45c"]
+note = "User 2026-10-28. After C45 src/game still has ~450 '== 0x..', ~600 'case 0x..', ~435 '& 0x..'. First a survey: classify each by meaning (packet ids, x87/float bits, file magic and colour masks stay; unnamed kinds, flags and states get names), write the list into build/style_review/magic_numbers.md and split into batches by owner (C45d1..). Each new kind is an enum class in its owning header (see C45c), flag words use the shared bit operators. Names from the data/strings where possible; ambiguous meanings recorded, not guessed. Goldens unchanged."
