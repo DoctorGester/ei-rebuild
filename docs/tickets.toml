@@ -767,6 +767,12 @@ group = "renderer"
 depends = ["R27c"]
 note = "Found by R27c. CTextureDevice::primary_ / renderTarget_ are two pixelless Surface holders standing for the screen (the screen copies, GameTargetSize and ~6 'if (primary_) renderTarget_->width' reads use them; never null, so those checks are always true): replace them with the screen size (screen_) where only the size is read, keep a holder only where a blit or capture needs one. CSceneRenderer::DrawTriangles (renderer_triangles.cpp) and CRainSnow::DrawParticles (weather_particles.cpp) repeat CTextureDevice::DrawTlTriangles (fog, render::TlDraw, counts): call it. CVisualizator is an abstract base with one class (CSceneRenderer): fold it in if nothing needs the split. Goldens must stay the same. Also from C20z1: g_deviceNamed (00784756) is only written (app_main.cpp, config/named_data.csv); CGlobalMap::MayTravel() always returns true (one caller); CObject3D::PlayAnimationSecond equals PlayAnimation but returns 1. Fold these in if still there."
 
+[[ticket]]
+id = "R27g"
+title = "2DintMMX loaded once: the scene renderer's graphicsProcessor_ / graphicsLibrary_ and the device object's converter_ / converterLibrary_"
+group = "renderer"
+note = "Found by R27f. CSceneRenderer::LoadPipelineAndConverter (renderer_base_create.cpp) and the CTextureDevice constructor (device_object.cpp) each check CPUID for MMX, LoadLibraryA 2DintMMX.dll (one with the work path, one bare) and keep GetGraphicsProcessor()'s object; texture_compose.cpp and ui_item_view.cpp read the renderer's, surface.cpp and ui_item_view.cpp the device's. Check that GetGraphicsProcessor returns one object (or that the two never differ in state: SetChannelMasks), then keep one load, one MMX check and one pointer. Goldens must stay the same."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
