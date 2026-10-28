@@ -244,8 +244,6 @@ address,size,name,file
 007AEE30,16,g_outcodes,src/game/device_buffers.cpp
 007AEE78,24,g_deviceLock,src/game/renderer_lifetime.cpp
 007AEE94,4,g_holderCount,src/game/device.h
-007AEEB8,16,g_texturePixels,src/game/link_mesh_draw.cpp
-007AEEC8,1,g_texturePixelsGuard,src/game/link_mesh_draw.cpp
 007AEED0,16,g_movedPackets,src/game/link_mesh_draw.cpp
 007AEF60,20,g_indices,src/game/renderer_sprites.cpp
 007AEF78,20,g_outcodes,src/game/renderer_sprites.cpp
@@ -271,7 +269,6 @@ address,size,name,file
 007AF110,12,kTrackDefaultPosition,src/game/map_object_animation.h
 007AF1C0,16,kIdentityOrientation,src/game/object3d_lifetime.cpp
 007AF1D0,12,kDefaultFigureScale,src/game/map_object_figures.h
-007AF1E0,16,g_pixels,src/game/map_object_shadow.cpp
 007AF1F0,1,g_freed,src/game/map_object_shadow.cpp
 007AF1F8,16,g_points,src/game/map_object_shadow.cpp
 007AF208,16,g_quads,src/game/map_object_shadow.cpp
@@ -331,8 +328,6 @@ address,size,name,file
 007AFF60,77436,g_serverWorld,src/game/world_construct.cpp
 007C2DE0,16,kNewUnitRotation,src/game/world.h
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
-007C2E00,16,g_texturePoints,src/game/figure_rasterise.cpp
-007C2E10,1,g_texturePointsGuard,src/game/figure_rasterise.cpp
 007C2E18,16,g_offsetVertices,src/game/figure_mesh.cpp
 007C2E48,16,g_movedPositions,src/game/figure_part_draw.cpp
 007C2E58,1,g_movedPositionsGuard,src/game/figure_part_draw.cpp

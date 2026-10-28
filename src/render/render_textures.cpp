@@ -1,5 +1,5 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures decoded from the file's
-// levels (RGB of any mask layout, DXT1-5; missing levels box-filtered) and CPU pixels (TexturePixels), kept
+// levels (RGB of any mask layout, DXT1-5; missing levels box-filtered), kept
 // as sokol images until the holder goes, with what they were decoded from for a new device. Also the holders'
 // pixels in memory the renderer owns (render::SurfaceMemory): a texture or window surface whose holder has
 // such memory is read from it, again into the same image when the memory was marked written and changed.
@@ -25,15 +25,14 @@ namespace render::detail {
 
 namespace {
 
-// What an owned texture was decoded from: the .mmp file's levels as the file has them, or the RGBA8 level of
-// TexturePixels. A new Direct3D 11 device gets the texture decoded again from it.
+// What an owned texture was decoded from: the .mmp file's levels as the file has them. A new Direct3D 11 device
+// gets the texture decoded again from it.
 struct TextureSource {
-    enum Kind : std::uint8_t { None, Mmp, Rgba } kind = None;
-    std::vector<std::uint8_t> header;   // Mmp: the file's header
-    std::vector<std::uint8_t> bytes;    // Mmp: the file's bytes from `firstOffset` on; Rgba: the pixels
-    std::uint32_t firstOffset = 0;      // Mmp: where `bytes` start after the header
-    unsigned mip = 0, levels = 0;       // Mmp: the levels decoded
-    int width = 0, height = 0;          // Rgba
+    enum Kind : std::uint8_t { None, Mmp } kind = None;
+    std::vector<std::uint8_t> header;   // the file's header
+    std::vector<std::uint8_t> bytes;    // the file's bytes from `firstOffset` on
+    std::uint32_t firstOffset = 0;      // where `bytes` start after the header
+    unsigned mip = 0, levels = 0;       // the levels decoded
 };
 
 struct Texture {
@@ -44,7 +43,7 @@ struct Texture {
     bool keyed = false;              // window surfaces: the colour key it was converted with
     std::uint32_t key = 0;
     int width = 0, height = 0;
-    bool owned = false;              // decoded for a holder without memory (.mmp files, TexturePixels): the only copy
+    bool owned = false;              // decoded for a holder without memory (.mmp files): the only copy
     TextureSource source;            // owned: what it was decoded from, to make it again on a new device
     bool updatable = false;          // window surfaces: rectangles written into the image; memory textures: level 0 written in place
 };
@@ -761,20 +760,12 @@ void Remake(Texture& t) {
     const TextureSource& s = t.source;
     std::vector<std::vector<std::uint8_t>> levels;
     int width = 0, height = 0;
-    if (s.kind == TextureSource::Mmp && s.header.size() == sizeof(MmpFile)) {
-        MmpFile h{};
-        std::memcpy(&h, s.header.data(), sizeof(h));
-        std::uint32_t first = 0, end = 0;
-        if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) return;
-    } else if (s.kind == TextureSource::Rgba) {
-        width = s.width;
-        height = s.height;
-        levels.push_back(s.bytes);
-    } else {
-        return;
-    }
-    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again",
-                        s.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp);
+    if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) return;
+    MmpFile h{};
+    std::memcpy(&h, s.header.data(), sizeof(h));
+    std::uint32_t first = 0, end = 0;
+    if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) return;
+    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again", FrameStats::Mmp);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -836,12 +827,11 @@ sg_view SurfaceView(const void* holder) {
 // again on a new device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label, TextureSource source) {
-    FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
     if (!holder || g_memory.count(holder)) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
-    t.image = MakeImage(width, height, std::move(levels), label, kind);
+    t.image = MakeImage(width, height, std::move(levels), label, FrameStats::Mmp);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -883,35 +873,6 @@ StagePatch PatchOf(const void* holder) {
     p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
     p.texture = SurfaceView(patch.source);
     return p;
-}
-
-bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    int bytes = bitsPerPixel / 8;
-    if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
-    if (g_memory.count(holder)) return false;   // read from its memory (SurfaceView)
-    Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
-    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
-    for (int y = 0; y < height; ++y) {
-        const auto* row = static_cast<const std::uint8_t*>(pixels) + static_cast<std::size_t>(y) * pitch;
-        for (int x = 0; x < width; ++x) {
-            std::uint32_t pixel = 0;
-            std::memcpy(&pixel, row + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
-            std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * width + x) * 4];
-            o[0] = Expand(pixel, r, 0);
-            o[1] = Expand(pixel, g, 0);
-            o[2] = Expand(pixel, b, 0);
-            o[3] = Expand(pixel, a, 255);
-        }
-    }
-    TextureSource source;
-    source.kind = TextureSource::Rgba;
-    source.bytes = rgba;
-    source.width = width;
-    source.height = height;
-    std::vector<std::vector<std::uint8_t>> levels;
-    levels.push_back(std::move(rgba));
-    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture", std::move(source));
 }
 
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
@@ -1149,7 +1110,8 @@ void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
 namespace render {
 
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
-    if (!holder || !data || !Active() || !detail::Started()) return false;
+    if (!holder || !data) return false;
+    detail::Start();
     detail::FpuGuard fpu;
     detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
@@ -1157,7 +1119,8 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
     using namespace detail;
-    if (!target || !source || !Active() || !Started()) return;
+    if (!target || !source) return;
+    Start();
     int tw = 0, th = 0, sw = 0, sh = 0;
     if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
         if (g_patchFailures++ < 10)
@@ -1270,7 +1233,7 @@ void HolderGone(const void* holder) {
 }
 
 void PictureFromMmp(const void* holder, const void* data) {
-    if (!holder || !data || !Active()) return;
+    if (!holder || !data) return;
     detail::FpuGuard fpu;
     detail::PictureFromMmpData(holder, data);
 }

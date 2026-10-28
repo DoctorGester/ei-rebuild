@@ -1,23 +1,21 @@
-// The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
+// The shadow of a 3D object on the client: the renderer's shadow map draws it (CastsShadow); the game's own
+// build still projects the decal, whose sphere decides the shadow's visibility out of view (ShadowInView). See
+// map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
 #include "figure_mesh.h"
 #include "options.h"
 #include "map_object_shadow.h"
 
 #include "link_figure.h"        // CLinkMesh
 #include "map_object.h"
-#include "ground_decal.h"        // DecalTexCoord
-#include "dx_surface.h"          // SurfacePixels
 #include "map_object_figures.h"
 #include "model.h"
 #include "spell.h"              // CLight
-#include "terrain.h"
 #include "unit.h"               // CUnit
 #include "unit_client_models.h" // CUnitClientSpecific
 #include "view_matrices.h"
 #include "maths.h"
 #include "object.h"
-#include "texture.h"
-#include "world.h"              // CWorld::TextureManager
+#include "world.h"              // g_clientWorld
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -31,7 +29,6 @@
 #include "render/render.h"
 
 #include <bit>
-#include <cstdio>
 #include <vector>
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -47,27 +44,24 @@ int ShadowSwitch(int classId) {
     return options::g_options->buildingShadow_;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
-// The work buffers: the parts' points projected into the light's view, their texture pixels, and
-// the ground quad (one block of four corners).
+// The work buffers: the parts' points projected into the light's view and the ground quad (one block of four
+// corners).
 constinit std::vector<Vector2> g_points = /*007AF1F8*/ {};
-constinit std::vector<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
 constinit std::vector<VertexPacket> g_quads = /*007AF208*/ {};
 
-// The exit functions their static initialisers register: each frees its array's block. The points' and the
-// pixels' are guarded by a guard bit each, so a second run frees nothing.
+// The exit functions their static initialisers register: each frees its array's block. The points' is guarded
+// by a guard bit, so a second run frees nothing.
 constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
 constexpr int kTypePointLight = 0x31;
-constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: render the texture again
+constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: build the shadow again
 constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
 constexpr std::uint32_t kLightOff = 0x400;          // light->flags_
 constexpr std::uint32_t kLightRemoved = 0x80;
 constexpr std::uint32_t kLightStrong = 0x800;       // a point light counting ten times
 constexpr std::uint32_t kPartHidden = 0x80;         // part->flags_
 constexpr int kPointBufferSize = 0x1000;
-constexpr int kTextureSize = 0x40;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
-constexpr std::uint32_t kDefaultColour = 0x80FFFFFF;
 
 constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0.3
 constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0.6
@@ -77,9 +71,6 @@ constexpr double kOneDouble = 1.0;
 constexpr float kStrongFactor = 10.0f;
 constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // -tan(20 degrees)
 constexpr float kFarSquared = 1e10f;
-constexpr float kTextureScale = 63.0f;
-constexpr float kAlphaScale = 128.0f;
-constexpr std::uint32_t kDrawDepth = 0x3F7FF972;
 
 // pi, 1/180 and 20: volatile, so the product is formed at run time with the FPU's precision like the
 // original's.
@@ -87,14 +78,6 @@ volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
-
-// *slot = value with counted references; the old value is released.
-void AssignTexture(CTexture** slot, CTexture* value) {
-    CTexture* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old) old->Release();
-}
 
 // The pipeline's stack the shadow is rendered with.
 constexpr int kShadowStack = 10;
@@ -199,60 +182,11 @@ int KeyedParts(const CObject3D* object) {
     return keyedParts;
 }
 
-// The 64 x 64 texture from the parts' pixels (g_pixels): rasterised into the render surface, blurred,
-// copied into the shadow texture and handed to the new renderer. False (with the fatal error's result
-// in *failure) when the render surface cannot be locked.
-bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
-    // Rasterise into the render surface.
-    CTexture* surface = self->WorldContext()->TextureManager()->ShadowRenderSurface();
-    SurfacePixels description;
-    if (!surface->LockPixels(&description)) {
-        *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
-        return false;
-    }
-    RasterTarget target{};
-    target.pitch = description.pitch;
-    // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
-    // from there) and copied into the surface afterwards.
-    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
-    target.bits = pixels.data();
-    std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
-    int count = 0;
-    for (int i = 0; i < std::ssize(self->object->parts); ++i) {
-        CFigureMesh* part = PartAt(self->object, i);
-        if (PartTooFar(part)) continue;
-        if (part->flags_ & kPartHidden) continue;
-        if (CLinkMesh* figure = self->object->figure) {
-            const char* name = PartAt(self->object, i)->GetName();
-            std::string key(name);
-            count += figure->RasterisePart(&key, &g_pixels[count], &target);
-        } else {
-            count += part->Rasterise(static_cast<CPixelConverter*>(device), &g_pixels[count], &target);
-        }
-    }
-    if (options::g_options->shadowQuality_ == 2) {
-        auto* converter = static_cast<CPixelConverter*>(device);
-        converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
-        converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
-    }
-    std::memcpy(description.bits, pixels.data(), pixels.size());
-    surface->UnlockPixels();
-
-    // Copy the surface into the shadow texture.
-    CTexture* shadowTexture = self->texture;
-    shadowTexture->LoadPixelsFrom(g_sceneRenderer->device_, surface);
-    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format.
-    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
-                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
-                          description.alphaMask);
-    return true;
-}
-
-// Renders the shadow texture again (with `makeTexture`) and projects it onto the ground. Returns false
-// (with the fatal error's result in *failure) when the render surface cannot be locked.
-bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* failure, bool makeTexture) {
+// The shadow built again: the lights' direction, the parts' points from there (their bounds in the light's view),
+// the bounds' square on the ground and the decal's projection of it (its sphere). No shadow texture is rasterised:
+// the shadow map draws the shadow (docs/notes/map_objects.md, "Shadows").
+void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     CTransformPipeline* pipeline = context->pipeline_;
-    void* device = context->graphicsProcessor_;
 
     // The lights reaching the object.
     Vector3 sum;
@@ -277,9 +211,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Matrix4 view;
     view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
-    // The buffers grow without keeping their contents.
+    // The buffer grows without keeping its contents.
     g_points.resize(kPointBufferSize);
-    g_pixels.resize(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     view::LightRotation(&direction, &turn);   // (likewise)
@@ -327,32 +260,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     pipeline->PopMatrix(kShadowStack);
     g_points.resize(count);
 
-    // Points to texture pixels.
-    float scaleX = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[2]) - self->bounds[0]));
-    float scaleY = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[3]) - self->bounds[1]));
-    float offsetX = static_cast<float>(-(static_cast<double>(scaleX) * self->bounds[0]));
-    float offsetY = static_cast<float>(-(static_cast<double>(scaleY) * self->bounds[1]));
-    Matrix4 toPixels = {};
-    float* t = toPixels.m;
-    t[0] = t[5] = t[10] = t[15] = 1.0f;
-    t[0] = scaleX;
-    t[12] = offsetX;
-    t[13] = offsetY;
-    t[5] = scaleY;
-    for (int k = 0; k < std::ssize(g_points); ++k) {
-        float x = static_cast<float>(static_cast<double>(t[0]) * g_points[k].x + t[12]);
-        g_pixels[k].x = x87::fistp(x);
-        float y = static_cast<float>(static_cast<double>(t[5]) * g_points[k].y + t[13]);
-        g_pixels[k].y = x87::fistp(y);
-    }
-    g_pixels.resize(count);
-
-    // The texture (only when it is drawn; the decal's projection below takes only whether any part is keyed).
+    // Whether any part is keyed: the decal then skips the platforms.
     const int keyedParts = KeyedParts(self->object);
-    if (makeTexture && !MakeTexture(self, device, failure)) {
-        if (lights.manager) --lights.manager->refCount_;
-        return false;
-    }
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;
@@ -381,7 +290,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     m[9] = static_cast<float>(static_cast<double>(yz) + wx);
     m[10] = static_cast<float>(kOne - (static_cast<double>(yy) + xx));
 
-    // The texture's square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
+    // The bounds' square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
     g_quads.resize(1);   // keeps the contents when growing
     {
         float a = self->bounds[3];
@@ -436,7 +345,6 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     self->flags_ &= ~kFlagRefresh;
     if (lights.manager) --lights.manager->refCount_;
-    return true;
 }
 
 } // namespace
@@ -446,11 +354,6 @@ void FreePoints() {
     if (g_freed & 1) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 1);
     lib::FreeStorage(g_points);
-}
-void FreePixels() {
-    if (g_freed & 2) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    lib::FreeStorage(g_pixels);
 }
 
 // --- The shadow -------------------------------------------------------------------------------
@@ -466,47 +369,21 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
 }
 
 int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
-    // The game shows this object's shadow: in the new renderer's shadow map its meshes cast,
-    // a unit as strongly as it has faded in.
+    // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
+    // has faded in. No shadow texture or decal is drawn.
     float strength = 1.0f;
     if (!ShadowCastStrength(object, &strength)) return 1;
     render::CastsShadow(object, strength);
 
-    if (!texture) {
-        AssignTexture(&texture, g_clientWorld->textureManager_->NewShadowTexture());
-        if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
-        char name[0x100];
-        std::snprintf(name, sizeof(name), "SR%d", object->id_);
-        texture->name_ = name;
-        flags_ |= kFlagRefresh;
-    }
-    // With the new renderer the texture and the decal's draw are left out (the shadow map draws the shadow;
-    // nothing else reads them). The build still projects the decal: its sphere decides the object's shadow
-    // visibility (ShadowInView).
-    const bool makeTexture = !render::ClassicShadowSkipped();
+    // The build: its decal's sphere decides the object's shadow visibility (ShadowInView). Built the first time
+    // after Create / ClearShadow, for an object that moves and when the half asks (flag 8).
     std::uint32_t objectFlags = object->flags_;
-    const bool gameBuilds = (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);
+    const bool gameBuilds = !shadowMade || (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);
+    shadowMade = true;
     if (gameBuilds) {
-        int failure;
         render::BeginShadowBuildTime();
-        bool built = RenderShadow(this, context, &failure, makeTexture);
+        RenderShadow(this, context);
         render::EndShadowBuildTime();
-        if (!built) return failure;
     }
-
-    if (vertices.empty()) return 1;
-    std::uint32_t colour = kDefaultColour;
-    if (CUnit* unit = UnitOrNull(object)) {
-        CUnitClientSpecific* half = unit->ClientController();
-        float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
-        colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
-    }
-    g_sceneRenderer->SetTexture(0, texture);
-    std::uint8_t lit = g_clientWorld->terrain_->EdgeFade(&object->localPosition_);
-    if (!makeTexture) return 1;   // the shadow map draws it
-    g_sceneRenderer->device_
-        ->DrawFlatBlocks(vertices.data(), texCoords.data(), std::ssize(vertices), indices.data(),
-                         std::ssize(indices), colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
-                         std::bit_cast<float>(kDrawDepth));
     return 1;
 }

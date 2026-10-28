@@ -89,7 +89,6 @@ address,name,file
 004F0B10,ConstructDeviceLock,src/game/renderer_lifetime.cpp
 004F0B30,DestroyDeviceLock,src/game/renderer_lifetime.cpp
 004F2B20,FreeMovedPackets,src/game/link_mesh_draw.cpp
-004F4B30,FreeTexturePixels,src/game/link_mesh_draw.cpp
 00500930,ConstructSceneRenderer,src/game/renderer_lifetime.cpp
 00500950,DestroySceneRenderer,src/game/renderer_lifetime.cpp
 00500A70,CSceneRenderer::CSceneRenderer,src/game/renderer_lifetime.cpp
@@ -108,7 +107,6 @@ address,name,file
 00503A20,FreeUnused,src/game/renderer_sprites.cpp
 0051CC00,FreeQuads,src/game/map_object_shadow.cpp
 0051CDD0,FreePoints,src/game/map_object_shadow.cpp
-0051CE30,FreePixels,src/game/map_object_shadow.cpp
 0051FAF0,unitdb::ConstructSkillDatabaseGlobal,src/game/unit_db_destroy.cpp
 0051FB10,SkillDatabase::Construct,src/game/database_construct.cpp
 0051FB40,unitdb::DestroySkillDatabaseGlobal,src/game/unit_db_destroy.cpp
@@ -164,7 +162,6 @@ address,name,file
 0058DA00,FreeSleepingIds,src/game/world_tick.cpp
 0058DA20,FreeRemovedIds,src/game/world_tick.cpp
 005A0CB0,FreeOffsetVertices,src/game/figure_mesh.cpp
-005A1170,FreeTexturePoints,src/game/figure_rasterise.cpp
 005A7A50,FreeMovedPositions,src/game/figure_part_draw_plain.cpp
 005A8AE0,FreeMovedPositions,src/game/figure_part_draw.cpp
 005B0350,DestroyFloodSecond,src/game/ai_region_reach.cpp

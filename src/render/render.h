@@ -1,9 +1,10 @@
 #pragma once
 
 // The renderer: draws the game's frame with sokol_gfx (Direct3D 11) from the data the game hands over and
-// presents it through its own swap chain on the game window. No DirectDraw fallback: when it cannot start
-// the game ends with an error. Off in the original game's process (harness, vector recorders). See
-// docs/notes/renderer.md.
+// presents it through its own swap chain on the game window. No fallback of any kind: when it cannot start, or
+// cannot go on (a sokol panic, a lost device not made again, no swap chain), the game ends with the reason in the
+// game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
+// vector recorders). See docs/notes/renderer.md.
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera",
 // "uiboth" / "uinative" (render_ui.h), the harness build's "removable"; "new", "present" and
 // "cpuwindows" are accepted and change nothing.
@@ -62,8 +63,8 @@ void SetPerfOverlay(bool on);
 void ShadowSun(const float direction[3]);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
-// with (the nearest kMostSceneLights) and the camera. With GpuTerrainLighting (true when Active()) the
-// terrain shader lights each pixel and SectorData::Light writes only the edge fade.
+// with (the nearest kMostSceneLights) and the camera. The terrain shader lights each pixel and SectorData::Light
+// writes only the edge fade.
 struct ScenePointLight {
     Vector3 position;   // the landscape's space
     float inverseRangeSquared;
@@ -80,7 +81,6 @@ struct SceneLights {
 };
 constexpr int kMostSceneLights = 16;
 void SceneLighting(const SceneLights& lights);
-bool GpuTerrainLighting();
 // Object shadows (renderer.md section 13): figures and map objects cast from the sun into a shadow map made
 // every frame; the game's 64 x 64 shadow decals are neither made nor drawn.
 // The ground casts too (landscape flag 0x10): ShadowTerrainArea is ShadowCasterArea for a caster no higher
@@ -137,9 +137,6 @@ void SetOffscreenCasters(OffscreenCasters mode);
 // along), to show a filter that depends on the range cells.
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
-// With the shadow map the game reads only the parts' points, the bounds, the quad and the decal's
-// projection of an object shadow, not its classic texture or flat draw. True when Active().
-bool ClassicShadowSkipped();
 // The last presented frame's shadow map. Of the objects whose shadow the game draws: `offScreen` cast
 // nothing and handed over no mesh, `lost` handed over meshes of which none went into the map (none should);
 // `outside*`: casters through ShadowCasterMesh.
@@ -158,7 +155,7 @@ ShadowInfo ShadowState();
 // TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
 // reuse counts are the harness build's only.
 struct FrameStats {
-    enum Upload { Mmp, CpuPixels, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
+    enum Upload { Mmp, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
 // Hand-over: meshes are BeginMesh with corners built; stateReads are the old device's state reads.
@@ -200,12 +197,9 @@ struct FrameStats {
 };
 FrameStats TakeFrameStats();
 
-// The renderer draws: in the standalone image, until it failed (no device, a sokol panic, a lost device
-// that could not be made again). Every call below does nothing when it is off.
-bool Active();
 // Whether the old device path's mesh draws do only the per-corner work game code reads (the screen
 // rectangle of draw flag 1 and the clipper's counts); the renderer draws every mesh from the model-space
-// hand-over. True when Active(), unless the harness asked for "meshcorners full".
+// hand-over. True unless the harness asked for "meshcorners full".
 bool MeshCornersSkipped();
 void SetMeshCornersFull(bool full);
 // Harness build: timers into FrameStats (deviceMeshMs, the decal / flat / shadow build times; `shadow`: an
@@ -243,8 +237,8 @@ void HolderGone(const void* holder);
 void PictureFromMmp(const void* holder, const void* data);
 
 // The device object is being built: the renderer starts presenting through its own swap chain and the game
-// builds its device without DirectDraw (device.h). False when it cannot start (the game then ends).
-bool StartPresenting();
+// builds its device without DirectDraw (device.h). When it cannot start the game ends here.
+void StartPresenting();
 bool PresentsItself();
 // Default on; the harness turns it off under its virtual clock.
 void SetWaitForVsync(bool on);
@@ -284,7 +278,7 @@ struct MeshDraw {
 };
 
 // A texture's .mmp file in memory: the levels from `mip` on that the game loads for `holder`, decoded and
-// kept until the holder goes. False when not decoded (renderer off, or a format it does not read).
+// kept until the holder goes. False when not decoded (a format it does not read).
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
 // From now on mesh draws sampling `target` in their first stage take the rectangle `to` from `source`'s
@@ -293,10 +287,6 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 // The unit's face blink.
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
-// New CPU-made pixels for a texture (the shadow textures). Nothing for a holder with SurfaceMemory: it is
-// read from that memory.
-void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void BeginMesh(void* device, const MeshDraw& mesh);
 bool MeshPass(void* device);
 void EndMesh();
@@ -436,8 +426,8 @@ struct MeshCacheInfo {
 MeshCacheInfo MeshCacheState();
 
 // Copies the frame drawn so far (`source` in screen pixels) into the holder's SurfaceMemory, stretched: the
-// escape menu's background, the save game's picture. False when the renderer is off, the holder has no
-// such memory or the copy failed.
+// escape menu's background, the save game's picture. False when the holder has no such memory or the copy
+// failed.
 bool CopyFrameTo(const void* holder, const Rect& source);
 
 // Draws what was handed over since the last present and presents it. Once per frame; captures call it
@@ -447,7 +437,7 @@ void EndFrame();
 // EndFrame if not done yet, then a new frame begins.
 void Present();
 
-// The last frame EndFrame drew, 24-bit BGR rows from the top. False when off or without a frame.
+// The last frame EndFrame drew, 24-bit BGR rows from the top. False without a frame.
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
 // The display's gamma ramp (three 256-entry ramps, full scale 65280; null channels identity), applied as
@@ -461,7 +451,6 @@ struct WindowPresentInfo {
     int cursorChecks = 0, cursorMismatches = 0;   // verify build: the cursor the present draws, checked in the back buffer
     bool rampCheckPending = false;
     bool rampIdentity = true;
-    bool failed = false;   // no swap chain, or the device was lost and could not be made again
     int deviceLosses = 0;       // devices lost (or LoseDevice) ...
     int deviceRecoveries = 0;   // ... and made again with everything on them
     std::uint32_t presentsAtRecovery = 0;   // `presents` when the last new device was made

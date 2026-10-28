@@ -34,7 +34,6 @@ HWND GameWindow() { return *game::Where().window; }
 IDXGISwapChain1* g_chain = nullptr;
 ID3D11RenderTargetView* g_view = nullptr;
 int g_chainWidth = 0, g_chainHeight = 0;
-bool g_failed = false;        // no swap chain could be made, or the device is gone: nothing is shown
 int g_presentFailures = 0;
 // Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (render::
 // SetWaitForVsync, set before the first present) or the harness's virtual clock runs the game, where a frame's length
@@ -221,15 +220,21 @@ bool IsDeviceLost(HRESULT hr) {
            hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR;
 }
 
-// Back buffer of `width` x `height`: made, or resized (a failed resize, e.g. after a display mode
-// change, makes the swap chain again once).
-bool EnsureChain(HWND window, int width, int height) {
-    if (!g_chain) {
-        if (CreateChain(window, width, height)) return true;
-        ei::Log("render: cannot present on the game window; nothing is shown (captures still work)");
-        g_failed = true;
+// No swap chain could be made: on a lost device the new one gets it (RecreateDevice at the frame's end, false);
+// on a working device the game cannot go on.
+bool NoChain(const char* what, int width, int height) {
+    HRESULT reason = D3DDevice()->GetDeviceRemovedReason();
+    if (FAILED(reason)) {
+        DeviceLost(what, reason);
         return false;
     }
+    Fatal("The renderer cannot present on the game window: %s (%dx%d).", what, width, height);
+}
+
+// Back buffer of `width` x `height`: made, or resized (a failed resize, e.g. after a display mode
+// change, makes the swap chain again once). False: the device was lost (made again at the frame's end).
+bool EnsureChain(HWND window, int width, int height) {
+    if (!g_chain) return CreateChain(window, width, height) || NoChain("no swap chain", width, height);
     if (width == g_chainWidth && height == g_chainHeight) return true;
     ReleaseView();
     sg_reset_state_cache();
@@ -246,12 +251,9 @@ bool EnsureChain(HWND window, int width, int height) {
     ei::Log("render: cannot resize the game window's swap chain to %dx%d (%08lX)%s", width, height,
             static_cast<unsigned long>(hr), g_recreated ? "" : "; making it again");
     ReleaseChain();
-    if (!g_recreated) {
-        g_recreated = true;
-        if (CreateChain(window, width, height)) return true;
-    }
-    g_failed = true;
-    return false;
+    if (g_recreated) return NoChain("the swap chain cannot be resized", width, height);
+    g_recreated = true;
+    return CreateChain(window, width, height) || NoChain("the swap chain cannot be made again", width, height);
 }
 
 // The frame's place in a client area: its aspect kept, as large as fits, centred.
@@ -415,7 +417,7 @@ namespace detail {
 
 
 bool DrawToWindow(const BlitBatch* cursor) {
-    if (g_failed || DeviceIsLost()) return false;
+    if (DeviceIsLost()) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
@@ -503,7 +505,7 @@ void PresentWindow() {
 }
 
 bool CurrentWindowParts(WindowParts* parts) {
-    if (!g_chain || !g_view || !g_pipeline.id || !g_rampView.id || g_failed) return false;
+    if (!g_chain || !g_view || !g_pipeline.id || !g_rampView.id) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
@@ -524,7 +526,6 @@ void DropWindow() {
     g_pipeline = sg_pipeline{};
     g_shader = sg_shader{};
     g_rampDirty = true;   // the ramp the game set goes to the new device's lookup texture
-    g_failed = false;
     g_recreated = false;
     g_info.presentsAtRecovery = g_info.presents;
 }
@@ -580,7 +581,6 @@ WindowPresentInfo WindowPresents() {
     WindowPresentInfo info = g_info;
     info.rampCheckPending = g_checkRamp;
     info.rampIdentity = g_rampIdentity;
-    info.failed = g_failed;
     DeviceLossCounts(&info);
     return info;
 }

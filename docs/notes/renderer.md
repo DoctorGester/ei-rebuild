@@ -40,13 +40,31 @@ fallback is gone): the game has no DirectDraw or Direct3D 7 device, the new rend
 off-screen target of the game's resolution and presents it through its own flip-model swap chain on the game window
 (`render::StartPresenting`, 004EDD70; section 9, R9a), the surface holders of 004EF7B0 / 004F0060 and the textures
 keep their pixels in memory the new renderer owns (sections 6, 7), and captures write the new frame as
-`frames\<name>.bmp`. When the Direct3D 11 device cannot be made at the start, 004EDD70 throws the game's error ("Can't
-start the renderer (no Direct3D 11 device).") and WinMain ends the game.
+`frames\<name>.bmp`.
 
-`render::Active()` is the one query: not failed (no device at the start, a sokol panic, a lost device not made again:
-R9c1). Every `render::` entry point checks it itself, so game code does not ask. Only the image runs it: in game.exe
-(the harness and the vector recorders run inside the original's process) nothing of ours draws, and the harness asks
-`ei::Standalone()` first (HarnessRenderActive): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
+**When the renderer fails (R26, the user's rule 2026-10-28: no fallbacks).** The game cannot run without the renderer,
+and no code path draws any other way: when it cannot start or cannot go on, the game ends. `render::detail::Fatal`
+(render.cpp) logs "render: fatal: <reason>" to ei_hook.log, shows the reason in the game's error box
+(`app::ShowMessageBox`, MB_ICONHAND; the harness ends the run on it) and exits with -1, also with Rebirth's
+DisableExitOnCrashReport (which makes `game::FatalError` carry on; the renderer's failure must not). The cases:
+- no device at the start (`Start`, at the first use: 004EDD70's `render::StartPresenting` in a normal start): "Can't
+  start the renderer: no Direct3D 11 device (D3D11CreateDevice failed, <hr>)." or "...: sokol_gfx could not be set up
+  on the Direct3D 11 device.";
+- a shader or pipeline the start makes: "Can't start the renderer: the terrain shader / the mesh shader / the blit
+  pipeline could not be made.";
+- a sokol panic (SokolLog, level 0; sokol would abort after it): "The renderer stopped: sokol_gfx panic <item>
+  (<message>).";
+- a lost device that cannot be made again (RecreateDevice, five tries 200 ms apart): "The Direct3D 11 device was lost
+  and no new one could be made: <reason>." (or its pipelines: "The Direct3D 11 device was lost and made again: the
+  ... could not be made.");
+- no swap chain on a working device (render_window.cpp `NoChain`): "The renderer cannot present on the game window:
+  no swap chain / the swap chain cannot be resized / the swap chain cannot be made again (<w>x<h>)." A swap chain that
+  fails on a lost device waits for the new device instead.
+A lost device that is made again (R9c1) is recovery, not a fallback, and stays. There is no `render::Active()` query:
+every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
+original's process) nothing of ours draws, and the harness asks `ei::Standalone()` first (HarnessRenderActive; its
+image half `image::RenderActive` is constant true until R26a removes it from the shared harness): captures there read
+the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
 comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
 and change nothing; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
@@ -110,7 +128,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces_) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
-| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
+| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i; their code deleted in R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs, into the stand-in |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
@@ -189,8 +207,8 @@ composition surfaces 005E60B0, the movies' decode surfaces), the picture holders
 004EFC60 from 005E4EB0; dead picture windows) and the textures (section 7) have only the renderer's memory, written
 and read through `DirectPixels` (no Lock / Unlock, GetDC, Blt or colour fill). Without memory a holder is not made:
 the original's DDSurface error is thrown (`ThrowSurfaceNotMade`, device +8 = DDERR_UNSUPPORTED). The screen's pixel
-format comes from the display mode (`ReadScreenFormat`). If the new renderer fails later (`Active()` turns false)
-nothing more is shown but nothing crashes.
+format comes from the display mode (`ReadScreenFormat`). If the renderer fails later the game ends (section 1, "When
+the renderer fails").
 
 | Address | Name / change |
 |---|---|
@@ -228,7 +246,7 @@ capture of the same frozen moment as 8x8 block averages; the original's: at most
 
 ## 7. Textures without DirectDraw
 
-CPU-written textures (00691D80), shadow textures and .bmp textures have only the renderer's memory; .mmp textures only
+CPU-written textures (00691D80) and .bmp textures have only the renderer's memory; .mmp textures only
 its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
 **Memory textures updated in place (R16b, `render_textures.cpp`).** A texture whose holder has the renderer's memory
@@ -255,8 +273,7 @@ path could put the shadows into one if an instanced decal draw wants them in one
 |---|---|
 | 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the device's 5650 / 5551 / 4444 (missing: FatalError "Can't find texture format %d."); its texture through 0068F6C0 |
-| 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface` (`texture_shadow.cpp`) | 64x64 4:4:4:4 shadow texture and the shared render surface (manager +0xE0) |
-| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`DirectPixels`); the shadow texture is filled from the render surface on the CPU |
+| 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface`, 00690FC0 `LockPixels`, 00691030 `UnlockPixels` | not ported (R26): only the 64x64 shadow texture used them, which the shadow map replaced (section 13) |
 | 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
@@ -275,7 +292,7 @@ memory) and the save / load three all use `DirectPixels`. The binders (004EB300,
 one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
 CTextureDevice::stageSurfaces_). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
-texture and window entries); `TexturePixels` ignores a holder with memory.
+texture and window entries).
 
 Texture patches (R11d): `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's
 texture shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState`
@@ -485,10 +502,10 @@ is what to read it for.
   gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
   pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
   not reset to the identity when the present pipeline is made), window surfaces and memory textures (read again from
-  the game's memory). A movie shows again from its next frame. No new device: the new renderer is off (`Active()`
-  false) and nothing more is shown; the game goes on.
+  the game's memory). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
+  renderer fails").
 - The decoded textures (`owned`: no memory) keep what they were decoded from (`TextureSource`, render_textures.cpp):
-  the header and the file's bytes of the levels decoded (DXT stays compressed), or the RGBA8 level of `TexturePixels`;
+  the header and the file's bytes of the levels decoded (DXT stays compressed);
   `SurfaceView` makes the image again from it at
   its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
   freed by dropping the DirectDraw textures.
@@ -977,13 +994,15 @@ across runs; the goldens check the game state.
    What the numbers do show: with the shadow map (the default) the whole classic shadow build runs every frame for
    the moving objects though only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
    drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's.
-   **R16e1 (done): with the map the classic texture and the decal's draw are left out.** DrawShadow 0051CE60
-   (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active(); before R16i also not the classic option,
-   and the harness's `shadowbuild full` made them as before, for A/B frames and timings): RenderShadow still projects the parts'
-   points (bounds, quad), reads whether a part is keyed (`KeyedParts`, which the original read in the raster's loop)
-   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
-   BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`) and, after SetTexture and EdgeFade, the
-   DrawFlatBlocks call are skipped. (Until R16i a switch to the classic option needed the textures again: a table
+   **R16e1 (done): with the map the classic texture and the decal's draw are left out; R26 deleted their code.**
+   DrawShadow 0051CE60 (map_object_shadow.cpp): RenderShadow still projects the parts' points (bounds, quad), reads
+   whether a part is keyed (`KeyedParts`, which the original read in the raster's loop) and projects the decal (its
+   sphere); the texture (MakeTexture: the render surface's lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
+   BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`; NewShadowTexture / ShadowRenderSurface, the
+   texture pixels 007AF1E0 / 007AEEB8 / 007C2E00 and their exit functions) and, after SetTexture and EdgeFade, the
+   decal's DrawFlatBlocks are gone. The half's `shadowMade` stands for the original's "texture made" test: the
+   first draw after Create / ClearShadow builds the shadow. 2DintMMX's RasteriseTriangle / RasteriseKeyedTriangle /
+   BlurShadow / BlurShadow2 stay declared in CPixelConverter (the DLL's interface) but nothing calls them. (Until R16i a switch to the classic option needed the textures again: a table
    of the shadows whose texture was made, with a generation the harness's `shadows rebuild` moved, rebuilt the
    static ones the game would not rebuild; R16i removed the option, the table and those harness words.) Measured (render_stats, 4K,
    per frame, the `_shadowfull` stretch with them made against `_shadowskip` right after; shadow builds ms + the
@@ -1065,7 +1084,8 @@ across runs; the goldens check the game state.
      the landscape's point lights, the camera); the terrain shader lights each pixel by the vertex lighting's own
      rules (ShadeSun, LightVertex: ambient times one less the water's loss, the sun's facing over the material's
      colour, each point light's falloff, its specular part into the specular word) from the vertex normals and
-     material colours. SectorData::Light no longer lights vertices; it keeps the edge fade and the water's
+     material colours (R26 deleted the CPU path: ShadeSun 006C36B0, LightVertex 006C31C0 and CLight::AddDirectional
+     0068D310 are not ported). SectorData::Light no longer lights vertices; it keeps the edge fade and the water's
      specular word (LightSpecular: the harness digest hashes the water), and runs the sun's ray march
      (Terrain::SunReaches) only where it could load a sector or refresh the sector cache's order
      (`SunMarchTouchesNothing`; the cache's builds draw from the global ISAAC). The `kLit` bit and the relight

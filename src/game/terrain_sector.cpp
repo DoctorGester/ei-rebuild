@@ -517,7 +517,7 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     if (wanted & built) return 1;
     if (wanted >= 2 && !(built & 2)) Build();
     if (wanted >= 4 && !(built & 4))
-        Light(terrain->sun, terrain, 0, 0, 0, 0x20, 0x20);
+        Light(terrain, 0, 0, 0, 0x20, 0x20);
     return wanted & built;
 }
 

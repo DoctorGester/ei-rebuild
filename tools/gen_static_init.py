@@ -770,6 +770,8 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    0x0051CE00: "DrawShadow 0051CE60's texture pixels 007AF1E0 (exit function 0051CE30, guard bit 2 of 007AF1F0): only "
+                "the 64 x 64 shadow texture read them, which is not made (R26)",
     0x0070D3CE: 'CTempWnd and its allocator 007CA940 (guard byte 007C9138)',
     0x0070DD0B: 'CTempMenu and its allocator 007CAAA8 (guard byte 007CAAA0)',
     0x00700718: "CString's allocator of 64 characters 007C8B80",
@@ -1096,6 +1098,10 @@ RETIRED_STATICS = {
                              "original's tile arrays and triangle lists 007C8848..007C88C8 are never built"),
     0x0047ADF0: (0x0047B119, "ObjectSetSortUnique (world_object_sets.cpp) sorts by object id with std::sort: the "
                              "original's radix sort scratch array 007A9738 (freed by 0047B1D0) is never made"),
+    0x004F4850: (0x004F4B2A, "CLinkMesh::RasterisePart rasterised a part into the 64 x 64 shadow texture, which is not "
+                             "made (R26): its texture pixels 007AEEB8 (freed by 004F4B30) are never made"),
+    0x005A0E80: (0x005A116B, "CFigureMesh::Rasterise rasterised a part into the 64 x 64 shadow texture, which is not "
+                             "made (R26): its texture points 007C2E00 (freed by 005A1170) are never made"),
 }
 
 

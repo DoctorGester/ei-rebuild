@@ -737,7 +737,7 @@ bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
 } // namespace detail
 
 void ShadowSun(const float direction[3]) {
-    if (!Active() || !direction) return;
+    if (!direction) return;
     ShadowFrame& s = g_frame.shadow;
     s.haveSun = true;
     s.sun = Vector3{direction[0], direction[1], direction[2]};
@@ -753,17 +753,17 @@ void EndCaster() {
 }
 
 void CastsShadow(const void* object, float strength) {
-    if (!Active() || !object) return;
+    if (!object) return;
     g_frame.shadow.casters.emplace_back(object, strength);
 }
 
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    if (!Active() || !g_outsideOn || !area) return false;
+    if (!g_outsideOn || !area) return false;
     return CasterArea(highestTop, widest, area);
 }
 
 bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area) {
-    if (!Active() || !area) return false;
+    if (!area) return false;
     return CasterArea(highestTop, 0.0f, area);
 }
 
@@ -796,7 +796,7 @@ float CasterStrength(const void* object) {
 }
 
 void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
-    if (!Active() || !g_outsideOn || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0 || m.indexCount < 3)
+    if (!g_outsideOn || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0 || m.indexCount < 3)
         return;
     if (g_outsideVertices.size() + static_cast<std::size_t>(m.cornerCount) > kMostOutsideCorners) return;
     StatsTimer timer(&FrameStats::shadowMs);
@@ -833,7 +833,7 @@ void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
 }
 
 void BeginShadowWalk() {
-    if (Active() && !g_walkTimer) g_walkTimer.emplace(&FrameStats::shadowMs);
+    if (!g_walkTimer) g_walkTimer.emplace(&FrameStats::shadowMs);
 }
 
 void EndShadowWalk() { g_walkTimer.reset(); }
@@ -869,8 +869,6 @@ void SetShadowShift(int texels) {
     (void)texels;
 #endif
 }
-
-bool ClassicShadowSkipped() { return Active(); }
 
 ShadowInfo ShadowState() { return g_lastInfo; }
 

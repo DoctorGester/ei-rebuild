@@ -31,19 +31,14 @@ std::uint32_t CreateFlag(int type) {
 } // namespace
 
 CTextureManager::CTextureManager() {
-    shadowRenderSurface_ = nullptr;
     device_ = nullptr;
     cachedBytes_ = 0;
     mipLevel_ = 0;
     limitTo512_ = 0;
 }
 
-// The part Destroy and the destructor share: the shadow surface, the cache, the composed textures
-// and the device.
+// The part Destroy and the destructor share: the cache, the composed textures and the device.
 static void ReleaseTextures(CTextureManager* manager) {
-    CTexture* shadow = manager->shadowRenderSurface_;
-    manager->shadowRenderSurface_ = nullptr;
-    if (shadow) shadow->Release();
     for (auto node = manager->cache_.begin(); node != manager->cache_.end();) {
         CTexture* texture = *node;
         ++node;

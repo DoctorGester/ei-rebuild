@@ -149,9 +149,9 @@ Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator
 006C8D40, `GroundAndWaterDepth` 006C8930, `Construct` 006BF5F0 (sizes the shared projection buffers 007C88F8 / 007C88E8 / 007C88D0
 to 0x330), `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
-(`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused), `Light` / `ShadeSun` /
-`LightVertex` 006C3A00 / 006C36B0 / 006C31C0 (terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4,
-`libcrt::Ftol`; Ensure lights through 006C3A00's address).
+(`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused), `Light` 006C3A00
+(terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4; the GPU lights the colours, so `ShadeSun` /
+`LightVertex` 006C36B0 / 006C31C0 are not ported since R26: Light keeps the edge fade and the water's specular word).
 
 Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box
 intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a double-returning forwarder to
@@ -166,8 +166,7 @@ perPage * pages (not 16) before falling back to 15; Load picks a vertex's water 
 found (Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48: rewrite guide rule 1).
 Lighting: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex
 being lit (read by the forwarded shadow test 006C92C0, which loads the sectors the ray crosses), +0x258 the sun; record +0x11
-colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff. Kept: ShadeSun passes an
-uninitialised fourth colour component (ours 0, only copied through by 0068D310); channel FISTPs are or-ed whole into the word.
+colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff.
 
 Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); point light registration 006CAC10 (global
 node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /

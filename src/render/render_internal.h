@@ -305,8 +305,12 @@ void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, 
 void PassDone();
 CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
-// sokol is set up (creates the device on first use); false when the renderer is off or failed.
-bool Started();
+// sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).
+void Start();
+// The renderer cannot go on (no device, a sokol panic, a lost device not made again, no swap chain): the reason is
+// logged and shown in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not.
+// There is no other way to draw: no fallback.
+[[noreturn]] void Fatal(const char* format, ...);
 ID3D11Device* D3DDevice();
 ID3D11DeviceContext* D3DContext();
 sg_image FrameImage();
@@ -587,9 +591,7 @@ void LogImageCounts(const char* when);
 // (again when changed), else what was decoded for it; white when there is none. Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
-// render::TexturePixels / TextureFromMmp: kept until the holder goes; nothing for a holder with SurfaceMemory.
-bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
+// render::TextureFromMmp: kept until the holder goes; nothing for a holder with SurfaceMemory.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 void ForgetHolder(const void* holder);
 // A window surface (CUiSurface's holder) as one level, read from its SurfaceMemory when that changed (none

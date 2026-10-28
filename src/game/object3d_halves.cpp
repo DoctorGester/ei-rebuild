@@ -52,9 +52,7 @@ void CObject3DClientSpecific::ClearShadow() {
     vertices.clear();
     texCoords.clear();
     lib::FreeStorage(indices);
-    CTexture* old = texture;
-    texture = nullptr;
-    if (old) old->Release();
+    shadowMade = false;
     bounds[3] = 0.0f;
     bounds[2] = 0.0f;
     bounds[1] = 0.0f;

@@ -6,7 +6,6 @@
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "lib/nan_audit.h"
 
 #include <cfloat>
 #include <cmath>
@@ -74,22 +73,6 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     TiltTowards(target);
     flags_ |= kFlagChanged;
     return 1;
-}
-
-void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const {
-    const float facing = -vecmath::Dot<Sum3::ZYX>(direction_, *normal);
-    EI_NAN_AUDIT(facing);
-    if (facing <= 0.0f) {
-        *out = *base;
-        return;
-    }
-    const float amount = facing * scale;
-    const float red = Lit(base->x, amount, color_[0]);
-    const float green = Lit(base->y, amount, color_[1]);
-    const float blue = Lit(base->z, amount, color_[2]);
-    out->x = red;
-    out->y = green;
-    out->z = blue;
 }
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,

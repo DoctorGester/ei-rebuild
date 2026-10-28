@@ -37,21 +37,6 @@ constexpr float kByteScale = 255.0f;
 // projection). Zero at the start; its exit function frees the block.
 constinit std::vector<VertexPacket> g_movedPackets = /*007AEED0*/ {};
 
-// A part's texture coordinates in 0..255 (a function-local static; its exit handler frees its block).
-constinit std::vector<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
-std::uint8_t g_texturePixelsGuard = /*007AEEC8*/ {};
-void FreeTexturePixels() { lib::FreeStorage(g_texturePixels); }
-std::vector<RasterTriangle::Point>& TexturePixels() {
-    auto& constructed = g_texturePixelsGuard;
-    auto& pixels = g_texturePixels;
-    if (!(constructed & 1)) {
-        constructed |= 1;
-        std::construct_at(&pixels);
-        std::atexit(FreeTexturePixels);
-    }
-    return pixels;
-}
-
 // The screen rectangle of a part that was not drawn.
 constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
 
@@ -238,36 +223,5 @@ int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offset
     const VertexPacket* positions = vertices_.data() + r.vertices.start;
     if (!offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
     pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
-    return r.vertices.count << 2;
-}
-
-// The part's texture coordinates times 255 (as floats, rounded to the nearest integer), then every triangle's
-// corners - the projected point of the corner's position and the texture point of its coordinate - handed to
-// the pixel converter's rasteriser at the start of `target`.
-int CLinkMesh::RasterisePart(const std::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return 0;
-    const LinkPartRanges& r = node->second;
-    std::vector<RasterTriangle::Point>& texturePixels = TexturePixels();
-    CPixelConverter* converter = loader_->renderer_->converter_;
-
-    texturePixels.resize(r.texCoords.count);
-    for (unsigned i = 0; i < static_cast<unsigned>(r.texCoords.count); ++i) {
-        float uv[2];
-        std::memcpy(uv, &texCoords_[r.texCoords.start + static_cast<int>(i)], sizeof(uv));
-        texturePixels[i].x = x87::fistp(static_cast<float>(uv[0] * kByteScale));
-        texturePixels[i].y = x87::fistp(static_cast<float>(uv[1] * kByteScale));
-    }
-
-    const MeshCorner* corners = corners_.data() + r.corners.start;
-    const std::uint16_t* indices = indices_.data() + r.indices.start;
-    for (unsigned n = 0; n < static_cast<unsigned>(r.indices.count); n += 3) {
-        for (int k = 0; k < 3; ++k) {
-            const MeshCorner& corner = corners[indices[n + k]];
-            std::memcpy(&target->corners[k].screen, &pixels[corner.position], sizeof(RasterTriangle::Point));
-            std::memcpy(&target->corners[k].texture, &texturePixels[corner.texCoord], sizeof(RasterTriangle::Point));
-        }
-        converter->RasteriseTriangle(target);
-    }
     return r.vertices.count << 2;
 }

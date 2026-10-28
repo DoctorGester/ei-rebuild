@@ -88,7 +88,6 @@ void FreeLineProjected();
 void FreeLineVertices();
 void FreeMovedPackets();
 void FreeOffsetVertices();
-void FreePixels();
 void FreePoints();
 void FreeQuads();
 void FreeShadow52();
@@ -627,8 +626,7 @@ void RunStaticInitialisers() {
     std::atexit(FreeQuads);
     // 0051CDA0: stores + atexit; 4 left out
     std::atexit(FreePoints);
-    // 0051CE00: stores + atexit; 4 left out
-    std::atexit(FreePixels);
+    // 0051CE00: stores + atexit; 5 left out
     // 0051EFB0: guarded atexit
     if (Once(lib::g_emptyStaticGuard, 1)) {
     }
