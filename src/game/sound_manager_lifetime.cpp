@@ -28,10 +28,6 @@ constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 const char* const kBackslash = "\\";
 
-int CompareText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
-
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
@@ -98,7 +94,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     bool missing;
     {
         std::string last = str::Right(soundPath, 1);
-        missing = CompareText(last, kBackslash) != 0;
+        missing = str::Compare(last, kBackslash) != 0;
     }
     if (missing) soundPath += kBackslash;
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
@@ -391,7 +387,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    if (CompareText(m->nextName, game::EmptyText()) == 0 ||
+    if (str::Compare(m->nextName, game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;

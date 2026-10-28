@@ -21,9 +21,9 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 #include "world_glue.h"
 #include "record_lists.h"
 #include "game_data.h"
@@ -292,10 +292,6 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 
 // --- Main menu clicks ------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
     const char* okSound = "buttons\\menu\\ok.wav";
@@ -532,7 +528,7 @@ void CCreditsScreen::CreateScreen() {
             TitleLine record{};
             {
                 std::string first = words.WordOrEmpty();
-                record.scroll = gamecrt::mbsicmp(first,
+                record.scroll = text::CompareIgnoringCase(first,
                                                 "#scroll") ==
                                 0;
             }

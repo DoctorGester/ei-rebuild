@@ -4,11 +4,10 @@
 #include "ei/x87.h"
 #include "console.h"
 
-#include "../lib/crt.h"
+#include "../lib/text_case.h"
 #include "player_client.h"
 #include "text_split.h"
 
-#include "lib/crt.h"
 #include "net_classes.h"
 #include "acks_db.h"
 #include "world_glue.h"
@@ -24,6 +23,7 @@
 #include "lib/str.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -32,15 +32,9 @@ namespace console::commands {
 namespace {
 
 
-int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(a, b);
-}
-int Mbsicmp(const char* a, const char* b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const Arguments* args, int i, const char* text) { return Mbscmp((*args)[i].c_str(), text) == 0; }
+bool ArgIs(const Arguments* args, int i, const char* text) { return std::strcmp((*args)[i].c_str(), text) == 0; }
 // "1"/"on" and "0"/"off".
 bool ArgOn(const Arguments* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const Arguments* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
@@ -350,16 +344,16 @@ void Net(Arguments* args) {
         PrintLine("net server 0/1 - show server traffic");
         return PrintLine("net time 0/1   - show client time counting info");
     }
-    if (Mbsicmp((*args)[0].c_str(), "client") == 0) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "client") == 0) {
         std::string value = (*args)[1];
         LocalPlayer()->logTraffic_ = std::atoi(value.c_str());
     }
-    if (Mbsicmp((*args)[0].c_str(), "server") == 0) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "server") == 0) {
         if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = std::atoi((*args)[1].c_str());
     }
-    if (Mbsicmp((*args)[0].c_str(), "time") == 0)
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "time") == 0)
         app::g_showClientSpeed = std::atoi((*args)[1].c_str());
-    if (Mbsicmp((*args)[0].c_str(), "zone") == 0 && ServerActive(Server())) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "zone") == 0 && ServerActive(Server())) {
         std::string zone = (*args)[1];
         Server()->SendCommand(0, zone.c_str());
     }

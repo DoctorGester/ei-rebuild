@@ -19,6 +19,7 @@
 #include "world.h"
 
 #include "lib/stlp.h"
+#include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -387,7 +388,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
-            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
+            return text::CompareIgnoringCase(part->materialClass, own->soundName) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -732,7 +733,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
+    if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {

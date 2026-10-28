@@ -7,16 +7,13 @@
 
 #include "resource.h"
 
-#include "lib/crt.h"
 #include "text_split.h"
 #include "lib/str.h"
 
+#include <cstring>
 #include <string>
 
 namespace {
-
-// MBCS CRT: _ismbblead, isleadbyte, _mbsinc, _mbscmp.
-int MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
 // Split (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
@@ -28,28 +25,11 @@ bool Inside(const CTextManager* t, const char* p) {
     return static_cast<int>(p - t->text_) < static_cast<int>(t->length_);
 }
 
-// The character code as inlined: the lead test on the unsigned byte, the code from the signed bytes.
-int CharCode(const char* p) {
-    int high = 0;
-    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
-        high = static_cast<signed char>(*p) << 8;
-        ++p;
-    }
-    return static_cast<signed char>(*p) + high;
-}
-
-// Appends the character at `p` (one or two bytes, by isleadbyte on the signed byte) to `out`.
-void AppendCharAt(std::string* out, const char* p) {
-    out->push_back(p[0]);
-    if (libcrt::Isleadbyte(static_cast<signed char>(*p))) out->push_back(p[1]);
-}
-
 // How one inlined "move the cursor past the next LF" tests the end and reads characters.
 enum class Test { Inline, Call };
 struct AdvanceKind {
     Test entry;     // the first test of the cursor
     Test loopEnd;   // the end test of the scanning loop
-    Test code;      // the character code in the loop
     Test exit;      // the final test (cursor = p at the end, else just past the LF)
 };
 
@@ -60,21 +40,20 @@ bool InsideBy(CTextManager* t, const char* p, Test test) {
 void Advance(CTextManager* t, const AdvanceKind& kind) {
     const char* p = t->cursor_;
     if (!InsideBy(t, p, kind.entry)) return;
-    while (InsideBy(t, p, kind.loopEnd) && (kind.code == Test::Inline ? CharCode(p) : TextCharCode(p)) != 10)
-        p = gamecrt::mbsinc(p);
-    t->cursor_ = InsideBy(t, p, kind.exit) ? gamecrt::mbsinc(p) : p;
+    while (InsideBy(t, p, kind.loopEnd) && *p != '\n') ++p;
+    t->cursor_ = InsideBy(t, p, kind.exit) ? p + 1 : p;
 }
 
-constexpr AdvanceKind kAfterRead{Test::Inline, Test::Inline, Test::Inline, Test::Call};    // ReadLine / Split
-constexpr AdvanceKind kInline{Test::Inline, Test::Inline, Test::Inline, Test::Inline};     // comment skipping
-constexpr AdvanceKind kFindFirst{Test::Inline, Test::Call, Test::Call, Test::Call};        // FindLine, no key / one word
-constexpr AdvanceKind kFindMulti{Test::Call, Test::Call, Test::Call, Test::Call};          // FindLine, several words
-constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call, Test::Call};    // FindLine, one word, comments
+constexpr AdvanceKind kAfterRead{Test::Inline, Test::Inline, Test::Call};     // ReadLine / Split
+constexpr AdvanceKind kInline{Test::Inline, Test::Inline, Test::Inline};      // comment skipping
+constexpr AdvanceKind kFindFirst{Test::Inline, Test::Call, Test::Call};       // FindLine, no key / one word
+constexpr AdvanceKind kFindMulti{Test::Call, Test::Call, Test::Call};         // FindLine, several words
+constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call};   // FindLine, one word, comments
 
 // Whether a word starts with "##".
 bool IsComment(const std::string& word) {
     std::string start = str::Left(word, 2);
-    return MbsCmp(start.c_str(), kComment) == 0;
+    return std::strcmp(start.c_str(), kComment) == 0;
 }
 
 // After a read: the cursor moves past the line (`first`), then past every "##" comment line.
@@ -118,23 +97,21 @@ BOOL TextClose(CTextManager* self) {
     return 1;
 }
 
-int TextCharCode(const char* p) { return CharCode(p); }
-
 BOOL CTextManager::PeekWord(std::string* out) {
     const char* p = cursor_;
     bool started = false;
     out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
-        int code = CharCode(p);
+        const char code = *p;
         if (code == 13 || code == 9) break;
         if (code == 0x20 || code == 10) {
             if (started) break;
         } else {
             started = true;
-            AppendCharAt(out, p);
+            out->push_back(*p);
         }
-        p = gamecrt::mbsinc(p);
+        ++p;
     }
     return 1;
 }
@@ -142,12 +119,12 @@ BOOL CTextManager::PeekWord(std::string* out) {
 BOOL TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;
     if (!Inside(self, p)) return 0;
-    while (Inside(self, p) && CharCode(p) != 10) p = gamecrt::mbsinc(p);
+    while (Inside(self, p) && *p != 10) ++p;
     if (!Inside(self, p)) {
         self->cursor_ = p;
         return 0;
     }
-    self->cursor_ = gamecrt::mbsinc(p);
+    self->cursor_ = p + 1;
     return 1;
 }
 
@@ -166,10 +143,10 @@ BOOL CTextManager::ReadLine(std::string* out, BOOL advance) {
     out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
-        int code = CharCode(p);
+        const char code = *p;
         if (code == 10 || code == 13) break;
-        AppendCharAt(out, p);
-        p = gamecrt::mbsinc(p);
+        out->push_back(*p);
+        ++p;
     }
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
@@ -180,9 +157,9 @@ BOOL CTextManager::ReadToHash(std::string* out, BOOL advance) {
     out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
-        if (CharCode(p) == '#') break;
-        AppendCharAt(out, p);
-        p = gamecrt::mbsinc(p);
+        if (*p == '#') break;
+        out->push_back(*p);
+        ++p;
     }
     if (advance) cursor_ = p;
     return 1;
@@ -195,7 +172,7 @@ BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
     words->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
-        int code = CharCode(p);
+        const char code = *p;
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
             if (!word.empty()) {
@@ -214,9 +191,9 @@ BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
             }
         } else {
             inWord = true;
-            AppendCharAt(&word, p);
+            word.push_back(*p);
         }
-        p = gamecrt::mbsinc(p);
+        ++p;
     }
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
@@ -232,7 +209,7 @@ BOOL CTextManager::FindLine(const char* key) {
             bool header;
             {
                 std::string first = str::Left(word, 1);
-                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word);
+                header = std::strcmp(first.c_str(), kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;
             Advance(this, kFindFirst);
@@ -243,7 +220,7 @@ BOOL CTextManager::FindLine(const char* key) {
     if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWord(&word)) {
-            if (MbsCmp(word.c_str(), key) == 0) return 1;
+            if (std::strcmp(word.c_str(), key) == 0) return 1;
             std::string next;
             Advance(this, kFindFirst);
             while (PeekWord(&next)) {
@@ -261,7 +238,7 @@ BOOL CTextManager::FindLine(const char* key) {
             for (;;) {
                 word = lineWords[i];
                 str::MakeLower(word);
-                if (MbsCmp(word.c_str(), keyWords[i].c_str()) != 0) break;
+                if (std::strcmp(word.c_str(), keyWords[i].c_str()) != 0) break;
                 if (++i >= keyWords.size()) return 1;
             }
         }

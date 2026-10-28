@@ -20,6 +20,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
+#include <cstring>
 #include <memory>
 
 namespace {
@@ -98,7 +99,7 @@ int CWorldServer::Update() {
     ScriptVars& globals = MainScript()->globals_;
     auto& names = globals.groups.names;
     for (int i = 0; i < names.size; ++i) {
-        if (gamecrt::mbscmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
+        if (std::strcmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.values.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);

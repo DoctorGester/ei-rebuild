@@ -4,9 +4,9 @@
 // (src/lib/crt_format.cpp, S4a). Recorded by record_crt_format.cpp, replayed by replay_crt_format.cpp.
 //
 // "@CrtFormatLocale" (fixture): what the conversions read of the CRT's locale, the decimal point
-// (game.exe's __decimal_point 00797FE8; ours libcrt::DecimalPoint, set by SetReplayLocale) and the class words of _pctype (00797DD8)
-// for 0..255. Taken at the first call after the
-// game has set its LC_CTYPE locale; a call while the locale differs from it is not recorded.
+// (game.exe's __decimal_point 00797FE8) and the class words of _pctype (00797DD8) for 0..255. Taken at the first
+// call after the game has set its LC_CTYPE locale; a call while the locale differs from it is not recorded. Ours are
+// the C locale's (crt_format.cpp): the replay checks that the game's answer the same where the conversions read them.
 //
 // "vsprintf" (sprintf's calls too: both are _output on an unbounded string FILE): the format, the
 // arguments _output reads in order (ArgumentKind and its value; a %s text up to the precision), the

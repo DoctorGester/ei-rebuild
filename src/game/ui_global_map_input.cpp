@@ -12,12 +12,12 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstring>
@@ -44,7 +44,7 @@ constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 
 // tilt * spin as the drag sums it.

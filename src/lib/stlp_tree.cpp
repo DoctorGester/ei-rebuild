@@ -3,8 +3,7 @@
 #include "stlp_tree.h"
 #include "stlp_tree_mbs.h"
 
-#include "crt.h"
-
+#include <cstring>
 #include <utility>
 
 namespace stlp::rb {
@@ -226,6 +225,6 @@ RbNodeBase* RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& lef
 
 namespace stlp {
 
-bool MbsLess::Less(const std::string& a, const std::string& b) { return gamecrt::mbscmp(a.c_str(), b.c_str()) < 0; }
+bool MbsLess::Less(const std::string& a, const std::string& b) { return std::strcmp(a.c_str(), b.c_str()) < 0; }
 
 } // namespace stlp

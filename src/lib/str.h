@@ -15,8 +15,13 @@
 
 #include <cstdarg>
 #include <string>
+#include <string_view>
 
 namespace str {
+
+// The texts compared as strcmp compares them, each up to its first zero byte (CString's Compare): below, at or
+// above zero.
+int Compare(std::string_view a, std::string_view b);
 
 // The order of the maps that had MFC CString keys: _mbscmp below zero, on the text up to its first zero byte.
 struct MbsLess {

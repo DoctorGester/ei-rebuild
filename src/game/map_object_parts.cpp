@@ -5,7 +5,6 @@
 
 #include "base_manager.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -136,6 +135,6 @@ double CObject3D::AnimationFactor(float time) {
 
 int CObject3D::FindPartIndex(const char* partName) {
     for (std::size_t i = 0; i < partNames.size(); ++i)
-        if (gamecrt::mbscmp(partNames[i].c_str(), partName) == 0) return static_cast<int>(i);
+        if (std::strcmp(partNames[i].c_str(), partName) == 0) return static_cast<int>(i);
     return -1;
 }

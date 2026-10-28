@@ -7,7 +7,6 @@
 #include "game_strings.h"
 #include "ui.h"
 
-#include "../lib/crt.h"
 #include "lib/mfc_file.h"
 
 #include "ei/rebirth.h"
@@ -83,10 +82,6 @@ Stream& Stream::Flush() {
 CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
 
 namespace {
-
-int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(a, b);
-}
 
 bool NetworkGame() { return IsMultiplayerClient(); }
 
@@ -193,7 +188,7 @@ void Execute(const char* text) {
 
     str::MakeLower(command);
     for (std::string& arg : args) str::MakeLower(arg);
-    if (Mbscmp(command.c_str(), "quit") == 0 || Mbscmp(command.c_str(), "exit") == 0) {
+    if (std::strcmp(command.c_str(), "quit") == 0 || std::strcmp(command.c_str(), "exit") == 0) {
         app::QuitGame(0);
         return;
     }
@@ -218,20 +213,14 @@ void Execute(const char* text) {
 }
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
-// token). Double-byte characters are taken whole.
+// token).
 int Tokenize(const char* text, std::vector<std::string>* out) {
     std::string token;
     int state = 0;
     out->clear();
     const char* p = text;
     for (;;) {
-        int c = 0;
-        const char* low = p;
-        if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
-            c = static_cast<signed char>(*p) * 256;
-            low = p + 1;
-        }
-        c += static_cast<signed char>(*low);
+        const char c = *p;
         if (c == 0) break;
         if (c == ' ') {
             if (state == 1) {
@@ -240,11 +229,11 @@ int Tokenize(const char* text, std::vector<std::string>* out) {
                     out->push_back(token);
                     token.clear();
                 }
-                p = gamecrt::mbsinc(p);
+                ++p;
                 continue;
             }
             if (state != 2) {
-                p = gamecrt::mbsinc(p);
+                ++p;
                 continue;
             }
         } else if (c == '"') {
@@ -252,10 +241,8 @@ int Tokenize(const char* text, std::vector<std::string>* out) {
         } else if (state == 0) {
             state = 1;
         }
-        // The character's bytes (a zero byte ends the text a CString kept).
-        token += p[0];
-        if (libcrt::Isleadbyte(static_cast<signed char>(*p)) && p[1] != '\0') token += p[1];
-        p = gamecrt::mbsinc(p);
+        token += c;
+        ++p;
     }
     if (token.size() != 0) {
         out->push_back(token);

@@ -16,6 +16,7 @@
 #include "quest_records.h"
 #include "world.h"
 
+#include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -202,7 +203,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const ZoneExit& source = map->exits.data[i];
-        if (gamecrt::mbsicmp(source.target,
+        if (text::CompareIgnoringCase(source.target,
                             "none") == 0)
             continue;
         int index = exits_.size;
@@ -313,7 +314,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 quests.push_back(s->c_str());
                 const char* current = listZones_ == 0 ? LastQuest().c_str()
                                                       : interface_->savedText_.c_str();
-                if (gamecrt::mbsicmp(current,
+                if (text::CompareIgnoringCase(current,
                                     s->c_str()) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
@@ -364,7 +365,7 @@ QuestRecord* FindQuestRecord(const char* name) {
 }
 
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b) == 0;
+    return text::CompareIgnoringCase(a, b) == 0;
 }
 
 } // namespace
@@ -587,7 +588,7 @@ void CObjectivesWindow::CreateScreen() {
         for (auto node = table->begin(); node != table->end(); ++node) {
             text::Split(node->first.c_str(), &parts, '.');
             if (parts.size() != 3) continue;
-            if (gamecrt::mbsicmp(interfaceQuest,
+            if (text::CompareIgnoringCase(interfaceQuest,
                                 parts[2].c_str()) == 0)
                 current = parts[1];
             std::uint32_t one;
@@ -596,12 +597,12 @@ void CObjectivesWindow::CreateScreen() {
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
-                gamecrt::mbsicmp(zone->allod,
+                text::CompareIgnoringCase(zone->allod,
                                 allodZone->allod) != 0)
                 continue;
             bool listed = false;
             for (std::string* z = zones->data(); z != zones->data() + zones->size(); ++z)
-                if (gamecrt::mbscmp(zone->name,
+                if (str::Compare(zone->name,
                                     z->c_str()) == 0) {
                     listed = true;
                     break;
@@ -617,7 +618,7 @@ void CObjectivesWindow::CreateScreen() {
         }
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
-            if (gamecrt::mbsicmp(current,
+            if (text::CompareIgnoringCase(current,
                                 zones->begin()[i].c_str()) ==
                 0) {
                 zoneIndex_ = i;

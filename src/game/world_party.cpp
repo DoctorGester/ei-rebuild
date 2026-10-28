@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
 #include "game_lists.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include "ei/x87.h"
@@ -84,7 +85,7 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
-        if (gamecrt::mbsicmp(info->zones[i], zone) == 0)
+        if (text::CompareIgnoringCase(info->zones[i], zone) == 0)
             found = true;
     return found;
 }

@@ -7,6 +7,7 @@
 
 #include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <memory>
@@ -145,7 +146,7 @@ bool WeaponBaseFigure(std::uint32_t index, std::string* out) {
 std::string CItemQuick::FigureName() {
     std::string name;
     const ItemRecordHead* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(prototype->materialClass,
+    if (prototype && text::CompareIgnoringCase(prototype->materialClass,
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
         const char* materialName = material ? material->name.c_str() : kUnknownMaterial;

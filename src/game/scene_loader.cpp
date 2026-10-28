@@ -13,6 +13,7 @@
 
 #include "../lib/crt.h"
 #include "../lib/mfc_coll.h"
+#include "../lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -777,7 +778,7 @@ mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, Fake
         for (int n = 0; n < s.nodes.size; ++n) {
             const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
-            if (gamecrt::mbscmp(nd.name,
+            if (str::Compare(nd.name,
                                 name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];
@@ -817,7 +818,7 @@ mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, Fake
         auto* owner = u->Object3D()->ClientSpecific();
         std::string& texture = owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->name_;
         const std::string& name = s.textureNames[t].name;
-        bool bmp = gamecrt::mbsicmp(str::Right(name, 4).c_str(), scenedata::BmpExtText()) == 0;
+        bool bmp = text::CompareIgnoringCase(str::Right(name, 4).c_str(), scenedata::BmpExtText()) == 0;
         if (bmp) {
             texture = str::Left(name, static_cast<int>(name.size()) - 4);
         } else {

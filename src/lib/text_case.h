@@ -3,9 +3,9 @@
 // Upper and lower case of UTF-8 text (docs/notes/standalone.md section 4).
 // The original changes case through the C runtime's locale (LC_CTYPE from the "Font CharSet" option, "english":
 // code page 1252) and the multibyte table of the system's ANSI code page, one byte at a time. On UTF-8 that
-// corrupts text (tolower of the lead byte 0xD0 is 0xF0) and still misses Cyrillic. The CRT's case functions
-// (crt.cpp: _stricmp, _strnicmp, _memicmp, _mbsicmp, _mbslwr and so CString::MakeLower, tolower / toupper, the
-// character classes) and CharUpperA / CharLowerA (system_text.h) use this table instead, whatever the locale:
+// corrupts text (tolower of the lead byte 0xD0 is 0xF0) and still misses Cyrillic. Ours, in place of the CRT's case
+// functions (_stricmp, _strnicmp, _memicmp, _mbsicmp, _mbslwr and so str::MakeLower, tolower / toupper, the character
+// classes) and of CharUpperA / CharLowerA (system_text.h), use this table, whatever the locale:
 //   - ASCII A-Z / a-z;
 //   - Latin-1 U+00C0-U+00DE / U+00E0-U+00FE (not U+00D7 / U+00F7) and the other letters of code page 1252
 //     (Œ œ, Š š, Ž ž, Ÿ ÿ);
@@ -14,6 +14,7 @@
 // Everything else (other scripts, bytes that are not UTF-8) stays as it is.
 
 #include <cstddef>
+#include <string_view>
 
 namespace text {
 
@@ -28,7 +29,17 @@ void UpperInPlace(char* text, std::size_t size = static_cast<std::size_t>(-1));
 // The texts compared as their lower-cased bytes (the table), up to `n` bytes: -1, 0 or 1, as the CRT's
 // compares answer. `terminated`: a zero byte in either text ends the compare (_stricmp, _strnicmp);
 // otherwise exactly `n` bytes are compared (_memicmp).
-int CompareIgnoringCase(const char* a, const char* b, std::size_t n, bool terminated);
+int CompareIgnoringCase(const char* a, const char* b, std::size_t n, bool terminated = true);
+// The same on two whole texts, each up to its first zero byte (_stricmp, _mbsicmp).
+int CompareIgnoringCase(std::string_view a, std::string_view b);
+
+// A character's class and case as the C runtime's functions answer for UTF-8 text: a byte past ASCII is part of a
+// sequence (it has no class and no case of its own), and so is a negative char or EOF.
+constexpr bool IsDigit(int c) { return c >= '0' && c <= '9'; }
+constexpr bool IsSpace(int c) { return c == ' ' || (c >= '\t' && c <= '\r'); }
+constexpr bool IsAlpha(int c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }
+constexpr int ToLower(int c) { return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c; }
+constexpr int ToUpper(int c) { return c >= 'a' && c <= 'z' ? c - ('a' - 'A') : c; }
 
 // Whether code point `c` is printable: not a C0 or C1 control, not DEL, not a surrogate, at most U+10FFFF.
 bool IsPrintableCodePoint(unsigned c);

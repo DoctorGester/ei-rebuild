@@ -551,7 +551,7 @@ int CPlayerClient::OnNewObject() {
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
-            if (gamecrt::mbscmp(parts[i].c_str(), TextHairPart()) != 0) continue;
+            if (std::strcmp(parts[i].c_str(), TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
             else parts[i] = str::Format(TextHairFormat(), hair);

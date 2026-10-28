@@ -5,6 +5,7 @@
 
 #include "console.h"
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <string>
@@ -39,7 +40,7 @@ const char* Chars(const std::uint8_t* p) { return reinterpret_cast<const char*>(
 // The home slot of `name` in a table of `slots` entries.
 std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
     std::uint32_t sum = 0;
-    for (const char* p = name; *p; ++p) sum += static_cast<std::uint32_t>(gamecrt::tolower(*p));
+    for (const char* p = name; *p; ++p) sum += static_cast<std::uint32_t>(text::ToLower(*p));
     return sum % slots;
 }
 
@@ -126,7 +127,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = root + 6 + 6 * (slot & 0xFFFF);
         record = data_ + U32(entry + 2);
         if (U16(record + 2) == static_cast<std::uint16_t>(sectionLength) &&
-            libcrt::Memicmp(Chars(record + 4), section, sectionLength & 0xFFFF) == 0)
+            text::CompareIgnoringCase(Chars(record + 4), section, sectionLength & 0xFFFF, false) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;
@@ -142,7 +143,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = keyTable + 6 * (slot & 0xFFFF);
         value = record + U32(entry + 2);
         if (U16(value + 1) == static_cast<std::uint16_t>(keyLength) &&
-            libcrt::Memicmp(Chars(value + 3), key, keyLength & 0xFFFF) == 0)
+            text::CompareIgnoringCase(Chars(value + 3), key, keyLength & 0xFFFF, false) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;
@@ -208,12 +209,14 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
         // 16-bit length).
         const std::string string = text::FromAssetText(std::string_view(Chars(value + 2), U16(value)));
         const int count = static_cast<int>(text::FittingBytes(string, static_cast<std::size_t>(*length - 1)));
-        gamecrt::strncpy(buffer, string.data(), static_cast<std::size_t>(count));
+        #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+        std::strncpy(buffer, string.data(), static_cast<std::size_t>(count));
         buffer[count] = '\0';
         *length = count;
         return;
     }
-    gamecrt::strncpy(buffer, defaultValue, static_cast<std::size_t>(*length));
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    std::strncpy(buffer, defaultValue, static_cast<std::size_t>(*length));
     *length = static_cast<int>(std::strlen(buffer));
 }
 

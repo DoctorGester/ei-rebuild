@@ -18,12 +18,14 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "core_streams.h"
 #include "map_object.h"
 #include "lib/containers.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <string>
 #include <vector>
@@ -56,7 +58,7 @@ void ClearMissiles(CWorldServer* world) {
 
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     CAIMap* aiMap = AIMap();
-    if (gamecrt::mbsicmp(mapName_, map) != 0) {
+    if (text::CompareIgnoringCase(mapName_, map) != 0) {
         aiMap->Reset();
         aiMap->BeginRefresh();
         bool failed;
@@ -72,7 +74,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     graph->Seek(0);
     if (graph->Size() != 0 && !AIMap()->Regions()->LoadBlocks(graph)) return 0;
 
-    if (gamecrt::mbsicmp(mobName_, mob) == 0) {
+    if (text::CompareIgnoringCase(mobName_, mob) == 0) {
         // The same zone again: start over.
         ScriptReset(MainScript());
         ScriptReset(SecondScript());
@@ -186,10 +188,6 @@ void CWorldServer::ResetZone() {
 
 // ---- TeardownZone -----------------------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void CWorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
@@ -230,11 +228,6 @@ void CWorldServer::TeardownZone() {
 }
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
-
-namespace {
-
-
-} // namespace
 
 void CWorldServer::SendFreshObjects() {
     mfc::CTypedPtrList<CEngineObject> fresh;
@@ -312,7 +305,7 @@ void CWorldServer::ResetState() {
 }
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
-    if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
+    if (str::Compare(mapName_, map) == 0 && str::Compare(mobName_, mob) == 0) return;
     NewZone(map, mob, nullptr);
     TeardownZone();
 }

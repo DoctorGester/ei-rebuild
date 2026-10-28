@@ -1,13 +1,13 @@
 #pragma once
 
 // Payloads of the "crt" family (vectors.h): the game CRT's character functions. "@GameCrtCtype" is a
-// fixture: isdigit, isspace and tolower for c = 0..255, which ei_vectors' gamecrt functions answer
-// from (tests/vectors/replay_crt.cpp). Recorded by record_crt.cpp.
+// fixture: isdigit, isspace and tolower for c = 0..255; the replay checks text_case.h's answers for ASCII
+// against them (tests/vectors/replay_crt.cpp). Recorded by record_crt.cpp.
 //
 // The game sets a locale (LC_CTYPE); its character table is then on the heap, and isdigit / isspace
 // of a negative char (a signed char >= 0x80, as the script lexer passes them) read memory before it:
 // the answers differ from run to run. A record whose input has such bytes carries what the two
-// answered at the call (NegativeClasses).
+// answered at the call (NegativeClasses). Ours answer such a byte as UTF-8 (no class), so the replay skips them.
 
 #include "vectors.h"
 
@@ -31,14 +31,7 @@ void OfferCtype();
 // A u8 flag, then NegativeClasses when `text` (`size` bytes) has a byte >= 0x80.
 void PutNegativeClasses(Writer& w, const void* text, std::size_t size);
 
-// Replay side. Reads what PutNegativeClasses wrote; gamecrt answers negative chars from it until the
-// scope ends (without it they abort the replay).
-class NegativeClassesScope {
-public:
-    explicit NegativeClassesScope(Reader& r);
-    ~NegativeClassesScope();
-    NegativeClassesScope(const NegativeClassesScope&) = delete;
-    NegativeClassesScope& operator=(const NegativeClassesScope&) = delete;
-};
+// Replay side: reads past what PutNegativeClasses wrote.
+void SkipNegativeClasses(Reader& r);
 
 } // namespace ei::vectors::crt

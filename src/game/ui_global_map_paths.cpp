@@ -14,7 +14,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_singletons.h"
@@ -29,7 +28,7 @@ namespace {
 constexpr const char* kZoneVariable = "z.%s";
 
 bool SameName(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 
 // --- The click ---

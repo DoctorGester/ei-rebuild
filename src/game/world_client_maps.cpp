@@ -1329,7 +1329,7 @@ MapRecord* LocalZoneRecord() {
 }
 
 bool InFinalZone() {
-    return gamecrt::mbscmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
+    return std::strcmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace

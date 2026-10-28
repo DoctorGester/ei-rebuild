@@ -1,24 +1,18 @@
 #include "crt.h"
-#include "crt_locale_data.h"
 #include "mfc_handle_map.h"
 
 #include "ei/x87.h"
 #include "gameapi.h"
 #include "game/game_data.h"
-#include "text_case.h"
 
 #include <cfloat>
 #include <cmath>
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
-#include <cwchar>
 #include <intrin.h>
 #include <corecrt_startup.h>
 #include <malloc.h>
-#include <mbctype.h>
-#include <mbstring.h>
-#include <ctype.h>
 #include <new>
 
 namespace gamecrt {
@@ -42,14 +36,6 @@ int rand() {
     return value;
 }
 void srand(unsigned seed) { libcrt::Srand(seed); }
-// The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
-// own answers through record_crt.cpp's calls by address).
-int tolower(int c) { return libcrt::Tolower(c); }
-int strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
-char* strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
-int strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
-int isdigit(int c) { return libcrt::Isdigit(c); }
-int isspace(int c) { return libcrt::Isspace(c); }
 int sprintf(char* buffer, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -57,35 +43,6 @@ int sprintf(char* buffer, const char* format, ...) {
     va_end(args);
     return length;
 }
-int mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
-
-#ifndef EI_VECTORS_REPLAY
-namespace {
-
-struct CaseFold {
-    bool built = false;
-    unsigned localeHandle = 0;
-    unsigned codePage = 0;
-    int fold[256];
-};
-
-CaseFold caseFold;
-
-} // namespace
-
-const int* CaseFoldTable() {
-    CaseFold& table = caseFold;
-    const unsigned handle = libcrt::CtypeLocale();
-    const unsigned codePage = libcrt::CtypeCodePage();
-    if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
-        for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
-        table.localeHandle = handle;
-        table.codePage = codePage;
-        table.built = true;
-    }
-    return table.fold;
-}
-#endif
 
 double acos(double c) { return libcrt::CiAcos(c); }
 
@@ -100,82 +57,6 @@ unsigned DebugLog(const char*, ...) { return 0; }
 
 #ifndef EI_VECTORS_REPLAY   // the ports read the game CRT's data; ei_vectors has its own (replay_crt.cpp)
 namespace libcrt {
-
-namespace {
-
-// Every string is UTF-8 (text_case.h), so case and character classes do not come from the locale or the ANSI
-// code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has no class and no case of its
-// own, and is never a double-byte lead byte; the string compares and _mbslwr change case by text_case.h's table.
-// A byte (as the int the class functions take) past ASCII, or EOF.
-bool PastAscii(int c) { return c < 0 || c >= 0x80; }
-
-} // namespace
-
-// The plain string functions are the host CRT's; the case and class functions answer for UTF-8 (text_case.h).
-// These names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp).
-int Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
-
-char* Strncpy(char* to, const char* from, std::size_t n) {
-#pragma warning(suppress : 4996)
-    return std::strncpy(to, from, n);
-}
-
-int Stricmp(const char* a, const char* b) {
-    return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
-}
-
-int Strnicmp(const char* a, const char* b, std::size_t n) {
-    if (n == 0) return 0;
-    return text::CompareIgnoringCase(a, b, n, true);
-}
-
-int Memicmp(const void* a, const void* b, std::size_t n) {
-    return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
-}
-
-int Mbscmp(const unsigned char* a, const unsigned char* b) {
-    return std::strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
-
-int Mbsicmp(const unsigned char* a, const unsigned char* b) {
-    return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
-
-unsigned char* Mbsinc(const unsigned char* p) {
-    return const_cast<unsigned char*>(p + 1);
-}
-
-int Ismbblead(unsigned) {
-    return 0;
-}
-
-int Isleadbyte(int) {
-    return 0;
-}
-
-int Tolower(int c) {
-    return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
-}
-
-int Toupper(int c) {
-    return c >= 'a' && c <= 'z' ? c - 0x20 : c;
-}
-
-int Isalpha(int c) {
-    return PastAscii(c) ? 0 : isalpha(c);
-}
-
-int Isdigit(int c) {
-    return PastAscii(c) ? 0 : isdigit(c);
-}
-
-int Isspace(int c) {
-    return PastAscii(c) ? 0 : isspace(c);
-}
-
-int Isprint(int c) {
-    return PastAscii(c) ? 0 : isprint(c);
-}
 
 namespace {
 
@@ -257,20 +138,6 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
         lo = loStack[stacked];
         hi = hiStack[stacked];
     }
-}
-
-// `n` bytes: there are no double-byte characters (the callers compare ASCII prefixes).
-int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
-    return std::strncmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b), n);
-}
-
-std::size_t Mbclen(const unsigned char*) {
-    return 1;
-}
-
-unsigned char* Mbslwr(unsigned char* text) {
-    text::LowerInPlace(reinterpret_cast<char*>(text));
-    return text;
 }
 
 namespace {

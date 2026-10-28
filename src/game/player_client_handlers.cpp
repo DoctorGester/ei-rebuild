@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect.h"
-#include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include "game_data.h"
@@ -70,7 +69,7 @@ int CPlayerClient::OnCameraPlacement() {
     TheClientWorld()->CentreOn(&point);
     CCamera* camera = TheCamera();
     const char* zone = Owner()->Party()->zone_.c_str();
-    if (gamecrt::mbscmp(zone,
+    if (std::strcmp(zone,
                         FixedViewZone()) == 0) {
         CameraView view;
         view.distance = kSpecialZoneDistance;

@@ -25,6 +25,7 @@
 #include "game_singletons.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <ddraw.h>
 
 #include <cstdarg>
@@ -243,7 +244,7 @@ int StartFirstMap() {
     const auto& cmdScript = CommandLineScript();
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
-    if (gamecrt::mbscmp(cmdMode.c_str(),
+    if (std::strcmp(cmdMode.c_str(),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());

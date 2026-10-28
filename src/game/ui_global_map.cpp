@@ -437,18 +437,18 @@ void CGlobalMap::CreateScreen() {
     fog_[0] = 0.0f;
     fog_[1] = 1.0f;
     fog_[2] = 0.0f;
-    if (gamecrt::mbscmp(allod->name,
+    if (str::Compare(allod->name,
                         "ingos") == 0) {
         fog_[0] = Bits(0x3EBE0000);
         fog_[1] = Bits(0x3F020000);
         fog_[2] = Bits(0x3F200000);
-    } else if (gamecrt::mbscmp(allod->name,
+    } else if (str::Compare(allod->name,
                                "suslanger") == 0) {
         fog_[0] = Bits(0x3EC80000);
         fog_[1] = Bits(0x3E480000);
         fog_[2] = Bits(0x3DB00000);
     }
-    if (gamecrt::mbscmp(allod->name,
+    if (str::Compare(allod->name,
                         "gipat") == 0)
         gipat_ = true;
 

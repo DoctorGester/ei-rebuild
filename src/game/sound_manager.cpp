@@ -21,6 +21,7 @@
 #include "game_lists.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -722,7 +723,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
     int m = 4;
     if (streamState != 0) {
         m = mode;
-        if (gamecrt::mbscmp(streamName,
+        if (str::Compare(streamName,
                             name) == 0 &&
             *name != '\0') {
             streamState = 1;
@@ -738,7 +739,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         }
     }
     if (streamState == 2 &&
-        gamecrt::mbscmp(nextName,
+        str::Compare(nextName,
                         name) == 0 &&
         switchMode >= m) {
         gameapi::LeaveCriticalSection(lock);

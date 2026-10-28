@@ -11,11 +11,11 @@
 #include "figure_mesh.h"
 #include "world.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
@@ -25,10 +25,6 @@ namespace {
 
 constexpr int kListBlockSize = 10;
 constexpr int kBoneClass = 0x300C;   // FigureBone's class id
-
-int CompareNames(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
 
 // A bone's mesh is a counted figure part (CFigureMesh, an engine object).
 CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
@@ -129,7 +125,7 @@ void CFigureAnimationState::Reset() {
 
 FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
     for (auto* node = bones.head; node; node = node->next)
-        if (CompareNames(node->data->name, boneName) == 0) return node->data;
+        if (str::Compare(node->data->name, boneName) == 0) return node->data;
     return nullptr;
 }
 
@@ -145,7 +141,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     const char* parentName = bone->name2.c_str();
     FigureBone* parent = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, parentName) == 0) {
+        if (str::Compare(node->data->name, parentName) == 0) {
             parent = node->data;
             break;
         }
@@ -153,7 +149,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     if (parent) {
         bool known = false;
         for (auto* node = parent->children.head; node && !known; node = node->next)
-            known = CompareNames(node->data->name, bone->name) == 0;
+            known = str::Compare(node->data->name, bone->name) == 0;
         if (!known) {
             parent->children.AddTail(bone);
             bone->parent = parent;
@@ -174,7 +170,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, part->GetName()) == 0) {
+        if (str::Compare(node->data->name, part->GetName()) == 0) {
             bone = node->data;
             break;
         }

@@ -3,6 +3,7 @@
 // parts").
 #include "ei/x87.h"
 #include "figure_mesh.h"
+#include "lib/text_case.h"
 #include "material.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
@@ -12,7 +13,6 @@
 #include "world_data.h"
 #include "render/render.h"
 #include "lib/containers.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "world.h"
 #include "game_data.h"
@@ -142,7 +142,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
     l.coefficient = LightingCoefficient();
-    l.crown = CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0;
+    l.crown = CrownOption() != 0 && text::CompareIgnoringCase(MeshName(part.Mesh()), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const CLight* light = (*part.lights)[i];

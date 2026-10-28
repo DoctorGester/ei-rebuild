@@ -12,6 +12,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
+#include "../lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/containers.h"
@@ -51,13 +52,6 @@ using stock::TakenPrototypes;
 // The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
-int CompareNoCase(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
 // size (rand scaled by size / 0x7FFF, then modulo the size).
@@ -182,21 +176,21 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
     CandidateVector& candidates = Candidates();
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         itemdb::ItemRecordHead* prototype = *p;
-        if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
+        if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind(), -1);
         ctor->SetPrototype(prototype);
         candidates.clear();   // erase(begin, end)
-        if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
+        if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-                if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
+                if (str::Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.push_back(e);
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype);
         if (!chosen) {
-            if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
+            if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
                 if (candidates.end() == candidates.begin()) {
                     ctor->Cancel();
                     ctor->SetManager(nullptr);
@@ -280,7 +274,7 @@ void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, 
     if (&source != &taken) taken = source;
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
-        if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
+        if (skip && str::Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);

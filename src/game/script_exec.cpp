@@ -41,6 +41,7 @@
 #include "bink_video.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstring>
@@ -213,7 +214,7 @@ void GiveSkill(const SSCCmd* cmd) {
                                          "sense", "astral", "stealth", "awareness"};
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
-        if (gamecrt::mbsicmp(Text(cmd, 0), kNames[i]) != 0) continue;
+        if (text::CompareIgnoringCase(Text(cmd, 0), kNames[i]) != 0) continue;
         CUnit* owner = state->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
         UnitStats* stats = StatsOf(state);

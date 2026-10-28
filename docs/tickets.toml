@@ -3579,6 +3579,18 @@ depends = ["C14c"]
 note = "Left by C14c (user 2026-10-28 rule: replace the usage code with std or small code of ours, then delete the stlp piece once only the tests' game.exe views use it). Kept as stlp: net::Connection's five trees (net_connection.h trees::*, counted RefPtr values with CountedValue / RecordValue policies; stlp_tree.h / stlp_tree_abi.h / stlp_tree_mbs.h stay for them), UnitSet's FiguredTable / FiguredGroups / DressedTable (world.h, record element policies; walked to write the zone message, so lib::HashMap), PartyTable (party_manager.h, CParty in place with a nonstandard copy; game_hashes.h PartyAbi), ShapeTable (ai_shape_cache.h, RefPtr values, its own height equality). Each needs its element's real special members (an RAII counted pointer, CParty's copy) first; then lib::HashMap (src/lib/hash_map.h) where the walk matters, std::map for the trees, and stlp_hash.h / stlp_tree*.h go. The hashtable's bucket vectors are stlp::vector (C14n)."
 
 [[ticket]]
+id = "C35i"
+title = "C35 str.cpp's host multibyte calls (_mbschr, _mbsstr, _mbsrchr, _mbspbrk, _ismbcspace) to std / text_case.h"
+group = "cleanup"
+note = "C35b left them: under the standalone's _MB_CP_SBCS they are strchr / strstr / strrchr / strpbrk and an ASCII isspace. Check the sign-extended char Contains passes (_mbschr of a value above 0xFF) and _ismbcspace of a negative char before replacing; ei_vectors links str.cpp."
+
+[[ticket]]
+id = "C35j"
+title = "C35 vector recorders: the crt family's NegativeClasses flag and the 1252 answers past ASCII dropped at the next re-record"
+group = "cleanup"
+note = "Since C35b the replay only skips NegativeClasses (no script record has a byte past ASCII: 772 records, flag 0 in all) and @GameCrtCtype is checked for ASCII only. Drop PutNegativeClasses / SkipNegativeClasses and record ASCII only when the script vectors are recorded again (changes tests/vectors/record_*.cpp, the vectors harness key)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

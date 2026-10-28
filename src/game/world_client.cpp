@@ -23,6 +23,7 @@
 #include "unit.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -182,7 +183,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < exits_.size; ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (gamecrt::mbscmp(exits_[i].target, "none") == 0) continue;
+        if (str::Compare(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
         return 1;
     }
@@ -217,7 +218,7 @@ void CWorldClient::CreateExitMarkers() {
     countedA0_.SetSize(0);
     countedA0_.SetSize(exits_.size);
     for (int i = 0; i < exits_.size; ++i) {
-        if (gamecrt::mbsicmp(exits_[i].target,
+        if (text::CompareIgnoringCase(exits_[i].target,
                             game::NoneText()) == 0) {
             continue;
         }
@@ -273,7 +274,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     name = str::Right(name, length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (gamecrt::mbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+        if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
     EI_NAN_AUDIT(value);
@@ -315,9 +316,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     case 2: flags = 2; break;
     case 3: flags = 1; break;
     }
-    if (gamecrt::mbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (gamecrt::mbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (gamecrt::mbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
+    if (str::Compare(zoneName_, "gipat") == 0) flags |= 0x10;
+    else if (str::Compare(zoneName_, "ingos") == 0) flags |= 0x20;
+    else if (str::Compare(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
     const int weather = rainSnow_.mode;

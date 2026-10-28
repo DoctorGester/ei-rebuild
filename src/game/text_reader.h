@@ -12,8 +12,6 @@
 
 // Clears the current text. Returns 1.
 BOOL TextClose(CTextManager* self);
-// The code of the character at `p`.
-int TextCharCode(const char* p);
 // Moves the cursor past the next LF. 0 (cursor left at the end) when there is none.
 BOOL TextSkipLine(CTextManager* self);
 // Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.

@@ -6,10 +6,10 @@
 #include "random.h"
 #include "sound.h"
 
-#include "../lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <string>
@@ -66,7 +66,7 @@ void CEffectSoundSeq::Start(int update) {
     SoundNameArray list;
     const std::string& first = name_;
     const std::vector<std::string>& others = names_;
-    bool withFirst = gamecrt::mbscmp(first, "") != 0;
+    bool withFirst = str::Compare(first, "") != 0;
     if (withFirst) list.push_back(first);
     Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);

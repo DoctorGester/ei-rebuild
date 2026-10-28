@@ -15,6 +15,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstring>
@@ -562,8 +563,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const char* set = "Gipat";
     if (dungeon) set = "Dungeon";
-    else if (libcrt::Stricmp(zone, "Ingos") == 0) set = "Ingos";
-    else if (libcrt::Stricmp(zone, "Suslanger") == 0) set = "Suslanger";
+    else if (text::CompareIgnoringCase(zone, "Ingos") == 0) set = "Ingos";
+    else if (text::CompareIgnoringCase(zone, "Suslanger") == 0) set = "Suslanger";
     textAE0 = set;
     terrain::CountAmbientVariants(textAE0.c_str());
 

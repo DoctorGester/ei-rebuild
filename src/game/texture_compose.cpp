@@ -183,7 +183,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(name->c_str(),
+    } else if (std::strcmp(name->c_str(),
                                fallback->c_str()) != 0) {
         *out = *fallback;
         path = CachePath((*fallback).c_str());

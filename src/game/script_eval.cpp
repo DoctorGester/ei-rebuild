@@ -180,7 +180,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
+        *result = FromBool(std::strcmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];

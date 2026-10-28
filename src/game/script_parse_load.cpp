@@ -655,7 +655,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             while (*p && *p != '\n') ++p;
             if (*p) *p++ = 0;
             line = start;
-            if (gamecrt::strncmp(start, keyword, std::strlen(keyword)) == 0) {
+            if (std::strncmp(start, keyword, std::strlen(keyword)) == 0) {
                 define.name = game::EmptyText();
                 define.value = game::EmptyText();
                 char* q = start + std::strlen(keyword);

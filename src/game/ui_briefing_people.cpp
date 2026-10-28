@@ -18,11 +18,11 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cmath>
 #include <memory>
@@ -49,10 +49,6 @@ constexpr std::uint32_t kSlotBackdrop = 0xA0000000;
 constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 Normalised(float x, float y, float z) {
@@ -145,7 +141,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
 
     // An item: one shown under this name goes first.
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-        if (Compare(node->name, name) != 0) continue;
+        if (text::CompareIgnoringCase(node->name, name) != 0) continue;
         HideSpeaker(name, 0, 0);
         break;
     }

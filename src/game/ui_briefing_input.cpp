@@ -17,9 +17,9 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
 #include <string>
 
@@ -191,7 +191,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
     std::string zone = GameExitTarget(exit_);
-    if (gamecrt::mbsicmp(zone,
+    if (text::CompareIgnoringCase(zone,
                         NoZone()) == 0)
         return;
     std::string variable = ZoneVariablePrefix();

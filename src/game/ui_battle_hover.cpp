@@ -11,8 +11,8 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstring>
@@ -142,7 +142,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             int exit;
             if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
             std::string name = GameExitTarget(exit);
-            if (gamecrt::mbsicmp(name,
+            if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;
                 double value = LocalPlayerVariable(name.c_str());

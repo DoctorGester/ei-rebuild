@@ -15,7 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-
+#include "lib/text_case.h"
 
 #include <bit>
 #include <cfloat>
@@ -131,10 +131,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z));
 
             const char* partName = bone->GetName();
-            const int* fold = gamecrt::CaseFoldTable();
-            if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) box->bounds.flags |= kBoxBase;
-            if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) box->bounds.flags |= kBoxCrown;
-            if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) box->bounds.flags |= kBoxEmpty;
+            if (text::CompareIgnoringCase(partName, "BASE", 4) == 0) box->bounds.flags |= kBoxBase;
+            if (text::CompareIgnoringCase(partName, "CROWN", 5) == 0) box->bounds.flags |= kBoxCrown;
+            if (text::CompareIgnoringCase(partName, "EMPTY", 5) == 0) box->bounds.flags |= kBoxEmpty;
         }
         animation->ReleaseBones();
     }
@@ -238,10 +237,9 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         // The box and the pivot.
         part->box_ = piece.box;
     }
-    const int* fold = gamecrt::CaseFoldTable();
-    if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) part->box_.bounds.flags |= kBoxBase;
-    if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) part->box_.bounds.flags |= kBoxCrown;
-    if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) {
+    if (text::CompareIgnoringCase(partName, "BASE", 4) == 0) part->box_.bounds.flags |= kBoxBase;
+    if (text::CompareIgnoringCase(partName, "CROWN", 5) == 0) part->box_.bounds.flags |= kBoxCrown;
+    if (text::CompareIgnoringCase(partName, "EMPTY", 5) == 0) {
         part->box_.bounds.flags |= kBoxEmptyMark;
         part->box_.bounds.flags |= kBoxCrown;
     }

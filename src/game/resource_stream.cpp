@@ -2,6 +2,7 @@
 // listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
+#include "lib/text_case.h"
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
@@ -168,7 +169,7 @@ int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult)
     if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
     while (*name != '\0' && *pattern != '\0') {
         if (*pattern == '*') return 1;
-        if (*pattern != '?' && libcrt::Toupper(*pattern) != libcrt::Toupper(*name)) return 0;
+        if (*pattern != '?' && text::ToUpper(*pattern) != text::ToUpper(*name)) return 0;
         ++name;
         ++pattern;
     }

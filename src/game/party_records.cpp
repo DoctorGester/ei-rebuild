@@ -10,18 +10,16 @@
 #include "game_lists.h"
 #include "party.h"
 
-#include "lib/crt.h"
 #include "game_hashes.h"
 #include "lib/mfc.h"
 
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <bit>
 
 namespace {
-
-int MbsCmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -77,8 +75,8 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
     for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (MbsCmp(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->Party();
-        if (MbsCmp(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->Party();
+        if (str::Compare(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->Party();
+        if (str::Compare(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->Party();
     }
     return unnamed;
 }
@@ -102,7 +100,7 @@ void NamedPartyRecords::Add(const char* name) {
 
 void NamedPartyRecords::Remove(const char* name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.Finish() - records.Start()); ++i) {
-        if (MbsCmp(NameOf(records.Start()[i]), name) != 0) continue;
+        if (str::Compare(NameOf(records.Start()[i]), name) != 0) continue;
         // erase(i): the tail moved down one slot by counted assignment, the last slot released.
         // The index still advances, so the record moved into slot i is not tested.
         PartyRecord** p = records.Start() + i;

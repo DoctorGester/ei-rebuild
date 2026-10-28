@@ -377,7 +377,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(parts[0].c_str(),
+    if (std::strcmp(parts[0].c_str(),
                         kSpellContainer) == 0) {
         const char* spellText = extra.c_str();
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
@@ -413,10 +413,10 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
     const char* type = prototype->text04.c_str();
-    if (extra.size() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
+    if (extra.size() != 0 && std::strcmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);
-    } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
+    } else if (std::strcmp(type, kMaterialType) == 0 &&
                extra.size() != 0) {
         constructor->count_ = std::atoi(extra.c_str());
     }

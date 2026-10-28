@@ -16,7 +16,7 @@
 #include "world.h"
 
 #include "lib/static_object.h"
-#include "lib/crt.h"
+#include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -167,7 +167,7 @@ bool MobFile::Load(void*, int keepIds) {
         }
         TheServerWorld()->CreateObject(spec);
         auto* object = static_cast<ObjectSpec*>(spec);
-        bool skip = spec->id == 2 && gamecrt::mbscmp(object->texture, "unmoco2") == 0;
+        bool skip = spec->id == 2 && str::Compare(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = object->Unit()->ServerController();
             controller->brain.SetAlarmRecords(static_cast<UnitSpec*>(spec)->behaviour, kBehaviourCount);

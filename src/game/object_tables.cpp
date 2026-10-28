@@ -3,11 +3,12 @@
 
 #include "core_streams.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
@@ -17,7 +18,7 @@
 int TextKeyFromName(const char* name) {
     std::uint32_t h = 0;
     for (const char* p = name; *p; ++p)
-        h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
+        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 
@@ -27,13 +28,13 @@ BOOL IsTextKey(int id) {
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
-        if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
+        if (text::CompareIgnoringCase(maps.data[i].name, name) == 0) return &maps.data[i];
     return nullptr;
 }
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
-        if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
+        if (text::CompareIgnoringCase(allods.data[i].name, name) == 0) return &allods.data[i];
     return nullptr;
 }
 
@@ -67,7 +68,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
     out->clear();
     for (const auto& [key, value] : *this)
-        if (gamecrt::strncmp(prefix, key.c_str(), length) == 0) (*out)[key] = value;
+        if (std::strncmp(prefix, key.c_str(), length) == 0) (*out)[key] = value;
 }
 
 void NamedFloatTable::Load(CStream* stream) {
@@ -79,7 +80,7 @@ void NamedFloatTable::Load(CStream* stream) {
             std::string* read = stream->ReadString(&raw);
             key = *read;
         }
-        if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
+        if (str::Compare(key, game::EmptyText()) == 0) break;
         float value;
         stream->Read(&value, 4);
         (*this)[key] = value;

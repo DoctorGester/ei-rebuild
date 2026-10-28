@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -64,18 +63,6 @@ constexpr COLORREF kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
 
-// The character at `p` as it is compared: a lead byte shifted left by 8 (sign-extended)
-// plus the next byte (sign-extended), otherwise the byte itself.
-int CharAt(const char* p) {
-    int value = 0;
-    const char* q = p;
-    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
-        value = static_cast<signed char>(*p) << 8;
-        q = p + 1;
-    }
-    return value + static_cast<signed char>(*q);
-}
-
 // The colour of "^<digit>": bit 0 blue, bit 1 green, bit 2 red (COLORREF 0x00BBGGRR).
 COLORREF MarkColour(char digit) {
     int bits = static_cast<signed char>(digit) - '0';
@@ -99,11 +86,11 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     bool mark = false;
     // A character is its whole UTF-8 sequence, so a word wider than a line is broken between characters and
     // measured as text.
-    for (const char* p = source.c_str(); CharAt(p) != 0; p += text::CharacterLength(p)) {
+    for (const char* p = source.c_str(); *p != 0; p += text::CharacterLength(p)) {
         ch.assign(p, static_cast<std::size_t>(text::CharacterLength(p)));
-        int c = CharAt(p);
+        const char c = *p;
         if (mark) {
-            if (static_cast<unsigned>(c) >= '0' && static_cast<unsigned>(c) < '8')
+            if (c >= '0' && c < '8')
                 wordFormatted += ch;
             else
                 wordFormatted += kDefaultColour;

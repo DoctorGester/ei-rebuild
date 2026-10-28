@@ -12,7 +12,7 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -49,7 +49,7 @@ CItem* MakeItem(CParty* party, const char* name) {
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
 bool Named(const std::string& name) {
     return name.size() != 0 &&
-           gamecrt::mbsicmp(name,
+           text::CompareIgnoringCase(name,
                            game::NoneText()) != 0;
 }
 

@@ -30,6 +30,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -239,7 +240,7 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (gamecrt::mbsicmp(arguments[i].c_str(),
+            if (text::CompareIgnoringCase(arguments[i].c_str(),
                                 "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
@@ -346,12 +347,12 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
+    if (str::Compare(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (str::Compare(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }

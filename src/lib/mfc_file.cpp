@@ -89,9 +89,6 @@ char* Fullpath(char* out, const char* path, std::size_t size) {
 
 // '\\' or '/'.
 bool IsSeparator(char c) { return c == '\\' || c == '/'; }
-char* Next(char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
-const char* Next(const char* p) { return gamecrt::mbsinc(p); }
-
 
 constexpr unsigned kMaxFileName = 256;
 
@@ -101,16 +98,16 @@ std::string GetRoot(const char* path) {
     char* start = root.data();
     gameapi::lstrcpynA(start, path, MAX_PATH);
     char* p = start;
-    while (*p != '\0' && !(IsSeparator(p[0]) && IsSeparator(p[1]))) p = Next(p);
+    while (*p != '\0' && !(IsSeparator(p[0]) && IsSeparator(p[1]))) ++p;
     if (*p != '\0') {
         // A UNC name: up to the separator after the share's name.
         p += 2;
-        while (*p != '\0' && !IsSeparator(*p)) p = Next(p);
-        if (*p != '\0') p = Next(p);
-        while (*p != '\0' && !IsSeparator(*p)) p = Next(p);
+        while (*p != '\0' && !IsSeparator(*p)) ++p;
+        if (*p != '\0') ++p;
+        while (*p != '\0' && !IsSeparator(*p)) ++p;
     } else {
         p = start;
-        while (*p != '\0' && !IsSeparator(*p)) p = Next(p);
+        while (*p != '\0' && !IsSeparator(*p)) ++p;
     }
     if (*p != '\0') p[1] = '\0';
     str::CutAtNull(root);
@@ -144,8 +141,8 @@ BOOL FullPath(char* out, const char* path) {
 
 unsigned AfxGetFileName(const char* path, char* name, unsigned max) {
     const char* last = path;
-    for (const char* at = path; *at != '\0'; at = Next(at)) {
-        if (*at == '\\' || *at == '/' || *at == ':') last = Next(at);
+    for (const char* at = path; *at != '\0'; ++at) {
+        if (*at == '\\' || *at == '/' || *at == ':') last = at + 1;
     }
     if (!name) return static_cast<unsigned>(gameapi::lstrlenA(last) + 1);
     gameapi::lstrcpynA(name, last, static_cast<int>(max));

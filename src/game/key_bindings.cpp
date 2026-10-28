@@ -6,9 +6,9 @@
 #include "console.h"
 #include "game_strings.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
 #include "world_glue.h"
@@ -78,13 +78,13 @@ void LoadKeyBindings() {
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (libcrt::Stricmp(g_keyNames[key].file_, words[0].c_str()) == 0) {
+            if (text::CompareIgnoringCase(g_keyNames[key].file_, words[0].c_str()) == 0) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (libcrt::Stricmp(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
+            if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
             if (known) ActionOfScan()[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }

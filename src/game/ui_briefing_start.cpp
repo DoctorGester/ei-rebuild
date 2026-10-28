@@ -22,8 +22,8 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -55,10 +55,6 @@ constexpr int kConstructorNumber = 7;    // where the constructor's number start
 constexpr int kCampScreen = 5;
 constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 Vector3 Position(const CUnit* unit) { return Vector3{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z}; }
 
@@ -116,11 +112,11 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         briefingStarted_ = false;
         return;
     }
-    if (Compare(topic_, GoodbyeTopic()) == 0) {
+    if (text::CompareIgnoringCase(topic_, GoodbyeTopic()) == 0) {
         state_ = 0;
         return;
     }
-    if (Compare(str::Left(topic_, kConstructorPrefix), ConstructorTopic()) == 0) {
+    if (text::CompareIgnoringCase(str::Left(topic_, kConstructorPrefix), ConstructorTopic()) == 0) {
         int constructor = std::atoi(str::Mid(topic_, kConstructorNumber).c_str());
         if (ClassTemplates()->Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
@@ -282,7 +278,7 @@ void CBriefingScreen::FinishDialogue() {
     std::vector<std::string> parts;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         text::Split(node->first.c_str(), &parts, '.');
-        if (parts.size() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
+        if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
         TheServerWorld()->CompleteBriefing(0, node->first.c_str());
         break;
     }

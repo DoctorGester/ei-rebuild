@@ -10,9 +10,9 @@
 #include "game_slots.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
+#include "lib/text_case.h"
 
 #include <climits>
 #include <cmath>
@@ -251,7 +251,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     std::string name = cmd->stringArgs.data[0].c_str();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (libcrt::Stricmp(kScriptParticleTypes[i].name, name.c_str()) == 0) {
+        if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name.c_str()) == 0) {
             type = &kScriptParticleTypes[i];
             break;
         }

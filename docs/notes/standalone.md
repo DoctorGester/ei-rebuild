@@ -575,7 +575,7 @@ kinds given.
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
-    CRT's since C26 (lib/crt_locale_data.cpp reads it), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
+    CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
@@ -1683,20 +1683,26 @@ the `--no-hooks` suite) keeps the registry.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
-- **Locale** (C26, C34): the host CRT's, LC_CTYPE "C". The original's text manager Create 004DED20 called
-  setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
+- **Locale** (C26, C34, C35b): the host CRT's "C" locale, never changed. The original's text manager Create 004DED20
+  called setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
-  the host's `_MB_CP_SBCS` (no lead bytes). What still reads the state directly (crt_format.cpp's _output,
-  CaseFoldTable, mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID,
-  `__lc_codepage`, `_mbctype`, `_mbcasemap`).
-- **Strings and characters** (crt.cpp, C26, C34): strncmp and strncpy the host CRT's; _stricmp, _strnicmp,
-  _memicmp, _mbsicmp and _mbslwr by text_case.h's UTF-8 table; _mbscmp and _mbsncmp byte compares; _mbsinc,
-  _ismbblead, isleadbyte and _mbclen without lead bytes; tolower / toupper ASCII only; isalpha / isdigit / isspace /
-  isprint no class past ASCII (section 4, U5), all behind their libcrt names (ei_vectors' recorded answers need the
-  names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
-  _splitpath called by their own names. Both suites goldens the same, though the host's compares return a difference
-  rather than VC6's -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words
-  before `_pctype`.
+  the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's _output takes the C
+  locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
+  AfxFormatString1 copies bytes. ei_vectors checks the game's recorded point and class words against that
+  ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
+- **Strings and characters** (C26, C34, C35b): no CRT function of ours. Callers use std::strcmp / strncmp / strncpy
+  (_mbscmp, _mbsncmp, strcmp, strncpy), `str::Compare` for std::string / string_view texts (strcmp's order up to
+  the first NUL, what _mbscmp read of a CString), and text_case.h: `CompareIgnoringCase` (_stricmp, _strnicmp, _memicmp,
+  _mbsicmp by the UTF-8 table), `LowerInPlace` (_mbslwr), `ToLower` / `ToUpper` (ASCII) and `IsDigit` / `IsSpace` /
+  `IsAlpha` (no class past ASCII; a negative char has none). _mbsinc is p + 1; _ismbblead and isleadbyte answered 0,
+  so the double-byte branches went (the console's tokens, the text reader's characters, the word wrap, the chat
+  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). memmove, memcpy, memset, strstr,
+  wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _ismbcspace, atoi, _itoa and _splitpath are the host's, called by
+  their own names. Both suites goldens the same, though the host's compares return a difference rather than VC6's
+  -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
+  ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII
+  (the recorder's NegativeClasses flag is 0 in all), so the game's 1251 / 1252 answers were never needed and the replay
+  skips them; "@GameCrtCtype" checks that the game's isdigit, isspace and tolower answer ASCII as text_case.h does.
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
   image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
@@ -2061,11 +2067,11 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
   `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
-  names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they reach the CRT's
-  compares, which use the table. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
+  names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call
+  `text::CompareIgnoringCase`, the table's compare. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
   mod_folders' 2 path keys and MFC's `CFileFind` path left, script `StrLower` / `StrUpper` fixed. 6 per-byte folds
-  (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword tables through
-  `CaseFoldTable`) left: their names are ASCII (the .reg tables' slots were laid out by the original's tools). 8
+  (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword and part-name tests)
+  left: their names are ASCII (the .reg tables' slots were laid out by the original's tools). 8
   class tests left (drive letters, digits in scripts and party files, the edit field's ASCII classes); the network's
   player name filter (`IsPrintableText` 0047ADA0) by character, each a valid UTF-8 sequence of a printable code
   point (the original passed bytes through the 1252 table's `isprint`; the login's name and password are the

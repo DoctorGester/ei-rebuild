@@ -46,6 +46,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/mfc_array.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "party_manager.h"
@@ -122,9 +123,9 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(record->name,
+            keep = str::Compare(record->name,
                                    kAlwaysCopied) == 0 ||
-                   gamecrt::mbscmp(record->allod,
+                   str::Compare(record->allod,
                                    currentMap) == 0;
         }
         if (keep) {
@@ -303,7 +304,7 @@ int EnterZone(CParty* records) {
 
     NamedFloatTable* variables = &records->variables_;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
-        if (gamecrt::mbscmp(zone.c_str(),
+        if (std::strcmp(zone.c_str(),
                             kMovieZone) != 0) {
             {
                 std::string movie = MoviesFolder() + kMovieFile;
@@ -315,10 +316,10 @@ int EnterZone(CParty* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(zoneRecord->map,
+    if (str::Compare(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
-        if (gamecrt::mbsicmp(zone.c_str(),
+        if (text::CompareIgnoringCase(zone.c_str(),
                             kFrozenZone) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
@@ -464,11 +465,6 @@ int StartNetworkZone(const char* zone) {
     }
     return 1;
 }
-
-namespace {
-
-
-} // namespace
 
 std::string* CWorldServer::ZoneNameInto(std::string* out) {
     *out = zoneName_;
@@ -634,10 +630,6 @@ void GameFlow::RecreateClientSession() {
     if (session) ++session->refs_;
     ReleaseSession(previous);
 }
-
-namespace {
-
-} // namespace
 
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
 
@@ -890,7 +882,8 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     {
         GrowingBuffer hello;
         char secret[kPasswordSize] = {};
-        if (password) gamecrt::strncpy(secret, password, kPasswordSize);
+        #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+        if (password) std::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
         net::GameClient()->Join(&address, &hello);
     }
@@ -916,7 +909,8 @@ void GameFlow::StartClient() {
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
     GrowingBuffer hello;
     char secret[kPasswordSize] = {};
-    if (password) gamecrt::strncpy(secret, password, kPasswordSize);
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    if (password) std::strncpy(secret, password, kPasswordSize);
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
     net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
 }
@@ -965,7 +959,7 @@ using ZoneEntry = recordvec::ZoneTableEntry;
 using ZoneTable = std::vector<ZoneEntry>;
 constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 
 // A list of entry pointers on the game's heap (the game keeps STLport lists of copies).
@@ -1044,11 +1038,6 @@ int LoadMission(CStream* file) {
     return TheServerWorld()->LoadSave(&mission, nullptr);
 }
 
-namespace {
-
-
-} // namespace
-
 void ClearSaveFolder(const char* path) {
     gameapi::CreateDirectoryA(path, nullptr);
     mfc::CFileFind finder;
@@ -1068,7 +1057,7 @@ void ClearSaveFolder(const char* path) {
 
 bool NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
-        if (libcrt::Stricmp(*list, name) == 0) return true;
+        if (text::CompareIgnoringCase(*list, name) == 0) return true;
     return false;
 }
 
@@ -1093,7 +1082,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheCursor()->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
-    if (libcrt::Stricmp(zone, kEndOfGame) == 0) {
+    if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
         mode = kModeEndOfGame;
     } else {
         zoneRecord = FindZone(zone);
@@ -1168,10 +1157,6 @@ void GameFlow::StartZone(const char* zone, int mode) {
     ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
 
-namespace {
-
-} // namespace
-
 void GameFlow::StartNewGame() {
     // Rebirth's AutoExec #2 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
@@ -1230,7 +1215,7 @@ void GameFlow::UseResources(bool network) {
         std::atexit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (gamecrt::mbscmp(wanted,
+    if (str::Compare(wanted,
                         LastResources().c_str()) == 0)
         return;
     LastResources() = wanted;
@@ -1397,9 +1382,9 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(record->name,
+            bool keep = str::Compare(record->name,
                                         kAlwaysCopied) == 0 ||
-                        gamecrt::mbscmp(record->allod,
+                        str::Compare(record->allod,
                                         currentMap) == 0;
             if (keep) {
                 zone = record->name;
@@ -1591,7 +1576,7 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             std::string prefix = str::Left(name, 2);
-            quest = gamecrt::mbscmp(prefix,
+            quest = str::Compare(prefix,
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;

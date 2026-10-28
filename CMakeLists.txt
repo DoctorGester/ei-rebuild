@@ -199,7 +199,6 @@ add_executable(ei_vectors
     src/game/unit_stats.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
-    src/lib/crt_locale_data.cpp
     src/lib/hash_map.cpp
     src/lib/mfc.cpp
     src/lib/mfc_archive.cpp
@@ -209,7 +208,8 @@ add_executable(ei_vectors
     src/lib/mfc_list.cpp
     src/lib/rebirth.cpp
     src/lib/stlp.cpp
-    src/lib/str.cpp)
+    src/lib/str.cpp
+    src/lib/text_case.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY

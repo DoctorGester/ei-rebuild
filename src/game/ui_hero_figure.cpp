@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <string>
@@ -32,7 +33,7 @@ constexpr int kVoiceRows = 11;
 int IndexOf(const std::string* begin, const std::string* end, std::string_view name) {
     int index = 0;
     for (const std::string* entry = begin; entry != end; ++entry, ++index) {
-        if (gamecrt::mbsicmp(*entry, name) == 0)
+        if (text::CompareIgnoringCase(*entry, name) == 0)
             return index;
     }
     return -1;

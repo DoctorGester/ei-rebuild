@@ -1,15 +1,19 @@
 // std::string helpers with CString's answers (str.h). The bodies follow MFC 4.2's (strcore.cpp, strex.cpp).
 #include "str.h"
 
-#include "crt.h"
+#include "text_case.h"
 
 #include <cstring>
 #include <mbstring.h>
 
 namespace str {
 
+int Compare(std::string_view a, std::string_view b) {
+    return a.substr(0, a.find('\0')).compare(b.substr(0, b.find('\0')));
+}
+
 bool MbsLess::operator()(const std::string& a, const std::string& b) const {
-    return gamecrt::mbscmp(a.c_str(), b.c_str()) < 0;
+    return std::strcmp(a.c_str(), b.c_str()) < 0;
 }
 
 namespace {
@@ -17,7 +21,6 @@ namespace {
 using uchar = unsigned char;
 
 const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
-char* Inc(const char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
 // _tcschr with a char sign-extended first, as the library passed it.
 bool Contains(const char* set, char c) { return _mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
 bool IsSpace(char c) { return _ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
@@ -80,9 +83,8 @@ std::string Right(const std::string& s, int count) {
     return s.substr(static_cast<std::size_t>(length - count));
 }
 
-void MakeLower(std::string& s) { libcrt::Mbslwr(reinterpret_cast<uchar*>(s.data())); }
+void MakeLower(std::string& s) { text::LowerInPlace(s.data()); }
 
-// The destination steps by _mbsinc over the byte just copied (MFC's own way).
 int Remove(std::string& s, char c) {
     char* source = s.data();
     char* dest = s.data();
@@ -90,9 +92,9 @@ int Remove(std::string& s, char c) {
     while (source < end) {
         if (*source != c) {
             *dest = *source;
-            dest = Inc(dest);
+            ++dest;
         }
-        source = Inc(source);
+        ++source;
     }
     const int count = static_cast<int>(source - dest);
     s.resize(s.size() - static_cast<std::size_t>(count));
@@ -102,7 +104,7 @@ int Remove(std::string& s, char c) {
 // TrimRight: cut at the start of the last run of characters that match.
 void TrimRight(std::string& s) {
     const char* last = nullptr;
-    for (const char* p = s.c_str(); *p != '\0'; p = Inc(p)) {
+    for (const char* p = s.c_str(); *p != '\0'; ++p) {
         if (IsSpace(*p)) {
             if (!last) last = p;
         } else {
@@ -114,7 +116,7 @@ void TrimRight(std::string& s) {
 
 void TrimRight(std::string& s, char target) {
     const char* last = nullptr;
-    for (const char* p = s.c_str(); *p != '\0'; p = Inc(p)) {
+    for (const char* p = s.c_str(); *p != '\0'; ++p) {
         if (*p == target) {
             if (!last) last = p;
         } else {
@@ -126,7 +128,7 @@ void TrimRight(std::string& s, char target) {
 
 void TrimRight(std::string& s, const char* targets) {
     const char* last = nullptr;
-    for (const char* p = s.c_str(); *p != '\0'; p = Inc(p)) {
+    for (const char* p = s.c_str(); *p != '\0'; ++p) {
         if (Contains(targets, *p)) {
             if (!last) last = p;
         } else {
@@ -138,13 +140,13 @@ void TrimRight(std::string& s, const char* targets) {
 
 void TrimLeft(std::string& s) {
     const char* p = s.c_str();
-    while (IsSpace(*p)) p = Inc(p);
+    while (IsSpace(*p)) ++p;
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 
 void TrimLeft(std::string& s, char target) {
     const char* p = s.c_str();
-    while (*p == target) p = Inc(p);
+    while (*p == target) ++p;
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 

@@ -87,11 +87,10 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSour
 void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: the node allocator (stlp.cpp), the multibyte lower case str::MakeLower uses
-// (str.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp); replay_crt.cpp has the ones the replays call.
+// that no replay reaches: the node allocator (stlp.cpp), qsort (script_group.cpp), srand (random.cpp), acos
+// (quaternion.cpp).
 void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
 void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
-unsigned char* libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
 void libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")

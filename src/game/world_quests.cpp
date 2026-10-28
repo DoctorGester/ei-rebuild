@@ -21,6 +21,7 @@
 #include "unit_db.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/mfc.h"
 
@@ -64,7 +65,7 @@ void CWorldServer::UpdateMercBriefings() {
             std::string merc;
             merc = str::Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKeyFromName(merc.c_str());
-            bool briefedHere = gamecrt::mbsicmp(zoneName_,
+            bool briefedHere = text::CompareIgnoringCase(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
             b.n8 = str::Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
@@ -277,7 +278,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const std::string& variable) {
-        return gamecrt::mbsicmp(variable.c_str(),
+        return text::CompareIgnoringCase(variable.c_str(),
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {

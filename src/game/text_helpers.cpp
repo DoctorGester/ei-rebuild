@@ -1,8 +1,8 @@
 // Small text helpers of the engine base (text_helpers.h).
 #include "text_helpers.h"
 
-#include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <memory>
@@ -35,7 +35,7 @@ int RemoveCarriageReturns(std::string* text) { return str::Remove(*text, '\r'); 
 
 std::string* FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name) {
     for (const std::string& listed : *names) {
-        if (gamecrt::mbsicmp(listed.c_str(), name.c_str()) == 0) {
+        if (text::CompareIgnoringCase(listed.c_str(), name.c_str()) == 0) {
             *out = listed.c_str();
             return out;
         }

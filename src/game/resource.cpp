@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <new>
@@ -19,12 +20,12 @@ int CResourceBase::FindEntry(const char* name) const {
     std::uint32_t hash = 0;
     std::uint32_t length = 0;
     for (; name[length] != '\0'; ++length)
-        hash += gamecrt::tolower(static_cast<unsigned char>(name[length]));
+        hash += text::ToLower(static_cast<unsigned char>(name[length]));
 
     std::uint32_t index = hash % count;
     for (;;) {
         const ResEntry& e = entries_[index];
-        if (length == e.nameLength && gamecrt::strnicmp(name, names_ + e.nameOffset, length) == 0)
+        if (length == e.nameLength && text::CompareIgnoringCase(name, names_ + e.nameOffset, length) == 0)
             return static_cast<int>(index);
         index = static_cast<std::uint32_t>(entries_[index].next);
         if (index == 0xFFFFFFFF) return -1;
@@ -268,10 +269,11 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
     // Unbuffered I/O only when the volume's sector size divides the page size.
     char root[4];
     DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
-    gamecrt::strncpy(root, path, 3);
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    std::strncpy(root, path, 3);
     root[3] = '\0';
     const char* rootPath = root;
-    if (!libcrt::Isalpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
+    if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
     gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
     SYSTEM_INFO info;
     gameapi::GetSystemInfo(&info);

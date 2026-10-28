@@ -6,6 +6,7 @@
 #include "app_helpers.h"
 #include "lib/mfc_time.h"
 #include "core_streams.h"
+#include "lib/text_case.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -156,7 +157,7 @@ constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
 
 bool SameFolder(std::string_view folder, std::string_view name) {
-    return gamecrt::mbsicmp(folder, name) == 0;
+    return text::CompareIgnoringCase(folder, name) == 0;
 }
 } // namespace
 
