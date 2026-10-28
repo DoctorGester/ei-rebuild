@@ -3497,6 +3497,18 @@ depends = ["C14b"]
 note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
 
 [[ticket]]
+id = "C35"
+title = "Custom CRT down to what behaviour needs: std / the real CRT for file, string, sort, iostream and exit code"
+group = "cleanup"
+note = "User 2026-10-28: reduce src/lib's custom CRT (crt*.cpp, about 3,240 lines) as far as possible. Usage first, as with C14: change callers to std or the toolchain's CRT (std::fstream / FILE, std::sort, strcmp-family, std::hypot, atexit / static destructors, std::ostream), then delete each libcrt piece once nothing uses it. Keep only what goldens prove needs the original's exact results (x87 math in crt_x87, the formatting that feeds saves or on-screen text, rand); write down for each kept piece why. One or two scripted batches per area (file I/O, string / locale, iostream, exit / AtExit, sort / math). Split into C35a.. per area when started."
+
+[[ticket]]
+id = "C20q"
+title = "Dead-code rescan after each C14 / C35 batch, over ei_hook and ei_vectors together"
+group = "cleanup"
+note = "User 2026-10-28: keep a lookout for dead code and code that can be made dead by replacing it with std / our code. After each C14 / C35 merge, re-run C20m's relocation-graph scan (scratchpad C20m / C20o scripts) for both EI_UTF8 values (until C34 drops it), counting ei_vectors' references too so it stops flagging what the vectors replay; delete what is dead, and list what one small replacement would make dead. Also the unused kClass records in mfc_runtime_class.h (CBitmap, CClientDC, CMemFile, CPaintDC, CPalette, CPtrArray, CPtrList, CRgn, CWinApp, CWindowDC) once their class-chain links can go."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
