@@ -135,7 +135,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x2A, &footprintKind);
     Dword(ar, 0x2B, &footPart);
     ar->StringField(0x2C, &hitMaterial);
-    ar->Field(0x2D, &swapFeet, 1);
+    ar->Field(0x2D, &swapFeet);
     Dword(ar, 0x2E, &sizeScale);
     Dword(ar, 0x2F, &eyeLeft);
     Dword(ar, 0x30, &eyeBottom);
@@ -158,7 +158,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     InlineStrings(ar, 11, &startSpells);
     Dword(ar, 12, &experienceFloor);
     Dword(ar, 13, &startMoney);
-    ar->Field(14, &voiced, 1);
+    ar->Field(14, &voiced);
 }
 
 // --- The unit database's pieces and vectors -----------------------------------------------
@@ -219,7 +219,7 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(10, &requiredLevelName);
     ar->StringField(11, &requiredSkillName);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
-    ar->Field(0x16, &learnable, 1);
+    ar->Field(0x16, &learnable);
     Dword(ar, 0x17, &exclusionGroup);
 }
 

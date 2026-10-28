@@ -75,13 +75,13 @@ int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
 
 void CTrapObject::LoadTrapObject(CStream* stream) {
     LoadMapObject(stream);
-    stream->Read(&savedValue_, 4);
+    stream->ReadValue(savedValue_);
 }
 
 void CTrapObject::SaveTrapObject(CStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = savedValue_;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
 }
 
 void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }

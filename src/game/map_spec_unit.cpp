@@ -9,6 +9,7 @@
 #include "core_streams.h"
 #include "unit.h"
 
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 
 #include <bit>
@@ -333,7 +334,7 @@ void Behaviour::Write(CStream* stream) const {
     std::uint32_t value;
     for (const void* field : std::initializer_list<const void*>{&loop, &flags, &guardRadius, &alarmKind, &enabled,
                                                                  &callRadius}) {
-        std::memcpy(&value, field, 4);
+        lib::LoadBytes(value, field);
         StreamWrite(stream, &value, 4);
     }
     StreamWrite(stream, &alertMode, 4);

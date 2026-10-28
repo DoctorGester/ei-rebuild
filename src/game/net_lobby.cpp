@@ -9,6 +9,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_coder.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
@@ -167,7 +168,7 @@ bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 
 void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
-    std::memcpy(&id, cursor->p, 4);
+    lib::LoadBytes(id, cursor->p);
     cursor->p += 4;
     if (!SameAddress(&host_, from)) {
         LogAddressLine("ERROR: Accepted msg received from unknown host ", from);
@@ -192,7 +193,7 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
 void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
-    std::memcpy(&id, p, 4);
+    lib::LoadBytes(id, p);
     p += 4;
     cursor->p = p;
     if (!SameAddress(&host_, from)) {
@@ -506,7 +507,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         c.bytePtr = nullptr;
         c.sink = nullptr;
         c.BeginWrite(&b, 0x400);
-        std::memcpy(c.p, &magic_, 4);
+        lib::StoreBytes(c.p, magic_);
         c.p += 4;
         entry.Get()->Write(&c);
         EndCursor(c);
@@ -517,7 +518,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
-    std::memcpy(&echo, cursor->p, 4);
+    lib::LoadBytes(echo, cursor->p);
     cursor->p += 4;
     SendInfo(from, echo);
 }
@@ -617,21 +618,21 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
 
 void ClientQueries::Serialize(ChunkArchive* archive) {
     RecordChunks(archive, 1, &list, [](Query& q, ChunkArchive* ar) {
-        ar->Field(1, &q.address, 0x10);
+        ar->Field(1, &q.address);
         std::uint32_t length;
         if (ar->loading_) {
-            ar->Field(2, &length, 4);
+            ar->Field(2, &length);
             GameBuffer& r = q.reply;
             r.cur = r.begin;
             r.high = r.begin + length;
             if (r.high > r.end) r.Grow(length);
         } else {
             length = static_cast<std::uint32_t>(BufferLength(&q.reply));
-            ar->Field(2, &length, 4);
+            ar->Field(2, &length);
         }
         ar->Field(3, q.reply.begin, length);
     });
-    archive->Field(2, &extra, 4);
+    archive->Field(2, &extra);
 }
 
 } // namespace net

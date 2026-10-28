@@ -1,5 +1,6 @@
 // The .mob script text decoder. See mob_script_decoder.h.
 #include "mob_script_decoder.h"
+#include "lib/bytes.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -13,7 +14,7 @@ void MobScriptDecoder::Decode(std::string* out) {
     text.resize(length, zero);
     std::memcpy(text.data(), coded + 4, length);
     std::uint32_t x;
-    std::memcpy(&x, coded, 4);
+    lib::LoadBytes(x, coded);
     for (char* p = text.data(); p != text.data() + text.size(); ++p) {
         x = x * 0x343FDu + 0x269EC3u;
         *p = static_cast<char>(*p ^ static_cast<char>(x >> 16));

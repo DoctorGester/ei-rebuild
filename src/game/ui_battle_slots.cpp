@@ -106,17 +106,17 @@ void CBattleScreen::SaveState() {
     int count = 0;
     for (int i = 0; i < std::ssize(party); ++i)
         if (party[i]->flags_ & kUnitSelected) ++count;
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     for (int i = 0; i < std::ssize(party); ++i) {
         auto* unit = party[i];
-        if (unit->flags_ & kUnitSelected) stream->Write(&unit->id_, 4);
+        if (unit->flags_ & kUnitSelected) stream->WriteValue(unit->id_);
     }
-    stream->Write(&Map(map_)->zoom_, 4);
-    stream->Write(&interface_->serverFlag_, 1);
-    stream->Write(&LocalPlayerData()->money_, 4);   // the party's +0x50 (Create reads it back and drops it)
+    stream->WriteValue(Map(map_)->zoom_);
+    stream->WriteValue(interface_->serverFlag_);
+    stream->WriteValue(LocalPlayerData()->money_);   // the party's +0x50 (Create reads it back and drops it)
     stream->WriteString(TopPanel(topPanel_)->pageTexts_[0]);
-    stream->Write(&exitPending_, 1);
-    stream->Write(&pendingExit_, 4);
+    stream->WriteValue(exitPending_);
+    stream->WriteValue(pendingExit_);
 }
 
 void CBattleScreen::MarkPortrait(int index) {

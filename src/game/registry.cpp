@@ -4,6 +4,7 @@
 #include "game_strings.h"
 
 #include "console.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 
@@ -26,7 +27,7 @@ std::uint16_t U16(const std::uint8_t* p) {
 }
 std::uint32_t U32(const std::uint8_t* p) {
     std::uint32_t v;
-    std::memcpy(&v, p, 4);
+    lib::LoadBytes(v, p);
     return v;
 }
 float F32(const std::uint8_t* p) {

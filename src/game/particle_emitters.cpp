@@ -7,6 +7,7 @@
 #include "random.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -199,7 +200,7 @@ float AbsBits(float f) {
     return f;
 }
 
-void SetBits(void* dst, std::uint32_t bits) { std::memcpy(dst, &bits, sizeof(bits)); }
+void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
 // raise or lower the ring (spreadMin.x holds the height).

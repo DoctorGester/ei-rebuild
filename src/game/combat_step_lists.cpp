@@ -52,18 +52,18 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 
 void AnimationSteps::Load(CStream* stream) {
     int newCount = 0;
-    stream->Read(&newCount, sizeof(newCount));
+    stream->ReadValue(newCount);
     resize(newCount);
-    for (AnimationStep& step : *this) stream->Read(&step, sizeof(AnimationStep));
-    stream->Read(&extra, sizeof(extra));
+    for (AnimationStep& step : *this) stream->ReadValue(step);
+    stream->ReadValue(extra);
 }
 
 void AnimationSteps::Save(CStream* stream) const {
     int written = static_cast<int>(size());
-    stream->Write(&written, sizeof(written));
-    for (const AnimationStep& step : *this) stream->Write(&step, sizeof(AnimationStep));
+    stream->WriteValue(written);
+    for (const AnimationStep& step : *this) stream->WriteValue(step);
     int last = extra;
-    stream->Write(&last, sizeof(last));
+    stream->WriteValue(last);
 }
 
 void OrderPlanReset(OrderPlan* plan) {

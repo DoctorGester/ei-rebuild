@@ -44,27 +44,27 @@ const char* const kMessageKeys[13] = {
 } // namespace
 
 void CInterface3D::LoadState(CStream* stream) {
-    Read(stream, &hudPanelsIn_[0], 1);
-    Read(stream, &hudPanelsIn_[1], 1);
-    Read(stream, &hudPanelsIn_[2], 1);
-    Read(stream, &hudBodyPart_, 4);
-    Read(stream, &hudTopPage_, 4);
+    stream->ReadValue(hudPanelsIn_[0]);
+    stream->ReadValue(hudPanelsIn_[1]);
+    stream->ReadValue(hudPanelsIn_[2]);
+    stream->ReadValue(hudBodyPart_);
+    stream->ReadValue(hudTopPage_);
     if (Version(stream) < 0x47) return;
-    Read(stream, &fastGame_, 4);
+    stream->ReadValue(fastGame_);
     if (Version(stream) < 0x56) return;
     // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
     // the original's local string).
     std::string last;
     int count;
-    Read(stream, &count, 4);
+    stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
         ReadInto(stream, &last);
         int value;
-        Read(stream, &value, 4);
+        stream->ReadValue(value);
     }
     ReadInto(stream, &messageText_);
     if (Version(stream) >= 0x5D) {
-        Read(stream, &messageFlag_, 4);
+        stream->ReadValue(messageFlag_);
         if (Version(stream) >= 0x5F) ReadInto(stream, &savedText_);
     }
 }
@@ -88,17 +88,17 @@ std::string* CInterface3D::MessageText(std::string* out, int id, const char* val
 // --- The saved state written -----------------------------------------------------------
 
 void CInterface3D::SaveState(CStream* stream) {
-    for (std::uint8_t flag : hudPanelsIn_) stream->Write(&flag, 1);
+    for (std::uint8_t flag : hudPanelsIn_) stream->WriteValue(flag);
     int value = hudBodyPart_;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = hudTopPage_;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = fastGame_;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = 0;   // the obsolete list LoadState skips: no entries
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     stream->WriteString(messageText_);
     value = messageFlag_;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     stream->WriteString(savedText_);
 }

@@ -8,6 +8,7 @@
 #include "mod_folders.h"
 #include "world_data.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>
@@ -118,7 +119,7 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
 void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
     if (flags_ & kLoaded) return;
     std::uint32_t magic;
-    std::memcpy(&magic, *cursor, 4);
+    lib::LoadBytes(magic, *cursor);
     if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor, s, t, u);
     else LoadOld(cursor, s, t, u);
     flags_ |= kLoaded;

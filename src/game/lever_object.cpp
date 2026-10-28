@@ -82,27 +82,27 @@ int Lever::UpdateLever() {
 
 void Lever::LoadLever(CStream* stream) {
     LoadMapObject(stream);
-    stream->Read(&state, 4);
-    stream->Read(&stateCount, 4);
-    stream->Read(&cycling, 4);
+    stream->ReadValue(state);
+    stream->ReadValue(stateCount);
+    stream->ReadValue(cycling);
     lock.ReadFrom(stream);
-    stream->Read(&directUseBlocked, 1);
-    stream->Read(&keepsMapFlag, 1);
+    stream->ReadValue(directUseBlocked);
+    stream->ReadValue(keepsMapFlag);
 }
 
 void Lever::SaveLever(CStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = static_cast<std::uint32_t>(state);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = static_cast<std::uint32_t>(stateCount);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = static_cast<std::uint32_t>(cycling);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     lock.WriteTo(stream);
     std::uint8_t byte = directUseBlocked;
-    stream->Write(&byte, 1);
+    stream->WriteValue(byte);
     byte = keepsMapFlag;
-    stream->Write(&byte, 1);
+    stream->WriteValue(byte);
 }
 
 void Lever::Load(CStream* stream) { LoadLever(stream); }
@@ -111,13 +111,13 @@ bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(k
 void Lever::UseSpots(std::vector<Vector3>* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
-    stream->Read(&mask, 4);
-    stream->Read(&id, 4);
-    stream->Read(&level, 4);
+    stream->ReadValue(mask);
+    stream->ReadValue(id);
+    stream->ReadValue(level);
 }
 
 void LockKey::WriteTo(CStream* stream) const {
-    for (std::uint32_t word : {mask, id, level}) stream->Write(&word, 4);
+    for (std::uint32_t word : {mask, id, level}) stream->WriteValue(word);
 }
 
 void Lever::WriteLeverNetState() {

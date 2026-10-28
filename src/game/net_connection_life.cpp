@@ -4,6 +4,7 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
+#include "lib/bytes.h"
 #include "lib/gameapi.h"
 
 #include <cstring>
@@ -13,7 +14,7 @@ namespace net {
 
 namespace {
 
-void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
+void Put32(void* object, std::size_t offset, std::uint32_t v) { lib::StoreBytes(static_cast<std::uint8_t*>(object) + offset, v); }
 
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) { std::destroy_at(&c->received_); }

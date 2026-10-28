@@ -7,6 +7,7 @@
 #include "net_messages.h"
 #include "world.h"   // CWorldHandle (CreatePair)
 
+#include "lib/bytes.h"
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include <cstdint>
@@ -253,7 +254,7 @@ bool FramedLink::HasIncoming() {
     if (inbox->Size() < 4) return false;
     inbox->Seek(0);
     std::uint32_t length = 0;   // the read always fills it
-    inbox->Read(&length, 4);
+    inbox->ReadValue(length);
     std::uint32_t size = inbox->Size();
     return size >= length + 4;
 }
@@ -268,7 +269,7 @@ int FramedLink::IncomingCount() {
         std::uint32_t at = inbox->Position() + 4;
         if (at > inbox->Size()) break;
         std::int32_t length = 0;
-        inbox->Read(&length, 4);
+        inbox->ReadValue(length);
         std::uint32_t end = inbox->Position() + static_cast<std::uint32_t>(length);
         if (end > inbox->Size()) break;
         if (length <= 0) break;
@@ -285,7 +286,7 @@ bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
     std::uint32_t size = stream->Size();
-    std::memcpy(buffer, &size, sizeof(size));
+    lib::StoreBytes(buffer, size);
     stream->Seek(0);
     std::uint32_t count = stream->Size();
     stream->Read(buffer + 4, count);
@@ -301,7 +302,7 @@ bool FramedLink::Receive(CMemoryStream* stream) {
     CStream* inbox = &inbox_;
     std::uint32_t length = 0;
     inbox->Seek(0);
-    inbox->Read(&length, 4);
+    inbox->ReadValue(length);
     if (inbox->Size() < length + 4) return false;
     stream->Resize(length);
     inbox->Read(stream->data_, length);

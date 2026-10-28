@@ -4,6 +4,7 @@
 // through the game's import thunks. See docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
+#include "lib/bytes.h"
 #include "lib/gameapi.h"
 
 #include "ei/rebirth.h"
@@ -29,7 +30,7 @@ constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
 std::uint32_t FirstAddress(const void* host) {
     auto* entry = static_cast<const std::uint8_t*>(host);
     const std::uint32_t* const* list;
-    std::memcpy(&list, entry + 0xC, sizeof(list));
+    lib::LoadBytes(list, entry + 0xC);
     return **list;
 }
 unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addresses.size()); }

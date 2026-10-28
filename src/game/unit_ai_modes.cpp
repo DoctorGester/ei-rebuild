@@ -45,16 +45,6 @@ void ReleaseRef(AIRefTo<T>& ref) {
 
 int IsGone(CMapObject* object) { return object->IsDead(); }
 
-template <typename T>
-void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
-
-// Writes `value`'s bytes.
-template <typename T>
-void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
-    T copy = value;
-    stream->Write(&copy, size);
-}
-
 constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
 constexpr float kNearY = 80.0f;
@@ -199,17 +189,17 @@ void GuardMode::Execute(AIBrain* brain) {
 }
 
 void GuardMode::Load(CStream* stream) {
-    ReadField(stream, &radius);
-    ReadField(stream, &wander);
-    ReadField(stream, &point);
-    if (stream->version_ >= 0x66) ReadField(stream, &failures);
+    stream->ReadValue(radius);
+    stream->ReadValue(wander);
+    stream->ReadValue(point);
+    if (stream->version_ >= 0x66) stream->ReadValue(failures);
 }
 
 void GuardMode::Save(CStream* stream) {
-    WriteCopy(stream, radius);
-    WriteCopy(stream, wander);
-    stream->Write(&point, sizeof(Vector3));
-    WriteCopy(stream, failures);
+    stream->WriteValue(radius);
+    stream->WriteValue(wander);
+    stream->WriteValue(point);
+    stream->WriteValue(failures);
 }
 
 // --- Patrol --------------------------------------------------------------------------------------
@@ -247,41 +237,41 @@ PatrolPoint* PatrolMode::LastPoint() {
 
 void PatrolMode::Load(CStream* stream) {
     int count;
-    ReadField(stream, &count);
+    stream->ReadValue(count);
     points.resize(count);
     for (int i = 0; i < std::ssize(points); ++i) {
         PatrolPoint& point = points[i];
-        ReadField(stream, &point.position);
+        stream->ReadValue(point.position);
         int lookCount;
-        ReadField(stream, &lookCount);
+        stream->ReadValue(lookCount);
         point.looks.resize(lookCount);
         for (int j = 0; j < std::ssize(point.looks); ++j) {
             AILook& look = point.looks[j];
-            ReadField(stream, &look.angle);
-            ReadField(stream, &look.time);
-            ReadField(stream, &look.wait);
-            if (stream->version_ >= 0x44) ReadField(stream, &look.stopFirst);
+            stream->ReadValue(look.angle);
+            stream->ReadValue(look.time);
+            stream->ReadValue(look.wait);
+            if (stream->version_ >= 0x44) stream->ReadValue(look.stopFirst);
         }
     }
-    ReadField(stream, &current);
+    stream->ReadValue(current);
 }
 
 void PatrolMode::Save(CStream* stream) {
-    WriteCopy(stream, std::ssize(points));
+    stream->WriteValue(std::ssize(points));
     for (int i = 0; i < std::ssize(points); ++i) {
         PatrolPoint& point = points[i];
-        stream->Write(&point.position, sizeof(Vector3));
-        WriteCopy(stream, std::ssize(point.looks));
+        stream->WriteValue(point.position);
+        stream->WriteValue(std::ssize(point.looks));
         for (int j = 0; j < std::ssize(point.looks); ++j) {
             const AILook& look = point.looks[j];
             // Each float is written as its bits.
-            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
-            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
-            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.wait));
-            WriteCopy(stream, look.stopFirst);
+            stream->WriteValue(std::bit_cast<std::uint32_t>(look.angle));
+            stream->WriteValue(std::bit_cast<std::uint32_t>(look.time));
+            stream->WriteValue(std::bit_cast<std::uint32_t>(look.wait));
+            stream->WriteValue(look.stopFirst);
         }
     }
-    WriteCopy(stream, current);
+    stream->WriteValue(current);
 }
 
 // --- Sentry --------------------------------------------------------------------------------------
@@ -304,9 +294,9 @@ void SentryMode::Execute(AIBrain* brain) {
     SetPositions(brain, &order.point, kNearX, kNearY);
 }
 
-void SentryMode::Load(CStream* stream) { stream->Read(&point, sizeof(Vector3)); }
+void SentryMode::Load(CStream* stream) { stream->ReadValue(point); }
 
-void SentryMode::Save(CStream* stream) { stream->Write(&point, sizeof(Vector3)); }
+void SentryMode::Save(CStream* stream) { stream->WriteValue(point); }
 
 // --- Follow --------------------------------------------------------------------------------------
 
@@ -497,13 +487,13 @@ void AggressionMode::Execute(AIBrain* brain) {
 }
 
 void SuspectionMode::Load(CStream* stream) {
-    stream->Read(&point, sizeof(Vector3));
-    stream->Read(&level, 4);
+    stream->ReadValue(point);
+    stream->ReadValue(level);
 }
 
 void SuspectionMode::Save(CStream* stream) {
-    stream->Write(&point, sizeof(Vector3));
-    WriteCopy(stream, level);
+    stream->WriteValue(point);
+    stream->WriteValue(level);
 }
 
 // --- Aggression ----------------------------------------------------------------------------------
@@ -527,12 +517,12 @@ void AggressionMode::Leave(AIBrain* brain) {
 
 void AggressionMode::Load(CStream* stream) {
     enemy.Load(stream, &g_serverWorld.Get());
-    stream->Read(&fixed, 1);
+    stream->ReadValue(fixed);
 }
 
 void AggressionMode::Save(CStream* stream) {
     enemy.Save(stream);
-    stream->Write(&fixed, 1);
+    stream->WriteValue(fixed);
 }
 
 // --- CorpseWatcher -------------------------------------------------------------------------------
@@ -558,21 +548,21 @@ void FearMode::Enter(AIBrain* brain) {
 void FearMode::Leave(AIBrain* brain) { brain->owner->moveMode2.onGuard = 0; }
 
 void FearMode::Load(CStream* stream) {
-    ReadField(stream, &distance);
-    ReadField(stream, &spread);
-    ReadField(stream, &shelter);
+    stream->ReadValue(distance);
+    stream->ReadValue(spread);
+    stream->ReadValue(shelter);
     if (stream->version_ >= 0x53) {
-        ReadField(stream, &flag);
-        if (stream->version_ >= 0x70) ReadField(stream, &fleePoint);
+        stream->ReadValue(flag);
+        if (stream->version_ >= 0x70) stream->ReadValue(fleePoint);
     }
 }
 
 void FearMode::Save(CStream* stream) {
-    WriteCopy(stream, distance);
-    WriteCopy(stream, spread);
-    stream->Write(&shelter, sizeof(Vector3));
-    WriteCopy(stream, flag);
-    stream->Write(&fleePoint, sizeof(Vector3));
+    stream->WriteValue(distance);
+    stream->WriteValue(spread);
+    stream->WriteValue(shelter);
+    stream->WriteValue(flag);
+    stream->WriteValue(fleePoint);
 }
 
 // --- Player --------------------------------------------------------------------------------------
@@ -772,8 +762,8 @@ void PlayerMode::Load(CStream* stream) {
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
     target.Load(stream, &g_serverWorld.Get());
     leader.Load(stream, &g_serverWorld.Get());
-    stream->Read(&point, sizeof(Vector3));
-    stream->Read(&state, 4);
+    stream->ReadValue(point);
+    stream->ReadValue(state);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
         ScriptGroup group;
         group.Load(stream);
@@ -783,6 +773,6 @@ void PlayerMode::Load(CStream* stream) {
 void PlayerMode::Save(CStream* stream) {
     target.Save(stream);
     leader.Save(stream);
-    stream->Write(&point, sizeof(Vector3));
-    stream->Write(&state, 4);
+    stream->WriteValue(point);
+    stream->WriteValue(state);
 }

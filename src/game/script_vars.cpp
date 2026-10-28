@@ -161,37 +161,37 @@ void SSCCmd::Clear() {
 }
 
 void SSCCmd::Save(CStream* stream) const {
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
     int count = static_cast<int>(floatArgs.size());
-    stream->Write(&count, 4);
-    for (const float& value : floatArgs) stream->Write(&value, 4);
+    stream->WriteValue(count);
+    for (const float& value : floatArgs) stream->WriteValue(value);
 
     count = static_cast<int>(stringArgs.size());
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     for (const std::string& text : stringArgs) stream->WriteString(text);
 
     // Object and group arguments are only counted: they are re-bound on load.
     count = static_cast<int>(objectArgs.size());
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     count = static_cast<int>(groupArgs.size());
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
 
     count = static_cast<int>(localBindings.size());
-    stream->Write(&count, 4);
-    for (const ScriptBinding& binding : localBindings) stream->Write(&binding, 12);
+    stream->WriteValue(count);
+    for (const ScriptBinding& binding : localBindings) stream->WriteValue(binding);
     count = static_cast<int>(globalBindings.size());
-    stream->Write(&count, 4);
-    for (const ScriptBinding& binding : globalBindings) stream->Write(&binding, 12);
+    stream->WriteValue(count);
+    for (const ScriptBinding& binding : globalBindings) stream->WriteValue(binding);
 
     count = static_cast<int>(subCalls.size());
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     for (const ScriptSubCall& call : subCalls) {
-        stream->Write(&call.type, 4);
-        stream->Write(&call.argIndex, 4);
+        stream->WriteValue(call.type);
+        stream->WriteValue(call.argIndex);
         call.cmd->Save(stream);
     }
 
     int scriptIndex = -1;
     if (calledScript) scriptIndex = calledScript->id;
-    stream->Write(&scriptIndex, 4);
+    stream->WriteValue(scriptIndex);
 }

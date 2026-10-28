@@ -6,6 +6,7 @@
 #include "core_refcount.h"
 
 #include "hash_tables_400.h"
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 #include <cstdint>
 #include <cstring>
@@ -108,7 +109,7 @@ bool ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* dat
     std::uint32_t length = size * 2;
     if (length >= 0x100) {
         length |= 1;
-        std::memcpy(base + chunk->size, &length, 4);
+        lib::StoreBytes(base + chunk->size, length);
         chunk->size += 4;
     } else {
         base[chunk->size] = static_cast<std::uint8_t>(length);
@@ -208,7 +209,7 @@ void ChunkArchive::StringField(int id, std::string* s) {
 void ChunkArchive::StreamField(int id, CMemoryStream* s) {
     if (!EnterChunk(id)) return;
     std::uint32_t size = s->Size();
-    Field(1, &size, 4);
+    Field(1, &size);
     if (loading_) {
         s->Clear();
         s->SetSize(size);
@@ -251,7 +252,7 @@ CRefCounted* ChunkArchive::ObjectRef(int id) {
         AppendChild(Current(), id, &key, 4);
     } else {
         ChunkArchive::Ref child;
-        if (FindField(this, id, &child)) std::memcpy(&key, dataStream_.data_ + child.offset, 4);
+        if (FindField(this, id, &child)) lib::LoadBytes(key, dataStream_.data_ + child.offset);
         else key = 0;
     }
     auto node = loaded_.find(key);
@@ -297,11 +298,11 @@ bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
 
 bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
-    out->Write(&tag, 1);
+    out->WriteValue(tag);
     std::uint32_t length = from->Size() * 2;
     if (length >= 0x100) {
         length |= 1;
-        out->Write(&length, 4);
+        out->WriteValue(length);
     } else {
         out->Write(&length, 1);
     }
@@ -330,14 +331,14 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
     while (index->Position() < index->Size()) {
         std::uint32_t classId = 0;
         std::uint32_t key = 0;
-        index->Read(&classId, 4);
-        index->Read(&key, 4);
+        index->ReadValue(classId);
+        index->ReadValue(key);
         Factory factory = g_classRegistry->factories[classId];
         CRefCounted* object = factory ? factory() : nullptr;
         saved_.insert(saved_.end(), object);
         loaded_[key] = object;
     }
-    if (version == 1) Field(2, &version_, 4);
+    if (version == 1) Field(2, &version_);
     else version_ = version;
 
     int count = CountChildrenOf(Current(), 1);
@@ -385,13 +386,13 @@ void ChunkArchive::Close(CStream* stream) {
             CRefCounted* object = saved_.front();
             saved_.pop_front();
             std::uint32_t vtable;
-            std::memcpy(&vtable, object, 4);
+            lib::LoadBytes(vtable, object);
             const std::unordered_map<std::uint32_t, std::int32_t>& classIds = g_classRegistry->classIds;
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
-            index->Write(&classId, 4);
-            index->Write(&number, 4);
+            index->WriteValue(classId);
+            index->WriteValue(number);
             ChunkArchive::Ref* record = PushRecordChunk(this);
             if (loading_) {
                 ChunkArchive::Ref field;
@@ -415,7 +416,7 @@ void ChunkArchive::Close(CStream* stream) {
                 ResizeToCurrent();
             }
         }
-        Field(2, &version_, 4);
+        Field(2, &version_);
         WriteStreamChunk(stream, 0, index);
         ResizeToCurrent();
         WriteStreamChunk(stream, 2, data);

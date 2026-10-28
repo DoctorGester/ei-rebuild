@@ -97,6 +97,11 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 - `CStream` (vtable 0073BDB0): +4 direction byte, +5 ok, +8 limit / save format version (2000000000
   when constructed). Slots 0 destructor, 1 Read, 2 Write, 3 Seek, 4 Size, 5 Position, 6 Clear (memory
   streams empty, file streams rewind), 7 CopyFrom (004A4D40).
+- Typed values (C44): one value is `stream->ReadValue(x)` / `stream->WriteValue(x)` (sizeof(x) bytes, trivially copyable; also
+  `lib::File`, and `ChunkArchive::Field(id, &x)`). A read or write whose size is not the variable's (a byte into an int, a pair of
+  floats or a struct read as one block of 8 / 12 / 0x1C bytes, a dword of a wider record) stays `Read(&x, N)` / `Write(&x, N)` with the size
+  written out: `grep -rE "(->|\.)(Read|Write)\(&"` lists them. Bytes in a raw buffer (file image, network cursor) are
+  `lib::LoadBytes(x, src)` / `lib::StoreBytes(dst, x)` (lib/bytes.h; not for floats: x87::CopyBits).
 - `CMemoryStream` (0073BD90; the queue variant 0073C960): +0xC byte being assembled, +0x10 mask of the
   last bit (0x80: a new byte is due), +0x14 index of the byte the bits go to (-1: none), +0x1C
   capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores

@@ -653,37 +653,37 @@ void UnitMotion::LoadState(CStream* stream) {
     segment = -1;
     // Each count is read into its argument slot: a failed read leaves the stream pointer.
     int count = 0;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     points.resize(count);
-    for (int i = 0; i < std::ssize(points); ++i) stream->Read(&points[i], sizeof(MotionPoint));
-    stream->Read(&count, 4);
+    for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
+    stream->ReadValue(count);
     waypoints.resize(count);
-    for (int i = 0; i < std::ssize(waypoints); ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
-    stream->Read(&count, 4);
+    for (int i = 0; i < std::ssize(waypoints); ++i) stream->ReadValue(waypoints[i]);
+    stream->ReadValue(count);
     stepSpeeds.resize(count);
-    for (float& step : stepSpeeds) stream->Read(&step, 4);
-    stream->Read(&speedScale, 4);
-    stream->Read(&baseTurnRate, 4);
-    stream->Read(&turnRate, 4);
-    stream->Read(&startAngle, 4);
-    stream->Read(&turn, 4);
+    for (float& step : stepSpeeds) stream->ReadValue(step);
+    stream->ReadValue(speedScale);
+    stream->ReadValue(baseTurnRate);
+    stream->ReadValue(turnRate);
+    stream->ReadValue(startAngle);
+    stream->ReadValue(turn);
 }
 
 void UnitMotion::SaveState(CStream* stream) {
     int count = std::ssize(points);
-    stream->Write(&count, 4);
-    for (int i = 0; i < std::ssize(points); ++i) stream->Write(&points[i], sizeof(MotionPoint));
+    stream->WriteValue(count);
+    for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     count = std::ssize(waypoints);
-    stream->Write(&count, 4);
-    for (int i = 0; i < std::ssize(waypoints); ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
+    stream->WriteValue(count);
+    for (int i = 0; i < std::ssize(waypoints); ++i) stream->WriteValue(waypoints[i]);
     count = std::ssize(stepSpeeds);
-    stream->Write(&count, 4);
-    for (const float& step : stepSpeeds) stream->Write(&step, 4);
+    stream->WriteValue(count);
+    for (const float& step : stepSpeeds) stream->WriteValue(step);
     // Copied bit for bit.
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
     for (const float* field : fields) {
         std::uint32_t value;
         value = std::bit_cast<std::uint32_t>(*field);
-        stream->Write(&value, 4);
+        stream->WriteValue(value);
     }
 }

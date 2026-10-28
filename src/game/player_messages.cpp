@@ -14,6 +14,7 @@
 #include "world.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
 
@@ -224,7 +225,7 @@ void CPlayerServer::SendObject0B(const CEngineObject* object, std::uint32_t valu
 
 void CPlayerServer::SendValue12(std::uint32_t value) {
     std::uint8_t payload[1 + sizeof(value)] = {};
-    std::memcpy(payload + 1, &value, sizeof(value));
+    lib::StoreBytes(payload + 1, value);
     WriteByte(&out_, 0x12);
     Write(&out_, payload, sizeof(payload));
 }
@@ -325,17 +326,17 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
                                     std::uint32_t limitBits) {
     if (!unit) return;
     std::uint8_t type = kPathMessage;
-    out_.Write(&type, 1);
-    out_.Write(&kind, 4);
-    out_.Write(&flag, 4);
+    out_.WriteValue(type);
+    out_.WriteValue(kind);
+    out_.WriteValue(flag);
     std::uint32_t word;
     word = std::bit_cast<std::uint32_t>(point[0]);
-    out_.Write(&word, 4);
+    out_.WriteValue(word);
     word = std::bit_cast<std::uint32_t>(point[1]);
-    out_.Write(&word, 4);
+    out_.WriteValue(word);
     int id = unit->id_;
-    out_.Write(&id, 4);
-    out_.Write(&limitBits, 4);
+    out_.WriteValue(id);
+    out_.WriteValue(limitBits);
     if (kind == kPathKindNoPath) return;
     DeltaField field;
     DeltaField* delta = field.BeginWriteB(0);

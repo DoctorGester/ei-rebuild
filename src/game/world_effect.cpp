@@ -62,7 +62,7 @@ void CEffect::Reset() { ClearBase(this); }
 
 void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
         std::string text;
         array->push_back(stream->ReadString(&text)->c_str());
@@ -154,26 +154,26 @@ void CEffectSound::Pack(DeltaField* field) {
 }
 
 void CEffectSound::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
+    stream->ReadValue(localPosition_);
     Read(stream, name_, 0x100);
-    Read(stream, &volume_, 4);
-    Read(stream, &radius_, 4);
-    Read(stream, &velocity_, 12);
+    stream->ReadValue(volume_);
+    stream->ReadValue(radius_);
+    stream->ReadValue(velocity_);
     moving_ = IsMoving(velocity_);
     if (Version(stream) < 0x5C) return;
-    Read(stream, &looping_, 4);
+    stream->ReadValue(looping_);
     if (Version(stream) < 0x6D) return;
-    Read(stream, &noFade_, 1);
+    stream->ReadValue(noFade_);
 }
 
 void CEffectSound::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
+    stream->WriteValue(localPosition_);
     Write(stream, name_, 0x100);
-    WriteCopy(stream, &volume_);
-    WriteCopy(stream, &radius_);
-    Write(stream, &velocity_, 12);
-    Write(stream, &looping_, 4);
-    Write(stream, &noFade_, 1);
+    stream->WriteValue(volume_);
+    stream->WriteValue(radius_);
+    stream->WriteValue(velocity_);
+    stream->WriteValue(looping_);
+    stream->WriteValue(noFade_);
 }
 
 double CEffectSound::Radius() { return radius_; }
@@ -213,27 +213,27 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
 }
 
 void CEffectSoundSeq::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
-    Read(stream, &velocity_, 12);
+    stream->ReadValue(localPosition_);
+    stream->ReadValue(velocity_);
     stream->ReadInto(&name_);
     ReadSavedStrings(&names_, stream);
-    Read(stream, &volume_, 4);
-    Read(stream, &radius_, 4);
+    stream->ReadValue(volume_);
+    stream->ReadValue(radius_);
     moving_ = IsMoving(velocity_);
     if (Version(stream) < 0x6D) return;
-    Read(stream, &noFade_, 1);
+    stream->ReadValue(noFade_);
 }
 
 void CEffectSoundSeq::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
-    Write(stream, &velocity_, 12);
+    stream->WriteValue(localPosition_);
+    stream->WriteValue(velocity_);
     stream->WriteString(name_);
     int count = static_cast<int>(names_.size());
-    Write(stream, &count, 4);
+    stream->WriteValue(count);
     for (const std::string& name : names_) stream->WriteString(name);
-    WriteCopy(stream, &volume_);
-    WriteCopy(stream, &radius_);
-    Write(stream, &noFade_, 1);
+    stream->WriteValue(volume_);
+    stream->WriteValue(radius_);
+    stream->WriteValue(noFade_);
 }
 
 double CEffectSoundSeq::Radius() { return radius_; }
@@ -295,23 +295,23 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
 }
 
 void CEffectAmbientSound::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
+    stream->ReadValue(localPosition_);
     ReadSavedStrings(&names_, stream);
-    Read(stream, &volume_, 4);
-    Read(stream, &radius_, 4);
-    Read(stream, &minInterval_, 4);
-    Read(stream, &maxInterval_, 4);
+    stream->ReadValue(volume_);
+    stream->ReadValue(radius_);
+    stream->ReadValue(minInterval_);
+    stream->ReadValue(maxInterval_);
 }
 
 void CEffectAmbientSound::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
+    stream->WriteValue(localPosition_);
     int count = static_cast<int>(names_.size());
-    Write(stream, &count, 4);
+    stream->WriteValue(count);
     for (const std::string& name : names_) stream->WriteString(name);
-    WriteCopy(stream, &volume_);
-    WriteCopy(stream, &radius_);
-    WriteCopy(stream, &minInterval_);
-    WriteCopy(stream, &maxInterval_);
+    stream->WriteValue(volume_);
+    stream->WriteValue(radius_);
+    stream->WriteValue(minInterval_);
+    stream->WriteValue(maxInterval_);
 }
 
 double CEffectAmbientSound::Radius() { return radius_; }

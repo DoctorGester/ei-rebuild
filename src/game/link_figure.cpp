@@ -5,6 +5,7 @@
 #include "texture.h"   // CTextureDevice
 #include "render/render.h"   // MeshChanged
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -214,7 +215,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers_[*name];
     FigHeader fig;
-    std::memcpy(&fig, *cursor, sizeof(fig));
+    lib::LoadBytes(fig, *cursor);
     *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
     int count = fig.vertexCount;
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));

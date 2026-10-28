@@ -8,12 +8,12 @@
 
 void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
-    ar->Field(1, &exp, 4);
-    ar->Field(2, &unreadField, 4);
-    ar->Field(3, &zone, 4);
+    ar->Field(1, &exp);
+    ar->Field(2, &unreadField);
+    ar->Field(3, &zone);
     ar->StringField(4, &text);
-    ar->Field(5, &money, 4);
-    ar->Field(6, &order, 4);
+    ar->Field(5, &money);
+    ar->Field(6, &order);
     if (!ar->EnterChunk(7)) return;
     int count;
     if (ar->loading_) {
@@ -26,19 +26,19 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ar->Field(1, &places[i], 4);
+        ar->Field(1, &places[i]);
     }
     ar->LeaveChunk();
 }
 
 void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
-    ar->Field(1, &exp, 4);
-    ar->Field(2, &money, 4);
+    ar->Field(1, &exp);
+    ar->Field(2, &money);
     ar->SerializeStrings(3, &lists[0]);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
-    ar->Field(10, &specials, 4);
+    ar->Field(10, &specials);
 }
 
 void ChunkArchive::SerializeQuests(int id, std::vector<QuestRecord>* quests) {

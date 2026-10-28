@@ -17,6 +17,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
@@ -278,11 +279,11 @@ bool CUnitServer::CanCast(const AIOrder* order) {
 
 BOOL CUnitServer::GetMovePoint(float* out) {
     if (action.kind == 1) {
-        std::memcpy(out, &action.point, sizeof(action.point));
+        lib::StoreBytes(out, action.point);
         return 1;
     }
     if (action2.kind == 1) {
-        std::memcpy(out, &action2.point, sizeof(action2.point));
+        lib::StoreBytes(out, action2.point);
         return 1;
     }
     return 0;

@@ -1,6 +1,7 @@
 // The settings file's text and the import's tree walk (no registry, no game): Document, its reg-export-style
 // lines, JoinPath, ImportTrees. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings_file.h"
+#include "lib/bytes.h"
 
 #include <bit>
 #include <string>
@@ -39,7 +40,7 @@ bool PlainString(const std::string& data) {
 bool FloatText(const std::string& data, std::string* out) {
     if (data.size() != 4) return false;
     std::uint32_t bits;
-    std::memcpy(&bits, data.data(), 4);
+    lib::LoadBytes(bits, data.data());
     if ((bits & 0x7F800000u) == 0x7F800000u) return false;
     float value;
     value = std::bit_cast<float>(bits);
@@ -65,7 +66,7 @@ std::string ValueText(const Value& v) {
     std::string out;
     if (v.type == REG_DWORD && v.data.size() == 4) {
         std::uint32_t dword;
-        std::memcpy(&dword, v.data.data(), 4);
+        lib::LoadBytes(dword, v.data.data());
         out = "dword:";
         AppendHex(out, dword, 8);
         return out;

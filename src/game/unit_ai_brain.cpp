@@ -93,13 +93,6 @@ void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
         RemoveObjectNode(list, node);
 }
 
-// Writes `value`'s bytes.
-template <typename T>
-void WriteCopy(CStream* stream, const T& value) {
-    T copy = value;
-    stream->Write(&copy, sizeof(T));
-}
-
 // A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
 // uninitialised). Null for an unknown type (9, or above 10).
 AIMode* NewModeOfType(int type) {
@@ -402,28 +395,28 @@ void AIBrain::Load(CStream* stream) {
     decay = 1.0f;
     nearY = kNearPointCleared;
     int value;
-    stream->Read(&value, 4);
+    stream->ReadValue(value);
     action = value;
-    stream->Read(&move.point, 12);
+    stream->ReadValue(move.point);
     LoadLooks(&move.looks, stream);
-    stream->Read(&actionTime, 4);
+    stream->ReadValue(actionTime);
     target.Load(stream, &g_serverWorld.Get());
     seen.Load(stream, &g_serverWorld.Get());
-    stream->Read(&callRadius, 4);
-    stream->Read(&nearX, 4);
-    stream->Read(&nearY, 4);
-    stream->Read(&decay, 4);
-    stream->Read(&previousPosition, 12);
-    stream->Read(&position, 12);
-    stream->Read(&alertMode, 4);
+    stream->ReadValue(callRadius);
+    stream->ReadValue(nearX);
+    stream->ReadValue(nearY);
+    stream->ReadValue(decay);
+    stream->ReadValue(previousPosition);
+    stream->ReadValue(position);
+    stream->ReadValue(alertMode);
     int count;
     int currentIndex;
-    stream->Read(&count, 4);
-    stream->Read(&currentIndex, 4);
+    stream->ReadValue(count);
+    stream->ReadValue(currentIndex);
     AssignCurrent(current, nullptr);
     for (int i = 0; i < count; ++i) {
         int type;
-        stream->Read(&type, 4);
+        stream->ReadValue(type);
         AIMode* mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
@@ -433,67 +426,67 @@ void AIBrain::Load(CStream* stream) {
         if (i == currentIndex) AssignCurrent(current, modes.back());
     }
     memory.Load(stream);
-    stream->Read(&alerted, 1);
-    stream->Read(&alarm, 1);
-    stream->Read(&count, 4);
+    stream->ReadValue(alerted);
+    stream->ReadValue(alarm);
+    stream->ReadValue(count);
     alarmRecords.resize(count);
     for (int i = 0; i < std::ssize(alarmRecords); ++i) alarmRecords[i].Read(stream);
-    stream->Read(&alarmCountdown, 4);
+    stream->ReadValue(alarmCountdown);
     // A radius saved as the default one becomes the configured one.
     LogicSettings& settings = g_logicSettings;
     EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
     if (callRadius == settings.callForHelpRadiusDefault)
         callRadius = settings.callForHelpRadius;
-    stream->Read(&alwaysUpdated, 1);
+    stream->ReadValue(alwaysUpdated);
     if (stream->version_ < 0x4B) return;
     attention.healWeight = 0.0f;
     LoadAttackOptions(&attention.weapons, stream);
     if (stream->version_ >= 0x5A) {
         LoadAttackOptions(&attention.spells, stream);
-        stream->Read(&attention.healWeight, 4);
+        stream->ReadValue(attention.healWeight);
     }
     if (stream->version_ < 0x71) return;
-    stream->Read(&alarmSlot, 1);
+    stream->ReadValue(alarmSlot);
 }
 
 void AIBrain::Save(CStream* stream) {
-    WriteCopy(stream, action);
-    stream->Write(&move.point, 12);
+    stream->WriteValue(action);
+    stream->WriteValue(move.point);
     SaveLooks(&move.looks, stream);
-    WriteCopy(stream, actionTime);
+    stream->WriteValue(actionTime);
     target.Save(stream);
     seen.Save(stream);
-    WriteCopy(stream, callRadius);
-    WriteCopy(stream, nearX);
-    WriteCopy(stream, nearY);
-    WriteCopy(stream, decay);
-    stream->Write(&previousPosition, 12);
-    stream->Write(&position, 12);
-    stream->Write(&alertMode, 4);
-    WriteCopy(stream, std::ssize(modes));
+    stream->WriteValue(callRadius);
+    stream->WriteValue(nearX);
+    stream->WriteValue(nearY);
+    stream->WriteValue(decay);
+    stream->WriteValue(previousPosition);
+    stream->WriteValue(position);
+    stream->WriteValue(alertMode);
+    stream->WriteValue(std::ssize(modes));
     int currentIndex = -1;
     int index = 0;
     for (auto node = modes.begin(); node != modes.end(); ++node, ++index)
         if (*node == current) currentIndex = index;
-    WriteCopy(stream, currentIndex);
+    stream->WriteValue(currentIndex);
     for (auto node = modes.begin(); node != modes.end();) {
         auto next = std::next(node);
         AIMode* mode = *node;
-        WriteCopy(stream, mode->GetType());
+        stream->WriteValue(mode->GetType());
         mode->Save(stream);
         node = next;
     }
     memory.Save(stream);
-    WriteCopy(stream, alerted);
-    WriteCopy(stream, alarm);
-    WriteCopy(stream, std::ssize(alarmRecords));
+    stream->WriteValue(alerted);
+    stream->WriteValue(alarm);
+    stream->WriteValue(std::ssize(alarmRecords));
     for (int i = 0; i < std::ssize(alarmRecords); ++i) alarmRecords[i].Write(stream);
-    WriteCopy(stream, alarmCountdown);
-    WriteCopy(stream, alwaysUpdated);
-    WriteCopy(stream, std::ssize(attention.weapons));
+    stream->WriteValue(alarmCountdown);
+    stream->WriteValue(alwaysUpdated);
+    stream->WriteValue(std::ssize(attention.weapons));
     for (int i = 0; i < std::ssize(attention.weapons); ++i) attention.weapons[i].Save(stream);
-    WriteCopy(stream, std::ssize(attention.spells));
+    stream->WriteValue(std::ssize(attention.spells));
     for (int i = 0; i < std::ssize(attention.spells); ++i) attention.spells[i].Save(stream);
-    WriteCopy(stream, attention.healWeight);
-    WriteCopy(stream, alarmSlot);
+    stream->WriteValue(attention.healWeight);
+    stream->WriteValue(alarmSlot);
 }

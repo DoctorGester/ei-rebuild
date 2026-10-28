@@ -50,10 +50,10 @@ double AIAttackOption::Weight() const {
 
 void AIAttackOption::Load(CStream* stream) {
     if (stream->version_ < 0x5A) {
-        stream->Read(&part, 4);
+        stream->ReadValue(part);
         std::uint32_t dropped;
-        stream->Read(&dropped, 4);
-        stream->Read(&damage, sizeof(damage));
+        stream->ReadValue(dropped);
+        stream->ReadValue(damage);
         kind = part >= 0 ? 1 : 0;
         range = 1.0f;
         maxCount = 0;
@@ -61,22 +61,22 @@ void AIAttackOption::Load(CStream* stream) {
         effect = 0;
         return;
     }
-    stream->Read(&kind, 4);
-    stream->Read(&part, 4);
-    stream->Read(&range, 4);
-    stream->Read(&maxCount, 4);
-    stream->Read(&radius, 4);
-    stream->Read(&effect, 4);
-    stream->Read(&damage, sizeof(damage));
+    stream->ReadValue(kind);
+    stream->ReadValue(part);
+    stream->ReadValue(range);
+    stream->ReadValue(maxCount);
+    stream->ReadValue(radius);
+    stream->ReadValue(effect);
+    stream->ReadValue(damage);
 }
 
 void AIAttackOption::Save(CStream* stream) const {
-    stream->Write(&kind, 4);
+    stream->WriteValue(kind);
     for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
                                 std::bit_cast<std::uint32_t>(maxCount), std::bit_cast<std::uint32_t>(radius),
                                 std::bit_cast<std::uint32_t>(effect)})
-        stream->Write(&value, 4);
-    stream->Write(&damage, sizeof(damage));
+        stream->WriteValue(value);
+    stream->WriteValue(damage);
 }
 
 void AIAttention::InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius,
@@ -189,7 +189,7 @@ void AIAttention::Build(CUnit* unit) {
 // The count, the array sized to it (SetSize inlined), then each option.
 void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     options->resize(count);
     for (int i = 0; i < std::ssize(*options); ++i) (*options)[i].Load(stream);
 }

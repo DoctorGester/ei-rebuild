@@ -19,7 +19,7 @@ constexpr int kNoObject = -1;
 template <class T>
 void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
     CBaseManager* manager = world->TimedObjectManager();
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
     T* old = field;
     field = object;
@@ -29,45 +29,45 @@ void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& fie
 
 void SaveEffectObject(CStream* stream, const CEngineObject* object) {
     int id = object ? object->id_ : kNoObject;
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
 }
 
 } // namespace
 
 void CSpellEffect::Load(CStream* stream) {
     world = g_loadingProjectileWorld;
-    stream->Read(&position, 12);
+    stream->ReadValue(position);
     caster.Load(stream, world);
     target.Load(stream, world);
-    stream->Read(&targetPoint, 12);
-    stream->Read(&state, 4);
+    stream->ReadValue(targetPoint);
+    stream->ReadValue(state);
     Spell()->Load(stream);
     std::uint32_t packed = 0;
-    stream->Read(&packed, 4);
+    stream->ReadValue(packed);
     Spell()->prototypeId_ = packed;
     CWorld* server = world;
     std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
     LoadEffectObject(stream, server, id, sound);
     LoadEffectObject(stream, server, id, light);
-    stream->Read(&timer, 4);
-    stream->Read(&flags, 4);
-    stream->Read(&position, 12);
+    stream->ReadValue(timer);
+    stream->ReadValue(flags);
+    stream->ReadValue(position);
     UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 1);
 }
 
 void CSpellEffect::Save(CStream* stream) {
-    stream->Write(&position, 12);
+    stream->WriteValue(position);
     caster.Save(stream);
     target.Save(stream);
-    stream->Write(&targetPoint, 12);
-    stream->Write(&state, 4);
+    stream->WriteValue(targetPoint);
+    stream->WriteValue(state);
     Spell()->Save(stream);
-    stream->Write(&Spell()->prototypeId_, 4);
+    stream->WriteValue(Spell()->prototypeId_);
     SaveEffectObject(stream, visual);
     SaveEffectObject(stream, sound);
     SaveEffectObject(stream, light);
-    stream->Write(&timer, 4);
-    stream->Write(&flags, 4);
-    stream->Write(&position, 12);
+    stream->WriteValue(timer);
+    stream->WriteValue(flags);
+    stream->WriteValue(position);
 }

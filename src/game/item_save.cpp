@@ -17,57 +17,57 @@ constexpr std::uint32_t kDword = 4;
 } // namespace
 
 void CItem::Load(CStream* stream) {
-    stream->Read(&prototypeId_, kDword);
-    stream->Read(&condition_, kDword);
-    stream->Read(&conditionMax_, kDword);
-    stream->Read(&charge_, kDword);
-    stream->Read(&chargeMax_, kDword);
-    stream->Read(&chargeRate_, kDword);
-    stream->Read(&weight_, kDword);
-    stream->Read(&price_, kDword);
-    stream->Read(&unreadValue_, kDword);
+    stream->ReadValue(prototypeId_);
+    stream->ReadValue(condition_);
+    stream->ReadValue(conditionMax_);
+    stream->ReadValue(charge_);
+    stream->ReadValue(chargeMax_);
+    stream->ReadValue(chargeRate_);
+    stream->ReadValue(weight_);
+    stream->ReadValue(price_);
+    stream->ReadValue(unreadValue_);
     CSpellManager* spells = WorldContext()->SpellManager();
     std::uint32_t id = 0;
-    stream->Read(&id, kDword);
+    stream->ReadValue(id);
     CSpell* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObjectAs<CSpell>(id);
     CSpell* previous = spell_;
     spell_ = spell;
     if (spell != nullptr) ++spell->refCount_;
     if (previous != nullptr) previous->Release();
-    stream->Read(&count_, kDword);
-    stream->Read(&magicLevel_, kDword);
+    stream->ReadValue(count_);
+    stream->ReadValue(magicLevel_);
 }
 
 void CItem::Save(CStream* stream) {
-    stream->Write(&prototypeId_, kDword);
-    stream->Write(&condition_, kDword);
-    stream->Write(&conditionMax_, kDword);
-    stream->Write(&charge_, kDword);
-    stream->Write(&chargeMax_, kDword);
-    stream->Write(&chargeRate_, kDword);
-    stream->Write(&weight_, kDword);
-    stream->Write(&price_, kDword);
-    stream->Write(&unreadValue_, kDword);
+    stream->WriteValue(prototypeId_);
+    stream->WriteValue(condition_);
+    stream->WriteValue(conditionMax_);
+    stream->WriteValue(charge_);
+    stream->WriteValue(chargeMax_);
+    stream->WriteValue(chargeRate_);
+    stream->WriteValue(weight_);
+    stream->WriteValue(price_);
+    stream->WriteValue(unreadValue_);
     std::int32_t spellId = spell_ != nullptr ? spell_->id_ : -1;
-    stream->Write(&spellId, kDword);
-    stream->Write(&count_, kDword);
-    stream->Write(&magicLevel_, kDword);
+    stream->WriteValue(spellId);
+    stream->WriteValue(count_);
+    stream->WriteValue(magicLevel_);
 }
 
 void CItemWeapon::Load(CStream* stream) {
     CItem::Load(stream);
-    stream->Read(&actionValue_, kDword);
-    stream->Read(&damage_, kDword);
-    stream->Read(&damageSpread_, kDword);
-    stream->Read(&reach_, kDword);
+    stream->ReadValue(actionValue_);
+    stream->ReadValue(damage_);
+    stream->ReadValue(damageSpread_);
+    stream->ReadValue(reach_);
 }
 
 void CItemWeapon::Save(CStream* stream) {
     CItem::Save(stream);
-    stream->Write(&actionValue_, kDword);
-    stream->Write(&damage_, kDword);
-    stream->Write(&damageSpread_, kDword);
-    stream->Write(&reach_, kDword);
+    stream->WriteValue(actionValue_);
+    stream->WriteValue(damage_);
+    stream->WriteValue(damageSpread_);
+    stream->WriteValue(reach_);
 }
 
 void CItemArmor::Load(CStream* stream) {
@@ -84,37 +84,37 @@ void CItemArmor::Save(CStream* stream) {
 
 void CItemQuick::Load(CStream* stream) {
     CItem::Load(stream);
-    stream->Read(&actionValue_, kDword);
+    stream->ReadValue(actionValue_);
 }
 
 void CItemQuick::Save(CStream* stream) {
     CItem::Save(stream);
-    stream->Write(&actionValue_, kDword);
+    stream->WriteValue(actionValue_);
 }
 
 void CItemQuest::Load(CStream* stream) {
     CItem::Load(stream);
-    stream->Read(&questItemId_, kDword);
+    stream->ReadValue(questItemId_);
 }
 
 void CItemQuest::Save(CStream* stream) {
     CItem::Save(stream);
-    stream->Write(&questItemId_, kDword);
+    stream->WriteValue(questItemId_);
 }
 
 void CItemLoot::Load(CStream* stream) {
     CItem::Load(stream);
     std::uint32_t value = 0;
-    stream->Read(&value, kDword);
+    stream->ReadValue(value);
     kind_ = value;
-    stream->Read(&value, kDword);
+    stream->ReadValue(value);
     recordType_ = value;
-    stream->Read(&index_, kDword);
+    stream->ReadValue(index_);
 }
 
 void CItemLoot::Save(CStream* stream) {
     CItem::Save(stream);
-    stream->Write(&kind_, kDword);
-    stream->Write(&recordType_, kDword);
-    stream->Write(&index_, kDword);
+    stream->WriteValue(kind_);
+    stream->WriteValue(recordType_);
+    stream->WriteValue(index_);
 }

@@ -43,7 +43,7 @@ Speeches* ListFor(const AckRecordHead& record, std::uint32_t kind) {
 
 void SpeechFields(SpeechRecord& speech, ChunkArchive* ar) {
     ar->StringField(1, &speech.sound);
-    ar->Field(2, &speech.chance, 4);
+    ar->Field(2, &speech.chance);
     ar->StringField(3, &speech.text);
     ar->StringField(4, &speech.name);
 }
@@ -205,7 +205,7 @@ void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* lis
     ChunkArchive* ar = this;
     RecordChunks(ar, id, static_cast<std::vector<EnvironmentSpeech>*>(list), [](EnvironmentSpeech& speech, ChunkArchive* ar) {
         SpeechFields(speech.speech, ar);
-        ar->Field(10, &speech.environment, 4);
+        ar->Field(10, &speech.environment);
     });
 }
 

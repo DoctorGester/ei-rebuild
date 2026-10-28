@@ -209,5 +209,5 @@ void CGlobalMap::Close() {
 // The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
-    g_saveStream->Write(&zero, 4);
+    g_saveStream->WriteValue(zero);
 }

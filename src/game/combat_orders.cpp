@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 
 #include <bit>
 #include <cstring>
@@ -145,7 +146,7 @@ void CUnitServer::FinishCast() {
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
     action2.kind = 2;
-    std::memcpy(&action2.point, direction, sizeof(action2.point));
+    lib::LoadBytes(action2.point, direction);
     ReleaseTarget(&action2);
     action2.modifier = 0;
     action2.param = static_cast<int>(time);

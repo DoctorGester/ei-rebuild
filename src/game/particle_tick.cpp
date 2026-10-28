@@ -8,6 +8,7 @@
 #include "random.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
 #include "world.h"
@@ -236,7 +237,7 @@ void CParticleSource::AddParticle(Particle* p) {
 int CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
     const CWorldClient* world = &g_clientWorld.Get();
-    std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
+    lib::LoadBytes(windDirection, world->windDirection_);
     windStrength = std::bit_cast<float>(world->windStrength_);
     boundsMin.x = kFarBits;
     boundsMin.y = kFarBits;

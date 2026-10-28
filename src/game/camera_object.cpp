@@ -180,7 +180,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     record.reserved = 0;
     record.position = localPosition_;
     record.rotation = localRotation_;
-    file.Write(&record, sizeof(record));
+    file.WriteValue(record);
     file.Close();
     return 1;
 }
@@ -195,19 +195,19 @@ int CameraCloseFile(CCamera* self) {
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
 void CCamera::Load(CStream* stream) {
-    stream->Read(&focus_, 12);
-    stream->Read(&focusHeight_, 4);
-    stream->Read(&viewRotation_, 16);
-    stream->Read(&pitch_, 4);
-    stream->Read(&distance_, 4);
+    stream->ReadValue(focus_);
+    stream->ReadValue(focusHeight_);
+    stream->ReadValue(viewRotation_);
+    stream->ReadValue(pitch_);
+    stream->ReadValue(distance_);
     stream->Read(&panVelocity_, 0x1C);
     stream->Read(&turnRate_, 12);
     stream->Read(&tiltRate_, 12);
     stream->Read(&zoomRate_, 12);
     std::uint32_t savedFlags = 0;
-    stream->Read(&savedFlags, 4);
+    stream->ReadValue(savedFlags);
     int target = 0;
-    stream->Read(&target, 4);
+    stream->ReadValue(target);
     if (static_cast<int>(stream->version_) < 0x6F) stream->Read(views_, 0xC0);
     else stream->Read(&views_[4], 0x60);
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
@@ -223,16 +223,16 @@ void CCamera::Load(CStream* stream) {
 
 // Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and views 4..7).
 void CCamera::Save(CStream* stream) {
-    stream->Write(&focus_, 12);
-    stream->Write(&focusHeight_, 4);
-    stream->Write(&viewRotation_, 16);
-    stream->Write(&pitch_, 4);
-    stream->Write(&distance_, 4);
+    stream->WriteValue(focus_);
+    stream->WriteValue(focusHeight_);
+    stream->WriteValue(viewRotation_);
+    stream->WriteValue(pitch_);
+    stream->WriteValue(distance_);
     stream->Write(&panVelocity_, 0x1C);
     stream->Write(&turnRate_, 12);
     stream->Write(&tiltRate_, 12);
     stream->Write(&zoomRate_, 12);
-    stream->Write(&flags_, 4);
-    stream->Write(&targetId_, 4);
+    stream->WriteValue(flags_);
+    stream->WriteValue(targetId_);
     stream->Write(&views_[4], 0x60);
 }

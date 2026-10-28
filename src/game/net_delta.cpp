@@ -9,6 +9,7 @@
 #include <string>
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 
 #include <bit>
 #include <memory>
@@ -18,7 +19,7 @@ namespace {
 
 std::uint32_t Word(const std::uint8_t* p) {
     std::uint32_t w;
-    std::memcpy(&w, p, sizeof(w));
+    lib::LoadBytes(w, p);
     return w;
 }
 
@@ -100,7 +101,7 @@ void StoreBits(float* out, std::uint32_t bits) { *out = std::bit_cast<float>(bit
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
     CMemoryStream& header = state->header_[channel];
     header.Resize(0);
-    header.Write(&mask, 2);
+    header.WriteValue(mask);
     for (int i = 0; i < std::ssize(state->fields_); ++i) {
         if (!(mask & (1 << i))) continue;
         CMemoryStream& out = state->fields_[i].out[channel];
@@ -123,7 +124,7 @@ bool CMemoryStream::GetBit() {
     bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
     if (bitMask_ > 0x80) {
         bitMask_ = 1;
-        Read(&bits_, 1);
+        ReadValue(bits_);
     }
     return (bitMask_ & static_cast<std::int8_t>(bits_)) != 0;
 }
@@ -137,7 +138,7 @@ void CMemoryStream::WriteStream(CMemoryStream* from) {
         Write(&header, 1);
     } else {
         header |= 1;
-        Write(&header, 4);
+        WriteValue(header);
     }
     std::uint8_t* data = from->data_;
     Write(data, from->Size());
@@ -370,9 +371,9 @@ std::uint16_t DeltaField::ReadWord() {
     if (reader->GetBit()) {
         std::memcpy(&q, current, 2);
     } else {
-        reader->Read(&q, 2);
+        reader->ReadValue(q);
         snapshot[1].Seek(at);
-        snapshot[1].Write(&q, 2);
+        snapshot[1].WriteValue(q);
     }
     delta::g_readSnapshot->Seek(at + 2);
     return q;
@@ -387,7 +388,7 @@ void DeltaField::ReadPosition(Vector3* position) {
     std::uint16_t q;
     if (delta::ReadDiff(delta::g_readSnapshot->data_ + at, &q, 2, reader)) {
         snapshot[1].Seek(at);
-        snapshot[1].Write(&q, 2);
+        snapshot[1].WriteValue(q);
     }
     delta::g_readSnapshot->Seek(at + 2);
     position->z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
@@ -514,7 +515,7 @@ void DeltaState::SetWriteMode(int deltaOnly) {
 
 int DeltaState::BeginRead(int second, CMemoryStream* reader) {
     reader_ = reader;
-    reader->Read(&mask_, 2);
+    reader->ReadValue(mask_);
     mode_ = second ? kRead1 : kRead0;
     return second;
 }

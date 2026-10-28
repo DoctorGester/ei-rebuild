@@ -138,16 +138,16 @@ void ClientApplyParty(ClientSession* self) {
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
-        stream->Read(&id, 4u);
+        stream->ReadValue(id);
         if (id > 0) {
-            stream->Read(&type, 4u);
-            stream->Read(&packedId, 4u);
+            stream->ReadValue(type);
+            stream->ReadValue(packedId);
             CEngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
             spell->prototypeId_ = packedId;
             spell->Load(stream);
         }
-        stream->Read(&type, 4u);
-        stream->Read(&packedId, 4u);
+        stream->ReadValue(type);
+        stream->ReadValue(packedId);
         CEngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
         item->prototypeId_ = packedId;
         item->Load(stream);

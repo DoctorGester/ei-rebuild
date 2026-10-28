@@ -72,7 +72,7 @@ const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n
 const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
 const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
-void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); }
+void WriteByte(CMemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
 
 const char* QuestPrefix() { return "q."; }
 
@@ -185,7 +185,7 @@ constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/
 void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
 int ReadDword(CMemoryStream* in) {
     int value;
-    in->Read(&value, 4);
+    in->ReadValue(value);
     return value;
 }
 
@@ -207,7 +207,7 @@ int CPlayerClient::Pump() {
         std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
         login.partyId = player_->partyId_;
         WriteByte(&out_, kRequestLogin);
-        out_.Write(&login, sizeof(login));
+        out_.WriteValue(login);
         state_ = kStateLoggedIn;
         return SendToServer();
     }
@@ -278,7 +278,7 @@ int CPlayerClient::OnSetVariable() {
     std::string name;
     in_.ReadString(&name);
     std::uint32_t value;
-    in_.Read(&value, 4);
+    in_.ReadValue(value);
     NamedFloatTable& variables = player_->Party()->variables_;
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
@@ -304,7 +304,7 @@ int CPlayerClient::OnZoneChange() {
     std::string zone;
     ReadText(&zone);
     int entrance;
-    in_.Read(&entrance, 4);
+    in_.ReadValue(entrance);
     g_gameFlow->RequestZoneChange(zone, entrance);
     return 1;
 }
@@ -340,7 +340,7 @@ int CPlayerClient::OnWorldBlock5() {
 
 int CPlayerClient::OnItemRemoved() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     player_->TakeItem(id);
     RefreshQuestLog();
     return 1;
@@ -354,7 +354,7 @@ int CPlayerClient::OnQuestItemsChanged() {
 
 int CPlayerClient::OnExperienceAll() {
     float amount;
-    in_.Read(&amount, 4);
+    in_.ReadValue(amount);
     CPlayer::UnitMap& units = player_->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
@@ -366,8 +366,8 @@ int CPlayerClient::OnExperienceAll() {
 int CPlayerClient::OnExperience() {
     int id;
     float amount;
-    in_.Read(&id, 4);
-    in_.Read(&amount, 4);
+    in_.ReadValue(id);
+    in_.ReadValue(amount);
     auto* unit = g_clientWorld->FindUnit(id);
     if (unit != nullptr) g_clientWorld->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
@@ -379,13 +379,13 @@ int CPlayerClient::OnItemsReceived() {
     std::list<CItem*> items;
     int& money = player_->Party()->money_;
     int before = money;
-    in_.Read(&money, 4);
+    in_.ReadValue(money);
     std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
-    in_.Read(&flag, 1);
+    in_.ReadValue(flag);
     int result = 1;
     for (;;) {
         int id;
-        in_.Read(&id, 4);
+        in_.ReadValue(id);
         if (id == -1) break;
         if (!in_.ok_) {
             result = 0;
@@ -443,16 +443,16 @@ int CPlayerClient::OnPathMarker() {
     DeltaField field;
     CParticleSource* pathSource = nullptr;
     int kind;
-    in_.Read(&kind, 4);
+    in_.ReadValue(kind);
     int flag;
-    in_.Read(&flag, 4);
+    in_.ReadValue(flag);
     Vector3 at{0.0f, 0.0f, 0.0f};
-    in_.Read(&at.x, 4);
-    in_.Read(&at.y, 4);
+    in_.ReadValue(at.x);
+    in_.ReadValue(at.y);
     int unitId;
-    in_.Read(&unitId, 4);
+    in_.ReadValue(unitId);
     float value;
-    in_.Read(&value, 4);
+    in_.ReadValue(value);
     if (kind != kKindNoPath) {
         auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
@@ -514,9 +514,9 @@ int CPlayerClient::OnNewObject() {
     std::string scriptName;
     std::string secondName;
     NewObjectHeader header;
-    in_.Read(&header, sizeof(header));
+    in_.ReadValue(header);
     Vector3 scale;
-    in_.Read(&scale, sizeof(scale));
+    in_.ReadValue(scale);
     in_.ReadString(&secondName);
     if (!in_.ok_) return 0;
     char model[kTextSize];
@@ -527,7 +527,7 @@ int CPlayerClient::OnNewObject() {
     in_.ReadText(textureFrom, kTextSize);
     in_.ReadText(textureTo, kTextSize);
     std::uint16_t count = 0;   // read into the low half of a stack dword
-    in_.Read(&count, 2);
+    in_.ReadValue(count);
     parts.resize(count);
     for (std::uint16_t i = 0; i < count; ++i) {
         in_.ReadText(part, kTextSize);
@@ -535,7 +535,7 @@ int CPlayerClient::OnNewObject() {
     }
     in_.ReadString(&scriptName);
     int prototypeValue;
-    in_.Read(&prototypeValue, 4);
+    in_.ReadValue(prototypeValue);
 
     auto* world = player_->WorldContext();
     CMapObject* created = world->objectManager_->CreateObjectAs<CMapObject>(header.type, header.id);
@@ -702,7 +702,7 @@ int CPlayerClient::OnPartyState() {
     }
 
     std::uint8_t paused;
-    in_.Read(&paused, 1);
+    in_.ReadValue(paused);
     player->ClientWorld()->paused_ = paused != 0 ? 1 : 0;
     ReadDword(&in_);   // the server's possessedId_, not used
 
@@ -723,7 +723,7 @@ int CPlayerClient::OnPartyState() {
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.resize(others);
-    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_[i], 4);
+    for (int i = 0; i < others; ++i) in_.ReadValue(otherUnitIds_[i]);
     return 1;
 }
 

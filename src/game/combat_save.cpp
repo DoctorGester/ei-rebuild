@@ -28,11 +28,6 @@ constexpr int kVersionPendingHit = 0x69;
 constexpr int kVersion93C = 0x73;
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
-template <typename T>
-void WriteCopy(CStream* stream, T value) {
-    stream->Write(&value, sizeof(T));
-}
-
 int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
 
 // Assigns a counted reference, releasing the previous object (two copies in the game).
@@ -50,63 +45,63 @@ void AssignCounted(T*& slot, T* object) {
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     return id == -1 ? nullptr : manager->FindObject(id);
 }
 CItem* ReadItem(CStream* stream, const CBaseManager* items) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     return id == -1 ? nullptr : FindItem(items, id);
 }
 CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     return id == -1 ? nullptr : UnitWithId(objects, id);
 }
 
 void LoadOrder(CStream* stream, UnitAction* order) {
-    stream->Read(&order->kind, 4);
-    stream->Read(&order->source, 4);
+    stream->ReadValue(order->kind);
+    stream->ReadValue(order->source);
     order->target.Load(stream, &g_serverWorld.Get());
-    stream->Read(&order->point, 0xC);
-    stream->Read(&order->param, 4);
-    stream->Read(&order->modifier, 1);
-    if (stream->version_ >= kVersionPlanDirection) stream->Read(&order->pointIsUseSpot, 1);
+    stream->ReadValue(order->point);
+    stream->ReadValue(order->param);
+    stream->ReadValue(order->modifier);
+    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(order->pointIsUseSpot);
 }
 
 void SaveOrder(CStream* stream, UnitAction* order) {
-    stream->Write(&order->kind, 4);
-    stream->Write(&order->source, 4);
+    stream->WriteValue(order->kind);
+    stream->WriteValue(order->source);
     order->target.Save(stream);
-    stream->Write(&order->point, 0xC);
-    WriteCopy(stream, order->param);
-    WriteCopy(stream, order->modifier);
-    WriteCopy(stream, order->pointIsUseSpot);
+    stream->WriteValue(order->point);
+    stream->WriteValue(order->param);
+    stream->WriteValue(order->modifier);
+    stream->WriteValue(order->pointIsUseSpot);
 }
 
 // The plan object's fields after its list (plan + 0x18 ..).
 void LoadPlanFields(CStream* stream, OrderPlan* plan) {
-    stream->Read(&plan->startTime, 4);
-    stream->Read(&plan->endTime, 4);
-    stream->Read(&plan->targetId, 4);
-    stream->Read(&plan->hitLocation, 4);
-    stream->Read(&plan->rangeSq, 4);
-    stream->Read(&plan->isCast, 1);
-    stream->Read(&plan->notSkill, 1);
-    stream->Read(&plan->castKind, 4);
-    if (stream->version_ >= kVersionPlanDirection) stream->Read(&plan->direction, 0xC);
+    stream->ReadValue(plan->startTime);
+    stream->ReadValue(plan->endTime);
+    stream->ReadValue(plan->targetId);
+    stream->ReadValue(plan->hitLocation);
+    stream->ReadValue(plan->rangeSq);
+    stream->ReadValue(plan->isCast);
+    stream->ReadValue(plan->notSkill);
+    stream->ReadValue(plan->castKind);
+    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(plan->direction);
 }
 
 void SavePlanFields(CStream* stream, OrderPlan* plan) {
-    WriteCopy(stream, plan->startTime);
-    WriteCopy(stream, plan->endTime);
-    WriteCopy(stream, plan->targetId);
-    stream->Write(&plan->hitLocation, 4);
-    stream->Write(&plan->rangeSq, 4);   // the float's bits
-    WriteCopy(stream, plan->isCast);
-    WriteCopy(stream, plan->notSkill);
-    stream->Write(&plan->castKind, 4);
-    stream->Write(&plan->direction, 0xC);
+    stream->WriteValue(plan->startTime);
+    stream->WriteValue(plan->endTime);
+    stream->WriteValue(plan->targetId);
+    stream->WriteValue(plan->hitLocation);
+    stream->WriteValue(plan->rangeSq);   // the float's bits
+    stream->WriteValue(plan->isCast);
+    stream->WriteValue(plan->notSkill);
+    stream->WriteValue(plan->castKind);
+    stream->WriteValue(plan->direction);
 }
 
 // The item manager (the world server's), which resolves the armour spells' item ids.
@@ -116,13 +111,13 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 // --- Step lists and the armour spell list ----------------------------------------------------
 
 void ArmourSpell::Save(CStream* stream) const {
-    WriteCopy(stream, IdOrNone(item));
-    WriteCopy(stream, countdown);
+    stream->WriteValue(IdOrNone(item));
+    stream->WriteValue(countdown);
 }
 
 void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     int count = 0;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
         auto node = list->emplace(list->end());
         // The entry takes a blank one (no item, countdown 0; `worn` is the original's stack byte).
@@ -136,117 +131,117 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
         auto current = node;
         ++node;
         AssignCounted(current->item, ReadItem(stream, g_serverWorld->itemManager_));
-        stream->Read(&current->countdown, 4);
+        stream->ReadValue(current->countdown);
     }
 }
 
 void CUnitServer::Load(CStream* stream) {
     aiPresence = nullptr;
-    stream->Read(&frozen, 1);
-    stream->Read(&animationHeld, 1);
+    stream->ReadValue(frozen);
+    stream->ReadValue(animationHeld);
     queue.Load(stream);
     motion.LoadPath(stream);
     currentPlan.animation.Load(stream);
     LoadPlanFields(stream, &currentPlan);
-    stream->Read(&keepHitDirection, 1);
-    stream->Read(&stoodBlocked, 1);
-    stream->Read(&motionChanged, 1);
-    stream->Read(&movingAnimation, 1);
+    stream->ReadValue(keepHitDirection);
+    stream->ReadValue(stoodBlocked);
+    stream->ReadValue(motionChanged);
+    stream->ReadValue(movingAnimation);
     savedQueue.Load(stream);
-    stream->Read(&hitDirection, 4);
-    stream->Read(&state, 4);
-    stream->Read(&moveMode, 8);
-    stream->Read(&moveMode2, 8);
-    stream->Read(&nextAttackTime, 4);
-    stream->Read(&interceptTime, 4);
-    stream->Read(&sneakWait, 4);
+    stream->ReadValue(hitDirection);
+    stream->ReadValue(state);
+    stream->ReadValue(moveMode);
+    stream->ReadValue(moveMode2);
+    stream->ReadValue(nextAttackTime);
+    stream->ReadValue(interceptTime);
+    stream->ReadValue(sneakWait);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
     if (stream->version_ < kVersionFixedMaximum)
         stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
-    for (int i = 0; i < 4; ++i) stream->Read(&moveFactors[i], 4);
-    stream->Read(&tameStage, 4);
-    stream->Read(&ownSide, 4);
-    stream->Read(&tamerSide, 4);
-    stream->Read(&speedClass, 4);
-    stream->Read(&claimedHostile, 4);
+    for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
+    stream->ReadValue(tameStage);
+    stream->ReadValue(ownSide);
+    stream->ReadValue(tamerSide);
+    stream->ReadValue(speedClass);
+    stream->ReadValue(claimedHostile);
     brain.Load(stream);
     voice.Load(stream);
-    stream->Read(&orderStopped, 1);
-    stream->Read(&deathReported, 1);
-    stream->Read(&sinkSpeed, 4);
+    stream->ReadValue(orderStopped);
+    stream->ReadValue(deathReported);
+    stream->ReadValue(sinkSpeed);
 
     CBaseManager* effects = WorldContext()->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
-    stream->Read(&followsLeader, 1);
+    stream->ReadValue(followsLeader);
     AssignCounted(followedLeader, ReadUnit(stream, g_serverWorld->objectManager_));
 
     if (stream->version_ < kVersion180) return;
-    stream->Read(&actingCheckTime, 4);
+    stream->ReadValue(actingCheckTime);
     if (stream->version_ < kVersionUnused) return;
     int unused;
-    stream->Read(&unused, 4);
+    stream->ReadValue(unused);
     if (stream->version_ < kVersion18E) return;
-    stream->Read(&searchingTarget, 1);
+    stream->ReadValue(searchingTarget);
     if (stream->version_ < kVersion8E4) return;
-    stream->Read(&protection, sizeof(protection));
+    stream->ReadValue(protection);
     if (stream->version_ < kVersion938) return;
-    stream->Read(&boredTicks, 4);
+    stream->ReadValue(boredTicks);
     if (stream->version_ < kVersionPendingHit) return;
-    stream->Read(&pendingHit, 0x3C);
+    stream->ReadValue(pendingHit);
     if (stream->version_ < kVersion93C) return;
-    WriteCopy(stream, waitFrame);    // sic: written, not read
+    stream->WriteValue(waitFrame);    // sic: written, not read
 }
 
 void CUnitServer::Save(CStream* stream) {
-    WriteCopy(stream, frozen);
-    WriteCopy(stream, animationHeld);
+    stream->WriteValue(frozen);
+    stream->WriteValue(animationHeld);
     queue.Save(stream);
     motion.SavePath(stream);
     currentPlan.animation.Save(stream);
     SavePlanFields(stream, &currentPlan);
-    WriteCopy(stream, keepHitDirection);
-    WriteCopy(stream, stoodBlocked);
-    WriteCopy(stream, motionChanged);
-    WriteCopy(stream, movingAnimation);
+    stream->WriteValue(keepHitDirection);
+    stream->WriteValue(stoodBlocked);
+    stream->WriteValue(motionChanged);
+    stream->WriteValue(movingAnimation);
     savedQueue.Save(stream);
-    WriteCopy(stream, hitDirection);
-    stream->Write(&state, 4);
-    stream->Write(&moveMode, 8);
-    stream->Write(&moveMode2, 8);
-    WriteCopy(stream, nextAttackTime);
-    WriteCopy(stream, interceptTime);
-    WriteCopy(stream, sneakWait);
+    stream->WriteValue(hitDirection);
+    stream->WriteValue(state);
+    stream->WriteValue(moveMode);
+    stream->WriteValue(moveMode2);
+    stream->WriteValue(nextAttackTime);
+    stream->WriteValue(interceptTime);
+    stream->WriteValue(sneakWait);
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
     stats.SaveTo(stream);
-    for (int i = 0; i < 4; ++i) WriteCopy(stream, moveFactors[i]);
-    stream->Write(&tameStage, 4);
-    WriteCopy(stream, ownSide);
-    WriteCopy(stream, tamerSide);
-    WriteCopy(stream, speedClass);
-    WriteCopy(stream, claimedHostile);
+    for (int i = 0; i < 4; ++i) stream->WriteValue(moveFactors[i]);
+    stream->WriteValue(tameStage);
+    stream->WriteValue(ownSide);
+    stream->WriteValue(tamerSide);
+    stream->WriteValue(speedClass);
+    stream->WriteValue(claimedHostile);
     brain.Save(stream);
     voice.Save(stream);
-    WriteCopy(stream, orderStopped);
-    WriteCopy(stream, deathReported);
-    stream->Write(&sinkSpeed, 4);   // the float's bits
-    WriteCopy(stream, IdOrNone(effectObject));
-    WriteCopy(stream, std::ssize(armourSpells));
+    stream->WriteValue(orderStopped);
+    stream->WriteValue(deathReported);
+    stream->WriteValue(sinkSpeed);   // the float's bits
+    stream->WriteValue(IdOrNone(effectObject));
+    stream->WriteValue(std::ssize(armourSpells));
     for (auto node = armourSpells.begin(); node != armourSpells.end();) {
         auto current = node;
         ++node;
         current->Save(stream);
     }
-    WriteCopy(stream, followsLeader);
-    WriteCopy(stream, IdOrNone(followedLeader));
-    WriteCopy(stream, actingCheckTime);
-    WriteCopy(stream, kSavedConstant);
-    WriteCopy(stream, searchingTarget);
-    stream->Write(&protection, sizeof(protection));
-    WriteCopy(stream, boredTicks);
-    stream->Write(&pendingHit, 0x3C);
-    WriteCopy(stream, waitFrame);
+    stream->WriteValue(followsLeader);
+    stream->WriteValue(IdOrNone(followedLeader));
+    stream->WriteValue(actingCheckTime);
+    stream->WriteValue(kSavedConstant);
+    stream->WriteValue(searchingTarget);
+    stream->WriteValue(protection);
+    stream->WriteValue(boredTicks);
+    stream->WriteValue(pendingHit);
+    stream->WriteValue(waitFrame);
 }

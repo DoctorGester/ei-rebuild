@@ -105,7 +105,7 @@ void AIEventTable::ForgetUnit(CUnitServer* controller) {
 void AIEventTable::Load(CStream* stream) {
     for (;;) {
         char more = 0;
-        stream->Read(&more, 1);
+        stream->ReadValue(more);
         if (!more) return;
         AIEvent* event = g_freeEvents;
         if (event) {
@@ -119,10 +119,10 @@ void AIEventTable::Load(CStream* stream) {
         event->nextInSlot = nullptr;
         stream->Read(&event->x, 8);   // x, y
         stream->Read(event->origin, 8);
-        stream->Read(&event->expiry, 4);
+        stream->ReadValue(event->expiry);
         stream->Read(event->payload, 8);
-        stream->Read(&event->sourceId, 4);
-        stream->Read(&event->side, 4);
+        stream->ReadValue(event->sourceId);
+        stream->ReadValue(event->side);
         AIEventCell* cell = CellOf(event);
         if (!cell) {
             PushFree(event);
@@ -145,22 +145,22 @@ void AIEventTable::Save(CStream* stream) {
             for (int side = 0; side < kSides; ++side) {
                 for (AIEvent* event = rows[y][x].bySide[side]; event; event = event->next) {
                     const char more = 1;
-                    stream->Write(&more, 1);
+                    stream->WriteValue(more);
                     stream->Write(&event->x, 8);
                     stream->Write(event->origin, 8);
                     int value = event->expiry;
-                    stream->Write(&value, 4);
+                    stream->WriteValue(value);
                     stream->Write(event->payload, 8);
                     value = event->sourceId;
-                    stream->Write(&value, 4);
+                    stream->WriteValue(value);
                     value = event->side;
-                    stream->Write(&value, 4);
+                    stream->WriteValue(value);
                 }
             }
         }
     }
     const char end = 0;
-    stream->Write(&end, 1);
+    stream->WriteValue(end);
 }
 
 // ---- Setup for a map ----------------------------------------------------------------------------------

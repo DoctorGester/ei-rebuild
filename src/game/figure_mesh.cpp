@@ -11,6 +11,7 @@
 #include "model.h"
 #include "game_singletons.h"
 #include "render/render.h"
+#include "lib/bytes.h"
 
 #include <cstring>
 #include <vector>
@@ -257,7 +258,7 @@ void LoadArray(std::vector<T>& array, char** cursor, int count) {
 
 int ReadCount(char** cursor) {
     int n;
-    std::memcpy(&n, *cursor, 4);
+    lib::LoadBytes(n, *cursor);
     *cursor += 4;
     return n;
 }
@@ -421,7 +422,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
 void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
-    std::memcpy(&header, *cursor, sizeof(header));
+    lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
@@ -464,7 +465,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
-    std::memcpy(&header, *cursor, sizeof(header));
+    lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);

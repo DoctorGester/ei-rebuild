@@ -17,6 +17,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "ei/x87.h"
@@ -750,7 +751,7 @@ void CUnitServer::ApproachTarget() {
     int when = ticks + now;
     const float* future = &chased->PositionAt(&scratch, when)->x;
     Vector3 goal;
-    std::memcpy(&goal, future, sizeof(goal));
+    lib::LoadBytes(goal, future);
 
     if (state == kStateIdle) {
         double close = (static_cast<double>(distance) + 1.0f) * kPointOne;

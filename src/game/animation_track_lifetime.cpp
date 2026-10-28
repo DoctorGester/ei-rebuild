@@ -3,6 +3,7 @@
 // A bone's manager makes the tracks; the bones hold them counted.
 // See docs/notes/map_objects.md.
 #include "map_object_animation.h"
+#include "lib/bytes.h"
 
 #include <cstdint>
 #include <cstring>
@@ -14,7 +15,7 @@ namespace {
 
 int ReadCount(std::uint8_t** cursor) {
     int value;
-    std::memcpy(&value, *cursor, sizeof(value));
+    lib::LoadBytes(value, *cursor);
     *cursor += sizeof(value);
     return value;
 }

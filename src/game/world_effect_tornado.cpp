@@ -166,17 +166,17 @@ void CEffectTornado::Start(int update) {
 }
 
 void CEffectTornado::Load(CStream* s) {
-    s->Read(&localPosition_, 12);
-    s->Read(&velocity_, 12);
-    s->Read(&framesLeft_, 4);
-    s->Read(&launchTick_, 4);
+    s->ReadValue(localPosition_);
+    s->ReadValue(velocity_);
+    s->ReadValue(framesLeft_);
+    s->ReadValue(launchTick_);
 }
 
 void CEffectTornado::Save(CStream* s) {
-    s->Write(&localPosition_, 12);
-    s->Write(&velocity_, 12);
+    s->WriteValue(localPosition_);
+    s->WriteValue(velocity_);
     int copy = framesLeft_;
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     copy = launchTick_;
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
 }

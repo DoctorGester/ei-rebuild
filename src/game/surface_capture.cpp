@@ -5,6 +5,7 @@
 
 #include "texture.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "../hook/log.h"
@@ -60,7 +61,7 @@ CDib* CaptureScreen(const CTextureDevice* device) {
                 std::memcpy(out + x * 2, &pixel, 2);
             } else {
                 const std::uint32_t pixel = (static_cast<std::uint32_t>(bgr[2]) << 16) | (static_cast<std::uint32_t>(bgr[1]) << 8) | bgr[0];
-                std::memcpy(out + x * 4, &pixel, 4);
+                lib::StoreBytes(out + x * 4, pixel);
             }
         }
     }

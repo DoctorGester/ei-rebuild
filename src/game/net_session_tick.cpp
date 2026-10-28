@@ -7,6 +7,7 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -139,7 +140,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 // the client is reported and removed.
 void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
-    std::memcpy(&id, cursor->p, 4);
+    lib::LoadBytes(id, cursor->p);
     cursor->p += 4;
     auto node = FindClient(from);
     if (node != clients_.end() && node->Get()->id_ == id) {
@@ -199,7 +200,7 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     }
     if (buffer->cur + 4 <= buffer->end) {
         buffer->flags |= 1;
-        std::memcpy(buffer->cur, &id, 4);
+        lib::StoreBytes(buffer->cur, id);
         buffer->cur += 4;
     } else {
         buffer->WriteMore(&id, 4u);

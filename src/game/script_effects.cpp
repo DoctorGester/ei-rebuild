@@ -96,13 +96,13 @@ constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x
 
 // The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
 
-void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
+void WriteInt(CStream* stream, int value) { stream->WriteValue(value); }
 
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(CStream* stream) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     if (id == -1) return {};
     return ScriptEffect<T>(g_serverWorld->timedObjectManager_->FindObjectAs<T>(id));
 }
@@ -260,7 +260,7 @@ void ScriptPointLight::Save(CStream* stream) const {
     WriteInt(stream, removeWhenDone);
     WriteInt(stream, moving);
     WriteInt(stream, steps);
-    stream->Write(&step, 12);
+    stream->WriteValue(step);
 }
 
 void ScriptParticleSource::Save(CStream* stream) const {
@@ -269,7 +269,7 @@ void ScriptParticleSource::Save(CStream* stream) const {
     WriteInt(stream, deleteAfterMove);
     WriteInt(stream, moving);
     WriteInt(stream, steps);
-    stream->Write(&step, 12);
+    stream->WriteValue(step);
     WriteInt(stream, lifetime);
 }
 
@@ -277,11 +277,11 @@ void ScriptFxSource::Save(CStream* stream) const {
     WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     stream->WriteString(name);
-    stream->Write(&position, 12);
-    stream->Write(&volume, 4);
-    stream->Write(&radius, 4);
+    stream->WriteValue(position);
+    stream->WriteValue(volume);
+    stream->WriteValue(radius);
     WriteInt(stream, idle);
-    stream->Write(&spread, 4);
+    stream->WriteValue(spread);
     WriteInt(stream, minDelay);
     WriteInt(stream, maxDelay);
     WriteInt(stream, countdown);
@@ -295,23 +295,23 @@ void ScriptLightning::Save(CStream* stream) const {
 
 void ScriptPointLight::Load(CStream* stream) {
     object = ReadObject<CEffectPointLight>(stream);
-    stream->Read(&id, 4);
-    stream->Read(&removeWhenDone, 4);
-    stream->Read(&moving, 4);
-    stream->Read(&steps, 4);
-    stream->Read(&step, 12);
+    stream->ReadValue(id);
+    stream->ReadValue(removeWhenDone);
+    stream->ReadValue(moving);
+    stream->ReadValue(steps);
+    stream->ReadValue(step);
 }
 
 void ScriptFxSource::Load(CStream* stream) {
     object = ReadObject<CEffectSound>(stream);
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     stream->ReadInto(&name);
-    stream->Read(&position, 12);
-    stream->Read(&volume, 4);
-    stream->Read(&radius, 4);
-    stream->Read(&idle, 4);
-    stream->Read(&spread, 4);
-    stream->Read(&minDelay, 4);
-    stream->Read(&maxDelay, 4);
-    stream->Read(&countdown, 4);
+    stream->ReadValue(position);
+    stream->ReadValue(volume);
+    stream->ReadValue(radius);
+    stream->ReadValue(idle);
+    stream->ReadValue(spread);
+    stream->ReadValue(minDelay);
+    stream->ReadValue(maxDelay);
+    stream->ReadValue(countdown);
 }

@@ -9,6 +9,7 @@
 #include "core_refcount.h"
 #include "net_coder.h"
 #include "party_storage.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
 #include "game_data.h"
@@ -237,7 +238,7 @@ struct TypeRegistry {
     // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {
         std::uint32_t key;
-        std::memcpy(&key, message, sizeof(key));   // read before any null check
+        lib::LoadBytes(key, message);   // read before any null check
         return key;
     }
     // The type id of the message class whose key is *key, or -1.

@@ -101,6 +101,12 @@ public:
     void LeaveChunk();
     int CountChunks(int id);
     void Field(int id, void* data, unsigned size);
+    // One value of sizeof(T) bytes: Field(id, &value, sizeof(T)).
+    template <class T>
+    void Field(int id, T* value) {
+        static_assert(std::is_trivially_copyable_v<T>, "a field is plain bytes");
+        Field(id, static_cast<void*>(value), sizeof(T));
+    }
     void StringField(int id, std::string* s);
     void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
     void SaveObjectRef(int id, CRefCounted* object);   // object's number, object kept for Close

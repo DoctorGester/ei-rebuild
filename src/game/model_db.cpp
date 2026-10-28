@@ -105,15 +105,15 @@ bool WaterTweens::Tick() {
 
 void WaterTweens::Save(CStream* stream) const {
     int count = std::ssize(*this);
-    stream->Write(&count, 4);
-    for (int i = 0; i < std::ssize(*this); ++i) stream->Write(&(*this)[i], 16);
+    stream->WriteValue(count);
+    for (int i = 0; i < std::ssize(*this); ++i) stream->WriteValue((*this)[i]);
 }
 
 void WaterTweens::ReadEntries(CStream* stream, int unread) {
     int count = unread;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     resize(count);
-    for (int i = 0; i < std::ssize(*this); ++i) stream->Read(&(*this)[i], 16);
+    for (int i = 0; i < std::ssize(*this); ++i) stream->ReadValue((*this)[i]);
 }
 
 void WaterTweens::Load(CStream* stream, Terrain* terrain) {

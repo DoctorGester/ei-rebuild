@@ -14,16 +14,9 @@
 namespace {
 constexpr int kStopFlagVersion = 0x44;      // looks carry their stop flag from this file version on
 
-// Writes `value`'s bytes.
-template <typename T>
-void WriteCopy(CStream* stream, const T& value) {
-    T copy = value;
-    stream->Write(&copy, sizeof(T));
-}
-
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
-    WriteCopy(stream, std::ssize(list));
+    stream->WriteValue(std::ssize(list));
     for (auto node = list.begin(); node != list.end();) {
         auto next = std::next(node);
         AIRefTo<CUnit>::Of(&*node)->Save(stream);
@@ -34,25 +27,25 @@ void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
 
 void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     looks->resize(count);
     for (int i = 0; i < std::ssize(*looks); ++i) {
         AILook& look = (*looks)[i];
-        stream->Read(&look.angle, 4);
-        stream->Read(&look.time, 4);
-        stream->Read(&look.wait, 4);
-        if (stream->version_ >= kStopFlagVersion) stream->Read(&look.stopFirst, 1);
+        stream->ReadValue(look.angle);
+        stream->ReadValue(look.time);
+        stream->ReadValue(look.wait);
+        if (stream->version_ >= kStopFlagVersion) stream->ReadValue(look.stopFirst);
     }
 }
 
 void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
-    WriteCopy(stream, std::ssize(*looks));
+    stream->WriteValue(std::ssize(*looks));
     for (int i = 0; i < std::ssize(*looks); ++i) {
         const AILook& look = (*looks)[i];
-        WriteCopy(stream, look.angle);
-        WriteCopy(stream, look.time);
-        WriteCopy(stream, look.wait);
-        WriteCopy(stream, look.stopFirst);
+        stream->WriteValue(look.angle);
+        stream->WriteValue(look.time);
+        stream->WriteValue(look.wait);
+        stream->WriteValue(look.stopFirst);
     }
 }
 
@@ -63,29 +56,29 @@ void AIMemory::Load(CStream* stream) {
     CountedListLoad(&seenCorpses, stream, &g_serverWorld.Get());
     CountedListLoad(&corpses, stream, &g_serverWorld.Get());
     stream->Read(&noticedX, 8);         // x and y
-    stream->Read(&noticedLevel, 4);
-    stream->Read(&nearbyCountdown, 4);
+    stream->ReadValue(noticedLevel);
+    stream->ReadValue(nearbyCountdown);
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     reports.resize(count);
     for (int i = 0; i < count; ++i) {
         AIRefTo<CMapObject> loaded{nullptr};
         loaded.Load(stream, &g_serverWorld.Get());
         reports[i].object = loaded.object;   // the report takes its own reference
         loaded.Reset();
-        stream->Read(&reports[i].what, 4);
+        stream->ReadValue(reports[i].what);
     }
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     calls.resize(count);
     for (int i = 0; i < std::ssize(calls); ++i) {
         AICallRecord& call = calls[i];
         call.hostileMask = 0;
-        stream->Read(&call.point, 12);
-        stream->Read(&call.kind, 4);
+        stream->ReadValue(call.point);
+        stream->ReadValue(call.kind);
         stream->ReadInto(&call.text);
-        stream->Read(&call.hostileMask, 4);
+        stream->ReadValue(call.hostileMask);
     }
-    stream->Read(&noticedKind, 4);
+    stream->ReadValue(noticedKind);
 }
 
 void AIMemory::Save(CStream* stream) {
@@ -94,20 +87,20 @@ void AIMemory::Save(CStream* stream) {
     SaveObjectList(seenCorpses, stream);
     SaveObjectList(corpses, stream);
     stream->Write(&noticedX, 8);        // x and y
-    WriteCopy(stream, noticedLevel);
-    WriteCopy(stream, nearbyCountdown);
-    WriteCopy(stream, std::ssize(reports));
+    stream->WriteValue(noticedLevel);
+    stream->WriteValue(nearbyCountdown);
+    stream->WriteValue(std::ssize(reports));
     for (int i = 0; i < std::ssize(reports); ++i) {
         AIRefTo<CMapObject>{reports[i].object}.Save(stream);
-        WriteCopy(stream, reports[i].what);
+        stream->WriteValue(reports[i].what);
     }
-    WriteCopy(stream, std::ssize(calls));
+    stream->WriteValue(std::ssize(calls));
     for (int i = 0; i < std::ssize(calls); ++i) {
         AICallRecord& call = calls[i];
-        stream->Write(&call.point, 12);
-        WriteCopy(stream, call.kind);
+        stream->WriteValue(call.point);
+        stream->WriteValue(call.kind);
         stream->WriteString(call.text);
-        WriteCopy(stream, call.hostileMask);
+        stream->WriteValue(call.hostileMask);
     }
-    WriteCopy(stream, noticedKind);
+    stream->WriteValue(noticedKind);
 }

@@ -9,9 +9,9 @@
 void LeverRecord::Archive(ChunkArchive* archive) {
     archive->StringField(0, &name);
     archive->Field(1, spots, 0x10);
-    archive->Field(2, &spotCount, 4);
-    archive->Field(3, &farScale, 4);
-    archive->Field(4, &duration, 4);
+    archive->Field(2, &spotCount);
+    archive->Field(3, &farScale);
+    archive->Field(4, &duration);
     archive->StringField(5, &unreadTextFirst);
     archive->StringField(6, &sound);
     archive->StringField(7, &unreadTextLast);

@@ -15,6 +15,7 @@
 #include "net_messages.h"
 
 #include "ei/rebirth.h"
+#include "lib/bytes.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -60,7 +61,7 @@ void SplitSetting() {
 DWORD WINAPI LookUp(void*) {
     std::uint32_t address = kUnknown;
     if (const hostent* host = gethostbyname(g_host)) {
-        if (host->h_addr_list[0]) std::memcpy(&address, host->h_addr_list[0], sizeof(address));
+        if (host->h_addr_list[0]) lib::LoadBytes(address, host->h_addr_list[0]);
     }
     InterlockedExchange(&g_resolved, static_cast<LONG>(address));
     if (g_done) SetEvent(g_done);

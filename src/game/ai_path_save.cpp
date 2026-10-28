@@ -11,65 +11,65 @@
 
 void AIPath::LoadPath(CStream* stream) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
         // The cell's second dword is uninitialised in the original; it is read over below.
         PathCell cell{0, 0, 0, 0};
         cells.push_back(cell);
     }
-    for (PathCell& cell : cells) stream->Read(&cell, 8);
+    for (PathCell& cell : cells) stream->ReadValue(cell);
     LoadOrder(stream);
     stream->Read(&targetX, 8);
-    stream->Read(&goal, 0xC);
-    stream->Read(&reached, 1);
-    stream->Read(&failed, 1);
-    stream->Read(&mayExcludeRegions, 1);
-    stream->Read(&firstSearch, 1);
+    stream->ReadValue(goal);
+    stream->ReadValue(reached);
+    stream->ReadValue(failed);
+    stream->ReadValue(mayExcludeRegions);
+    stream->ReadValue(firstSearch);
     std::vector<BlockPoint>* excluded = &excludedBlocks;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     excluded->resize(count);
     for (int i = 0; i < std::ssize(*excluded); ++i) {
-        stream->Read(&(*excluded)[i].x, 4);
-        stream->Read(&(*excluded)[i].y, 4);
+        stream->ReadValue((*excluded)[i].x);
+        stream->ReadValue((*excluded)[i].y);
     }
-    stream->Read(&smoothing, 4);
+    stream->ReadValue(smoothing);
 }
 
 void AIPath::SavePath(CStream* stream) {
     int count = std::ssize(cells);
-    stream->Write(&count, 4);
-    for (const PathCell& cell : cells) stream->Write(&cell, 8);
+    stream->WriteValue(count);
+    for (const PathCell& cell : cells) stream->WriteValue(cell);
     SaveOrder(stream);
     stream->Write(&targetX, 8);
-    stream->Write(&goal, 0xC);
-    stream->Write(&reached, 1);
-    stream->Write(&failed, 1);
-    stream->Write(&mayExcludeRegions, 1);
-    stream->Write(&firstSearch, 1);
+    stream->WriteValue(goal);
+    stream->WriteValue(reached);
+    stream->WriteValue(failed);
+    stream->WriteValue(mayExcludeRegions);
+    stream->WriteValue(firstSearch);
     const std::vector<BlockPoint>* excluded = &excludedBlocks;
     count = std::ssize(*excluded);
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     for (int i = 0; i < std::ssize(*excluded); ++i) {
         int x = (*excluded)[i].x;
-        stream->Write(&x, 4);
+        stream->WriteValue(x);
         int y = (*excluded)[i].y;
-        stream->Write(&y, 4);
+        stream->WriteValue(y);
     }
     int smoothingCopy = smoothing;
-    stream->Write(&smoothingCopy, 4);
+    stream->WriteValue(smoothingCopy);
 }
 
 // ---- The order ----------------------------------------------------------
 
 void PathOrder::LoadOrder(CStream* stream) {
     MotionOrder* order = OrderOf(this);
-    stream->Read(&order->kind, 4);
+    stream->ReadValue(order->kind);
     stream->Read(&order->x, 8);
-    stream->Read(&order->angle, 4);
-    stream->Read(&order->startTime, 4);
+    stream->ReadValue(order->angle);
+    stream->ReadValue(order->startTime);
     stream->Read(&order->arg5, 0xC);
     int count = 0;   // left as it was when the read fails
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     // The new step is {0, 0} and an uninitialised dword; every step is read over below.
     for (int i = 0; i < count; ++i) steps.push_back(PathCell{0, 0, 0, 0});
     for (auto node = steps.begin(); node != steps.end();) {
@@ -81,13 +81,13 @@ void PathOrder::LoadOrder(CStream* stream) {
 
 void PathOrder::SaveOrder(CStream* stream) {
     MotionOrder* order = OrderOf(this);
-    stream->Write(&order->kind, 4);
+    stream->WriteValue(order->kind);
     stream->Write(&order->x, 8);
-    stream->Write(&order->angle, 4);
-    stream->Write(&order->startTime, 4);
+    stream->WriteValue(order->angle);
+    stream->WriteValue(order->startTime);
     stream->Write(&order->arg5, 0xC);
     int count = std::ssize(steps);
-    stream->Write(&count, 4);
+    stream->WriteValue(count);
     for (auto node = steps.begin(); node != steps.end();) {
         auto next = std::next(node);
         stream->Write(&*node, 8);

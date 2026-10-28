@@ -80,7 +80,7 @@ void NamedFloatTable::Load(CStream* stream) {
         }
         if (str::Compare(key, game::kEmptyText) == 0) break;
         float value;
-        stream->Read(&value, 4);
+        stream->ReadValue(value);
         (*this)[key] = value;
     }
 }
@@ -88,7 +88,7 @@ void NamedFloatTable::Load(CStream* stream) {
 void NamedFloatTable::Save(CStream* stream) {
     for (const auto& [name, value] : *this) {
         stream->WriteString(name);
-        stream->Write(&value, 4);
+        stream->WriteValue(value);
     }
     stream->WriteString("");   // the end
 }
