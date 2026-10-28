@@ -60,15 +60,12 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 2. **Return values:** check what the original leaves in EAX/AL/ST0 and which callers read it: that is
    the function's result. Functions that set all of EAX to 0/1 return `BOOL` (int); ones that set
    only AL return `bool`. A float left unrounded in ST0 is rule 7's.
-3. **The original's address.** A rewrite is an ordinary function or member, called by name. Write
-   `EI_REWRITTEN(addr, Function)` next to it: it keeps the function in the tools' function-to-original map
-   (coverage, progress, check_signatures for the recorded addresses; C20d). Its signature need not match the original's RET n
-   unless a vector recorder records that address. Nothing reaches game.exe's code addresses (C20 batch 6
-   removed the registrations). `build.cmd` runs `tools/check_registrations.py` (one `EI_REWRITTEN` per address).
-4. **Virtual methods** are the compiler's (C19): nothing reaches a slot's address, a virtual is `EI_REWRITTEN`.
+3. **The original's address.** A rewrite is an ordinary function or member, called by name; nothing reaches
+   game.exe's code addresses (C20 batch 6) and no table maps them to ours (C20l). Its signature need not match the
+   original's RET n unless a vector recorder records that address (the EI_RECORD names it; check_signatures).
+4. **Virtual methods** are the compiler's (C19): nothing reaches a slot's address.
    The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
-   virtuals. Constructors and destructors are C++ ones, tagged `EI_REWRITTEN_SPECIAL(addr, X::X)` /
-   `(addr, X::~X)` (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
+   virtuals. Constructors and destructors are C++ ones (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
    (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
    becomes an override.
 5. **No forwarders.** Every function of game.exe is ported: call it by name (include its header, or
@@ -142,7 +139,7 @@ does not need a second pass:
   `SlotNN()` (name the slot when you call it);
 - no byte arithmetic on pointers with literal offsets (`reinterpret_cast<uint8_t*>(p) + 0x..`);
 - game globals are named variables (C18, `tools/named_data.py`), not literal addresses in the code;
-  `EI_REWRITTEN`, the registrations, the forwarders and `EI_RECORD` keep their address;
+  the forwarders and `EI_RECORD` keep their address;
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
 - new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find

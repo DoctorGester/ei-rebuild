@@ -1,8 +1,7 @@
 #pragma once
 
 // Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are game records
-// with their own copy constructor, operator= and destructor, and the VectorAbi types record_vectors.cpp
-// registers at the instantiations' addresses (docs/notes/standalone.md).
+// with their own copy constructor, operator= and destructor, and their VectorAbi types (docs/notes/standalone.md).
 
 #include "acks_db.h"
 #include "engine_object.h"

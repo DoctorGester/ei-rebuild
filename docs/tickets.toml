@@ -3420,6 +3420,13 @@ files = ["tools/check_signatures.py", "include/ei/hook.h", "tools/gen_short_func
 note = "User 2026-10-28: drop check_signatures' --all audit (C20j), and drop the EI_REWRITTEN lines (7,470 in src/ and tests/) that nothing needs; ideally all of them, with the address moved into the EI_RECORD it pairs with. Readers today: check_signatures (62 rewrites at recorded addresses), gen_static_init (game.exe's initialiser list to names), named_data (function pointers in data cells), gen_short_functions, coverage / save_trace / ui_census_report (dev tools mapping traces of the original), progress / dashboard_data (rewritten counts), check_cleanup, check_registrations (.eiorg). For each: does it still need address -> our function, and if so can it come from a small generated or config table (or the EI_RECORD) instead of a line per function? Dev tools that only map traces of the original can go or lose that feature if unused. Dashboard history keeps its old counts. Then delete the lines, .eiorg and check_registrations if nothing is left."
 
 [[ticket]]
+id = "C20m"
+title = "Dead functions and stale comments after the map lines went (C20l)"
+group = "cleanup"
+depends = ["C20l"]
+note = "C20l deleted the 8,293 EI_REWRITTEN lines, which kept every named function in the image. Functions only those lines named are now unreferenced (e.g. mfc_slots.cpp's ExceptionDestruct; header-only aliases such as mfc_slots.h's Plain8 / List12 used only by the old lines): find them with C20g's method (/Od scratch builds, COFF relocation graph) and delete. Also comments that still say a function or instantiation is 'registered' at an address or 'in the map' (file headers of the files the lines left, e.g. aligned_arrays.cpp, stlp_hash.cpp, game_arrays.cpp)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

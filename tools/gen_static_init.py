@@ -1408,7 +1408,6 @@ EXIT_HEADER = '''\
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
-#include "ei/hook.h"
 @INCLUDES@
 @DECLARATIONS@namespace ei::short_functions {
 void Ret();   // src/game/short_functions.cpp

@@ -25,8 +25,8 @@ part a tool does, and how a batch is done and checked.
 
 ## What goes
 
-- **game.exe addresses** in comments, all of them. A function's address is in its registration
-  (`EI_REWRITTEN(0x..., Name)`) while the registrations exist; nothing reads it from a comment. The same
+- **game.exe addresses** in comments, all of them. Nothing reads a function's address from a comment (no
+  table keeps them since C20l: the port is the name). The same
   for data addresses: the named global is the reference.
 - **Porting history**: "was a shim", "ported in S18i", "the hook era", "formerly", "now calls ...
   instead of ...", "(R16d)", "no longer a forwarder", "registered here because ...".

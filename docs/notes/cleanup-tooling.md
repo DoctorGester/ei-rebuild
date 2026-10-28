@@ -5,17 +5,16 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 
 ## Checks
 
-`build.cmd` runs `check_registrations`, `check_cleanup` and the data checks (a failure stops the
+`build.cmd` runs `check_cleanup`, `comments.py` and the data checks (a failure stops the
 build; the list and why each runs are in build.cmd). The others are run by hand before handing work back.
 
 | Tool | What it catches |
 |---|---|
 | `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs); a recorder not at a known function start, or a second one at an address |
 | `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control): use `x87::FromUnsigned` |
-| `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or a rewrite at a recorded address (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other `EI_REWRITTEN` functions are free (`--all` checks them too; argument order is not checked) |
-| `check_registrations.py` | two `EI_REWRITTEN` lines of one address (reads the built DLL's `.eiorg`) |
+| `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or the rewrite an `EI_RECORD` names (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other functions are free (argument order is not checked) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
-| `progress.py` | rewritten / verified numbers plus the cleanup artefact counts (below) |
+| `progress.py` | the cleanup artefact counts (below) |
 | `find_dead_code.py` | rewrites `config/dead_code.csv` from scratch (drops hand-added rows; refuses arguments) |
 
 ## `progress.py` cleanup artefacts

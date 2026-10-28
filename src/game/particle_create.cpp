@@ -897,7 +897,3 @@ int CParticleSource::GetClassId() { return 12; }
 // The element callbacks that do nothing one per type that stores one (Stench and the spheres,
 // ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).
 void CParticleSource::TickNone(ParticleElement*) {}
-
-namespace ei::short_functions {
-void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
-} // namespace ei::short_functions

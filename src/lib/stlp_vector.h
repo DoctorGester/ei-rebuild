@@ -3,8 +3,7 @@
 // STLport's vector<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2).
 // Three pointers: start, finish, end of storage (the allocator proxy's empty byte shares the last word). The
 // block comes from the node allocator: its byte size, a multiple of sizeof(T), picks the free list, so every
-// member that frees it computes the size from the element size exactly as the instantiation does. The game's
-// instantiations of the members below are registered at their own addresses in stlp_vector.cpp.
+// member that frees it computes the size from the element size exactly as the instantiation does.
 
 #include "crt.h"
 #include "stlp_alloc.h"
