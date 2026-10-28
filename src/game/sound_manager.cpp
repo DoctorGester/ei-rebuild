@@ -59,9 +59,6 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step, loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
-// The end-of-sample callback every started voice gets (sets the slot's finished flag).
-miles::SampleCallback EndOfSampleCallback() { return SoundEndOfSample; }
-
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
 WaveNode& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return cache[slot->name]; }
 // May rehash first.
@@ -441,7 +438,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
-    if (random != 0) index = static_cast<std::int32_t>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(names.size()));
+    if (random != 0) index = static_cast<std::int32_t>(g_random.Next() % static_cast<std::uint32_t>(names.size()));
     int h = manager->Play3D(names[index].c_str(), priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
@@ -615,7 +612,7 @@ void CSoundManager::Tick() {
             slot->handle = rec->handle;
             gameapi::AIL_set_sample_loop_count(slot->sample, 0);
             ApplyVolumePan(slot);
-            gameapi::AIL_register_EOS_callback(slot->sample, EndOfSampleCallback());
+            gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
             if (reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, reverb[0], reverb[1], reverb[2]);
             gameapi::AIL_set_sample_position(slot->sample, rec->samplePosition);
             gameapi::AIL_start_sample(slot->sample);
@@ -646,7 +643,7 @@ void CSoundManager::Tick() {
     std::uint32_t now = gameapi::GetTickCount();
     if (now - emitterTick < 100) return;
     emitterTick = now;
-    IsaacRandom& random = IsaacRandom::Global();
+    IsaacRandom& random = g_random;
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
@@ -812,7 +809,7 @@ void CSoundManager::StopStream(int mode) {
                 streamFile = nullptr;
             }
             streamState = 0;
-            streamName = game::EmptyText();
+            streamName = game::kEmptyText;
             float step = StopFadeStep();
             musicFader.mode = 2;
             musicFader.finished = 0;
@@ -831,7 +828,7 @@ void CSoundManager::StopStream(int mode) {
                 musicFader.level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
             }
         } else {
-            RequestStream(game::EmptyText(), mode);
+            RequestStream(game::kEmptyText, mode);
         }
     }
     gameapi::LeaveCriticalSection(lock);
@@ -1032,11 +1029,11 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
 int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
     if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
     m->ApplyVolumePan(slot);
-    gameapi::AIL_register_EOS_callback(slot->sample, EndOfSampleCallback());
+    gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
     if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        gameapi::AIL_set_sample_ms_position(slot->sample, IsaacRandom::Global().Next() % range);
+        gameapi::AIL_set_sample_ms_position(slot->sample, g_random.Next() % range);
     }
     gameapi::AIL_start_sample(slot->sample);
     return slot->handle;

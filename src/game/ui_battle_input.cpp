@@ -38,7 +38,7 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
 void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
     CUiContainer::KeyUp(key, repeat, flags);
-    int action = KeyActions()[flags & 0x1FF] - kFirstOrderKeyAction;
+    int action = g_keyActions[flags & 0x1FF] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys_[kOrderKeyOfAction[action]] = 0;
 }
 

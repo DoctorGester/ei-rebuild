@@ -73,9 +73,9 @@ NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
-net::ServerSession* ServerPointer() { return net::GameServer(); }
+net::ServerSession* ServerPointer() { return net::g_gameServer; }
 bool ServerActive() {
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
@@ -112,7 +112,7 @@ ScriptParticleSource* FindParticle(CScript* script, int id) {
 }
 
 // For the quest objective commands that take no text.
-void QuestObjectiveNoText(int id, float value) { ScriptQuestAddObjective(id, game::EmptyText(), value); }
+void QuestObjectiveNoText(int id, float value) { ScriptQuestAddObjective(id, game::kEmptyText, value); }
 
 // Runs a For body in the same ScriptRun (the variables are shared).
 void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
@@ -531,7 +531,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            console::EndLine(console::Out() << f[0]);
+            console::EndLine(console::g_consoleOut << f[0]);
             break;
         case 0x7E:   // ConsoleString(text)
             console::PrintLine(Text(cmd, 0));
@@ -963,7 +963,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddMember(name.c_str(), Text(cmd, 1), game::EmptyText());
+                    records->AddMember(name.c_str(), Text(cmd, 1), game::kEmptyText);
                 else
                     records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }

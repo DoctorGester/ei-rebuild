@@ -28,20 +28,15 @@ namespace {
 using devicebuffers::ProjectedVertex;
 
 // The strip's work buffers.
-constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};
-std::vector<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
+constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};   // TL vertices of the points
 void FreeStrip() { lib::FreeStorage(g_strip); }
-constinit std::vector<TLVertex> g_ribbon = /*007AF010*/ {};
-std::vector<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
+constinit std::vector<TLVertex> g_ribbon = /*007AF010*/ {};   // TL vertices, two per point
 void FreeRibbon() { lib::FreeStorage(g_ribbon); }
 constinit std::vector<ProjectedVertex> g_projected = /*007AF020*/ {};
-std::vector<ProjectedVertex>& Projected() { return g_projected; }
 void FreeProjected() { lib::FreeStorage(g_projected); }
 constinit std::vector<std::uint16_t> g_indices = /*007AF030*/ {};
-std::vector<std::uint16_t>& Indices() { return g_indices; }
 void FreeIndices() { lib::FreeStorage(g_indices); }
-constinit std::vector<std::uint8_t> g_clipped = /*007AF040*/ {};
-std::vector<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
+constinit std::vector<std::uint8_t> g_clipped = /*007AF040*/ {};   // a flag byte per point
 void FreeClipped() { lib::FreeStorage(g_clipped); }
 std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
 // The texture coordinates of the next cross section: u and the two v values.
@@ -59,11 +54,11 @@ void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onExit)
 }
 
 void EnsureStatics() {
-    EnsureStatic(1, Clipped(), FreeClipped);
-    EnsureStatic(2, Indices(), FreeIndices);
-    EnsureStatic(4, Projected(), FreeProjected);
-    EnsureStatic(8, Ribbon(), FreeRibbon);
-    EnsureStatic(0x10, Strip(), FreeStrip);
+    EnsureStatic(1, g_clipped, FreeClipped);
+    EnsureStatic(2, g_indices, FreeIndices);
+    EnsureStatic(4, g_projected, FreeProjected);
+    EnsureStatic(8, g_ribbon, FreeRibbon);
+    EnsureStatic(0x10, g_strip, FreeStrip);
 }
 
 // --- Device calls --------------------------------------------------------------------------------
@@ -109,19 +104,19 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
 void AddQuad(int count, bool firstBySetAtGrow) {
     if (firstBySetAtGrow) {
-        Indices().push_back(static_cast<unsigned short>(count - 4));
-        Indices().push_back(static_cast<unsigned short>(count - 3));
+        g_indices.push_back(static_cast<unsigned short>(count - 4));
+        g_indices.push_back(static_cast<unsigned short>(count - 3));
     } else {
-        Indices().push_back(static_cast<unsigned short>(count - 4));
-        Indices().push_back(static_cast<unsigned short>(count - 3));
+        g_indices.push_back(static_cast<unsigned short>(count - 4));
+        g_indices.push_back(static_cast<unsigned short>(count - 3));
     }
-    Indices().push_back(static_cast<unsigned short>(count - 2));
-    Indices().push_back(static_cast<unsigned short>(count - 2));
-    Indices().push_back(static_cast<unsigned short>(count - 3));
-    Indices().push_back(static_cast<unsigned short>(count - 1));
+    g_indices.push_back(static_cast<unsigned short>(count - 2));
+    g_indices.push_back(static_cast<unsigned short>(count - 2));
+    g_indices.push_back(static_cast<unsigned short>(count - 3));
+    g_indices.push_back(static_cast<unsigned short>(count - 1));
 }
 
-TLVertex* StripAt(int i) { return Strip().data() + i; }
+TLVertex* StripAt(int i) { return g_strip.data() + i; }
 
 } // namespace
 
@@ -196,13 +191,13 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     EnsureStatics();
 
     const auto n = static_cast<std::size_t>(pointCount);
-    Projected().resize(n);
-    Strip().resize(n);
-    Ribbon().resize(n * 2 + 100);
-    Clipped().resize(n);
+    g_projected.resize(n);
+    g_strip.resize(n);
+    g_ribbon.resize(n * 2 + 100);
+    g_clipped.resize(n);
     // The indices are appended later; room for the ribbon's.
-    Indices().clear();
-    Indices().reserve(Ribbon().size() * 3 + 0x96);
+    g_indices.clear();
+    g_indices.reserve(g_ribbon.size() * 3 + 0x96);
 
     if (mode == 2) return 1;
     if (pointCount < 2) return 1;
@@ -217,43 +212,43 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
 
     int clipped = mode;
     if (mode == 0) {
-        transform->ProjectPoints(pipeline->Top(1), points, Projected().data(), pointCount);
+        transform->ProjectPoints(pipeline->Top(1), points, g_projected.data(), pointCount);
     } else {
         clipped = transform->ProjectPointsClipped(pipeline->Top(CTransformPipeline::kClipStack), points,
-                                                  Projected().data(), Clipped().data(), pointCount);
+                                                  g_projected.data(), g_clipped.data(), pointCount);
         if (clipped == 2) return 1;
     }
 
     // The projected points as TL vertices: opaque white, black specular; the ends transparent.
-    for (int i = 0; i < std::ssize(Projected()); ++i) {
+    for (int i = 0; i < std::ssize(g_projected); ++i) {
         TLVertex* v = StripAt(i);
-        std::memcpy(v, &Projected()[i], 16);
+        std::memcpy(v, &g_projected[i], 16);
         v->color = 0xFFFFFFFF;
         v->specular = 0xFF000000;
     }
     StripAt(0)->color = 0x00FFFFFF;
-    StripAt(std::ssize(Projected()) - 1)->color = 0x00FFFFFF;
+    StripAt(std::ssize(g_projected) - 1)->color = 0x00FFFFFF;
 
     int count = 0;
-    TLVertex* ribbon = Ribbon().data();
+    TLVertex* ribbon = g_ribbon.data();
     std::uint32_t widthBits;
     std::memcpy(&widthBits, &width, 4);
     if (clipped == 0) {
         bool started = false;
-        for (int i = 1; i < std::ssize(Strip()); ++i) {
+        for (int i = 1; i < std::ssize(g_strip); ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), &ribbon, &count, widthBits);
             g_currentU = g_currentU + step;
             float direction[2];
-            StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
+            StripDirection(direction, i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, true);
         }
     } else {
-        transform->ToScreenClipped(Strip().data(), std::ssize(Strip()));
+        transform->ToScreenClipped(g_strip.data(), std::ssize(g_strip));
         bool started = false;
-        for (int i = 1; i < std::ssize(Strip()); ++i) {
-            const std::uint8_t* flags = Clipped().data();
+        for (int i = 1; i < std::ssize(g_strip); ++i) {
+            const std::uint8_t* flags = g_clipped.data();
             if (flags[i - 1] && flags[i]) {
                 g_currentU = g_currentU + step;
                 started = false;
@@ -261,19 +256,19 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
             }
             if (!started) {
                 float direction[2];
-                StripDirection(direction, i, 1, &Strip());
+                StripDirection(direction, i, 1, &g_strip);
                 EmitSection(StripAt(i - 1), direction, &ribbon, &count, width);
             }
             g_currentU = g_currentU + step;
             float direction[2];
-            StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
+            StripDirection(direction, i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, false);
         }
     }
 
-    if (Indices().empty()) return 1;
+    if (g_indices.empty()) return 1;
     IDirect3DDevice7* device = Device(this);
     DWORD savedSource = 0, savedDest = 0;
     device::GetRenderState(device, D3DRENDERSTATE_SRCBLEND, &savedSource);
@@ -282,8 +277,8 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    int result = device_->DrawTlTriangles(Ribbon().data(), std::ssize(Ribbon()),
-                                 Indices().data(), std::ssize(Indices()));
+    int result = device_->DrawTlTriangles(g_ribbon.data(), std::ssize(g_ribbon),
+                                 g_indices.data(), std::ssize(g_indices));
     device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));

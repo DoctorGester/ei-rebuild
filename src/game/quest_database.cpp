@@ -35,7 +35,7 @@ void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value)
 void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->field2 = 0;
     {
-        std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::EmptyText()));
+        std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
         const char* text = name.c_str();
         quest->name.assign(text);
     }
@@ -84,7 +84,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 // C-string assignment, the others' with the range one: the same result).
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
-        std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::EmptyText()));
+        std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
         briefing->name.assign(name.c_str());
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));

@@ -92,7 +92,7 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
 }
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
-    auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
+    auto* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
     BuildNpcStats(&record->stats, record->texts[5].c_str());
@@ -138,7 +138,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
             list->erase(list->begin() + 0, list->begin() + (0 + 1));
         }
     }
-    auto* npc = unitdb::NpcTable().byName[std::string(record->texts[5].c_str())];
+    auto* npc = g_unitDatabase->npcs.byName[std::string(record->texts[5].c_str())];
     if (!npc) return 0;
 
     const std::vector<std::string>& spellNames = npc->startSpells;

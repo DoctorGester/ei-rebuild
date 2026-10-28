@@ -214,7 +214,7 @@ bool GSListPlayerVars(Call* call) {
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::string line;
         line = str::Format("%s = %f", node->first.c_str(), static_cast<double>(node->second));
-        (console::Out() << line.c_str() << "\n").Flush();
+        (console::g_consoleOut << line.c_str() << "\n").Flush();
     }
     return true;
 }

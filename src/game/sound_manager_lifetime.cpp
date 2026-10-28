@@ -101,7 +101,7 @@ std::string CSoundManager::CurrentStreamName() {
     gameapi::EnterCriticalSection(&nameLock);
     std::string name;
     if (streamState == 1 || streamState == 2) name = streamName;
-    else name = game::EmptyText();
+    else name = game::kEmptyText;
     gameapi::LeaveCriticalSection(&nameLock);
     return name;
 }
@@ -183,8 +183,8 @@ void CSoundManager::ResetStream() {
     streamLoopAt = -1;
     streamFrameBytes = -1;
     streamSilence = 0;
-    streamName = game::EmptyText();
-    nextName = game::EmptyText();
+    streamName = game::kEmptyText;
+    nextName = game::kEmptyText;
     streamReadPosition = 0;
     streamFileSize = 0;
     switchMode = kNoSwitch;
@@ -362,13 +362,13 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    if (str::Compare(m->nextName, game::EmptyText()) == 0 ||
+    if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
         CodecClose(m);
         gameapi::EnterCriticalSection(&m->nameLock);
-        m->streamName = game::EmptyText();
+        m->streamName = game::kEmptyText;
         gameapi::LeaveCriticalSection(&m->nameLock);
         return;
     }
@@ -600,6 +600,6 @@ void CSoundManager::Reset() {
     reverbOn = 0;
     panDirect = 0;
     reverb[0] = reverb[1] = reverb[2] = 0.0f;
-    soundPath = game::EmptyText();
+    soundPath = game::kEmptyText;
     randomStart = 0;
 }

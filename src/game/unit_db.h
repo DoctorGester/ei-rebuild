@@ -224,11 +224,11 @@ extern lib::StaticObject<UnitDatabase> g_unitDatabase;
 namespace unitdb {
 inline UnitDatabase& Database() { return *g_unitDatabase; }
 // The record named `name` (an unknown name gets a null entry), or null.
-inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return PrototypeTable().byName[name]; }
+inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_unitDatabase->prototypes.byName[name]; }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
-    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().records.data()));
+    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(g_unitDatabase->prototypes.records.data()));
 }
 inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName[name]; }
 } // namespace unitdb

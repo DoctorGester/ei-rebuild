@@ -76,7 +76,7 @@ void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
 
 // Member i's portrait nods after a random delay (as the orders' nod).
 void NodPortrait(CBattleScreen* self, int i) {
-    float delay = PortraitDelay(IsaacRandom::Global().Next());
+    float delay = PortraitDelay(g_random.Next());
     self->portraits_->slots_[i].wobbleTime_ = delay;
     self->portraits_->slots_[i].wobbleKind_ = 1;
 }
@@ -157,7 +157,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         units.resize(n + 1);
         units[n] = member;
         HudPortraitSlot& slot = portraits_->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
+        slot.wobbleTime_ = PortraitDelay(g_random.Next());
         portraits_->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
@@ -176,7 +176,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         units.resize(n + 1);
         units[n] = member;
         HudPortraitSlot& slot = portraits_->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
+        slot.wobbleTime_ = PortraitDelay(g_random.Next());
         portraits_->slots_[i].wobbleKind_ = 1;
     }
     if (!units.empty()) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
@@ -285,7 +285,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     } else if (event - 0xB <= 0x15 - 0xB) {
         for (int i = 0; i < std::ssize(*party); ++i) {
             if (unitAt(i)->id_ != id) continue;
-            portraits_->slots_[i].wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
+            portraits_->slots_[i].wobbleTime_ = PortraitDelay(g_random.Next());
             portraits_->slots_[i].wobbleKind_ = 2;
         }
     }

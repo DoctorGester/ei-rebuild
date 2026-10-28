@@ -99,7 +99,7 @@ void CCloudNoise::SetRamp(int start, int width, float speed) {
 }
 
 void CGlobalMapClouds::MakeLayer(std::uint8_t* out) {
-    IsaacRandom& random = IsaacRandom::Global();
+    IsaacRandom& random = g_random;
     const std::uint32_t a = random.Next();
     const std::uint32_t b = random.Next();
     const std::uint32_t c = random.Next();

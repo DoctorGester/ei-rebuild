@@ -52,11 +52,9 @@ using SpriteArray = std::vector<Sprite>;
 
 // The sprite draw's work buffers: vectors of vertices, corner outcodes and indices.
 using devicebuffers::ProjectedVertex;
-constinit std::vector<ProjectedVertex> g_unused = /*007AEFA0*/ {};
-std::vector<ProjectedVertex>& Unused() { return g_unused; }  // sized only
+constinit std::vector<ProjectedVertex> g_unused = /*007AEFA0*/ {};   // sized only
 void FreeUnused() { lib::FreeStorage(g_unused); }
-constinit std::vector<TLVertex> g_corners = /*007AEF90*/ {};
-std::vector<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
+constinit std::vector<TLVertex> g_corners = /*007AEF90*/ {};   // 4 per sprite
 void FreeCorners() { lib::FreeStorage(g_corners); }
 // A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
 // functions it registers (docs/notes/standalone.md, "The static initialisers' objects").
@@ -67,17 +65,13 @@ std::vector<std::uint16_t>& Indices() { return *g_indices; }
 void DestroyOutcodes() { g_outcodes.Destroy(); }
 void DestroyIndices() { g_indices.Destroy(); }
 std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
-constinit std::vector<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
-std::vector<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
+constinit std::vector<TLVertex> g_cornersCopy = /*007AEFE8*/ {};   // the records point here
 void FreeCornersCopy() { lib::FreeStorage(g_cornersCopy); }
 constinit std::vector<SpriteSortRecord> g_records = /*007AEFD8*/ {};
-std::vector<SpriteSortRecord>& Records() { return g_records; }
 void FreeRecords() { lib::FreeStorage(g_records); }
 constinit std::vector<SpriteSortRecord*> g_order = /*007AEFC8*/ {};
-std::vector<SpriteSortRecord*>& Order() { return g_order; }
 void FreeOrder() { lib::FreeStorage(g_order); }
 constinit std::vector<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
-std::vector<SpriteSortRecord*>& Spare() { return g_spare; }
 void FreeSpare() { lib::FreeStorage(g_spare); }
 std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
@@ -85,12 +79,12 @@ std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed
 void EnsureStatics() {
     if (!(g_guards & 1)) {
         g_guards |= 1;
-        Unused() = std::vector<ProjectedVertex>{};
+        g_unused = std::vector<ProjectedVertex>{};
         std::atexit(FreeUnused);
     }
     if (!(g_guards & 2)) {
         g_guards |= 2;
-        Corners() = std::vector<TLVertex>{};
+        g_corners = std::vector<TLVertex>{};
         std::atexit(FreeCorners);
     }
     if (!(g_guards & 4)) {
@@ -114,13 +108,13 @@ void EnsureSortStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onE
     std::atexit(onExit);
 }
 void EnsureSortStatics() {
-    EnsureSortStatic(1, CornersCopy(), FreeCornersCopy);
-    EnsureSortStatic(2, Records(), FreeRecords);
-    EnsureSortStatic(4, Order(), FreeOrder);
-    EnsureSortStatic(8, Spare(), FreeSpare);
+    EnsureSortStatic(1, g_cornersCopy, FreeCornersCopy);
+    EnsureSortStatic(2, g_records, FreeRecords);
+    EnsureSortStatic(4, g_order, FreeOrder);
+    EnsureSortStatic(8, g_spare, FreeSpare);
 }
 
-TLVertex* CornerData() { return Corners().data(); }
+TLVertex* CornerData() { return g_corners.data(); }
 std::uint16_t* IndexData() { return Indices().data(); }
 // --- Device calls --------------------------------------------------------------------------------
 
@@ -183,27 +177,27 @@ int FillCorners(const Sprite*& sprite, int& remaining) {
 // passes; the corners and outcodes are then written back in that order. Returns the sprites kept.
 int SortBackToFront() {
     EnsureSortStatics();
-    CornersCopy().resize(std::ssize(Corners()));
-    std::memcpy(CornersCopy().data(), Corners().data(), static_cast<std::size_t>(std::ssize(Corners())) * sizeof(TLVertex));
+    g_cornersCopy.resize(std::ssize(g_corners));
+    std::memcpy(g_cornersCopy.data(), g_corners.data(), static_cast<std::size_t>(std::ssize(g_corners)) * sizeof(TLVertex));
     const auto* outcodes = reinterpret_cast<const std::uint32_t*>(Outcodes().data());   // four bytes per sprite
-    TLVertex* corners = CornersCopy().data();
-    int sprites = std::ssize(CornersCopy()) / 4;
-    Records().resize(sprites);
-    Order().resize(sprites);
+    TLVertex* corners = g_cornersCopy.data();
+    int sprites = std::ssize(g_cornersCopy) / 4;
+    g_records.resize(sprites);
+    g_order.resize(sprites);
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
-        SpriteSortRecord* record = Records().data() + kept;
+        SpriteSortRecord* record = g_records.data() + kept;
         std::memcpy(&record->key, &corners->z, 4);       // written for dropped sprites too
         if (record->key < 0) continue;
         record->corners = corners;
         record->outcodes = outcodes[i];
-        Order()[kept] = record;
+        g_order[kept] = record;
         ++kept;
     }
-    Spare().resize(kept);
+    g_spare.resize(kept);
 
-    auto* sorted = Order().data();
-    auto* other = Spare().data();
+    auto* sorted = g_order.data();
+    auto* other = g_spare.data();
     if (kept > 0x80) {
         SpriteRadixPass(0, sorted, other, kept, 1);
         SpriteRadixPass(8, other, sorted, kept, 0);
@@ -222,14 +216,14 @@ int SortBackToFront() {
         }
     }
 
-    Corners().resize(kept * 4);
+    g_corners.resize(kept * 4);
     TLVertex* out = CornerData();
     auto* codes = reinterpret_cast<std::uint32_t*>(Outcodes().data());
     for (int i = 0; i < kept; ++i) {
         std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
         codes[i] = sorted[i]->outcodes;
     }
-    return std::ssize(Corners()) / 4;
+    return std::ssize(g_corners) / 4;
 }
 
 // The batch's triangle list through the device holder (the renderer's device_); with distanceFog_
@@ -380,8 +374,8 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
-    Unused().resize(0x200);
-    Corners().resize(0x2000);
+    g_unused.resize(0x200);
+    g_corners.resize(0x2000);
     Outcodes().resize(0x800);
     Indices().resize(0x3000);
     std::uint32_t view[16];
@@ -404,9 +398,9 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     ScreenSize screen;
     while (remaining > 0) {
         int count = FillCorners(sprite, remaining);
-        Corners().resize(count * 4);
+        g_corners.resize(count * 4);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
-        int visibility = transform->ProjectSprites(view, point, Corners().data(), Outcodes().data(), count);
+        int visibility = transform->ProjectSprites(view, point, g_corners.data(), Outcodes().data(), count);
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {

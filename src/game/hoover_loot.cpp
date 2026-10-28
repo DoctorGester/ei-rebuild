@@ -47,7 +47,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     float high = roll.maximum;
     int amount = x87::fistp(low);
     if (high > low) {
-        double random = x87::FromUnsigned(IsaacRandom::Global().Next());
+        double random = x87::FromUnsigned(g_random.Next());
         const double scale = 2.3283064370807974e-10 /*0073C468*/;   // 1 / 0xFFFFFFFF
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }

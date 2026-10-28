@@ -82,7 +82,7 @@ float RandomAngle(std::uint32_t random) {
 
 // The ISAAC Next the 0x2030 scorch inlines.
 std::uint32_t InlineRandom() {
-    IsaacRandom& random = IsaacRandom::Global();
+    IsaacRandom& random = g_random;
     std::uint32_t index = random.count_--;
     if (index == 0) {
         random.Refill();
@@ -338,7 +338,7 @@ void CEffectParticle::Spawn() {
     if (type_ == 0x2002) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = param164_;
-        float angle = RandomAngle(((&IsaacRandom::Global()))->Next());
+        float angle = RandomAngle(((&g_random))->Next());
         TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (type_ == 0x2030) {

@@ -280,7 +280,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
-            party->AddMember(v.merc.c_str(), prototype, game::EmptyText());
+            party->AddMember(v.merc.c_str(), prototype, game::kEmptyText);
         }
     }
     UpdateMercBriefings();

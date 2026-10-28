@@ -4,7 +4,7 @@
 // the interface manager, the client and server worlds and what they hold (the ticks, the managers, the
 // mission script, the sector map), the scene renderer, its render device and lock, the cursor, the map database,
 // the camera, the party manager and the folders.
-// The global random generator is IsaacRandom::Global().
+// The global random generator is g_random.
 
 #include <string>
 #include "lib/static_object.h"

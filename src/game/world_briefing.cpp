@@ -41,7 +41,7 @@ namespace {
 
 bool IsEmpty(const std::string& s) {
     return str::Compare(s,
-                           game::EmptyText()) == 0;
+                           game::kEmptyText) == 0;
 }
 
 } // namespace
@@ -55,7 +55,7 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
         missing = texts->CTextManager::Open(section.c_str()) == 0;
     }
     if (missing) {
-        *out = game::EmptyText();
+        *out = game::kEmptyText;
         return out;
     }
     // The first "#show" line whose second word is not "Hero" names the speaker.
@@ -69,7 +69,7 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
             return out;
         }
     }
-    *out = game::EmptyText();
+    *out = game::kEmptyText;
     return out;
 }
 
@@ -113,11 +113,10 @@ void GameFlow::MarkBriefing(const char* briefing) {
 namespace {
 
 using LoadedFiles = std::vector<std::string>;
-LoadedFiles& QuestFiles() { return g_questFiles; }
 
 } // namespace
 
-// The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
+// The quest text files (world.h) and the quest folders (g_questFolders, below): empty at the start, as the static
 // initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit std::vector<std::string> g_questFiles = /*007AFDD0*/ {};
@@ -136,7 +135,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 void UnloadQuestTexts() {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
-    LoadedFiles& files = QuestFiles();
+    LoadedFiles& files = g_questFiles;
     for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(file->data());
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
@@ -153,7 +152,7 @@ constexpr std::uint32_t kReadOnlyFlags = 2;
 
 // Whether a game server runs (bit 31 of its count word marks one shut down).
 bool ServerRuns() {
-    const net::ServerSession* server = net::GameServer();
+    const net::ServerSession* server = net::g_gameServer;
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
@@ -172,7 +171,7 @@ void ShareQuestFile(const char* path, const char* name) {
     data->cur = to + size;
     data->Commit();
     std::string listed(name);
-    net::GameServer()->ShareFile(&listed, data);
+    net::g_gameServer->ShareFile(&listed, data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
@@ -203,7 +202,7 @@ bool LoadZoneQuests(const char* zone) {
     std::string path = MapFilePath(file);
     if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
-    LoadedFiles& files = QuestFiles();
+    LoadedFiles& files = g_questFiles;
     if (std::find(files.begin(), files.end(), path) == files.end()) {
         files.push_back(path);
         texts->AddSource(path.data());
@@ -236,7 +235,6 @@ namespace {
 
 // The quest folders registered so far.
 using StringVector = std::vector<std::string>;
-StringVector& QuestFolders() { return g_questFolders; }
 
 bool Equal(const std::string& s, const char* text) {
     std::size_t length = std::strlen(text);
@@ -252,7 +250,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
-    StringVector& folders = QuestFolders();
+    StringVector& folders = g_questFolders;
     for (std::string* s = folders.data(); s != folders.data() + folders.size(); ++s)
         if (Equal(*s, folder)) return;
     bool registered;
@@ -278,14 +276,14 @@ std::string* SessionMapNameInto(std::string* out) {
     std::string name;
     // The peer's map message: the client's, else the server's (the map's name its text).
     const net::MapMessage* peer = nullptr;
-    const net::ClientSession* client = net::GameClient();
-    const net::ServerSession* server = net::GameServer();
+    const net::ClientSession* client = net::g_gameClient;
+    const net::ServerSession* server = net::g_gameServer;
     if (Active(client) && Active(client->map_))
         peer = client->map_;
     else if (Active(server) && Active(server->map_.Get()))
         peer = server->map_.Get();
     if (!peer) {
-        *out = game::EmptyText();
+        *out = game::kEmptyText;
         return out;
     }
     name = peer->text_.data();

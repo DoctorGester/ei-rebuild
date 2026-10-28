@@ -15,7 +15,7 @@
 
 namespace {
 
-std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
+std::uint32_t NextRandom() { return g_random.Next(); }
 
 // The choosers: called with the previous index and the number of sounds
 // started so far; bit 30 of the result loops the sound. Without a first name any of the n names is

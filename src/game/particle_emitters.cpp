@@ -28,7 +28,7 @@ double Unsigned(std::uint32_t value) {
 }
 
 // IsaacRandom::Range leaves its result unrounded in ST0.
-double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
+double Range(float min, float max) { return g_random.Range(min, max); }
 
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
@@ -104,9 +104,9 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
     p->aux0 = std::bit_cast<float>(0x3DCCCCCDu);     // 0.1
     ++points[0].bolt.emitted;
     if (p->frameTimer == 0) return 1;
-    std::uint32_t roll = IsaacRandom::Global().Next();
+    std::uint32_t roll = g_random.Next();
     p->aux0 = static_cast<float>((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
-    p->frame = static_cast<int>((IsaacRandom::Global().Next() & 3) + 12);
+    p->frame = static_cast<int>((g_random.Next() & 3) + 12);
     if (index == 0) p->aux0 = static_cast<float>(D(s->size) * D(EI_POINT_FOUR));
     std::memcpy(&p->size, &p->aux0, sizeof(float));
     return 1;
@@ -117,13 +117,13 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
 int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
     p->color = 0x40FFFFFF;
     p->frame = 8;
-    IsaacRandom::Global().Next();
-    double u = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1;
+    g_random.Next();
+    double u = Unsigned(g_random.Next()) * EI_SCALE_1;
     float spread = static_cast<float>(D(EI_ONE) - u * u);
-    float angle = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_ANGLE);
+    float angle = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_ANGLE);
     float vx, vy;
     for (int tries = 10;;) {
-        vx = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE));
+        vx = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_2 - D(EI_ONE));
         double y = Range(-1.0f, 1.0f);
         vy = static_cast<float>(y);
         if (y * D(vy) + D(vx) * D(vx) < D(EI_ONE)) break;   // random: never NaN
@@ -145,7 +145,7 @@ int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
     p->pos.z = static_cast<float>(rise);
     p->frameTimer = 0;
     p->life = x87::fistp(static_cast<float>(D(EI_NINE) - D(spread) * D(EI_THREE)));
-    double roll = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_04 + D(EI_TENTH);
+    double roll = Unsigned(g_random.Next()) * EI_SCALE_0_04 + D(EI_TENTH);
     p->aux0 = static_cast<float>(roll * (D(EI_TWO) - D(spread)) * D(s->size));
     return 1;
 }
@@ -153,12 +153,12 @@ int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
 // A spark between a random point and its base, at a random fraction of the way.
 int EmitSpark(CParticleSource* s, Particle* p) {
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s->elements));
-    std::uint32_t index = IsaacRandom::Global().Next() % count;
+    std::uint32_t index = g_random.Next() % count;
     p->frame = 1;
-    p->aux0 = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
+    p->aux0 = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
     p->life = 6;
     p->frameTimer = 1;
-    double u = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1;
+    double u = Unsigned(g_random.Next()) * EI_SCALE_1;
     double w = D(EI_ONE) - u;
     ParticleElement* points = s->elements.data();
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
@@ -247,9 +247,9 @@ void PlaceModifierPoints(CParticleSource* s) {
         float x, y;
         double z, lengthSq;
         for (;;) {
-            x = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE));
-            y = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE));
-            z = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE);
+            x = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_2 - D(EI_ONE));
+            y = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_2 - D(EI_ONE));
+            z = Unsigned(g_random.Next()) * EI_SCALE_2 - D(EI_ONE);
             double dot = DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, x, y, z);
             float px = static_cast<float>(D(axis.x) * dot);
             float py = static_cast<float>(D(axis.y) * dot);
@@ -333,9 +333,9 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     }
 
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(elements));
-    std::uint32_t pick = IsaacRandom::Global().Next() % count;
-    float u = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1);
-    std::uint32_t frameRoll = IsaacRandom::Global().Next();
+    std::uint32_t pick = g_random.Next() % count;
+    float u = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_1);
+    std::uint32_t frameRoll = g_random.Next();
     double w = D(EI_ONE) - D(u);
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
@@ -349,9 +349,9 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     p->velocity.x = static_cast<float>(a0 + D(b0));
     p->velocity.y = static_cast<float>(D(a1) + D(b1));
     p->velocity.z = static_cast<float>(D(a2) + b2);
-    std::uint32_t ra = IsaacRandom::Global().Next();
-    std::uint32_t rb = IsaacRandom::Global().Next();
-    std::uint32_t rc = IsaacRandom::Global().Next();
+    std::uint32_t ra = g_random.Next();
+    std::uint32_t rb = g_random.Next();
+    std::uint32_t rc = g_random.Next();
     float jx = static_cast<float>(Unsigned(rc) * EI_SCALE_0_08 - D(EI_JITTER));
     float jy = static_cast<float>(Unsigned(rb) * EI_SCALE_0_08 - D(EI_JITTER));
     float jz = static_cast<float>(Unsigned(ra) * EI_SCALE_0_08 - D(EI_JITTER));
@@ -416,12 +416,12 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     emitCount = count;
     EI_NAN_AUDIT(extent.x);
     p->color = extent.x != 0.0f ? 0x00FF6060u : 0x00FFFFFFu;
-    p->frame = static_cast<int>(IsaacRandom::Global().Next() & 15);
+    p->frame = static_cast<int>(g_random.Next() & 15);
     p->life = 15;
     p->frameTimer = 1;
     p->state = 0;
-    float a = static_cast<float>(Signed(IsaacRandom::Global().Next()));
-    double b = Signed(IsaacRandom::Global().Next());
+    float a = static_cast<float>(Signed(g_random.Next()));
+    double b = Signed(g_random.Next());
     float falloff = static_cast<float>((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
     float x = static_cast<float>((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
     float y = static_cast<float>((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
@@ -430,7 +430,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     p->pos.y = y;
     std::memset(&p->size, 0, sizeof(float));
     p->pos.z = static_cast<float>(ground + D(EI_TENTH));
-    double roll = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_03 + D(EI_POINT_SEVEN);
+    double roll = Unsigned(g_random.Next()) * EI_SCALE_0_03 + D(EI_POINT_SEVEN);
     p->velocity.x = static_cast<float>(roll * D(falloff) * D(EI_TWENTIETH));
     return 1;
 }
@@ -489,7 +489,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
             std::memset(&p->size, 0, sizeof(float));
             return 1;
         }
-        p->size = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_4 * D(EI_ONE_AND_HALF) + D(EI_ONE_POINT_TWO));
+        p->size = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_0_4 * D(EI_ONE_AND_HALF) + D(EI_ONE_POINT_TWO));
         return 1;
     }
     if (p->life == 0) return 0;
@@ -538,7 +538,7 @@ int CParticleSource::UpdateSparks(Particle* p) {
             std::memset(&p->size, 0, sizeof(float));
             return 0;
         }
-        p->size = static_cast<float>((Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT)) * D(size) *
+        p->size = static_cast<float>((Unsigned(g_random.Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT)) * D(size) *
                         D(EI_SPARK_SCALE));
         return 1;
     }
@@ -560,12 +560,12 @@ int CParticleSource::UpdateSparks(Particle* p) {
 int CParticleSource::EmitFeebleMind(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) + D(size)));
     p->color = 0x00FFFFFF;
-    p->frame = static_cast<int>(IsaacRandom::Global().Next() & 15);
+    p->frame = static_cast<int>(g_random.Next() & 15);
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
     p->life = 20;
     float twoPi = static_cast<float>(D(EI_PI) + D(EI_PI));
-    std::uint32_t roll = IsaacRandom::Global().Next();
+    std::uint32_t roll = g_random.Next();
     std::memset(&p->velocity.z, 0, sizeof(float));
     double angle = Unsigned(roll) * D(twoPi) * EI_SCALE_1;
     p->velocity.x = static_cast<float>(x87::fcos(angle) * EI_FEEBLE_SPEED);
@@ -573,7 +573,7 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
-    float grow = static_cast<float>((Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_2 + D(EI_POINT_NINE)) * D(size) *
+    float grow = static_cast<float>((Unsigned(g_random.Next()) * EI_SCALE_0_2 + D(EI_POINT_NINE)) * D(size) *
                        D(EI_FEEBLE_SIZE));
     std::memcpy(&p->aux2, &grow, sizeof(float));
     return 1;
@@ -584,8 +584,8 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
 int CParticleSource::EmitFeetCloud(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
     p->color = 0x00FFFFFF;
-    p->frame = static_cast<int>(IsaacRandom::Global().Next() & 15);
-    int foot = static_cast<int>(IsaacRandom::Global().Next() & 1);
+    p->frame = static_cast<int>(g_random.Next() & 15);
+    int foot = static_cast<int>(g_random.Next() & 1);
     p->state = foot;
     const ParticleElement& e = elements[foot];
     if (e.foot.countdown >= 0) std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
@@ -594,8 +594,8 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     std::memset(&p->size, 0, sizeof(float));
     float x, y;
     for (int tries = 10;;) {
-        x = static_cast<float>(Signed(IsaacRandom::Global().Next()));
-        double wide = Signed(IsaacRandom::Global().Next());
+        x = static_cast<float>(Signed(g_random.Next()));
+        double wide = Signed(g_random.Next());
         y = static_cast<float>(wide);
         if (wide * D(y) + D(x) * D(x) < EI_ONE) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;

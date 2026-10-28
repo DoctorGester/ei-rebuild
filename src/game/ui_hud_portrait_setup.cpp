@@ -44,7 +44,7 @@ void SexOf(const char* figure, std::string& sex) {
 }
 
 // The client's player records (a list of counted PlayerMessages).
-std::list<CountedRefTo<net::PlayerMessage>>& Players() { return net::GameClient()->players_; }
+std::list<CountedRefTo<net::PlayerMessage>>& Players() { return net::g_gameClient->players_; }
 
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 

@@ -172,7 +172,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
             out_.WriteString(object->GetName());
             prototype = static_cast<std::uint32_t>(UnitOrNull(object)->prototype23C);
         } else {
-            out_.WriteString(game::EmptyText());
+            out_.WriteString(game::kEmptyText);
         }
         WriteDword(&out_, prototype);
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
@@ -333,7 +333,7 @@ void CPlayerServer::SendParty() {
     Owner()->Party()->SaveParty(&party, 1);
     WriteByte(&out_, kMessageParty);
     out_.WriteSized(&party);
-    refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % kRefreshSpread + kRefreshMinimum);
+    refreshTimer_ = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
 }
 
 int CPlayerServer::ReceiveMessages() {

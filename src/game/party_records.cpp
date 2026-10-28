@@ -39,13 +39,13 @@ const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
 
 void PartyRecordsReset(NamedPartyRecords* list) {
     list->records.clear();
-    list->text0C = game::EmptyText();
-    list->text10 = game::EmptyText();
+    list->text0C = game::kEmptyText;
+    list->text10 = game::kEmptyText;
 
     list->records.emplace_back(NewRecord());
 
     CParty* party = list->records.front()->Party();
-    party->AddMember(kHero, kHumanHero, game::EmptyText());
+    party->AddMember(kHero, kHumanHero, game::kEmptyText);
     party->zone_ = kFirstZone;
     party->entrance_ = 0;
     party->variables_.Set(kGameTime, std::bit_cast<float>(kSix));
@@ -55,7 +55,7 @@ CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
     for (PartyRecord* record : records) {
         if (str::Compare(NameOf(record), name) == 0) return record->Party();
-        if (str::Compare(NameOf(record), game::EmptyText()) == 0) unnamed = record->Party();
+        if (str::Compare(NameOf(record), game::kEmptyText) == 0) unnamed = record->Party();
     }
     return unnamed;
 }

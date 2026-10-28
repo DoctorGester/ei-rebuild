@@ -22,7 +22,7 @@ constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitSta
 // What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
 // (the scale) and "Skill Val 2" (the divisor), read at the time of the call.
 double Worth(int value) {
-    const LogicSettings& settings = GameLogicSettings();
+    const LogicSettings& settings = g_logicSettings;
     return std::pow(kWorthBase, static_cast<double>(value) / settings.skillVal[1]) * settings.skillVal[0];
 }
 } // namespace
@@ -57,7 +57,7 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
     // Stored to a float and to a double of the same value (the product is rounded at the game's
     // 24-bit precision before either store).
-    float price = static_cast<float>(std::pow(static_cast<double>(GameLogicSettings().perkPowerBase), known) * cost);
+    float price = static_cast<float>(std::pow(static_cast<double>(g_logicSettings.perkPowerBase), known) * cost);
 
     // The power of ten of the first digit (log10, the CRT's floor and _CIpow).
     float power = static_cast<float>(std::pow(10.0, std::floor(x87::flog10(static_cast<double>(price)))));

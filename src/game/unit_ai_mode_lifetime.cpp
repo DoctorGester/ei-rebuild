@@ -24,7 +24,7 @@ AIMode::AIMode() {
 AIActionMode::AIActionMode() {}
 
 void AIMode::Execute(AIBrain* brain) {
-    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
     brain->attention.LookAround(brain, 0);
 }
 

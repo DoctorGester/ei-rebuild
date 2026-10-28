@@ -33,5 +33,5 @@ int UnitStats::PickLocation(int location) {
     for (int i = 0; i < kSlots; ++i)
         if (slots[i].kind == kWorking) working[count++] = i;
     if (count == 0) return kFallback;
-    return working[IsaacRandom::Global().Next() % count];   // the draw is inlined
+    return working[g_random.Next() % count];   // the draw is inlined
 }

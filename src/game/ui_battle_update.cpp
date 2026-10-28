@@ -158,7 +158,7 @@ void SortIds(IdVector* ids) { std::sort(ids->begin(), ids->end()); }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
-    net::ClientSession* session = net::GameClient();
+    net::ClientSession* session = net::g_gameClient;
     const auto& players = session->players_;
     PartyIds ids;
     ids.camera = -1;

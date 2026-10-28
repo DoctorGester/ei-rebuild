@@ -18,8 +18,8 @@
 
 namespace {
 
-// The key bindings' action of a scan code (ui.h KeyActions), as a byte.
-std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(KeyActions()[scan]); }
+// The key bindings' action of a scan code (g_keyActions), as a byte.
+std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(g_keyActions[scan]); }
 
 std::uint32_t g_shotCounter = /*007C7E24*/ {};
 

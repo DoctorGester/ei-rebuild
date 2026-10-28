@@ -230,7 +230,7 @@ EI_VECTOR_CHECK("UnitStats::Value6E8", LevelCall, CheckValue6E8);
 bool CheckValue6E9(const LevelCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     stats.skillLevels[0x6E9 - 0x6D3] = v.level;
-    GameLogicSettings().backstabAdd = v.setting;
+    g_logicSettings.backstabAdd = v.setting;
     if (!PutLevel(v.record, d, n)) return false;
     double result = stats.Value6E9();
     if (Same(result, v.result)) return true;
@@ -242,7 +242,7 @@ EI_VECTOR_CHECK("UnitStats::Value6E9", LevelCall, CheckValue6E9);
 bool CheckStrengthRatio(const RatioCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     stats.stat10 = v.stat;
-    GameLogicSettings().hpVal[0] = v.setting;
+    g_logicSettings.hpVal[0] = v.setting;
     double result = stats.StrengthRatio();
     if (Same(result, v.result)) return true;
     std::snprintf(d, n, "%g / %g: ours %.17g, original %.17g", v.stat, v.setting, result, v.result);
@@ -253,7 +253,7 @@ EI_VECTOR_CHECK("UnitStats::StrengthRatio", RatioCall, CheckStrengthRatio);
 bool CheckDexterityRatio(const RatioCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     stats.stat18 = v.stat;
-    GameLogicSettings().mpVal[0] = v.setting;
+    g_logicSettings.mpVal[0] = v.setting;
     double result = stats.DexterityRatio();
     if (Same(result, v.result)) return true;
     std::snprintf(d, n, "%g / %g: ours %.17g, original %.17g", v.stat, v.setting, result, v.result);
@@ -280,8 +280,8 @@ bool CheckGetFactors(const FactorsCall& v, char* d, std::size_t n) {
 EI_VECTOR_CHECK("UnitStats::GetFactors", FactorsCall, CheckGetFactors);
 
 bool CheckSchoolPrice(const SchoolPriceCall& v, char* d, std::size_t n) {
-    GameLogicSettings().skillVal[0] = v.skillVal[0];
-    GameLogicSettings().skillVal[1] = v.skillVal[1];
+    g_logicSettings.skillVal[0] = v.skillVal[0];
+    g_logicSettings.skillVal[1] = v.skillVal[1];
     int result = SchoolPrice(v.from, v.to);
     if (result == v.result) return true;
     std::snprintf(d, n, "%d -> %d (settings %g %g): ours %d, original %d", v.from, v.to, v.skillVal[0], v.skillVal[1],
@@ -293,9 +293,9 @@ EI_VECTOR_CHECK("SchoolPrice", SchoolPriceCall, CheckSchoolPrice);
 bool CheckSkillPrice(const SkillPriceCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     std::memcpy(stats.skillLevels, v.skillLevels, sizeof(v.skillLevels));
-    GameLogicSettings().skillVal[0] = v.skillVal[0];
-    GameLogicSettings().skillVal[1] = v.skillVal[1];
-    GameLogicSettings().perkPowerBase = v.perkPowerBase;
+    g_logicSettings.skillVal[0] = v.skillVal[0];
+    g_logicSettings.skillVal[1] = v.skillVal[1];
+    g_logicSettings.perkPowerBase = v.perkPowerBase;
     // A record that is not among the level records (raw bytes: a CString's constructor reads the game).
     alignas(4) static unsigned char outside[sizeof(SkillLevelRecord)];
     std::memset(outside, 0, sizeof(outside));
@@ -356,7 +356,7 @@ bool CheckProtectionBlock(const ProtectionCall& v, char* d, std::size_t n) {
     std::memcpy(vitals.protection, v.vitals, sizeof(v.vitals));
     if (!v.keyed) {
         GameDifficulty() = v.difficulty;
-        GameLogicSettings().absorption[v.difficulty] = v.factor;
+        g_logicSettings.absorption[v.difficulty] = v.factor;
     }
     float out[7];
     std::memset(out, 0xCD, sizeof(out));
@@ -398,7 +398,7 @@ EI_VECTOR_CHECK("UnitParams::WeaponSkillBonus", WeaponBonusCall, CheckWeaponSkil
 bool CheckPickLocation(const PickLocationCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     for (int i = 0; i < 6; ++i) stats.slots[i].kind = v.kinds[i];
-    IsaacRandom& rng = IsaacRandom::Global();
+    IsaacRandom& rng = g_random;
     rng.count_ = 1;
     rng.results_[0] = v.draw;
     int result = stats.PickLocation(v.location);

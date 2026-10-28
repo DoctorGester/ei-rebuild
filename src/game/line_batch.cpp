@@ -25,7 +25,7 @@ int LineBatch::AddPoint(const float* point) {
 }
 
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
-    std::vector<ProjectedPoint>& projected = LineProjected();
+    std::vector<ProjectedPoint>& projected = g_lineProjected;
     projected.resize(std::ssize(packets) * 4);
     LineOutcodes().resize(std::ssize(packets) * 4);
     int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data(),

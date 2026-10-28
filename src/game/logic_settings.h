@@ -63,4 +63,3 @@ static_assert(sizeof(LogicSettings) == 0xCC);
 
 // Zero until the static initialiser (logic_settings.cpp) sets the defaults.
 inline LogicSettings g_logicSettings = /*007C53F8*/ {};
-inline LogicSettings& GameLogicSettings() { return g_logicSettings; }

@@ -179,7 +179,7 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
     }
     if (handled_) return;
-    int action = KeyActions()[flags & kScanCodeMask];
+    int action = g_keyActions[flags & kScanCodeMask];
     if (action == kActionQuickSave)
         ::QuickSave(QuickSaveName(), static_cast<char>(0));
     else if (action == kActionQuickLoad)

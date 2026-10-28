@@ -53,9 +53,6 @@ constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: ze
 constinit std::vector<Vector2> g_points = /*007AF1F8*/ {};
 constinit std::vector<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
 constinit std::vector<VertexPacket> g_quads = /*007AF208*/ {};
-std::vector<Vector2>& Points() { return g_points; }
-std::vector<RasterTriangle::Point>& Pixels() { return g_pixels; }
-std::vector<VertexPacket>& Quads() { return g_quads; }
 
 // The exit functions their static initialisers register: each frees its array's block. The points' and the
 // pixels' are guarded by a guard bit each, so a second run frees nothing.
@@ -219,7 +216,7 @@ int KeyedParts(const CObject3D* object) {
     return keyedParts;
 }
 
-// The 64 x 64 texture from the parts' pixels (Pixels()): rasterised into the render surface, blurred,
+// The 64 x 64 texture from the parts' pixels (g_pixels): rasterised into the render surface, blurred,
 // copied into the shadow texture and handed to the new renderer. False (with the fatal error's result
 // in *failure) when the render surface cannot be locked.
 bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
@@ -245,9 +242,9 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             std::string key(name);
-            count += figure->RasterisePart(&key, &Pixels()[count], &target);
+            count += figure->RasterisePart(&key, &g_pixels[count], &target);
         } else {
-            count += part->Rasterise(static_cast<CPixelConverter*>(device), &Pixels()[count], &target);
+            count += part->Rasterise(static_cast<CPixelConverter*>(device), &g_pixels[count], &target);
         }
     }
     if (ShadowMode() == 2) {
@@ -298,8 +295,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
     // The buffers grow without keeping their contents.
-    Points().resize(kPointBufferSize);
-    Pixels().resize(kPointBufferSize);
+    g_points.resize(kPointBufferSize);
+    g_pixels.resize(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     view::LightRotation(&direction, &turn);   // (likewise)
@@ -335,17 +332,17 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             std::string key(name);
-            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count],
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &g_points[count],
                                          self->bounds);
         } else {
-            count += PartAt(self->object, i)->DrawOffset(pipeline, TopMatrix(pipeline), &Points()[count],
+            count += PartAt(self->object, i)->DrawOffset(pipeline, TopMatrix(pipeline), &g_points[count],
                                                          self->bounds);
         }
         pipeline->PopMatrix(kShadowStack);
     }
     pipeline->PopMatrix(kShadowStack);
     pipeline->PopMatrix(kShadowStack);
-    Points().resize(count);
+    g_points.resize(count);
 
     // Points to texture pixels.
     float scaleX = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[2]) - self->bounds[0]));
@@ -359,13 +356,13 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     t[12] = offsetX;
     t[13] = offsetY;
     t[5] = scaleY;
-    for (int k = 0; k < std::ssize(Points()); ++k) {
-        float x = static_cast<float>(static_cast<double>(t[0]) * Points()[k].x + t[12]);
-        Pixels()[k].x = x87::fistp(x);
-        float y = static_cast<float>(static_cast<double>(t[5]) * Points()[k].y + t[13]);
-        Pixels()[k].y = x87::fistp(y);
+    for (int k = 0; k < std::ssize(g_points); ++k) {
+        float x = static_cast<float>(static_cast<double>(t[0]) * g_points[k].x + t[12]);
+        g_pixels[k].x = x87::fistp(x);
+        float y = static_cast<float>(static_cast<double>(t[5]) * g_points[k].y + t[13]);
+        g_pixels[k].y = x87::fistp(y);
     }
-    Pixels().resize(count);
+    g_pixels.resize(count);
 
     // The texture (only when it is drawn; the decal's projection below takes only whether any part is keyed).
     const int keyedParts = KeyedParts(self->object);
@@ -402,7 +399,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     m[10] = static_cast<float>(kOne - (static_cast<double>(yy) + xx));
 
     // The texture's square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
-    Quads().resize(1);   // keeps the contents when growing
+    g_quads.resize(1);   // keeps the contents when growing
     {
         float a = self->bounds[3];
         float b = self->bounds[0];
@@ -410,7 +407,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float y = CornerY(m, a, b);
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
-        VertexPacket* quad = Quads().data();   // rows x, y, z, w; lane 0
+        VertexPacket* quad = g_quads.data();   // rows x, y, z, w; lane 0
         quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
         quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
         quad->block[2][0] = at.z;
@@ -424,7 +421,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float b = corners[c][1];
         float y = CornerY(m, a, b);
         double x = CornerX(m, a, b);
-        VertexPacket* quad = Quads().data();
+        VertexPacket* quad = g_quads.data();
         quad->block[0][1 + c] = static_cast<float>(x + at.x);
         quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
         quad->block[2][1 + c] = at.z;
@@ -441,7 +438,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    VertexPacket* quads = Quads().data();
+    VertexPacket* quads = g_quads.data();
     TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 

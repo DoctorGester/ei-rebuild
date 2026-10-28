@@ -355,7 +355,7 @@ int CWorldClient::Segment() {
     }
     if (CWorldHandle* source = shared5C_.Get()) source->Pump();
     if (CClientHandle* source = handle_.Get()) source->Pump();
-    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
+    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::g_gameClient);
     if (CPlayer* session = Session()) {
         CPlayerConnection* view = session->connection_;
         if (!paused_) session->Tick();
@@ -407,7 +407,7 @@ int CWorldClient::Segment() {
         RunEffects(footprints_);
         RunEffects(scorchMarks_);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
-            lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
+            lightLevelsCountdown_ -= worlddata::g_updatePeriod;
             if (lightLevelsCountdown_ <= 0) {
                 lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
                 // Each blood print gets a grey level: the brightest of the sun at

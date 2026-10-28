@@ -235,7 +235,7 @@ void StandIdle(CUnitServer* self) {
     if (!self->queue.SameAs(idle)) {
         if (self->queue.empty() && self->queue.extra == -1) {
             int now = WorldTick(self);
-            idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
+            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }
         self->PlaySteps(idle);
     }

@@ -328,8 +328,6 @@ inline constexpr float kLevelHeights[8] = /*007912BC*/ {2.0f, 0.4f, 1.0f, 1.6f, 
 // -x as in PathCell::Step.
 inline constexpr int kDirectionDx[9] = /*00791108*/ {0, 0, -1, -1, -1, 0, 1, 1, 1};
 inline constexpr int kDirectionDy[9] = /*0079112C*/ {0, -1, -1, 0, 1, 1, 1, 0, -1};
-inline const int* DirectionDx() { return kDirectionDx; }
-inline const int* DirectionDy() { return kDirectionDy; }
 
 // A block of a block search: open records wait in sorted doubly linked buckets; a settled one moves to the
 // search's `touched` chain (through `next`).

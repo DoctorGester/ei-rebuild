@@ -68,8 +68,8 @@ void FpuCopy2(float* a, float* b, const float* src) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
-const Npc* FindNpc(const char* name) { return unitdb::NpcTable().FindByName(name); }
+const Prototype* FindPrototype(const char* name) { return g_unitDatabase->prototypes.FindByName(name); }
+const Npc* FindNpc(const char* name) { return g_unitDatabase->npcs.FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (that faults).
 const Model* ModelOf(const Prototype* prototype) {
@@ -364,7 +364,7 @@ constexpr int kSkillStat20 = 25;
 
 // hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
-    return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
+    return libcrt::CiPow(g_logicSettings.hpVal[3], x87::flog(static_cast<double>(*experience) / g_logicSettings.hpVal[2]) / x87::flog(g_logicSettings.hpVal[4]));
 }
 
 // A level record's value (unsigned; exact).
@@ -401,7 +401,7 @@ void UnitStats::ResetToBase(float newLoad) {
 
     double curve = HitPointExperienceCurve(&experience);
     float hitPoints = static_cast<float>(
-        curve * (static_cast<double>(stat10) / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
+        curve * (static_cast<double>(stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
     float perShare = static_cast<float>(
         (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share);
     for (UnitStatSlot& slot : slots) {
@@ -429,7 +429,7 @@ namespace {
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {
     double curve = HitPointExperienceCurve(&stats->experience);
-    double scaled = curve * (static_cast<double>(stats->stat10) / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
+    double scaled = curve * (static_cast<double>(stats->stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
 }
 } // namespace
@@ -572,8 +572,8 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         object->ApplyBaseScale();
         UnitOrNull(object)->SetPrototype23C(prototype);
     }
-    UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
-    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().records.data()) : 0xFFFFFFFFu;
+    UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(name);
+    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase->prototypes.records.data()) : 0xFFFFFFFFu;
     return 1;
 }
 

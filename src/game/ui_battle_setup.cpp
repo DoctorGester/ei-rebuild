@@ -137,7 +137,7 @@ void CBattleScreen::CreateScreen() {
     movePanel_->AddObject(objects_[2]);
     movePanel_->Build();
 
-    messageLog_ = new CUiScrollText(interface_, game::EmptyText(), RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    messageLog_ = new CUiScrollText(interface_, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
     AddChild(messageLog_);
     messageLog_->align_ = 1;
 

@@ -18,9 +18,9 @@ int Difficulty() { return options::TheOptions()->difficulty_; }
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * GameLogicSettings().attack[Difficulty()]);
+    attack = static_cast<int>(attack * g_logicSettings.attack[Difficulty()]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * GameLogicSettings().defence[Difficulty()]);
+        static_cast<int>(static_cast<float>(defence) * g_logicSettings.defence[Difficulty()]);
 }
 
 // --- Database records ---------------------------------------------------------------------------------

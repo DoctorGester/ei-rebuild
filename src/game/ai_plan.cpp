@@ -31,7 +31,6 @@ using WaypointList = std::list<Waypoint>;
 
 SpiralCache g_spiral = /*007C2F58*/ {};
 std::uint8_t g_spiralGuard = /*007C2F60*/ {};
-std::uint8_t& SpiralGuard() { return g_spiralGuard; }
 SpiralCache* Spiral() { return &g_spiral; }
 
 double Threshold() { return 15.0 /*0073F0A8*/; }
@@ -41,9 +40,9 @@ float Half() { return 0.5f /*0073B86C*/; }
 
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCellList chain;
-    if (!(SpiralGuard() & 1)) {
+    if (!(g_spiralGuard & 1)) {
         Spiral()->radius = -1.0f;
-        SpiralGuard() |= 1;
+        g_spiralGuard |= 1;
         Spiral()->length = 0;
     }
     int sizeClass = unit->sizeClass;

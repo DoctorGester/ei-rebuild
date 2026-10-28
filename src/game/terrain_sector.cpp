@@ -318,7 +318,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         a.frameBase = index;
                         a.vertices = entry;
                         a.rotation = rotation;
-                        std::uint32_t r = IsaacRandom::Global().Next();
+                        std::uint32_t r = g_random.Next();
                         a.frames = frames;
                         a.frame = static_cast<int>(r % static_cast<std::uint32_t>(frames));
                         a.speed = kAnimationSpeeds[ClassOf(owner, texture)];
@@ -520,20 +520,17 @@ static_assert(sizeof(ProjectionVertex) == 16);
 using ProjectionBuffer = std::vector<ProjectionVertex>;
 constinit std::vector<ProjectionVertex> g_projectionInput = /*007C88F8*/ {};
 constinit std::vector<ProjectionVertex> g_projectionOutput = /*007C88E8*/ {};
-ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
-ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 
 // The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
 // g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
-std::uint8_t& Freed() { return g_freed; }
 // The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
 // exit.
 constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
 FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
 void DestroyProjectionOutcodes() {
-    if (Freed() & 4) return;
-    Freed() = static_cast<std::uint8_t>(Freed() | 4);
+    if (g_freed & 4) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 4);
     g_projectionOutcodes.Destroy();
 }
 constexpr int kProjectionVertices = 0x330;
@@ -544,13 +541,13 @@ constexpr int kRow = 33;
 } // namespace
 
 void FreeProjectionInput() {
-    if (Freed() & 1) return;
-    Freed() = static_cast<std::uint8_t>(Freed() | 1);
+    if (g_freed & 1) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 1);
     lib::FreeStorage(g_projectionInput);
 }
 void FreeProjectionOutput() {
-    if (Freed() & 2) return;
-    Freed() = static_cast<std::uint8_t>(Freed() | 2);
+    if (g_freed & 2) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 2);
     lib::FreeStorage(g_projectionOutput);
 }
 void ConstructProjectionOutcodes() {
@@ -579,9 +576,9 @@ SectorData::SectorData() {
     spare38C = 0;
     spare390 = 0;
     hasSpecular = 0;
-    ProjectionInput().resize(kProjectionVertices);
-    ProjectionOutput().resize(kProjectionVertices);
-    ProjectionOutcodes().resize(std::ssize(ProjectionInput()));
+    g_projectionInput.resize(kProjectionVertices);
+    g_projectionOutput.resize(kProjectionVertices);
+    ProjectionOutcodes().resize(std::ssize(g_projectionInput));
 }
 
 // Then the members, last first (each record's light list released).
@@ -594,7 +591,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         if (quarterMode[q] == kCulled) continue;
         const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
         const int layers = hasWater != 0 ? 2 : 1;
-        ProjectionVertex* in = ProjectionInput().data();
+        ProjectionVertex* in = g_projectionInput.data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
@@ -602,15 +599,15 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     std::memcpy(in, &p, sizeof(Vector3));
                     ++in;
                 }
-        const int count = static_cast<int>(in - ProjectionInput().data());
-        const int mode = pipeline->ProjectTerrain(ProjectionInput().data(), ProjectionOutput().data(), ProjectionOutcodes().data(),
+        const int count = static_cast<int>(in - g_projectionInput.data());
+        const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), ProjectionOutcodes().data(),
                                                   count, BoundsOf(quarters[q]));
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
             quarterMode[q] = kCulled;
             continue;
         }
-        const ProjectionVertex* out = ProjectionOutput().data();
+        const ProjectionVertex* out = g_projectionOutput.data();
         const std::uint8_t* outcode = ProjectionOutcodes().data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)

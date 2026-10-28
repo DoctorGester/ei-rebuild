@@ -105,10 +105,10 @@ void CInterface3D::Update() {
     }
     mouseX_ = MouseScreenX();
     mouseY_ = MouseScreenY();
-    if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
+    if (disconnected_ && IsMultiplayerClient() && net::g_gameClient->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
-                static_cast<unsigned>(net::GameClient()->joinState_));
+                static_cast<unsigned>(net::g_gameClient->joinState_));
         CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, 1, 1);
     } else if (!stack_.empty()) {

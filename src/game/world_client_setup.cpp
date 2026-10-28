@@ -144,7 +144,7 @@ void CWorldClient::LoadSky() {
     auto* object = figures->CreateObjectAs<CSkyObject>(kSkyFigureClass, kSkyObjectId);
     if (!object) return;
     object->name_ = SkyPartName();
-    object->directory_ = game::EmptyText();
+    object->directory_ = game::kEmptyText;
     char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
     if (!data) {
         ++object->refCount_;

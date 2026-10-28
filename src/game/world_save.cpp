@@ -577,7 +577,7 @@ void SharedObject::Load(WorldStream* stream) {
 void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, const std::list<CItem*>* objects) {
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
-    net::ServerSession* session = net::GameServer();
+    net::ServerSession* session = net::g_gameServer;
     if (session && !(session->flags7_ & CRefCounted::kDetached))
         if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;
 

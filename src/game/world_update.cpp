@@ -63,7 +63,7 @@ int CWorldServer::Update() {
         AcceptNewPlayers(handle);
     }
     if (netlink::DriverSession* session = netSession_.Get()) {
-        net::ServerSession* server = net::GameServer();
+        net::ServerSession* server = net::g_gameServer;
         if (server && !(server->flags7_ & CRefCounted::kDetached)) session->PumpDrivers(server);
         AcceptNewPlayers(session);
     }

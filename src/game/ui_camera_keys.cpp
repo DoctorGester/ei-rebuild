@@ -32,7 +32,7 @@ std::uint32_t Bits(float f) {
 } // namespace
 
 void CCameraInput::OnKeyDown(int, int, int flags) {
-    int character = KeyActions()[flags & 0x1FF];
+    int character = g_keyActions[flags & 0x1FF];
     switch (character) {
     case 5: x_ = 1.0f; handled_ = true; break;
     case 6: x_ = -1.0f; handled_ = true; break;

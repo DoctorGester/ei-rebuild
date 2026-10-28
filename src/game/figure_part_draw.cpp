@@ -29,7 +29,6 @@ namespace {
 
 // The positions with the offsets added (a function-local static, freed at exit).
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
-std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
@@ -173,7 +172,7 @@ void Light(Part& part) {
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
-    std::vector<VertexPacket>& moved = MovedPositions();
+    std::vector<VertexPacket>& moved = g_movedPositions;
     moved.resize(mesh->buffers_.vertexCount);
     std::memcpy(moved.data(), mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
     for (int i = 0; i < std::ssize(mesh->offsets_); ++i) {
@@ -276,7 +275,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
               owner ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(owner)->figure) : nullptr, 0};
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
-        MovedPositions() = std::vector<VertexPacket>{};
+        g_movedPositions = std::vector<VertexPacket>{};
         std::atexit(FreeMovedPositions);
     }
 

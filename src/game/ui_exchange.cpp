@@ -27,7 +27,7 @@ constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
 
 // The client's own offer while it is live (not detached), else null.
 net::PartyMessage* LiveOffer() {
-    net::PartyMessage* offer = net::GameClient()->party_.Get();
+    net::PartyMessage* offer = net::g_gameClient->party_.Get();
     return IsLive(offer) ? offer : nullptr;
 }
 CParty* LocalParty() { return LocalPlayerData(); }
@@ -55,7 +55,7 @@ void CExchangeScreen::Update() {
     moneyField_->changed_ = false;
     if (!changed) return;
     ownOffer_->Money() = str::ToInt(moneyField_->text_);
-    net::ClientPublishParty(net::GameClient());
+    net::ClientPublishParty(net::g_gameClient);
 }
 
 // --- the left button -------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted_ && ownOffer_->Money() <= LocalParty()->Money()) {
             uiorig::PlayUiSound(interface_, kBuySound, 0);
-            net::GameClient()->RecordTrade(LocalParty());
+            net::g_gameClient->RecordTrade(LocalParty());
             return;
         }
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
@@ -77,13 +77,13 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted_) {
             uiorig::PlayUiSound(interface_, kCancelSound, 0);
-            net::ClientCommitParty(net::GameClient());
+            net::ClientCommitParty(net::g_gameClient);
         }
         return;
     }
     case kLeaveRegion:
         uiorig::PlayUiSound(interface_, kTransitSound, 0);
-        net::ClientDropParty(net::GameClient());
+        net::ClientDropParty(net::g_gameClient);
         return;
     default:
         return;
@@ -146,7 +146,7 @@ void CExchangeScreen::CreateScreen() {
     // The scratch party (not checked), our offer cleared, the partner's.
     scratch_ = new CParty();
     scratch_->Create();
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     ownOffer_ = client->parties_[0].Get();
     partnerOffer_ = client->parties_[1].Get();
     ownOffer_->Clear(1, 0);
@@ -224,7 +224,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
 
     CTextManager* texts = GameClientTexts();
     std::string text, line;
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
 
     // Surface 0: our money and the accept caption.
     CUiSurface* surface = surfaces_[0];
@@ -312,7 +312,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         uiorig::PlayUiSound(interface_, kPutOnSound, 0);
         CParty* local = LocalParty();
         MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
-        net::ClientPublishParty(net::GameClient());
+        net::ClientPublishParty(net::g_gameClient);
         return;
     }
     if (mode != kGridMode) return;
@@ -323,7 +323,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         CParty* offer = ownOffer_;
         CItem* held = MoveItem(item, LocalParty(), offer, 0, 1, 0);
         strip_->ScrollToItem(held);
-        net::ClientPublishParty(net::GameClient());
+        net::ClientPublishParty(net::g_gameClient);
         return;
     }
 }

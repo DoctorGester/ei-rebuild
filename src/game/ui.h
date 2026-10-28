@@ -11,7 +11,7 @@
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
-#include "game_strings.h"   // game::EmptyText
+#include "game_strings.h"   // game::kEmptyText
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions
 #include "unit.h"   // LockKey
@@ -395,8 +395,6 @@ inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 // The memory totals the window surfaces keep: bytes kept while swapped out and the surfaces' height * pitch.
 inline std::uint32_t g_uiSurfaceKeptBytes = /*007C7E74*/ {};
 inline std::uint32_t g_uiSurfaceBytes = /*007C7E78*/ {};
-inline std::uint32_t& UiSurfaceKeptBytes() { return g_uiSurfaceKeptBytes; }
-inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 
 // A 3D model shown in a window (an inventory item, a portrait).
 class CUiModel {
@@ -646,9 +644,7 @@ inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_
 // The console's "debuginfo" rectangle.
 strmap::CDebugPanel* DebugInfoPanel();
 
-// The in-game key bindings.
-inline const signed char* KeyActions() { return g_keyActions; }
-inline signed char* KeyActionTable() { return g_keyActions; }
+// The in-game key bindings' size (g_keyActions).
 constexpr int kKeyActionCount = 0x200;
 
 // --- Battle screen and its HUD panels ---
@@ -1866,8 +1862,6 @@ public:
     std::uint32_t savedAlphaRef_;
 };
 
-inline const UiKeyName* UiKeyNames() { return g_keyNames; }
-
 // A key binding row of the options window.
 struct OptionBinding {
     const ActionDefinition* action_;
@@ -2100,7 +2094,7 @@ public:
 // GameDifficulty() on OK.
 class CDifficultyBox : public CMessageBox {
 public:
-    explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1) {}
+    explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // No container handler. Region 0 OK (easy_ to GameDifficulty()), 1 cancel, 2 / 3 check easy / hard.

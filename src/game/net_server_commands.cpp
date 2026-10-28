@@ -26,7 +26,6 @@ enum CommandKind : std::uint32_t {
     kBanBySerial = 5,
 };
 
-Connection* CurrentConnectionObject() { return g_currentConnection; }
 std::size_t StringNpos() { return 0xFFFFFFFFu /*0073BDE8*/; }
 
 bool Is(const std::string& s, const char* t) {
@@ -50,7 +49,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
 // File requests: the request keeps its sender's connection and is listed on fileRequests_ (dropped again on
 // removal).
 void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
-    CRefObject* connection = CurrentConnectionObject();
+    CRefObject* connection = g_currentConnection;
     CRefObject* previous = message->ConnectionRef().ptr;
     message->ConnectionRef().ptr = connection;
     if (connection) ++connection->refs_;
@@ -72,10 +71,10 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
     std::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
-        if (self->IsHostConnection(CurrentConnectionObject())) TheGameFlow()->SetNetworkZone(text->data());
+        if (self->IsHostConnection(g_currentConnection)) TheGameFlow()->SetNetworkZone(text->data());
         return;
     case kZoneCommand: {
-        if (!self->IsHostConnection(CurrentConnectionObject())) return;
+        if (!self->IsHostConnection(g_currentConnection)) return;
         auto node = self->queuedMaps_.begin();
         for (; node != self->queuedMaps_.end(); ++node) {
             auto* entry = node->Get();
@@ -91,24 +90,24 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
         return;
     }
     case kKickByName:
-        if (!self->IsHostConnection(CurrentConnectionObject())) return;
+        if (!self->IsHostConnection(g_currentConnection)) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
             if (!IsLive(connection)) return;
             self->Kick(connection);
         }
     case kBanByName:
-        if (!self->IsHostConnection(CurrentConnectionObject())) return;
+        if (!self->IsHostConnection(g_currentConnection)) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
             if (!IsLive(connection)) return;
             self->Ban(connection);
         }
     case kKickBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(std::atoi(text->data())));
+        if (self->IsHostConnection(g_currentConnection)) self->Kick(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
     case kBanBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(std::atoi(text->data())));
+        if (self->IsHostConnection(g_currentConnection)) self->Ban(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
     default:
         return;

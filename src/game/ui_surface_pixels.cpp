@@ -219,7 +219,7 @@ void CUiSurface::SwapContents(int restore) {
             if (made) ++made->refs_;
             if (previous) ReleaseHolder(previous);
             DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
-            UiSurfaceBytes() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
+            g_uiSurfaceBytes += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
         if (!kept_) {
             ui_native::Restored(this);
@@ -228,7 +228,7 @@ void CUiSurface::SwapContents(int restore) {
         SurfaceHolder* holder = holder_;
         gameapi::EnterCriticalSection(TheDeviceLock());
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
-        UiSurfaceKeptBytes() -= keptSize_;
+        g_uiSurfaceKeptBytes -= keptSize_;
         gameapi::LeaveCriticalSection(TheDeviceLock());
         delete[] kept_;
         kept_ = nullptr;
@@ -245,9 +245,9 @@ void CUiSurface::SwapContents(int restore) {
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = new std::uint8_t[keptSize_];
     if (direct) std::memcpy(kept_, desc.bits, keptSize_);
-    UiSurfaceKeptBytes() += keptSize_;
+    g_uiSurfaceKeptBytes += keptSize_;
     gameapi::LeaveCriticalSection(TheDeviceLock());
-    UiSurfaceBytes() -= keptSize_;
+    g_uiSurfaceBytes -= keptSize_;
     SurfaceHolder* released = holder_;
     holder_ = nullptr;
     if (released) released->Release();

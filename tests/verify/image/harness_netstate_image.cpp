@@ -7,6 +7,6 @@
 
 namespace ei::verify::image {
 
-std::vector<std::string> NetState() { return pair::NetLines<net::ServerEntry>(net::GameServer(), net::GameClient()); }
+std::vector<std::string> NetState() { return pair::NetLines<net::ServerEntry>(net::g_gameServer, net::g_gameClient); }
 
 } // namespace ei::verify::image

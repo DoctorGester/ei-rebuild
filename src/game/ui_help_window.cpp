@@ -26,7 +26,7 @@ const char* LineEnds() { return "\r\n"; }          // the line end
 const char* NextSound() { return "buttons\\tutorial\\next.wav"; }
 const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
 
-constexpr char kHelpAction = ';';   // the help key's action (KeyActions)
+constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 
 // Direct3D render states, fed to the renderer's mirror.
 void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
@@ -155,7 +155,7 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
         return;
     }
-    if (key != VK_RETURN && key != VK_ESCAPE && KeyActions()[flags & 0x1FF] != kHelpAction) return;
+    if (key != VK_RETURN && key != VK_ESCAPE && g_keyActions[flags & 0x1FF] != kHelpAction) return;
     Finish();
     handled_ = true;
 }

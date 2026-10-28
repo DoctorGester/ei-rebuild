@@ -60,7 +60,7 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     bound->ConnectionRef().Assign(g_currentConnection);
     msg->binding_.Assign(bound);
 
-    ClientSession* client = GameClient();
+    ClientSession* client = g_gameClient;
     bool host;
     if (client && !(client->flags7_ & CRefObject::kDetached)) {
         host = msg->host_ != 0;

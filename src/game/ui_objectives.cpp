@@ -492,7 +492,7 @@ void CObjectivesWindow::CreateScreen() {
         objectiveTexts_.push_back(text);
     }
 
-    AddChild(new CUiScrollText(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f));
+    AddChild(new CUiScrollText(interface_, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f));
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
 

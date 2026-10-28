@@ -8,7 +8,7 @@
 namespace ei::verify::image {
 
 bool BriefingPlayerList(void* briefing, PlayerList* list) {
-    const net::ClientSession* client = net::GameClient();
+    const net::ClientSession* client = net::g_gameClient;
     const CChatWindow* chat = static_cast<CBriefingScreen*>(briefing)->chat_;
     if (!client || !chat) return false;
     list->players = static_cast<int>(client->players_.size());

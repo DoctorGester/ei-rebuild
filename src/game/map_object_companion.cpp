@@ -112,7 +112,7 @@ int CMapObjectClientSpecific::RunTick() {
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
             std::string name;
-            std::uint32_t variant = IsaacRandom::Global().Next() % 3 + 1;
+            std::uint32_t variant = g_random.Next() % 3 + 1;
             if (sound->kind == kSoundStench) {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;

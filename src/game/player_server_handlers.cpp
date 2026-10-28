@@ -57,8 +57,8 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 
 // The shares a revived hero loses: of the party's money and of its experience above the
 // NPC record's floor. Set at startup.
-float MoneyPenalty() { return GameLogicSettings().lostMoney; }
-float ExperiencePenalty() { return GameLogicSettings().lostXp; }
+float MoneyPenalty() { return g_logicSettings.lostMoney; }
+float ExperiencePenalty() { return g_logicSettings.lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
@@ -135,7 +135,7 @@ void CPlayerServer::OnLeaderDied() {
         auto* stats = &record.stats;
         stats->RestoreSlots();
         float experience = static_cast<float>(stats->pendingExperience + stats->experience);
-        auto* npc = unitdb::NpcTable().FindByName(record.texts[5]);
+        auto* npc = g_unitDatabase->npcs.FindByName(record.texts[5]);
         if (npc) {
             float above = static_cast<float>(experience - npc->experienceFloor);
             experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept

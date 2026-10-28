@@ -74,7 +74,7 @@ void BlockSearch::Relax(int direction, int back) {
     int bx = best->x, by = best->y;
     int edge = edges->rows[by][bx * 8 + direction - 1];
     if (edge < 0) return;
-    BlockRecord* record = &records.rows[by + DirectionDy()[direction]][bx + DirectionDx()[direction]];
+    BlockRecord* record = &records.rows[by + kDirectionDy[direction]][bx + kDirectionDx[direction]];
     if (bestCost >= record->cost) return;
     int cost = bestCost + edge;
     if (cost >= record->cost) return;

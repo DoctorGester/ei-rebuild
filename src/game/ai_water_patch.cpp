@@ -18,12 +18,10 @@ namespace {
 
 // The patch (a counted pointer, a function-local static of StampWaterPatch), released at exit.
 CUnitShape* g_patch = /*007C2F64*/ {nullptr};
-CUnitShape*& Patch() { return g_patch; }
 void ReleasePatch() {
     if (g_patch) g_patch->Release();
 }
 std::uint8_t g_guard = /*007C2F68*/ {};
-std::uint8_t& Guard() { return g_guard; }
 
 
 
@@ -34,15 +32,15 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
                    (static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
     int x = static_cast<int>(scale * position->x);
     int y = static_cast<int>(scale * position->y);
-    if (!(Guard() & 1)) {
-        Guard() |= 1;
-        Patch() = nullptr;
+    if (!(g_guard & 1)) {
+        g_guard |= 1;
+        g_patch = nullptr;
         std::atexit(ReleasePatch);
     }
-    if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
+    if (!g_patch || (g_patch->flags7_ & CRefObject::kDetached)) {
         CUnitShape* fresh = new CUnitShape();
-        CUnitShape* old = Patch();
-        Patch() = fresh;
+        CUnitShape* old = g_patch;
+        g_patch = fresh;
         if (fresh) ++fresh->refs_;
         if (old) old->Release();
     }
@@ -51,13 +49,13 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     int y0 = y - 7 < 0 ? 0 : y - 7;
     int x1 = cells.width - 1 >= x + 7 ? x + 7 : cells.width - 1;
     int y1 = cells.height - 1 >= y + 7 ? y + 7 : cells.height - 1;
-    CUnitShape* shape = Patch();
+    CUnitShape* shape = g_patch;
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)
             shape->levels[yy - y0][xx - x0] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
     // The pseudo unit is only a key to the layer.
     CUnitLayer* layer = &unitLayerSmall;
     auto* owner = reinterpret_cast<CUnit*>(static_cast<std::intptr_t>(key));
-    if (add) layer->Add(owner, Patch(), x0, y0);
+    if (add) layer->Add(owner, g_patch, x0, y0);
     else layer->Remove(owner, x0, y0);
 }

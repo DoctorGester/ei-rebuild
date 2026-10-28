@@ -38,7 +38,6 @@ constexpr float kByteScale = 255.0f;
 // The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
 // projection). Zero at the start; its exit function frees the block.
 constinit std::vector<VertexPacket> g_movedPackets = /*007AEED0*/ {};
-std::vector<VertexPacket>& MovedPackets() { return g_movedPackets; }
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
 using PixelPair = RasterTriangle::Point;
 
@@ -70,7 +69,7 @@ float& Coordinate(VertexPacket* packets, int i, int axis) { return packets[i >> 
 // `source` (`packets` packets) with the offsets added, in the work array: a vertex beyond the
 // offsets is copied; the w row is not written.
 const VertexPacket* MovedPositions(const VertexPacket* source, int packets, const std::vector<Vector3>* offsets) {
-    auto& moved = MovedPackets();
+    auto& moved = g_movedPackets;
     moved.resize(packets);
     auto* from = const_cast<VertexPacket*>(source);
     for (int i = 0; i < std::ssize(moved) * 4; ++i) {

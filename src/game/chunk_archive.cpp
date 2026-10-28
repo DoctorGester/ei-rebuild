@@ -201,7 +201,7 @@ void ChunkArchive::StringField(int id, std::string* s) {
     // string::assign(text, text + strlen(text)), inlined: overwrite in place and
     // cut the rest, or overwrite the whole string and append the remainder.
     if (FindField(this, id, &child)) s->assign(TextAt(Data() + child.offset));
-    else s->assign(game::EmptyText());
+    else s->assign(game::kEmptyText);
 }
 
 // A memory stream as chunk `id` (EnterChunk, inlined) holding its size (field 1) and its bytes

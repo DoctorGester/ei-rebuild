@@ -45,7 +45,7 @@ CPlayer* LocalPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-inline net::ClientSession* Server() { return net::GameClient(); }
+inline net::ClientSession* Server() { return net::g_gameClient; }
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
 void SetDebugInfoRect(int left, int top, int right, int bottom) {
@@ -130,7 +130,7 @@ void History(Arguments* args) {
 void Filter(Arguments* args) {
     if (args->empty()) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
-        Stream& os = Out();
+        Stream& os = g_consoleOut;
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
             os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
         return EndLine(os);
@@ -197,12 +197,12 @@ void ListVar(Arguments* args) {
     if (args->size() > 1) {
         writing = file.Open((*args)[1], "w");
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for writing");
+            EndLine(g_consoleOut << "Cannot open file " << (*args)[1].c_str() << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         const char* name = node->first.c_str();
-        EndLine(Out() << name << " = " << node->second);
+        EndLine(g_consoleOut << name << " = " << node->second);
         if (writing) {
             line = str::Format("%s %g\n", name, static_cast<double>(node->second));
             file.WriteString(line.c_str());
@@ -223,7 +223,7 @@ void LoadVar(Arguments* args) {
     std::vector<std::string> parts;
     lib::TextFile file;
     if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for reading");
+        EndLine(g_consoleOut << "Cannot open file " << (*args)[1].c_str() << " for reading");
         return;
     }
     while (file.ReadLine(line)) {
@@ -240,7 +240,7 @@ void LoadVar(Arguments* args) {
 // "Current FPS: " 1000 / last frame time (printed as float).
 void LastFps(Arguments*) {
     auto* timer = SceneRenderer();
-    Stream& os = Out() << "Current FPS: ";
+    Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
     EndLine(os << fps);
@@ -256,7 +256,7 @@ void Exec(Arguments* args) {
     str::TrimRight(name, '"');
     lib::TextFile file;
     if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << (*args)[0].c_str() << " for reading");
+        EndLine(g_consoleOut << "Cannot open file " << (*args)[0].c_str() << " for reading");
         return;
     }
     while (file.ReadLine(line)) console::Execute(line.c_str());
@@ -432,7 +432,7 @@ void Days(Arguments* args) {
                             if (day2 >= 1 && day2 <= 31) {
                                 const std::int32_t to = lib::MakeTime(year2, month2, day2, 7, 1, 1, -1);
                                 int days = static_cast<int>((to - from) / 86400);
-                                EndLine(Out() << "Your age: " << days << " days");
+                                EndLine(g_consoleOut << "Your age: " << days << " days");
                                 return;
                             }
                         }

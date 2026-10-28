@@ -34,8 +34,8 @@ constexpr std::uint32_t kFlagSideChanged = 0x80000;
 constexpr int kClassQuickItem = 0x13;
 
 // Globals read by the formulas.
-float BackwardSpeedScale() { return GameLogicSettings().rotateSpeedMult; }
-float HeroTransitionSpeed() { return GameLogicSettings().humanCrossAnimationSpeed; }
+float BackwardSpeedScale() { return g_logicSettings.rotateSpeedMult; }
+float HeroTransitionSpeed() { return g_logicSettings.humanCrossAnimationSpeed; }
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 

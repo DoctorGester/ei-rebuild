@@ -115,7 +115,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         break;
     }
     if (state_ != 0) return;
-    switch (KeyActions()[flags & kScanCodeMask]) {
+    switch (g_keyActions[flags & kScanCodeMask]) {
     case kActionObjectives:
         OpenObjectives(interface_);
         break;

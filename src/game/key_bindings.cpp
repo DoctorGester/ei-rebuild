@@ -44,7 +44,6 @@ namespace {
 
 constexpr int kKeyCount = kUiKeyNameCount;
 constexpr int kActionCount = 60;
-signed char* ActionOfScan() { return g_keyActions; }
 
 
 std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
@@ -68,7 +67,7 @@ void LoadKeyBindings() {
     std::string line;
     std::vector<std::string> words;
     lib::TextFile file;
-    std::memset(ActionOfScan(), 0, 0x200);
+    std::memset(g_keyActions, 0, 0x200);
     if (!OpenFile(file, "r")) return;
     while (file.ReadLine(line)) {
         text::SplitWords(line, &words, ' ');
@@ -83,7 +82,7 @@ void LoadKeyBindings() {
         }
         for (int action = 0; action < kActionCount; ++action) {
             if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1]) != 0) continue;
-            if (known) ActionOfScan()[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
+            if (known) g_keyActions[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }
     }
@@ -97,7 +96,7 @@ void SaveKeyBindings() {
     lib::TextFile file;
     if (!OpenFile(file, "w")) return;
     for (int scan = 0; scan < 0x200; ++scan) {
-        signed char id = ActionOfScan()[scan];
+        signed char id = g_keyActions[scan];
         if (!id) continue;
         bool known = false;
         int key = 0;

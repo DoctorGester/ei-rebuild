@@ -26,7 +26,7 @@ CItem* CUnit::TakeRandomItem() {
     for (int i = 0; i < kQuickSlots; ++i)
         if (quickItems[i]) filled[count++] = i;
     if (count == 0) return nullptr;
-    int slot = filled[IsaacRandom::Global().Next() % count];   // the draw is inlined
+    int slot = filled[g_random.Next() % count];   // the draw is inlined
     CItem* item = quickItems[slot];
     quickItems[slot] = nullptr;
     MarkChanged(kPartItems);

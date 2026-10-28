@@ -21,7 +21,7 @@ void ServerSession::Describe(RefPtr* out) {
     if (&name_ != &entry->name_) entry->name_ = name_;
     entry->kind_ = kind_;
     std::string* description = &entry->description_;
-    description->assign(game::EmptyText());
+    description->assign(game::kEmptyText);
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {

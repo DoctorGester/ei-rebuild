@@ -85,7 +85,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
         away.y = static_cast<float>(away.y * scale);
         away.z = static_cast<float>(away.z * scale);
     }
-    IsaacRandom& random = IsaacRandom::Global();
+    IsaacRandom& random = g_random;
     float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
     float jitterY = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
     Vector3 back = me - away;
@@ -144,7 +144,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
         bool aggressive = brain->current && brain->current->GetType() == kModeAggression;
-        float range = aggressive ? GameLogicSettings().rangedRunDist : GameLogicSettings().rangedAttackDist;
+        float range = aggressive ? g_logicSettings.rangedRunDist : g_logicSettings.rangedAttackDist;
         Vector3 me = *PositionOf(self);
         Vector3 foe = *PositionOf(enemy);
         double dx = static_cast<double>(foe.x) - me.x;
@@ -251,7 +251,7 @@ void FearMode::Execute(AIBrain* brain) {
                 step.z = static_cast<float>(step.z * scale);
             }
             float low = static_cast<float>(-static_cast<double>(width));
-            IsaacRandom& random = IsaacRandom::Global();
+            IsaacRandom& random = g_random;
             float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low);
             double jitterY = x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low;
             float backZ = static_cast<float>(static_cast<double>(here->z) - step.z);

@@ -170,7 +170,7 @@ bool Random(Call* call) {
     Store(&low, Floats(call)[0]);
     Store(&high, Floats(call)[1]);
     if (high > low) {
-        *call->FloatResult() = static_cast<float>(IsaacRandom::Global().Range(low, high));
+        *call->FloatResult() = static_cast<float>(g_random.Range(low, high));
     } else {
         Store(call->FloatResult(), low);
     }

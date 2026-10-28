@@ -20,14 +20,8 @@ static_assert(sizeof(ProjectedVertex) == 16);
 extern std::vector<TLVertex> g_vertices;
 extern std::vector<std::uint16_t> g_clipIndices;
 extern std::vector<ProjectedVertex> g_projected;
+// An outcode per corner (the clipper's input) and per projected vertex.
 extern std::vector<std::uint8_t> g_cornerOutcodes;
 extern std::vector<std::uint8_t> g_outcodes;
-
-inline std::vector<TLVertex>& Vertices() { return g_vertices; }
-inline std::vector<std::uint16_t>& ClipIndices() { return g_clipIndices; }
-inline std::vector<ProjectedVertex>& Projected() { return g_projected; }
-// An outcode per corner (the clipper's input) and per projected vertex.
-inline std::vector<std::uint8_t>& CornerOutcodes() { return g_cornerOutcodes; }
-inline std::vector<std::uint8_t>& Outcodes() { return g_outcodes; }
 
 } // namespace devicebuffers

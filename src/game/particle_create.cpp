@@ -40,7 +40,7 @@ double Unsigned(std::uint32_t value) {
 #define EI_RING_STEP 0.62832 /*0073CC98*/     // 2 pi / 10
 
 // IsaacRandom::Range leaves its result unrounded in ST0.
-double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
+double Range(float min, float max) { return g_random.Range(min, max); }
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
@@ -108,7 +108,7 @@ void SetupExplosion(CParticleSource* s) {
         float x, y, z;
         double lengthSquared;
         for (int tries = 10;;) {
-            x = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE));
+            x = static_cast<float>(Unsigned(g_random.Next()) * EI_SCALE_2 - D(EI_ONE));
             y = static_cast<float>(Range(-1.0f, 1.0f));
             double zUnrounded = Range(-1.0f, 1.0f) + D(EI_POINT_SEVEN);
             z = static_cast<float>(zUnrounded);
@@ -121,7 +121,7 @@ void SetupExplosion(CParticleSource* s) {
         v.Construct(x, y, z);
         Vector3 direction;
         DivideVector(&direction, v, length);
-        double speed = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
+        double speed = Unsigned(g_random.Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
         float vx = static_cast<float>(D(direction.x) * speed);
         float vy = static_cast<float>(speed * D(direction.y));
         double vz = speed * D(direction.z);
@@ -133,8 +133,8 @@ void SetupExplosion(CParticleSource* s) {
         SetBits(&fragment.radius, 0);
         fragment.growth = 0.4f;
         fragment.decay = 0.7f;
-        fragment.frame = static_cast<float>(Unsigned(IsaacRandom::Global().Next() % 6));
-        fragment.sizeFactor = static_cast<float>(Unsigned(IsaacRandom::Global().Next() & 1));
+        fragment.frame = static_cast<float>(Unsigned(g_random.Next() % 6));
+        fragment.sizeFactor = static_cast<float>(Unsigned(g_random.Next() & 1));
     }
 }
 
@@ -244,7 +244,7 @@ void SetupFalling(CParticleSource* s) {
     s->lifetime = 6;
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitFalling, &Source::UpdateFalling, &Source::TickFalling);
-    s->elements.resize(static_cast<int>(IsaacRandom::Global().Next() % 5 + 4));
+    s->elements.resize(static_cast<int>(g_random.Next() % 5 + 4));
     for (int i = 0; i < std::ssize(s->elements); ++i) s->elements[i].wind.age = 0;
 }
 

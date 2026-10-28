@@ -143,7 +143,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
         if (frame > 7) {
             if (type_ == kTypeFire || type_ == kTypeTendril) return 0;
             p->frameTimer = frameDelay << 2;
-            if ((IsaacRandom::Global().Next() & 3) == 0) return 0;
+            if ((g_random.Next() & 3) == 0) return 0;
         }
         if (p->frame == 8) p->drift.z = static_cast<float>(p->drift.z * kHalfDouble);
     }
@@ -178,16 +178,16 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->frame = type_ != kTypeSmoke ? 0 : 8;
     p->frameTimer = frameDelay;
     std::memcpy(&p->size, &size, sizeof(float));
-    if (IsaacRandom::Global().Next() % 100 + 1 <= 40) {
+    if (g_random.Next() % 100 + 1 <= 40) {
         p->size = size * kHalf;
         extra = static_cast<float>(size * kPointThree);
     }
     float hi = static_cast<float>(extra + spreadMax.x);
     float lo = static_cast<float>(spreadMin.x - extra);
-    p->velocity.x = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * (hi - lo) * kRandomScale + lo);
+    p->velocity.x = static_cast<float>(Unsigned(g_random.Next()) * (hi - lo) * kRandomScale + lo);
     hi = static_cast<float>(extra + spreadMax.y);
     lo = static_cast<float>(spreadMin.y - extra);
-    std::uint32_t r = IsaacRandom::Global().Next();
+    std::uint32_t r = g_random.Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
     p->velocity.x = ReadFloat(p->velocity.x) * kHalf;
@@ -196,7 +196,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->pos.x = origin.x + ReadFloat(p->velocity.x);
     p->pos.y = origin.y + ReadFloat(p->velocity.y);
     float h = height;
-    r = IsaacRandom::Global().Next();
+    r = g_random.Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
     p->pos.z = static_cast<float>(Unsigned(r) * h * kRandomScale + origin.z);

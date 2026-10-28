@@ -32,11 +32,10 @@ constexpr int kWheelMask = kWheelTicks - 1;
 // AIEvent::next).
 constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
 std::list<AIEvent>& AIEventPool() { return *g_eventPool; }
-AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void PushFree(AIEvent* event) {
-    event->next = FreeEvents();
-    FreeEvents() = event;
+    event->next = g_freeEvents;
+    g_freeEvents = event;
 }
 
 } // namespace
@@ -104,9 +103,9 @@ void AIEventTable::Load(CStream* stream) {
         char more = 0;
         stream->Read(&more, 1);
         if (!more) return;
-        AIEvent* event = FreeEvents();
+        AIEvent* event = g_freeEvents;
         if (event) {
-            FreeEvents() = event->next;
+            g_freeEvents = event->next;
         } else {
             AIEventPool().push_front(AIEvent{});
             event = &AIEventPool().front();

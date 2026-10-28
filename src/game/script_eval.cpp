@@ -98,7 +98,7 @@ double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeig
 
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     if (server && !(server->flags7_ & CRefCounted::kDetached)) return server;
     return nullptr;
 }
@@ -266,7 +266,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x5F: { // Random(range): [0, range]
         float range = f[0];
-        std::uint32_t value = IsaacRandom::Global().Next();
+        std::uint32_t value = g_random.Next();
         *result = ScaleRandom(value, range);
         return;
     }

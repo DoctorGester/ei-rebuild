@@ -49,7 +49,7 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ++device::HolderCount();
+    ++device::g_holderCount;
     return holder;
 }
 

@@ -43,7 +43,7 @@ void ScriptDefinition::Reset() {
     ifThen.clear();
     vars.Clear();
     index = 0;
-    const char* empty = game::EmptyText();
+    const char* empty = game::kEmptyText;
     params = empty;
     name = empty;
 }

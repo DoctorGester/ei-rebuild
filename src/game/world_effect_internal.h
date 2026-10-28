@@ -92,6 +92,6 @@ inline void WriteCopy(CStream* stream, const void* field) {
 
 // --- MFC strings --------------------------------------------------------------------------------
 
-inline const char* EmptyCString() { return game::EmptyText(); }
+inline const char* EmptyCString() { return game::kEmptyText; }
 
 } // namespace effect

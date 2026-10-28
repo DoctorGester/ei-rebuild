@@ -7,9 +7,6 @@
 // must stay bit-exact. 0x814 bytes.
 class IsaacRandom {
 public:
-    // The game's generator (random.cpp).
-    static IsaacRandom& Global();
-
     // Next 32-bit random value.
     std::uint32_t Next();
 
@@ -46,3 +43,6 @@ public:
     std::uint32_t a_, b_, c_;       // randa, randb, randc
 };
 static_assert(sizeof(IsaacRandom) == 0x814);
+
+// The game's generator (random.cpp).
+extern IsaacRandom g_random;

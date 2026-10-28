@@ -47,8 +47,8 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 // --- The overlays ---
 
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
-int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }
-int SurfaceBytesAllocated() { return static_cast<int>(UiSurfaceBytes()); }
+int SurfaceBytesKept() { return static_cast<int>(g_uiSurfaceKeptBytes); }
+int SurfaceBytesAllocated() { return static_cast<int>(g_uiSurfaceBytes); }
 
 constexpr DWORD kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;

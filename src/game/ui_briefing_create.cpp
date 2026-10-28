@@ -193,7 +193,7 @@ void CBriefingScreen::CreateScreen() {
 
     topicBar_ = new CUiScrollbar(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar_);
-    text_ = new CUiScrollText(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f);
+    text_ = new CUiScrollText(interface_, game::kEmptyText, RECT{165, 426, 635, 570}, 10.0f);
     AddChild(text_);
 
     SetMeshesVisible(this, 0);

@@ -285,7 +285,7 @@ void COptionsWindow::BuildBindings() {
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
             if (keyOfScan_[scan] != action->id_) continue;
             for (int k = 0; k < kUiKeyNameCount; ++k) {
-                const UiKeyName* name = &UiKeyNames()[k];
+                const UiKeyName* name = &g_keyNames[k];
                 if (name->scan_ == scan && binding.keys_.size() < 1) binding.keys_.push_back(name);
             }
         }
@@ -341,7 +341,7 @@ void COptionsWindow::CommitBinding() {
 }
 
 void COptionsWindow::LoadSettings() {
-    std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
+    std::memcpy(keyOfScan_, g_keyActions, sizeof(keyOfScan_));
     OptionSetting* s = settings_.data();
     const double fromStep = ConstFromStep();
     const float one = ConstOne();
@@ -386,7 +386,7 @@ void COptionsWindow::LoadSettings() {
 }
 
 void COptionsWindow::Apply() {
-    std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));
+    std::memcpy(g_keyActions, keyOfScan_, sizeof(keyOfScan_));
     const OptionSetting* s = settings_.data();
     const double toStep = ConstToStep();
     const float one = ConstOne();

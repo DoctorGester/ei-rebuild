@@ -49,7 +49,7 @@ void ServerSession::AnnounceToMaster() {
     info.hasPassword = password_[0] != 0;
     info.masterKey = masterKey_;
     info.kind = static_cast<std::uint8_t>(kind_);
-    const char* empty = game::EmptyText();
+    const char* empty = game::kEmptyText;
     description.assign(empty);
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {

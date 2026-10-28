@@ -75,7 +75,6 @@ constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
 int GameMode() { return TheServerWorld()->gameResult_; }        // 1: single player
-int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // BeginMultiplayerGame sets it, a missing zone clears it.
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
@@ -193,7 +192,7 @@ int GameFlow::SaveGame(const char* slot) {
 
     // scenario.sav: the party, the input state, the scripts and the globals.
     CMemoryStream scenario;
-    scenario.version_ = static_cast<std::uint32_t>(SaveVersion());
+    scenario.version_ = static_cast<std::uint32_t>(kSaveVersion);
     ThePartyManager()->Save(&scenario);
     TheInterface()->SaveState(&scenario);
     ScriptsReset(GameSaveStream());
@@ -201,7 +200,7 @@ int GameFlow::SaveGame(const char* slot) {
     scenario.WriteSized(GameSaveStream());
     ScriptsReset(GameSaveStream());
     TheCamera()->Save(&scenario);
-    SaveFileWrite(&file, kMagicScenario, SaveVersion(), &scenario);
+    SaveFileWrite(&file, kMagicScenario, kSaveVersion, &scenario);
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
@@ -213,14 +212,14 @@ int GameFlow::SaveGame(const char* slot) {
         }
         if (!opened) return 0;
         CMemoryStream mission;
-        mission.version_ = static_cast<std::uint32_t>(SaveVersion());
+        mission.version_ = static_cast<std::uint32_t>(kSaveVersion);
         TheServerWorld()->SaveWorld(&mission);
-        SaveFileWrite(&file, kMagicMission, SaveVersion(), &mission);
+        SaveFileWrite(&file, kMagicMission, kSaveVersion, &mission);
         file.Close();
     }
 
     TheCursor()->SetShape(0);
-    console::EndLine(console::Out() << kSaved << slot);
+    console::EndLine(console::g_consoleOut << kSaved << slot);
     return 1;
 }
 
@@ -250,7 +249,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         return 0;
     }
     CMemoryStream data;
-    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion, &file)) {
+    if (!SaveFileRead(&data, kMagicMission, kSaveVersion, kSaveOldestVersion, &file)) {
         game::FatalError(kCorruptSave, fileName.c_str());
         failed = true;
         return 0;
@@ -312,7 +311,7 @@ int EnterZone(CParty* records) {
     }
 
     if (str::Compare(zoneRecord->map,
-                        game::EmptyText()) != 0) {
+                        game::kEmptyText) != 0) {
         const char* mapOverride = nullptr;
         if (text::CompareIgnoringCase(zone,
                             kFrozenZone) == 0) {
@@ -374,16 +373,16 @@ void AnnounceHost(const char* zone) {
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();
     net::HostMessage* record = net::NewCounted<net::HostMessage>();
-    RefPtr& slot = net::GameServer()->hostInfo_;
+    RefPtr& slot = net::g_gameServer->hostInfo_;
     if (record != slot.ptr) {
         slot.Destroy();
         slot.Share(record);
     }
-    net::HostMessage* shared = net::GameServer()->hostInfo_.Get();
+    net::HostMessage* shared = net::g_gameServer->hostInfo_.Get();
     shared->address_ = formatted;
-    shared = net::GameServer()->hostInfo_.Get();
+    shared = net::g_gameServer->hostInfo_.Get();
     shared->zone_.assign(zone);
-    net::GameServer()->AnnounceToGuests(kServerMessageZone, zone);
+    net::g_gameServer->AnnounceToGuests(kServerMessageZone, zone);
 }
 
 } // namespace
@@ -409,7 +408,7 @@ int StartNetworkZone(const char* zone) {
     }
     if (opened) {
         CMemoryStream data;
-        bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion,
+        bool loaded = SaveFileRead(&data, kMagicMission, kSaveVersion, kSaveOldestVersion,
                                    &file) &&
                       TheServerWorld()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
@@ -435,7 +434,7 @@ int StartNetworkZone(const char* zone) {
     TheServerWorld()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
 
-    if (Active(net::GameServer())) {
+    if (Active(net::g_gameServer)) {
         AnnounceHost(zone);
         std::string name = zone;
         std::string mob = name + kMobExtension;
@@ -472,9 +471,9 @@ int LeaveZone(CParty* records) {
     }
     TheServerWorld()->PrepareSave();
     CMemoryStream data;
-    data.version_ = static_cast<std::uint32_t>(SaveVersion());
+    data.version_ = static_cast<std::uint32_t>(kSaveVersion);
     TheServerWorld()->SaveWorld(&data);
-    SaveFileWrite(&file, kMagicMission, SaveVersion(), &data);
+    SaveFileWrite(&file, kMagicMission, kSaveVersion, &data);
     file.Close();
 
     NamedFloatTable* variables = &records->variables_;
@@ -498,7 +497,7 @@ namespace {
 
 // The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
 // game state request to the server (a change goes out with a new version_).
-net::LoginMessage* LocalLogin() { return net::GameClient()->player_.Get(); }
+net::LoginMessage* LocalLogin() { return net::g_gameClient->player_.Get(); }
 int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.size()); }
 
 } // namespace
@@ -506,17 +505,17 @@ int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->ob
 void GameFlow::UpdateMultiplayerVariable() {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     NamedFloatTable* variables = &player->Party()->variables_;
-    if (!Active(net::GameClient())) return;
+    if (!Active(net::g_gameClient)) return;
     auto set = [variables](bool on) {
         if (on) VariableSet(variables, kMultiplayerVariable, 1.0f);
         else variables->Remove(kMultiplayerVariable);
     };
-    if (!Active(net::GameServer())) {
-        set(!Active(net::GameClient()->info_));
+    if (!Active(net::g_gameServer)) {
+        set(!Active(net::g_gameClient->info_));
         return;
     }
     if (flag80_) set(ServerPlayerCount() > 1);
-    else set(!Active(net::GameClient()->map_));
+    else set(!Active(net::g_gameClient->map_));
 }
 
 // ---- Starting a multiplayer game ------------------------------------------------------------------
@@ -529,7 +528,7 @@ constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's 
 } // namespace
 
 std::string* GameFlow::MultiplayerZoneInto(std::string* out) {
-    unsigned type = net::GameClient()->gameType_;
+    unsigned type = net::g_gameClient->gameType_;
     *out = kMultiplayerZones[type <= 3 ? type : 0]; return out;
 }
 
@@ -565,7 +564,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 } // namespace
 
 void GameFlow::ReturnLocalParty() {
-    if (!Active(net::GameClient())) return;
+    if (!Active(net::g_gameClient)) return;
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
@@ -576,7 +575,7 @@ void GameFlow::ReturnLocalParty() {
 }
 
 void GameFlow::UpdateAndAcknowledge() {
-    if (!Active(net::GameClient())) return;
+    if (!Active(net::g_gameClient)) return;
     UpdateFromServer();
     if (LocalLogin()->state_ != kRequestDone) return;
     LocalLogin()->state_ = 0;
@@ -584,7 +583,7 @@ void GameFlow::UpdateAndAcknowledge() {
 }
 
 void GameFlow::RequestBriefing(const char* briefing) {
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     if (Active(client)) client->SendCommand(kCommandBriefing, briefing);
 }
 
@@ -597,7 +596,7 @@ void ReleaseSession(CRefCounted* session) {
 } // namespace
 
 void GameFlow::RecreateClientSession() {
-    net::ClientSession*& global = net::GameClient();
+    net::ClientSession*& global = net::g_gameClient;
     net::ClientSession* old = global;
     global = nullptr;
     ReleaseSession(old);
@@ -618,11 +617,11 @@ int RequestZone(const char* zone, int entrance) {
 
 void GameFlow::DropSessions() {
     SessionsOpen() = 0;
-    net::ServerSession*& server = net::GameServer();
+    net::ServerSession*& server = net::g_gameServer;
     net::ServerSession* oldServer = server;
     server = nullptr;
     ReleaseSession(oldServer);
-    net::ClientSession*& client = net::GameClient();
+    net::ClientSession*& client = net::g_gameClient;
     net::ClientSession* oldClient = client;
     client = nullptr;
     ReleaseSession(oldClient);
@@ -635,11 +634,11 @@ void GameFlow::EndSession() {
 
 void GameFlow::CloseSessions() {
     SessionsOpen() = 0;
-    net::ServerSession*& server = net::GameServer();
+    net::ServerSession*& server = net::g_gameServer;
     net::ServerSession* oldServer = server;
     server = nullptr;
     ReleaseSession(oldServer);
-    net::ClientSession*& client = net::GameClient();
+    net::ClientSession*& client = net::g_gameClient;
     net::ClientSession* oldClient = client;
     client = nullptr;
     ReleaseSession(oldClient);
@@ -773,7 +772,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (flag80_) {
         // A switch is pending: ask for the start zone again.
         RequestKind(1);
-        bool host = Active(net::GameServer());
+        bool host = Active(net::g_gameServer);
         {
             std::string zone;
             MultiplayerZoneInto(&zone);
@@ -782,9 +781,9 @@ void GameFlow::SwitchMultiplayerZone() {
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
-            net::HostMessage* announced = net::GameServer()->hostInfo_.Get();
-            if (Active(announced)) net::GameServer()->AnnounceToGuests(kServerDropClient, announced->zone_.data());
-            RefPtr& handle = net::GameServer()->hostInfo_;
+            net::HostMessage* announced = net::g_gameServer->hostInfo_.Get();
+            if (Active(announced)) net::g_gameServer->AnnounceToGuests(kServerDropClient, announced->zone_.data());
+            RefPtr& handle = net::g_gameServer->hostInfo_;
             if (handle.ptr) {
                 handle.Destroy();
                 handle.Share(nullptr);
@@ -796,7 +795,7 @@ void GameFlow::SwitchMultiplayerZone() {
 
     // Every connection of the host drops what it has read of the incoming reliable stream
     // (flags 6, high and the cursor back to the start).
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     if (Active(server)) {
         for (auto& connection : server->clients_) {
             GameBuffer& in = connection.Get()->reliableIn_;
@@ -817,14 +816,14 @@ void GameFlow::SwitchMultiplayerZone() {
     }
     records.Party()->zone_ = zone7C_;
     RequestKind(3);
-    if (Active(net::GameServer())) {
+    if (Active(net::g_gameServer)) {
         state_ = 6;
         requestTarget_ = zone7C_;
         RequestParty()->Assign(records.Party());
     } else {
-        net::HostMessage* host = net::GameClient()->info_;
+        net::HostMessage* host = net::g_gameClient->info_;
         if (Active(host)) records.Party()->zone_ = host->zone_.data();
-        host = net::GameClient()->info_;
+        host = net::g_gameClient->info_;
         if (Active(host)) {
             state_ = 5;
             requestTarget_ = host->address_.data();
@@ -846,11 +845,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     net::g_netLog = &console::g_netLogOut;
     {
         net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
-        AssignCounted(net::GameServer(), server);
+        AssignCounted(net::g_gameServer, server);
     }
     {
         net::ClientSession* client = net::NewCounted<net::ClientSession>();
-        AssignCounted(net::GameClient(), client);
+        AssignCounted(net::g_gameClient, client);
     }
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
@@ -861,24 +860,24 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
         if (password) std::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-        net::GameClient()->Join(&address, &hello);
+        net::g_gameClient->Join(&address, &hello);
     }
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : kServerName;
-    net::GameServer()->name_.assign(shown);
-    net::GameServer()->maxPlayers_ = value25E0;
-    if (password && *password) net::GameServer()->SetPassword(password);
-    net::GameServer()->SetPublic(unlisted == 0);
-    net::GameClient()->gameType_ = gameType;
-    net::GameServer()->masterKey_ = value25FC;
+    net::g_gameServer->name_.assign(shown);
+    net::g_gameServer->maxPlayers_ = value25E0;
+    if (password && *password) net::g_gameServer->SetPassword(password);
+    net::g_gameServer->SetPublic(unlisted == 0);
+    net::g_gameClient->gameType_ = gameType;
+    net::g_gameServer->masterKey_ = value25FC;
     AfterServerStart();
 }
 
 void GameFlow::StartClient() {
     net::g_netLog = &console::g_netLogOut;
-    AssignCounted(net::GameServer(), static_cast<net::ServerSession*>(nullptr));
+    AssignCounted(net::g_gameServer, static_cast<net::ServerSession*>(nullptr));
     net::ClientSession* client = net::NewCounted<net::ClientSession>();
-    AssignCounted(net::GameClient(), client);
+    AssignCounted(net::g_gameClient, client);
     AfterServerStart();
 }
 
@@ -888,7 +887,7 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
     if (password) std::strncpy(secret, password, kPasswordSize);
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-    net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
+    net::g_gameClient->Join(const_cast<net::NetAddress*>(address), &hello);
 }
 
 void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
@@ -971,7 +970,7 @@ void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
             for (int i = 0; i < group.count;)
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
-        unsigned pick = ((&IsaacRandom::Global()))->Next() % static_cast<unsigned>(group.count);
+        unsigned pick = ((&g_random))->Next() % static_cast<unsigned>(group.count);
         std::string name(group.items[pick]->first.c_str());
         out->push_back(name);
     }
@@ -1070,13 +1069,13 @@ void GameFlow::StartZone(const char* zone, int mode) {
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
         game::FatalError(kZoneNotFound, zone);
-        if (Active(net::GameClient())) {
-            net::ServerSession*& server = net::GameServer();
+        if (Active(net::g_gameClient)) {
+            net::ServerSession*& server = net::g_gameServer;
             net::ServerSession* oldServer = server;
             SessionsOpen() = 0;
             server = nullptr;
             ReleaseSession(oldServer);
-            net::ClientSession*& client = net::GameClient();
+            net::ClientSession*& client = net::g_gameClient;
             net::ClientSession* oldClient = client;
             client = nullptr;
             ReleaseSession(oldClient);
@@ -1148,7 +1147,6 @@ constinit lib::StaticObject<std::string> g_lastResources = /*007AFDEC*/ {};
 std::string& LastResources() { return *g_lastResources; }
 void DestroyLastResources() { g_lastResources.Destroy(); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
-std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
@@ -1173,8 +1171,8 @@ void SwitchResourceDatabases(const char* name) {
 }
 
 void GameFlow::UseResources(bool network) {
-    if (!(LastResourcesGuard() & 1)) {
-        LastResourcesGuard() |= 1;
+    if (!(g_lastResourcesGuard & 1)) {
+        g_lastResourcesGuard |= 1;
         g_lastResources.Construct(kResourcesSingle);
         std::atexit(DestroyLastResources);
     }
@@ -1209,7 +1207,7 @@ void GameFlow::ProcessRequest() {
     }
     TheInterface()->CloseAll();
     TheServerWorld()->TeardownZone();
-    UseResources(Active(net::GameClient()));
+    UseResources(Active(net::g_gameClient));
 
     auto* clientWorld = TheClientWorld();
     switch (state) {
@@ -1250,7 +1248,7 @@ void GameFlow::ProcessRequest() {
         player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
         if (!clientWorld->JoinGameClient(zone)) {
-            if (Active(net::GameClient())) {
+            if (Active(net::g_gameClient)) {
                 BeginMultiplayerGame();
             } else {
                 ToMainMenu() = 1;
@@ -1310,7 +1308,7 @@ int GameFlow::LoadGame(const char* slot) {
 
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
     CMemoryStream scenario;
-    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), kSaveOldestVersion, &file)) {
+    if (!SaveFileRead(&scenario, kMagicScenario, kSaveVersion, kSaveOldestVersion, &file)) {
         ToMainMenu() = 1;
         StartZone(kMainMenu, 2);
         return 0;
@@ -1381,7 +1379,7 @@ int GameFlow::LoadGame(const char* slot) {
         file.Close();
         TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     }
-    console::EndLine(console::Out() << kLoadedText << slot);
+    console::EndLine(console::g_consoleOut << kLoadedText << slot);
     return 1;
 }
 
@@ -1418,7 +1416,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     zone7C_ = zone ? zone : "";   // null (LeaveZone): no zone
-    if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZone(zone);
+    if (Active(net::g_gameServer) && !Active(net::g_gameClient) && zone) StartNetworkZone(zone);
 }
 
 int CurrentSaveSize() {
@@ -1460,15 +1458,13 @@ void GameFlow::AfterServerStart() {
 
 namespace {
 
-unsigned g_serverStamp = /*007AFED0*/ {};
-unsigned& ServerStamp() { return g_serverStamp; }   // the newest variable stamp seen
-unsigned g_appliedStamp = /*007AFED4*/ {};
-unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
+unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
+unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
 
 // The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The client's variables (ClientSession::variables_), each with its stamp (VariableMessage::serial_).
-std::list<CountedRefTo<net::VariableMessage>>& Variables() { return net::GameClient()->variables_; }
+std::list<CountedRefTo<net::VariableMessage>>& Variables() { return net::g_gameClient->variables_; }
 // The value's bits, moved as the dword that is pushed (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
@@ -1479,7 +1475,7 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 } // namespace
 
 void GameFlow::UpdateFromServer() {
-    if (!Active(net::GameClient())) return;
+    if (!Active(net::g_gameClient)) return;
     if (CTextManager* texts = TheTextManager()) {
         for (const std::string* file = g_questFiles.data(); file != g_questFiles.data() + g_questFiles.size(); ++file)
             texts->RemoveSource(file->data());
@@ -1497,13 +1493,13 @@ void GameFlow::UpdateFromServer() {
     else
         variables->clear();
     VariableSet(variables, kConstructionVariable, construction);
-    if (net::MapMessage* map = net::GameClient()->map_) {
+    if (net::MapMessage* map = net::g_gameClient->map_) {
         if (Active(map)) LoadZoneQuests(map->text_.data());
     }
 
     // The game type's construction variable and briefings, at least 1.
     std::string briefing;
-    unsigned type = net::GameClient()->gameType_;
+    unsigned type = net::g_gameClient->gameType_;
     if (type <= 3) {
         VariableSet(variables, kTypeVariables[type], 1.0f);
         briefing = kTypeBriefings[type];
@@ -1523,7 +1519,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The briefings the server says were seen.
-    for (const auto& zone : net::GameClient()->zones_) MarkBriefing(zone.Get()->text_.data());
+    for (const auto& zone : net::g_gameClient->zones_) MarkBriefing(zone.Get()->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (const auto& variable : Variables()) {
         std::string name = variable.Get()->name_.data();
@@ -1544,13 +1540,13 @@ void GameFlow::UpdateFromServer() {
 
     // The server's variables, by stamp.
     if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
-        unsigned previous = AppliedStamp();
-        if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
+        unsigned previous = g_appliedStamp;
+        if (g_serverStamp > g_appliedStamp + 2) g_appliedStamp = g_serverStamp + 1;
         std::vector<const net::VariableMessage*> changed;
         for (const auto& variable : Variables()) {
             const unsigned stamp = variable.Get()->serial_;
-            if (ServerStamp() <= stamp) ServerStamp() = stamp;
-            if (stamp >= AppliedStamp() || stamp < previous) continue;
+            if (g_serverStamp <= stamp) g_serverStamp = stamp;
+            if (stamp >= g_appliedStamp || stamp < previous) continue;
             changed.push_back(variable.Get());
         }
         // By stamp (the original's STLport sort). The server gives every set its own serial, so no two
@@ -1563,10 +1559,10 @@ void GameFlow::UpdateFromServer() {
             settled = true;
             for (const auto& variable : Variables()) {
                 const net::VariableMessage* record = variable.Get();
-                if (record->serial_ > AppliedStamp()) continue;
-                if (record->serial_ == AppliedStamp()) {
+                if (record->serial_ > g_appliedStamp) continue;
+                if (record->serial_ == g_appliedStamp) {
                     GameFlow::OnVariableChanged(record);
-                    ++AppliedStamp();
+                    ++g_appliedStamp;
                     settled = false;
                 }
                 VariableSetBits(variables, record->name_.data(), ValueBits(record));
@@ -1575,11 +1571,11 @@ void GameFlow::UpdateFromServer() {
     } else {
         for (const auto& variable : Variables()) {
             const net::VariableMessage* record = variable.Get();
-            if (ServerStamp() <= record->serial_) ServerStamp() = record->serial_;
+            if (g_serverStamp <= record->serial_) g_serverStamp = record->serial_;
             std::string name = record->name_.data();
             VariableSetBits(variables, record->name_.data(), ValueBits(record));
         }
-        AppliedStamp() = 0;
+        g_appliedStamp = 0;
     }
     UpdateMultiplayerVariable();
 }

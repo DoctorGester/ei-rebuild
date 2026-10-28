@@ -90,7 +90,7 @@ void StartLookUp() {
 std::string Names(std::uint8_t* count) {
     std::string names;
     *count = 0;
-    const auto& bindings = GameServer()->bindings_;
+    const auto& bindings = g_gameServer->bindings_;
     for (auto node = bindings.begin(); node != bindings.end(); ++node) {
         auto* binding = node->Get();
         auto* player = binding->Player();

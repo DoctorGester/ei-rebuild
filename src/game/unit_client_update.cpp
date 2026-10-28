@@ -146,7 +146,7 @@ int CUnitClientSpecific::RestartFadeIn() {
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
-    double ratio = x87::flog(experience / GameLogicSettings().considerModifier) / x87::flog(static_cast<double>(GameLogicSettings().considerLogBase));
+    double ratio = x87::flog(experience / g_logicSettings.considerModifier) / x87::flog(static_cast<double>(g_logicSettings.considerLogBase));
     float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
     // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.

@@ -317,7 +317,7 @@ void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
     if (!IsMultiplayerClient()) return;
     CParty* party = Owner()->Party();
     if (std::ssize(party->members_) != 1 || static_cast<int>(party->members_[0].unitId) != unit->id_) return;
-    auto* login = net::GameClient()->player_.Get();
+    auto* login = net::g_gameClient->player_.Get();
     login->id_ = unit->player ? unit->id_ : -1;
     ++login->version_;
 }

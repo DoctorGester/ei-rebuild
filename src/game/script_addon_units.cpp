@@ -180,7 +180,7 @@ bool UnitsNearPoint(Call* call) {
 bool RandObj(Call* call) {
     ScriptGroup* group = call->cmd->groupArgs[0];
     if (!group->empty()) {
-        std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(group->size());
+        std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(group->size());
         *call->ObjectResult() = (*group)[index];
     }
     return true;

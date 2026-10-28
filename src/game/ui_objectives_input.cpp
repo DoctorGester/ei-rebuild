@@ -136,7 +136,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
         RefreshQuests();
         handled_ = true;
     }
-    if (!handled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
+    if (!handled_ && g_keyActions[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
         interface_->PlaySound(MessageOkSound(), 0);
         interface_->SetPendingValue(0);
     }

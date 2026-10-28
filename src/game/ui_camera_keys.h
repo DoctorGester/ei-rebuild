@@ -27,7 +27,7 @@ public:
 
     void OnKeyDown(int key, int repeat, int flags);
     // A direction key released (actions 5-10 of
-    // KeyActions) clears its axis and marks the key used; then, when used, the camera's motion is
+    // g_keyActions) clears its axis and marks the key used; then, when used, the camera's motion is
     // set again from the axes: without Ctrl / Alt it pans along (y_, -x_) at the pan speed
     // (the speed constants multiplied, stored as float), turns and tilts not, and climbs at the climb speed
     // * z_; with one it does not pan, turns at the turn speed * y_, climbs, and tilts at the

@@ -58,8 +58,6 @@ bool QuitGame(int exitCode) {
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
 
-std::uint8_t MovieMode() { return g_movieMode; }
-
 // The copy protection's sabotage: the options go back to their defaults and every object
 // of the object manager gets a random number below 0x1000 as its companion and as its specific
 // half (both are pointers; the game fails some time later).

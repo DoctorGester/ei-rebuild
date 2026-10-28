@@ -67,7 +67,7 @@ CFigureMesh* CFigureManager::NewFigure(const char* name) {
     auto* figure = CreateObjectAs<CFigureMesh>(kFigureClass, -1);
     if (!name) return figure;
     figure->name_ = name;
-    figure->directory_ = game::EmptyText();
+    figure->directory_ = game::kEmptyText;
     std::string path;
     path = str::Format(game::FigFileFormat(), name);
     void* data = GetFile(path.c_str(), nullptr);

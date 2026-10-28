@@ -75,7 +75,6 @@ std::string& CommandLineMap() { return *g_commandLineMap; }
 std::string& CommandLineMob() { return *g_commandLineMob; }
 std::string& CommandLineScript() { return *g_commandLineScript; }
 std::string& CameraFile() { return *g_cameraFile; }
-CDirectInputMouse*& Mouse() { return g_mouse; }
 
 namespace {
 
@@ -365,8 +364,8 @@ void ReleaseMouse(CDirectInputMouse* mouse) {
 
 void CreateMouse() {
     auto* mouse = new CDirectInputMouse();
-    CDirectInputMouse* old = Mouse();
-    Mouse() = mouse;
+    CDirectInputMouse* old = g_mouse;
+    g_mouse = mouse;
     if (mouse) ++mouse->references_;
     if (old) ReleaseMouse(old);
 }
@@ -681,8 +680,8 @@ void ShutDown() {
     DeleteComposedTextures();
     TheInterface()->Shutdown();
     TheCursor()->Shutdown();
-    CDirectInputMouse* mouse = Mouse();
-    Mouse() = nullptr;
+    CDirectInputMouse* mouse = g_mouse;
+    g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
@@ -750,11 +749,11 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
-    Mouse()->Setup(g_mainWindow, instance);
+    g_mouse->Setup(g_mainWindow, instance);
     TheClientWorld()->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left behind; only the low
     // byte is a value (the shapes' flag: no device named).
-    SetUpCursors(options->fpsIndependentCursor_ != 0, Mouse(), 0,
+    SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0,
                  g_deviceNamed == 0);
     TheInterface()->Create(TheRenderDevice());
     TheMapDatabase()->LoadAll();

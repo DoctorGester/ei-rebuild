@@ -206,7 +206,7 @@ struct TickSteps {
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
                 if (std::ssize(s->particles) >= s->maxParticles) break;
-                std::uint32_t roll = IsaacRandom::Global().Next();
+                std::uint32_t roll = g_random.Next();
                 if (static_cast<int>(roll % 100) < s->emitChance) EmitOne(emitted++);
             }
             if (emitted != 0) return;

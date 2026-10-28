@@ -22,12 +22,9 @@
 namespace {
 
 DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the draw (guard bit 0 of g_guards)
-DecalBuilder& Builder() { return g_builder; }
 constinit std::vector<Vector4> g_partPoints = /*007AF478*/ {};
-std::vector<Vector4>& PartPoints() { return g_partPoints; }
 void FreePartPoints() { lib::FreeStorage(g_partPoints); }
 std::uint8_t g_guards = /*007AF504*/ {};
-std::uint8_t& Guards() { return g_guards; }
 
 // A scene node's matrix (an object's or a figure part's) from its rotation and position (the
 // bottom row 0, 0, 0, 1).
@@ -80,11 +77,11 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
         std::string name(part->GetName());
         figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
     }
-    std::vector<Vector4>& points = PartPoints();
+    std::vector<Vector4>& points = g_partPoints;
     points.resize(data.blocks * 4);
     Matrix4 transposed = Transposed(*top);
     pipeline->transform_->TransformPoints(&transposed, data.vertices, points.data(), data.blocks);
-    DecalBuilder& builder = Builder();
+    DecalBuilder& builder = g_builder;
     builder.Reserve(data.indexCount * 6);
     for (unsigned i = 0; i < static_cast<unsigned>(data.indexCount); i += 3) {
         const Vector4& a = points[data.corners[data.indices[i]].position];
@@ -104,14 +101,14 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
-    DecalBuilder& builder = Builder();
-    if (!(Guards() & 1)) {
-        Guards() |= 1;
+    DecalBuilder& builder = g_builder;
+    if (!(g_guards & 1)) {
+        g_guards |= 1;
         builder.Construct();
     }
-    if (!(Guards() & 2)) {
-        Guards() |= 2;
-        PartPoints() = std::vector<Vector4>{};
+    if (!(g_guards & 2)) {
+        g_guards |= 2;
+        g_partPoints = std::vector<Vector4>{};
         std::atexit(FreePartPoints);
     }
     auto* quad = reinterpret_cast<float* const*>(corners);

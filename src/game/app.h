@@ -22,7 +22,7 @@ std::string& CommandLineMap();
 std::string& CommandLineMob();
 std::string& CommandLineScript();
 std::string& CameraFile();
-CDirectInputMouse*& Mouse();
+extern CDirectInputMouse* g_mouse;
 
 // The application's flags and handles. The game window's title (from the string table), the
 // instance; the window's activation as the window procedure leaves it; whether the interface shows a screen

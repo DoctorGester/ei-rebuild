@@ -96,7 +96,7 @@ CCameraInput::CCameraInput(CInterface3D* ui) : UiInputSide(ui) {
 CCameraInput::~CCameraInput() {}
 
 void CCameraInput::OnKeyUp(int, int, int flags) {
-    switch (KeyActions()[flags & kScanCodeMask]) {
+    switch (g_keyActions[flags & kScanCodeMask]) {
     case 5:
     case 6:
         x_ = 0.0f;

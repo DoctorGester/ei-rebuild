@@ -27,7 +27,7 @@ namespace {
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
 // FindPlayer is the player record with that id, or null.
 net::ServerSession* ActiveGameServer() {
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     if (!server || (server->flags7_ & CRefCounted::kDetached)) return nullptr;
     return server;
 }

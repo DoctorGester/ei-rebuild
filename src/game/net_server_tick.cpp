@@ -51,7 +51,7 @@ void ServerSession::Tick(double dt) {
     if (announceTimer_ < worlddata::Zero()) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const char* host = MasterHost();
-        if (std::strcmp(host, game::EmptyText()) != 0) AnnounceToMaster();
+        if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
     }
 }
 

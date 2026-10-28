@@ -29,7 +29,7 @@ constexpr int kVersionSecondName = 0x6A;
 
 // The index of prototype record `record` (one of the table's), or -1 without one.
 int PrototypeIndexOf(const UnitPrototypeRecord* record) {
-    return record ? static_cast<int>(record - unitdb::PrototypeTable().records.data()) : -1;
+    return record ? static_cast<int>(record - g_unitDatabase->prototypes.records.data()) : -1;
 }
 
 // Writes `value` from a stack copy, as for most scalars.
@@ -46,7 +46,7 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
 // The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
 UnitPrototypeRecord* PrototypeByName(const char* name) {
     std::string key(name);
-    return unitdb::PrototypeTable().byName[key];
+    return g_unitDatabase->prototypes.byName[key];
 }
 
 // The world the unit belongs to (its manager's context).
@@ -137,7 +137,7 @@ void CUnit::LoadUnit(CStream* stream) {
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName.c_str())));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
-        second = unitdb::PrototypeTable().FindByName(prototypeName);
+        second = g_unitDatabase->prototypes.FindByName(prototypeName);
     } else {
         stream->ReadInto(&prototypeName);
         second = PrototypeByName(prototypeName.c_str());

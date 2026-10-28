@@ -67,7 +67,7 @@ int CWorld::Create() {
     Attach(itemManager_, this);
 
     shared5C_.ShareAssign(new CWorldHandle());
-    IsaacRandom::Global().Init();
+    g_random.Init();
     countdowns_.clear();
     return 1;
 }

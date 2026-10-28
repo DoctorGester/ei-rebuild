@@ -37,16 +37,15 @@ constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
-std::vector<LightningPoint>& GlowPoints() { return g_glowPoints; }
 void FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 void SizeSprites() { Sprites().resize(8); }
-void SizePoints() { GlowPoints().resize(8); }
+void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(IsaacRandom::Global().Next() & 3)) * 0.25f /*0073C3B0*/;
+    return static_cast<float>(static_cast<int>(g_random.Next() & 3)) * 0.25f /*0073C3B0*/;
 }
 
 } // namespace
@@ -61,7 +60,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
-        LightningPointArray& p = GlowPoints();
+        LightningPointArray& p = g_glowPoints;
         std::construct_at(&p);
         std::atexit(FreeGlowPoints);
     }
@@ -92,7 +91,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f /*0073C520*/;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
-        LightningPoint& p = GlowPoints()[j];
+        LightningPoint& p = g_glowPoints[j];
         p.x = position->x + along.x;
         p.y = position->y + along.y;
         p.z = position->z + along.z;
@@ -102,7 +101,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    device->DrawSprites(0, &GlowPoints(), &Sprites());
+    device->DrawSprites(0, &g_glowPoints, &Sprites());
 }
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).

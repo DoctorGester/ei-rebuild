@@ -194,7 +194,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::EmptyText(), "magic\\Lightwall\\circle.wav", -1, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -231,7 +231,7 @@ Next StartFirework(CSpellEffect* e) {
     float size = Power(e);
     e->CreateParticle(1, 0x2009, &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::EmptyText(), "magic\\Firework\\%i.wav", 5, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5, kVolume, kHearing);
     e->position = centre;
     return Next::Set;
 }

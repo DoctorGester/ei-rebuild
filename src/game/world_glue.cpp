@@ -35,7 +35,7 @@ const std::string* GameBasePathString() {
 }
 
 int FinishQuestMap(const char* name) {
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     if (!server || (server->flags7_ & CRefCounted::kDetached)) return 0;
     std::string text(name);
     return server->FinishMap(&text) ? 1 : 0;

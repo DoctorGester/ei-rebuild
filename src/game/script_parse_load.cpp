@@ -491,8 +491,8 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             if (*p) *p++ = 0;
             line = start;
             if (std::strncmp(start, keyword, std::strlen(keyword)) == 0) {
-                define.name = game::EmptyText();
-                define.value = game::EmptyText();
+                define.name = game::kEmptyText;
+                define.value = game::kEmptyText;
                 char* q = start + std::strlen(keyword);
                 while (*q && IsSpace(*q)) ++q;
                 char* name = q;
@@ -502,7 +502,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 while (*q && IsSpace(*q)) ++q;
                 define.value = q;
                 AddDefine(&defines, &define);
-                line = game::EmptyText();
+                line = game::kEmptyText;
             } else {
                 ApplyDefines(&line, &defines);
             }

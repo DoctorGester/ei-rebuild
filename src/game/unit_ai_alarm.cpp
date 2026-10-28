@@ -78,7 +78,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     ClearModes();
     float radius = std::bit_cast<float>(record->callRadius);
     callRadius = radius;
-    LogicSettings& logic = GameLogicSettings();
+    LogicSettings& logic = g_logicSettings;
     if (Same(radius, logic.callForHelpRadiusDefault))
         std::memcpy(&callRadius, &logic.callForHelpRadius, sizeof(float));
     alertMode = static_cast<int>(record->alertMode);

@@ -456,7 +456,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object = created(std::type_identity<CMapObject>{});
         if (spec->shadow) object->flags_ |= 0x20000;
         if (str::Compare(spec->model,
-                            game::EmptyText()) != 0)
+                            game::kEmptyText) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);
         int id = object->id_;

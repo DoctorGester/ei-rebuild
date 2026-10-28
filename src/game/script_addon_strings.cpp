@@ -98,7 +98,7 @@ bool StrLen(Call* call) {
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
+    std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
     *call->StringResult() = Arg(call, static_cast<int>(index));
     return true;
 }
@@ -146,7 +146,7 @@ bool StrUpper(Call* call) {
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
-        net::ServerSession* server = net::GameServer();
+        net::ServerSession* server = net::g_gameServer;
         if (server && !(server->flags7_ & CRefCounted::kDetached)) {
             std::string text = Joined(call);
             server->Announce(text.c_str(), 0);
@@ -159,7 +159,7 @@ bool Say(Call* call) {
 // flush.
 bool ConsoleString(Call* call) {
     std::string text = Joined(call);
-    (console::Out() << text.c_str() << "\n").Flush();
+    (console::g_consoleOut << text.c_str() << "\n").Flush();
     return true;
 }
 

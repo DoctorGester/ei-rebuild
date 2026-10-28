@@ -114,7 +114,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
     Vector3 perch;
     for (;;) {
         float radius = distance >= kPerchMinRadius ? distance : kPerchMinRadius;
-        double angle = x87::FromUnsigned(IsaacRandom::Global().Next()) * kRandomAngle;
+        double angle = x87::FromUnsigned(g_random.Next()) * kRandomAngle;
         perch.z = static_cast<float>(from->z + height);
         perch.x = static_cast<float>(x87::fcos(angle) * radius + from->x);
         perch.y = static_cast<float>(x87::fsin(angle) * radius + from->y);
@@ -248,7 +248,7 @@ void CEffectMoshka::Follow(int objectId) {
     attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     bird->RestartPose();
-    attached->SetSkins(texture.c_str(), game::EmptyText());
+    attached->SetSkins(texture.c_str(), game::kEmptyText);
     TheClientWorld()->AddObject(bird_);
     attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {

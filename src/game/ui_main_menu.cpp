@@ -32,8 +32,6 @@ namespace {
 
 // The width of the fade at the map's edges. The menu shows its world with 6.
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-// The main menu's six rectangles of menus.reg.
-const RECT* MenuRects() { return g_menuRects; }
 // Interface options (bit 0: the menu's lightning).
 std::uint32_t InterfaceOptions() { return TheSceneRenderer()->flags_; }
 // The tick count of the menu's next lightning chance.
@@ -63,7 +61,7 @@ const char* const kIntroMovie = "Movies\\Intro.bik";
 constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};
 
 // A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
-double RandomScaled(double scale) { return x87::FromUnsigned(IsaacRandom::Global().Next()) * scale; }
+double RandomScaled(double scale) { return x87::FromUnsigned(g_random.Next()) * scale; }
 
 } // namespace
 
@@ -109,13 +107,13 @@ void CMainMenu::CreateScreen() {
     for (int i = 0; i < 6; ++i) {
         CUiRegion* region = AddRegion();
         RECT rect;
-        gameapi::CopyRect(&rect, &MenuRects()[i]);
+        gameapi::CopyRect(&rect, &g_menuRects[i]);
         region->SetRectFrom(rect);
     }
     GamePlayMusic(nullptr);
     savedEdgeFade_ = MapEdgeFade();
     MapEdgeFade() = kMenuEdgeFade;
-    rain_ = (IsaacRandom::Global().Next() & 1) == 1;
+    rain_ = (g_random.Next() & 1) == 1;
     // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
@@ -140,7 +138,7 @@ void CMainMenu::Update() {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;
-            if (IsaacRandom::Global().Next() % 41 == 4) {
+            if (g_random.Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
                 float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));

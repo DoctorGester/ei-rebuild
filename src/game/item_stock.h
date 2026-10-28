@@ -65,11 +65,6 @@ extern CandidateVector g_candidates;
 extern StockMaterialVector g_takenMaterials;
 extern StockSpellVector g_takenSpells;
 extern StockModifierVector g_takenModifiers;
-inline StockPrototypeVector& TakenPrototypes() { return g_takenPrototypes; }
-inline CandidateVector& Candidates() { return g_candidates; }
-inline StockMaterialVector& TakenMaterials() { return g_takenMaterials; }
-inline StockSpellVector& TakenSpells() { return g_takenSpells; }
-inline StockModifierVector& TakenModifiers() { return g_takenModifiers; }
 // The spell database's recipe lists for weapons, armors and scrolls (FillSpellMaps' argument).
 inline const SpellRecipeVector* WeaponSpellRecipes() { return &itemdb::TheSpellDatabase().lists[2]; }
 inline const SpellRecipeVector* ArmorSpellRecipes() { return &itemdb::TheSpellDatabase().lists[1]; }

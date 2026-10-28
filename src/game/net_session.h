@@ -1,7 +1,7 @@
 #pragma once
 
-// The network pump: ticks the game server and the game client (net_classes.h, GameServer() /
-// GameClient()). Names provisional; see docs/notes/network.md.
+// The network pump: ticks the game server and the game client (net_classes.h, g_gameServer /
+// g_gameClient). Names provisional; see docs/notes/network.md.
 
 #include "net_classes.h"
 

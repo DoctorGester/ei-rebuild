@@ -281,7 +281,7 @@ void CPlayerServer::ClearServerState() {
     placements_.clear();
     compressor_.Reset();
     decompressor_.Reset();
-    refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);
+    refreshTimer_ = static_cast<int>(g_random.Next() % 0x385u + 0x384u);
 }
 
 BOOL CPlayerServer::CreateServer() {

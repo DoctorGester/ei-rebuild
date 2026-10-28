@@ -22,7 +22,6 @@ inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
 
 double DiskFreeSpace(const char* path);
 bool QuitGame(int exitCode);
-std::uint8_t MovieMode();
 void ScrambleObjects();
 void DelayedProtectionCheck();
 void ConstructProtectionChecks();

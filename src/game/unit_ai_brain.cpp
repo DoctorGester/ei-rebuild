@@ -448,7 +448,7 @@ void AIBrain::Load(CStream* stream) {
     for (int i = 0; i < std::ssize(alarmRecords); ++i) alarmRecords[i].Read(stream);
     stream->Read(&alarmCountdown, 4);
     // A radius saved as the default one becomes the configured one.
-    LogicSettings& settings = GameLogicSettings();
+    LogicSettings& settings = g_logicSettings;
     EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
     if (callRadius == settings.callForHelpRadiusDefault)
         std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
