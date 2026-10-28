@@ -41,7 +41,7 @@ const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
 
 // The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
-    order->kind = 9;
+    order->kind = kOrderNone;
     if (order->target) order->target->Release();
     order->target = nullptr;
     order->pointIsUseSpot = 0;
@@ -142,7 +142,7 @@ void CUnitServer::FinishCast() {
 
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
-    action2.kind = 2;
+    action2.kind = kOrderTurn;
     lib::LoadBytes(action2.point, direction);
     ReleaseTarget(&action2);
     action2.modifier = 0;
@@ -152,7 +152,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
     ResetOrder(&action2);
-    action2.kind = 1;
+    action2.kind = kOrderMove;
     action2.point = *point;
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
@@ -176,16 +176,16 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
         if (controller->stats.slots[location].kind != 3) location = 6;
     }
     ResetOrder(&action2);
-    action2.kind = 3;
+    action2.kind = kOrderAttack;
     SetTarget(&action2, target);
     action2.source = static_cast<std::uint32_t>(location);
     action2.modifier = static_cast<std::uint8_t>(calledShot);
     // CanReachTarget inlined on the queued order.
-    if (action2.kind == 3 || action2.kind == 6) {
+    if (action2.kind == kOrderAttack || action2.kind == kOrderUse) {
         CUnit* other = UnitOrNull(action2.target);
         if (other && other->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
-            if (action2.kind == 3) {
+            if (action2.kind == kOrderAttack) {
                 CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
@@ -194,7 +194,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                     static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->localPosition_.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, kMessageOutOfReach);
-                    action2.kind = 9;
+                    action2.kind = kOrderNone;
                     ReleaseTarget(&action2);
                     action2.pointIsUseSpot = 0;
                     action2.param = 0;
@@ -230,12 +230,12 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
         TellParty(unit, kMessageCannotCast);
         return;
     }
-    action2.kind = 9;
+    action2.kind = kOrderNone;
     ReleaseTarget(&action2);
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
-    action2.kind = 4;
+    action2.kind = kOrderCastAt;
     if (action2.target) ReleaseTarget(&action2);
     action2.source = source;
     action2.point = at;
@@ -265,7 +265,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
         return;
     }
     ResetOrder(&action2);
-    action2.kind = 5;
+    action2.kind = kOrderCastOn;
     SetTarget(&action2, target);
     action2.source = source;
     action2.point = {};
@@ -274,9 +274,9 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
 }
 
 void CUnitServer::StopQueued() {
-    if (action.kind == 11) return;
+    if (action.kind == kOrderStop) return;
     ResetOrder(&action2);
-    action2.kind = 11;
+    action2.kind = kOrderStop;
     ReleaseTarget(&action2);
     action2.modifier = 0;
 }

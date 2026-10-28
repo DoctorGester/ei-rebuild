@@ -81,7 +81,7 @@ double AIDistance2(const Vector3* a, const Vector3* b) {
 }
 
 void AIOrder::Clear() {
-    kind = 9;
+    kind = kOrderNone;
     if (target) target->Release();
     target = nullptr;
     pointIsUseSpot = 0;
@@ -89,7 +89,7 @@ void AIOrder::Clear() {
 
 void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
-    kind = 3;
+    kind = kOrderAttack;
     source = 6;
     if (object) {
         ++object->refCount_;
@@ -99,7 +99,7 @@ void AIOrder::MakeAttack(CMapObject* object) {
 
 void AIOrder::MakeCast(int spell, CMapObject* object) {
     Clear();
-    kind = 5;
+    kind = kOrderCastOn;
     if (object) {
         ++object->refCount_;
         target = object;

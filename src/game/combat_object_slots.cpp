@@ -21,9 +21,6 @@
 #include <cmath>
 
 namespace {
-constexpr int kOrderAnimation = 7;
-constexpr int kOrderEmote = 8;
-constexpr int kOrderNone = 9;
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
 constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
@@ -62,7 +59,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
         action.Reset();
         if (action2.kind == kOrderNone) Idle();
     }
-    if (action2.target == object && action.kind != 0 && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
+    if (action2.target == object && action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
         DropQueuedOrder();
     if (currentPlan.targetId == object->id_) EndOrder(0);
     BrainOf(this)->OnObjectDeleted(object);

@@ -88,7 +88,6 @@ constexpr float kSpeedSlow = 0.15f;
 static_assert(std::bit_cast<std::uint32_t>(kSpeedSlow) == 0x3E19999Au);
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr std::uint32_t kSkillOnTarget = 0x18A95;   // UnitAction::source of a skill used on a target
 constexpr int kNoNaturalWeapon = 0x10;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -233,7 +232,7 @@ CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
 }
 
 bool CUnitServer::IsFighting() {
-    if (action.kind == 4 || action.kind == 5) {
+    if (action.kind == kOrderCastAt || action.kind == kOrderCastOn) {
         CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
@@ -250,7 +249,7 @@ bool CUnitServer::IsFighting() {
                 return true;
         }
     }
-    return action.kind == 3;
+    return action.kind == kOrderAttack;
 }
 
 bool CUnitServer::CanCast(const AIOrder* order) {
@@ -277,11 +276,11 @@ bool CUnitServer::CanCast(const AIOrder* order) {
 }
 
 BOOL CUnitServer::GetMovePoint(float* out) {
-    if (action.kind == 1) {
+    if (action.kind == kOrderMove) {
         lib::StoreBytes(out, action.point);
         return 1;
     }
-    if (action2.kind == 1) {
+    if (action2.kind == kOrderMove) {
         lib::StoreBytes(out, action2.point);
         return 1;
     }
@@ -292,7 +291,7 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     if (order->pointIsUseSpot) return kPointTwo;
     int kind = order->kind;
     CMapObject* target = order->target;
-    if (kind >= 4 && kind <= 5) {
+    if (kind == kOrderCastAt || kind == kOrderCastOn) {
         if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
         std::uint32_t source = order->source;
         CSpell* spell;
@@ -307,7 +306,7 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         return kTen;
     }
     if (kind == 6) {
-        if (order->source == kSkillOnTarget) {
+        if (order->source == kSourceSearchBody) {
             float part = static_cast<float>(Radius(target) * kPointThree);
             return static_cast<float>(Radius(unit) + part);
         }
@@ -332,12 +331,12 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
 }
 
 bool CUnitServer::CanReachTarget(const AIOrder* order) {
-    if (order->kind != 3 && order->kind != 6) return true;
+    if (order->kind != kOrderAttack && order->kind != kOrderUse) return true;
     CUnit* other = UnitOrNull(order->target);
     if (!other) return true;
     if (IsDead(other) != 0) return true;
     if (other->sizeClass != 0) return true;
-    if (order->kind == 3) {
+    if (order->kind == kOrderAttack) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
@@ -647,7 +646,7 @@ void CUnitServer::UpdateMoveFactors() {
     } else {
         moveFactors[0] = 0.0f;
     }
-    if (state == 5 && (action.kind == 4 || action.kind == 5)) {
+    if (state == 5 && (action.kind == kOrderCastAt || action.kind == kOrderCastOn)) {
         CSpell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];

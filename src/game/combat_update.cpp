@@ -41,14 +41,6 @@ constexpr int kStateRecovering = 3;   // the rest of an action's animation plays
 constexpr int kStateWaiting = 4;
 constexpr int kStateActing = 5;       // the planned action runs
 constexpr int kStateChasing = 6;
-constexpr int kOrderMove = 1;
-constexpr int kOrderAttack = 3;
-constexpr int kOrderCastAt = 4;
-constexpr int kOrderCast = 5;
-constexpr int kOrderSkill = 6;
-constexpr int kOrderNone = 9;
-constexpr int kOrderUse = 10;
-constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr std::uint32_t kFlagFrozen = 0x1000000;      // CUnit flags_: no updates of orders and animation
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
@@ -147,7 +139,7 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 int CUnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
-        if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != 0 ? 1 : 0)) {
+        if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != kOrderIdle ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
             unit->MarkChanged(0);
             unit->MarkChanged(4);
@@ -526,10 +518,10 @@ void CUnitServer::TickAction() {
 
 bool CUnitServer::ActionInReach() {
     int kind = action.kind;
-    bool cast = kind == kOrderCastAt || kind == kOrderCast;
+    bool cast = kind == kOrderCastAt || kind == kOrderCastOn;
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
-    if (kind == kOrderCastAt || kind == kOrderUse) return true;
-    if (kind != kOrderAttack && kind != kOrderSkill && kind != kOrderCast) return false;
+    if (kind == kOrderCastAt || kind == kOrderUseItem) return true;
+    if (kind != kOrderAttack && kind != kOrderUse && kind != kOrderCastOn) return false;
     CMapObject* target = action.target;
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
@@ -539,8 +531,8 @@ bool CUnitServer::ActionInReach() {
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
     } else if (target->IsDead() != 0) {
-        if (kind != kOrderSkill) return false;
-        if (action.source != kSkillOnTarget && action.source != 0) return false;
+        if (kind != kOrderUse) return false;
+        if (action.source != kSourceSearchBody && action.source != 0) return false;
     }
     Vector3 where;
     const float* at = &target->PositionAt(&where, Plan(this).endTime)->x;

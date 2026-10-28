@@ -175,7 +175,7 @@ void AIBrain::Think() {
         return;
     case kActionWalk:
         target.Reset();
-        if (owner->action.kind == 1 || owner->action2.kind == 1 || owner->action.kind == 2 || owner->action2.kind == 2) return;
+        if (owner->action.kind == kOrderMove || owner->action2.kind == kOrderMove || owner->action.kind == kOrderTurn || owner->action2.kind == kOrderTurn) return;
         action = kActionNone;
         return;
     case kActionMove:
@@ -186,14 +186,14 @@ void AIBrain::Think() {
         UpdateAttack();
         return;
     case kActionCast:
-        if (owner->action.kind == 4 || owner->action.kind == 5 || owner->action2.kind == 4 || owner->action2.kind == 5) return;
+        if (owner->action.kind == kOrderCastAt || owner->action.kind == kOrderCastOn || owner->action2.kind == kOrderCastAt || owner->action2.kind == kOrderCastOn) return;
         if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
         target.Reset();
         action = kActionNone;
         return;
     case kActionUse:
         target.Reset();
-        if (owner->action.kind == 6 || owner->action2.kind == 6) return;
+        if (owner->action.kind == kOrderUse || owner->action2.kind == kOrderUse) return;
         action = kActionNone;
         return;
     case kActionFollow:
@@ -310,7 +310,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
 
 void AIBrain::UpdateMove() {
     CUnitServer* o = owner;
-    if (o->action.kind == 1 || o->action2.kind == 1 || o->action.kind == 2 || o->action2.kind == 2) return;
+    if (o->action.kind == kOrderMove || o->action2.kind == kOrderMove || o->action.kind == kOrderTurn || o->action2.kind == kOrderTurn) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
@@ -374,10 +374,10 @@ void AIBrain::UpdateAttack() {
         return;
     }
     o = owner;
-    if (o->action.kind == 3 && o->action.target == target) return;
-    if (o->action2.kind == 3 && o->action2.target == target) return;
-    if (o->action.kind == 4 || o->action.kind == 5) return;
-    if (o->action2.kind == 4 || o->action2.kind == 5) return;
+    if (o->action.kind == kOrderAttack && o->action.target == target) return;
+    if (o->action2.kind == kOrderAttack && o->action2.target == target) return;
+    if (o->action.kind == kOrderCastAt || o->action.kind == kOrderCastOn) return;
+    if (o->action2.kind == kOrderCastAt || o->action2.kind == kOrderCastOn) return;
     action = kActionNone;
 }
 
@@ -392,7 +392,7 @@ void AIBrain::AttackTarget(CMapObject* object) {
     int flags = 0x1C;
     if (owner->unit->player) {
         AIOrder order{};
-        order.kind = 3;
+        order.kind = kOrderAttack;
         order.source = 6;
         order.target = nullptr;
         order.pointIsUseSpot = 0;
@@ -412,16 +412,16 @@ void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
     action = kActionUse;
     target.Reset();
     switch (kind) {
-    case 0:
+    case kSourceUse:
         owner->OrderUse(object, a, b);
         return;
-    case 1:
+    case kSourceSteal:
         if (object->GetClassId() == kClassUnit) owner->OrderSteal(object, b);
         return;
-    case 2:
+    case kSourceTame:
         if (object->GetClassId() == kClassUnit) owner->OrderTame(object, b);
         return;
-    case 0x18A95:
+    case kSourceSearchBody:
         if (object->GetClassId() == kClassUnit) owner->OrderSearchBody(object, b);
         return;
     default:

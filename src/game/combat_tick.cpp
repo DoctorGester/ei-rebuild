@@ -44,19 +44,6 @@ constexpr double kArrived = 0.02;
 constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the slowest closing speed
 constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
-constexpr int kOrderNone = 0;
-constexpr int kOrderMove = 1;
-constexpr int kOrderTurn = 2;
-constexpr int kOrderAttack = 3;
-constexpr int kOrderCast = 4;
-constexpr int kOrderCastAt = 5;
-constexpr int kOrderSkill = 6;
-constexpr int kOrderAnimation = 7;
-constexpr int kOrderEmote = 8;
-constexpr int kOrderEmpty = 9;
-constexpr int kOrderUse = 10;
-constexpr int kOrderStop = 11;
-constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kFlagNoCasting = 0x10000000;    // CUnit flags_
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;    // CSpell::targetFlags_
@@ -86,8 +73,8 @@ constexpr int kShoutCannotDo = 0x0E;
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
 bool IsUnit(CMapObject* object) { return object && object->GetClassId() == kClassUnit; }
-bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
-bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
+bool IsCastKind(int kind) { return kind == kOrderCastAt || kind == kOrderCastOn; }
+bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCastAt || kind == kOrderCastOn || kind == kOrderUse; }
 
 // The map objects' virtuals. The movement-state virtual is 1 while a unit moves.
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
@@ -112,7 +99,7 @@ void ClearAction(UnitAction* order) {
 // The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
 // standing on its own) is too high to reach, else whether the action can be planned.
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
-    if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
+    if (order->kind == kOrderAttack || order->kind == kOrderUse) {
         CUnit* other = UnitOrNull(order->target);
         if (other && !IsDead(other)) {
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
@@ -182,7 +169,7 @@ void SetModeInline(CUnit* unit, int mode) {
 }
 
 bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
-    if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
+    if (order->kind != kOrderAttack && order->kind != kOrderUse) return false;
     CUnit* other = UnitOrNull(order->target);
     if (!other || IsDead(other)) return false;
     if (other->sizeClass != 0) return false;
@@ -216,7 +203,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
 }
 
 void UnitAction::Reset() {
-    kind = kOrderEmpty;
+    kind = kOrderNone;
     if (target) target->Release();
     target = nullptr;
     pointIsUseSpot = 0;
@@ -264,7 +251,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.param = action2.param;
     action.param = action2.param;
     action.modifier = action2.modifier;
-    action2.kind = kOrderEmpty;
+    action2.kind = kOrderNone;
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
     action2.pointIsUseSpot = 0;
@@ -300,7 +287,7 @@ bool CUnitServer::StartMove() {
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
         action.Reset();
-        if (action2.kind == kOrderEmpty) Idle();
+        if (action2.kind == kOrderNone) Idle();
         bool result = StartQueuedOrder();
         return result;
     }
@@ -332,20 +319,20 @@ bool CUnitServer::StartMove() {
     }
     orderStopped = 1;
     action.Reset();
-    if (action2.kind == kOrderEmpty) Idle();
+    if (action2.kind == kOrderNone) Idle();
     StartQueuedOrder();
     return false;
 }
 
 bool CUnitServer::StartQueuedOrder() {
-    if (action2.kind == kOrderEmpty) return false;
+    if (action2.kind == kOrderNone) return false;
     if (action2.kind != kOrderStop && moveMode.mode == kModeStop) {
         moveMode2.mode = kModeRun;
         unit->moveMode2 = kModeRun;
         if (ChangeMoveMode()) return true;
     }
     switch (action2.kind) {
-    case kOrderNone:
+    case kOrderIdle:
         action.Assign(&action2);
         ClearAction(&action2);
         LeaveMoveMode(this);
@@ -368,9 +355,9 @@ bool CUnitServer::StartQueuedOrder() {
     }
 
     case kOrderAttack:
-    case kOrderCast:
     case kOrderCastAt:
-    case kOrderSkill:
+    case kOrderCastOn:
+    case kOrderUse:
         orderStopped = 0;
         TakeOver(this);
         LeaveMoveMode(this);
@@ -397,11 +384,11 @@ bool CUnitServer::StartQueuedOrder() {
         return true;
     }
 
-    case kOrderUse: {
+    case kOrderUseItem: {
         TakeQueuedOrder();
         AnimationSteps steps;
         int duration;
-        BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
+        BuildOrderSteps(&steps, &duration, kOrderUse, 0);
         int now = WorldTick(this);
         currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
@@ -415,7 +402,7 @@ bool CUnitServer::StartQueuedOrder() {
             if (ChangeMoveMode()) return true;
             TellParty(unit, kMessageStopped);
             action.Reset();
-            if (action2.kind == kOrderEmpty) Idle();
+            if (action2.kind == kOrderNone) Idle();
             return false;
         }
         TakeOver(this);
@@ -445,17 +432,17 @@ void CUnitServer::UpdateOrders() {
             orderStopped = 1;
             if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, kMessageCannotDo);
         }
-        if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
+        if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();
         break;
     case kOrderAttack:
-    case kOrderCast:
     case kOrderCastAt:
-    case kOrderSkill:
+    case kOrderCastOn:
+    case kOrderUse:
         ContinueAction();
         return;
     case kOrderAnimation:
-        if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
+        if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();
         break;
     default:
@@ -481,7 +468,7 @@ void CUnitServer::ContinueAction() {
             }
         } else if (!IsDead(action.target)) {
             carryOn = true;
-        } else if (action.kind == kOrderSkill && (action.source == kSkillOnTarget || action.source == 0)) {
+        } else if (action.kind == kOrderUse && (action.source == kSourceSearchBody || action.source == 0)) {
             carryOn = true;   // talk to or study the dead
         }
     }
@@ -504,13 +491,13 @@ void CUnitServer::ContinueAction() {
         orderStopped = 1;
         TellParty(unit, kMessageUnseen);
     }
-    action.kind = kOrderEmpty;
+    action.kind = kOrderNone;
     if (action.target) action.target->Release();
     action.target = nullptr;
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
-    if (action2.kind == kOrderEmpty && action.kind != kOrderNone) DropQueuedOrder();
+    if (action2.kind == kOrderNone && action.kind != kOrderIdle) DropQueuedOrder();
     EndOrder(0);
 }
 
@@ -548,10 +535,10 @@ void CUnitServer::ExecuteOrder() {
     }
     bool clear = false;
     bool stop = false;
-    if (action.kind == kOrderSkill && action.source == kSkillOnTarget && TargetBusy(action.target)) {
+    if (action.kind == kOrderUse && action.source == kSourceSearchBody && TargetBusy(action.target)) {
         clear = true;
     } else {
-        if (action.kind != kOrderSkill) {
+        if (action.kind != kOrderUse) {
             if (IsCastKind(action.kind) && unit->type_ == kUnitTypeHero) {
                 if (moveMode.mode == 0) {
                     SetModeInline(unit, kModeWalk);
@@ -615,7 +602,7 @@ void CUnitServer::ExecuteOrder() {
     }
     if (stop) orderStopped = 1;
     ClearAction(&action);
-    if (action2.kind == kOrderEmpty) Idle();
+    if (action2.kind == kOrderNone) Idle();
 }
 
 // --- Closing in --------------------------------------------------------------------------------
@@ -654,7 +641,7 @@ void CUnitServer::ApproachTarget() {
         }
         Shout(action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
         action.Reset();
-        if (action2.kind == kOrderEmpty) Idle();
+        if (action2.kind == kOrderNone) Idle();
         orderStopped = 1;
         return;
     }
@@ -699,7 +686,7 @@ void CUnitServer::ApproachTarget() {
         CUnit* leader = followedLeader;
         auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
-            (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCast || theirs->action.kind == kOrderCastAt) &&
+            (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCastAt || theirs->action.kind == kOrderCastOn) &&
             theirs->state != kStateCasting) {
             chased = leader;
         } else {

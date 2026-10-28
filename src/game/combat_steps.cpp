@@ -40,9 +40,6 @@ constexpr int kUnitTypeHeroes = 0x32;     // CEngineObject::type_ of the player'
 constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr int kOrderAttack = 3;
-constexpr int kOrderSkill = 6;
-constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr int kNoSizeClasses = 2;         // UnitStats::movementKind
 
 constexpr std::uint32_t kKeyAction = 0x40000;
@@ -138,7 +135,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
                        std::uint32_t* weaponBit, bool* frame) {
     *weaponBit = 0;
     *frame = false;
-    if (kind != kOrderSkill) {
+    if (kind != kOrderUse) {
         *weaponBit = WeaponBit(self);
         return *weaponBit | source | kKeyAttack;
     }
@@ -153,7 +150,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
     case 2:
         *frame = leavesWalk;
         return 0x4C00000 | kKeyAction;
-    case kSkillOnTarget: {
+    case kSourceSearchBody: {
         std::uint32_t key;
         if (self->moveMode.mode == 2) {
             key = HasRangedWeapon(self->unit) ? 0xD000000 : 0xC000000;

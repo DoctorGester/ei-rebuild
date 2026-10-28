@@ -36,21 +36,46 @@ struct CountedUnits : std::list<CUnit*> {
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 
+// What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is kOrderNone when nothing is
+// queued; a queued kOrderIdle stops the current order and the unit stands.
+enum UnitOrderKind : int {
+    kOrderIdle = 0,
+    kOrderMove = 1,
+    kOrderTurn = 2,
+    kOrderAttack = 3,
+    kOrderCastAt = 4,       // a spell (or a quick item's) at a point
+    kOrderCastOn = 5,       // a spell (or a quick item's) on a target
+    kOrderUse = 6,          // a use or a skill on a target (source: UseSource)
+    kOrderAnimation = 7,
+    kOrderEmote = 8,
+    kOrderNone = 9,
+    kOrderUseItem = 10,     // a kCategoryConsumable quick item (source: the quick slot)
+    kOrderStop = 11,
+};
+
+// AIOrder::source of a kOrderUse order (CUnitServer::UseSkill).
+enum UseSource : std::uint32_t {
+    kSourceUse = 0,
+    kSourceSteal = 1,
+    kSourceTame = 2,
+    kSourceSearchBody = 0x18A95,
+};
+
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
-    // Kind 9 (none): the object released and cleared, the flag cleared.
+    // kOrderNone: the object released and cleared, the flag cleared.
     void Clear();
-    // Clear, then an attack (3, 6) on `object` (referenced).
+    // Clear, then an attack on `object` (referenced) at every body part (source 6).
     void MakeAttack(CMapObject* object);
-    // Clear, then a cast (5) of `spell` at `object` (referenced).
+    // Clear, then a cast of `spell` on `object` (referenced).
     void MakeCast(int spell, CMapObject* object);
-    // Clear, then a use (6) of `object` with `what`.
+    // Clear, then a use of `object` with `what`.
     void MakeUse(CMapObject* object, int what);
     // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    int kind;                       // 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
-    std::uint32_t source;           // 6 for an attack, the spell for a cast; 0x18A95 for a skill used on a target (kind 6)
+    UnitOrderKind kind;
+    std::uint32_t source;           // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
     AIRefTo<CMapObject> target;     // counted
     Vector3 point;                  // target point; left uninitialised by the AI's orders
     // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
@@ -688,7 +713,7 @@ struct AIBrain {
     // unless it is an ally, become alerted in alert mode 1, and remember a unit in the perception memory.
     void SetSeen(CMapObject* object);
     void AttackTarget(CMapObject* object);
-    // Action 5: use something on `object` (kind 0 a point/object, 1 and 2 units, 0x18A95 a special unit use).
+    // Action 5: use something on `object` (`kind` the use order's UseSource).
     void UseOn(CMapObject* object, int kind, int a, int b);
 
     // Action 6 (follow `target`): every few ticks walk to where the leader is or will be

@@ -20,7 +20,6 @@ constexpr std::uint8_t kWalk = 0x30, kAttack = 0x31, kCastAtPoint = 0x32, kCastO
                        kFlag10 = 0x10, kUseOrder = 0x36, kTakeExit = 0x03, kLeave04 = 0x04,
                        kJoined = 0x05, kGoToZone = 0x06, kResume = 0x09, kPartyUpdate = 0x50;
 constexpr int kStateBetweenZones = 3, kStateJoining = 2;
-constexpr int kDeadUseKind = 0x18A95;   // the use order's kind for a dead target
 constexpr std::uint32_t kItemSlot = 0x80000000u;   // a quick item, not a spell
 constexpr int kNoId = -1;
 
@@ -178,7 +177,7 @@ int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* 
     WriteType(out_, kUseOrder);
     WriteUnits(out_, units);
     out_.WriteValue(flag);
-    int kind = kDeadUseKind;
+    int kind = kSourceSearchBody;
     out_.WriteValue(kind);
     int value = kNoId;
     out_.WriteValue(value);

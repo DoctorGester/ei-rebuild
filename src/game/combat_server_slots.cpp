@@ -4,7 +4,6 @@
 
 namespace {
 const char* const kServerName = "CUnitServer";
-constexpr int kOrderNone = 9;
 } // namespace
 
 // Class name and id.

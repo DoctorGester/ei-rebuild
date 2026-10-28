@@ -61,7 +61,7 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     if (clearTwice) {
         // The second attack builds the order by hand after a second Clear.
         order.Clear();
-        order.kind = 3;
+        order.kind = kOrderAttack;
         order.source = kAttackHow;
         order.target.Assign(object);
     } else {
