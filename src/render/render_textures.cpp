@@ -1,8 +1,8 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures decoded from the file's
-// levels (RGB of any mask layout, DXT1-5; missing levels box-filtered), kept
-// as sokol images until the holder goes, with what they were decoded from for a new device. Also the holders'
-// pixels in memory the renderer owns (render::SurfaceMemory): a texture or window surface whose holder has
-// such memory is read from it, again into the same image when the memory was marked written and changed.
+// levels (RGB of any mask layout, DXT1-5; missing levels box-filtered) and textures drawn on the GPU
+// (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
+// device. Also the holders' pixels in memory the renderer owns (render::SurfaceMemory): a window surface is
+// read from it, again into the same image where the memory was marked written and changed.
 #include "render_internal.h"
 #include "render_ui.h"
 
@@ -19,14 +19,13 @@
 #include <cstring>
 #include <iterator>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace render::detail {
 
 namespace {
 
-// What an owned texture was made from: the .mmp file's levels as the file has them, or the images it was composed
-// of. A new Direct3D 11 device gets the texture made again from it.
+// What a texture was made from: the .mmp file's levels as the file has them, or the images it was composed of.
+// A new Direct3D 11 device gets the texture made again from it.
 struct TextureSource {
     enum Kind : std::uint8_t { None, Mmp, Composed } kind = None;
     std::vector<std::uint8_t> header;   // the file's header
@@ -44,12 +43,11 @@ struct Texture {
     bool keyed = false;              // window surfaces: the colour key it was converted with
     std::uint32_t key = 0;
     int width = 0, height = 0;
-    bool owned = false;              // decoded for a holder without memory (.mmp files): the only copy
-    TextureSource source;            // owned: what it was decoded from, to make it again on a new device
-    bool updatable = false;          // window surfaces: rectangles written into the image; memory textures: level 0 written in place
+    TextureSource source;            // textures: what it was made from, to make it again on a new device
+    bool updatable = false;          // window surfaces: rectangles written into the image
 };
 
-std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
+std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
 std::unordered_map<const void*, Texture> g_windows;    // by surface holder: window surfaces
 std::vector<sg_view> g_retiredViews;                   // replaced during the frame: destroyed at Present
 std::vector<sg_image> g_retiredImages;
@@ -152,7 +150,8 @@ bool DecodeDxtBlocks(const void* data, int width, int height, std::uint32_t four
 }
 
 // 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up (the
-// masks' loop per channel cost more than the rest of a texture's update). A few layouts are ever in use.
+// masks' loop per channel cost more than the rest of a surface's update): the window surfaces at a 16-bit
+// colour depth (5:6:5). A few layouts are ever in use.
 struct Table16 {
     std::uint32_t masks[4] = {};
     std::vector<std::uint32_t> rgba;   // 65536 entries, the bytes R, G, B, A in memory order
@@ -315,11 +314,9 @@ void Retire(Texture& t) {
 }
 
 std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
-// The snapshots hold the memory as the texture was last made from it. A memory texture is converted again when the
-// game marked its memory written since (g_textureMarks) and it differs (compared once a frame); a window surface
-// only where the game marked it written (render::SurfaceWritten, g_written) and that part differs.
-std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;          // by holder: window surfaces
-std::unordered_map<const void*, std::vector<std::uint8_t>> g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
+// The snapshots hold the memory as the window surface's texture was last made from it: converted again only where
+// the game marked it written (render::SurfaceWritten, g_written) and that part differs.
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;   // by holder
 std::unordered_map<const void*, Rect> g_written;   // by holder: marked written since its window texture was read
 #if defined(EI_RENDER_VALIDATION)
 int g_missedWrites = 0;
@@ -330,31 +327,18 @@ std::size_t MemoryBytes(const SurfaceMemory& m) {
     return static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(m.height);
 }
 
-// The memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold drawing for it).
-bool MemoryChanged(const std::unordered_map<const void*, std::vector<std::uint8_t>>& snapshots, const void* holder, const SurfaceMemory& m) {
-    GdiFlush();
-    auto it = snapshots.find(holder);
-    if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
-    g_stats.comparedBytes += it->second.size();
-    return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
-}
-
-// Keeps the memory of `holder` as its texture was just made from it, or forgets it when that failed.
-void TakeSnapshot(std::unordered_map<const void*, std::vector<std::uint8_t>>& snapshots, const void* holder, const SurfaceMemory& m, bool made) {
+// Keeps the memory of `holder` as its window texture was just made from it, or forgets it when that failed.
+void TakeSnapshot(const void* holder, const SurfaceMemory& m, bool made) {
     if (!made) {
-        snapshots.erase(holder);
+        g_snapshots.erase(holder);
         return;
     }
-    auto& snapshot = snapshots[holder];
+    auto& snapshot = g_snapshots[holder];
     snapshot.resize(MemoryBytes(m));
     std::memcpy(snapshot.data(), m.bits, snapshot.size());
 }
 
-// Memory textures: updated in place (the default) or, the harness's `memorytextures remake`, made again as
-// new images with their levels box-filtered on the CPU (for frame comparisons).
-bool g_memoryInPlace = true;
-std::unordered_set<const void*> g_textureMarks;
-
+// The levels of a texture of `width` x `height` down to 1 x 1.
 int LevelCount(int width, int height) {
     int levels = 1;
     while ((width > 1 || height > 1) && levels < SG_MAX_MIPMAPS) {
@@ -363,94 +347,6 @@ int LevelCount(int width, int height) {
         ++levels;
     }
     return levels;
-}
-
-// A memory texture's image of `w` x `h` with every level, written in place (WriteMemoryTexture): a Direct3D 11
-// texture of default usage handed to sokol, whose levels the GPU makes (GenerateMips). No image on failure.
-sg_image MakeMemoryImage(int w, int h) {
-    auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
-    if (!device) return sg_image{};
-    D3D11_TEXTURE2D_DESC d{};
-    d.Width = static_cast<UINT>(w);
-    d.Height = static_cast<UINT>(h);
-    d.MipLevels = static_cast<UINT>(LevelCount(w, h));
-    d.ArraySize = 1;
-    d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    d.SampleDesc.Count = 1;
-    d.Usage = D3D11_USAGE_DEFAULT;
-    d.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;   // (GenerateMips draws into the levels)
-    d.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-    ID3D11Texture2D* texture = nullptr;
-    if (FAILED(device->CreateTexture2D(&d, nullptr, &texture))) return sg_image{};
-    sg_image_desc desc{};
-    desc.width = w;
-    desc.height = h;
-    desc.num_mipmaps = static_cast<int>(d.MipLevels);
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.label = "ei-memory-texture";
-    desc.d3d11_texture = texture;
-    sg_image image = sg_make_image(&desc);
-    texture->Release();   // sokol holds its own reference
-    CountImage(ImageUse::Texture, true);
-    return image;
-}
-
-// Writes `rgba` (level 0) into the in-place image of `t` and has the GPU make the other levels from it.
-bool WriteMemoryTexture(const Texture& t, const std::vector<std::uint8_t>& rgba) {
-    sg_d3d11_image_info image = sg_d3d11_query_image_info(t.image);
-    sg_d3d11_view_info view = sg_d3d11_query_view_info(t.view);
-    auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
-    if (!image.res || !view.srv || !context) return false;
-    context->UpdateSubresource(static_cast<ID3D11Resource*>(const_cast<void*>(image.res)), 0, nullptr, rgba.data(),
-                               static_cast<UINT>(t.width) * 4, 0);
-    context->GenerateMips(static_cast<ID3D11ShaderResourceView*>(const_cast<void*>(view.srv)));
-    return true;
-}
-
-// Reads a texture whose pixels are in the renderer's memory into `t`: level 0 from the memory, the others
-// made from it; in place when `t` has an in-place image of the memory's size, else a new image.
-void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
-    std::vector<std::uint8_t> pixels;
-    bool ok = Convert(c, Whole(c), pixels);
-    TakeSnapshot(g_textureSnapshots, holder, c, ok);
-    if (!ok) {
-        Retire(t);
-        if (g_failures++ < 10)
-            ei::Log("render: cannot read the memory of texture holder %p (%d bits)", holder, c.bitsPerPixel);
-        return;
-    }
-    std::size_t bytes = pixels.size() + pixels.size() / 3;   // with its levels
-    if (g_memoryInPlace && t.updatable && t.view.id && t.width == c.width && t.height == c.height &&
-        WriteMemoryTexture(t, pixels)) {
-        CountImage(ImageUse::Texture, false);
-        CountUpload(FrameStats::MemoryTexture, bytes);
-        return;
-    }
-    Retire(t);
-    t.width = c.width;
-    t.height = c.height;
-    t.updatable = false;
-    if (g_memoryInPlace) {
-        t.image = MakeMemoryImage(c.width, c.height);
-        t.view = MakeTextureView(t.image);
-        t.updatable = t.view.id && sg_query_view_state(t.view) == SG_RESOURCESTATE_VALID && WriteMemoryTexture(t, pixels);
-        if (t.updatable) {
-            CountUpload(FrameStats::MemoryTexture, bytes);
-            return;
-        }
-        if (t.view.id) sg_destroy_view(t.view);
-        if (t.image.id) sg_destroy_image(t.image);
-    }
-    std::vector<std::vector<std::uint8_t>> levels;
-    levels.push_back(std::move(pixels));
-    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture", FrameStats::MemoryTexture);
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
-        if (t.view.id) sg_destroy_view(t.view);
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-        t.view = sg_view{};
-    }
 }
 
 // A window surface's image of `rgba` (w x h): a Direct3D 11 texture of default usage handed to sokol, so
@@ -491,7 +387,7 @@ sg_image MakeWindowImage(int w, int h, const std::vector<std::uint8_t>& rgba, bo
 void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool keyed, std::uint32_t key) {
     std::vector<std::uint8_t> pixels;
     bool ok = Convert(m, Whole(m), pixels, keyed, key);
-    TakeSnapshot(g_snapshots, holder, m, ok);
+    TakeSnapshot(holder, m, ok);
     t.keyed = keyed;
     t.key = key;
     if (!ok) {
@@ -611,24 +507,6 @@ void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<st
     *written = Union(w, missed);
 }
 
-// Harness build: a memory texture's memory compared with its snapshot though nothing marked it written: a
-// writer without a mark, logged and counted as above; true, so this frame reads it.
-bool CheckTextureMark(const void* holder, const SurfaceMemory& m) {
-    StatsTimer timer(&FrameStats::statsMs);
-    GdiFlush();
-    auto it = g_textureSnapshots.find(holder);
-    if (it == g_textureSnapshots.end() || it->second.size() != MemoryBytes(m) ||
-        std::memcmp(it->second.data(), m.bits, it->second.size()) == 0)
-        return false;
-    if (g_missedWrites++ == 0)
-        std::snprintf(g_firstMissedWrite, sizeof(g_firstMissedWrite),
-                      "texture holder %p (%dx%d): its memory changed without a mark, frame %u", holder, m.width, m.height,
-                      static_cast<unsigned>(FrameNumber()));
-    if (g_missedWrites <= 10)
-        ei::Log("render: MISSED WRITE: texture holder %p (%dx%d): its memory changed without a mark", holder, m.width,
-                m.height);
-    return true;
-}
 #endif
 
 void Remake(Texture& t);
@@ -642,14 +520,8 @@ std::unordered_map<const void*, Patch> g_patches;
 int g_patchFailures = 0;
 
 bool HolderSize(const void* holder, int* width, int* height) {
-    auto memory = g_memory.find(holder);
-    if (memory != g_memory.end()) {
-        *width = memory->second.width;
-        *height = memory->second.height;
-        return true;
-    }
     auto decoded = g_textures.find(holder);
-    if (decoded == g_textures.end() || !decoded->second.owned || decoded->second.width <= 0) return false;
+    if (decoded == g_textures.end() || decoded->second.width <= 0) return false;
     *width = decoded->second.width;
     *height = decoded->second.height;
     return true;
@@ -778,6 +650,39 @@ void Remake(Texture& t) {
 
 std::unordered_map<const void*, Picture> g_pictures;
 
+// `step` (its rectangle `to` relative to the texture, clipped to it) drawn into the texture BlankTexture made for
+// `holder` and kept in its recipe.
+void DrawStep(const void* holder, ComposeStep step) {
+    auto found = holder ? g_textures.find(holder) : g_textures.end();
+    if (found == g_textures.end() || found->second.source.kind != TextureSource::Composed || !found->second.source.recipe) {
+        if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
+        return;
+    }
+    Texture& t = found->second;
+    ComposeRecipe& recipe = *t.source.recipe;
+    const Rect wanted = step.to;
+    Rect to = wanted;
+    if (to.left < 0) to.left = 0;
+    if (to.top < 0) to.top = 0;
+    if (to.right > recipe.width) to.right = recipe.width;
+    if (to.bottom > recipe.height) to.bottom = recipe.height;
+    if (Empty(to)) return;
+    step.fromX = to.left - wanted.left;
+    step.fromY = to.top - wanted.top;
+    step.to = to;
+    // Steps this one covers whole are left out of the recipe (an atlas's cells are drawn again and again, the clouds
+    // every frame).
+    auto& steps = recipe.steps;
+    for (auto it = steps.begin(); it != steps.end();)
+        it = it->to.left >= to.left && it->to.top >= to.top && it->to.right <= to.right && it->to.bottom <= to.bottom
+                 ? steps.erase(it)
+                 : std::next(it);
+    steps.push_back(std::move(step));
+    if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
+    GpuWorkAlone alone;
+    DrawComposed(recipe, t.image, &steps.back(), 1);
+}
+
 sg_wrap Wrap(std::uint8_t address) {
     switch (address) {
     case 2: return SG_WRAP_MIRRORED_REPEAT;
@@ -791,46 +696,25 @@ sg_wrap Wrap(std::uint8_t address) {
 
 sg_view SurfaceView(const void* holder) {
     StatsTimer timer(&FrameStats::textureMs);
-    auto memory = g_memory.find(holder);
     std::uint32_t frame = FrameNumber();
-    if (memory == g_memory.end()) {
-        // Nothing to read: what was decoded for the holder (its .mmp file), if anything.
-        auto decoded = holder ? g_textures.find(holder) : g_textures.end();
-        if (decoded != g_textures.end() && !decoded->second.view.id && decoded->second.owned &&
-            decoded->second.checkedFrame != frame) {
-            // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
-            decoded->second.checkedFrame = frame;
-            Remake(decoded->second);
-        }
-        if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
-        decoded->second.usedFrame = frame;
-        return decoded->second.view;
+    auto decoded = holder ? g_textures.find(holder) : g_textures.end();
+    if (decoded == g_textures.end()) return White().view;
+    Texture& t = decoded->second;
+    if (!t.view.id && t.checkedFrame != frame) {
+        // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
+        t.checkedFrame = frame;
+        Remake(t);
     }
-    Texture& t = g_textures[holder];
+    if (!t.view.id) return White().view;
     t.usedFrame = frame;
-    if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures in the renderer's memory are checked once a frame: read again when the game marked their memory
-    // written since (render::SurfaceWritten) and it differs from what they were made from.
-    const SurfaceMemory& m = memory->second;
-    t.checkedFrame = frame;
-    bool marked = g_textureMarks.erase(holder) != 0;
-    // (No snapshot: the memory was made again since, NewSurfaceMemory.)
-    auto snapshot = g_textureSnapshots.find(holder);
-    bool reread = !t.view.id || t.width != m.width || t.height != m.height || snapshot == g_textureSnapshots.end() ||
-                  snapshot->second.size() != MemoryBytes(m);
-    if (!reread && marked) reread = MemoryChanged(g_textureSnapshots, holder, m);
-#if defined(EI_RENDER_VALIDATION)
-    if (!reread && !marked) reread = CheckTextureMark(holder, m);
-#endif
-    if (reread) ReadClientTexture(t, holder, m);
-    return t.view.id ? t.view : White().view;
+    return t.view;
 }
 
 // The entry of `holder` from decoded levels: the texture until the holder goes, `source` kept to make it
-// again on a new device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
+// again on a new device.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label, TextureSource source) {
-    if (!holder || g_memory.count(holder)) return false;
+    if (!holder) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
@@ -841,7 +725,6 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
         t.image = sg_image{};
     }
     t.checkedFrame = FrameNumber();
-    t.owned = true;
     t.width = width;
     t.height = height;
     t.source = std::move(source);
@@ -850,10 +733,10 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
 
 sg_view WhiteView() { return White().view; }
 
-// The entry of `holder` composed on the GPU from `recipe` (render::ComposeTexture): owned, the recipe kept to draw
-// it again on a new device. Not for a holder with memory of the renderer's.
+// The entry of `holder` composed on the GPU from `recipe` (render::ComposeTexture, BlankTexture): the recipe kept to
+// draw it again on a new device.
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
-    if (!holder || g_memory.count(holder)) return false;
+    if (!holder) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
@@ -862,7 +745,6 @@ bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
         MakeComposed(*recipe, &t.image, &t.view);
     }
     t.checkedFrame = FrameNumber();
-    t.owned = true;
     t.width = recipe->width >> recipe->firstLevel;
     t.height = recipe->height >> recipe->firstLevel;
     t.source = TextureSource{};
@@ -874,7 +756,7 @@ bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
 void RemakeComposed() {
     for (auto& entry : g_textures) {
         Texture& t = entry.second;
-        if (!t.owned || t.source.kind != TextureSource::Composed || !t.source.recipe || t.view.id) continue;
+        if (t.source.kind != TextureSource::Composed || !t.source.recipe || t.view.id) continue;
         MakeComposed(*t.source.recipe, &t.image, &t.view);
     }
 }
@@ -1067,18 +949,17 @@ void RetireTextures() {
     for (sg_image i : g_retiredImages) sg_destroy_image(i);
     g_retiredViews.clear();
     g_retiredImages.clear();
+    // Window surfaces unused for a while (read again from their memory when drawn); a texture is the only copy.
     std::uint32_t frame = FrameNumber();
-    for (auto* map : {&g_textures, &g_windows}) {
-        for (auto it = map->begin(); it != map->end();) {
-            if (!it->second.owned && frame - it->second.usedFrame > kUnusedFrames) {
-                if (it->second.image.id) {
-                    sg_destroy_view(it->second.view);
-                    sg_destroy_image(it->second.image);
-                }
-                it = map->erase(it);
-            } else {
-                ++it;
+    for (auto it = g_windows.begin(); it != g_windows.end();) {
+        if (frame - it->second.usedFrame > kUnusedFrames) {
+            if (it->second.image.id) {
+                sg_destroy_view(it->second.view);
+                sg_destroy_image(it->second.image);
             }
+            it = g_windows.erase(it);
+        } else {
+            ++it;
         }
     }
 }
@@ -1116,12 +997,12 @@ void DestroyTextures() {
 
 void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
     *kept = *keptBytes = 0;
-    // The owned textures stay without their images (made again from their sources at their next
-    // use); everything else is read again from its memory when it is next drawn.
-    std::unordered_map<const void*, Texture> owned;
+    // The textures stay without their images (made again from their sources at their next use); the window
+    // surfaces are read again from their memory when they are next drawn.
+    std::unordered_map<const void*, Texture> remaining;
     for (auto& entry : g_textures) {
         Texture& t = entry.second;
-        if (!t.owned || t.source.kind == TextureSource::None) continue;
+        if (t.source.kind == TextureSource::None) continue;
         if (t.image.id) {
             sg_destroy_view(t.view);
             sg_destroy_image(t.image);
@@ -1131,12 +1012,11 @@ void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
         t.checkedFrame = 0xFFFFFFFFu;
         ++*kept;
         *keptBytes += t.source.bytes.size();
-        owned.emplace(entry.first, std::move(t));
+        remaining.emplace(entry.first, std::move(t));
     }
     DestroyTextures();
-    g_textures = std::move(owned);
+    g_textures = std::move(remaining);
     g_snapshots.clear();
-    g_textureSnapshots.clear();
 }
 
 } // namespace render::detail
@@ -1178,7 +1058,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     return StoreComposed(holder, std::move(recipe));
 }
 
-bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha) {
+bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
     using namespace detail;
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
@@ -1187,47 +1067,41 @@ bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha) {
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = width;
     recipe->height = height;
-    recipe->oneBitAlpha = oneBitAlpha;
+    recipe->levels = mipmapped ? LevelCount(width, height) : 1;
+    recipe->alpha = alpha;
     return StoreComposed(holder, std::move(recipe));
 }
 
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
     using namespace detail;
-    auto found = holder ? g_textures.find(holder) : g_textures.end();
-    if (found == g_textures.end() || found->second.source.kind != TextureSource::Composed || !found->second.source.recipe) {
-        if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
-        return;
-    }
     Start();
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
-    Texture& t = found->second;
-    ComposeRecipe& recipe = *t.source.recipe;
     ComposeStep step;
     step.over = false;
     if (image) {
         step.image = DecodeComposeImage(*image);
         if (!step.image) return;
     }
-    Rect to{x, y, x + width, y + height};
-    if (to.left < 0) to.left = 0;
-    if (to.top < 0) to.top = 0;
-    if (to.right > recipe.width) to.right = recipe.width;
-    if (to.bottom > recipe.height) to.bottom = recipe.height;
-    if (Empty(to)) return;
-    step.fromX = to.left - x;
-    step.fromY = to.top - y;
-    step.to = to;
-    // Steps this one covers whole are left out of the recipe (an atlas's cells are drawn again and again).
-    auto& steps = recipe.steps;
-    for (auto it = steps.begin(); it != steps.end();)
-        it = it->to.left >= to.left && it->to.top >= to.top && it->to.right <= to.right && it->to.bottom <= to.bottom
-                 ? steps.erase(it)
-                 : std::next(it);
-    steps.push_back(std::move(step));
-    if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
-    GpuWorkAlone alone;
-    DrawComposed(recipe, t.image, &steps.back(), 1);
+    step.to = Rect{x, y, x + width, y + height};
+    DrawStep(holder, std::move(step));
+}
+
+void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
+    using namespace detail;
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    auto clouds = std::make_shared<CloudsDraw>();
+    clouds->from = from;
+    clouds->to = to;
+    clouds->blend = blend;
+    std::memcpy(clouds->ramp, ramp, sizeof(clouds->ramp));
+    ComposeStep step;
+    step.over = false;
+    step.clouds = std::move(clouds);
+    step.to = Rect{0, 0, 256, 256};
+    DrawStep(holder, std::move(step));
 }
 
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
@@ -1304,9 +1178,7 @@ void FreeSurfaceMemory(const void* holder) {
         detail::g_memory.erase(it);
     }
     detail::g_snapshots.erase(holder);
-    detail::g_textureSnapshots.erase(holder);
     detail::g_written.erase(holder);
-    detail::g_textureMarks.erase(holder);
 }
 
 void SurfaceWritten(const void* holder, const Rect* written) {
@@ -1319,7 +1191,6 @@ void SurfaceWritten(const void* holder, const Rect* written) {
     if (r.right > m.width) r.right = m.width;
     if (r.bottom > m.height) r.bottom = m.height;
     if (detail::Empty(r)) return;
-    detail::g_textureMarks.insert(holder);
     auto marked = detail::g_written.try_emplace(holder, r);
     if (!marked.second) marked.first->second = detail::Union(marked.first->second, r);
 }
@@ -1352,29 +1223,12 @@ void PictureFromMmp(const void* holder, const void* data) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-void SetMemoryTexturesInPlace(bool on) {
-    using namespace detail;
-    if (on != g_memoryInPlace)
-        ei::Log("render: memory textures %s", on ? "updated in place" : "made again as new images (as before R16b)");
-    g_memoryInPlace = on;
-    // Every memory texture is read again at its next use, the new way.
-    for (auto it = g_textures.begin(); it != g_textures.end();) {
-        if (!g_memory.count(it->first)) {
-            ++it;
-            continue;
-        }
-        Retire(it->second);
-        g_textureSnapshots.erase(it->first);
-        it = g_textures.erase(it);
-    }
-}
-
 MmpLevelCheck CheckMmpLevels() {
     using namespace detail;
     MmpLevelCheck c;
     for (const auto& entry : g_textures) {
         const TextureSource& s = entry.second.source;
-        if (!entry.second.owned || s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) continue;
+        if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) continue;
         MmpFile h{};
         std::memcpy(&h, s.header.data(), sizeof(h));
         std::vector<std::vector<std::uint8_t>> levels;

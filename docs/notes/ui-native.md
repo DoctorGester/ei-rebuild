@@ -31,7 +31,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Flying hit points | 005E18E0 → 00501BB0 → `TlDraw` | — | GPU (done) |
 | Cursor | 005E54A0 → `render::Cursor` (`render_blit.cpp`: CPU composite plus `sg_make_image` every frame) | — | GPU draw, CPU work per frame |
 | Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw; the CPU decode cannot be avoided |
-| CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures) and `ItemFigureTexture` 005EC020 draw on the GPU (R28); global-map clouds `CCloudNoise::Draw` 00499F10 (every frame) still CPU (R28b) | — | GPU draw / CPU fill, then GPU texture |
+| CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures) and `ItemFigureTexture` 005EC020 draw on the GPU (R28); the save / load pictures and the global-map clouds (`CGlobalMapClouds::Draw`, every frame: noise and blend in shaders) too (R28b) | — | GPU (done) |
 
 Notes on the inventory:
 - The `3DfpFPU.dll` work in the interface is limited to the mesh path's CPU projection for picking bounds (2DintMMX's picture and texture conversion, 004F0060 and the decoder at 007AF06C slot 5, is gone since R28). Neither does per-frame window pixel work.
@@ -304,7 +304,7 @@ they depend on.
   own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
-  textures as GPU sub-image uploads, clouds 00499F10 as a shader; **P8** make `uinative` the default under `present`, drop the DIB
+  textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** make `uinative` the default under `present`, drop the DIB
   and memcmp for native surfaces (keep a 1x1 metrics DC), docs (renderer.md section 6, ui.md).
 - After P2, P3a-d and P4 touch disjoint files; each one's only shared edit is a line in `ui_native.cpp`. W3 / W4 only decide when
   Rebirth launches can go native; vanilla is not blocked. Porting tickets add no fields (side maps) and leave `ui.h` alone.

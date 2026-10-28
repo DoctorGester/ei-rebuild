@@ -133,9 +133,10 @@ int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& comp
         if (!data) continue;
         files.push_back(data);
         const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + data->extraSize;
+        const render::ImageLayout layout = data->format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
         images.push_back(render::TextureImage{name.c_str(), reinterpret_cast<const std::uint8_t*>(data) + skipped,
                                               size > skipped ? size - skipped : 0, static_cast<int>(data->width),
-                                              static_cast<int>(data->height), data->format == kMmpFormatPnt3});
+                                              static_cast<int>(data->height), layout});
     }
     render::ComposeTexture(holder, static_cast<int>(header.width), mip, levels, images.data(),
                            static_cast<int>(images.size()));

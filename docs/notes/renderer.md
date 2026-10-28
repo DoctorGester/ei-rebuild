@@ -210,8 +210,7 @@ memory unless the caller only reads (`reads`: PixelAt, SwapContents' save, Surfa
 holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
 to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
 build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
-the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) use the same
-marks, once a frame (R16b).
+the run (`render::MissedSurfaceWrites`; its time counts as "counting").
 
 **Holders without a surface**: the holder is our own `Surface` (surface.h: device, width, height, bits per pixel; R27b
 replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
@@ -243,7 +242,7 @@ lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comme
 0068F6C0): objects_[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
-00655D40; a false vtable entry 0074718C). Both textures have the renderer's memory from 00691D80.
+00655D40; a false vtable entry 0074718C). Both are drawn into on the GPU (section 7, R28b); SaveGame writes the copy the window kept.
 The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
 
@@ -276,8 +275,8 @@ escmenu / map_escmenu frames and `ei_ui_check` ("picture").
 
 ## 7. Textures without DirectDraw
 
-CPU-written textures (00691D80) and .bmp textures have only the renderer's memory; .mmp textures only
-its decoded copy; the 1:5:5:5 textures 00691D80 makes (kind 0x20) and the composed ones only the texture the GPU drew. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
+No texture has memory the game writes (R28b): .mmp textures have only their decoded copy; the composed ones, the
+textures 00691D80 makes (kinds 0x1E, 0x20, 0x21) and the .bmp textures only the texture the GPU drew. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
 **Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format_`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
@@ -285,37 +284,22 @@ offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `Textur
 `PixelFormat` (bits and channel masks, surface.h, what `render::NewSurfaceMemory` takes). An .mmp file is held in its
 own format, a DXT code outside the list in the RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none:
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
-formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the game's CPU writers left (the save /
-load pictures, the global map's weather) still write their 16-bit layouts, and the renderer converts every layout to
-RGBA8 at upload.
+formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before and decoded to RGBA8 by the renderer;
+no game code writes a texture's pixels (R28b). The 16-bit table `Lookup16` (render_textures.cpp) is left for the
+window surfaces at a 16-bit colour depth (5:6:5, the options' default `VideoColorDepthInBits` 16).
 
-**Memory textures updated in place (R16b, `render_textures.cpp`).** A texture whose holder has the renderer's memory
-(the classic shadows' 64 x 64 4:4:4:4 textures, the global map's 256 x 256, the item and save pictures) is checked at
-its first bind of a frame (`SurfaceView`): read again when the game marked its memory written since
-(`render::SurfaceWritten`, the marks of section 6: 0051CE60's copy into the shadow's texture goes through
-`DirectPixels`, so it marks it) and the memory differs from the copy the texture was made from; also when there is
-no copy (the memory was made again) or the size changed. Read means level 0 converted to RGBA8 (16-bit layouts
-through a 64 K-entry table per mask layout, `Lookup16`: the per-channel mask loop cost more than the rest) and
-written with `UpdateSubresource` into the holder's own Direct3D 11 texture (default usage, every level, made once and
-handed to sokol), the other levels made by the GPU (`GenerateMips`). No image or view is made per change any more
-(before: 4-16 new images a frame in a fight or town with the classic shadows, their levels box-filtered on the CPU,
-the old ones destroyed at the present). A frame's draws happen at its end (DrawPending), after every hand-over's
-update, and a texture is read at most once a frame, so a draw never sees a later write. The harness build compares
-the memory of every unmarked memory texture at that check: a change is logged ("MISSED WRITE: texture holder") and
-fails the run like a window surface's. `memorytextures remake` (harness) makes them again as new images with CPU
-levels as before, for frame comparisons: render_scene, render_shadows (start, fight, town, classic),
-render_options_shadows (each moment classic too) and ui_global_map_pick capture both at one frozen moment, 8 / 0.5%
-(the GPU's levels round differently from the CPU box filter). The plan's texture array of shadow slices was not
-needed for the CPU gain (each holder keeps its texture; objects that go free theirs through HolderGone); a GPU decal
-path could put the shadows into one if an instanced decal draw wants them in one binding (R16e: not built).
+**No memory textures (R28b).** The textures in the renderer's memory (R16b: read again at their first bind of a frame
+when marked written and changed, written in place with `UpdateSubresource` and `GenerateMips`, the harness's
+`memorytextures remake` and the texture "MISSED WRITE" check) are gone with their last users: `SurfaceView` returns a
+holder's decoded or GPU-drawn texture only (white for none). The shadow textures had gone with R26.
 
 | Address | Name / change |
 |---|---|
-| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level; a 1:5:5:5 one (R28) a `NewDecodedTextureHolder` with `render::BlankTexture` (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
+| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | texture square from header->width (height not read): `TakeBlankHolder`, a `NewDecodedTextureHolder` with `render::BlankTexture` (R28, R28b), the alpha as the format keeps it (5:6:5 opaque, 1:5:5:5 one bit, 4:4:4:4 all); the 1:5:5:5 atlases one level, the others their levels made after each draw (as the memory textures had; the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the texture formats 5650 / 5551 / 4444 (always there: the original's "Can't find texture format %d." is gone); another kind gets none and 0068F6C0 throws; its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface`, 00690FC0 `LockPixels`, 00691030 `UnlockPixels` | not ported (R26): only the 64x64 shadow texture used them, which the shadow map replaced (section 13) |
 | 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
-| 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
+| 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0), drawn into a blank texture (`TakeBlankHolder`, `DrawIntoTexture`; R28b: 8-bit colours instead of the format's 16 bits); reached only by render_loose_bmp (no .bmp in the installs); loops over the width then the height (a non-square .bmp overran the surface; the pixels past it are left out) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
 
 Where an .mmp file's levels are (R12b): the first level the texture takes at `MipOffset` (006908E0's geometric sum),
@@ -327,8 +311,8 @@ green texels, drawn as thin strips where a leaf card is seen edge-on). A DXT lev
 
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
-figure textures); writers 005FFFB0 CopyImage and 005EC020 draw on the GPU (R28, below); the global map's weather
-0062F050 (00499F10 draws into the memory) and the save / load three use `DirectPixels`. The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
+figure textures); writers 005FFFB0 CopyImage and 005EC020 draw on the GPU (R28, below), the save / load pictures and
+the global map's weather 0062F050 too (R28b, below). The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
 one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
 CTextureDevice::stageSurfaces_). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
@@ -369,6 +353,23 @@ half: opaque, else 0) as the 1:5:5:5 store did. The step joins the recipe (a ste
 new device draws the texture again. The picture is the file's pixels right after the header (the extra block not
 skipped, as the original read them). No 2DintMMX: the original unpacked the picture with slot 5 and packed it to 1:5:5:5
 by hand under the device lock. Colours are 8-bit now (the picture's own instead of 5 bits a channel).
+
+**Save / load pictures and the global map's clouds on the GPU (R28b).** The textures 00691D80 makes for them (kinds
+0x1E, 5:6:5, and 0x21, 4:4:4:4) are blank textures like the item pictures. The save / load pictures: a 256x192 5:6:5
+picture (shot.sav's bytes as stored, or the escape menu's copy `screenCopy_`) is drawn into the texture's top with
+`DrawIntoTexture` (`ImageLayout::Rgb565`, decoded to RGBA8 for the draw; an image without a name is not shared); the
+save window keeps the copy (`CSaveLoadWindow::newPicture_`) and writes shot.sav from it, so the file's bytes are as
+before. The clouds (`CGlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
+a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
+random numbers are drawn as before), and `render::DrawClouds` each frame draws the texture from two frames, the blend
+and the 256-entry alpha ramp (texture_clouds.hlsl `ps_clouds`: white, alpha ramp[(to x blend + from x (256 - blend))
+>> 8], 8-bit alpha now instead of the ramp's top 4 bits). A frame's 256 x 256 grey levels are built once by the GPU
+from its words (`ps_frame`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
+the 3 x 3 smoothing in the 1024 cells' order, the octaves' bilinear sums and the byte store, integer for integer as
+the CPU code did. The step joins the texture's recipe (it covers the whole texture, so it replaces the last), so a new
+device draws the clouds again. Frames against the memory textures (main before R28b, captures at one frozen moment):
+see the ticket's report; ui_global_map_pick's `map`, ui_saveload's `save` / `load` / `load2`, ui_quicksave's, and
+render_loose_bmp's `world`.
 
 Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
@@ -571,10 +572,10 @@ is what to read it for.
   `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and released, the device released (the log
   gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
   pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
-  not reset to the identity when the present pipeline is made), window surfaces and memory textures (read again from
-  the game's memory). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
+  not reset to the identity when the present pipeline is made), window surfaces (read again from
+  the game's memory) and the composed and drawn-into textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
   renderer fails").
-- The decoded textures (`owned`: no memory) keep what they were decoded from (`TextureSource`, render_textures.cpp):
+- The decoded textures keep what they were decoded from (`TextureSource`, render_textures.cpp):
   the header and the file's bytes of the levels decoded (DXT stays compressed);
   `SurfaceView` makes the image again from it at
   its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
@@ -866,7 +867,7 @@ pattern.
 **Measuring.** `render::FrameStats` (render.h) counts per presented frame: the hand-over (terrain pages and batches,
 meshes and passes, flat geometry, pre-transformed draws, blits, depth clears, state reads, matrices), bytes appended to
 the vertex / index streams, uniform bytes, passes, draws, pipeline and first-texture changes, images made per kind
-(.mmp, CPU pixels, memory textures, window surfaces, movie, small) with their bytes, and the renderer memory compared
+(.mmp, window surfaces, movie, small) with their bytes, and the renderer memory compared
 with snapshots. The harness build adds the CPU time (hand-over, texture work, EndFrame; a nested timer's time counts
 only for its own field) and each terrain page's / mesh's vertices against the last frame's (same; only colours
 changed = relit; positions or texture coordinates changed = moved; new), plus the meshes whose geometry equals
@@ -929,8 +930,8 @@ across runs; the goldens check the game state.
    the first use of each holder), the map's 341 KB to none (renderstats' "memory textures" count stays: it counts
    uploads, made or in place; ei_hook.log's `render: images` lines tell them apart). In place with CPU levels (UpdateSubresource per level)
    was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
-   render_options_shadows, ui_global_map_pick capture in place and `memorytextures remake` at one frozen moment, 8 /
-   0.5% (largest channel difference 2); no texture change without a mark (the harness build's check) in the suite.
+   render_options_shadows, ui_global_map_pick captured in place and `memorytextures remake` at one frozen moment, 8 /
+   0.5% (largest channel difference 2). The memory textures are gone since R28b (section 7).
 3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page at a level of detail and
    seam variant is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
    (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a

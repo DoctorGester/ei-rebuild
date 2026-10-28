@@ -181,7 +181,7 @@ render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, 
                                int height) {
     const std::uint32_t header = static_cast<std::uint32_t>(sizeof(MmpHeader));
     return render::TextureImage{file.c_str(), image + 1, fileBytes > header ? fileBytes - header : 0, width, height,
-                                image->format == kPnt3};
+                                image->format == kPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
 }
 
 } // namespace

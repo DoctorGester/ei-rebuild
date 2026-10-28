@@ -90,6 +90,10 @@ ei_shader(depth_from_multisampled_vs depth_from_multisampled.hlsl vs_main vs_4_0
 foreach(samples 2 4 8)   # render_internal.h's kSmoothSamples and the counts below it
     ei_shader(depth_from_multisampled${samples}_ps depth_from_multisampled.hlsl ps_main ps_4_0 SAMPLES=${samples})
 endforeach()
+# The global map's clouds (render_compose.cpp): a frame of noise and the blend of two.
+ei_shader(texture_clouds_vs texture_clouds.hlsl vs_main vs_4_0)
+ei_shader(texture_clouds_frame_ps texture_clouds.hlsl ps_frame ps_4_0)
+ei_shader(texture_clouds_ps texture_clouds.hlsl ps_clouds ps_4_0)
 ei_shader(shadow_range_vs shadow_range_vs.hlsl vs_main vs_4_0)
 ei_shader(shadow_reduce_ps shadow_reduce.hlsl ps_main ps_4_1)   # Gather (Direct3D 10.1)
 ei_shader(shadow_dilate_ps shadow_dilate.hlsl ps_main ps_4_1)

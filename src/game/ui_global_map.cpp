@@ -15,7 +15,6 @@
 
 #include "console.h"
 #include "core_maths.h"
-#include "surface.h"
 #include "item_db_text.h"
 #include "maths.h"
 #include "model.h"
@@ -553,19 +552,8 @@ void CGlobalMap::Update() {
     if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;
 
-    // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
-    // drawn into directly (DirectDraw: between a Lock and an Unlock).
-    if (std::ssize(objects_) > 4) {
-        Surface* holder = objects_[4]->surface_;
-        auto* lock = &g_deviceLock;
-        gameapi::EnterCriticalSection(lock);
-        SurfacePixels pixels;
-        if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
-            float seconds = static_cast<float>(FrameTime());
-            weather_->Draw(reinterpret_cast<std::uint16_t*>(pixels.bits), seconds);
-        }
-        gameapi::LeaveCriticalSection(lock);
-    }
+    // The weather is drawn into texture 4 on the GPU (the original wrote its pixels under the device lock).
+    if (std::ssize(objects_) > 4) weather_->Draw(objects_[4]->surface_, static_cast<float>(FrameTime()));
     g_cursor->ChangeShape(dragging_ ? 0x16 : 0);
 }
 

@@ -1,11 +1,9 @@
 // A texture from loose .bmp files (from CTexture::LoadBmp for a
 // textures\<name>.bmp in the game folder, which overrides the archived .mmp: CTextureManager::
 // LoadTexture). The .bmp's 24-bit colours and, when there is an 8-bit a_<name>.bmp beside it, its
-// grey levels as alpha are converted to the texture's 16-bit format (the pixels go
-// into the holder's memory).
-// The texture has no DirectDraw texture: its holder has
-// only the new renderer's memory (NewMemoryTextureHolder), the pixels are written there and the new
-// renderer reads them. See docs/notes/renderer.md (section 7).
+// grey levels as alpha are drawn into a texture on the GPU (CTexture::TakeBlankHolder,
+// render::DrawIntoTexture), which keeps what the texture's format keeps of the alpha. See
+// docs/notes/renderer.md (section 7).
 #include "texture.h"
 #include "game_strings.h"
 
@@ -14,12 +12,11 @@
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "render/render.h"
+
 #include <cstddef>
 #include <cstdint>
-#include "game_singletons.h"
-
-#include <cstring>
+#include <vector>
 
 namespace {
 
@@ -27,36 +24,33 @@ const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture
 const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead of %d"; }
 
 
-// The .bmp's pixels as written into `out` (`pitch` bytes a row): `rows` rows of
-// `perRow` 16-bit pixels, the colours read on as B, G, R bytes without the .bmp's row padding (and
-// in its row order: a bottom-up .bmp comes out upside down), the alpha the alpha .bmp's byte at the
-// pixel's index (when given, else 255), converted to the texture's format. Pixels from
-// row `maxRows` / column `maxPerRow` on are read but not written.
-void WritePixels(std::uint8_t* out, int pitch, int rows, int perRow, int maxRows, int maxPerRow,
-                 const std::uint8_t* colour, const std::uint8_t* alpha, const ChannelLayout& layout) {
+// The .bmp's pixels as 0xAARRGGBB, `width` x `height`: `width` rows of `height` pixels read (the original's loop),
+// the colours read on as B, G, R bytes without the .bmp's row padding (and in its row order: a bottom-up .bmp comes out
+// upside down), the alpha the alpha .bmp's byte at the pixel's index (when given, else 255). Pixels from row `height` /
+// column `width` on are read but not kept.
+std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t* colour, const std::uint8_t* alpha) {
+    std::vector<std::uint32_t> out(static_cast<std::size_t>(width) * static_cast<std::size_t>(height));
     int index = 0;   // the colour byte read next
-    for (int y = 0; y < rows; ++y) {
-        auto* row = reinterpret_cast<std::uint16_t*>(out + static_cast<std::ptrdiff_t>(y) * pitch);
-        for (int x = 0; x < perRow; ++x) {
+    for (int y = 0; y < width; ++y) {
+        for (int x = 0; x < height; ++x) {
             std::uint32_t a = alpha ? alpha[index / 3] : 0xFF;
             std::uint32_t argb = (a << 24) | (static_cast<std::uint32_t>(colour[index + 2]) << 16) |
                                  (static_cast<std::uint32_t>(colour[index + 1]) << 8) | colour[index];
             index += 3;
-            if (y < maxRows && x < maxPerRow) row[x] = static_cast<std::uint16_t>(layout.ToNative(argb));
+            if (y < height && x < width) out[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + x] = argb;
         }
     }
+    return out;
 }
 
 } // namespace
 
 // Details kept: the loop runs over the width, then the height (a non-square .bmp overran
-// the surface's rows; in the new renderer's memory the rows and pixels past it are left out); a
-// failed open of the alpha file is silent. No memory for the texture: the error for a
-// surface that cannot be made (the staging surface's: sizes zero) ends the game.
+// the surface's rows; here the rows and pixels past it are left out); a failed open of the alpha
+// file is silent. No texture format: the error for a surface that cannot be made (the staging
+// surface's: sizes zero) ends the game.
 int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
     if (flags_ & kTextureLoaded) return 1;
-    ChannelLayout layout;
-    layout.Split(TextureFormat(format_));
     lib::File file;
     lib::File alphaFile;
     CDib colour;
@@ -84,18 +78,12 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     width_ = static_cast<std::uint32_t>(width);
     const std::uint8_t* alphaBits = withAlpha ? alpha.bits : nullptr;
 
-    // The new renderer's memory is the texture.
-    Surface* memory = NewMemoryTextureHolder(device, width, height, TextureFormat(format_));
-    if (!memory) ThrowSurfaceNotMade(0, 0);
-    Surface* previous = surface_;
-    surface_ = memory;
-    ++memory->refs_;
-    if (previous) previous->Release();
-    SurfacePixels pixels;
-    DirectPixels(memory, &pixels);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour.bits, alphaBits, layout);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
+    // Drawn into the texture on the GPU.
+    TakeBlankHolder(device, width, height, true);
+    const std::vector<std::uint32_t> pixels = ReadPixels(width, height, colour.bits, alphaBits);
+    const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), width, height,
+                                     render::ImageLayout::Argb};
+    render::DrawIntoTexture(surface_, &image, 0, 0, width, height);
     flags_ |= kTextureLoaded;
     return 1;
 }
