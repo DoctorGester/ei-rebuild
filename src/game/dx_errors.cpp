@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <iterator>
 
@@ -174,11 +173,7 @@ constexpr ErrorText kErrorTexts[] = {
 
 constexpr const char* kUnrecognized = "Unrecognized error value.\n";
 
-// "%s (0x%.8X) %s".
-const char* ResultFormat() { return "%s (0x%.8X) %s"; }
-
-// The stack buffers (wvsprintf writes at most 1024 characters; the report is cut at 1023, where the game's sprintf
-// ran past its 1024 bytes).
+// The stack buffer (wvsprintf writes at most 1024 characters).
 constexpr std::size_t kBuffer = 0x400;
 
 // The message: an operator new copy of `text`.
@@ -211,29 +206,12 @@ CDXException::CDXException(const char* format, va_list args) {
     message = CopyMessage(text);
 }
 
-CDXException::CDXException(long resultIn, const char* format, va_list args) {
-    char text[kBuffer];
-    char full[kBuffer];
-    gameapi::wvsprintfA(text, format, args);
-    result = resultIn;
-    std::snprintf(full, sizeof(full), ResultFormat(), text, resultIn, DirectXErrorText(resultIn));
-    message = CopyMessage(full);
-}
-
 CDXException::~CDXException() = default;
 
 void ThrowGameError(const char* format, ...) {
     va_list args;
     va_start(args, format);
     CDXException* error = new CDXException(format, args);
-    va_end(args);
-    throw error;
-}
-
-void ThrowGameErrorResult(long result, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    CDXException* error = new CDXException(result, format, args);
     va_end(args);
     throw error;
 }
