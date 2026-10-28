@@ -109,7 +109,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     std::string text;
     CUiSurface* surface = surfaces_[0];
-    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
+    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     sprite(kSpriteSelection)->visible_ = 0;
     // The two buttons' texts.
@@ -138,15 +138,15 @@ void CMpConnectScreen::DrawListVanilla() {
         arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
-    mfc::impl::CPen pen(PS_SOLID, 1, TextColour());
-    mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
+    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, TextColour()));
+    HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
     interface_->CallScalePointToScreenNoMargin(&from);
     interface_->CallScalePointToScreenNoMargin(&to);
-    dc->MoveTo(from.x, from.y);
-    dc->LineTo(to.x, to.y);
+    gameapi::MoveToEx(dc, from.x, from.y, nullptr);
+    gameapi::LineTo(dc, to.x, to.y);
     Down(&row, 27);
 
     unsigned index = static_cast<unsigned>(scrollTop_);
@@ -253,6 +253,6 @@ void CMpConnectScreen::DrawListVanilla() {
             }
         }
     }
-    dc->SelectObject(oldPen);
+    gameapi::SelectObject(dc, oldPen);
     UiSurfaceReleaseDC(surface);
 }   // ~CPen

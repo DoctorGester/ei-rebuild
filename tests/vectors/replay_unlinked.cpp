@@ -18,7 +18,6 @@
 #include "../../src/lib/mfc_exception.h"
 #include "../../src/lib/mfc_resource.h"
 #include "../../src/lib/mfc_state.h"
-#include "../../src/lib/mfc_time.h"
 
 #include <cstdio>
 #include <cstdlib>

@@ -42,9 +42,6 @@ void SetRandObserver(RandObserver observer);
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
-// The handler operator new calls when the heap is exhausted (nonzero: try again; _set_new_handler sets it).
-using NewHandler = int(__cdecl*)(std::size_t);
-
 } // namespace gamecrt
 
 // The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the

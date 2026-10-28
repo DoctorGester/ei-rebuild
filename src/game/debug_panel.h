@@ -8,12 +8,13 @@
 
 #include <windows.h>
 
+#include "lib/gdi.h"
+
 #include <cstdint>
 #include <string>
 
 class CInterface3D;
 class CUiSurface;
-namespace mfc::impl { class CFont; }
 
 namespace strmap {
 
@@ -43,7 +44,7 @@ public:
     StringMap entries_;          // key -> value
     CInterface3D* ui_;
     CUiSurface* surface_;        // the panel surface (0x38 bytes), while shown
-    mfc::impl::CFont* font_;     // (MFC CFont)
+    gdi::Font font_;
     RECT shown_;                 // the rectangle on screen
     RECT asked_;                 // the rectangle asked for
     std::uint8_t visible_;

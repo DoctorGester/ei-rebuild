@@ -52,7 +52,7 @@ void CWinRegistry::Destroy() {
     Close();
 }
 
-BOOL CWinRegistry::Open(const char* path, std::uint32_t /*root: HKEY_CURRENT_USER for every caller*/) {
+bool CWinRegistry::Open(const char* path, std::uint32_t /*root: HKEY_CURRENT_USER for every caller*/) {
     Close();
     key_ = settings_file::CreateKey(path);
     return 1;
@@ -64,23 +64,23 @@ void CWinRegistry::Close() {
     key_ = nullptr;
 }
 
-BOOL CWinRegistry::SetDWord(const char* subkey, const char* name, std::uint32_t value) {
+bool CWinRegistry::SetDWord(const char* subkey, const char* name, std::uint32_t value) {
     return SetDWordValue(key_, subkey, name, value);
 }
 
-BOOL CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
+bool CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
     return SetDWordValue(key_, subkey, name, static_cast<std::uint32_t>(value));
 }
 
-BOOL CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
+bool CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
     return SetValue(key_, subkey, name, REG_BINARY, &bits, 4);
 }
 
-BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, const std::string& value) {
+bool CWinRegistry::SetStringInt(const char* subkey, const char* name, const std::string& value) {
     return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
-BOOL CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
+bool CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
     return SetStringInt(subkey, name, value);
 }
 

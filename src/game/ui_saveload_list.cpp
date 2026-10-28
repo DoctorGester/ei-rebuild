@@ -11,6 +11,7 @@
 #include "world_glue.h"         // GameClientTexts
 
 #include "ei/rebirth.h"
+#include "lib/calendar.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -63,7 +64,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     if (cursor_ > static_cast<int>(name.size())) cursor_ = name.size();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_[0];
-    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
+    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     CUiMesh* marker = SceneMesh(kMarkerSprite);
     marker->visible_ = 0;
@@ -83,16 +84,16 @@ void CSaveLoadWindow::RefreshListVanilla() {
                 !SameFolder(entry.folder_, kAutoFolderB)) {
                 const int width = TextWidth(interface_, str::Left(name, cursor_).c_str(), kFont);
                 if (width < titleRect.right - titleRect.left) {
-                    mfc::impl::CPen pen(PS_SOLID, 1, kCaretColour);
-                    mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
+                    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kCaretColour));
+                    HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
                     interface_->CallScalePointToScreenNoMargin(&top);
                     interface_->CallScalePointToScreenNoMargin(&bottom);
-                    dc->MoveTo(top.x, top.y);
-                    dc->LineTo(bottom.x, bottom.y);
-                    dc->SelectObject(oldPen);
+                    gameapi::MoveToEx(dc, top.x, top.y, nullptr);
+                    gameapi::LineTo(dc, bottom.x, bottom.y);
+                    gameapi::SelectObject(dc, oldPen);
                 }
             }
             marker = SceneMesh(kMarkerSprite);
@@ -102,8 +103,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
-            // CTime::Format.
-            const std::string date = mfc::CTime{entry.savedAt_}.Format(kDateFormat);
+            const std::string date = lib::FormatTime(entry.savedAt_, kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);

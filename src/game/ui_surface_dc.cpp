@@ -13,7 +13,6 @@
 #include "ui_native.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc_gdi.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -21,8 +20,6 @@
 #include "game_singletons.h"
 
 namespace {
-
-mfc::impl::CDC* CdcFromHandle(HDC dc) { return mfc::impl::CDC::FromHandle(dc); }
 
 // The memory DCs given out, with the bitmap each had selected before ours.
 std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;
@@ -46,10 +43,10 @@ void MarkDrawn(const CDXSurface* holder, HDC dc) {
 // The verify build's interface census (tests/verify/ui_census.cpp): a memory DC the getter gave out.
 bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 
-// The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
+// The surface's DC, or null without a surface or when getting
 // the DC failed (also: no memory) and the report said stop (the device lock then stays held, as in
 // the original).
-mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface) {
+HDC UiSurfaceGetDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
@@ -64,7 +61,7 @@ mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface) {
     }
     holder->result = dc ? 0 : -1;
     if (!dc && !app::FatalErrorCode(-1, "Can't get surface's DC.\n")) return nullptr;   // "Can't get surface's DC"
-    return CdcFromHandle(dc);
+    return dc;
 }
 
 // Leaves the device lock and releases the DC (nothing for a DC the getter did not make).

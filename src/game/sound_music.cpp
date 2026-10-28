@@ -66,7 +66,7 @@ const std::string& TextPath() { return TheTextFolder(); }
 int CMusicSystem::LoadThemes() {
     Registry reg;
     reg.Construct();
-    mfc::BOOL opened;
+    bool opened;
     {
         std::string folder = TextPath();
         std::string path = folder + kMusicReg;

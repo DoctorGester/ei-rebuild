@@ -122,6 +122,17 @@ UNREAD = [
                                 "0070C130 is gen_static_init.py's UNUSED_INITIALISERS)"),
     (0x00797198, 0x007971A8, 2, "CByteArray's runtime class record (the class went in C14zb; its initialiser "
                                 "0070C17E is gen_static_init.py's UNUSED_INITIALISERS)"),
+    (0x00745F88, 0x00746148, 26, "the runtime class records of MFC's GDI and DC classes, CTempGdiObject to CDC (no "
+                                 "class of ours since C14ze: the interface draws on plain HDCs, lib/gdi.h; CRgn, "
+                                 "CPalette, CBitmap, CPaintDC, CWindowDC, CClientDC never had one)"),
+    (0x007466B8, 0x007466C8, 2, "CWinThread's runtime class record (the game's threads are lib::StartThread's since "
+                                "C14ze)"),
+    (0x00746870, 0x00746880, 2, "CMapPtrToPtr's runtime class record (the handle maps went in C14ze)"),
+    (0x00746F88, 0x00746F98, 2, "CPtrArray's runtime class record (no class of ours)"),
+    (0x00746FC0, 0x00746FD0, 2, "CPtrList's runtime class record (no class of ours)"),
+    (0x00746FF8, 0x00747008, 2, "CWinApp's runtime class record (no class of ours)"),
+    (0x00796CD0, 0x00796CE0, 2, "CDib's runtime class record (nothing asks a CDib its class since C14ze; its "
+                                "initialiser 006D4A70 is gen_static_init.py's UNUSED_INITIALISERS)"),
     (0x00797CC4, 0x00797D94, 27, "the CRT's math function names by code (\"exp\", \"pow\", ...), read by its math error "
                                  "reporting only (_87except, _matherr: not ported; named in crt_x87.cpp until C35h)"),
 ]

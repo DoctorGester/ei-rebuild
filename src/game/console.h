@@ -5,6 +5,7 @@
 
 #include "game_data.h"
 #include "game_strings.h"
+#include "../lib/gdi.h"
 #include "../lib/mfc.h"
 #include "../lib/str.h"
 #include "../lib/static_object.h"
@@ -18,7 +19,6 @@
 
 #include <windows.h>
 
-namespace mfc::impl { class CFont; }
 class CInterface3D;
 class CUiContainer;
 class CUiSurface;
@@ -137,7 +137,7 @@ public:
 
     CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
     CUiSurface* surface_;            // while shown
-    mfc::impl::CFont* font_;         // selected into the surface's CDC
+    gdi::Font font_;                 // selected into the surface's DC
     std::vector<std::string> commands_;   // commands entered (input history), the newest first
     int commandIndex_;               // the one shown by up/down (-1 or size: none)
     std::string input_;              // the line being typed

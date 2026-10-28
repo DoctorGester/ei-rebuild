@@ -9,7 +9,7 @@
 #include "lib/gameapi.h"
 #include "lib/static_object.h"
 #include "ui.h"        // CInterface3D, CUiSurface
-#include "ui_gdi.h"    // CDC, CFont
+#include "ui_gdi.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -64,8 +64,8 @@ namespace {
 // The panel's font face.
 const char* FontFace() { return "Courier New"; }
 
-void DrawString(mfc::impl::CDC* dc, const std::string& s, RECT* rect) {
-    dc->DrawText(s.data(), static_cast<int>(s.size()), rect, 0x800u);
+void DrawString(HDC dc, const std::string& s, RECT* rect) {
+    gameapi::DrawTextA(dc, s.data(), static_cast<int>(s.size()), rect, 0x800u);
 }
 
 } // namespace
@@ -75,12 +75,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
     ui_ = ui;
     surface_ = nullptr;
     visible_ = 0;
-    auto* font = new mfc::impl::CFont();   // null without memory
-    font_ = font;
-    if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {
-        delete font_;
-        font_ = nullptr;
-    }
+    font_ = gdi::PointFont(0x5A, FontFace());
     RECT rect = {10, 10, 0x122, 0x122};
     SetRect(&rect);
 }
@@ -91,8 +86,7 @@ void CDebugPanel::Release() {
         delete surface;
     }
     surface_ = nullptr;
-    delete font_;
-    font_ = nullptr;
+    font_.reset();
 }
 
 // The panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
@@ -136,15 +130,15 @@ void CDebugPanel::Tick() {
 void CDebugPanel::Redraw() {
     CUiSurface* surface = surface_;
     if (!surface) return;
-    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
+    HDC dc = UiSurfaceGetDC(surface);
     RECT& asked = asked_;
-    dc->FillSolidArea(0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
-    dc->SetBkMode(1);
-    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
+    gdi::FillSolidRect(dc, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
+    gameapi::SetBkMode(dc, 1);
+    HGDIOBJ oldFont = gameapi::SelectObject(dc, font_.get());
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
     for (const auto& [name, text] : entries_) {
-        dc->SetTextColor(static_cast<COLORREF>(0x080808));
+        gameapi::SetTextColor(dc, static_cast<COLORREF>(0x080808));
         RECT shadow = key;
         gameapi::OffsetRect(&shadow, 1, 1);
         RECT r = shadow;
@@ -153,14 +147,14 @@ void CDebugPanel::Redraw() {
         gameapi::OffsetRect(&shadow, 1, 1);
         r = shadow;
         DrawString(dc, text, &r);
-        dc->SetTextColor(static_cast<COLORREF>(0xFFFFFF));
+        gameapi::SetTextColor(dc, static_cast<COLORREF>(0xFFFFFF));
         DrawString(dc, name, &key);
         DrawString(dc, text, &value);
         gameapi::OffsetRect(&key, 0, 15);
         gameapi::OffsetRect(&value, 0, 15);
         if (key.bottom > asked.bottom - asked.top) break;
     }
-    dc->SelectFont(oldFont);
+    gameapi::SelectObject(dc, oldFont);
     UiSurfaceReleaseDC(surface_);
 }
 

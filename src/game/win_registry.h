@@ -18,16 +18,16 @@ public:
     void Destroy();                                               // closes the key
     // Closes the key, then opens the settings file's `path` (`root`, an HKEY, is
     // HKEY_CURRENT_USER for every caller). Returns 1.
-    mfc::BOOL Open(const char* path, std::uint32_t root);
+    bool Open(const char* path, std::uint32_t root);
     void Close();
 
     // The writers: 1 (the settings file takes every value).
-    mfc::BOOL SetDWord(const char* subkey, const char* name, std::uint32_t value);    // REG_DWORD
-    mfc::BOOL SetInt(const char* subkey, const char* name, int value);                // same code
+    bool SetDWord(const char* subkey, const char* name, std::uint32_t value);    // REG_DWORD
+    bool SetInt(const char* subkey, const char* name, int value);                // same code
     // The float's bits as a 4-byte REG_BINARY (bits passed as the game pushes them).
-    mfc::BOOL SetFloat(const char* subkey, const char* name, std::uint32_t bits);
-    mfc::BOOL SetString(const char* subkey, const char* name, const std::string& value);
-    mfc::BOOL SetStringInt(const char* subkey, const char* name, const std::string& value);  // REG_SZ
+    bool SetFloat(const char* subkey, const char* name, std::uint32_t bits);
+    bool SetString(const char* subkey, const char* name, const std::string& value);
+    bool SetStringInt(const char* subkey, const char* name, const std::string& value);  // REG_SZ
 
     // The readers: the value, or `defaultValue` when the subkey or value is missing or of
     // another type (the last also logged).

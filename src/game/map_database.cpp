@@ -22,17 +22,17 @@ namespace {
 
 // The text manager (item_db_text.h) as the loader uses it. Not rewritten.
 struct TextReader : CTextManager {
-    mfc::BOOL Open(const char* name);                          // finds the text, cursor at its start
-    mfc::BOOL NextHeader();                                    // (null key): the next "#" line; false at the end
+    bool Open(const char* name);                               // finds the text, cursor at its start
+    bool NextHeader();                                         // (null key): the next "#" line; false at the end
     int Split(std::vector<std::string>* words, int flag);         // the current line's words
-    mfc::BOOL Close();
+    bool Close();
 };
-mfc::BOOL TextReader::Open(const char* key) { return CTextManager::Open(key); }
-mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
+bool TextReader::Open(const char* key) { return CTextManager::Open(key); }
+bool TextReader::NextHeader() { return FindLine(nullptr); }
 int TextReader::Split(std::vector<std::string>* words, int flag) {
     return CTextManager::Split(words, flag);
 }
-mfc::BOOL TextReader::Close() { return TextClose(this); }
+bool TextReader::Close() { return TextClose(this); }
 TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
 
 // *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the

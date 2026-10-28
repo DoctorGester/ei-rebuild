@@ -4,7 +4,7 @@
 // (DirectPixels). See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 11.
 #include "app.h"
 #include "app_helpers.h"
-#include "lib/mfc_time.h"
+#include "lib/calendar.h"
 #include "core_streams.h"
 #include "lib/text_case.h"
 #include "ui.h"
@@ -203,8 +203,7 @@ void CSaveLoadWindow::SaveGame() {
         entries_.data()->title_.clear();
     else
         entries_.data()->title_ = entry->title_;
-    mfc::impl::CTime now;
-    entries_.data()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;
+    entries_.data()->savedAt_ = lib::CurrentTime();
     SaveEntry* first = entries_.data();
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
@@ -378,8 +377,7 @@ void QuickSave(const char* slot, char stepFrame) {
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     std::string title;
     std::string map;
-    mfc::impl::CTime now;
-    const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;
+    const std::int32_t savedAt = lib::CurrentTime();
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     const std::string zone = LocalPlayerZone();
     if (const MapRecord* record = TheMapDatabase()->FindMap(zone.c_str()))

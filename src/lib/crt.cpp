@@ -1,5 +1,5 @@
 #include "crt.h"
-#include "mfc_handle_map.h"
+#include "mfc_exception.h"
 
 #include "ei/x87.h"
 #include "gameapi.h"
@@ -221,12 +221,10 @@ void* Malloc(std::size_t size) { return std::malloc(size); }
 
 void Free(void* p) { std::free(p); }
 
+// Out of memory: MFC's new handler (AfxNewHandler, the only one the game sets) throws a CMemoryException.
 void* OperatorNew(std::size_t size) {
-    for (;;) {
-        if (void* p = Malloc(size)) return p;
-        const gamecrt::NewHandler handler = mfc::impl::g_afxNewHandler;
-        if (!handler || !handler(size)) return nullptr;
-    }
+    if (void* p = Malloc(size)) return p;
+    mfc::impl::ThrowMemoryException();
 }
 
 void OperatorDelete(void* p) { Free(p); }

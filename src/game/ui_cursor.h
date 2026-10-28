@@ -19,12 +19,11 @@ class CTextureDevice;
 inline LONG g_cursorWidth = /*007C7C90*/ 32;
 inline LONG g_cursorHeight = /*007C7C94*/ 32;
 struct CDXSurface;
-namespace mfc::impl { struct WinThread; }
 
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
 
-unsigned __cdecl CursorThreadEntry(void* cursor);
+unsigned __stdcall CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class CDirectInputMouse final {
@@ -98,7 +97,7 @@ public:
     void TakeLock();
     void ReleaseLock();
     // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread started
-    // (AfxBeginThread at priority 2).
+    // (lib::StartThread at priority 2).
     void Start();
     // Ends the drawing thread (stop_, then waits for `stopped_`), closes the event, releases and frees every
     // shape and empties the list, releases the surfaces and the device and resets the fields (not enabled,
@@ -139,7 +138,7 @@ public:
     std::uint8_t enabled_;           // the cursor exists (created)
     std::uint8_t unused_92[2];
     DWORD frameTime_;                // when the image's frame last stepped
-    mfc::impl::WinThread* thread_;   // the drawing thread, or null
+    HANDLE thread_;                  // the drawing thread (lib::StartThread), or null
     int stop_;                       // asks the cursor thread to end
     CRITICAL_SECTION lock_;
 };

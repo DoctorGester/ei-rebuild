@@ -3734,6 +3734,13 @@ files = ["tools/gen_static_init.py src/standalone/static_init.h src/standalone/s
 note = "C20q (2026-10-28) deleted static_init.h's Check visitor (verify_static_init.cpp, its only user, was gone; nothing instantiated it but the generated line). With Run alone the Do& template, Code's static members and the d. prefix of every generated statement are scaffolding: let gen_static_init.py write plain calls and stores (Run's Local frame and AtExit as functions) and drop the template; static_exit.cpp likewise. Needs game.exe to regenerate (the tool reads it); check: gen_static_init output unchanged in effect, image suite --golden."
 
 [[ticket]]
+id = "C14zi"
+title = "Delete MFC's static-init-only state: mfc_state (AuxData, thread / process locals, global locks, AfxClassInit, DBCS, halftone brush) and mfc_static_objects"
+group = "cleanup"
+depends = ["C14zb"]
+note = "After C14ze (no GDI, threads, handle maps) and C14zb (no CWordArray / CByteArray / CDWordArray links), nothing of the game reads MFC's module state, afxData, the thread / process locals, _afxDBCS or the class list: only game.exe's static initialisers and exit functions build and destroy them. Add those initialisers to gen_static_init.py's UNUSED_INITIALISERS (0070D12E afxData, 0070CC0C / 0070CE56 / 0070D5D8 / 0070D5FE / 0070DC27 the locals' atexits, 0070B5FB wingdix, 0070DC70 DBCS, the Link*ArrayClass ones), drop the GENERATED_NAMES rows, the named_data ranges and static_init_ports rows, regenerate, then delete mfc_state.h / .cpp and what of mfc_static_objects is left after C14zh."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

@@ -1,9 +1,8 @@
 #pragma once
 
 // The types MFC's exceptions are thrown as. The game's MFC 4.2 is built with C++ exceptions: THROW is `throw` of a
-// CException*, which a handler catches by the class's name (CreateObject's catch (CException*) in
-// mfc_handle_map.cpp). Why that works across the two C++ runtimes: docs/notes/standalone.md, "The image's source
-// files".
+// CException*, which a handler catches by the class's name. Why that works across the two C++ runtimes:
+// docs/notes/standalone.md, "The image's source files".
 
 // The thrown and handler types (the names and bases are the game's: see above).
 class CObject {};

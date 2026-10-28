@@ -47,9 +47,9 @@ DWORD CALLBACK ReadRtf(DWORD_PTR cookie, LPBYTE buffer, LONG wanted, LONG* read)
     return 0;
 }
 
-int HeightInTwips(const CUiScrollingSurface* surface, const mfc::impl::CDC* dc) {
+int HeightInTwips(const CUiScrollingSurface* surface, HDC dc) {
     return gameapi::MulDiv(surface->rect_.bottom - surface->rect_.top, kTwipsPerInch,
-                           gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSY));
+                           gameapi::GetDeviceCaps(dc, LOGPIXELSY));
 }
 } // namespace
 
@@ -93,16 +93,16 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 }
 
 void CUiScrollingSurface::RenderText() {
-    mfc::impl::CDC* dc = UiSurfaceGetDC(this);
+    HDC dc = UiSurfaceGetDC(this);
     this->Clear();
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
-    int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSX));
+    int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc, LOGPIXELSX));
     int height = HeightInTwips(this, dc);
     RECT area = {0, 0, width, offset_ + kExtraTwipsBelow + height};
     gameapi::OffsetRect(&area, -offsetX_, -offset_);
     FORMATRANGE range;
-    range.hdc = dc->hdc;
-    range.hdcTarget = dc->hdc;
+    range.hdc = dc;
+    range.hdcTarget = dc;
     range.rc = area;
     range.rcPage = area;
     range.chrg.cpMin = 0;
@@ -133,7 +133,7 @@ void CUiScrollingSurface::Blit() {
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;
     if (fromBelow) {
-        mfc::impl::CDC* dc = UiSurfaceGetDC(this);
+        HDC dc = UiSurfaceGetDC(this);
         offset_ = -HeightInTwips(this, dc);
         UiSurfaceReleaseDC(this);
     } else {

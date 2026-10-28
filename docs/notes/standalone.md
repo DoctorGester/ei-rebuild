@@ -84,7 +84,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
   holds no code pointer in the image since C20). The unported slots of compiled tables (`ei::UnportedSlot`, MFC's
-  classes never made or never called virtually) say why at the class (mfc_gdi.h, mfc_window.h, mfc_thread.h).
+  classes never made or never called virtually) say why at the class (mfc_window.h).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -457,7 +457,7 @@ kinds given.
     `__lc_category` 00797888 with the static "C" 00797778, getqloc's tables 00798914-00798BE8, `__rgcode_page_info`
     00797680-00797778, `_ctype` / `_pctype` / `_pwctype` 00797DD8-00797FE0 and the rest of the locale and multibyte
     state (C26: setlocale / _setmbcp are the host's), `__lc_time_curr` 00797A58 and
-    `__lc_time_c` 00797A60 (strftime / the time functions are the host's, mfc_time.cpp), printf's "(null)" 0079804C /
+    `__lc_time_c` 00797A60 (strftime / the time functions are the host's, lib/calendar.cpp), printf's "(null)" 0079804C /
     00798050 (literals in crt_format.cpp), `_iob` 00798060 (its two cells to `_bufin`), getqloc's locale info table
     00798470 (27 rows of 0x2C, 54 cells; 006F5231 is its GetLocaleInfoA stand-in off NT, ours calls GetLocaleInfoA),
     the run-time error messages 0079AC30-0079ACBC (`_NMSG_WRITE`, not ported), `_tzname` 0079AD4C / 0079AD50 ("PST",
@@ -495,17 +495,17 @@ kinds given.
     array where the original read the neighbouring .rdata; no database has one).
   - **Pointers to game.exe's records** (C18e): MFC's CRuntimeClass records are named as one piece
     (lib/mfc_runtime_class.h: those in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
-    the serializable one in .data, which AfxClassInit links into the module state's list: CDib in game/dib.cpp
-    (CStringArray's 00796EE8 went in C14i, CWordArray's / CDWordArray's / CByteArray's in C14zb), `constinit CRuntimeClass g_classCDib`; TYPES has
+    none of ours in .data any more
+    (CStringArray's 00796EE8 went in C14i, CWordArray's / CDWordArray's / CByteArray's in C14zb, CDib's in C14ze); TYPES has
     `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
     base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
     (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
     create function it points at had to be ours (the check compares the registration): the ten that were unported
-    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's) are small ports registered at their
+    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's, C14ze the GDI, DC, CWinThread and CMapPtrToPtr records: their cells are gen_image_cells.py's UNREAD) are small ports registered at their
     addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
     the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
-    name (`d.Call(LinkDibClass)` in static_init.cpp). Do not run
+    name (`d.Call(mfc::impl::LinkWordArrayClass)` in static_init.cpp; CDib's 006D4A70 is UNUSED_INITIALISERS since C14ze). Do not run
     gen_function_sizes.py for new rows: it rewrites every size from the Ghidra database, which has moved from the
     committed file; add the rows by hand in order.
     config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
@@ -781,15 +781,15 @@ kinds given.
       007C8BC0 (`lib::StaticObject<CSimpleException>`), the thread / process locals 007C90BC, 007C90C0, 007CAA84,
       007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
       _AfxCbtFilterHook 00704BE6, is not ported). C18r added the objects hand code reads too, whose initialisers are
-      plain library calls: the temporary objects' fixed allocators (mfc_gdi.h: g_tempDCAlloc 007C8D18,
-      g_tempGdiObjectAlloc 007C8CF0; the temporary windows' 007CA940 and menus' 007CAAA8 went in C20o: their classes were
+      plain library calls: the temporary objects' fixed allocators (g_tempDCAlloc 007C8D18 and g_tempGdiObjectAlloc
+      007C8CF0 went in C14ze with the GDI classes, guard byte 007C8BB8 too; the temporary windows' 007CA940 and menus' 007CAAA8 went in C20o: their classes were
       never made, tools/gen_static_init.py's UNUSED_INITIALISERS leaves both initialisers and exit functions out) and the four
       static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
-      (nothing called the handler it held, C35e); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
-      `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
+      (nothing called the handler it held, C35e); `_afxNewHandler` 00796E14 went in C14ze (with the handle maps nothing
+      changed it: libcrt::OperatorNew throws the CMemoryException itself). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
       function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
       (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
@@ -1345,9 +1345,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: MFC's CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the
-    simple exceptions (CResourceException, CUserException, CMemoryException) (mfc_exception.cpp); std::exception
-    (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector) and CArchiveException
+  - **The library kind**: the simple exceptions (CResourceException, CUserException, CMemoryException) (mfc_exception.cpp); std::exception
+    (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector), CMapPtrToPtr (C14ze: no handle maps) and CArchiveException
     (C14r: nothing throws it) are retired the same way. CPtrArray,
     CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
@@ -1365,17 +1364,18 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     lists those addresses (`address` lines: standalone_gaps.py counts them as code literals) with the reason; the
     retired tables' `vtable` lines are gone (a retired table's slots are no data reference, so the line covered nothing).
     Port only what the image reaches (or what a ported body calls: CDC::Detach's slot 5); the rest stays unported.
-  - **mfc_gdi**: GdiObjectTable (CGdiObject, CBrush, CPen, CTempGdiObject: 0 the class's record, 1 the deleting
+  - **mfc_gdi** (gone in C14ze: the interface draws on plain HDCs, lib/gdi.h holds its fonts, pens and brushes;
+    the tables are retired with file `-`): GdiObjectTable (CGdiObject, CBrush, CPen, CTempGdiObject: 0 the class's record, 1 the deleting
     destructor, CTempGdiObject's back to its fixed allocator) and DCTable (CDC, CTempDC: 29 slots; 3-6, 10, 12, 26, the
     destructor, Detach ported, the rest unported). Since C28n real classes over CObject (mfc_gdi.h; CTempGdiObject and
     CTempDC in mfc_gdi.cpp), the interface's pens, brushes and fonts plain locals or `new`. CClientDC,
     CWindowDC, CPaintDC and CRgn are retired with no class of ours.
-  - **CHandleMap** (mfc_handle_map.cpp): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
+  - **CHandleMap** (mfc_handle_map.cpp, gone in C14ze): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
     CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
     through its slot 1, the CTempDC / CTempGdiObject destructors above).
   - **Windows and threads**: mfc_window.h's CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
-    the class's own); WndTable (CWnd: 46 slots, only the destructor ported; CTempWnd, CMenu and CTempMenu went in C20o, never made) and WinThreadTable (31 slots: the destructor
-    and Delete ported; WinThread::Delete now deletes through DeletingDestructor). Retired with no class of ours:
+    the class's own); WndTable (CWnd: 46 slots, only the destructor ported; CTempWnd, CMenu and CTempMenu went in C20o, never made) and WinThreadTable (31 slots; gone in C14ze: the
+    game's threads are lib::StartThread's, lib/thread.h). Retired with no class of ours:
     CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
     (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
     _AFX_BASE_MODULE_STATE).
@@ -1411,8 +1411,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InputVtable()`, `CUiItemPanel::BlankVtable()` and `CConstructorPage::ItemMakerVtable()` (CSpellMakerPage derives
     from it). harness_windows.cpp maps the ten main tables. The item strips' tables (00741A1C, 0074197C, 00741BF4 and
     their input sides) stay: CUiItemStrip and NewStrip are C21's.
-  - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont): the debug panel, the interface and the
-    console store `CFont::Vtable()`.
+  - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont; gone in C14ze: the debug panel's, the
+    interface's and the console's fonts are gdi::Font).
   - **Map objects** (map_object_tables.cpp, gone in C28p): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
     MapObjectBaseClass over it (CMapObject's 61; gone in C28h: CMapObject's own table), each slot the class's C++
     virtual called qualified. CObject3D's row is
@@ -1852,28 +1852,30 @@ the `--no-hooks` suite) keeps the registry.
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (CTime::Format, the resource
+- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (the resource
   strings: mfc_resource.h `LoadResourceString`); the static initialisers of CString's four fixed
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
-  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
+  (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0) went in C14ze. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
 - **Collections**: none of MFC's are left (C14zb): the game's CArray / CList / CWordArray / CDWordArray / CByteArray
   instantiations are std::vector / std::list, their vtables game.exe-only rows of config/vtables.csv, and CArchive
-  went with their Serialize slots (C14r). CPlex (mfc.h, mfc.cpp) stays for CMapPtrToPtr and CFixedAlloc.
+  went with their Serialize slots (C14r). CPlex went with CMapPtrToPtr and CFixedAlloc (C14ze).
 - **Exceptions** (S8, S8b): mfc_exception (the memory and resource throws; the three static exceptions;
-  CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time (host `_mktime32` / `_localtime32_s` /
-  `strftime`, VC6's time() from GetLocalTime), mfc_resource (AfxLoadString over the table of the four strings
+  CSimpleException 0x98 bytes; ReportError / GetErrorMessage), the dates are lib/calendar (C14ze), mfc_resource (AfxLoadString over the table of the four strings
   something loads). CArchive and CArchiveException went in C14r with the collections' Serialize slots (nothing built
   an archive); the harness's crash report reads a CArchiveException only in game.exe's runs.
 - **Windows, GDI, state**: AfxMessageBox has no owner and the module's file name as title (the image shows
-  ei_standalone.exe). CDC (0x10 bytes), CPen, CFont, CGdiObject; handle maps (mfc_handle_map: CMapPtrToPtr, whose
-  association has no hash field; CHandleMap::FromHandle) are thread_local per thread and never freed; with no
-  CWinApp the temporary maps are never emptied (no OnIdle), in the original too. mfc_state: CThreadSlotData,
+  ei_standalone.exe). The game code's own boxes of that kind are app::ShowLibraryMessageBox. mfc_state: CThreadSlotData,
   CThreadLocal / CProcessLocal destructors (nothing fills them in the image), AUX_DATA afxData 007C90C8, MFC's global
   locks (17 lock types: an 18th overwrote _afxThreadData), _AfxInitDBCS, the halftone brush term (registered twice:
   runs on a null brush the second time). `ImageModuleState` at AfxGetModuleState 0070CE8C: one module state, only
-  the class list. mfc_thread: AfxBeginThread / AfxEndThread on host _beginthreadex. CWnd::DestroyWindow 007051A1 is
+  the class list. CWnd::DestroyWindow 007051A1 is
   a forwarder that no game window reaches (no game window is a CWnd).
+- **Gone in C14ze**: CTime (lib/calendar.h: VC6's time() from GetLocalTime through the import, `_mktime32`,
+  `_localtime32_s` / strftime), the GDI classes and handle maps (the interface draws on plain HDCs: lib/gdi.h's
+  gdi::Font / Pen / Brush, PointFont = CreatePointFont, FillSolidRect), the threads (lib/thread.h StartThread:
+  `_beginthreadex` suspended, the priority set, resumed, as AfxBeginThread), the new handler (libcrt::OperatorNew throws
+  the CMemoryException itself).
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
   constructors / FormatMessage; CPtrList, CPtrArray (S5a).
 
@@ -2071,7 +2073,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **Wide text calls** (system_text.h): the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
   `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else
   ANSI-code-page bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face
-  name to `CreateFontIndirectW`). Every interface text draw (MFC's virtual `CDC::DrawText`, slot 26: the surfaces'
+  name to `CreateFontIndirectW`). Every interface text draw (the import slot of DrawTextA, called on the surfaces' plain HDCs: the surfaces'
   `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
   (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through `InterfaceTextExtentOriginal`)
   and the console's `PromptWidth` go through them. The harness's font slot wrapper (`HarnessCreateFontIndirect`, no
@@ -2253,27 +2255,16 @@ host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and ab
 the game's MFC threw a CFileException*: what the game caught (CDib's reads and writes, the script reader) catches it,
 the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).
 
-### lib/mfc_handle_map.h
-
-MFC 4.2's handle maps (winhand.cpp) and what they are built from: CMapPtrToPtr (map_pp.cpp),
-CRuntimeClass::CreateObject and the new handler MFC swaps around its allocations (docs/notes/standalone.md section
-2). A handle map finds the C++ object of a Windows handle: the permanent map holds the objects that attached their
-handle (a CPen, a CFont), the temporary map the objects FromHandle made for the others (a CTempDC for a surface's
-DC, a CTempGdiObject for a stock pen). The game has no CWinApp, so nothing ever empties the temporary maps (no
-OnIdle). Every body is registered at its library address (mfc_handle_map.cpp); the maps live in MFC's module thread
-state, which the image replaces with its own (mfc_gdi.cpp).
-
 ### lib/mfc_runtime_class.h
 
-MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in .rdata)
-and the serializable one (CDib in game/dib.cpp; CStringArray's went in C14i, CByteArray's, CDWordArray's and
-CWordArray's in C14zb: tools/gen_image_cells.py's UNREAD) in .data, where the static initialisers link it into the
-module state's class list (AfxClassInit
+MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 8 here (const, in .rdata; C20q and C14ze dropped the unused ones, gen_image_cells.py UNREAD)
+and none in .data (CStringArray's went in C14i, CByteArray's, CDWordArray's and CWordArray's in C14zb, CDib's in C14ze),
+where the static initialisers linked them into the module state's class list (AfxClassInit
 writes m_pNextClass). Each record names its base's record and its create function (ours, registered at the game's
 address: the pointers are compared by tools/named_data.py, "Pointer elements"). The hierarchy is one piece: a
 record's base is a named range, and game.exe's data holds no pointer into a named range, so CObject's record (the
-root) could be named only once every record that points at it was. Only the exceptions', files' and GDI
-temporaries' records are read (GetRuntimeClass, the handle maps); the rest are what their base pointers and create
+root) could be named only once every record that points at it was. Only the exceptions' records are read
+(GetRuntimeClass); the rest are what their base pointers and create
 functions reach.
 
 ### lib/mfc_state.h
@@ -2285,8 +2276,7 @@ functions free them through the destructors here. afxData is built by a static i
 deleted at exit. The header also holds what the other static initialisers call: AfxClassInit (the runtime class
 list of the module state), MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush (an atexit
 that deletes it). The image has a stand-in module state with the members used so far (ImageModuleState). Every body
-is registered at its library address (mfc_state.cpp); in the image nothing fills the locals (the handle maps are
-thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
+is registered at its library address (mfc_state.cpp); in the image nothing fills the locals, so their destructors find an empty slot or object.
 
 
 ### lib/mfc_try.h: why TRY / CATCH works across the two C++ runtimes

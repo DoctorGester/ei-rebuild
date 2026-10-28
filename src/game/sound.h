@@ -24,8 +24,6 @@
 
 #undef GetClassName
 
-namespace mfc::impl { struct WinThread; }
-
 // A volume envelope: the music stream's and the MIDI sequence's.
 struct SoundFader {
     std::int32_t volume;        // 0..100
@@ -98,7 +96,7 @@ struct SoundEmitter {
 };
 
 struct SoundSequence;
-unsigned __cdecl StreamThreadEntry(void* manager);
+unsigned __stdcall StreamThreadEntry(void* manager);
 // Handed to the CRT's eh vector iterators.
 
 // A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one
@@ -214,7 +212,7 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamReadPosition;
     miles::Sample* streamDecoder;       // its processor is the MP3 codec (streamCodec is in it)
     CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
-    mfc::impl::WinThread* streamThread; // when the MP3 stream opened
+    HANDLE streamThread;                // when the MP3 stream opened (lib::StartThread)
     // The MIDI sequence.
     std::int32_t midiState;
     void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
@@ -228,7 +226,7 @@ struct CSoundManager : CEngineObject {
     SoundFader midiFader;
     std::uint8_t unused_228[4];
     CRITICAL_SECTION midiLock;
-    mfc::impl::WinThread* midiThread;
+    HANDLE midiThread;                  // never started
     volatile std::int32_t threadsQuit;  // set by Close; both threads end on it
     SoundSlot* slots;                   // 15 voices (an operator new[] block: the count before them)
     Vector3 listener;                   // listener position (z: camera height)
@@ -312,7 +310,7 @@ struct CSoundManager : CEngineObject {
     // OpenStream's failure. Returns 0.
     int CloseStream();
     // Every 100 ms until Close sets threadsQuit: a fader step, and every half Miles has played out gets the
-    // spare buffer. Ends the thread (AfxEndThread), so it does not return.
+    // spare buffer. The thread ends when it returns.
     void StreamThread();
     // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
     // or the switch point, and the rest from the next file. No next file (or it does not open): silence, the

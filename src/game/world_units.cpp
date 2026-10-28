@@ -2,6 +2,7 @@
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "app.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "lever.h"
@@ -39,7 +40,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_window.h"
 #include "game_data.h"
 #include "lib/str.h"
 
@@ -545,7 +545,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         }
         auto* plain = timedManager->CreateObjectAs<CEffectSound>(kTimedSound, base.id);
         if (sound->sounds.empty()) {
-            mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
+            app::ShowLibraryMessageBox(worlddata::NoWaveNameText());
         } else {
             const char* wave = sound->sounds[0].c_str();
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);

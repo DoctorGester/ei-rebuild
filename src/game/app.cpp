@@ -294,6 +294,12 @@ int ShowMessageBox(const char* text, int flags) {
     return answer;
 }
 
+int ShowLibraryMessageBox(const char* text) {
+    char title[MAX_PATH];
+    gameapi::GetModuleFileNameA(nullptr, title, MAX_PATH);
+    return gameapi::MessageBoxA(nullptr, text, title, MB_OK | MB_ICONEXCLAMATION);
+}
+
 namespace {
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND

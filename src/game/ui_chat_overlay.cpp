@@ -195,22 +195,22 @@ void CChatOverlay::DrawTyped() {
     if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_[0];
-    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
+    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, str::Left(typed_, caret_).c_str(), kTypedFont);
     if (width < kMaxTypedWidth) {
-        mfc::impl::CPen pen(PS_SOLID, 1, kTypedColour);
-        mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
+        gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kTypedColour));
+        HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
         // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
-        dc->MoveTo(top.x, top.y);
-        dc->LineTo(bottom.x, bottom.y);
-        dc->SelectObject(oldPen);
+        gameapi::MoveToEx(dc, top.x, top.y, nullptr);
+        gameapi::LineTo(dc, bottom.x, bottom.y);
+        gameapi::SelectObject(dc, oldPen);
     }
     UiSurfaceReleaseDC(surface);
 }

@@ -8,7 +8,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/mfc_thread.h"
+#include "lib/thread.h"
 #include "game_singletons.h"
 #include "game_data.h"
 
@@ -190,13 +190,14 @@ void CCursor::Start() {
     gameapi::LeaveCriticalSection(&lock_);
     if (!enabled_ || mode_ == kModeNoThread) return;
     stop_ = 0;
-    thread_ = mfc::impl::AfxBeginThread(CursorThreadEntry, this, kThreadPriority, 0, 0, nullptr);
+    thread_ = lib::StartThread(CursorThreadEntry, this, kThreadPriority);
 }
 
 void CCursor::Shutdown() {
     if (thread_) {
         stop_ = 1;
         gameapi::WaitForSingleObject(stopped_, INFINITE);
+        gameapi::CloseHandle(thread_);
     }
     gameapi::CloseHandle(stopped_);
     stopped_ = nullptr;

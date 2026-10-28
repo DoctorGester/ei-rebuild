@@ -16,9 +16,8 @@
 
 namespace mfc::impl {
 
-// The once-only guards of the exit functions that destroy MFC's static fixed allocators and windows: bit 1 CTempDC's
-// allocator, bit 2 CTempGdiObject's; bits 1, 2, 4, 8 the static windows wndTop, wndBottom, wndTopMost, wndNoTopMost.
-extern std::uint8_t g_gdiAllocExitGuards;
+// The once-only guard of the exit functions that destroy MFC's static windows: bits 1, 2, 4, 8 wndTop, wndBottom,
+// wndTopMost, wndNoTopMost.
 extern std::uint8_t g_staticWindowsExitGuards;
 
 // _simpleUserException: built by its initialiser (CUserException::Construct, AFX_IDS_USER_EXCEPTION), destroyed at

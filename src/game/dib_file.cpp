@@ -2,11 +2,11 @@
 // A lib::FileError from the file's calls ends in a message box and a result of 0 (the game's TRY /
 // CATCH(CException) around them).
 #include "dib.h"
+#include "app.h"
 #include "game_strings.h"
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/mfc_window.h"
 
 #include <cstdint>
 
@@ -40,11 +40,11 @@ int CDib::Read(lib::File* input) {
     try {
         BITMAPFILEHEADER fileHeader;
         if (input->Read(&fileHeader, sizeof(fileHeader)) != sizeof(fileHeader)) {
-            mfc::impl::MessageBoxText("read error 1", 0, 0);
+            app::ShowLibraryMessageBox("read error 1");
             return 0;
         }
         if (fileHeader.bfType != kBitmapFileType) {
-            mfc::impl::MessageBoxText("Invalid bitmap file", 0, 0);
+            app::ShowLibraryMessageBox("Invalid bitmap file");
             return 0;
         }
         // Everything between the file header and the bits: the info header, then masks or colours.
@@ -58,7 +58,7 @@ int CDib::Read(lib::File* input) {
         bits = gamecrt::operator_new_array<std::uint8_t>(imageSize);
         input->Read(bits, imageSize);
     } catch (const lib::FileError&) {
-        mfc::impl::MessageBoxText("Read error 1", 0, 0);
+        app::ShowLibraryMessageBox("Read error 1");
         return 0;
     }
     colourCount = ColourCount(header, colourCount);
@@ -78,7 +78,7 @@ int CDib::Write(lib::File* output) {
         output->Write(header, maskBytes + sizeof(BITMAPINFOHEADER));
         output->Write(bits, imageSize);
     } catch (const lib::FileError&) {
-        mfc::impl::MessageBoxText("write error", 0, 0);
+        app::ShowLibraryMessageBox("write error");
         return 0;
     }
     return 1;
