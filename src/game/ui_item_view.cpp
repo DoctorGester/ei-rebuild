@@ -22,6 +22,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
 #include "render/render_state.h"
 #include <cstdint>
 #include <cstring>
@@ -174,11 +175,13 @@ bool SameText(std::string_view a, std::string_view b) {
 
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
-// The texture's pixels for one fill: the texture manager's textures have only the new renderer's
-// memory, written directly (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0,
-// or the error the original's report gets when there is no memory (none is made without it).
-long LockTexture(Surface* holder, SurfacePixels* pixels) {
-    return DirectPixels(holder, pixels) ? 0 : E_FAIL;
+// An item picture's file as the renderer takes it: `width` x `height` pixels right after the header (the extra block
+// not skipped, as the original read them), premultiplied 32-bit or "PNT3" packed. Valid while `file` and the file are.
+render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, std::uint32_t fileBytes, int width,
+                               int height) {
+    const std::uint32_t header = static_cast<std::uint32_t>(sizeof(MmpHeader));
+    return render::TextureImage{file.c_str(), image + 1, fileBytes > header ? fileBytes - header : 0, width, height,
+                                image->format == kPnt3};
 }
 
 } // namespace
@@ -408,56 +411,18 @@ CTexture* ItemFigureTexture(std::string_view name) {
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
     ++texture->refCount_;
-    Surface* holder = texture->surface_;
-    const MmpHeader* image;
-    {
-        std::string file = std::string(name) + ".mmp";
-        image = manager->GetFileData(file);
-    }
-    int width, height;
+    const std::string file = std::string(name) + ".mmp";
+    std::uint32_t size = 0;
+    const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
     if (!image) {
-        height = 0x100;
-        width = 0x100;
+        // No picture: the whole texture white.
+        render::DrawIntoTexture(texture->surface_, nullptr, 0, 0, 0x100, 0x100);
     } else {
-        width = static_cast<int>(image->width);
-        height = static_cast<int>(image->height);
+        // The picture at the texture's bottom left.
+        const int width = static_cast<int>(image->width), height = static_cast<int>(image->height);
+        const render::TextureImage picture = PictureOf(file, image, size, width, height);
+        render::DrawIntoTexture(texture->surface_, &picture, 0, 0x100 - height, width, height);
     }
-    std::uint32_t* pixels = nullptr;
-    if (image) {
-        std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
-        pixels = new std::uint32_t[count];
-        std::memset(pixels, 0, count * 4);
-        g_sceneRenderer->device_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
-    }
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    SurfacePixels target;
-    long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
-        // The original leaves the device lock held here.
-        if (pixels) delete[] pixels;
-        texture->Release();
-        return nullptr;
-    }
-    std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(0x100 - height) << 9);
-    if (!image) {
-        for (int row = height; row > 0; --row) {
-            std::memset(at, 0xFF, static_cast<std::uint32_t>(width) * 2);
-            at += 0x200;
-        }
-    } else {
-        const std::uint32_t* from = pixels;
-        for (int row = height; row > 0; --row) {
-            auto* to = reinterpret_cast<std::uint16_t*>(at);
-            for (int i = width; i > 0; --i) {
-                std::uint32_t p = *from++;
-                *to++ = static_cast<std::uint16_t>(((p >> 9) & 0x7C00) | ((p >> 6) & 0x3E0) | ((p >> 3) & 0x1F) |
-                                                   ((p >> 16) & 0x8000));
-            }
-            at = reinterpret_cast<std::uint8_t*>(to + (0x100 - width));
-        }
-    }
-    if (pixels) delete[] pixels;
-    gameapi::LeaveCriticalSection(&g_deviceLock);
     manager->FreeAllFiles();
     return texture;
 }
@@ -466,49 +431,16 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
-    Surface* holder = texture->surface_;
-    const MmpHeader* image;
-    {
-        std::string base(name);
-        std::string file = base + ".mmp";
-        image = g_clientWorld->textureManager_->GetFileData(file);
-    }
-    std::uint32_t* pixels = nullptr;
-    if (image) {
-        std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
-        pixels = new std::uint32_t[count];
-        std::memset(pixels, 0, count * 4);
-        interface_->renderer_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
-    }
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    SurfacePixels target;
-    long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
-        // The original leaves the device lock held here.
-        if (pixels) delete[] pixels;
-        return 0;
-    }
-    std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(y) * 0x100 + static_cast<std::uint32_t>(x)) * 2;
+    CTextureManager* manager = g_clientWorld->textureManager_;
+    const std::string file = std::string(name) + ".mmp";
+    std::uint32_t size = 0;
+    const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
     if (!image) {
-        for (int row = height; row > 0; --row) {
-            std::memset(at, 0xFF, static_cast<std::uint32_t>(width) * 2);
-            at += 0x200;
-        }
+        render::DrawIntoTexture(texture->surface_, nullptr, x, y, width, height);   // white
     } else {
-        const std::uint32_t* from = pixels;
-        for (int row = height; row > 0; --row) {
-            auto* to = reinterpret_cast<std::uint16_t*>(at);
-            for (int i = width; i > 0; --i) {
-                std::uint32_t p = *from++;
-                *to++ = static_cast<std::uint16_t>(((p >> 9) & 0x7C00) | ((p >> 6) & 0x3E0) | ((p >> 3) & 0x1F) |
-                                                   ((p >> 16) & 0x8000));
-            }
-            at = reinterpret_cast<std::uint8_t*>(to + (0x100 - width));
-            from += imageWidth - width;
-        }
+        const render::TextureImage picture = PictureOf(file, image, size, imageWidth, imageHeight);
+        render::DrawIntoTexture(texture->surface_, &picture, x, y, width, height);
     }
-    if (pixels) delete[] pixels;
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    g_clientWorld->textureManager_->FreeAllFiles();
+    manager->FreeAllFiles();
     return image != nullptr;
 }

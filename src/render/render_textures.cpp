@@ -1178,6 +1178,58 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     return StoreComposed(holder, std::move(recipe));
 }
 
+bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha) {
+    using namespace detail;
+    if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    auto recipe = std::make_shared<ComposeRecipe>();
+    recipe->width = width;
+    recipe->height = height;
+    recipe->oneBitAlpha = oneBitAlpha;
+    return StoreComposed(holder, std::move(recipe));
+}
+
+void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
+    using namespace detail;
+    auto found = holder ? g_textures.find(holder) : g_textures.end();
+    if (found == g_textures.end() || found->second.source.kind != TextureSource::Composed || !found->second.source.recipe) {
+        if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
+        return;
+    }
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    Texture& t = found->second;
+    ComposeRecipe& recipe = *t.source.recipe;
+    ComposeStep step;
+    step.over = false;
+    if (image) {
+        step.image = DecodeComposeImage(*image);
+        if (!step.image) return;
+    }
+    Rect to{x, y, x + width, y + height};
+    if (to.left < 0) to.left = 0;
+    if (to.top < 0) to.top = 0;
+    if (to.right > recipe.width) to.right = recipe.width;
+    if (to.bottom > recipe.height) to.bottom = recipe.height;
+    if (Empty(to)) return;
+    step.fromX = to.left - x;
+    step.fromY = to.top - y;
+    step.to = to;
+    // Steps this one covers whole are left out of the recipe (an atlas's cells are drawn again and again).
+    auto& steps = recipe.steps;
+    for (auto it = steps.begin(); it != steps.end();)
+        it = it->to.left >= to.left && it->to.top >= to.top && it->to.right <= to.right && it->to.bottom <= to.bottom
+                 ? steps.erase(it)
+                 : std::next(it);
+    steps.push_back(std::move(step));
+    if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
+    GpuWorkAlone alone;
+    DrawComposed(recipe, t.image, &steps.back(), 1);
+}
+
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
     using namespace detail;
     if (!target || !source) return;
