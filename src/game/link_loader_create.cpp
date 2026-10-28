@@ -8,7 +8,6 @@
 #include "texture.h"   // CTextureDevice
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <string>
@@ -28,9 +27,6 @@ void CLinkFigureLoader::operator delete(void* block) { gamecrt::operator_delete(
 // leaves bytes of its empty hash, equality and compare objects in the containers' padding (stack contents,
 // and the low byte of `renderer` in the cache's); nothing reads them and they are not written here.
 CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const std::string* folder) {
-    archives_ = stlp::allocate_as<LinkArchiveNode>();
-    archives_->next = archives_;
-    archives_->prev = archives_;
     renderer_ = renderer;
     if (renderer) renderer->AddRef();
     pipeline_ = renderer_->pipeline_->transform_;

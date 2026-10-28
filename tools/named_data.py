@@ -179,7 +179,7 @@ ALIGNED_ARRAY_VECTORS = {
 # (std containers in place of the game's).
 STATIC_OBJECT_BYTES = {
     # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
-    'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'stlp::list<CMapObject*>': 4,
+    'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'SectorList': 4,
     'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,

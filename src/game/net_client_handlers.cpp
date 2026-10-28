@@ -10,7 +10,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "record_lists.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "world.h"
@@ -133,8 +132,8 @@ void DropParty(ClientSession* self) {
     self->party_.ptr = nullptr;
 }
 
-// The trade records emptied (clear() inlined).
-void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.Clear<recordlist::TradeElement>(); }
+// The trade records emptied.
+void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.clear(); }
 
 } // namespace
 
@@ -153,15 +152,19 @@ void ClientSession::RecordTrade(const void* party) {
     ++ours->version_;
     std::uint32_t a = ours->acceptedRevision_;
     std::uint32_t b = ours->revision_;
-    for (TradeRecordNode* node = tradeRecords_.First(); node != tradeRecords_.End(); node = node->next)
-        if (node->data.revision == b && node->data.acceptedRevision == a) return;
-    stlp::list<TradeRecord>::InsertDefault<recordlist::TradeElement>(tradeRecords_.End());
-    TradeRecord* record = &tradeRecords_.End()->prev->data;   // the node just added
-    record->acceptedRevision = ours->acceptedRevision_;
-    record->revision = ours->revision_;
-    record->parties[0]->Assign(parties_[0].Get());
-    record->parties[1]->Assign(parties_[1].Get());
-    record->parties[2]->Assign(static_cast<CParty*>(const_cast<void*>(party)));
+    for (const TradeRecord& record : tradeRecords_)
+        if (record.revision == b && record.acceptedRevision == a) return;
+    {
+        // insert(end()): a blank record copied into the list, then the blank destroyed.
+        const TradeRecord blank;
+        tradeRecords_.push_back(blank);
+    }
+    TradeRecord& record = tradeRecords_.back();
+    record.acceptedRevision = ours->acceptedRevision_;
+    record.revision = ours->revision_;
+    record.parties[0].Assign(parties_[0].Get());
+    record.parties[1].Assign(parties_[1].Get());
+    record.parties[2].Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
 
 // Starts our trade offer to `partner` when the binding and its player are
@@ -348,10 +351,9 @@ void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
         b = message->partnerRevision_;
         a = message->revision_;
     }
-    for (TradeRecordNode* node = self->tradeRecords_.First(); node != self->tradeRecords_.End(); node = node->next) {
-        TradeRecord& record = node->data;
+    for (TradeRecord& record : self->tradeRecords_) {
         if (record.revision == b && record.acceptedRevision == a) {
-            TheInterface()->OnExchangeDone(record.parties[1].Get(), record.parties[0].Get(), record.parties[2].Get());
+            TheInterface()->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

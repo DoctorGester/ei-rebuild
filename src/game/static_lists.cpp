@@ -16,7 +16,7 @@
 // list (texture.h) and the frame's deferred unit list (world.h).
 constinit lib::StaticObject<std::list<std::uint8_t>> g_protectionChecks = /*0079BC2C*/ {};
 constinit lib::StaticObject<std::list<DirectDrawDriver>> g_directDrawDrivers = /*007AEE64*/ {};
-constinit lib::StaticObject<stlp::list<CMapObject*>> g_deferredUnits = /*007AF5B4*/ {};
+constinit lib::StaticObject<SectorList> g_deferredUnits = /*007AF5B4*/ {};
 
 namespace {
 constinit std::uint8_t g_driversDestroyed = /*007AEE60*/ 0;   // the driver list's exit function runs once
@@ -26,7 +26,7 @@ namespace static_lists {
 
 void ConstructDirectDrawDrivers() { g_directDrawDrivers.Construct(); }
 
-void ConstructDeferredUnits() { g_deferredUnits->Construct(); }
+void ConstructDeferredUnits() { g_deferredUnits.Construct(); }
 
 namespace {
 void DestroyProtectionChecks() { g_protectionChecks.Destroy(); }
@@ -35,7 +35,7 @@ void DestroyDrivers() {
     g_driversDestroyed = static_cast<std::uint8_t>(g_driversDestroyed | 1);
     g_directDrawDrivers.Destroy();
 }
-void DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
+void DestroyDeferredUnits() { g_deferredUnits.Destroy(); }
 } // namespace
 
 void ConstructProtectionChecksList() {

@@ -10,7 +10,6 @@
 #include "figure_mesh.h"
 #include "ground_decal.h"
 #include "model.h"
-#include "record_lists.h"
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"

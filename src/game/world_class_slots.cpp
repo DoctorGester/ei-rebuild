@@ -99,5 +99,5 @@ void CWorldClient::MoveObject(CMapObject* object, const float* position) {
     objectGrid_.Move(object, position);
 }
 void CWorldClient::MoveObject2(CMapObject* object, const float* position) {
-    secondGrid_.Move2(object, position);
+    secondGrid_.Move(object, position);
 }

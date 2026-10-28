@@ -494,11 +494,9 @@ void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
     b.Float("tickFraction", c->tickFraction_);
     b.Int("partyDanger", c->partyDanger_);
     int objects = 0;
-    if (c->objects_.head) {
-        for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
-            ++objects;
-            if (n->data && n->data->GetClassId() == kClassUnit) units.push_back(static_cast<CUnit*>(n->data));
-        }
+    for (CMapObject* object : c->objects_) {
+        ++objects;
+        if (object && object->GetClassId() == kClassUnit) units.push_back(static_cast<CUnit*>(object));
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));

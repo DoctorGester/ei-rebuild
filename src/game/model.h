@@ -17,6 +17,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -525,12 +526,10 @@ using TriangleIndexArray = std::vector<MeshCorner>;
 
 class CMappedResource;
 
-// A node of CLinkFigureLoader's archive list (std::list<pair<string, CMMIOResource*>>).
-struct LinkArchiveNode {
-    LinkArchiveNode* next;
-    LinkArchiveNode* prev;
+// An archive of CLinkFigureLoader's: its path and the open archive.
+struct LinkArchive {
     std::string name;
-    CMappedResource* resource;   // a CMMIOResource
+    CMappedResource* resource = nullptr;   // a CMMIOResource (the loader's destructor deletes it)
 };
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
@@ -620,7 +619,7 @@ public:
 
     int refCount_ = 0;
     ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
-    LinkArchiveNode* archives_;       // list sentinel
+    std::list<LinkArchive> archives_;
     std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
     std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference

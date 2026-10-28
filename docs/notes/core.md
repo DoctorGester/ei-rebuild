@@ -656,9 +656,8 @@ to which template:
   entries, connect list rows, trade rows, bindings); the fields are written before they are read.
 - Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
   built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
-  the item stock's spells. Still stlp::list (C14s, C14t): the CMapObject* sector lists and their grids, the
-  net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
-  stream queues.
+  the item stock's spells; C14s did the rest but the net lists (section after next). Still stlp::list (C14t): the
+  net RefPtr / timed lists and the sessions' raw-sentinel lists.
 
 ## Containers: the last STLport hash tables and trees (C14q)
 
@@ -669,8 +668,9 @@ to which template:
   the placement rebuild, as the rest): the entries by sent id, by object and per priority (`std::array` of 11) hold
   `EntryRef` (`CountedPtr<ReplicaEntry>`), the records `Record` (a `SharedRefPtr` and the version: copied with
   Share, released as the owner), the attached ids plain values. Pointer keys compare as the game's unsigned
-  compares, the sent ids signed. The destructor clears the maps where the original destroys them, between the
-  packet and chunk lists it still frees by hand (C14s makes those the compiler's too; then the clears go).
+  compares, the sent ids signed. Since C14s every container is a member and the destructor is the compiler's: the
+  original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
+  lists, the freed-id batches).
   operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old, as the inlined Assign did.
 - UnitSet's tables are lib::HashMap (Write's walk is the zone message's bytes): the figured groups
   `HashMap<prototype, HashMultimap<scale key, FiguredUnitRecord>>`, the dressed records `HashMultimap<prototype,
@@ -687,6 +687,29 @@ to which template:
   `UnitShapeCache::Resolve` is the find-or-create both callers inline). The handle's key (the height's bits, the
   game's hash) went: the heights are tenths above 0.2, never NaN, so float equality is the game's (its Get treated
   unordered heights as equal).
+
+## Containers: the record and held lists (C14s)
+
+- The sector grids' cells, the client's heroes_ and the frame's deferred units are `SectorList`
+  (`std::list<HeldPtr<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it.
+  `RemoveHeld` (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value)
+  did. A grid is `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the
+  client's destructor frees both grids where the original did (the second grid still holds objects then). The
+  client's filed objects (`MapObjectList`, `std::list<CMapObject*>`) keep their reference by hand: the original's
+  destructor freed that list without releasing (Destroy has released and emptied it by then).
+- `TradeRecord` (net_classes.h) holds its three CParty by value with a copy that copies them in order (a CParty copy
+  saves and loads the party: object ids). RecordTrade adds a record as insert(end()) did: a blank, copied into the
+  list, the blank destroyed before the parties are assigned. Erases are explicit loops (each record destroyed in the
+  walk).
+- The connection's lists: `SentItem` holds an `EntryRef`, `SentPacket` its items as `std::list<SentItem>`; the
+  history, chunk and freed-id lists are members (see C14q above for the teardown). Splices are std::list::splice.
+- `LinkArchive` (model.h; the loader's `std::list<LinkArchive>`), `TextSources::archives` (item_db_text.h) and the
+  loopback link's `StreamQueue` (`std::list<CMemoryStream>`): Send appends an empty stream and copies into it. The
+  link's copy constructor keeps the game's queue copy (a new stream of the source's size whose Read takes the
+  source's buffer: the fresh bytes are read into the source).
+- record_lists.h and library_net_lists.h / .cpp are gone; the clients' find by address is SessionBase::FindClient's
+  loop. The harness's game.exe list view (exe_objects.h `StlpList`) has begin / end (a list without a sentinel is
+  empty), so harness_digest_read.inc walks the client's objects with one range-for on both sides.
 
 ## MFC CArray and CList to std (C14m)
 

@@ -2,7 +2,6 @@
 #include "console.h"
 #include "net_coder.h"
 #include "net_connection.h"
-#include "library_net_lists.h"
 #include "game_strings.h"
 
 #include "core_refcount.h"
@@ -22,13 +21,6 @@ namespace {
 
 using EntryMap = Connection::EntryMap;
 
-// --- STLport container instantiations (library_net_lists.h) -------------------------------------
-// The history's, the chunk lists' and a packet's items' element policies.
-using netlists::ChunkElement;
-using netlists::PacketRecordElement;
-using netlists::SentRecordElement;
-using Chunks = stlp::list<ReliableChunk>;
-using Packets = stlp::list<SentPacket>;
 // CollectChanges's static vector of {object, priority}; its exit function frees the storage.
 constinit std::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
@@ -93,10 +85,9 @@ void Connection::WriteAcks(std::uint8_t** p) {
 }
 
 void Connection::QueueHeader(int budget) {
-    if (headers_.Empty()) {
+    if (headers_.empty()) {
         int size = budget < 0xFF ? budget : 0xFF;
-        Chunks::InsertDefault<ChunkElement>(headers_.End());
-        std::uint8_t* chunk = headers_.End()->prev->data.bytes;
+        std::uint8_t* chunk = headers_.emplace_back().bytes;
         int available = BufferedSize(&reliableOut_);
         if (size >= available) size = available;
         chunk[2] = static_cast<std::uint8_t>(size);
@@ -111,33 +102,31 @@ void Connection::QueueHeader(int budget) {
         return;
     }
     // The oldest waiting chunk (sequence order with wrap-around) moves to the front.
-    HeaderNode* head = headers_.End();
-    HeaderNode* best = head->next;
-    std::uint16_t bestSeq = best->data.Sequence();
-    for (HeaderNode* n = best; n != head; n = n->next) {
-        std::uint16_t seq = n->data.Sequence();
+    auto best = headers_.begin();
+    std::uint16_t bestSeq = best->Sequence();
+    for (auto n = best; n != headers_.end(); ++n) {
+        std::uint16_t seq = n->Sequence();
         if (static_cast<std::uint16_t>(seq - bestSeq) > 0x8000) {
             best = n;
             bestSeq = seq;
         }
     }
-    if (head->next == best) return;
-    Chunks::SpliceRange(headers_.First(), best, best->next);
+    if (best == headers_.begin()) return;
+    headers_.splice(headers_.begin(), headers_, best);
 }
 
 void Connection::RollBack(SentPacket* packet) {
     if (packet->rolledBack) return;
-    for (SentItemNode* node = packet->items.First(); node != packet->items.End(); node = node->next) {
+    for (SentItem& item : packet->items) {
         // Unreliable sends are forgotten (the entry is sent again); a reliable change only when
         // the entry still carries the version this packet sent.
-        SentItem* item = &node->data;
-        if (item->action == SentItem::kChanged) {
-            if (item->entry->version_ == item->version) item->entry->version_ = 0;
-        } else if (item->action == SentItem::kRemoved) {
-            item->entry->version_ = 0;
+        if (item.action == SentItem::kChanged) {
+            if (item.entry->version_ == item.version) item.entry->version_ = 0;
+        } else if (item.action == SentItem::kRemoved) {
+            item.entry->version_ = 0;
         }
     }
-    if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);
+    if (packet->header.Size() != 0) headers_.push_back(packet->header);
     packet->rolledBack = 1;
 }
 
@@ -167,16 +156,15 @@ bool Connection::SendUpdate(int budget) {
     QueueHeader(budget - 0x10);
 
     // The reliable chunk at the front of the queue goes into the packet and into its history entry.
-    const ReliableChunk& chunk = headers_.First()->data;
+    const ReliableChunk& chunk = headers_.front();
     std::size_t chunkSize = static_cast<std::size_t>(chunk.Size()) + 3;
     std::memcpy(c.p, chunk.bytes, chunkSize);
     c.p += chunkSize;
-    Packets::InsertDefault<PacketRecordElement>(history_.End());
-    HistoryNode* sent = history_.End()->prev;
-    std::memcpy(&sent->data.time, &clock_, sizeof(sent->data.time));
-    sent->data.sequence = sequence;
-    sent->data.header = chunk;
-    Chunks::Erase<ChunkElement>(headers_.First());
+    SentPacket& sent = history_.emplace_back();
+    std::memcpy(&sent.time, &clock_, sizeof(sent.time));
+    sent.sequence = sequence;
+    sent.header = chunk;
+    headers_.pop_front();
 
     std::uint8_t* count = c.p++;
     *count = 0;
@@ -223,26 +211,22 @@ bool Connection::SendUpdate(int budget) {
                 break;
             }
             ++*count;
-            stlp::list<SentItem>::InsertDefault<SentRecordElement>(sent->data.items.End());
-            SentItem* item = &sent->data.items.End()->prev->data;
-            ReplicaEntry* old = item->entry;
-            item->entry = entry;
-            ++entry->refs_;
-            if (old) old->Release();
+            SentItem& item = sent.items.emplace_back();
+            item.entry = entry;
             if (entry->flags_ & 1) {
                 if (alive) {
-                    item->action = SentItem::kChangedReliable;
-                    item->version = entry->Object()->version_;
+                    item.action = SentItem::kChangedReliable;
+                    item.version = entry->Object()->version_;
                 } else {
-                    item->action = SentItem::kRemovedReliable;
+                    item.action = SentItem::kRemovedReliable;
                 }
             } else if (alive) {
                 entry->version_ = entry->Object()->version_;
-                item->action = SentItem::kChanged;
-                item->version = entry->Object()->version_;
+                item.action = SentItem::kChanged;
+                item.version = entry->Object()->version_;
             } else {
                 entry->version_ = 1;
-                item->action = SentItem::kRemoved;
+                item.action = SentItem::kRemoved;
             }
         }
     }
@@ -250,8 +234,8 @@ bool Connection::SendUpdate(int budget) {
 
     if (g_currentSession->socket_.SendTo(&address_, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
-    RollBack(&history_.End()->prev->data);
-    Packets::Erase<PacketRecordElement>(history_.End()->prev);
+    RollBack(&history_.back());
+    history_.pop_back();
     return false;
 }
 
@@ -529,18 +513,13 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
 namespace net {
 
 void Connection::Acknowledge(std::uint16_t sequence) {
-    for (HistoryNode* node = history_.First(); node != history_.End(); node = node->next) {
-        if (node->data.sequence == sequence) {
-            Delivered(&node->data);
-            Packets::Erase<PacketRecordElement>(node);
-            return;
-        }
-    }
-    for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End(); node = node->next) {
-        if (node->data.sequence == sequence) {
-            Delivered(&node->data);
-            Packets::Erase<PacketRecordElement>(node);
-            return;
+    for (std::list<SentPacket>* packets : {&history_, &acknowledged_}) {
+        for (auto packet = packets->begin(); packet != packets->end(); ++packet) {
+            if (packet->sequence == sequence) {
+                Delivered(&*packet);
+                packets->erase(packet);
+                return;
+            }
         }
     }
 }
@@ -602,15 +581,15 @@ void Connection::ProcessHeaders() {
     bool progress;
     do {
         progress = false;
-        HeaderNode* node = incoming_.First();
-        if (node == incoming_.End()) return;
+        auto node = incoming_.begin();
+        if (node == incoming_.end()) return;
         do {
-            if (node->data.Sequence() == incomingSequence_) {
+            if (node->Sequence() == incomingSequence_) {
                 GameBuffer* in = &reliableIn_;
                 if (in->cur > in->high) in->high = in->cur;
                 in->Seek(in->PositionOf(in->high));
-                std::uint32_t size = node->data.Size();
-                const std::uint8_t* from = node->data.bytes + 3;
+                std::uint32_t size = node->Size();
+                const std::uint8_t* from = node->bytes + 3;
                 if (in->cur + size > in->end) {
                     in->WriteMore(from, size);
                 } else {
@@ -618,13 +597,13 @@ void Connection::ProcessHeaders() {
                     std::memcpy(in->cur, from, size);
                     in->cur += size;
                 }
-                incomingSequence_ = static_cast<std::uint16_t>(incomingSequence_ + node->data.Size());
-                node = Chunks::Erase<ChunkElement>(node);
+                incomingSequence_ = static_cast<std::uint16_t>(incomingSequence_ + node->Size());
+                node = incoming_.erase(node);
                 progress = true;
             } else {
-                node = node->next;
+                ++node;
             }
-        } while (node != incoming_.End());
+        } while (node != incoming_.end());
     } while (progress);
 }
 
@@ -655,7 +634,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     std::memcpy(header.bytes + 3, from, header.Size());
     cursor->p = from + header.Size();
     if (static_cast<std::uint16_t>(header.Sequence() - incomingSequence_) <= 0x8000 && header.Size() != 0) {
-        Chunks::Insert<ChunkElement>(incoming_.End(), header);
+        incoming_.push_back(header);
         ProcessHeaders();
     }
     std::uint8_t count = *cursor->p++;

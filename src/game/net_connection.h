@@ -7,11 +7,10 @@
 #include "net_classes.h"
 #include "net_coder.h"
 
-#include "lib/stlp_list_refs.h"
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <map>
 #include <vector>
 
@@ -47,6 +46,9 @@ public:
     RefPtrTo<Message> object_;   // the object (null once it is gone)
 };
 
+// A counted reference to a replica entry (the connection's maps' values, a sent item's entry).
+using EntryRef = CountedPtr<ReplicaEntry>;
+
 // One item of a history entry: what a packet carried for one entry.
 struct SentItem {
     enum Action : std::uint32_t {
@@ -56,12 +58,10 @@ struct SentItem {
         kRemovedReliable = 3,
     };
 
-    std::uint32_t action;      // Action
-    std::uint32_t version;     // the object's version sent
-    ReplicaEntry* entry;       // counted pointer
+    std::uint32_t action = 0;    // Action
+    std::uint32_t version = 0;   // the object's version sent
+    EntryRef entry;
 };
-using SentItemNode = stlp::list<SentItem>::Node;
-static_assert(sizeof(SentItemNode) == 0x14);
 
 // A chunk of the reliable stream: {uint16 sequence, uint8 size, size bytes}.
 struct ReliableChunk {
@@ -73,25 +73,12 @@ struct ReliableChunk {
 
 // A packet in the send history: when it went out and what it carried.
 struct SentPacket {
-    double time;               // the connection's clock when sent
-    std::uint16_t sequence;
-    std::uint16_t unused_0A;
-    stlp::list<SentItem> items;
-    ReliableChunk header;      // the reliable chunk the packet carried
-    std::uint8_t rolledBack;
-    std::uint8_t unused_115[3];
+    double time = 0.0;           // the connection's clock when sent
+    std::uint16_t sequence = 0;
+    std::list<SentItem> items;
+    ReliableChunk header{};      // the reliable chunk the packet carried
+    std::uint8_t rolledBack = 0;
 };
-static_assert(offsetof(SentPacket, items) == 0x0C);
-static_assert(offsetof(SentPacket, rolledBack) == 0x114);
-
-// A node of the send history (history_ / acknowledged_).
-using HistoryNode = stlp::list<SentPacket>::Node;
-static_assert(offsetof(HistoryNode, data) == 0x08);
-static_assert(sizeof(HistoryNode) == 0x120);
-
-// A node of the chunk lists (headers_: waiting to be sent; incoming_: received out of order).
-using HeaderNode = stlp::list<ReliableChunk>::Node;
-static_assert(sizeof(HeaderNode) == 0x10C);
 
 // A batch of freed ids (an element of freedIds_).
 struct FreedId {
@@ -100,8 +87,6 @@ struct FreedId {
     std::uint8_t unused_3;
 };
 using FreedIds = std::vector<FreedId>;
-using FreedBatch = stlp::list<FreedIds>::Node;
-static_assert(sizeof(FreedBatch) == 0x14);
 
 // An object received from the peer (the value of records_): its share (copied with Share, released as its owner).
 struct Record {
@@ -115,9 +100,6 @@ struct AttachedId {
     std::uint8_t type;
     std::uint8_t unused_3;
 };
-
-// A counted reference to a replica entry (the connection's maps' values).
-using EntryRef = CountedPtr<ReplicaEntry>;
 
 class Connection final : public CRefObject {
 public:
@@ -200,19 +182,19 @@ public:
     double clock_;                      // seconds since the connection started
     std::uint32_t updateBudget_;        // 220: bytes per update
     IdPool idPools_[kMessageTypes];     // one per message type
-    stlp::list<FreedIds> freedIds_;     // batches of ids returned to the pools later
+    std::list<FreedIds> freedIds_;     // batches of ids returned to the pools later
     float freedTimer_;
     std::map<std::int32_t, EntryRef> bySentId_;    // type << 16 | id -> entry
     std::map<CRefObject*, EntryRef> byObject_;     // object -> entry
     std::array<EntryMap, 11> priorities_;          // per priority: entry -> entry
-    stlp::list<SentPacket> history_;    // packets sent, waiting for an acknowledgement
-    stlp::list<SentPacket> acknowledged_;   // lost packets, kept a while for late acknowledgements
+    std::list<SentPacket> history_;    // packets sent, waiting for an acknowledgement
+    std::list<SentPacket> acknowledged_;   // lost packets, kept a while for late acknowledgements
     RecordMap records_;                 // objects received (key type << 16 | id)
     std::map<CRefObject*, AttachedId> attached_;   // received object -> (type, id)
     std::uint16_t headerSequence_;      // sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // sequence of the next reliable chunk expected
-    stlp::list<ReliableChunk> headers_;    // reliable chunks waiting to be sent
-    stlp::list<ReliableChunk> incoming_;   // reliable chunks received ahead of their turn
+    std::list<ReliableChunk> headers_;    // reliable chunks waiting to be sent
+    std::list<ReliableChunk> incoming_;   // reliable chunks received ahead of their turn
     std::uint32_t ackMask_;             // bit k: packet ackBase_ - 1 - k acknowledged already
     std::uint16_t ackBase_;             // the peer's newest acknowledged sequence
     std::uint16_t unused_112A;

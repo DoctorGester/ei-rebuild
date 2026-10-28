@@ -1894,9 +1894,8 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **Node allocator rule**: the node size picks the free list; a wrong element size corrupts another size's pool
   (005392C0 holds 20 bytes in a 32-byte node). Read sizes from each `_M_create_node` / `_M_new_node` / clear's free
   list.
-- **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release, held engine objects, CString); game records
-  in record_lists, the connection's in library_net_lists. Where the original copies uninitialised stack bytes into a
-  default element, ours copies zeros (every caller overwrites them).
+- **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release): only the net RefPtr / timed lists and the
+  sessions' raw-sentinel lists are left (C14t); the record lists went with C14n / C14s (core.md).
 - **vector** (S10, S10a; stlp_vector, stlp_vector_refs, record_vectors: all gone with C14n / C14q, the vectors are
   std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of

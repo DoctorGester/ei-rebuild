@@ -7,7 +7,6 @@
 #include "engine_object.h"
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <cstring>
 #include <iterator>
@@ -55,9 +54,9 @@ void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedR
     // A key that is text (the people's names, "pers <name>") back in the archive's code page.
     std::string assetKey;
     if (text::ToAssetText(key, &assetKey)) key = assetKey.c_str();
-    for (TextSourceNode* node = list->head->next; node != list->head; node = node->next) {
-        if (void* data = node->data.source->GetFile(key, size)) {
-            if (source) *source = node->data.source;
+    for (const TextSource& archive : list->archives) {
+        if (void* data = archive.source->GetFile(key, size)) {
+            if (source) *source = archive.source;
             return data;
         }
     }
@@ -65,9 +64,9 @@ void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedR
 }
 
 // The exact name comparison of the list (length, then the bytes).
-bool SameName(const TextSourceNode* node, const char* path) {
+bool SameName(const TextSource& archive, const char* path) {
     std::size_t length = std::strlen(path);
-    return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
+    return archive.name.size() == length && std::memcmp(archive.name.data(), path, length) == 0;
 }
 
 void CloseAndDelete(CMappedResource* source) {
@@ -79,43 +78,26 @@ void CloseAndDelete(CMappedResource* source) {
 } // namespace
 
 BOOL TextSources::Add(const char* path, BOOL writable) {
-    using Node = TextSourceNode;
-    for (Node* node = head->next; node != head; node = node->next) {
-        if (SameName(node, path)) return 1;
-    }
+    for (const TextSource& archive : archives)
+        if (SameName(archive, path)) return 1;
     CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
     CMappedResource* resource = memory ? new (memory) CMappedResource() : nullptr;
-    {
-        TextSource value{std::string(path), resource};
-        Node* inserted;
-        Insert(&inserted, head, &value);
-    }
-    return head->prev->data.source->OpenResource(path, writable);
+    archives.push_back(TextSource{std::string(path), resource});
+    return archives.back().source->OpenResource(path, writable);
 }
 
 void TextSources::Remove(const char* path) {
-    using Node = TextSourceNode;
-    for (Node* node = head->next; node != head; node = node->next) {
-        if (!SameName(node, path)) continue;
-        CloseAndDelete(node->data.source);
-        Node* next;
-        Erase(&next, node);
+    for (auto archive = archives.begin(); archive != archives.end(); ++archive) {
+        if (!SameName(*archive, path)) continue;
+        CloseAndDelete(archive->source);
+        archives.erase(archive);
         return;
     }
 }
 
 void TextSources::Clear() {
-    using Node = TextSourceNode;
-    Node* sentinel = head;
-    for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->data.source);
-    for (Node* node = sentinel->next; node != sentinel;) {
-        Node* next = node->next;
-        std::destroy_at(&node->data.name);   // the storage freed
-        stlp::deallocate(node, sizeof(Node));
-        node = next;
-    }
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
+    for (const TextSource& archive : archives) CloseAndDelete(archive.source);
+    archives.clear();
 }
 
 BOOL CTextManager::AddSource(const char* path) {
@@ -128,17 +110,10 @@ void CTextManager::ClearSources() { sources_.Clear(); }
 
 CTextManager::CTextManager() {
     ClearFields();
-    sources_.Construct();
     CTextManager::Create();
 }
 
-CTextManager::~CTextManager() {
-    ClearSources();
-    sources_.Clear();
-    // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
-    sources_.ClearWith([](TextSource* source) { std::destroy_at(&source->name); });
-    stlp::deallocate(sources_.head, sizeof(TextSourceNode));
-}
+CTextManager::~CTextManager() { ClearSources(); }
 
 void* TextSources::Find(const char* key, std::uint32_t* size) {
     return FindFile(this, key, size, nullptr);
@@ -153,8 +128,8 @@ void* TextSources::FindKeyText(const char* key, std::uint32_t* size) {
 void TextSources::ListKeys(std::vector<std::string>* out, const char* pattern) {
     std::vector<std::string> found;
     out->clear();
-    for (TextSourceNode* node = head->next; node != head; node = node->next) {
-        node->data.source->ListFiles(&found, pattern);
+    for (const TextSource& archive : archives) {
+        archive.source->ListFiles(&found, pattern);
         out->insert(out->end(), found.begin(), found.end());
     }
 }

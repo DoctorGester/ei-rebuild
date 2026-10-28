@@ -45,8 +45,6 @@
 #include "lib/nan_audit.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/stlp.h"
-#include "lib/stlp_list_refs.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "player_client.h"
@@ -61,6 +59,7 @@
 #include "system_text.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <iterator>
 #include <list>
 #include <new>
@@ -78,25 +77,15 @@ namespace {
 // negative coordinate gives a huge index that fails the bounds tests.
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 
-// The list operations of the two grids' instantiations (thiscall on the cell's list): erase, end and insert
-// on the held objects' list (counted values).
-using HeldOps = stlp::ListAbi<CMapObject*, stlp::HeldObject>;
-struct GridOpsA {
-    static void Erase(SectorList*, SectorListNode** out, SectorListNode* node) {
-        *out = SectorList::Erase<stlp::HeldObject>(node);
-    }
-};
-using GridOpsB = GridOpsA;
-
-void HoldRef(CMapObject* object) {
-    if (object) ++object->refCount_;
-}
-void DropRef(CMapObject* object) {
-    if (object) object->Release();
+// Every element of `list` that is `object` erased (released), the object held meanwhile.
+void RemoveHeld(SectorList& list, CMapObject* object) {
+    HeldPtr<CMapObject> hold(object);
+    std::erase_if(list, [object](const HeldPtr<CMapObject>& held) { return held.get() == object; });
 }
 
-template <typename Ops>
-void MoveInGrid(SectorGrid* grid, CMapObject* object, const float* position) {
+} // namespace
+
+void SectorGrid::Move(CMapObject* object, const float* position) {
     float* stored = &object->localPosition_.x;   // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
@@ -106,39 +95,9 @@ void MoveInGrid(SectorGrid* grid, CMapObject* object, const float* position) {
         std::memcpy(stored, position, 12);
         return;
     }
-    if (oldX < grid->width_ && oldY < grid->height_) {
-        HoldRef(object);
-        SectorList* list = &grid->rows_[oldY][oldX];
-        SectorListNode* head = list->head;
-        SectorListNode* node = head->next;
-        while (node != head) {
-            SectorListNode* next = node->next;
-            if (node->data == object) {
-                SectorListNode* ignored;
-                Ops::Erase(list, &ignored, node);
-            }
-            node = next;
-        }
-        DropRef(object);
-    }
+    if (oldX < width_ && oldY < height_) RemoveHeld(rows_[oldY][oldX], object);
     std::memcpy(stored, position, 12);
-    if (newX < grid->width_ && newY < grid->height_) {
-        CMapObject* value = object;
-        HoldRef(value);
-        SectorList* list = &grid->rows_[newY][newX];
-        SectorList::Insert<stlp::HeldObject>(list->End(), value);
-        DropRef(value);
-    }
-}
-
-} // namespace
-
-void SectorGrid::Move(CMapObject* object, const float* position) {
-    MoveInGrid<GridOpsA>(this, object, position);
-}
-
-void SectorGrid::Move2(CMapObject* object, const float* position) {
-    MoveInGrid<GridOpsB>(this, object, position);
+    if (newX < width_ && newY < height_) rows_[newY][newX].emplace_back(object);
 }
 
 namespace {
@@ -186,27 +145,7 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
 
 namespace {
 
-// The plain STLport lists of pointers (heroes_, objects_, list7BC_, screenEntries_): end, insert, begin, erase.
-using PlainList = SectorList;
-using FiledNode = MapObjectList::Node;
-struct PlainOps {
-    static void Erase(SectorList*, SectorListNode** out, SectorListNode* node) {
-        *out = SectorList::Erase(node);
-    }
-    static void Erase(MapObjectList*, FiledNode** out, FiledNode* node) { *out = MapObjectList::Erase(node); }
-};
-
-// The sector grid's cell list (held objects): remove(counted value), push_back, clear; the second grid's clear.
-struct CellOps {
-    static void Remove(SectorList* list, CMapObject* const& value) { stlp::ListRemoveHeld(list, value); }
-    static void PushBack(SectorList* list, CMapObject** value) {
-        SectorList::Insert<stlp::HeldObject>(list->head, *value);
-    }
-    static constexpr auto Clear = HeldOps::Clear;
-    static constexpr auto Clear2 = HeldOps::Clear;
-};
-
-// The client's MFC CList<CMapObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's RemoveAt.
+// The client's objects answering IsSynchronised (dynamicObjects_).
 using DynamicList = std::list<CMapObject*>;
 using DynamicNode = DynamicList::iterator;
 
@@ -226,9 +165,8 @@ SectorList* CellFor(SectorGrid& grid, CMapObject* object) {
 } // namespace
 
 int CWorldClient::AddObject(CMapObject* object) {
-    MapObjectList& objects = objects_;
-    for (FiledNode* node = objects.head->next; node != objects.head; node = node->next) {
-        if (node->data->id_ == object->id_) {
+    for (CMapObject* filed : objects_) {
+        if (filed->id_ == object->id_) {
             ++object->refCount_;
             object->Release();
             return 1;
@@ -257,37 +195,17 @@ int CWorldClient::AddObject(CMapObject* object) {
     }
 
     ++object->refCount_;
-    MapObjectList::Insert(objects.End(), object);
+    objects_.push_back(object);
 
-    SectorGrid& grid = objectGrid_;
-    if (SectorList* cell = CellFor(grid, object)) {
-        CMapObject* value = object;
-        HoldRef(value);
-        CellOps::Remove(cell, value);
-        DropRef(value);
-    }
-    if (SectorList* cell = CellFor(grid, object)) {
-        CMapObject* value = object;
-        HoldRef(value);
-        CellOps::PushBack(cell, &value);
-        DropRef(value);
-    }
-    if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) {
-        CMapObject* value = object;
-        HoldRef(value);
-        SectorList& heroes = heroes_;
-        SectorList::Insert<stlp::HeldObject>(heroes.End(), value);
-        DropRef(value);
-    }
+    if (SectorList* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    if (SectorList* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
+    if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
     return 1;
 }
 
 void CWorldClient::RefreshPlatforms(CMapObject* object) {
     const int id = object->id_;
-    MapObjectList& objects = objects_;
-    FiledNode* filed = objects.head->next;
-    while (filed != objects.head && filed->data->id_ != id) filed = filed->next;
-    if (filed == objects.head) return;
+    if (std::ranges::none_of(objects_, [id](const CMapObject* filed) { return filed->id_ == id; })) return;
     PlatformList& platforms = platforms_.list;
     for (auto node = platforms.begin(); node != platforms.end();) {
         auto next = std::next(node);
@@ -360,9 +278,9 @@ void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
 }
 
 void CWorldClient::LoadUnitFaces() {
-    for (FiledNode* node = objects_.head->next; node != objects_.head; node = node->next) {
+    for (CMapObject* object : objects_) {
         // The pointer is tested after the class call (the list holds no null).
-        if (CUnit* unit = UnitOrNull(node->data)) unit->ClientController()->LoadFaceTexture();
+        if (CUnit* unit = UnitOrNull(object)) unit->ClientController()->LoadFaceTexture();
     }
 }
 
@@ -378,9 +296,8 @@ int CWorldClient::SendFlag10(int value) {
 }
 
 void CWorldClient::DropShadows() {
-    MapObjectList& objects = objects_;
-    for (FiledNode* node = objects.head->next; node != objects.head; node = node->next) {
-        CObject3DClientSpecific* half = node->data->ClientSpecific();
+    for (CMapObject* object : objects_) {
+        CObject3DClientSpecific* half = object->ClientSpecific();
         // Only the low byte is tested (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
@@ -400,56 +317,27 @@ void CWorldClient::RemoveObject(int id) {
         kept.erase(node);
         if (auto again = ids.find(static_cast<std::uint32_t>(id)); again != ids.end()) ids.erase(again);
     }
-    MapObjectList& objects = objects_;
-    FiledNode* node = objects.head->next;
-    for (;; node = node->next) {
-        if (node == objects.head) return;
-        if (node->data->id_ == id) break;
-    }
-    CMapObject* object = node->data;
+    auto filed = std::ranges::find_if(objects_, [id](const CMapObject* object) { return object->id_ == id; });
+    if (filed == objects_.end()) return;
+    CMapObject* object = *filed;
     if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
-        CMapObject* value = object;
-        HoldRef(value);
-        SectorList& heroes = heroes_;
-        for (SectorListNode* hero = heroes.head->next; hero != heroes.head;) {
-            SectorListNode* next = hero->next;
-            if (hero->data == value) {
-                SectorListNode* ignored;
-                GridOpsA::Erase(&heroes, &ignored, hero);
-            }
-            hero = next;
-        }
-        DropRef(value);
+        RemoveHeld(heroes_, object);
         if (Session()->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
-    if (SectorList* cell = CellFor(objectGrid_, object)) {
-        CMapObject* value = object;
-        HoldRef(value);
-        CellOps::Remove(cell, value);
-        DropRef(value);
-    }
-    FiledNode* ignored;
-    PlainOps::Erase(&objects, &ignored, node);
+    if (SectorList* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    objects_.erase(filed);
     object->Release();
-}
-
-bool ReleaseIdentified::Test(CMapObject* object) {
-    if (object->id_ > 0) {
-        object->Release();
-        return true;
-    }
-    return false;
 }
 
 void CWorldClient::ClearMaps() {
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
         for (int y = 0; y < static_cast<int>(second.height_); ++y)
-            CellOps::Clear2(&second.rows_[y][x]);
+            second.rows_[y][x].clear();
     SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
-            CellOps::Clear(&grid.rows_[y][x]);
+            grid.rows_[y][x].clear();
 
     // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no destruction).
     platforms_.list.clear();
@@ -459,28 +347,13 @@ void CWorldClient::ClearMaps() {
 
     list7BC_.clear();
 
-    PlainList& heroes = heroes_;
-    for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
-        SectorListNode* next = node->next;
-        if (node->data) node->data->Release();
-        stlp::deallocate(node, 12);
-        node = next;
-    }
-    heroes.head->next = heroes.head;
-    heroes.head->prev = heroes.head;
-
-    MapObjectList& objects = objects_;
-    FiledNode* node = objects.head->next;
-    FiledNode* end = objects.head;
-    ReleaseIdentified functor{};
-    while (node != end) {
-        FiledNode* next = node->next;
-        if (functor.Test(node->data)) {
-            FiledNode* ignored;
-            PlainOps::Erase(&objects, &ignored, node);
-        }
-        node = next;
-    }
+    heroes_.clear();
+    // The objects with a positive id released and unfiled.
+    std::erase_if(objects_, [](CMapObject* object) {
+        if (object->id_ <= 0) return false;
+        object->Release();
+        return true;
+    });
     SessionPlayerClear(Session());
     if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
     manager3C_->FreeSpares();
@@ -557,12 +430,12 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out) {
+void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) {
     for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
         CMapObject* object = manager40_->FindMapObject(node->objectId);
         if (!object) continue;
         if (!object->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
-        SectorList::Insert(out->End(), object);
+        out->push_back(object);
     }
 }
 
@@ -666,8 +539,7 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
 
     SectorGrid& grid = objectGrid_;
     for (SectorList* cell = &grid.rows_[y][x]; cell;) {
-        for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
-            CMapObject* object = node->data;
+        for (CMapObject* object : *cell) {
             float pz = point->z;
             float ox = object->localPosition_.x + object->bounds.center.x;
             float oy = object->localPosition_.y + object->bounds.center.y;
@@ -764,20 +636,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 
 namespace {
 
-// The list's nodes walked from the head's next, each given to `free` after the next is read; the
-// list is left empty.
-template <typename T, typename F>
-void EmptyList(stlp::list<T>& list, F free) {
-    using Node = typename stlp::list<T>::Node;
-    for (Node* node = list.head->next; node != list.head;) {
-        Node* next = node->next;
-        free(node);
-        node = next;
-    }
-    list.head->next = list.head;
-    list.head->prev = list.head;
-}
-
 template <typename T>
 void DeleteOwned(T*& slot) {
     if (CEngineObject* object = slot) {
@@ -823,15 +681,12 @@ void CWorldClient::Destroy() {
     SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
-            CellOps::Clear(&grid.rows_[y][x]);
+            grid.rows_[y][x].clear();
     list7BC_.clear();
-    EmptyList(heroes_, [](SectorListNode* node) {
-        if (node->data) node->data->Release();
-        stlp::deallocate(node, 12);
-    });
-    MapObjectList& objects = objects_;
-    stlp::ListForEachRelease<CMapObject>(objects.head->next, objects.head, 0);
-    EmptyList(objects, [](FiledNode* node) { stlp::deallocate(node, 12); });
+    heroes_.clear();
+    for (CMapObject* object : objects_)
+        if (object) object->Release();
+    objects_.clear();
     if (CPlayer* session = Session()) {
         session->Release();
         session_ = nullptr;
@@ -859,13 +714,11 @@ void CWorldClient::Destroy() {
 
 void CWorldClient::ResetZoneObjects() {
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
-    // The second grid's cells: each element released (flags 0), its node freed, the cell linked to itself.
+    // The second grid's cells emptied (each object released).
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
         for (int y = 0; y < static_cast<int>(second.height_); ++y)
-            second.rows_[y][x].ClearWith([](CMapObject** element) {
-                if (CMapObject* object = *element) object->Release();
-            });
+            second.rows_[y][x].clear();
     ObjectListIterator it{nullptr, {}};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
     if (bird_) bird_->Reset();
@@ -967,45 +820,20 @@ void ReferenceEveryObject(CBaseManager* manager) {
 
 } // namespace
 
-void DestroySectorList(stlp::list<CMapObject*>* list) {
-    list->ClearWith([](CMapObject** object) {
-        if (*object) (*object)->Release();
-    });
-    stlp::deallocate(list->head, sizeof(SectorListNode));
-}
-
-SectorList* SectorList::VectorDelete(unsigned flags) {
-    if (flags & 2) {
-        SectorList* cells = this;
-        int* block = reinterpret_cast<int*>(cells) - 1;
-        for (int i = *block; i-- > 0;) DestroySectorList(&cells[i]);
-        if (flags & 1) gamecrt::operator_delete(block);
-        return reinterpret_cast<SectorList*>(block);
-    }
-    DestroySectorList(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-void SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
-
 void SectorGrid::Allocate() {
-    const int count = unknown08_ * unknown0C_;
-    auto* block = gamecrt::operator_new_bytes_as<int>(static_cast<std::size_t>(count) * sizeof(SectorList) + 4);
-    SectorList* cells = nullptr;
-    if (block) {
-        *block = count;
-        cells = reinterpret_cast<SectorList*>(block + 1);
-        for (int i = 0; i < count; ++i) cells[i].Construct();
-    }
-    cells_ = cells;
-    rows_ = gamecrt::operator_new_array<SectorList*>(static_cast<std::size_t>(unknown0C_));
-    for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
+    cells_ = std::make_unique<SectorList[]>(static_cast<std::size_t>(unknown08_) * unknown0C_);
+    rows_ = std::make_unique<SectorList*[]>(static_cast<std::size_t>(unknown0C_));
+    for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_.get() + y * unknown08_;
+}
+
+void SectorGrid::Free() {
+    cells_.reset();
+    rows_.reset();
 }
 
 void SectorGrid::Resize(int width, int height) {
     if (unknown08_ == width && unknown0C_ == height) return;
-    if (cells_) cells_->VectorDelete(3);
-    gamecrt::operator_delete(rows_);
+    Free();
     unknown08_ = width;
     unknown0C_ = height;
     Allocate();
