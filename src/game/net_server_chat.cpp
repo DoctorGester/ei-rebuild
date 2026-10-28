@@ -10,6 +10,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 namespace net {
 
@@ -53,9 +54,9 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 
 // Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
-    mfc::CString line(mfc::CString::kUnset);   // constructed by the call
-    mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);
-    Announce(formatted->GetString(), player);
+    std::string line;   // constructed by the call
+    std::string* formatted = TheInterface()->MessageText(&line, kind, text);
+    Announce(formatted->c_str(), player);
 }
 
 } // namespace net

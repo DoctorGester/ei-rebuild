@@ -33,11 +33,11 @@ constexpr const char* kQuestEntry = "#quest %s";
 constexpr const char* kMissingNumber = "0";
 
 // The text `prefix` + `name` (empty when there is none), constructed into `out`.
-mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {
+std::string* PlaceTitle(std::string* out, const char* prefix, const char* name) {
     CTextManager* texts = TheTextManager();
     std::string text;
-    if (texts->Open(mfc::CString(prefix) + name)) texts->ReadLine(&text, 1);
-    return std::construct_at(out, text);
+    if (texts->Open((std::string(prefix) + name).c_str())) texts->ReadLine(&text, 1);
+    *out = text; return out;
 }
 
 
@@ -62,11 +62,11 @@ void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
 
 // --- titles --------------------------------------------------------------------------------------
 
-mfc::CString* CGlobalMap::AllodTitle(mfc::CString* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
+std::string* CGlobalMap::AllodTitle(std::string* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
 
-mfc::CString* CGlobalMap::ZoneTitle(mfc::CString* out, const char* zone) { return PlaceTitle(out, kZonePrefix, zone); }
+std::string* CGlobalMap::ZoneTitle(std::string* out, const char* zone) { return PlaceTitle(out, kZonePrefix, zone); }
 
-mfc::CString* CGlobalMap::QuestTitle(mfc::CString* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
+std::string* CGlobalMap::QuestTitle(std::string* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
 
 // --- positions -----------------------------------------------------------------------------------
 

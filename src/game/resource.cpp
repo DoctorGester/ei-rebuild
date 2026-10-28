@@ -75,11 +75,11 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
     writable_ = writable;
     fd_ = libcrt::Open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
     if (fd_ == -1)
-        return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + mfc::CString(path) + "\"");
+        return game::FatalError(("CMappedResource::OpenResource()\nUnable to open file \"" + std::string(path) + "\"").c_str());
 
     if (libcrt::Lseek(fd_, 0, 0) != -1 && libcrt::Read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
         if (header_.magic != kResMagic) {
-            game::FatalError("Wrong format resource file \"" + mfc::CString(path) + "\"");
+            game::FatalError(("Wrong format resource file \"" + std::string(path) + "\"").c_str());
             CloseResource();
             return 0;
         }
@@ -92,7 +92,7 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
             return 1;
     }
     CloseResource();
-    return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + mfc::CString(path) + "\"");
+    return game::FatalError(("CMappedResource::OpenResource()\nUnable to read file \"" + std::string(path) + "\"").c_str());
 }
 
 BOOL CMappedResource::OpenFromMemory(const void* image) {

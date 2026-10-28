@@ -119,7 +119,7 @@ void CHelpWindow::ShowPage() {
     std::vector<std::string> words;
     BOOL found;
     {
-        std::string section = (mfc::CString(kTutorialSection) + text_).GetString();
+        std::string section = std::string(kTutorialSection) + text_;
         found = texts->Open(section.c_str());
     }
     if (!found) {
@@ -238,7 +238,7 @@ void CHelpWindow::ShowPage() {
                     const int cellX = pictures / 4 * kPictureSize;
                     const int cellY = pictures % 4 * kPictureSize;
                     {
-                        std::string name = (mfc::CString(kPicturePrefix) + entry.picture.data()).GetString();
+                        std::string name = std::string(kPicturePrefix) + entry.picture.data();
                         CopyImage(objects_.data[1], name.c_str(), kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
@@ -262,7 +262,7 @@ void CHelpWindow::ShowPage() {
             text.clear();
             BOOL open;
             {
-                std::string section = (mfc::CString(kTutorSection) + entry.key.data()).GetString();
+                std::string section = std::string(kTutorSection) + entry.key.data();
                 open = texts->Open(section.c_str());
             }
             if (open) texts->ReadToHash(&text, 1);

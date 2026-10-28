@@ -8,16 +8,17 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 
 namespace {
 constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after this version
 
 // A string read up to its terminator (CStream::ReadString into a temporary).
 struct ReadText {
-    explicit ReadText(CStream* stream) : text(stream->ReadString(storage)) {}
+    explicit ReadText(CStream* stream) : text(stream->ReadString(storage.c_str())) {}
     ~ReadText() { std::destroy_at(text); }
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* text;
+    std::string storage;
+    std::string* text;
 };
 
 void WriteText(CStream* stream, std::string_view text) {
@@ -33,7 +34,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     stream->Read(&localRotation_, sizeof(localRotation_));
     {
         ReadText text(stream);
-        name = text.text->GetString();
+        name = text.text->c_str();
     }
     stream->Read(&scale, sizeof(scale));
     int count = 0;
@@ -81,7 +82,7 @@ void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) {
         ReadText text(stream);
-        strings.push_back(text.text->GetString());
+        strings.push_back(text.text->c_str());
     }
 }
 

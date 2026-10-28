@@ -9,6 +9,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 using namespace effect;
 
@@ -63,8 +64,8 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
-        mfc::CString text(mfc::CString::kUnset);   // constructed by the read
-        array->push_back(stream->ReadString(&text)->GetString());
+        std::string text;   // constructed by the read
+        array->push_back(stream->ReadString(&text)->c_str());
     }
 }
 
@@ -266,8 +267,8 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&countSlot, 1);
     names_.resize(countSlot & 0xFF);
     for (std::string& name : names_) {
-        mfc::CString text(mfc::CString::kUnset);   // constructed by the read
-        name = field->ReadString(&text)->GetString();
+        std::string text;   // constructed by the read
+        name = field->ReadString(&text)->c_str();
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);

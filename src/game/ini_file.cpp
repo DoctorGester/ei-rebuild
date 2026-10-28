@@ -29,7 +29,7 @@ constexpr char kListSeparator = ',';
 // MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
 
-mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
+std::string ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }
 
@@ -121,15 +121,15 @@ BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
     return 0;
 }
 
-mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
+std::string CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
     gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
-    return mfc::CString(buffer);
+    return std::string(buffer);
 }
 
 BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
-    std::string value = ReadString(this, section, key, game::EmptyText()).GetString();
+    std::string value = ReadString(this, section, key, game::EmptyText());
     std::string item;
     if (value.empty()) return 0;
     value += separator;

@@ -70,7 +70,7 @@ int CMapObjectManager::Create() { return CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
 
 int CMapObjectManager::CreateManager() {
-    std::string folder = TheTextFolder().GetString();
+    std::string folder = TheTextFolder();
     if (!CBaseManager::Create()) return 0;
     AddArchive((folder + "database.res").c_str());
     return 1;
@@ -92,10 +92,10 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     return object;
 }
 
-FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
-    auto* database = static_cast<AnimationDatabase*>(GetFile(*figure + ".adb", nullptr));
+FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
+    auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb").c_str(), nullptr));
     if (!database) {
-        game::DebugLog(kNoDatabaseText, figure->GetString());
+        game::DebugLog(kNoDatabaseText, figure->c_str());
         return nullptr;
     }
     const std::uint32_t variant = key & kKeyVariantBits;

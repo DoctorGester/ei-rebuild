@@ -443,12 +443,12 @@ int CPlayerServer::OnRefreshParty() {
 }
 
 int CPlayerServer::OnTakeExit() {
-    mfc::CString zone;
+    std::string zone;
     int exit = 0;
     int entrance = 0;
     ReceivedMessages().Read(&exit, 4);
     if (!TheServerWorld()->GetZoneExit(exit, &zone, &entrance)) return 0;
-    LeaveToZone(zone, entrance);
+    LeaveToZone(zone.c_str(), entrance);
     return 1;
 }
 
@@ -465,10 +465,9 @@ int CPlayerServer::OnJoined() {
 int CPlayerServer::OnLeaveToZone() {
     std::string zone;
     {
-        alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
-        mfc::CString* read = ReceivedMessages().ReadString(text);
+        std::string text;
+        std::string* read = ReceivedMessages().ReadString(&text);
         zone = *read;
-        std::destroy_at(read);
     }
     int entrance = 0;
     ReceivedMessages().Read(&entrance, 4);
@@ -479,10 +478,9 @@ int CPlayerServer::OnLeaveToZone() {
 int CPlayerServer::OnBriefingDone() {
     std::string name;
     {
-        alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
-        mfc::CString* read = ReceivedMessages().ReadString(text);
+        std::string text;
+        std::string* read = ReceivedMessages().ReadString(&text);
         name = *read;
-        std::destroy_at(read);
     }
     TheServerWorld()->CompleteBriefing(Owner()->playerId_, name.c_str());
     return 1;

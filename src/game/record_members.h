@@ -21,17 +21,9 @@ struct ElementOf {
     using type = stlp::PlainElement<T>;
 };
 template <>
-struct ElementOf<mfc::CString> {
-    using type = stlp::ObjectElement<mfc::CString>;
-};
-template <>
 struct ElementOf<std::string> {
     using type = stlp::ObjectElement<std::string>;
 };
-
-inline void CopyMember(mfc::CString& to, const mfc::CString& from) { std::construct_at(&to, from); }
-inline void AssignMember(mfc::CString& to, const mfc::CString& from) { to = from; }
-inline void DefaultMember(mfc::CString& to) { std::construct_at(&to); }
 
 inline void CopyMember(std::string& to, const std::string& from) { std::construct_at(&to, from); }
 inline void AssignMember(std::string& to, const std::string& from) { to = from; }
@@ -64,8 +56,6 @@ constexpr bool kVectorLike = decltype(DerivesVector(static_cast<T*>(nullptr)))::
 // this to false, so arrays of it go element by element too.
 template <typename T>
 struct IsPlain : std::bool_constant<std::is_trivially_copyable_v<T> && !kVectorLike<T>> {};
-template <>
-struct IsPlain<mfc::CString> : std::false_type {};
 template <>
 struct IsPlain<std::string> : std::false_type {};
 template <typename T>
@@ -102,7 +92,7 @@ std::enable_if_t<!kPlain<T>> DefaultMember(T (&to)[N]) {
 
 static_assert(std::is_trivially_copyable_v<stlp::vector<int>[2]> && !kPlain<stlp::vector<int>[2]>,
               "arrays of vectors go element by element");
-static_assert(!kPlain<mfc::CString[2][3]> && kPlain<int[4]>);
+static_assert(!kPlain<std::string[2][3]> && kPlain<int[4]>);
 struct DerivedVectorCheck : stlp::vector<int> {};
 static_assert(!kPlain<DerivedVectorCheck> && !kPlain<DerivedVectorCheck[2]>, "derived vectors are not bytes");
 

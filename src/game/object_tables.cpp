@@ -75,10 +75,9 @@ void NamedFloatTable::Load(CStream* stream) {
     for (;;) {
         std::string key;
         {
-            alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-            mfc::CString* read = stream->ReadString(raw);
+            std::string raw;
+            std::string* read = stream->ReadString(&raw);
             key = *read;
-            std::destroy_at(read);
         }
         if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
         float value;

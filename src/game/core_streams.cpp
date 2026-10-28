@@ -31,11 +31,11 @@ void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
-mfc::CString* CStream::ReadString(void* out) {
+std::string* CStream::ReadString(std::string* out) {
     std::string text;
     unsigned char byte;
-    while (Read(&byte, 1) && byte) text = mfc::operator+(text, static_cast<char>(byte));
-    return new (out) mfc::CString(text);
+    while (Read(&byte, 1) && byte) text = text + static_cast<char>(byte);
+    *out = text; return out;
 }
 
 // --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------

@@ -101,7 +101,7 @@ void CMpHeroScreen::FinishRename() {
     std::string typed = renameEdit_->text_;
     str::TrimLeft(typed);
     str::TrimRight(typed);
-    if (typed.size() != 0) typed = mfc::CString(RenameSeparator()) + typed;
+    if (typed.size() != 0) typed = std::string(RenameSeparator()) + typed;
     std::string& name = MpHeroName(heroIndex_);
     std::string title = name;
     std::string base;
@@ -217,7 +217,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            ChooseFigure(defaults_[0]);
+            ChooseFigure(defaults_[0].c_str());
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
@@ -243,7 +243,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = voices.begin()[index].file;
+        const std::string& file = voices.begin()[index].file;
         HeroRecord()->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
@@ -291,7 +291,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        ChooseFigure(defaults_[0]);
+        ChooseFigure(defaults_[0].c_str());
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
         surfaces_.data[0]->GetDC();
         surfaces_.data[0]->Clear();

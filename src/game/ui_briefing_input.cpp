@@ -255,7 +255,7 @@ void CBriefingScreen::DrawTopics() {
         if (row >= TopicCount()) break;
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
-        mfc::CString title;
+        std::string title;
         TopicTitle(&title, topics_[row].c_str());
         std::string text = prefix;
         text += TopicSeparator();

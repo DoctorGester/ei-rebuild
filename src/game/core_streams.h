@@ -12,10 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
-
-namespace mfc {
-class CString;
-}
+#include <string>
 
 // The engine's abstract byte stream. The save game, the network messages and the chunk archives are memory
 // streams behind it; the message recordings are file streams.
@@ -40,7 +37,7 @@ public:
     static void operator delete(void*, void*) noexcept {}
 
     // Bytes up to a zero or a failed read into a CString constructed at `out`.
-    mfc::CString* ReadString(void* out);
+    std::string* ReadString(std::string* out);
     // A text (mfc::CString or std::string) read as ReadString reads it.
     template <typename Text>
     void ReadInto(Text* out);

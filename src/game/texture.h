@@ -423,8 +423,8 @@ public:
     int DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width);
     // The skin composed into the cached texture `name` (or `fallback`), the name used into `out`: 1 when
     // cached or written, 0 when nothing was drawn.
-    int Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
-                const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
+    int Compose(std::string* out, const SkinRequest* request, const std::string* name,
+                const std::string* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
     MmpHeader* GetFileData(const char* name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);

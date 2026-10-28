@@ -5,19 +5,20 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <string>
 
-constinit lib::StaticObject<mfc::CString> g_registryRoot = /*007AF450*/ {};
-constinit lib::StaticObject<mfc::CString> g_startFolder = /*007AF454*/ {};
-constinit lib::StaticObject<mfc::CString> g_discFolder = /*007AF458*/ {};
-constinit lib::StaticObject<mfc::CString> g_textFolder = /*007AF45C*/ {};
-constinit lib::StaticObject<mfc::CString> g_dataFolder = /*007AF460*/ {};
+constinit lib::StaticObject<std::string> g_registryRoot = /*007AF450*/ {};
+constinit lib::StaticObject<std::string> g_startFolder = /*007AF454*/ {};
+constinit lib::StaticObject<std::string> g_discFolder = /*007AF458*/ {};
+constinit lib::StaticObject<std::string> g_textFolder = /*007AF45C*/ {};
+constinit lib::StaticObject<std::string> g_dataFolder = /*007AF460*/ {};
 
 namespace {
 
 // The exit functions' guard bits: a string already destroyed is not destroyed again.
 constinit std::uint8_t g_destroyed = /*007AF438*/ 0;
 
-void DestroyOnce(lib::StaticObject<mfc::CString>& folder, std::uint8_t bit) {
+void DestroyOnce(lib::StaticObject<std::string>& folder, std::uint8_t bit) {
     if (g_destroyed & bit) return;
     g_destroyed = static_cast<std::uint8_t>(g_destroyed | bit);
     folder.Destroy();

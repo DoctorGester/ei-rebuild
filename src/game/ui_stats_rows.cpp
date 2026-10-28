@@ -42,7 +42,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     std::string number;
     BOOL found;
     {
-        std::string key = (mfc::CString(kPerkPrefix) + label).GetString();
+        std::string key = std::string(kPerkPrefix) + label;
         found = texts->CTextManager::Open(key.c_str());
     }
     if (found)
@@ -80,10 +80,10 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     std::string number;
     std::string unused;
     {
-        std::string key = (mfc::CString(kPartPrefix) + name).GetString();
+        std::string key = std::string(kPartPrefix) + name;
         TheTextManager()->CTextManager::GetString(key.c_str(), &label);
     }
-    label = mfc::CString(kPartIndent) + label;
+    label = std::string(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];
     surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
     number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));

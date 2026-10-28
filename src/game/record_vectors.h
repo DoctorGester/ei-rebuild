@@ -200,7 +200,7 @@ struct FiguredUnitElement {
         records::DefaultMember(p->names);
     }
     static void Destroy(R* p) {
-        for (mfc::CString* name = p->names.Start(); name != p->names.Finish(); ++name) std::destroy_at(name);
+        for (std::string* name = p->names.Start(); name != p->names.Finish(); ++name) std::destroy_at(name);
         p->names.FreeStorage();
         p->extraWeapons.FreeStorage();
         p->items.FreeStorage();

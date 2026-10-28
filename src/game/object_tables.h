@@ -152,7 +152,7 @@ struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
     // hash_map(): 100 buckets.
     void ConstructDefault() { Construct(100, 0, 0, 0); }
     // operator[]: the value under `key`, a new zero one when absent.
-    float& operator[](const mfc::CString& key) {
+    float& operator[](const std::string& key) {
         stlp::CStringFloat entry(key);
         return FindOrInsert(entry).mapped;
     }

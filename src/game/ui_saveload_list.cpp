@@ -120,10 +120,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const SaveEntry& entry = entries_.begin()[selected_];
     RECT detailRect{340, 260, 590, 284};
     std::string line;
-    line = str::Format(kPlainFormat, entry.AllodTitle().GetString());
+    line = str::Format(kPlainFormat, entry.AllodTitle().c_str());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line = str::Format(kPlainFormat, entry.ZoneTitle().GetString());
+    line = str::Format(kPlainFormat, entry.ZoneTitle().c_str());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 

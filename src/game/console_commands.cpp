@@ -224,7 +224,7 @@ void __fastcall LoadVar(Arguments* args) {
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
 
-    mfc::CString line;
+    std::string line;
     std::vector<std::string> parts;
     CStdioFile file;
     if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
@@ -232,7 +232,7 @@ void __fastcall LoadVar(Arguments* args) {
         return;
     }
     while (file.ReadString(line)) {
-        text::Split(line, &parts, ' ');
+        text::Split(line.c_str(), &parts, ' ');
         if (parts.size() > 1) {
             const char* name = parts[0].c_str();
             float value = static_cast<float>(std::atof(parts[1].c_str()));
@@ -254,7 +254,7 @@ void __fastcall LastFps(Arguments*) {
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
 void __fastcall Exec(Arguments* args) {
-    mfc::CString line;
+    std::string line;
     if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
     std::string name = (*args)[0];
     str::TrimLeft(name, '"');
@@ -264,7 +264,7 @@ void __fastcall Exec(Arguments* args) {
         EndLine(Out() << "Cannot open file " << (*args)[0].c_str() << " for reading");
         return;
     }
-    while (file.ReadString(line)) console::Execute(line);
+    while (file.ReadString(line)) console::Execute(line.c_str());
     file.Close();
 }
 
@@ -368,24 +368,24 @@ void __fastcall Net(Arguments* args) {
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 namespace {
-void WriteSpeech(CStdioFile* file, mfc::CString& line, const SpeechRecord& speech) {
+void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
-    line.Format("#say %s\n", speech.name.data());
-    file->WriteString(line);
-    line.Format("%s\n", speech.text.data());
-    file->WriteString(line);
+    line = str::Format("#say %s\n", speech.name.data());
+    file->WriteString(line.c_str());
+    line = str::Format("%s\n", speech.text.data());
+    file->WriteString(line.c_str());
 }
 } // namespace
 
 void __fastcall WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
     if (!list) return;
-    mfc::CString line;
+    std::string line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
 
 void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
-    mfc::CString line;
+    std::string line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
 }
 
@@ -395,7 +395,7 @@ void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::Enviro
 void __fastcall GenerateAcks(Arguments*) {
     CStdioFile file;
     {
-        std::string path = (*GameDataPathString() + "scenack.txt").GetString();
+        std::string path = *GameDataPathString() + "scenack.txt";
         if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
     }
     CStdioFile* out = &file;

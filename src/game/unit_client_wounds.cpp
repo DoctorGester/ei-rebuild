@@ -20,9 +20,11 @@
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 // windows.h (through texture.h) renames CEngineObject's GetClassName.
 #undef GetClassName
@@ -103,8 +105,8 @@ bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
 int CUnitClientSpecific::ComposeWoundsTexture() {
     int result = 0;
     {
-        mfc::CString name;
-        mfc::CString out;
+        std::string name;
+        std::string out;
         SkinRequest request{};
         // Six level bytes in 32-byte aligned storage (the block kept before them).
         request.layers.SetSize(kBodyParts);
@@ -114,11 +116,11 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request.layers.data[i];
                 if (!level) continue;
-                name.Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name = str::Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
-                request.textures.push_back(name.GetString());
+                request.textures.push_back(name.c_str());
             }
-            name.Format(kWoundCacheName, unit->id_);
+            name = str::Format(kWoundCacheName, unit->id_);
             result = TheTextureManager()->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
         }
         lib::FreeAligned32(request.layers.data);
@@ -230,11 +232,11 @@ constexpr const char* kHandNode = "baserh3";
 } // namespace
 
 bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
-    mfc::CString node;
+    std::string node;
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
-    const FigureBone* found = unit->Object3D()->animation->FindBone(node.GetString());
+    const FigureBone* found = unit->Object3D()->animation->FindBone(node.c_str());
     if (!found) return false;
     // The bone's position in figure space.
     const Vector3& position = found->position;

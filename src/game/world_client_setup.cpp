@@ -84,7 +84,7 @@ int CWorldClient::LoadLights(const char* file) {
     DwordArray values{};
     CIniFile ini;   // the empty path, freed at the end
     {
-        std::string folder = (TheDataFolder() + ConfigFolder()).GetString();
+        std::string folder = TheDataFolder() + ConfigFolder();
         std::string path = folder + file;
         ini.SetPath(path.c_str());
     }

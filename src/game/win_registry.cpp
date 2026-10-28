@@ -76,11 +76,11 @@ BOOL CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t 
     return SetValue(key_, subkey, name, REG_BINARY, &bits, 4);
 }
 
-BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CString value) {
-    return SetValue(key_, subkey, name, REG_SZ, value.GetString(), static_cast<DWORD>(value.GetLength() + 1));
+BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, const std::string& value) {
+    return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
-BOOL CWinRegistry::SetString(const char* subkey, const char* name, mfc::CString value) {
+BOOL CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
     return SetStringInt(subkey, name, value);
 }
 
@@ -108,7 +108,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
     return value;
 }
 
-mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue) {
+std::string CWinRegistry::GetStringInt(const char* subkey, const char* name, const std::string& defaultValue) {
     char buffer[0x100];
     DWORD size = sizeof(buffer);
     DWORD type;
@@ -133,6 +133,6 @@ mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mf
     return text;
 }
 
-mfc::CString CWinRegistry::GetString(const char* subkey, const char* name, mfc::CString defaultValue) {
+std::string CWinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {
     return GetStringInt(subkey, name, defaultValue);
 }

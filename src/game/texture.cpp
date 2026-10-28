@@ -55,7 +55,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return texture->LoadBmp(device_, path.c_str());
     }
 
-    path = mfc::CString(texture->GetName()) + ".mmp";
+    path = std::string(texture->GetName()) + ".mmp";
     if (auto* header = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr))) {
         if (!device_->ParseMmpHeader(header, &format) &&
             !(header->format == 0x8888 && device_->FindFormat(0x4444, &format)))

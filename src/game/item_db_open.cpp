@@ -63,7 +63,7 @@ namespace itemdb {
 // --- The spell database ---------------------------------------------------------------------------
 
 int SpellDatabase::Load(const char* folder, const char* archive) {
-    std::string path = (mfc::CString(folder) + archive).GetString();
+    std::string path = std::string(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
@@ -95,7 +95,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
 // --- The item database ----------------------------------------------------------------------------
 
 int ItemDatabase::Load(const char* folder, const char* archive) {
-    std::string path = (mfc::CString(folder) + archive).GetString();
+    std::string path = std::string(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());

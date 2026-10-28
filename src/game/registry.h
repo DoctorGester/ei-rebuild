@@ -53,7 +53,7 @@ public:
     // double so an int value is not rounded to float on return).
     double GetFloat(const char* section, const char* key, float defaultValue);
     // A string value, or `defaultValue`.
-    mfc::CString GetString(const char* section, const char* key, mfc::CString defaultValue);
+    std::string GetString(const char* section, const char* key, const std::string& defaultValue);
     // A string value into `buffer`, cut to *length - 1 characters, or `defaultValue`
     // (strncpy, so not terminated when too long); *length becomes the copied length.
     void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);

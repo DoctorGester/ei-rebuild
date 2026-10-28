@@ -10,6 +10,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 namespace net {
 
@@ -39,9 +40,9 @@ PartyMessage* FindPartnerOffer(const stlp::CountedRefListOf<PartyMessage>& list,
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = offer->player_.Get()->name_.data();
-    mfc::CString line(mfc::CString::kUnset);   // constructed by the call
-    mfc::CString* formatted = TheInterface()->MessageText(&line, text, name);
-    self->Announce(formatted->GetString(), partner);
+    std::string line;   // constructed by the call
+    std::string* formatted = TheInterface()->MessageText(&line, text, name);
+    self->Announce(formatted->c_str(), partner);
 }
 
 } // namespace

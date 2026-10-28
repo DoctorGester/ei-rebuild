@@ -208,21 +208,21 @@ using QuestObjective = ScriptQuestObjective;
 
 QuestObjective* QuestObjectives() { return ScriptQuestObjectives().data; }
 int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
-mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
+std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // operator+(const CString&, const CString&), constructing the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
+std::string* __stdcall ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
 
 // operator+'s result, destroyed with the holder.
 class Sum {
 public:
-    Sum(const mfc::CString& a, const mfc::CString& b) { ConcatString(Get(), &a, &b); }
+    Sum(const std::string& a, const std::string& b) { ConcatString(Get(), &a, &b); }
     Sum(const Sum&) = delete;
     Sum& operator=(const Sum&) = delete;
-    mfc::CString* Get() { return &value_; }
+    std::string* Get() { return &value_; }
 
 private:
-    mfc::CString value_{mfc::CString::kUnset};   // constructed by ConcatString
+    std::string value_;   // constructed by ConcatString
 };
 
 } // namespace
@@ -236,7 +236,7 @@ private:
 // The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
 // QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
 void __fastcall ScriptQuestFinish(CScript* script) {
-    mfc::CString text;
+    std::string text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
         std::string line;
         line = str::Format("DeclareScript Su%i()\n", i);   // "DeclareScript Su%i()\n"
@@ -247,13 +247,13 @@ void __fastcall ScriptQuestFinish(CScript* script) {
         std::string condition;
         std::string then;
         std::string tail;
-        const char* quest = QuestName();
+        const char* quest = QuestName().c_str();
         head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
         then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
             tail = ")\n)\n";                                   // ")\n)\n"
         } else {
-            quest = QuestName();
+            quest = QuestName().c_str();
             tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const QuestObjective& objective = QuestObjectives()[i];
@@ -290,7 +290,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     }
     {
         std::string last;
-        const char* quest = QuestName();
+        const char* quest = QuestName().c_str();
         last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
@@ -305,7 +305,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
 // registers the exit function that destroys it (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
-constinit lib::StaticObject<mfc::CString> g_scriptQuestName = /*007AA61C*/ {};
+constinit lib::StaticObject<std::string> g_scriptQuestName = /*007AA61C*/ {};
 
 namespace {
 void __cdecl DestroyScriptQuestObjectives() {

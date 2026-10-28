@@ -68,7 +68,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
     if (auto* memory = gamecrt::operator_new_as<CursorImage>()) {
-        std::string file = (mfc::CString(name) + ".mmp").GetString();
+        std::string file = std::string(name) + ".mmp";
         image = memory->Construct(file.c_str(), hotX, hotY, flag);
     }
     images_.Add(image);

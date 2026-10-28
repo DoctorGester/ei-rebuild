@@ -2,21 +2,23 @@
 #include "text_helpers.h"
 
 #include "lib/crt.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 
 const char* TextTokenizer::Next() {
-    if (position == source->GetLength()) position = -1;
+    if (position == static_cast<int>(source->size())) position = -1;
     if (position == -1) return nullptr;
-    int found = source->Find(separator, position);
+    int found = str::Find(*source, separator, position);
     int next;
     if (found == -1) {
-        word = source->Mid(position);
-        next = source->GetLength();
+        word = str::Mid(*source, position);
+        next = source->size();
     } else {
-        word = source->Mid(position, found - position);
+        word = str::Mid(*source, position, found - position);
         next = static_cast<int>(std::strlen(separator)) + found;
     }
     position = next;
@@ -29,15 +31,15 @@ const char* TextTokenizer::Start() {
     return Next();
 }
 
-int __fastcall RemoveCarriageReturns(mfc::CString* text) { return text->Remove('\r'); }
+int __fastcall RemoveCarriageReturns(std::string* text) { return str::Remove(*text, '\r'); }
 
-mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name) {
+std::string* __fastcall FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name) {
     for (const std::string& listed : *names) {
-        if (gamecrt::mbsicmp(listed.c_str(), name.GetString()) == 0) {
-            std::construct_at(out, listed.c_str());
+        if (gamecrt::mbsicmp(listed.c_str(), name.c_str()) == 0) {
+            *out = listed.c_str();
             return out;
         }
     }
-    std::construct_at(out, name);
+    *out = name;
     return out;
 }

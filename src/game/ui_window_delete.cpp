@@ -20,6 +20,7 @@
 #include "lib/mfc_slots.h"
 
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -158,7 +159,7 @@ CObjectivesWindow::~CObjectivesWindow() {
     FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) std::destroy_at(zone);
+    for (std::string* zone = zones_.begin(); zone != zones_.end(); ++zone) std::destroy_at(zone);
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
 }
 

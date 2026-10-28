@@ -157,7 +157,7 @@ public:
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
     void DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell);
-    static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
+    static void FaceNames(const char* prototype, std::string* model, std::string* texture);
     // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).

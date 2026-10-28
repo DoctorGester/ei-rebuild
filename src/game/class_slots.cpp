@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <new>
+#include <string>
 
 #undef GetClassName
 
@@ -71,10 +72,10 @@ int CMapObject::SetVisibilityMode(int mode) {
 // ---- CItem's base names and use ----------------------------------------------------------------
 
 // The names a plain item does not have (four identical copies): an empty text.
-mfc::CString CItem::ModelName() { return mfc::CString(game::EmptyText()); }
-mfc::CString CItem::FirstListName() { return mfc::CString(game::EmptyText()); }
-mfc::CString CItem::FigureName() { return mfc::CString(game::EmptyText()); }
-mfc::CString CItem::PictureName() { return mfc::CString(game::EmptyText()); }
+std::string CItem::ModelName() { return std::string(game::EmptyText()); }
+std::string CItem::FirstListName() { return std::string(game::EmptyText()); }
+std::string CItem::FigureName() { return std::string(game::EmptyText()); }
+std::string CItem::PictureName() { return std::string(game::EmptyText()); }
 
 // Which every class but the quest item keeps: no key.
 LockKey CItem::GetUse() { return LockKey{0, 0, 0}; }

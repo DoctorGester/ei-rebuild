@@ -25,6 +25,8 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 
+#include <string>
+
 namespace {
 
 
@@ -58,9 +60,9 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         aiMap->BeginRefresh();
         bool failed;
         {
-            mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+            std::string path;   // MapPath constructs it
             MapPath(&path, map);
-            failed = aiMap->Load(path) == 0;
+            failed = aiMap->Load(path.c_str()) == 0;
         }
         if (failed) return 0;
         mapName_ = map;

@@ -21,7 +21,7 @@ int __cdecl LoadLightningNoise() {
     CMemoryStream local;
     bool opened;
     {
-        std::string folder = TheTextFolder().GetString();
+        std::string folder = TheTextFolder();
         std::string path = folder + "gfx.res";
         // Through the vtable.
         opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;

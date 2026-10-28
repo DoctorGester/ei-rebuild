@@ -27,11 +27,11 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-const mfc::CString* GameDataPathString() {
+const std::string* GameDataPathString() {
     return &TheDataFolder();
 }
 
-const mfc::CString* GameBasePathString() {
+const std::string* GameBasePathString() {
     return &TheDiscFolder();
 }
 
@@ -48,7 +48,7 @@ CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 
 int __stdcall RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
     CScript* script = CommandScript();
-    mfc::CString source(text.c_str());   // CScript::Load preprocesses its text in place
+    std::string source(text.c_str());   // CScript::Load preprocesses its text in place
     int loaded = script->Load(&source, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
@@ -75,7 +75,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
 }
 
 namespace {
-mfc::CString& StartFolder() { return TheStartFolder(); }
+std::string& StartFolder() { return TheStartFolder(); }
 constexpr unsigned kFolderBufferSize = 0x400;
 } // namespace
 
@@ -83,7 +83,7 @@ void __cdecl StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     std::string text = folder;
-    StartFolder() = (mfc::operator+(text, '\\')).GetString();
+    StartFolder() = (text + '\\').c_str();
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------

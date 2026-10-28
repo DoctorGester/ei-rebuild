@@ -12,6 +12,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -77,7 +78,7 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     {
-        mfc::CString read(mfc::CString::kUnset);
+        std::string read;
         field->ReadString(&read);
         name_ = read;
     }
@@ -87,9 +88,9 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     std::vector<std::string>& others = names_;
     others.resize(static_cast<std::size_t>(count));
     for (std::string& other : others) {
-        mfc::CString read(mfc::CString::kUnset);   // reuses the name's stack slot, like the original
+        std::string read;   // reuses the name's stack slot, like the original
         field->ReadString(&read);
-        other = read.GetString();
+        other = read.c_str();
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);

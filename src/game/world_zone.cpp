@@ -115,7 +115,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = root->file_.Virtuals();
 
-    mfc::CString path;
+    std::string path;
     MapPath(&path, file);   // constructs the CString in place
     int result;
     if (!root->Open(path, 0x8020)) {

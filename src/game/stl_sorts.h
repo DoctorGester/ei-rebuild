@@ -14,10 +14,6 @@
 namespace net {
 class FileChunkMessage;
 }
-namespace mfc {
-class CString;
-}
-
 namespace stl_sorts {
 
 // The client's file chunks (net_client_handlers.cpp), by their index (+0x10, unsigned 16 bits).
@@ -62,9 +58,9 @@ void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEnt
 // key, a {key, null} pair, find_or_insert, the pair and the key freed), every copy allocating
 // alike. Copies of the CStrings only share them. __introsort_loop, __insertion_sort,
 // __unguarded_insertion_sort.
-void __fastcall QuestIntroSort(mfc::CString* first, mfc::CString* last, void* tag, int depth, int comp);
-void __fastcall QuestInsertionSort(mfc::CString* first, mfc::CString* last, int comp);
-void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void* tag, int comp);
+void __fastcall QuestIntroSort(std::string* first, std::string* last, void* tag, int depth, int comp);
+void __fastcall QuestInsertionSort(std::string* first, std::string* last, int comp);
+void __fastcall QuestUnguardedInsertionSort(std::string* first, std::string* last, void* tag, int comp);
 
 // The save / load list (ui_saveload.cpp) by the saved time (+0x08, signed), the newest first: the
 // comparison is !(a < b) (a.savedAt < b.savedAt is the less), so equal times compare true both ways (not a strict
@@ -91,7 +87,7 @@ void __fastcall TopicFinalSort(std::string* first, std::string* last, int comp);
 // CString's operator< (_mbscmp). Copies only share the strings.
 // __introsort_loop (first, last, the null value-type tag, the depth limit; no comparison object),
 // __final_insertion_sort.
-void __fastcall NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString* tag, int depth);
-void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last);
+void __fastcall NameIntroSort(std::string* first, std::string* last, std::string* tag, int depth);
+void __fastcall NameFinalSort(std::string* first, std::string* last);
 
 } // namespace stl_sorts

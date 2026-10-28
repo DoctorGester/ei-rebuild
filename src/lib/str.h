@@ -33,6 +33,8 @@ std::string Left(const std::string& s, int count);
 std::string Right(const std::string& s, int count);
 
 void MakeLower(std::string& s);
+// Removes every `c`; returns how many.
+int Remove(std::string& s, char c);
 void TrimRight(std::string& s);
 void TrimRight(std::string& s, char target);
 void TrimRight(std::string& s, const char* targets);
@@ -41,6 +43,8 @@ void TrimLeft(std::string& s, char target);
 
 // Room for at least `minLength` characters (the text kept); the characters to write into.
 char* Buffer(std::string& s, int minLength);
+// The text up to its first zero byte (after writing into Buffer).
+void CutAtNull(std::string& s);
 // The text resized to `length` characters; the characters to write into.
 char* SetLength(std::string& s, int length);
 

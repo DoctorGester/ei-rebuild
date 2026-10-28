@@ -346,7 +346,7 @@ public:
     void SetClimate(int value);
     void SetWeather(int weather, float strength);
     // Target zone and entrance of exit `index`; FALSE when out of range.
-    BOOL GetZoneExit(int index, mfc::CString* target, int* entrance);
+    BOOL GetZoneExit(int index, std::string* target, int* entrance);
     // Registers an object that lives for a limited time (spells, effects) in timedObjects_.
     void AddTimedObject(CEffect* object);
     void RemoveTimedObject(unsigned id);
@@ -430,7 +430,7 @@ public:
     // starting at startPosition_ ("Accepted player <id>" goes to the network log).
     void AcceptNewPlayers(CPlayerSource* lobby);
 
-    mfc::CString* ZoneNameInto(mfc::CString* out);
+    std::string* ZoneNameInto(std::string* out);
 
     // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
     // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
@@ -696,7 +696,7 @@ static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
 
 namespace unitset {
-void __fastcall DestructName(mfc::CString* name);
+void __fastcall DestructName(std::string* name);
 } // namespace unitset
 
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
@@ -912,7 +912,7 @@ public:
                       lib::AlignedArray<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
     // The ambient sounds' time of day into `out`: "day" from 6 to 18 o'clock, "morning" before 6 and
     // "evening" after 18 within 2..22, else "night". Returns out.
-    mfc::CString* AmbienceTimeOfDay(mfc::CString* out);
+    std::string* AmbienceTimeOfDay(std::string* out);
     // Nearest living unit of the local player's group that `unit`'s side can see (the candidate's
     // relation masks); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
@@ -1250,7 +1250,7 @@ struct GameFlow {
     void UpdateMultiplayerVariable();
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
     // 1..3, else "bz1mpg"; constructed into `out`, returned.
-    mfc::CString* MultiplayerZoneInto(mfc::CString* out);
+    std::string* MultiplayerZoneInto(std::string* out);
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
     // 0x3B9AF5CE, the party outside a game is sent to the start zone with "z.MPGame1" = 1 and
     // redeployed; the flow loads that zone (state 4) and the client's game state request becomes kind 1.
@@ -1440,11 +1440,11 @@ inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
 // section "briefing <name>" that is not "Hero"), or "", constructed into `out`. The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
-mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
-mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+std::string* __stdcall BriefingSpeakerInto(std::string* out, const char* briefing);
+std::string* __stdcall BriefingVariableInto(std::string* out, const char* briefing);
 // The multiplayer peer's map (the client's session field or the server's), replaced by the first line of its "quest
 // <name>" section when there is one; "" without a peer.
-mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
+std::string* __stdcall SessionMapNameInto(std::string* out);
 // Chooses the loading movie for zone `zone` (may be null) by its allod in the map database:
 // progres2.bik for gipat, progres3.bik for ingos, progres4.bik for suslanger, else progres.bik
 // (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for jigran); the zones gz1g and

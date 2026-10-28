@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
@@ -700,4 +701,4 @@ inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
 // 0), the cursor moved past it.
-void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);
+void __fastcall ReadPrefixedName(std::string* out, const std::uint8_t** cursor);

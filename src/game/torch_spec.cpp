@@ -9,6 +9,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr float kDefaultValue = 1.0f;
@@ -85,7 +86,7 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     field->ReadDelta(colours_[0], 0xC);
     field->ReadDelta(colours_[1], 0xC);
     {
-        mfc::CString read(mfc::CString::kUnset);   // constructed by the read
+        std::string read;   // constructed by the read
         name_ = *field->ReadString(&read);
     }
     SetLightSlot(lightKind_, colours_[0], values_[0]);

@@ -203,7 +203,6 @@ void ChunkArchive::CStringField(int id, Text* s) {
     if (FindField(this, id, &child)) *s = TextAt(Data() + child.offset);
     else *s = game::EmptyText();
 }
-template void ChunkArchive::CStringField(int, mfc::CString*);
 template void ChunkArchive::CStringField(int, std::string*);
 
 // A string field, written with its terminator; read through an inlined assign (the empty

@@ -26,8 +26,8 @@ constexpr unsigned kPartyFileMagic = 0x114;
 
 const char* TempFileName() { return "temp.mp"; }
 
-mfc::CString InFolder(const char* folder, const std::string& name) { return mfc::CString(folder) + name; }
-mfc::CString TempFile(const char* folder) { return mfc::CString(folder) + TempFileName(); }
+std::string InFolder(const char* folder, const std::string& name) { return std::string(folder) + name; }
+std::string TempFile(const char* folder) { return std::string(folder) + TempFileName(); }
 
 // The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
 struct LocalStreams {
@@ -49,12 +49,12 @@ bool Numbered(const std::string& name) {
 
 void MpHeroRecord::WriteFile(const char* folder) {
     if (!Numbered(file)) {
-        gameapi::DeleteFileA(InFolder(folder, file));
+        gameapi::DeleteFileA(InFolder(folder, file).c_str());
         return;
     }
     {
-        std::string temp = TempFile(folder).GetString();
-        gameapi::MoveFileA(InFolder(folder, file), temp.c_str());
+        std::string temp = TempFile(folder);
+        gameapi::MoveFileA(InFolder(folder, file).c_str(), temp.c_str());
     }
     {
         LocalStreams streams;
@@ -62,7 +62,7 @@ void MpHeroRecord::WriteFile(const char* folder) {
         Party()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, kSaveVersion, &streams.data);
     }
-    gameapi::DeleteFileA(TempFile(folder));
+    gameapi::DeleteFileA(TempFile(folder).c_str());
 }
 
 bool MpHeroRecord::ReadFile(const char* folder) {

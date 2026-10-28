@@ -93,7 +93,7 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     to.combat = theme.combat;
 }
 
-const mfc::CString& TextPath() { return TheTextFolder(); }
+const std::string& TextPath() { return TheTextFolder(); }
 
 } // namespace
 
@@ -104,7 +104,7 @@ int CMusicSystem::LoadThemes() {
     reg.Construct();
     mfc::BOOL opened;
     {
-        std::string folder = TextPath().GetString();
+        std::string folder = TextPath();
         std::string path = folder + kMusicReg;
         opened = reg.Open(path.c_str());
     }
@@ -120,8 +120,8 @@ int CMusicSystem::LoadThemes() {
         return result;
     }
     const char* const common = "Common";
-    credits = reg.GetString(common, "Credits", mfc::CString(game::EmptyText()));
-    mainMenu = reg.GetString(common, "MainMenu", mfc::CString(game::EmptyText()));
+    credits = reg.GetString(common, "Credits", std::string(game::EmptyText()));
+    mainMenu = reg.GetString(common, "MainMenu", std::string(game::EmptyText()));
     {
         std::vector<std::string> sections;
         reg.GetSectionNames(&sections);
@@ -131,8 +131,8 @@ int CMusicSystem::LoadThemes() {
             LocalTheme read;
             read.name = name;
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, "Briefing", mfc::CString(game::EmptyText()));
-            read.constructor = reg.GetString(section, "Constructor", mfc::CString(game::EmptyText()));
+            read.briefing = reg.GetString(section, "Briefing", std::string(game::EmptyText()));
+            read.constructor = reg.GetString(section, "Constructor", std::string(game::EmptyText()));
             reg.GetStringArray(section, "CalmOpen", &read.calm);
             reg.GetStringArray(section, "Combat", &read.combat);
             AppendTheme(this, read);
@@ -229,7 +229,7 @@ int CMusicSystem::UpdateMusic() {
     if (state != 1 || holding == 1) return 1;
     std::string current;
     {
-        std::string playing = snd->CurrentStreamName().GetString();
+        std::string playing = snd->CurrentStreamName();
         current = playing;
     }
     if (jinglePlaying != 0) {

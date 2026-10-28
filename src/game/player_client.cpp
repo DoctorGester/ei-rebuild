@@ -77,8 +77,8 @@ void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
 // A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of the scope.
 struct TextBuffer {
-    mfc::CString text{mfc::CString::kUnset};
-    mfc::CString* Get() { return &text; }
+    std::string text;
+    std::string* Get() { return &text; }
 };
 
 const char* QuestPrefix() { return "q."; }
@@ -237,14 +237,14 @@ int CPlayerClient::OnZoneChange() {
     ReadText(zone.Get());
     int entrance;
     in_.Read(&entrance, 4);
-    TheGameFlow()->RequestZoneChange(*zone.Get(), entrance);
+    TheGameFlow()->RequestZoneChange((*zone.Get()).c_str(), entrance);
     return 1;
 }
 
 int CPlayerClient::OnJingle() {
     TextBuffer name;
     in_.ReadString(name.Get());
-    TheMusicSystem()->PlayJingle(*name.Get());
+    TheMusicSystem()->PlayJingle((*name.Get()).c_str());
     return 1;
 }
 
@@ -444,7 +444,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
     ReadText(text.Get());
-    TheInterface()->OnStringEvent(*text.Get());
+    TheInterface()->OnStringEvent((*text.Get()).c_str());
     return 1;
 }
 

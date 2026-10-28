@@ -213,9 +213,9 @@ void CHudPortraits::Update() {
             else if (build > kFat)
                 name = "fa";
             {
-                const mfc::CString& prefix = slot.modelPrefix_;
-                const mfc::CString& suffix = slot.modelSuffix_;
-                std::string withPrefix = (prefix + name).GetString();
+                const std::string& prefix = slot.modelPrefix_;
+                const std::string& suffix = slot.modelSuffix_;
+                std::string withPrefix = prefix + name;
                 std::string full = withPrefix + suffix;
                 name = full;
             }

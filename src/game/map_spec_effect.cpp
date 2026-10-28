@@ -14,12 +14,13 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 
 namespace mapspec {
 
-void __stdcall EffectNotify(mfc::CString kind, mfc::CString family);
+void __stdcall EffectNotify(const std::string& kind, const std::string& family);
 namespace {
 
 CBaseManager* Effects() { return TheServerWorld()->manager48_; }
@@ -29,8 +30,8 @@ std::uint32_t Bits(float f) {
     return b;
 }
 void ReadInto(Chunk& c, std::string& field) {
-    mfc::CString read(mfc::CString::kUnset);
-    field = c.ReadString(&read)->GetString();
+    std::string read;
+    field = c.ReadString(&read)->c_str();
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
@@ -40,7 +41,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // The notification made before a new effect: (kind, family) strings by value, built in their argument slots
 // right to left (the second first, like the original) and destroyed by the callee.
-void Notify(const char* kind, const char* family) { EffectNotify(mfc::CString(kind), mfc::CString(family)); }
+void Notify(const char* kind, const char* family) { EffectNotify(std::string(kind), std::string(family)); }
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
@@ -81,7 +82,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
 }
 
 // Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
-void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
+void __stdcall EffectNotify(const std::string&, const std::string&) {}
 
 // ---- Particle sources ------------------------------------------------------------------
 
@@ -91,8 +92,8 @@ ParticleSpec::ParticleSpec() {
     scale = 1.0f;
 }
 
-mfc::CString* ParticleSpec::TypeName(mfc::CString* out) {
-    std::construct_at(out, "Particle source");
+std::string* ParticleSpec::TypeName(std::string* out) {
+    *out = "Particle source";
     return out;
 }
 
@@ -143,8 +144,8 @@ LightSpec::LightSpec() {
     colour.z = 1.0f;
 }
 
-mfc::CString* LightSpec::TypeName(mfc::CString* out) {
-    std::construct_at(out, "Light");
+std::string* LightSpec::TypeName(std::string* out) {
+    *out = "Light";
     return out;
 }
 
@@ -202,8 +203,8 @@ SoundSpec::SoundSpec() {
 
 SoundSpec::~SoundSpec() = default;
 
-mfc::CString* SoundSpec::TypeName(mfc::CString* out) {
-    std::construct_at(out, "Sound");
+std::string* SoundSpec::TypeName(std::string* out) {
+    *out = "Sound";
     return out;
 }
 

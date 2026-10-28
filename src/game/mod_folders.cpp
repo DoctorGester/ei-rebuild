@@ -332,8 +332,8 @@ void SelectMaps(const char* name, MapsSite site) {
     }
 }
 
-const mfc::CString& MapsRoot(const mfc::CString& dataFolder) {
-    static const mfc::CString* modRoot = new mfc::CString(ModPath().c_str());
+const std::string& MapsRoot(const std::string& dataFolder) {
+    static const std::string* modRoot = new std::string(ModPath().c_str());
     return g_mapsInMod ? *modRoot : dataFolder;
 }
 
@@ -353,8 +353,8 @@ bool StreamInMod(const char* name) {
     return FileExists(ModPath() + "Stream\\" + name);
 }
 
-const mfc::CString& StreamFolder() {
-    static const mfc::CString* folder = new mfc::CString((ModPath() + "Stream\\").c_str());
+const std::string& StreamFolder() {
+    static const std::string* folder = new std::string((ModPath() + "Stream\\").c_str());
     return *folder;
 }
 

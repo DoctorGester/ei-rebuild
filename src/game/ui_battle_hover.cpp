@@ -144,7 +144,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             std::string name = GameExitTarget(exit);
             if (gamecrt::mbsicmp(name,
                                 game::NoneText()) != 0) {
-                name = mfc::CString("z.") + name;
+                name = std::string("z.") + name;
                 double value = LocalPlayerVariable(name.c_str());
                 const float one = 1.0f /*0073B84C*/;
                 // FCOMP; TEST AH,0x40; JNZ: equal skips.

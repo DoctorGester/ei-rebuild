@@ -20,6 +20,7 @@
 #include "game_lists.h"
 #include "game_data.h"
 #include "game/game_slots.h"
+#include "lib/str.h"
 
 #include <cstdarg>
 #include <cstdint>
@@ -193,7 +194,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     int paramIndex = 0;
     int floatCount = 0, stringCount = 0, objectCount = 0, groupCount = 0;
     LocalToken token;
-    mfc::CString text, typeName, qualified;
+    std::string text, typeName, qualified;
     ScriptBinding local{0, 0, 0}, global{0, 0, 0};
     ScriptSubCall sub{0, 0, nullptr};
 
@@ -227,7 +228,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         token.Set(NextToken(pos));
         text = token.text;
         int tokenId;
-        ClassifyToken(text, &tokenId, nullptr);
+        ClassifyToken(text.c_str(), &tokenId, nullptr);
         if (!assignment) {
             // Rebirth's AddNewScriptCommands: the signature's '?' and '+'.
             if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
@@ -254,7 +255,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             // The parameter (no end-of-tokens check, as in the game).
             token.Assign(NextToken(pos));
             text = token.text;
-            ClassifyToken(text, &tokenId, nullptr);
+            ClassifyToken(text.c_str(), &tokenId, nullptr);
             if (paramIndex == 0 && tokenId == kLexClose) {
                 if (*signature == 0) {
                     DeleteCmd(sub.cmd);
@@ -267,8 +268,8 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         }
 
         {
-            mfc::CString name(mfc::CString::kUnset);
-            QualifyName(&name, text.GetString());
+            std::string name;
+            QualifyName(&name, text.c_str());
             qualified = name;
         }
 
@@ -283,13 +284,13 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'f':
             local.type = kScriptFloat;
             global.type = kScriptFloat;
-            local.varIndex = FindName(locals->floats.names, text);
-            global.varIndex = FindName(globals->floats.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified);
+            local.varIndex = FindName(locals->floats.names, text.c_str());
+            global.varIndex = FindName(globals->floats.names, text.c_str());
+            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified.c_str());
             local.argIndex = floatCount;
             global.argIndex = floatCount;
             if (tokenId == kLexNumber) {
-                StoreAtof(&cmd->floatArgs.data[floatCount], text);
+                StoreAtof(&cmd->floatArgs.data[floatCount], text.c_str());
                 bind = false;
             }
             ++floatCount;
@@ -298,13 +299,13 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 's':
             local.type = kScriptString;
             global.type = kScriptString;
-            local.varIndex = FindName(locals->strings.names, text);
-            global.varIndex = FindName(globals->strings.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified);
+            local.varIndex = FindName(locals->strings.names, text.c_str());
+            global.varIndex = FindName(globals->strings.names, text.c_str());
+            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified.c_str());
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
-                cmd->stringArgs.data[stringCount] = text.Mid(1, text.GetLength() - 2);
+                cmd->stringArgs.data[stringCount] = str::Mid(text, 1, static_cast<int>(text.size()) - 2);
                 bind = false;
             }
             ++stringCount;
@@ -313,9 +314,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'o':
             local.type = kScriptObject;
             global.type = kScriptObject;
-            local.varIndex = FindName(locals->objects.names, text);
-            global.varIndex = FindName(globals->objects.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified);
+            local.varIndex = FindName(locals->objects.names, text.c_str());
+            global.varIndex = FindName(globals->objects.names, text.c_str());
+            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified.c_str());
             local.argIndex = objectCount;
             global.argIndex = objectCount;
             ++objectCount;
@@ -325,9 +326,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
             local.varIndex = -1;
             global.type = kScriptObject;
-            global.varIndex = FindName(globals->objects.names, text);
+            global.varIndex = FindName(globals->objects.names, text.c_str());
             if (global.varIndex < 0) {
-                global.varIndex = FindName(globals->objects.names, qualified);
+                global.varIndex = FindName(globals->objects.names, qualified.c_str());
                 if (global.varIndex < 0) {
                     result = Error(this, token.line, 8, "Only global variables are allowed to be loop counters");   // "Only global variables ..."
                     DeleteCmd(sub.cmd);
@@ -341,9 +342,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'g':
             local.type = kScriptGroup;
             global.type = kScriptGroup;
-            local.varIndex = FindName(locals->groups.names, text);
-            global.varIndex = FindName(globals->groups.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified);
+            local.varIndex = FindName(locals->groups.names, text.c_str());
+            global.varIndex = FindName(globals->groups.names, text.c_str());
+            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified.c_str());
             local.argIndex = groupCount;
             global.argIndex = groupCount;
             ++groupCount;
@@ -367,7 +368,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                 sub.type = local.type;
                 const char* nested = FunctionSignature(tokenId, local.type);
                 if (!nested) {
-                    result = Error(this, token.line, 7, "Parameter of type %s expected", typeName.GetString());
+                    result = Error(this, token.line, 7, "Parameter of type %s expected", typeName.c_str());
                     DeleteCmd(sub.cmd);
                     return result;
                 }
@@ -395,7 +396,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
                              ScriptVars* locals) {
     LocalToken token;
-    mfc::CString text;
+    std::string text;
     LocalCmd cmd;
     mfc::impl::ArrayAs<recordarrays::Cmds>(*conditions).SetSize(0, -1);
     for (;;) {
@@ -404,7 +405,7 @@ BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const S
         token.Set(NextToken(pos));
         text = token.text;
         int id;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id == kLexClose) return 1;
         const char* signature = FunctionSignature(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, "Function returning float expected");
@@ -415,14 +416,14 @@ BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const S
 
 BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens) {
     LocalToken token;
-    mfc::CString text;
+    std::string text;
     ScriptIfThen pair{nullptr, nullptr};
     for (;;) {
         if (!*pos) return Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
         int id;
         token.Set(NextToken(pos));
         text = token.text;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.size == 0)   // "In script %s should be at least one condtion"
                 return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name.c_str());
@@ -434,7 +435,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         }
         token.Set(NextToken(pos));
         text = token.text;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "If section, ( expected");
             return 0;
@@ -443,14 +444,14 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return 0;
         token.Set(NextToken(pos));
         text = token.text;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id != kLexThen) {
             Error(this, token.line, 4, "then expected after if");
             return 0;
         }
         token.Set(NextToken(pos));
         text = token.text;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "Expected ( after then");
             return 0;
@@ -464,7 +465,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
 }
 
 BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
-                                 const mfc::CString* name) {
+                                 const std::string* name) {
     LocalToken unused;   // constructed and destroyed by the game, never read
     std::string unusedText;
     cmd->Clear();
@@ -474,15 +475,15 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     } else {
         ScriptToken token;
         token.CopyConstruct(NextToken(pos));
-        mfc::CString text(token.text);
+        std::string text(token.text);
         int id;
-        ClassifyToken(text, &id, nullptr);
-        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text.GetString());
+        ClassifyToken(text.c_str(), &id, nullptr);
+        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
     }
     if (!ok) return 0;
 
     int index, type;
-    Globals()->FindVariable(*name, &index, &type);
+    Globals()->FindVariable((*name).c_str(), &index, &type);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
@@ -498,7 +499,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
 BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens,
                                        BOOL qualify) {
     LocalToken token;
-    mfc::CString name, typeName;
+    std::string name, typeName;
     BOOL result = 0;
     bool first = true;
     while (*pos) {
@@ -520,15 +521,15 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         } else {
             ScriptToken colon;
             colon.CopyConstruct(NextToken(pos));
-            mfc::CString text(colon.text);
+            std::string text(colon.text);
             int id;
-            ClassifyToken(text, &id, nullptr);
-            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text.GetString());
+            ClassifyToken(text.c_str(), &id, nullptr);
+            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text.c_str());
         }
         if (!ok) return 0;
         if (qualify) {
-            mfc::CString qualified(mfc::CString::kUnset);
-            QualifyName(&qualified, name.GetString());
+            std::string qualified;
+            QualifyName(&qualified, name.c_str());
             name = qualified;
         }
         token.Set(NextToken(pos));
@@ -540,7 +541,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, "Unknown parameter type");
         if (!script->AddParameter(&name, type))   // "Duplicate variable name %s"
-            return Error(this, token.line, 13, "Duplicate variable name %s", name.GetString());
+            return Error(this, token.line, 13, "Duplicate variable name %s", name.c_str());
         first = false;
     }
     return result;
@@ -548,7 +549,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
 
 BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
     LocalToken token;
-    mfc::CString text, qualified;
+    std::string text, qualified;
     LocalCmd local;
     SSCCmd* cmd = local.Get();
     LocalVars empty;
@@ -560,7 +561,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
         token.Set(NextToken(pos));
         text = token.text;
         int id;
-        ClassifyToken(text, &id, nullptr);
+        ClassifyToken(text.c_str(), &id, nullptr);
         if (id == kLexClose) return 1;
 
         const ScriptKeyword* command = nullptr;
@@ -598,8 +599,8 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
             }
         } else {
             {
-                mfc::CString name(mfc::CString::kUnset);
-                QualifyName(&name, text.GetString());
+                std::string name;
+                QualifyName(&name, text.c_str());
                 qualified = name;
             }
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
@@ -615,12 +616,12 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
                 commands->Add(*cmd);
                 continue;
             }
-            if (Globals()->HasVariable(text)) {
+            if (Globals()->HasVariable(text.c_str())) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &text);
-            } else if (Globals()->HasVariable(qualified)) {
+            } else if (Globals()->HasVariable(qualified.c_str())) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
-                return Error(this, token.line, 3, "Unexpected token '%s'", text.GetString());
+                return Error(this, token.line, 3, "Unexpected token '%s'", text.c_str());
             }
         }
         if (!ok) return 0;
@@ -632,7 +633,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
 // For and ForIf stay the only ones.
 
 
-BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
+BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     ScriptTokenList tokens{gameslots::TokenListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LocalDefinition definition;
     ScriptDefinition* decl = definition.Get();
@@ -646,7 +647,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     // other lines get the defines substituted. The text is replaced by the result.
     {
         ScriptDefineList defines{gameslots::DefineListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        mfc::CString result, line;
+        std::string result, line;
         ScriptDefine define;
         const char* keyword = "#define";
         char* p = mfc::ImplOf(*text).LockBuffer();
@@ -682,7 +683,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         TokensDestruct(&tokens);
         return value;
     };
-    if (!Tokenize((*text).GetString(), &tokens)) return fail(0);
+    if (!Tokenize((*text).c_str(), &tokens)) return fail(0);
 
     for (ScriptPos pos = tokens.head; pos;) {
         ScriptToken token;
@@ -714,7 +715,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             token.Assign(NextToken(&pos));
             word = token.text;
             {
-                mfc::CString name(mfc::CString::kUnset);
+                std::string name;
                 QualifyName(&name, word);
                 decl->name = name;
             }
@@ -739,7 +740,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             token.Assign(NextToken(&pos));
             word = token.text;
             {
-                mfc::CString name(mfc::CString::kUnset);
+                std::string name;
                 QualifyName(&name, word);
                 decl->name = name;
             }
@@ -783,7 +784,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
 }
 
 BOOL CScript::LoadFile(const char* path) {
-    mfc::CString text;
+    std::string text;
     if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Load(&text, 1);
 }

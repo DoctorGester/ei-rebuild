@@ -298,7 +298,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    std::string line = (text::Typed(str::Left(typed_, caret_).c_str(), key) + str::Mid(typed_, caret_)).GetString();
+    std::string line = text::Typed(str::Left(typed_, caret_).c_str(), key) + str::Mid(typed_, caret_);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.

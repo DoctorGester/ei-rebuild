@@ -193,7 +193,7 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        std::string folder = TheTextFolder().GetString();
+        std::string folder = TheTextFolder();
         opened = archive.Open((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
@@ -218,7 +218,7 @@ int ReadTerrainTypes(CAIMap& map) {
         const char* const section = sectionName.c_str();
         const int index = std::atoi(section);
         {
-            std::string name = registry.file.GetString(section, "Name", mfc::CString("")).GetString();
+            std::string name = registry.file.GetString(section, "Name", std::string(""));
             const char* text = str::Buffer(name, 0);
             std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
         }
@@ -445,8 +445,8 @@ int CAIMap::LoadTerrain(const char* path) {
             gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
-            if (!sector) return Fatal(("Unable to locate resource: " + mfc::CString(file)).GetString());
-            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + mfc::CString(file)).GetString());
+            if (!sector) return Fatal(("Unable to locate resource: " + std::string(file)).c_str());
+            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + std::string(file)).c_str());
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.Close(sector);
         }

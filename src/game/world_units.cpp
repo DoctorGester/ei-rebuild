@@ -40,9 +40,11 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_window.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <bit>
 #include <cstring>
+#include <string>
 #include <type_traits>
 
 namespace {
@@ -60,7 +62,7 @@ using Placement = UnitPlacement;
 using PlacementArray = mfc::CArray<Placement>;
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
-void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
+void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
     UnitPrototypeRecord* prototype;
     {
         prototype = unitdb::PrototypeNamed(std::string(prototypeName));    // find_or_insert of {name, null}
@@ -72,8 +74,8 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
         const char* part = worlddata::HeroPartText(n);
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
-                scratch.Format(worlddata::HairFormat(), hairStyle);
-                parts.push_back(scratch.GetString());
+                scratch = str::Format(worlddata::HairFormat(), hairStyle);
+                parts.push_back(scratch.c_str());
             }
         } else {
             parts.push_back(part);
@@ -139,8 +141,8 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
     UnitSpec* message = &spec;
-    mfc::CString script;
-    mfc::CString line;
+    std::string script;
+    std::string line;
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
@@ -236,7 +238,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
         unit->SetPrototype23CByName(record->texts[6].c_str());
-        line.Format(worlddata::AddToHeroesFormat(), unit->id_);
+        line = str::Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {

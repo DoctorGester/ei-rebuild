@@ -4,6 +4,7 @@
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
+#include <string>
 #include <windows.h>
 
 #include <cstdarg>
@@ -11,20 +12,16 @@
 #include <cstdint>
 
 class CDirectInputMouse;
-namespace mfc {
-class CString;
-} // namespace mfc
-
 namespace app {
 
 // The application's globals: what the command line gave, the folder of the movie frames
 // ("-moviepath_"), a map (".mpr"), a mob file (".mob"), a script (".scr") and the camera file (".cam"); and the
 // mouse object (WinMain keeps one reference).
-mfc::CString& MovieFolder();
-mfc::CString& CommandLineMap();
-mfc::CString& CommandLineMob();
-mfc::CString& CommandLineScript();
-mfc::CString& CameraFile();
+std::string& MovieFolder();
+std::string& CommandLineMap();
+std::string& CommandLineMob();
+std::string& CommandLineScript();
+std::string& CameraFile();
 CDirectInputMouse*& Mouse();
 
 // The application's flags and handles. The game window's title (from the string table), the

@@ -22,41 +22,41 @@ bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 
 } // namespace
 
-mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
+std::string* __stdcall MapsFolder(std::string* out) {
     // Rebirth's Maps: the folder the last site selected.
-    mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
-    return std::construct_at(out, folder + MapsFolderName());
+    std::string folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
+    *out = folder + MapsFolderName(); return out;
 }
 
-mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
+std::string* __stdcall MapPath(std::string* out, const char* name) {
     std::string path;
     if (name[1] == ':') {
         path = name;
     } else {
-        mfc::CString folder;
+        std::string folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
         MapsFolder(&folder);
         path = folder + name;
     }
-    return std::construct_at(out, path);
+    *out = path; return out;
 }
 
 bool __stdcall MapFileExists(const char* name) {
     mfc::CFileFind find;
-    mfc::CString folder;
+    std::string folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     MapsFolder(&folder);
-    std::string path = (folder + name).GetString();
+    std::string path = folder + name;
     return find.FindFile(path, 0) != 0;
 }
 
 void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     netlink::FileStream file;
     {
-        mfc::CString folder;
+        std::string folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         MapsFolder(&folder);
-        std::string path = (folder + name).GetString();
+        std::string path = folder + name;
         file.Open(path, netlink::FileStream::kOpenWrite, 0);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;

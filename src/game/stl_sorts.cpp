@@ -68,13 +68,13 @@ struct ByColumn {
 using ServerSort = stlp::Sort<MpAddressEntry, ByColumn>;
 
 struct ByQuestOrder {
-    bool operator()(const mfc::CString& a, const mfc::CString& b) const {
-        const QuestRecord* first = TheQuestDatabase().FindQuest(a);
-        const QuestRecord* second = TheQuestDatabase().FindQuest(b);
+    bool operator()(const std::string& a, const std::string& b) const {
+        const QuestRecord* first = TheQuestDatabase().FindQuest(a.c_str());
+        const QuestRecord* second = TheQuestDatabase().FindQuest(b.c_str());
         return !first || (second && static_cast<unsigned>(first->order) > static_cast<unsigned>(second->order));
     }
 };
-using QuestSort = stlp::Sort<mfc::CString, ByQuestOrder>;
+using QuestSort = stlp::Sort<std::string, ByQuestOrder>;
 
 struct SaveEntryOps {
     static void Construct(SaveEntry* at, const SaveEntry& from) { at->CopyConstruct(&from); }
@@ -94,9 +94,9 @@ struct ByTextIgnoringCase {
 using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase, stlp::ObjectElement<std::string>>;
 
 struct ByName {
-    bool operator()(const mfc::CString& a, const mfc::CString& b) const { return CompareNames(a.GetString(), b.GetString()) < 0; }
+    bool operator()(const std::string& a, const std::string& b) const { return CompareNames(a.c_str(), b.c_str()) < 0; }
 };
-using NameSort = stlp::Sort<mfc::CString, ByName>;
+using NameSort = stlp::Sort<std::string, ByName>;
 
 } // namespace
 
@@ -138,13 +138,13 @@ void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEnt
     ServerSort::UnguardedInsertionSort(first, last, ByColumn{key});
 }
 
-void __fastcall QuestIntroSort(mfc::CString* first, mfc::CString* last, void*, int depth, int) {
+void __fastcall QuestIntroSort(std::string* first, std::string* last, void*, int depth, int) {
     QuestSort::IntroLoop(first, last, depth, ByQuestOrder());
 }
-void __fastcall QuestInsertionSort(mfc::CString* first, mfc::CString* last, int) {
+void __fastcall QuestInsertionSort(std::string* first, std::string* last, int) {
     QuestSort::InsertionSort(first, last, ByQuestOrder());
 }
-void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void*, int) {
+void __fastcall QuestUnguardedInsertionSort(std::string* first, std::string* last, void*, int) {
     QuestSort::UnguardedInsertionSort(first, last, ByQuestOrder());
 }
 
@@ -163,9 +163,9 @@ void __fastcall TopicFinalSort(std::string* first, std::string* last, int) {
     TopicSort::FinalInsertionSort(first, last, ByTextIgnoringCase());
 }
 
-void __fastcall NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString*, int depth) {
+void __fastcall NameIntroSort(std::string* first, std::string* last, std::string*, int depth) {
     NameSort::IntroLoop(first, last, depth, ByName());
 }
-void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last) { NameSort::FinalInsertionSort(first, last, ByName()); }
+void __fastcall NameFinalSort(std::string* first, std::string* last) { NameSort::FinalInsertionSort(first, last, ByName()); }
 
 } // namespace stl_sorts

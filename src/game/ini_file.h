@@ -22,7 +22,7 @@ public:
     BOOL GetKeyNames(const char* section, std::vector<std::string>* out);
 
     // The value (at most 1023 characters), or `defaultValue`.
-    mfc::CString GetString(const char* section, const char* key, const char* defaultValue);
+    std::string GetString(const char* section, const char* key, const char* defaultValue);
     // Appends the items of the value split at `separator` (trimmed) to `out`. Returns 0
     // when the value is empty.
     BOOL GetList(const char* section, const char* key, std::vector<std::string>* out, char separator);

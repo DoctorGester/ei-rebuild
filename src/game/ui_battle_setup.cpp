@@ -77,10 +77,9 @@ void CBattleScreen::CreateScreen() {
         if (SaveVersion() >= 0x47) {
             int unused;
             stream->Read(&unused, 4);
-            alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
-            mfc::CString* text = stream->ReadString(raw);
+            std::string raw;
+            std::string* text = stream->ReadString(&raw);
             savedText = *text;
-            std::destroy_at(text);
         }
         if (SaveVersion() >= 0x62) {
             stream->Read(&exitPending_, 1);

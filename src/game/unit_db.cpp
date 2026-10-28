@@ -41,7 +41,6 @@ void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
     }
     ar->LeaveChunk();
 }
-template void InlineStrings(ChunkArchive*, int, stlp::vector<mfc::CString>*);
 template void InlineStrings(ChunkArchive*, int, stlp::vector<std::string>*);
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {

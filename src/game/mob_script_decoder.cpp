@@ -1,10 +1,12 @@
 // The .mob script text decoder. See mob_script_decoder.h.
 #include "mob_script_decoder.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
-void MobScriptDecoder::Decode(mfc::CString* out) {
+void MobScriptDecoder::Decode(std::string* out) {
     const char zero = 0;
     const char* coded = input.begin();
     const auto length = static_cast<unsigned>(input.end() - coded) - 4;
@@ -17,6 +19,6 @@ void MobScriptDecoder::Decode(mfc::CString* out) {
         *p = static_cast<char>(*p ^ static_cast<char>(x >> 16));
     }
     const int size = static_cast<int>(text.end() - text.begin());
-    std::memmove(out->GetBufferSetLength(size), text.begin(), static_cast<std::size_t>(size));
-    out->ReleaseBuffer(-1);
+    std::memmove(str::SetLength(*out, size), text.begin(), static_cast<std::size_t>(size));
+    str::CutAtNull(*out);
 }

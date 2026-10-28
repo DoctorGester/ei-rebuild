@@ -162,7 +162,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId_, 4);
     field->ReadDelta(&casterId_, 4);
     {
-        mfc::CString name(mfc::CString::kUnset);
+        std::string name;
         field->ReadString(&name);
         soundName_ = name;
     }

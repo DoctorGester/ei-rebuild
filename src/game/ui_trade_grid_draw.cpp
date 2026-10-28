@@ -16,8 +16,10 @@
 #include "render/render.h"
 
 #include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -39,7 +41,7 @@ void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
 
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurface* surface, mfc::CString& text, float yOffset,
+void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurface* surface, std::string& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
     CItem** items = list->data;
     int count = list->size;
@@ -51,13 +53,13 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurf
         grid->owner_->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
-            text.Format("%d", pieces);
+            text = str::Format("%d", pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
             int price = static_cast<CCampPages*>(grid->owner_)->Price(cell.item, kind);   // the camp
-            text.Format("%d", price);
+            text = str::Format("%d", price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
         }
@@ -77,7 +79,7 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     ClearDepth(ui->renderer_, &inside, 1.0f);
     DrawBase(pass);
 
-    mfc::CString text;
+    std::string text;
     auto* surface = surfaces_.data[0];
     surface->GetDC();
     surface->Clear();

@@ -60,12 +60,10 @@ constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x38 and the angle save
 
 template <typename Text>
 void CStream::ReadInto(Text* out) {
-    alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-    auto* text = ReadString(slot);
-    *out = static_cast<const char*>(*text);
-    std::destroy_at(text);
+    std::string slot;
+    auto* text = ReadString(&slot);
+    *out = (*text).c_str();
 }
-template void CStream::ReadInto(mfc::CString*);
 template void CStream::ReadInto(std::string*);
 
 void ZoneExit::Read(CStream* stream) {

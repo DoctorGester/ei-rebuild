@@ -49,11 +49,11 @@ constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return g_keyActions; }
 
 
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
+std::string* __stdcall ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
 
 // Opens the bindings file with `flags`; the path is a temporary CString.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
-    mfc::CString path(mfc::CString::kUnset);
+    std::string path;
     return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), flags, nullptr) != 0;
 }
 
@@ -67,13 +67,13 @@ void __cdecl LoadKeyBindings() {
         UiKeyName& k = g_keyNames[i];
         if (!gameapi::GetKeyNameTextA(k.scan_ << 16, k.name_, 0x1F)) k.name_[0] = 0;
     }
-    mfc::CString line;
+    std::string line;
     std::vector<std::string> words;
     console::CStdioFile file;
     std::memset(ActionOfScan(), 0, 0x200);
     if (!OpenFile(file, console::CStdioFile::typeText)) return;
     while (file.ReadString(line)) {
-        text::SplitWords(line, &words, ' ');
+        text::SplitWords(line.c_str(), &words, ' ');
         if (words.size() <= 1) continue;
         bool known = false;
         int key = 0;

@@ -4,13 +4,14 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <string>
 
-void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor) {
+void __fastcall ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
     std::int32_t length;
     std::memcpy(&length, *cursor, 4);
     *cursor += 4;
     if (length == 0) {
-        out->Empty();
+        out->clear();
         return;
     }
     auto* text = gamecrt::operator_new_array<char>(static_cast<std::size_t>(length) + 2);
