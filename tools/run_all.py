@@ -366,6 +366,35 @@ def crash_stack_note(out, build, cmd, root=ROOT):
         return f'stack: not resolved ({type(e).__name__}: {e})'
 
 
+ASAN_FRAME = re.compile(r'^\s*#\d+ 0x[0-9a-f]+ in (\S+)')
+
+
+def shown_path(path):
+    """path relative to the checkout when it is inside it, else as it is."""
+    with contextlib.suppress(ValueError):
+        rel = os.path.relpath(path, ROOT)
+        if not rel.startswith('..'):
+            return rel
+    return path
+
+
+def asan_failure(out):
+    """The failure line of a run of the AddressSanitizer build (build.cmd asan) that wrote a report (asan.<pid> in its
+    folder or its peer's: tests/verify/image/asan_report.cpp): the error and the first frames; None without one."""
+    for path in sorted(glob.glob(os.path.join(out, 'asan.*')) + glob.glob(os.path.join(out, 'peer', 'asan.*'))):
+        with contextlib.suppress(OSError), open(path, errors='replace') as f:
+            text = f.read()
+        error = next((l.split('AddressSanitizer: ', 1)[1] for l in text.splitlines() if 'ERROR: AddressSanitizer' in l), None)
+        if error is None:
+            if text.strip():
+                return f'AddressSanitizer: wrote {shown_path(path)}'
+            continue
+        frames = [m.group(1) for l in text.splitlines() if (m := ASAN_FRAME.match(l))]
+        frames = [f for f in frames if not f.startswith(('__asan', '_asan', 'asan_', '__sanitizer'))][:5]
+        return f'AddressSanitizer: {error.split(" on address")[0]} in {" <- ".join(frames)} [{shown_path(path)}]'
+    return None
+
+
 def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1, slots=None):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
@@ -444,6 +473,10 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
             failures.append('the game process is still alive after TerminateProcess')
     if any('the game crashed' in f or 'no code at' in f for f in failures):
         notes.append(crash_stack_note(out, build, cmd, root))
+    if asan := asan_failure(out):
+        failures.append(asan)
+        if result == 'PASS':
+            result = 'FAIL'
     expected = expected_result(scenario)
     if expected and result == expected and proc.returncode != UNKILLABLE_EXIT:
         result = 'PASS'

@@ -3588,7 +3588,12 @@ void LogMainThreadStack() {
             const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
             words = (end - context.Esp) / sizeof(std::uintptr_t);
             if (words > stack.size()) words = stack.size();
-            std::memcpy(stack.data(), reinterpret_cast<const void*>(context.Esp), words * sizeof(std::uintptr_t));
+            // Through the kernel, not memcpy: the AddressSanitizer build would report the other thread's
+            // poisoned stack slots.
+            SIZE_T read = 0;
+            ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(context.Esp), stack.data(),
+                              words * sizeof(std::uintptr_t), &read);
+            words = read / sizeof(std::uintptr_t);
         }
         ResumeThread(thread);
     }

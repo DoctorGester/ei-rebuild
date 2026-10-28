@@ -86,6 +86,20 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   heap). `EI_HEAP_JITTER=<seed>[,fill]` moves the heap's blocks (game.exe's and the image's) without
   changing the calls, to find behaviour that follows addresses. These and the trace tools (`heaptrace`,
   `EI_HEAP_FILL`, `EI_SAVETRACE`, `EI_WATCH_*`) are in docs/notes/standalone-verification.md, sections 5 and 7.
+- AddressSanitizer: `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL
+  copied beside them) into `build\asan`; the product builds never have it. Run the suite on it with
+  `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden --jobs 4` (any run_all
+  arguments). ei_hook.dll sends the reports to `asan.<pid>` in the run's folder (tests/verify/image/asan_report.cpp;
+  `ASAN_OPTIONS` still works for other options): the first heap error (use after free, double free, overflow of a heap, stack or global block, a
+  new / delete mismatch) ends the game with its report, symbolised from the PDB, and run_all fails
+  the run with the error and its first frames. For a flaky heap crash this finds the cause in one run: a freed
+  block stays poisoned in the quarantine, so the write that only sometimes hit live memory always reports. The
+  runtime takes part of game.exe's range before the host's main (ei_hook.log's "NOT all guarded" line): the image's
+  guard has holes there in this build only. The host is large-address-aware in this build (with 2 GB the shadow and
+  quarantine left too little: 4K frame buffers failed to allocate). The whole suite takes about 6 to 8 minutes at
+  `--jobs 4`; the scenarios that wait on real time (frame counts, `render_stats`, `camera_smooth`, `app_record`,
+  `ui_compare`, the cursor and device-removed renders, the long pairs) run out of time there: judge those by their
+  `asan.*` files, not their result.
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names

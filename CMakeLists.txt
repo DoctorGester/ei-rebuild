@@ -36,6 +36,16 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 # at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so game code uses x87::.
 add_compile_options(/arch:IA32 /fp:precise /W4 /permissive- /utf-8)
 
+# AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
+# instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside the
+# executables. Its reports go to the run's folder (tests/verify/image/asan_report.cpp).
+option(EI_ASAN "Build with AddressSanitizer (/fsanitize=address)" OFF)
+if(EI_ASAN)
+    add_compile_options(/fsanitize=address)
+    get_filename_component(EI_CL_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-i386.dll" DESTINATION "${CMAKE_BINARY_DIR}")
+endif()
+
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
@@ -140,6 +150,10 @@ add_executable(ei_launch tools/launcher/launch.cpp)
 # The host's one resource is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used.
 add_executable(ei_standalone src/standalone/host.cpp src/standalone/host.rc)
 target_include_directories(ei_standalone PRIVATE src)
+if(EI_ASAN)
+    # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
+    target_link_options(ei_standalone PRIVATE /LARGEADDRESSAWARE)
+endif()
 # Temporary (user 2026-10-21): a fixed preferred base above game.exe's range, so ASLR never loads the host inside
 # 0x400000-0x7D7000 (one build landed at 004E0000, leaving part of the guard unreserved). Relocations stay
 # (/FIXED:NO), so a taken base still loads elsewhere.
