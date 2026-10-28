@@ -27,7 +27,7 @@ using gamehash::FiguredTable;
 using recordvec::DressedUnitElement;
 using recordvec::FiguredUnitElement;
 using IdElement = stlp::PlainElement<std::uint32_t>;
-using NameElement = stlp::ObjectElement<mfc::CString>;
+using NameElement = stlp::ObjectElement<std::string>;
 
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
 constexpr float kScaleSteps = 127.0f;
