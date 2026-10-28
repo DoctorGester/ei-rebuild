@@ -57,8 +57,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
   no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
   GetModuleFileNameA(NULL) names ei_standalone.exe (the
-  message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
-  GetCommandLineA's first token too).
+  message box title; GetCommandLineA's first token too).
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
   and resolves game.exe's imports as it initialises (S18f; since S18k DDraw, mss32 and binkw32 from the working
   directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
@@ -462,7 +461,7 @@ kinds given.
      `check_cleanup.py` (`--update` when its counts went down), `build.cmd verify` and `release`, and
      `python tools/work.py test <ID> --golden --jobs 4`.
 - **What the other kinds need** (later batches):
-  - .rdata tables of numbers or GUIDs (app_dxversion, input_mouse, device.h: the DirectX interface ids): as batch 1.
+  - .rdata tables of numbers or GUIDs (input_mouse: the DirectInput interface ids): as batch 1.
     Batch 2 (C18b) did unit* (the armour tables, one definition for the overlapping 0073E09C/A0/A4 read as four
     entries per hit location), effects.h's sphere size curves (read by effects.cpp and particle_callbacks.cpp),
     figure_models' hash prime list, link_mesh_draw's RECT, and the scalars net_connection / net_lobby /

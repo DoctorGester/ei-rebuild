@@ -275,7 +275,7 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   / to a .reg file), 00466E60 (copy of `Reset`).
 - Networking (00440000-00444000), WinMain, animation file loading beyond the scene helpers, CInventory: larger, stateful, built on
   unrewritten CString / CArray / stream code. 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties
-  the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
+  the list), 00458570 (hash_map registration): mapped, not rewritten.
 
 
 ## A-E1: small slots (class_slots.cpp)

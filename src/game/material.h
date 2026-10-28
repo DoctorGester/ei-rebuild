@@ -14,8 +14,8 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-// A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
-// and the specular power. 0x44 bytes.
+// A material's lighting colours: diffuse, ambient, specular and emissive (r, g, b, a) and the specular power.
+// 0x44 bytes.
 struct MaterialColors {
     Vector4 diffuse;
     Vector4 ambient;

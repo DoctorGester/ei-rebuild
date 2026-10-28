@@ -383,8 +383,13 @@ come first, then what holds for the present path (the subsection names are cited
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). R27b: the holder is `Surface` (no surface pointer),
   pixel formats are `PixelFormat` (bits and channel masks, surface.h) and the texture formats one fixed list
   (`TextureFormat`, section 7); no format enumeration, display-mode format read or depth format. R27c: no device
-  layer at all (R9a below): device.h, the switch-over device and its tokens are gone. Left: the gamma ramp's
-  DDGAMMARAMP (R27d) and app_dxversion.cpp's version probe of the system's DDRAW.DLL (untyped COM slots, no header).
+  layer at all (R9a below): device.h, the switch-over device and its tokens are gone. R27d: the gamma ramp is one uint16 table.
+  R27e: app_dxversion.cpp's version probe of the system's DDRAW.DLL and the DirectDraw / Direct3D rows of dx_errors.cpp's
+  message table are gone; no DirectDraw or Direct3D 7 name is left in game code.
+  The EI_RENDER_VALIDATION code (harness build) was read through in R27e: every check and switch left (upload and
+  cursor / ramp read-backs, kept mesh / terrain page against a fresh build, missed surface writes, level map, timers,
+  removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
+  went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
@@ -499,11 +504,11 @@ keeps the size it was made with and only the swap chain follows the window (R9c)
 
 ### PF3 (R9b1): no DirectDraw probes at startup
 
-0045E310 (`app_dxversion.cpp` GetDxVersion) probes nothing in the image and returns 0x800 (what the probe gives on
-current Windows); "app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log.
-The probe used to fail now and then with several games on the machine ("DirectX 7 or later" message). Returning 0x800
-without skipping the probe's side effects once hung sound init (DirectMusic through CoCreateInstance and DDRAW.DLL left
-loaded mattered to the sound code); the full skip did not hang. A timed-out harness run logs the main thread's
+R27e: the version probe (0045E310, `GetDxVersion`) is gone, with WinMain's "This Game requires DX7" check on its answer
+(line 0 of res\sysmsg.txt, now unused; the other lines keep their places): the game loads no DDRAW.DLL and starts on a
+system without DirectDraw. The probe used to fail now and then with several games on the machine ("DirectX 7 or later"
+message), and left DirectMusic loaded through CoCreateInstance, which once mattered to the sound code (a run that
+skipped only part of the probe's side effects hung sound init); the full skip did not hang. A timed-out harness run logs the main thread's
 instruction pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in `AIL_waveOutOpen`
 is what to read it for.
 
@@ -1019,8 +1024,9 @@ across runs; the goldens check the game state.
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`; NewShadowTexture / ShadowRenderSurface, the
    texture pixels 007AF1E0 / 007AEEB8 / 007C2E00 and their exit functions) and, after SetTexture and EdgeFade, the
    decal's DrawFlatBlocks are gone. The half's `shadowMade` stands for the original's "texture made" test: the
-   first draw after Create / ClearShadow builds the shadow. 2DintMMX's RasteriseTriangle / RasteriseKeyedTriangle /
-   BlurShadow / BlurShadow2 stay declared in CPixelConverter (the DLL's interface) but nothing calls them. (Until R16i a switch to the classic option needed the textures again: a table
+   first draw after Create / ClearShadow builds the shadow. 2DintMMX's RasteriseTriangle / RasteriseKeyedTriangle
+   (slots 8 and 9, `Unused8` / `Unused9` in CPixelConverter: the interface needs the places so DecodeDxt stays slot 10) and
+   BlurShadow / BlurShadow2 (slots 11 / 12, not declared any more) are not called (R27e). (Until R16i a switch to the classic option needed the textures again: a table
    of the shadows whose texture was made, with a generation the harness's `shadows rebuild` moved, rebuilt the
    static ones the game would not rebuild; R16i removed the option, the table and those harness words.) Measured (render_stats, 4K,
    per frame, the `_shadowfull` stretch with them made against `_shadowskip` right after; shadow builds ms + the

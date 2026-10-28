@@ -62,7 +62,7 @@ none may be devirtualised.
 - `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount_`),
   `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the
   record as a `CRefCounted` (base vtable 0073BB68).
-- Named slots: `CPixelConverter` 1 `SetChannelMasks`, 10 `DecodeDxt`, 11 / 12 `BlurShadow` / `BlurShadow2`; `CFigureCache` 5 `Clear` (004F7020), 6
+- Named slots: `CPixelConverter` 1 `SetChannelMasks`, 10 `DecodeDxt` (8 / 9 the DLL's triangle rasterisers, `Unused8` / `Unused9`); `CFigureCache` 5 `Clear` (004F7020), 6
   `ScaledFigure` (004F75E0) (now `CLinkFigureLoader`, cleanup-figures.md); `CUnitController` 21 `Heal(amountBits)` returning int (the amount is
   pushed as bits, as the original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `CCloudNoise` 0 `MakeLayer` / 1 `Generate` (real classes since C28f);
   `AIStream` 0 `DeletingDestruct` (the verify streams' overrides renamed).

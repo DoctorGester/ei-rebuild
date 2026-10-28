@@ -372,7 +372,8 @@ public:
     int SetBlend(render::Blend source, render::Blend dest) override;
     // Binds `texture` (a texture object, or null) to stage `stage`.
     int SetTexture(int stage, CTexture* texture) override;
-    // Draws pre-transformed vertices (D3DTLVERTEX) as an indexed triangle list with the current state.
+    // Draws pre-transformed vertices (screen x, y, z, rhw, colour, specular, and u, v when textured) as an indexed
+    // triangle list with the current state.
     int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
     // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).

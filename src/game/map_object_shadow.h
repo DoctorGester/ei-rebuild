@@ -180,8 +180,8 @@ public:
 // faded in). Reads only; the shadow draw and the casters outside the view share it.
 bool ShadowCastStrength(CObject3D* object, float* strength);
 
-// The material that draws a wounds texture (made when the wounds are first shown): blend 1, source 5
-// (D3DBLEND_SRCALPHA), destination 6 (D3DBLEND_INVSRCALPHA), the renderer helper's preset 4, two stages.
+// The material that draws a wounds texture (made when the wounds are first shown): blending on, source
+// factor the source alpha, destination factor its inverse, the renderer helper's preset 4, two stages.
 struct WoundsMaterial final : CDeviceMaterial {
     WoundsMaterial();
     ~WoundsMaterial() override;

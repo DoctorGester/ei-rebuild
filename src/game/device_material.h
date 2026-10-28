@@ -1,6 +1,6 @@
 #pragma once
 
-// The material the old renderer's device draws with (CTextureDevice::material_): set in device_states.cpp,
+// The material the device draws with (CTextureDevice::material_): set in device_states.cpp,
 // applied by the indexed draw. See docs/notes/models.md ("Material draw").
 
 #include "engine_object.h"
@@ -45,9 +45,9 @@ public:
 
     int refCount = 0;
     std::uint8_t blend;             // alpha blending on (with sourceBlend / destBlend)
-    int sourceBlend;                // D3DBLEND
-    int destBlend;                  // D3DBLEND
-    // the passes (counted): a Direct3D state block each, the first pass's texture stages.
+    render::Blend sourceBlend;      // the factors the draw blends with
+    render::Blend destBlend;
+    // the passes (counted): the renderer helper's preset, the first pass's texture stages.
     CRenderPreset* preset;
     std::vector<MaterialStage> stages;   // the first pass's stages, then one per further pass
 

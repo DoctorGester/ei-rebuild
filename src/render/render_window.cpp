@@ -1,7 +1,7 @@
-// The game window's swap chain in the switch-over without DirectDraw (render::StartPresenting): the
+// The game window's swap chain (render::StartPresenting): the
 // frame is drawn into a flip-model swap chain on the game window, its aspect kept (centred, black
 // bars when the window's client area has another shape), through the display's gamma ramp (the
-// options' brightness / contrast / gamma, IDirectDrawGammaControl's ramp in the old path) as a
+// options' brightness / contrast / gamma, SetGammaRamp's table) as a
 // shader step, with the software cursor drawn over it by the same shader (the frame stays without it, for the
 // cursor thread's presents), and presented with the vertical blank. Also where the frame sits in the window, for
 // the game's mouse coordinates (WindowToFrame / FrameToWindow). docs/notes/renderer.md, section 9.

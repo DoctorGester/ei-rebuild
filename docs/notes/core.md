@@ -251,8 +251,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - The device's mesh buffers (007AEDE0-007AEE3C): `src/game/device_buffers.h`. src/render reads the clip stack through
   the typed `CTransformPipeline::stacks_`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
   terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
-  render_loose_bmp checks did: run the render_* scenarios after a layout change). The 2DintMMX DLL's `RasterTarget`
-  keeps its layout (its keyed triangle path is never taken: nothing allocates a keyed texture's texels).
+  render_loose_bmp checks did: run the render_* scenarios after a layout change).
 
 ## Strings: CString to std::string (C14a)
 

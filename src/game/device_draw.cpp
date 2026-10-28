@@ -26,8 +26,8 @@ Surface* TextureSurface(CTexture* texture) { return texture->surface_; }
 void SetMaterialBlend(const CDeviceMaterial* material) {
     render::RenderState& state = render::g_renderState;
     state.blend = true;
-    state.sourceBlend = static_cast<render::Blend>(material->sourceBlend);
-    state.destBlend = static_cast<render::Blend>(material->destBlend);
+    state.sourceBlend = material->sourceBlend;
+    state.destBlend = material->destBlend;
 }
 
 void AssignTexture(CTexture** slot, CTexture* value) {
