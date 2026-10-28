@@ -256,7 +256,8 @@ happen (the harness logs "share id" if one does).
 - The game reads the heap's address order in more places than the table: a test that allocates around a load can still
   flip a script group's last member if the order patch is off.
 - rebirth_flags' `DistancePointPoint(3,4)` reads four floats past an 8-byte argument block (any value, 1.#INF or NaN):
-  the scenario checks `Or(DistancePointPoint(3,4),1)`, true for every value (T2e).
+  the scenario checks `Or(DistancePointPoint(3,4),1)`, true for every value (T2e). The image reads 0 for the two
+  missing floats (AddressSanitizer reported the read past the block).
 
 ## 6. Harness isolation
 

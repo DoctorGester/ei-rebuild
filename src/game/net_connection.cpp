@@ -54,8 +54,9 @@ void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*
 
 std::uint16_t IdPool::Allocate() {
     if (free.begin() == free.end()) return ++next;
+    std::uint16_t id = free.back();
     free.pop_back();
-    return *free.end();
+    return id;
 }
 
 void Connection::WriteAcks(std::uint8_t** p) {

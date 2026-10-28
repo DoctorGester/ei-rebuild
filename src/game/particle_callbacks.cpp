@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 #include "world.h"
 
+#include <bit>
 #include <concepts>
 
 using namespace particle;
@@ -192,7 +193,9 @@ int CParticleSource::UpdateCasting(Particle* p) {
     }
     int life = --p->life;
     if (life == 0) return 0;
-    std::int32_t fade = (type_ == 0x202A ? kCastAlphaByLifeWide : kCastAlphaByLife)[life];
+    // Past the end of its life (the update after death): the countdown table's last entry, or the wide table's.
+    std::int32_t fade = type_ == 0x202A ? ByLife(kCastAlphaByLifeWide, life, kCastAlphaByCountdown[6])
+                                        : ByLife(kCastAlphaByLife, life, kCastAlphaByLifeWide[14]);
     std::int32_t cap = elements[0].cast.alpha;
     if (cap < fade) fade = cap;
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
@@ -847,7 +850,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
     }
     int life = --p->life;
     if (life == 0) return 0;
-    if (life < 7) p->color = (static_cast<std::uint32_t>(kRiseFallAlpha[life]) << 24) | 0xFFFFFF;
+    if (life < 7) p->color = (static_cast<std::uint32_t>(ByLife(kRiseFallAlpha, life, 0)) << 24) | 0xFFFFFF;
     if (++p->frame == 16) p->frame = 12;
     double shrunk = D(p->size) * D(EI_SWIRL_SHRINK);
     std::memcpy(&p->pos, &p->velocity, sizeof(Vector3));
@@ -1213,7 +1216,8 @@ int CParticleSource::UpdateBlast(Particle* p) {
     p->velocity.x = static_cast<float>(drag * D(p->velocity.x));
     p->velocity.y = static_cast<float>(drag * D(p->velocity.y));
     p->velocity.z = static_cast<float>(drag * D(p->velocity.z));
-    p->color = (static_cast<std::uint32_t>(kBlastAlpha[p->frame]) << 24) | 0xFFFFFF;
+    // A flame's frame can step past the table: the original read kAcidSpread after it there (0.0f: alpha 0).
+    p->color = (static_cast<std::uint32_t>(p->frame < std::ssize(kBlastAlpha) ? kBlastAlpha[p->frame] : 0) << 24) | 0xFFFFFF;
     return 1;
 }
 
@@ -1522,7 +1526,7 @@ int CParticleSource::UpdateShower(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
     p->pos.x = static_cast<float>(D(p->drift.x) + D(p->pos.x));
-    p->color = (static_cast<std::uint32_t>(kShowerAlpha[life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: kAcidSize's zero tail
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->pos.z) + D(p->drift.z));
     p->size = static_cast<float>(D(p->velocity.y) * D(p->size));
@@ -2946,6 +2950,8 @@ namespace {
 constexpr std::int32_t kClayAlpha[16] = /*0078A734*/ {0, 128, 255, 255, 255, 255, 255, 255, 255, 160, 80, 32};
 constexpr float kClayReach[16] = /*0078A6F4*/ {0.0f, 0.025f, 0.056f, 0.092f, 0.136f, 0.188f, 0.251f, 0.326f, 0.417f, 0.525f,
                                             0.656f, 0.812f, 1.0f, 1.0f, 1.0f, 1.0f};
+// What the original read for kClayAlpha at a countdown of -1: kClayReach's last entry (alpha 0 once shifted).
+constexpr std::int32_t kClayBefore = std::bit_cast<std::int32_t>(kClayReach[15]);
 // The reach read backwards from entry 14 (for a positive size).
 float ClayReachBackwards(int t) { return kClayReach[14 - t]; }
 
@@ -2954,7 +2960,7 @@ float ClayReachBackwards(int t) { return kClayReach[14 - t]; }
 // ClayRing: in the first tick (countdown 13) one marker per point; then clods between a
 // random point's previous and current position, flying off at random.
 int CParticleSource::EmitClayRing(Particle* p, int index) {
-    p->color = (static_cast<std::uint32_t>(kClayAlpha[elements[0].ticks]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
     p->life = lifetime;
     p->frame = 1;
     p->frameTimer = frameDelay;
@@ -2997,7 +3003,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
 int CParticleSource::UpdateClayRing(Particle* p) {
     if (--p->life == 0) return 0;
     if (p->frame == 0) {
-        p->color = (static_cast<std::uint32_t>(kClayAlpha[elements[0].ticks]) << 24) | 0xFFFFFF;
+        p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
         std::memcpy(&p->pos, &elements[p->state].pos, sizeof(Vector3));
         SetBits(&p->size, 0x3E4CCCCD);     // 0.2
         return 1;
@@ -3373,7 +3379,7 @@ constexpr std::int32_t kZoneExitAlpha[16] = /*0078AA38*/ {0, 80, 176, 255, 255, 
 // per tick, aux0 slowing by 0.9, cycling through four frames, sized by velocity.x.
 int CParticleSource::UpdateZoneExit(Particle* p) {
     int life = p->life;
-    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(kZoneExitAlpha[life]) << 24);
+    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ByLife(kZoneExitAlpha, life, 255)) << 24);
     p->life = --life;
     if (life < 0) return 0;
     p->pos.z = static_cast<float>(D(p->pos.z) + D(0.05f /*0073C52C*/));

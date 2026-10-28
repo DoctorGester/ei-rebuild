@@ -223,10 +223,22 @@ CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     return surface;
 }
 
+namespace {
+
+// A surface of the window's list, destroyed as a plain surface whatever its class, as the original does (a scrolling
+// surface's own destructor does not run: CUiSurface's is not virtual); the block is freed unsized, since it may be a
+// derived class's.
+void DestroySurface(CUiSurface* surface) {
+    surface->~CUiSurface();
+    ::operator delete(surface);
+}
+
+} // namespace
+
 void CUiWindow::RemoveSurfaceAt(int index) {
     if (CUiSurface* surface = surfaces_[index]) {
         if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-        delete surface;
+        DestroySurface(surface);
     }
     surfaces_.erase(surfaces_.begin() + index);
 }
@@ -235,7 +247,7 @@ void CUiWindow::ClearSurfaces() {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         if (CUiSurface* surface = surfaces_[i]) {
             if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            delete surface;
+            DestroySurface(surface);
         }
     }
     surfaces_.clear();
@@ -436,7 +448,7 @@ CUiWindow::~CUiWindow() {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         if (CUiSurface* surface = surfaces_[i]) {
             if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            delete surface;
+            DestroySurface(surface);
         }
     }
     surfaces_.clear();

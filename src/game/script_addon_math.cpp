@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "random.h"
 
+#include <algorithm>
 #include <cmath>
 
 #pragma function(sin, cos, pow, floor, ceil)
@@ -50,10 +51,12 @@ bool Pow(Call* call) {
     return true;
 }
 
-// The signature has two floats, but the handler reads four: the last two come from past the end
-// of the argument array, as in addon.
+// The signature has two floats, but the handler reads four, as in addon: there the last two came from past the end
+// of the argument array (heap bytes, any value from run to run), here they are 0.
 bool DistancePointPoint(Call* call) {
-    const float* f = Floats(call);
+    float f[4] = {};
+    const float* given = Floats(call);
+    for (int i = 0, n = std::min(FloatCount(call), 4); i < n; ++i) f[i] = given[i];
     Store(call->FloatResult(), Distance(f[0], f[1], f[2], f[3]));
     return true;
 }

@@ -80,7 +80,10 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    A heap helper the original freed by hand that becomes a local with a destructor (PlayerIterator drops its
    count of the player list) runs that destructor at the end of its scope, not where the original freed it:
    scope it so it ends before anything it holds is deleted (CWorldServer::Destroy's iterator outlived the
-   list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). Containers are
+   list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). A std::vector is
+   read and written within its size: STLport code that read the popped element through end() (IdPool::Allocate) or
+   let a helper write past the size into the spare capacity (the sprite clipper's vertices) is undefined on a
+   std::vector, so resize it first; `build.cmd asan` (docs/notes/harness.md) finds these. Containers are
    `std::`. Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
