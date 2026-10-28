@@ -47,7 +47,6 @@ address,size,name,file
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
-00784756,1,g_deviceNamed,src/game/app_main.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui.h
@@ -352,12 +351,9 @@ address,size,name,file
 007C54C8,28,g_candidates,src/game/unit_ai_modes.cpp
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C54E8,4,kModeLog,src/game/unit_ai.cpp
-007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
-007C551C,4,g_loadingHolder,src/game/bink_video.cpp
 007C5520,16,g_loadingScreen,src/game/bink_video.cpp
 007C554C,1,g_loadingMovieOff,src/game/bink_video.cpp
 007C5550,4,g_loadingBink,src/game/bink_video.cpp
-007C5554,4,g_loadingSurfaceType,src/game/bink_video.cpp
 007C55A8,88,g_consoleOut,src/game/console_streams.cpp
 007C5600,88,g_allLogOut,src/game/console_streams.cpp
 007C5658,88,g_unitAcksLogOut,src/game/console_streams.cpp

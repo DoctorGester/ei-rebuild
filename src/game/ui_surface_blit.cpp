@@ -26,7 +26,6 @@ void CUiSurface::Blit() {
     source.bottom = source.top + (clipped.bottom - clipped.top);
     bool stretched = (flags & 2) != 0;
     bool keyed = (flags & 1) != 0;
-    if (holder->device->renderTarget_ == holder) return;
     render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
     render::Rect part{source.left, source.top, source.right, source.bottom};
     // A native surface (ui_native.h) draws its canvas when the interface's path says so.

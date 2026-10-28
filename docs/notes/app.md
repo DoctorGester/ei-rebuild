@@ -128,8 +128,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-benchmark_", "-devicetarget_"), the window class
   (a running game is brought forward and this one exits), the registry root and options, the new handler, the
   worlds and the camera (field of view pi * 2 / 7), free disk space (300 MB warning) and the disc's label, the
-  mouse object, the saves / mp / textures folders, the window, the renderer and 00784756 (`g_deviceNamed`; the
-  video memory flags 00784753-00784755 are gone with the device, R27c: they were 0 on the 256 MB card), the sound, the intro movies, the databases, the cursors, the interface, the map list,
+  mouse object, the saves / mp / textures folders, the window, the renderer (the driver flag 00784756 and the
+  video memory flags 00784753-00784755 are gone with the device: R27c, R27f), the sound, the intro movies, the databases, the cursors, the interface, the map list,
   the first map.
 - The loop: the time since the last pass (at most 5 ticks; 1000 / fps while frames are recorded) is added to the
   server's and the client's backlog (0079BC64 / 0079BC68; the client's scaled by the client speed 00784758,

@@ -151,8 +151,8 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
 
 // Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog_ set
 // the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
-int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
-                               std::uint16_t* indices, int indexCount) {
+int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
+                                    int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
     vertexCount_ += vertexCount;

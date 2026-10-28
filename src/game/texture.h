@@ -33,8 +33,7 @@ struct TexCoord;
 struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
 
-// The device object: the screen (its window, size and colour depth), the holders standing for it (primary_ and
-// renderTarget_, no pixels), 2DintMMX's pixel converter, the transform pipeline, the texture stages' holders and the
+// The device object: the screen (its window, size and colour depth), 2DintMMX's pixel converter, the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.
 class CTextureDevice final : public CRendererBase {
@@ -56,7 +55,7 @@ public:
     int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
     int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
-    int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
+    int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
     // Only when the stage has another holder (the change counted). Returns 1.
     int BindSurface(int stage, Surface* holder);
     // A null texture binds none.
@@ -70,10 +69,8 @@ public:
     CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
-    Surface* primary_ = nullptr;
-    Surface* renderTarget_ = nullptr;
     bool fullScreen_ = false;   // the window covers the monitor
-    RECT screen_ = {};          // (0, 0, width, height)
+    RECT screen_ = {};          // (0, 0, width, height): the screen's size
     HWND window_ = nullptr;
     int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     HMODULE converterLibrary_ = nullptr;     // 2DintMMX.dll

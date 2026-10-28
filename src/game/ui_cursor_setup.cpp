@@ -80,11 +80,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     device_ = device;
     if (device) device->AddRef();
     if (old) old->Release();
-    gameapi::SetRectEmpty(&bounds_);
-    if (device_->primary_) {
-        bounds_.right = device_->renderTarget_->width;
-        bounds_.bottom = device_->renderTarget_->height;
-    }
+    bounds_ = device_->screen_;
     AssignHolder(under_, NewSurface(device_, g_cursorWidth, g_cursorHeight));
     AssignHolder(target_, NewSurface(device_, g_cursorWidth * 2, g_cursorHeight * 2));
 }

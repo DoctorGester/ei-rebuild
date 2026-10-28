@@ -1,6 +1,5 @@
 // The device object (CTextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
-// object: the constructor loads 2DintMMX.dll, starts the new renderer (src/render), which draws and presents, and
-// makes the two holders standing for the screen. See docs/notes/renderer.md (section 9).
+// object: the constructor loads 2DintMMX.dll and starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
 #include "texture.h"
 
 #include "app.h"
@@ -22,17 +21,6 @@
 namespace {
 
 constexpr std::uint32_t kFeatureMmx = 1u << 23;     // CPUID.1:EDX bit 23
-
-// A holder standing for the screen (the primary or the render target): no pixels, the screen's size and colour
-// depth. Counted once.
-Surface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
-    auto* holder = new Surface(device);
-    holder->width = width;
-    holder->height = height;
-    holder->bitsPerPixel = bitsPerPixel;
-    holder->AddRef();
-    return holder;
-}
 
 // The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
 // Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
@@ -76,8 +64,6 @@ CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int heig
     render::StartPresenting();
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
-    primary_ = NewScreenHolder(this, width, height, bitsPerPixel);
-    renderTarget_ = NewScreenHolder(this, width, height, bitsPerPixel);
 
     // The game's Direct3D 7 device set the calling thread's x87 precision to 24 bits (the game asked for
     // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
@@ -88,7 +74,5 @@ CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int heig
 CTextureDevice::~CTextureDevice() {
     if (pipeline_) pipeline_->Release();
     if (material_) material_->Release();
-    if (renderTarget_) renderTarget_->Release();
-    if (primary_) primary_->Release();
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
 }

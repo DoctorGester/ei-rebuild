@@ -85,8 +85,6 @@ void CUiSurface::CaptureScreen() {
     ObservePixels(this, "CaptureScreen", true, _AddressOfReturnAddress());
     Surface* holder = HolderOf(this);
     if (!holder) return;
-    Surface* screen = holder->device->renderTarget_;
-    if (screen == holder) return;
     if (!ui_native::Capture(this, rect_)) return;
     // The copy is taken from the new renderer's frame (the original's Blt from the render target is
     // gone with the DirectDraw fallback).

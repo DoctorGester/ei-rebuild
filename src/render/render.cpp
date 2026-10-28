@@ -992,13 +992,12 @@ bool FrameSize(int* width, int* height) {
 
 CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
 
-// The size of the game's render target (in the switch-over a holder without a surface that has the screen's size).
+// The size of the game's screen (the device object's).
 bool GameTargetSize(int* width, int* height) {
-    CTextureDevice* device = DeviceObject();
-    const Surface* target = device ? device->renderTarget_ : nullptr;
-    if (!target) return false;
-    *width = target->width;
-    *height = target->height;
+    const CTextureDevice* device = DeviceObject();
+    if (!device) return false;
+    *width = device->screen_.right;
+    *height = device->screen_.bottom;
     return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
 }
 

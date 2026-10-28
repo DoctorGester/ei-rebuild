@@ -542,7 +542,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
-        unit->PlayAnimationSecond(nullptr);
+        unit->PlayAnimation(nullptr);
         unit->RestartPose();
         const std::string& skin = record->texts[4];
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? std::nullopt : std::optional<std::string_view>(skin)));

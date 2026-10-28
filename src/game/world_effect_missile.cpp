@@ -308,7 +308,7 @@ void CEffectArrowFigure::Start(int update) {
     std::vector<std::string> parts;
     figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();
-    figure->PlayAnimationSecond(nullptr);
+    figure->PlayAnimation(nullptr);
     figure->RestartPose();
     attached->SetSkins(texture, game::kEmptyText);
     g_clientWorld->AddObject(figure_);

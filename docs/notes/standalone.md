@@ -611,7 +611,7 @@ kinds given.
         own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
         T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
         access goes through the name or a member (`g_partyManager->`); a raw address inside the
-        range is refused. Named: ui_objectives' last quest string 007C8178, bink_video's loading holder 007C551C, the
+        range is refused. Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
         party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370

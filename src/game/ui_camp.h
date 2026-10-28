@@ -136,8 +136,6 @@ public:
     const char* HelpTopic() override;
     // Ends a turn by a turn button.
     int OnLButtonUp(int buttons, int x, int y);
-    // Always true; neither the map nor the argument is read.
-    bool MayTravel();
     void Close();
     // Zones, then quests, then links, then the three layers.
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }

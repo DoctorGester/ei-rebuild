@@ -1,5 +1,4 @@
-// The renderer base part's creation (CVisualizator::Create in the game's messages;
-// called once by the renderer's creation): makes
+// The first step of the scene renderer's creation (CVisualizator::Create in the game's messages): makes
 // the transform pipeline, checks the processor for MMX and loads the 2D graphics library.
 #include "model.h"
 #include "game_strings.h"
@@ -24,7 +23,7 @@ constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D grap
 
 } // namespace
 
-void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings) {
+void CSceneRenderer::LoadPipelineAndConverter(const options::GameOptions* settings) {
     const std::string& workPath = settings->workPath_;
 
     CTransformPipeline* pipeline = new CTransformPipeline(workPath.c_str());   // 0x94 bytes
@@ -54,5 +53,4 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
     }
     game::DebugLog(kAcquiringText);
     graphicsProcessor_ = getProcessor();
-    return graphicsProcessor_;
 }

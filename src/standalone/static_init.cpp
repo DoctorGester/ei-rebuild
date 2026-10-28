@@ -109,7 +109,6 @@ void InitCodeTables();
 void InitDampScale();
 void InitGameClientPointer();
 void InitGameServerPointer();
-void ReleaseLoadingHolder();
 void SysInfoStaticGuard();
 void SysInfoStaticHalfPi();
 void SysInfoStaticInit();
@@ -866,8 +865,7 @@ void RunStaticInitialisers() {
     // 005DA300: stores; 3 left out
     // 005DA320: stores; 4 left out
     // 005DA350: empty
-    // 005DA360: stores + atexit; 1 left out
-    std::atexit(ReleaseLoadingHolder);
+    // 005DA360: stores + atexit; 2 left out
     // 005DAE00: guarded atexit
     if (Once(lib::g_emptyStaticGuard, 1)) {
     }

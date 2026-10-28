@@ -312,7 +312,6 @@ void CreateRenderer() {
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
     g_sceneRenderer->CreateRenderer(g_mainWindow, options);
-    g_deviceNamed = options->driverIndex_ != 0;
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 }
 
@@ -632,7 +631,6 @@ std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
 std::uint8_t g_quitAllowed = /*00784751*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
-std::uint8_t g_deviceNamed = /*00784756*/ 1;
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
 int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {

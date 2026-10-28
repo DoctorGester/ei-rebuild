@@ -236,24 +236,11 @@ bool DrawQuads(CSceneRenderer* renderer, int sprites) {
     return Draw(renderer, sprites * 4, sprites * 6);
 }
 
-// The render target's size (the holder's render target's width / height) while there is a primary
-// surface; both are kept in stack memory that is never initialised, so without a
-// surface the previous batch's values (here 0 at first) are used.
-struct ScreenSize {
-    std::uint32_t width = 0;
-    std::uint32_t height = 0;
-};
-
 // Some corners off screen: each triangle goes through the clipper, which may append vertices.
-bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
-    CTextureDevice* holder = renderer->device_;
-    if (holder->primary_) {
-        Surface* target = holder->renderTarget_;
-        screen.width = static_cast<std::uint32_t>(target->width);
-        screen.height = static_cast<std::uint32_t>(target->height);
-    }
-    float xMax = static_cast<float>(x87::FromUnsigned(screen.width));
-    float yMax = static_cast<float>(x87::FromUnsigned(screen.height));
+bool DrawClipped(CSceneRenderer* renderer, int sprites) {
+    const RECT& screen = renderer->device_->screen_;
+    float xMax = static_cast<float>(screen.right);
+    float yMax = static_cast<float>(screen.bottom);
     // The clipper appends its new vertices after the corners (up to two per plane, six planes, two triangles per
     // sprite): the vector holds them (the original wrote them past its end, into its spare capacity).
     constexpr int kClipAddedPerSprite = 2 * 6 * 2;
@@ -360,7 +347,6 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         state.destBlend = render::Blend::One;
     }
 
-    ScreenSize screen;
     while (remaining > 0) {
         int count = FillCorners(sprite, remaining);
         g_corners.resize(count * 4);
@@ -369,7 +355,7 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {
-            if (!DrawClipped(this, kept, screen)) return 0;
+            if (!DrawClipped(this, kept)) return 0;
         } else if (visibility == 0) {
             if (!DrawQuads(this, kept)) return 0;
         }

@@ -55,10 +55,6 @@ void SearchWays(CGlobalMap* map, const std::string& target) {
     map->FindPaths(PlayerZone());
 }
 
-bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel();
-}
-
 } // namespace
 
 void CGlobalMap::FindPaths(MapRecord* from) {
@@ -141,7 +137,6 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(this, zone.name);
-            if (!MayTravelTo(this)) return;
             auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_, &arrivals_, 1, 0);
             interface_->PushWindow(window, 1, 1);
@@ -150,7 +145,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     }
     // A link: the party goes there at once when there is a way.
     SearchWays(this, links_[link].name);
-    if (!found_ || !MayTravelTo(this)) return;
+    if (!found_) return;
     GamePassTime(arrivals_[0]);
     ::RequestZone(links_[link].name, 0);
 }

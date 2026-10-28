@@ -101,7 +101,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     std::vector<std::string> parts;
     object->MakeFigure(name, &parts, 1);
     specific->RegisterPartMaterials();
-    object->PlayAnimationSecond(nullptr);
+    object->PlayAnimation(nullptr);
     object->RestartPose();
     specific->SetSkins(from, to);
 }

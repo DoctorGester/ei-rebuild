@@ -409,8 +409,6 @@ public:
     void SetAnimationState(CFigureAnimationState* state);
     // The animation state (if any) plays `animation`.
     void PlayAnimation(FigureAnimation* animation);
-    // The same, returning 1.
-    int PlayAnimationSecond(FigureAnimation* animation);
     // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
     int AttachPartMesh(CEngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.

@@ -42,7 +42,6 @@ extern std::uint8_t g_interfaceHasScreen;
 extern std::uint8_t g_quitAllowed;
 extern std::uint8_t g_recordingFrames;
 extern int g_showClientSpeed;
-extern std::uint8_t g_deviceNamed;
 extern const char* g_loadingMovieName;
 
 // The game window's procedure (also called directly by the pump and the dispatcher).

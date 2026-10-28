@@ -54,11 +54,6 @@ void CObject3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int CObject3D::PlayAnimationSecond(FigureAnimation* figureAnimation) {
-    if (animation) animation->Play(figureAnimation);
-    return 1;
-}
-
 int CObject3D::AttachPartMesh(CEngineObject* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);

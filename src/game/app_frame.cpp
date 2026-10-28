@@ -71,21 +71,7 @@ void FrameStep(bool draw, bool cursor) {
         app::g_recordingFrames = 0;
         return;
     }
-    // {0, 0, width, height} of the render target's surface; without one the game passes two stack
-    // words it never set.
-    std::uint32_t rect[5];
-    CTextureDevice* device = g_sceneRenderer->device_;
-    std::uint32_t width = rect[4], height = rect[4];
-    if (device->primary_) {
-        Surface* target = device->renderTarget_;
-        width = static_cast<std::uint32_t>(target->width);
-        height = static_cast<std::uint32_t>(target->height);
-    }
-    rect[0] = 0;
-    rect[1] = 0;
-    rect[2] = width;
-    rect[3] = height;
-    CDib* bitmap = CaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
+    CDib* bitmap = CaptureScreen(g_sceneRenderer->device_);
     if (bitmap) bitmap->Write(&file);
     delete bitmap;
     file.Close();

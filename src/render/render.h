@@ -389,7 +389,7 @@ struct MeshLighting {
     bool sun;
     Vector3 sunDirection;          // the direction its light travels
     float sunColour[3];
-    float ambientColour[3];        // CVisualizator::SetBaseColour's last
+    float ambientColour[3];        // CSceneRenderer::SetColour's last
     float diffuseColour[4];        // the material's
     float emissiveColour[3];
     float coefficient;             // the options' objects lighting coefficient (CLight::SetLitColors)

@@ -60,9 +60,8 @@ public:
 // The bytes of a header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);
 
-struct Surface;
+class CTextureDevice;
 
-// A new bitmap of the surface's pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel
-// masks), rows bottom-up. The surface is locked for reading meanwhile.
-CDib* CaptureSurfaceRect(Surface* surface, const RECT* rect);
-CDib* CaptureSurface(Surface* surface);
+// A new bitmap of the screen of `device` (the new renderer's last frame), in the screen's depth (16 and 32 bits with
+// its channel masks), rows bottom-up; null when the new renderer has no frame.
+CDib* CaptureScreen(const CTextureDevice* device);
