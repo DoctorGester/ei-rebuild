@@ -20,29 +20,22 @@
 
 namespace {
 
-// A figure object of class T in new storage, or null when the allocation fails.
-template <typename T>
-T* New() {
-    T* o = gamecrt::operator_new_as<T>();
-    return o ? new (o) T() : nullptr;
-}
-
 void* Create(int classId) {
     switch (classId) {
     case 0x41:
-        return New<CSharedFigureMesh>();
+        return new CSharedFigureMesh();
     case 0x42:
-        return New<CPlainFigureMesh>();
+        return new CPlainFigureMesh();
     case 0x43:
-        return New<CUiMesh>();
+        return new CUiMesh();
     case 0x44:
-        return New<CSkyObject>();
+        return new CSkyObject();
     case 0x300B:
-        return New<AnimationTrack>();
+        return new AnimationTrack();
     case 0x300C:
-        return New<FigureBone>();
+        return new FigureBone();
     case 0x300D:
-        return New<CFigureAnimationState>();
+        return new CFigureAnimationState();
     default:
         return nullptr;
     }

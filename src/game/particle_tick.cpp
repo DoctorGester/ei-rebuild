@@ -79,7 +79,7 @@ void RestorePrevious(Particle* p) {
 
 // The head of the free list, or a fresh 0x64-byte particle when it is empty.
 Particle* CParticleManager::AcquireParticle() {
-    if (freeParticles.empty()) return gamecrt::operator_new_as<Particle>();
+    if (freeParticles.empty()) return new Particle;
     Particle* p = freeParticles.front();
     freeParticles.pop_front();
     return p;

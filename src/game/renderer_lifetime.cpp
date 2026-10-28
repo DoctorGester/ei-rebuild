@@ -53,7 +53,6 @@ CVisualizator* CVisualizator::SetUpBase() {
 
 CVisualizator::CVisualizator() { SetUpBase(); }
 
-void CVisualizator::operator delete(void* memory) { gamecrt::operator_delete(memory); }
 
 void CVisualizator::CreateRenderer(void* window, options::GameOptions* settings) { CreateBase(window, settings); }
 void CVisualizator::DestroyRenderer() { DestroyBase(); }

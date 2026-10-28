@@ -71,7 +71,7 @@ ItemRecordHead* NewRecord(int classId) {
 // game leaks them, though they hold nothing here; the head's destructor is not virtual) and frees it.
 void DeleteRecord(ItemRecordHead* record) {
     record->~ItemRecordHead();
-    ItemRecordHead::operator delete(record);
+    ::operator delete(record);
 }
 
 template <typename Record>

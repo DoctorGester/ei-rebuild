@@ -35,26 +35,24 @@ int Octave(const std::uint8_t* layer, int x, int y, int scale, int shift) {
 
 } // namespace
 
-void* CCloudNoise::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CCloudNoise::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 CCloudNoise::CCloudNoise(int size) {
     size_ = size;
     const auto layerBytes = static_cast<std::size_t>((size >> 3) * (size >> 3) * 4);
-    noise_ = gamecrt::operator_new_bytes_as<std::int32_t>(layerBytes);
-    layers_ = gamecrt::operator_new_array<std::uint8_t>(layerBytes);
+    noise_ = new std::int32_t[layerBytes / sizeof(std::int32_t)];
+    layers_ = new std::uint8_t[layerBytes];
     const auto frameBytes = static_cast<std::size_t>(size * size);
-    for (std::uint8_t*& frame : frames_) frame = gamecrt::operator_new_array<std::uint8_t>(frameBytes);
-    ramp_ = gamecrt::operator_new_array<std::uint16_t>(0x100);   // 0x200 bytes
+    for (std::uint8_t*& frame : frames_) frame = new std::uint8_t[frameBytes];
+    ramp_ = new std::uint16_t[0x100];   // 0x200 bytes
     phase_ = 0.0f;
     step_ = 0;
 }
 
 CCloudNoise::~CCloudNoise() {
-    gamecrt::operator_delete(noise_);
-    gamecrt::operator_delete(layers_);
-    for (std::uint8_t* frame : frames_) gamecrt::operator_delete(frame);
-    gamecrt::operator_delete(ramp_);
+    delete[] noise_;
+    delete[] layers_;
+    for (std::uint8_t* frame : frames_) delete[] frame;
+    delete[] ramp_;
 }
 
 CGlobalMapClouds::~CGlobalMapClouds() {}

@@ -9,11 +9,6 @@ class CRendererBase {
 public:
     virtual ~CRendererBase();
 
-    // On the game's heap: null without memory, and then no constructor runs.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     void AddRef() { ++refs_; }
     void Release() {

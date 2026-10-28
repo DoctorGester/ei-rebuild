@@ -69,8 +69,6 @@ PartyRecord::~PartyRecord() {
 
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 
-void* CDirectInputMouse::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CDirectInputMouse::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 CDirectInputMouse::~CDirectInputMouse() {
     Shutdown();

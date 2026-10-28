@@ -17,8 +17,6 @@ class CGameException {
 public:
     virtual ~CGameException();
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     char* message = nullptr;   // operator new copy of the formatted text
     long result;               // the DirectX result (set by the result constructor only)

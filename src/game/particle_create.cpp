@@ -797,8 +797,6 @@ int CParticleSource::Create() {
 
 // A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the emission point
 // it was allocated with, so the memory comes zeroed.
-void* CParticleSource::operator new(std::size_t size) noexcept { return gamecrt::operator_new_zeroed(size); }
-
 CParticleSource::CParticleSource(int type) {
     ClearFields();
     localRotation_.SetIdentity();
@@ -810,7 +808,9 @@ CParticleSource::CParticleSource(int type) {
     type_ = type;
 }
 
-CParticleSource* NewParticleSource(int type) { return new CParticleSource(type); }
+// Sources start zeroed: nothing in the constructor or Reset sets the emission point (origin) and the first Tick
+// takes the motion from it. The harness zeroes the game's sources alike.
+CParticleSource* NewParticleSource(int type) { return new (kZeroed) CParticleSource(type); }
 
 CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);

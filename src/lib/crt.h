@@ -11,27 +11,14 @@
 
 namespace gamecrt {
 
-// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc and free itself (on its
-// own heap).
-void* operator_new(std::size_t size);
-// operator_new with the block zeroed, for the objects whose constructors leave fields unset (server
-// and map objects, AI modes): a determinism fix the standalone keeps, the harness zeroes the
-// original's at the same calls (tests/verify/harness_leftovers.h).
-inline void* operator_new_zeroed(std::size_t size) {
-    void* block = operator_new(size);
-    if (block) std::memset(block, 0, size);
-    return block;
-}
-// operator_new for one T, typed as T: the caller runs the constructor body on it (null when it fails).
+// The raw blocks the script's MFC records still take (script.h, script_*.cpp, the tag headers): the host's
+// operator new / delete. Everything else is new / delete.
+inline void* operator_new(std::size_t size) { return ::operator new(size); }
+// operator_new for one T, typed as T: the caller runs the constructor body on it.
 template <class T> T* operator_new_as() { return static_cast<T*>(operator_new(sizeof(T))); }
-// operator_new of `bytes` typed as T, for objects allocated shorter than the class (a figure strip stops
-// before CUiItemStrip's item list) or with data after it (a CString's header and characters).
-template <class T> T* operator_new_bytes_as(std::size_t bytes) { return static_cast<T*>(operator_new(bytes)); }
-// operator_new for `count` T (nothing constructed; null when it fails); the size is count * sizeof(T) in 32 bits.
+// operator_new for `count` T (nothing constructed); the size is count * sizeof(T) in 32 bits.
 template <class T> T* operator_new_array(std::size_t count) { return static_cast<T*>(operator_new(count * sizeof(T))); }
-void operator_delete(void* p);
-void* malloc(std::size_t size);
-void free(void* p);
+inline void operator_delete(void* p) { ::operator delete(p); }
 
 int rand();
 // The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
@@ -65,23 +52,6 @@ unsigned& RandState();
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
 unsigned Controlfp(unsigned value, unsigned mask);
 
-// The compiler's array helper `eh vector destructor iterator`: the element's destructor on each of `count`
-// elements of `size` bytes from the last; when one throws, the elements still left are destroyed and the
-// exception goes on.
-using ElementFunction = void(*)(void* element, void* unused);
-void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy);
-// A constructor or destructor of T as an ElementFunction: libcrt::Element<&Destruct>.
-template <typename F>
-struct ElementOf;
-template <typename R, typename T>
-struct ElementOf<R(*)(T*)> {
-    using Type = T;
-};
-template <auto Function>
-void Element(void* element, void*) {
-    Function(static_cast<typename ElementOf<decltype(Function)>::Type*>(element));
-}
-
 // The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.
 std::string Format(const char* format, va_list args);
@@ -97,13 +67,6 @@ double CiPow(double x, double y);
 // control word 133F (to nearest) whatever the caller's; an overflow as the caller's rounding direction has
 // it, a NaN argument as x87 addition propagates it, an infinity otherwise +infinity.
 double Hypot(double x, double y);
-
-// The runtime the image owns: the heap (the modern CRT's), operator
-// new's handler loop, the atexit list and exit.
-void* OperatorNew(std::size_t size);
-void OperatorDelete(void* p);
-void* Malloc(std::size_t size);
-void Free(void* p);
 
 } // namespace libcrt
 

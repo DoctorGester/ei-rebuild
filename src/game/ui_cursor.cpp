@@ -37,7 +37,7 @@ void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits
 
 } // namespace
 
-CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY, int flag) {
+CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag) {
     holder = nullptr;
     frame = 0;
     CTextureManager* manager = TheTextureManager();
@@ -60,7 +60,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     hotX = static_cast<int>(g_cursorWidth) * hotSpotX / 32;
     hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
-    saved = gamecrt::operator_new_array<std::uint8_t>(maskBytes);
+    saved = new std::uint8_t[maskBytes];
 
     // The mask, under the device lock.
     gameapi::EnterCriticalSection(TheDeviceLock());
@@ -76,5 +76,4 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
             MaskRow<std::uint32_t>(pixels + y * ((pitch >> 2) * 4), mask + y * columns, columns, 0xFFFFFF);
     }
     gameapi::LeaveCriticalSection(TheDeviceLock());
-    return this;
 }

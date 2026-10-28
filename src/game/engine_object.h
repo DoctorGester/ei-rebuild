@@ -2,6 +2,17 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <new>
+
+// `new (kZeroed) T(...)`: T constructed on a zeroed block, for the engine objects whose constructors leave fields
+// unset (the two factories' server and map objects, the lights, the particle sources): a determinism fix the
+// standalone keeps; the harness zeroes the original's at the same calls (tests/verify/harness_leftovers.h).
+// `delete` frees them as any other.
+struct ZeroFill {};
+inline constexpr ZeroFill kZeroed{};
+inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
+inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
 // windows.h's GetClassName macro would rename the slot in files that include windows.h first; the files that
 // override it undefine it too.
@@ -43,11 +54,6 @@ public:
     CBaseManager* SetOwner(CBaseManager* owner);
     void ClearFields();
 
-    // On the game's heap; `new` gives null without memory and constructs nothing, as the callers test.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     int refCount_;
     std::uint32_t flags_;

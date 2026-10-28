@@ -25,19 +25,15 @@ constexpr const char* kSpellManagerFolder = "spells";
 
 // Every container of a sequence loses a reference, in iterator order; the walk stops at the first entry
 // without a container.
-void ReleaseContainers(SpellSequence* sequence) {
-    for (auto& [low, container] : sequence->containers) {
-        if (!container) break;
-        container->Release();
-    }
-}
 
 } // namespace
 
 
-void SpellSequence::Destruct() {
-    ReleaseContainers(this);
-    std::destroy_at(&containers);
+SpellSequence::~SpellSequence() {
+    for (auto& [low, container] : containers) {
+        if (!container) break;
+        container->Release();
+    }
 }
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
@@ -75,9 +71,7 @@ int CSpellManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 void CSpellManager::Destroy() {
     for (auto& [key, sequence] : sequences_) {
         if (!sequence) break;
-        ReleaseContainers(sequence);
-        std::destroy_at(&sequence->containers);
-        gamecrt::operator_delete(sequence);
+        delete sequence;
     }
     sequences_.clear();
     maxSequenceKey_ = 0;
@@ -87,8 +81,7 @@ void CSpellManager::Destroy() {
 CSpellManager::~CSpellManager() {
     for (auto& [key, sequence] : sequences_) {
         if (!sequence) break;
-        sequence->Destruct();
-        gamecrt::operator_delete(sequence);
+        delete sequence;
     }
     sequences_.clear();
     maxSequenceKey_ = 0;

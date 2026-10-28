@@ -78,7 +78,7 @@ namespace terrain {
 
 LightRef* AllocLightRef() {
     if (!g_blocksWithFree) {
-        auto* block = gamecrt::operator_new_as<LightRefBlock>();
+        auto* block = new LightRefBlock;
         g_blocksWithFree = block;
         block->next = nullptr;
         block->prev = nullptr;
@@ -114,7 +114,7 @@ void FreeLightRef(LightRef* ref) {
         PushFront(block, g_blocksWithFree);
     } else if (free == LightRefBlock::kRefs) {
         Unlink(block, g_blocksWithFree);
-        gamecrt::operator_delete(block);
+        delete block;
     }
 }
 

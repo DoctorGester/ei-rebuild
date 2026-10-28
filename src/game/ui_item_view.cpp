@@ -441,7 +441,7 @@ CTexture* ItemFigureTexture(const char* name) {
     std::uint32_t* pixels = nullptr;
     if (image) {
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
-        pixels = gamecrt::operator_new_array<std::uint32_t>(count);
+        pixels = new std::uint32_t[count];
         std::memset(pixels, 0, count * 4);
         PixelConverter()->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
@@ -450,7 +450,7 @@ CTexture* ItemFigureTexture(const char* name) {
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
         // The original leaves the device lock held here.
-        if (pixels) gamecrt::operator_delete(pixels);
+        if (pixels) delete[] pixels;
         texture->Release();
         return nullptr;
     }
@@ -472,7 +472,7 @@ CTexture* ItemFigureTexture(const char* name) {
             at = reinterpret_cast<std::uint8_t*>(to + (0x100 - width));
         }
     }
-    if (pixels) gamecrt::operator_delete(pixels);
+    if (pixels) delete[] pixels;
     gameapi::LeaveCriticalSection(TheDeviceLock());
     manager->FreeAllFiles();
     return texture;
@@ -492,7 +492,7 @@ int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, in
     std::uint32_t* pixels = nullptr;
     if (image) {
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
-        pixels = gamecrt::operator_new_array<std::uint32_t>(count);
+        pixels = new std::uint32_t[count];
         std::memset(pixels, 0, count * 4);
         interface_->renderer_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
@@ -501,7 +501,7 @@ int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, in
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
         // The original leaves the device lock held here.
-        if (pixels) gamecrt::operator_delete(pixels);
+        if (pixels) delete[] pixels;
         return 0;
     }
     std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(y) * 0x100 + static_cast<std::uint32_t>(x)) * 2;
@@ -523,7 +523,7 @@ int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, in
             from += imageWidth - width;
         }
     }
-    if (pixels) gamecrt::operator_delete(pixels);
+    if (pixels) delete[] pixels;
     gameapi::LeaveCriticalSection(TheDeviceLock());
     TheTextureManager()->FreeAllFiles();
     return image != nullptr;

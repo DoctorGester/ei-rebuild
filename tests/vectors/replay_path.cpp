@@ -251,7 +251,7 @@ void FillClimb(ClimbTable& table, const std::vector<int>& values) { table.assign
 // A fresh map with the saved map's sizes and tables (the grids' content is copied per record). The
 // old one is left behind (the replay runs a few maps).
 void BuildMap(const SavedMap& s) {
-    void* block = gamecrt::operator_new(sizeof(CAIMap) + 0x1000);
+    void* block = ::operator new(sizeof(CAIMap) + 0x1000);
     std::memset(block, 0, sizeof(CAIMap) + 0x1000);
     CAIMap* map = static_cast<CAIMap*>(block);
     map->loaded = true;

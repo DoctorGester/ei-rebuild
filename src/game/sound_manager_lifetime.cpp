@@ -48,8 +48,7 @@ void CSoundManager::ClearWaveSources() {
 // through a null object).
 int CSoundManager::AddWaveSource(const char* path) {
     if (enabled == 0) return 1;
-    CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
-    CMappedResource* source = memory != nullptr ? new (memory) CMappedResource() : nullptr;
+    auto* source = new CMappedResource();
     if (source->OpenResource(path, 0) == 0) {
         delete source;
         return 0;
@@ -197,12 +196,6 @@ void CSoundManager::ResetStream() {
 namespace {
 
 constexpr int kVoiceCount = 15;
-// operator new[]'s block for the voices: the count, then the voices.
-struct VoiceBlock {
-    std::int32_t count;
-    SoundSlot voices[kVoiceCount];
-};
-static_assert(offsetof(VoiceBlock, voices) == 4);
 constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
 constexpr int kWaveMapper = -1;
 constexpr unsigned kMaxRate = 44100;
@@ -503,16 +496,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     gameapi::AIL_set_DirectSound_HWND(waveDriver, window);
     if (OpenStream(waveDriver) != 0)
         streamThread = lib::StartThread(StreamThreadEntry, this, kStreamThreadPriority);
-    // operator new[]: the count, then the voices.
-    auto* block = gamecrt::operator_new_as<VoiceBlock>();
-    SoundSlot* voices = nullptr;
-    if (block != nullptr) {
-        block->count = kVoiceCount;
-        voices = block->voices;
-        // The CRT's eh vector constructor iterator: each voice's name string (basic_string()).
-        for (int i = 0; i < kVoiceCount; ++i) std::construct_at(&voices[i].name);
-    }
-    slots = voices;
+    slots = new SoundSlot[kVoiceCount];
     for (int i = 0; i < kVoiceCount; ++i) {
         SoundSlot& slot = slots[i];
         slot.sample = nullptr;
@@ -548,11 +532,7 @@ void CSoundManager::Close() {
             if (slots[i].playing != 0) EndSlot(&slots[i]);
             if (slots[i].sample != nullptr) gameapi::AIL_release_sample_handle(slots[i].sample);
         }
-        // operator delete[]: the count stands before the voices.
-        std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
-        // The CRT's eh vector destructor iterator: each voice's name string, last to first.
-        for (int i = *block; --i >= 0;) std::destroy_at(&slots[i].name);
-        gamecrt::operator_delete(block);
+        delete[] slots;
     }
     DeleteDeferred();
     while (!cacheList.empty()) {

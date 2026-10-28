@@ -248,8 +248,7 @@ static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 template <typename T>
 void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(*allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
-    gamecrt::operator_delete(grid.data);
-    gamecrt::operator_delete(grid.rows);
+    FreeGrid(grid);
     grid.width = width;
     grid.height = height;
     allocate(&grid);

@@ -38,8 +38,12 @@ struct PartGroup {
 
 // A part set of a 3D object's client half: a texture and the groups of parts drawn with it, one per material.
 struct TextureParts {
-    // The destructor; the texture is only forgotten (the half's `textures` holds its reference).
-    void Destruct();
+    TextureParts() = default;
+    // The groups deleted (their parts and materials released); the texture is only forgotten (the half's
+    // `textures` holds its reference).
+    ~TextureParts();
+    TextureParts(const TextureParts&) = delete;
+    TextureParts& operator=(const TextureParts&) = delete;
 
     CTexture* texture;
     std::vector<PartGroup*> groups;   // owned

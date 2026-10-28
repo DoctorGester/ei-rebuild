@@ -36,8 +36,6 @@ CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
     return previous;
 }
 
-void* CEngineObject::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CEngineObject::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 void CEngineObject::ClearFields() {
     refCount_ = 0;

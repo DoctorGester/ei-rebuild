@@ -39,9 +39,9 @@ void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
     if (position_ + size > capacity_) {
         std::uint32_t old = capacity_;
         capacity_ = (old + size) * 2;
-        auto* grown = gamecrt::operator_new_array<std::uint8_t>(capacity_);
+        auto* grown = new std::uint8_t[capacity_];
         std::memcpy(grown, data_, old);
-        gamecrt::operator_delete(data_);
+        delete[] data_;
         data_ = grown;
     }
     std::memcpy(data_ + position_, buffer, size);
@@ -71,7 +71,7 @@ void CMemoryStream::Resize(std::uint32_t size) {
     }
     std::uint8_t* old = data_;
     std::uint32_t capacity = (size >> 1) + size + 0x10;
-    data_ = gamecrt::operator_new_array<std::uint8_t>(capacity);
+    data_ = new std::uint8_t[capacity];
     std::memcpy(data_, old, size_);
     capacity_ = capacity;
     position_ = 0;
@@ -79,7 +79,7 @@ void CMemoryStream::Resize(std::uint32_t size) {
     bitsIndex_ = -1;
     size_ = size;
     bitMask_ = 0x80;
-    if (old) gamecrt::operator_delete(old);
+    if (old) delete[] old;
 }
 
 void CMemoryStream::SetSize(std::uint32_t size) {
@@ -88,8 +88,8 @@ void CMemoryStream::SetSize(std::uint32_t size) {
         position_ = 0;
         return;
     }
-    if (data_) gamecrt::operator_delete(data_);
-    auto* fresh = gamecrt::operator_new_array<std::uint8_t>(size);
+    if (data_) delete[] data_;
+    auto* fresh = new std::uint8_t[size];
     capacity_ = size;
     size_ = size;
     data_ = fresh;
@@ -133,10 +133,10 @@ void CStream::ReadSized(CStream* to) {
     to->Clear();
     to->Seek(0);
     if (!size) return;
-    void* block = gamecrt::operator_new(size);
+    auto* block = new std::uint8_t[size];
     Read(block, size);
     to->Write(block, size);
-    gamecrt::operator_delete(block);
+    delete[] block;
 }
 
 void CStream::WriteSized(CStream* from) {
@@ -149,11 +149,11 @@ void CStream::WriteSized(CStream* from) {
         word = static_cast<std::uint32_t>(size) * 2;
         Write(&word, 2);
     }
-    void* block = gamecrt::operator_new(static_cast<std::uint32_t>(size));
+    auto* block = new std::uint8_t[static_cast<std::uint32_t>(size)];
     from->Seek(0);
     from->Read(block, static_cast<std::uint32_t>(size));
     Write(block, static_cast<std::uint32_t>(size));
-    gamecrt::operator_delete(block);
+    delete[] block;
 }
 
 bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {

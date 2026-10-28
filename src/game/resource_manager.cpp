@@ -43,25 +43,23 @@ void CResourceManager::Destroy() {
 
 
 namespace {
-// CMappedResource's constructor and CMMIOResource's on the archive's memory.
-CMappedResource* ConstructMappedResource(void* memory) { return new (memory) CMappedResource(); }
-CMappedResource* ConstructMmioResource(void* memory) { return new (memory) CMMIOResource(); }
+CMappedResource* NewMappedResource() { return new CMappedResource(); }
+CMappedResource* NewMmioResource() { return new CMMIOResource(); }
 } // namespace
 
 BOOL CResourceManager::AddArchive(const char* path) {
-    return AddArchiveOf(path, sizeof(CMappedResource), ConstructMappedResource);
+    return AddArchiveOf(path, NewMappedResource);
 }
 
 BOOL CResourceManager::AddMmioArchive(const char* path) {
-    return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
+    return AddArchiveOf(path, NewMmioResource);
 }
 
-BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(*construct)(void*)) {
+BOOL CResourceManager::AddArchiveOf(const char* path, CMappedResource* (*create)()) {
     for (const ArchiveEntry& e : archives_)
         if (SameName(e.name, path)) return 1;
 
-    void* memory = gamecrt::operator_new(size);
-    CMappedResource* resource = memory ? construct(memory) : nullptr;
+    CMappedResource* resource = create();
     {
         std::string name(path);
         std::string copy(name);

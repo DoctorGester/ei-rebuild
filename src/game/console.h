@@ -117,7 +117,11 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 class ConsoleWindow {
 public:
     // Made by CInterface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
-    ConsoleWindow* Construct(CInterface3D* screen);
+    explicit ConsoleWindow(CInterface3D* screen);
+    // The surface and the font deleted; called by the interface's shutdown.
+    ~ConsoleWindow();
+    ConsoleWindow(const ConsoleWindow&) = delete;
+    ConsoleWindow& operator=(const ConsoleWindow&) = delete;
     void SetRect(const RECT* rect);   // 800x600 coordinates
     void SetHistory(int lines);
     void AddText(const char* text);  // continues the last line; '\n' starts a new one
@@ -130,8 +134,6 @@ public:
     void DrawInput();                          // the input line, selection and caret
     // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
     void Blit();
-    // Called by the interface's shutdown, which deletes the window.
-    void DestroyBody();
     // Keeps the last `count` lines.
     void DropOldLines(int count);
 

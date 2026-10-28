@@ -641,16 +641,10 @@ void DropAndDelete(T*& slot) {
 
 void CWorldClient::Destroy() {
     TheCamera()->SetTarget(nullptr);
-    if (CFlyingHitPoints* p = numbers_) {
-        p->Destruct();
-        gamecrt::operator_delete(p);
-        numbers_ = nullptr;
-    }
-    if (CSky* p = skyDome_) {
-        p->Destruct();
-        gamecrt::operator_delete(p);
-        skyDome_ = nullptr;
-    }
+    delete numbers_;
+    numbers_ = nullptr;
+    delete skyDome_;
+    skyDome_ = nullptr;
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
     countedA0_.clear();
@@ -758,18 +752,6 @@ void CWorldClient::Select(CMapObject* object) {
 
 namespace {
 
-std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
-
-// A heap object made by its constructor (null without memory), stored and referenced (the pointer is not tested
-// before counting).
-template <typename T>
-T* MakeCounted() {
-    std::uint8_t* memory = New(sizeof(T));
-    T* object = memory ? new (memory) T() : nullptr;
-    ++object->refCount_;
-    return object;
-}
-
 // A new object (its class's operator new and constructor), stored and referenced.
 template <typename T>
 T* NewCounted() {
@@ -788,16 +770,9 @@ void GridToFour(SectorGrid& grid) {
 }
 
 void ReferenceEveryObject(CBaseManager* manager) {
-    auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
-    if (walk) walk->manager = nullptr;
-    for (CEngineObject* object = walk->First(manager); object; object = walk->Next()) ++object->refCount_;
-    if (walk) {
-        if (CBaseManager* held = walk->manager) {
-            --held->refCount_;
-            walk->manager = nullptr;
-        }
-        gamecrt::operator_delete(walk);
-    }
+    ObjectListIterator walk{};
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) ++object->refCount_;
+    if (CBaseManager* held = walk.manager) --held->refCount_;
 }
 
 } // namespace
@@ -829,7 +804,7 @@ int CWorldClient::Create() {
     }
     LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
-    sounds_ = MakeCounted<CSoundManager>();
+    sounds_ = NewCounted<CSoundManager>();
 
     texts_ = new CTextManager();
     ++texts_->refCount_;
@@ -846,8 +821,7 @@ int CWorldClient::Create() {
     manager190_ = NewCounted<CLightFactory>();
     manager190_->Init(this);
 
-    std::uint8_t* particleMemory = New(sizeof(CParticleManager));
-    CParticleManager* manager = particleMemory ? new (particleMemory) CParticleManager() : nullptr;
+    auto* manager = new CParticleManager();
     particleManager_ = manager;
     ++manager->refCount_;
     manager->Init(this);
@@ -877,16 +851,13 @@ int CWorldClient::Create() {
         texts_->AddSource(path.c_str());
     }
 
-    std::uint8_t* lightningMemory = New(sizeof(CLightningManager));
-    CLightningManager* lists = lightningMemory ? new (lightningMemory) CLightningManager() : nullptr;
+    auto* lists = new CLightningManager();
     listManager_ = lists;
     lists->Init(this);
-    std::uint8_t* fogMemory = New(sizeof(ClientArrayManager));
-    ClientArrayManager* arrays = fogMemory ? new (fogMemory) ClientArrayManager() : nullptr;
+    auto* arrays = new ClientArrayManager();
     arrayManager_ = arrays;
     arrays->Init(this);
-    std::uint8_t* memory = New(sizeof(CMusicSystem));
-    CMusicSystem* owned = memory ? new (memory) CMusicSystem() : nullptr;
+    auto* owned = new CMusicSystem();
     music_ = owned;
     owned->Create();
 
@@ -923,16 +894,9 @@ void CWorldClient::ReferenceItemsAndSpells() {
 
 namespace {
 void ReleaseEveryObject(CBaseManager* manager) {
-    auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
-    if (walk) walk->manager = nullptr;
-    for (CEngineObject* object = walk->First(manager); object; object = walk->Next()) object->Release();
-    if (walk) {
-        if (CBaseManager* held = walk->manager) {
-            --held->refCount_;
-            walk->manager = nullptr;
-        }
-        gamecrt::operator_delete(walk);
-    }
+    ObjectListIterator walk{};
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
+    if (CBaseManager* held = walk.manager) --held->refCount_;
 }
 } // namespace
 

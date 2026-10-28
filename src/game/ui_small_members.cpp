@@ -74,11 +74,10 @@ float CUiMesh::GetScaleX() const { return scaleMatrix_.m[0]; }
 
 // --- Member constructors and destructors -----------------------------------------------------------------
 
-CScreenFade* CScreenFade::Construct() {
+CScreenFade::CScreenFade() {
     alpha_ = 0.0f;
     active_ = 0;
     letterbox_ = 0;
-    return this;
 }
 
 CInterface3D* CInterface3D::Construct() {

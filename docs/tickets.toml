@@ -3741,6 +3741,13 @@ depends = ["C14zb"]
 note = "After C14ze (no GDI, threads, handle maps) and C14zb (no CWordArray / CByteArray / CDWordArray links), nothing of the game reads MFC's module state, afxData, the thread / process locals, _afxDBCS or the class list: only game.exe's static initialisers and exit functions build and destroy them. Add those initialisers to gen_static_init.py's UNUSED_INITIALISERS (0070D12E afxData, 0070CC0C / 0070CE56 / 0070D5D8 / 0070D5FE / 0070DC27 the locals' atexits, 0070B5FB wingdix, 0070DC70 DBCS, the Link*ArrayClass ones), drop the GENERATED_NAMES rows, the named_data ranges and static_init_ports rows, regenerate, then delete mfc_state.h / .cpp and what of mfc_static_objects is left after C14zh."
 
 [[ticket]]
+id = "C35m"
+title = "C35 heap wrappers, the rest: gamecrt::operator_new_as / operator_new_array / operator_delete in the script's MFC records and the tagged record arrays to new / delete, then crt.h's gamecrt heap deleted"
+group = "cleanup"
+depends = ["C14z"]
+note = "Left by C35g (2026-10-28, 88 lines): script.h / script_*.cpp / script_array.h (~45), record_arrays.cpp (3), mfc.h (5), mfc_array.h (1), mfc_slots.h (2), mfc_coll.cpp (PlainArray data, CreateCWordArray / CDWordArray / CByteArray Construct, the deleting destructor: 4), the vtable-tagged arrays freed or grown by hand outside them (unit_items.cpp / unit_save.cpp / unit_controller.cpp / map_object_lifetime.cpp carried items, player_sync.cpp, world_update.cpp: 17), the hand-built deleting destructors (deleting_destructors_400.cpp, world_deleting_destructors.cpp, world_destructors.cpp: 3) and tests/vectors/replay_script_load.cpp (1). Most go with C14z's std containers; then delete gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete from src/lib/crt.h."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

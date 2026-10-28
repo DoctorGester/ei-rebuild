@@ -29,7 +29,6 @@ CStream::CStream() {
     ok_ = 1;
 }
 
-void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
@@ -59,7 +58,7 @@ CMemoryStream::CMemoryStream() {
 }
 
 CMemoryStream::~CMemoryStream() {
-    if (data_) gamecrt::operator_delete(data_);
+    if (data_) delete[] data_;
 }
 
 CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
@@ -72,7 +71,7 @@ CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
 }
 
 void CMemoryStream::Clear() {
-    if (data_) gamecrt::operator_delete(data_);
+    if (data_) delete[] data_;
     data_ = nullptr;
     capacity_ = 0;
     position_ = 0;

@@ -77,7 +77,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;
     }
-    auto* buffer = gamecrt::operator_new_bytes_as<MmpHeader>(file.GetLength());
+    auto* buffer = static_cast<MmpHeader*>(::operator new(file.GetLength()));
     file.Read(buffer, file.GetLength());
     file.Close();
     if (!device_->ParseMmpHeader(buffer, &format))   // the original leaks `buffer` here
@@ -85,7 +85,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
                                 texture->GetName());
     texture->format_ = format;
     texture->CreateFromMmp(device_, buffer, mipLevel_);
-    gamecrt::operator_delete(buffer);
+    ::operator delete(buffer);
     return 1;
 }
 
@@ -107,7 +107,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
                        texture->GetName(), directory);
         return 1;
     }
-    auto* buffer = gamecrt::operator_new_bytes_as<MmpHeader>(file.GetLength());
+    auto* buffer = static_cast<MmpHeader*>(::operator new(file.GetLength()));
     file.Read(buffer, file.GetLength());
     file.Close();
     PixelFormat format;
@@ -116,7 +116,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
                                 texture->GetName());
     texture->format_ = format;
     texture->CreateFromMmp(device_, buffer, mipLevel_);
-    gamecrt::operator_delete(buffer);
+    ::operator delete(buffer);
     return 1;
 }
 
@@ -158,9 +158,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
 }
 
 CEngineObject* CTextureManager::NewObject(int type) {
-    CTexture* memory = gamecrt::operator_new_as<CTexture>();
-    if (!memory) return nullptr;
-    auto* texture = new (memory) CTexture();
+    auto* texture = new CTexture();
     texture->type_ = type;
     return texture;
 }

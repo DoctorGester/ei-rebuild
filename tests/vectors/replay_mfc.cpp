@@ -1,5 +1,5 @@
 // ei_vectors' MFC core (src/lib/mfc.h, EI_VECTORS_REPLAY): CString and CPlex written as MFC 4.2 writes
-// them (strcore.cpp, strex.cpp, plex.cpp), on the replay's heap (gamecrt::operator_new, replay_crt.cpp).
+// them (strcore.cpp, strex.cpp, plex.cpp), on the host's heap.
 // A string's data is MFC's CStringData: references, length, allocated length, then the characters; the
 // empty string is a shared block whose reference count is -1. Allocations are exactly the length (MFC
 // rounds small ones up to its fixed-size blocks; only when a later write reallocates differs).
@@ -33,7 +33,7 @@ int SafeLength(const char* s) { return s ? static_cast<int>(std::strlen(s)) : 0;
 // AllocBuffer: a block for `length` characters (terminated), one reference.
 char* Allocate(int length) {
     if (length == 0) return NilChars();
-    auto* data = static_cast<StringData*>(gamecrt::operator_new(sizeof(StringData) + length + 1));
+    auto* data = static_cast<StringData*>(::operator new(sizeof(StringData) + length + 1));
     data->refs = 1;
     data->length = length;
     data->alloc = length;
@@ -43,7 +43,7 @@ char* Allocate(int length) {
 
 void ReleaseData(char* chars) {
     StringData* data = DataOf(chars);
-    if (data != &g_nil.data && --data->refs <= 0) gamecrt::operator_delete(data);
+    if (data != &g_nil.data && --data->refs <= 0) ::operator delete(data);
 }
 
 } // namespace

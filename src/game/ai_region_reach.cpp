@@ -52,8 +52,7 @@ namespace {
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (*allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
-    gamecrt::operator_delete(grid.data);
-    gamecrt::operator_delete(grid.rows);
+    FreeGrid(grid);
     grid.width = width;
     grid.height = height;
     allocate(&grid);
@@ -481,13 +480,12 @@ void CRegionMap::Attach(CAIMap* map) {
         // The region grid's allocation is inlined here: u16 per block, rows of `width`.
         SearchGrid<std::uint16_t>& grid = regions[c];
         if (grid.width == width && grid.height == height) continue;
-        gamecrt::operator_delete(grid.data);
-        gamecrt::operator_delete(grid.rows);
+        FreeGrid(grid);
         grid.width = width;
         grid.height = height;
-        auto* data = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(height * width * 2)));
+        auto* data = new std::uint16_t[static_cast<std::size_t>(height * width)];
         grid.data = data;
-        grid.rows = static_cast<std::uint16_t**>(gamecrt::operator_new(static_cast<std::size_t>(grid.height * 4)));
+        grid.rows = new std::uint16_t*[static_cast<std::size_t>(grid.height)];
         for (int y = 0; y < grid.height; ++y) grid.rows[y] = data + grid.width * y;
     }
     forward.Attach(this, false);
@@ -499,8 +497,8 @@ CRegionMap* ConstructRegionMap(CRegionMap* self) {
         SearchGrid<BlockRecord>& records = search->records;
         records.width = 1;
         records.height = 1;
-        records.data = gamecrt::operator_new_as<BlockRecord>();
-        records.rows = static_cast<BlockRecord**>(gamecrt::operator_new(static_cast<std::size_t>(records.height * 4)));
+        records.data = new BlockRecord[1];
+        records.rows = new BlockRecord*[static_cast<std::size_t>(records.height)];
         for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
         search->active = false;
         search->map = nullptr;

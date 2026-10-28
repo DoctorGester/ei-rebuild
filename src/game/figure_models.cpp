@@ -40,8 +40,7 @@ FigureModel* CFigureManager::FindModel(const std::string* name) {
     void* animation = OpenPart(this, name, ".anm");
     if (!mesh) return nullptr;
 
-    FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
-    auto* model = memory ? ConstructFigureModel(memory) : nullptr;
+    auto* model = new FigureModel();
     *ModelSlot(map, name) = model;
     FigureModel* parts = *ModelSlot(map, name);
     parts->mesh->OpenFromMemory(mesh);
@@ -59,8 +58,7 @@ CMappedResource* FigureModel::FindAnimation(const std::string* name) {
     if (auto found = map->find(*name); found != map->end()) return found->second;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-        CMappedResource* animation = memory ? new (memory) CMMIOResource() : nullptr;
+        CMappedResource* animation = new CMMIOResource();
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
@@ -68,15 +66,8 @@ CMappedResource* FigureModel::FindAnimation(const std::string* name) {
     return found != map->end() ? found->second : nullptr;
 }
 
-// The model's constructor (returns this): an empty animation map, then the three archives as new 0x6C-byte
-// objects, null when the allocation fails.
-FigureModel* ConstructFigureModel(FigureModel* model) {
-    std::construct_at(&model->animationCache);
-    static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
-                                                                    &FigureModel::animations};
-    for (CMappedResource* FigureModel::*archive : kArchives) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-        model->*archive = memory ? new (memory) CMMIOResource() : nullptr;
-    }
-    return model;
+FigureModel::FigureModel() {
+    mesh = new CMMIOResource();
+    bones = new CMMIOResource();
+    animations = new CMMIOResource();
 }

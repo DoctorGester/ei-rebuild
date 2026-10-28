@@ -110,12 +110,6 @@ public:
     ItemRecordHead* Assign(const ItemRecordHead* source);
     void SerializeHead(ChunkArchive* ar);
 
-    // On the game's heap (item_constructor.cpp's temporary record): null without memory, and then
-    // no constructor runs.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     std::string text04;                // the name the tables file the record under
     std::string text08;

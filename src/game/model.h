@@ -219,8 +219,6 @@ public:
     virtual ~CRenderPreset();
     virtual unsigned Index() { return static_cast<unsigned>(index_); }
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
@@ -282,8 +280,6 @@ public:
     // PresetStates for built-in preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, std::vector<RenderPresetRecord::State>* out);
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     CRenderHelper(const CRenderHelper&) = delete;
     CRenderHelper& operator=(const CRenderHelper&) = delete;
@@ -335,8 +331,6 @@ public:
     virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;
     virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
     virtual bool RestoreSurfaces() = 0;
-
-    static void operator delete(void* memory);
 
     // The base's part of the renderer's creation: a new transform pipeline, then 2DintMMX.dll loaded and its
     // GetGraphicsProcessor() kept (fatal when missing, or without MMX). Returns the graphics processor.
@@ -535,6 +529,12 @@ struct LinkArchive {
 // missing), and the animations read from the last by name. CFigureManager::models_ and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
+    // An empty animation map, then the three archives as new CMMIOResources.
+    FigureModel();
+    // Every cached animation deleted, the map cleared, each archive closed (CloseResource) and deleted.
+    ~FigureModel();
+    FigureModel(const FigureModel&) = delete;
+    FigureModel& operator=(const FigureModel&) = delete;
     CMappedResource* FindAnimation(const std::string* name);
     using AnimationMap = std::unordered_map<std::string, CMappedResource*>;
 
@@ -547,8 +547,6 @@ struct FigureModel {
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
     void Open(const void* mod, const void* bon, const void* anm);
 };
-FigureModel* ConstructFigureModel(FigureModel* model);
-void DestroyFigureModel(FigureModel* model);
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
@@ -577,8 +575,6 @@ public:
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     CLinkFigureLoader(const CLinkFigureLoader&) = delete;
     CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;

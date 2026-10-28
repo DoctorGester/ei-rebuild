@@ -60,7 +60,7 @@ struct CScreenFade {
     // Starts a fade over `ms` milliseconds, from alpha 0 (ms > 0) or 255.
     void Start(int ms);
     // Alpha 0, not fading, no letterbox; the rate and the clock stay unwritten.
-    CScreenFade* Construct();
+    CScreenFade();
 
     float rate_;                     // alpha per millisecond
     float alpha_;                    // 0..255
@@ -324,8 +324,12 @@ public:
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(int x, int y);
-    // The destructor body (fields left as they are).
-    void ReleaseContents();
+    // Enabled when its rectangle is set; the bounds are left uninitialised, as in the original.
+    explicit CUiRegion(CInterface3D* ui)
+        : interface_(ui), rectOnly_(false), enabled_(false), offsetX_(0), offsetY_(0), tip_(nullptr) {}
+    ~CUiRegion();
+    CUiRegion(const CUiRegion&) = delete;
+    CUiRegion& operator=(const CUiRegion&) = delete;
     void SetTipText(const char* text);
     // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
     // such text) and (a, b); id 0 gives an empty tooltip with (1, 0).
@@ -355,9 +359,6 @@ public:
     // Releases the kept bytes and the DirectDraw surface. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~CUiSurface();
-    // The game's heap (null without memory: then no constructor runs).
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
     // Onto the render target, when shown.
     virtual void Blit();
 
@@ -437,7 +438,11 @@ inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 class CUiModel {
 public:
     void SetScreenPosition(float x, float y, float depth);
-    void ReleaseObject();
+    CUiModel() = default;
+    // The object released.
+    ~CUiModel();
+    CUiModel(const CUiModel&) = delete;
+    CUiModel& operator=(const CUiModel&) = delete;
     // Draws the object in `pass` in white at the interface's animation clock (timeGetTime / 67), with
     // object flag 0x800 set while it draws.
     void Draw(CSceneRenderer* pass);
@@ -453,9 +458,8 @@ public:
     void Stop();
     CObject3D* Figure() const { return object_; }
 
-    CObject3D* object_;
+    CObject3D* object_ = nullptr;
 };
-static_assert(sizeof(CUiModel) == 4);
 
 // An input side: a window's own (CUiWindow's second base) or a separate handler a container keeps in its
 // list (e.g. the battle camera's keys, CCameraInput). The interface hands each event to the top window's
@@ -495,11 +499,6 @@ struct UiInputSide {
     // Events 2-11 by number (the containers' dispatch).
     int Event(int slot, int a, int b, int c);
 
-    // The game's heap; `new` gives null without memory and then constructs nothing.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     CInterface3D* interface_;
     bool handled_;                   // set by a handler that used the event
@@ -526,8 +525,6 @@ class CUiWindow : public CUiWindowBase, public UiInputSide {
 public:
     explicit CUiWindow(CInterface3D* ui);
     ~CUiWindow() override;
-    using CEngineObject::operator new;
-    using CEngineObject::operator delete;
 
     // The class name is "Sorry, no other way." and the id 0x45.
     int Create() override;
@@ -1567,9 +1564,6 @@ struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int type) : type_(type) {}
     virtual ~UiTextToken();
-    // The game's heap (null without memory: then no constructor runs).
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
     UiFormatToken* AsFormat();
     const UiFormatToken* AsFormat() const;
     UiWordToken* AsWord();

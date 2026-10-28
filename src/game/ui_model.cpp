@@ -48,9 +48,8 @@ constexpr std::uint32_t kPreviewDraw = 0x800;
 } // namespace
 
 // The object released and forgotten.
-void CUiModel::ReleaseObject() {
+CUiModel::~CUiModel() {
     if (object_) object_->Release();
-    object_ = nullptr;
 }
 
 // Skill animation `animation` + 1 of the object played.

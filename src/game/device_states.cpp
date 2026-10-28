@@ -32,8 +32,6 @@ int CSceneRenderer::SetBlend(std::uint32_t source, std::uint32_t dest) {
     return 1;
 }
 
-void* CDeviceMaterial::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CDeviceMaterial::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // The current material (material_, counted; the old one released when its count reaches 0); without a material
 // stage 1's colour and alpha operations are turned off. Returns 1.

@@ -1,5 +1,6 @@
 // Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
 // the steps a unit is about to walk.
+#include "ai_grids.h"
 #include "ai_map.h"
 #include "effects.h"
 
@@ -144,15 +145,14 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
 
 namespace {
 void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
-    grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid->width * grid->height));
-    grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid->height * sizeof(std::uint8_t*)));
+    grid->data = new std::uint8_t[grid->width * grid->height];
+    grid->rows = new std::uint8_t*[grid->height];
     for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
 }
 // A square grid of `size`: reallocated when the size differs, then cleared.
 void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
     if (grid->width != size || grid->height != size) {
-        gamecrt::operator_delete(grid->data);
-        gamecrt::operator_delete(grid->rows);
+        FreeGrid(*grid);
         grid->width = size;
         grid->height = size;
         AllocateGrid(grid);
@@ -188,8 +188,7 @@ void FogGrid::Grow(int x, int y, int n) {
             cells.rows[row - top + y0][col - left + x0] = old.rows[row][col];
     x0 = left;
     y0 = top;
-    gamecrt::operator_delete(old.data);
-    gamecrt::operator_delete(old.rows);
+    FreeGrid(old);
 }
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,

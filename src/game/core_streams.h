@@ -31,10 +31,6 @@ public:
     virtual void Clear() = 0;                                           // memory streams empty, file streams rewind
     virtual void CopyFrom(CStream* source);                             // all of `source`, 1 KB at a time
 
-    // Streams are made in place (the save and message streams); deleted, on the game's heap.
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     // Text in the streams (the saves, the network's messages and recordings) is in the asset code page, as the
     // original's: converted to UTF-8 where it is read and back where it is written (asset_text.h).

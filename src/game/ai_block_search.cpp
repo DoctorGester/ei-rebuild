@@ -1,6 +1,7 @@
 // The region map's block searches (BlockSearch, ai_map.h): Dijkstra over the 8x8-cell blocks of one size
 // class along the edge words, open records in eight buckets by x & 7 sorted by cost. And the region map's
 // block update, which re-measures the blocks after the AI map changed. See docs/notes/ai.md.
+#include "ai_grids.h"
 #include "ai_map.h"
 
 #include "lib/crt.h"
@@ -21,12 +22,11 @@ void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
     map = regionMap;
     fromTarget = fromTargetSide;
     if (records.width != width || records.height != height) {
-        gamecrt::operator_delete(records.data);
-        gamecrt::operator_delete(records.rows);
+        FreeGrid(records);
         records.width = width;
         records.height = height;
-        records.data = static_cast<BlockRecord*>(gamecrt::operator_new(records.width * records.height * sizeof(BlockRecord)));
-        records.rows = static_cast<BlockRecord**>(gamecrt::operator_new(records.height * sizeof(BlockRecord*)));
+        records.data = new BlockRecord[records.width * records.height];
+        records.rows = new BlockRecord*[records.height];
         for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
     }
     for (int y = 0; y < records.height; ++y)

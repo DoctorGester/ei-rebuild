@@ -169,8 +169,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
 }
 
 CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, float t, float u) {
-    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
-    CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
+    auto* mesh = new CLinkMesh(this, name, s, t, u);
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
@@ -204,8 +203,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
 
 CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                          float t, float u) {
-    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
-    CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
+    auto* mesh = new CLinkMesh(this, name, s, t, u);
     FigureModel* set = FindFigureSet(name);
     for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
         if (!set) {
@@ -244,8 +242,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
         files[i] = FindInArchives(archives_, path);
     }
     if (!files[0]) return nullptr;
-    FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
-    auto* set = memory ? ConstructFigureModel(memory) : nullptr;
+    auto* set = new FigureModel();
     figureSets_[*name] = set;
     // The map is indexed a second time (resize for one more element included).
     figureSets_[*name]->Open(files[0], files[1], files[2]);
@@ -259,10 +256,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
         if (archive.resource) delete archive.resource;
     }
     for (auto& [name, set] : figureSets_) {
-        if (set) {
-            DestroyFigureModel(set);
-            gamecrt::operator_delete(set);
-        }
+        delete set;
     }
     if (CTextureDevice* device = renderer_) {
         renderer_ = nullptr;

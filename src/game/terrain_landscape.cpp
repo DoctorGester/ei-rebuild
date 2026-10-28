@@ -37,11 +37,6 @@ int SectorBound(float value, int count) {
 // How many frames an unused sector stays cached before a load may reuse or free it.
 constexpr int kSectorAge = 240;
 
-void DeleteSector(SectorData* sector) {
-    sector->DestructBody();
-    gamecrt::operator_delete(sector);
-}
-
 } // namespace
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
@@ -65,8 +60,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     SectorData* sector;
     SectorData* last = !sectorCache.empty() ? sectorCache.back() : nullptr;
     if (!last || frame - kSectorAge <= last->lastUsed) {
-        auto* memory = gamecrt::operator_new_as<SectorData>();
-        sector = memory ? memory->Construct() : nullptr;
+        sector = new SectorData();
     } else {
         sector = last;
         sectorGrid[sector->sx][sector->sy] = {};
@@ -75,7 +69,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
             SectorData* old = sectorCache.back();
             sectorCache.pop_back();
             sectorGrid[old->sx][old->sy] = {};
-            if (old) DeleteSector(old);
+            delete old;
         }
     }
     if (sector->Load(&archive, sx, sy, pages, perPage, textF8.c_str(), this)) {
@@ -85,7 +79,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
         sector->Ensure(wanted, this);
         return (sector->built & wanted) ? sector : nullptr;
     }
-    if (sector) DeleteSector(sector);
+    delete sector;
     return nullptr;
 }
 
@@ -155,7 +149,7 @@ void Terrain::ClearMap() {
     while (!sectorCache.empty()) {
         SectorData* sector = sectorCache.front();
         sectorCache.pop_front();
-        if (sector) DeleteSector(sector);
+        delete sector;
     }
     for (int i = 0; i < std::ssize(pageTextures); ++i) pageTextures[i]->Release();
     pageTextures.clear();
@@ -171,11 +165,11 @@ void Terrain::ClearMap() {
     sectorsY = -1;
     mapLoaded = 0;
     for (float*& table : uvTables) {
-        if (table) gamecrt::operator_delete(table);
+        if (table) delete[] table;
         table = nullptr;
     }
     for (float*& table : uvTablesLast) {
-        if (table) gamecrt::operator_delete(table);
+        if (table) delete[] table;
         table = nullptr;
     }
 }
@@ -527,14 +521,14 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
     const std::size_t tableBytes = static_cast<std::size_t>(perPage * kUvFloats * static_cast<int>(sizeof(float)));
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTables[rotation] = gamecrt::operator_new_bytes_as<float>(tableBytes);
+        uvTables[rotation] = new float[tableBytes / sizeof(float)];
         int index = 0;
         for (int row = 0; row < tilesPerRow; ++row)
             for (int column = 0; column < tilesPerRow; ++column, ++index)
                 BuildTileUv(uvTables[rotation] + index * kUvFloats, rotation, column, row, tileSide, margin, 0);
     }
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTablesLast[rotation] = gamecrt::operator_new_bytes_as<float>(tableBytes);
+        uvTablesLast[rotation] = new float[tableBytes / sizeof(float)];
         for (int column = 0; column < tilesPerRow; ++column)
             BuildTileUv(uvTablesLast[rotation] + column * kUvFloats, rotation, column, 0, tileSide, margin, 1);
     }

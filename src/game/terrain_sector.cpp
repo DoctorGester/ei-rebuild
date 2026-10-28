@@ -559,18 +559,9 @@ void ConstructProjectionOutcodes() {
     std::atexit(DestroyProjectionOutcodes);
 }
 
-SectorData* SectorData::Construct() {
+SectorData::SectorData() {
     box = SectorBox{};
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
-    std::construct_at(&waterMaterials);
-    std::construct_at(&vertices);
-    std::construct_at(&records);
-    std::construct_at(&tileTextures);
-    std::construct_at(&waterTiles);
-    for (auto& flags : tileFlags) std::construct_at(&flags);
-    for (auto& lists : tiles) std::construct_at(&lists);
-    std::construct_at(&animated);
-    std::construct_at(&classCounts);
     detail = 0;
     sx = -1;
     sy = -1;
@@ -592,21 +583,10 @@ SectorData* SectorData::Construct() {
     ProjectionInput().resize(kProjectionVertices);
     ProjectionOutput().resize(kProjectionVertices);
     ProjectionOutcodes().resize(std::ssize(ProjectionInput()));
-    return this;
 }
 
-void SectorData::DestructBody() {
-    Clear();
-    lib::FreeStorage(classCounts);
-    lib::FreeStorage(animated);
-    for (int q = 3; q >= 0; --q) std::destroy_at(&tiles[q]);
-    for (int q = 3; q >= 0; --q) std::destroy_at(&tileFlags[q]);
-    lib::FreeStorage(waterTiles);
-    lib::FreeStorage(tileTextures);
-    std::destroy_at(&records);   // each record's light list released
-    std::destroy_at(&vertices);
-    std::destroy_at(&waterMaterials);
-}
+// Then the members, last first (each record's light list released).
+SectorData::~SectorData() { Clear(); }
 
 int SectorData::Project(CTransformPipeline* pipeline) {
     const int columnStep = detail >= 1 ? 2 : 1;

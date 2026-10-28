@@ -132,10 +132,6 @@ public:
     virtual void Save() {}
     virtual ~Spec();
 
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     std::int32_t id;             // the object's id (-1)
     CEngineObject* object;       // the world object made from the record (null: none)

@@ -108,8 +108,7 @@ void CInterface3D::Create(CTextureDevice* device) {
 
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
-    auto* window = gamecrt::operator_new_as<console::ConsoleWindow>();
-    console_ = window ? window->Construct(this) : nullptr;
+    console_ = new console::ConsoleWindow(this);
     DebugInfoPanel()->Init(this);
     root_ = new CChatOverlay(this);
     mouseX_ = 0;
@@ -122,8 +121,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     queuedWindow_ = nullptr;
     drawing_ = true;
     mouseY_ = 0;
-    auto* fade = gamecrt::operator_new_as<CScreenFade>();
-    fade_ = fade ? fade->Construct() : nullptr;
+    fade_ = new CScreenFade();
     hudPanelsIn_[0] = 0;
     hudPanelsIn_[1] = 0;
     hudPanelsIn_[2] = 0;

@@ -72,7 +72,7 @@ void CInterface3D::Shutdown() {
     backdrop_ = nullptr;
     DeleteSurface(secondBackdrop_);
     secondBackdrop_ = nullptr;
-    if (block5C_) gamecrt::operator_delete(block5C_);
+    if (block5C_) delete[] block5C_;
     block5C_ = nullptr;
     DebugInfoPanel()->Release();
     if (root_) {
@@ -80,14 +80,12 @@ void CInterface3D::Shutdown() {
         root_ = nullptr;
     }
     if (console_) {
-        console_->DestroyBody();
-        gamecrt::operator_delete(console_);
+        delete console_;
         console_ = nullptr;
     }
     keybind::SaveKeyBindings();
     for (gdi::Font& font : fonts_) font.reset();
-    // The fade's destructor body is empty; the pointer is not cleared.
-    if (fade_) gamecrt::operator_delete(fade_);
+    delete fade_;   // (the pointer is not cleared)
 }
 
 void CInterface3D::DestroyBody() {
@@ -98,10 +96,8 @@ void CInterface3D::DestroyBody() {
     std::destroy_at(&stack_);
 }
 
-void console::ConsoleWindow::DestroyBody() {
+console::ConsoleWindow::~ConsoleWindow() {
     DeleteSurface(surface_);
     surface_ = nullptr;
     font_.reset();
-    // The members in reverse order: the lines, the input text, the command history.
-    this->~ConsoleWindow();
 }

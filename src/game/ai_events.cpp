@@ -179,13 +179,12 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     const int newWidth = 1 - static_cast<int>(gamecrt::Ftol(sizeX * scale));
     const int newHeight = 1 - static_cast<int>(gamecrt::Ftol(sizeY * scale));
     if (width != newWidth || height != newHeight) {
-        gamecrt::operator_delete(cells);
-        gamecrt::operator_delete(rows);
+        delete[] cells;
+        delete[] rows;
         height = newHeight;
         width = newWidth;
-        cells = static_cast<AIEventCell*>(
-            gamecrt::operator_new(static_cast<std::size_t>(newHeight * newWidth) * sizeof(AIEventCell)));
-        rows = static_cast<AIEventCell**>(gamecrt::operator_new(static_cast<std::size_t>(height) * sizeof(AIEventCell*)));
+        cells = new AIEventCell[static_cast<std::size_t>(newHeight * newWidth)];
+        rows = new AIEventCell*[static_cast<std::size_t>(height)];
         for (int i = 0; i < height; ++i) rows[i] = cells + width * i;
     }
     std::memset(cells, 0, static_cast<std::size_t>(height * width) * sizeof(AIEventCell));

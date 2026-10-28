@@ -46,14 +46,6 @@ bool IsPrimaryKind(int kind) {
     }
 }
 
-// A value-initialised part set or group; null when the allocation fails (the callers then write
-// through null, as the game does).
-template <typename T>
-T* NewZeroed() {
-    auto* p = gamecrt::operator_new_as<T>();
-    return p ? new (p) T() : nullptr;
-}
-
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
 // when no group of either set holds it (slots 14 / 15 share the loop).
 bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
@@ -87,22 +79,13 @@ int PartGroup::ReleaseParts() {
     return 1;
 }
 
-void TextureParts::Destruct() {
-    for (int i = 0; i < std::ssize(groups); ++i) {
-        PartGroup* group = groups[i];
+TextureParts::~TextureParts() {
+    for (PartGroup* group : groups) {
         if (!group) continue;
         group->ReleaseParts();
-        if (group->material) {
-            group->material->Release();
-            group->material = nullptr;
-        }
-        lib::FreeStorage(group->parts);   // freed by ReleaseParts already
-        gamecrt::operator_delete(group);
-        groups[i] = nullptr;
+        if (group->material) group->material->Release();
+        delete group;
     }
-    groups.clear();
-    texture = nullptr;
-    lib::FreeStorage(groups);
 }
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
@@ -146,10 +129,7 @@ void CObject3DClientSpecific::Destroy() {
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     woundsMaterial.Assign(nullptr);
     for (int k = 0; k < 2; ++k) {
-        TextureParts* set = partSets[k];
-        if (!set) continue;
-        set->Destruct();
-        gamecrt::operator_delete(set);
+        delete partSets[k];
     }
     partSets[0] = nullptr;
     partSets[1] = nullptr;
@@ -185,7 +165,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     int k = IsPrimaryKind(kind) ? 0 : 1;
     TextureParts* set;
     if (!partSets[k]) {
-        set = NewZeroed<TextureParts>();
+        set = new TextureParts();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
         int count = std::ssize(textures);
@@ -223,7 +203,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
         CMaterial* material = set->groups[g]->material;
         if (material && material->type_ == materialKind) return set->groups[g]->material;
     }
-    PartGroup* group = NewZeroed<PartGroup>();
+    PartGroup* group = new PartGroup();
     CMaterial* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
     ++material->refCount_;

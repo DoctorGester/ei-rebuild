@@ -1,21 +1,10 @@
-// ei_vectors' game CRT (src/lib/crt.h, EI_VECTORS_REPLAY): allocations on the replay's own heap. The game CRT's
-// character answers ("@GameCrtCtype", crt_vectors.h) against text_case.h's.
+// ei_vectors' game CRT checks: the game CRT's character answers ("@GameCrtCtype", crt_vectors.h) against
+// text_case.h's.
 #include "crt_vectors.h"
 
 #include "lib/text_case.h"
 
 #include <cstdio>
-#include <cstdlib>
-#include <new>
-
-namespace gamecrt {
-
-void* operator_new(std::size_t size) { return ::operator new(size ? size : 1); }
-void operator_delete(void* p) { ::operator delete(p); }
-void* malloc(std::size_t size) { return std::malloc(size); }
-void free(void* p) { std::free(p); }
-
-} // namespace gamecrt
 
 namespace ei::vectors::crt {
 

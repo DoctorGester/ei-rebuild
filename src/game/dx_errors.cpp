@@ -198,18 +198,16 @@ constexpr std::size_t kBuffer = 0x400;
 // The message: an operator new copy of `text`.
 char* CopyMessage(const char* text) {
     std::size_t size = std::strlen(text) + 1;
-    auto* message = gamecrt::operator_new_array<char>(size);
+    auto* message = new char[size];
     std::memcpy(message, text, size);
     return message;
 }
 
 } // namespace
 
-void* CGameException::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CGameException::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 CGameException::~CGameException() {
-    if (message) gamecrt::operator_delete(message);
+    if (message) delete[] message;
 }
 
 CDXException::CDXException(const char* format, va_list args) {

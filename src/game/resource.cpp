@@ -66,8 +66,8 @@ CMappedResource::~CMappedResource() {
         handle_ = INVALID_HANDLE_VALUE;
     }
     if (!image_) {
-        if (entries_) gamecrt::operator_delete(entries_);
-        if (!image_ && names_) gamecrt::operator_delete(names_);
+        if (entries_) delete[] entries_;
+        if (!image_ && names_) delete[] names_;
     }
     entries_ = nullptr;
     names_ = nullptr;
@@ -99,8 +99,8 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
             return 0;
         }
         unsigned tableSize = header_.count * sizeof(ResEntry);
-        entries_ = gamecrt::operator_new_array<ResEntry>(header_.count);
-        names_ = gamecrt::operator_new_array<char>(header_.namesSize);
+        entries_ = new ResEntry[header_.count];
+        names_ = new char[header_.namesSize];
         if (ReadAt(handle_, header_.tableOffset, entries_, tableSize) &&
             ReadAt(handle_, header_.tableOffset + tableSize, names_, header_.namesSize))
             return 1;
@@ -133,8 +133,8 @@ void CMappedResource::CloseResource() {
     }
     // The table and names were read into memory by OpenResource unless the archive is an image.
     if (!image_) {
-        if (entries_) gamecrt::operator_delete(entries_);
-        if (!image_ && names_) gamecrt::operator_delete(names_);
+        if (entries_) delete[] entries_;
+        if (!image_ && names_) delete[] names_;
     }
     entries_ = nullptr;
     names_ = nullptr;
@@ -169,15 +169,14 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     // An archive image in memory hands out pointers into the image (size is not reported).
     if (image_) return image_ + entry.offset;
 
-    auto* file = gamecrt::operator_new_as<LoadedFile>();
-    std::construct_at(&file->name);
+    auto* file = new LoadedFile;
     {
         std::string requested(name);
         file->name.assign(requested.data(), requested.data() + requested.size());
     }
     file->refCount = 1;
     file->size = entry.size;
-    file->data = gamecrt::operator_new(file->size);
+    file->data = ::operator new(file->size);
     file->offset = entry.offset;
 
     if (ReadAt(handle_, file->offset, file->data, file->size)) {
@@ -191,8 +190,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     }
 
     // Read failed. file->data leaks here (kept).
-    std::destroy_at(&file->name);
-    gamecrt::operator_delete(file);
+    delete file;
     return nullptr;
 }
 
@@ -219,20 +217,16 @@ bool CMappedResource::CloseFile(void* data) {
 
     filesByData_.erase(byData);
     filesByName_.erase(file->name);
-    gamecrt::operator_delete(file->data);
-    std::destroy_at(&file->name);
-    gamecrt::operator_delete(file);
+    ::operator delete(file->data);
+    delete file;
     return true;
 }
 
 void CMappedResource::FreeAllFiles() {
     if (image_) return;
     for (auto& [data, file] : filesByData_) {
-        gamecrt::operator_delete(file->data);
-        if (file) {
-            std::destroy_at(&file->name);
-            gamecrt::operator_delete(file);
-        }
+        ::operator delete(file->data);
+        delete file;
     }
     filesByData_.clear();
     filesByName_.clear();

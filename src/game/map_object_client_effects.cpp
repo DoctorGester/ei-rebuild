@@ -210,7 +210,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     MapEffect* wanted = nullptr;
     int wantedCount = 0;
     if (std::ssize(mapObject->effects) > 0) {
-        wanted = gamecrt::operator_new_array<MapEffect>(std::ssize(mapObject->effects));
+        wanted = new MapEffect[std::ssize(mapObject->effects)];
         for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
@@ -317,7 +317,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         --i;
     }
 
-    if (wanted) gamecrt::operator_delete(wanted);
+    if (wanted) delete[] wanted;
 }
 
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {

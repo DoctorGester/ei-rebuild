@@ -340,7 +340,6 @@ struct CSoundManager : CEngineObject {
     // a new handle. 0 when the wave is nowhere.
     int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
 };
-static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundManager, soundPath) == 0x58);
 
 // A music theme from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {

@@ -150,7 +150,7 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
         if (g_clientFailures++ < 5)
             ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
                     pixelFormat[kFormatFlags], pixelFormat[kBits]);
-        CDXSurface::operator delete(holder);   // not counted in yet: no destructor
+        ::operator delete(holder);   // not counted in yet: no destructor
         return nullptr;
     }
     FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));

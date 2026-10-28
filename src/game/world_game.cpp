@@ -932,9 +932,9 @@ struct EntryPicks {
     const ZoneEntry** items = nullptr;
     int count = 0;
     explicit EntryPicks(int capacity) {
-        items = gamecrt::operator_new_array<const ZoneEntry*>(static_cast<std::size_t>(capacity > 0 ? capacity : 1));
+        items = new const ZoneEntry*[static_cast<std::size_t>(capacity > 0 ? capacity : 1)];
     }
-    ~EntryPicks() { gamecrt::operator_delete(items); }
+    ~EntryPicks() { delete[] items; }
     EntryPicks(const EntryPicks&) = delete;
     EntryPicks& operator=(const EntryPicks&) = delete;
     void RemoveAt(int i) {

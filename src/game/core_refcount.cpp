@@ -2,8 +2,6 @@
 
 #include "lib/crt.h"
 
-void* CRefCounted::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CRefCounted::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 namespace {
 // The release inlined at the call sites (delete calls slot 0 with 1, after the same null test).

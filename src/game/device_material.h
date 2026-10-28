@@ -43,8 +43,6 @@ public:
         if (--refCount == 0) delete this;
     }
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     CDeviceMaterial(const CDeviceMaterial&) = delete;
     CDeviceMaterial& operator=(const CDeviceMaterial&) = delete;

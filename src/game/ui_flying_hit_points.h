@@ -23,10 +23,12 @@ static_assert(sizeof(FlyingHitPoint) == 0x10);
 
 class CFlyingHitPoints {
 public:
-    // Constructor: no object, an empty list. Returns this.
-    CFlyingHitPoints* Construct();
-    // Destructor: the object released, the list's nodes and sentinel freed.
-    void Destruct();
+    // No texture, an empty list.
+    CFlyingHitPoints();
+    // The texture released, the list's nodes and sentinel freed.
+    ~CFlyingHitPoints();
+    CFlyingHitPoints(const CFlyingHitPoints&) = delete;
+    CFlyingHitPoints& operator=(const CFlyingHitPoints&) = delete;
     // Appends a number for `target` (nonzero) and `amount` (not negative),
     // starting now, or 0.5 s from now with flag 8; nothing otherwise.
     void Add(int target, int amount, std::uint32_t flags);

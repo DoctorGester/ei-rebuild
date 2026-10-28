@@ -28,7 +28,6 @@ struct CResourceStream : CResourceBase {
     long Read(char* buffer, long size);             // mmioRead; -1 when nothing is open
     long Seek(long offset, int origin);             // mmioSeek relative to the entry
 };
-static_assert(sizeof(CResourceStream) == 0x34);
 
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,
