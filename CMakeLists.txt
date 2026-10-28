@@ -147,8 +147,8 @@ target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
 
-# The standalone host (docs/notes/standalone.md section 2): an ordinary exe (S18k: no fixed base, no read of game.exe)
-# that reserves what of game.exe's range is free (the guard) and runs ei_hook.dll's code for it.
+# The standalone host (docs/notes/standalone.md section 2): an ordinary exe (S18k: ASLR as any exe, no read of game.exe)
+# that runs ei_hook.dll's code for it.
 # The host's one resource is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used.
 add_executable(ei_standalone src/standalone/host.cpp src/standalone/host.rc)
 target_include_directories(ei_standalone PRIVATE src)
@@ -156,10 +156,6 @@ if(EI_ASAN)
     # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
     target_link_options(ei_standalone PRIVATE /LARGEADDRESSAWARE)
 endif()
-# Temporary (user 2026-10-21): a fixed preferred base above game.exe's range, so ASLR never loads the host inside
-# 0x400000-0x7D7000 (one build landed at 004E0000, leaving part of the guard unreserved). Relocations stay
-# (/FIXED:NO), so a taken base still loads elsewhere.
-target_link_options(ei_standalone PRIVATE /DYNAMICBASE:NO /FIXED:NO /BASE:0x01000000)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
 # the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.

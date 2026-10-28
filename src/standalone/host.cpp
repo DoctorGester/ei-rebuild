@@ -1,11 +1,8 @@
-// ei_standalone: runs the rebuilt game without game.exe; first it reserves the free part of game.exe's range
-// with no access (the guard). See docs/notes/standalone.md, "The image's source files".
+// ei_standalone: runs the rebuilt game without game.exe. See docs/notes/standalone.md, "The image's source files".
 // usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
 //   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
 //   follows "--" is the game's command line, as typed (WinMain's, and GetCommandLineA's after the exe).
-
-#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -15,59 +12,6 @@
 #include <string>
 
 namespace {
-
-// game.exe's range in its own process and its parts: the headers' page, .text, .rdata and .data (the moved range),
-// .rsrc.
-using ei::kImageBegin;
-using ei::kImageEnd;
-constexpr std::uintptr_t kCodeBegin = kImageBegin + 0x1000;
-
-// Reserves, with no access, every free part of game.exe's range (each from its first allocation granule: the
-// rest of a granule after another allocation cannot be allocated anyway, and is free memory, which faults too).
-// Returns the bytes of the range that were taken already (by the loader, before main) or could not be reserved.
-std::uint32_t ReserveGameRange() {
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    const std::uintptr_t granule = info.dwAllocationGranularity;
-    std::uint32_t taken = 0;
-    for (std::uintptr_t a = kImageBegin; a < kImageEnd;) {
-        MEMORY_BASIC_INFORMATION mbi;
-        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) break;
-        const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
-        const std::uintptr_t to = end < kImageEnd ? end : kImageEnd;
-        if (mbi.State == MEM_FREE) {
-            const std::uintptr_t from = (a + granule - 1) & ~(granule - 1);
-            if (from < to && !VirtualAlloc(reinterpret_cast<void*>(from), to - from, MEM_RESERVE, PAGE_NOACCESS))
-                taken += static_cast<std::uint32_t>(to - from);
-        } else {
-            taken += static_cast<std::uint32_t>(to - a);
-        }
-        a = end;
-    }
-    return taken;
-}
-
-// An access to game.exe's range before ei_hook.dll's own reports are in place (its static constructors run at
-// LoadLibrary), or to a part they leave to the host (the headers, .rsrc): named on stderr (ei_launch's run notes)
-// and the process ends, never silently. ei_hook.dll's handlers, added later at the front, report the code
-// section and the data themselves.
-LONG CALLBACK OnGameRange(EXCEPTION_POINTERS* e) {
-    const EXCEPTION_RECORD* r = e->ExceptionRecord;
-    if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
-    const std::uintptr_t data = r->ExceptionInformation[1];
-    if (data - kImageBegin >= kImageEnd - kImageBegin) return EXCEPTION_CONTINUE_SEARCH;
-    const char* part = data < kCodeBegin ? "headers" : data < ei::kMovedBegin ? "code" : data < ei::kMovedEnd ? "data" : ".rsrc";
-    if (r->ExceptionInformation[0] == 8 || reinterpret_cast<std::uintptr_t>(r->ExceptionAddress) == data)
-        std::fprintf(stderr, "ei_standalone: no code at %08X before ei_hook.dll's missing-code report, [esp] %08X\n",
-                     static_cast<unsigned>(data), static_cast<unsigned>(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp)));
-    else
-        std::fprintf(stderr, "ei_standalone: %s of game.exe's %s at %08X by %08X: the image has nothing of game.exe there\n",
-                     r->ExceptionInformation[0] == 1 ? "write" : "read", part, static_cast<unsigned>(data),
-                     static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(r->ExceptionAddress)));
-    std::fflush(stderr);
-    TerminateProcess(GetCurrentProcess(), 3);
-    return EXCEPTION_CONTINUE_SEARCH;
-}
 
 int Fail(const char* what) {
     std::fprintf(stderr, "ei_standalone: %s (error %lu)\n", what, GetLastError());
@@ -100,12 +44,8 @@ std::string GameArguments() {
 
 // Marks this process as the standalone image for ei_hook.dll (ei::Standalone): game.exe exports nothing.
 extern "C" __declspec(dllexport) int EiStandaloneHost = 1;
-// The bytes of game.exe's range already taken when main started (or not reservable): ei_hook.dll's guard log.
-extern "C" __declspec(dllexport) std::uint32_t EiStandaloneRangeTaken = 0;
 
 int main(int argc, char** argv) {
-    EiStandaloneRangeTaken = ReserveGameRange();
-    AddVectoredExceptionHandler(1, OnGameRange);
     // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on a missing-code report
     // (TerminateProcess) loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);

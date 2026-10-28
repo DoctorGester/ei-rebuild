@@ -105,8 +105,8 @@ STANDALONE = {
                                   r'|RegQueryValueExA|RegSetValueExA|GetModuleFileNameA|SetWindowTextA|MessageBoxA'
                                   r'|TextOutA|DrawTextA|ExtTextOutA|GetTextExtentPoint32A|GetKeyNameTextA)\b'),
 }
-# Standalone readiness: what ties the image to game.exe at run time (S18k): the host linked at a fixed base with
-# game.exe's range in its own image, and reads of game.exe's file by the host and by ei_hook.dll in the image.
+# Standalone readiness: what ties the image to game.exe at run time (S18k): game.exe's range in the host's
+# image, and reads of game.exe's file by the host and by ei_hook.dll in the image.
 IMAGE_TIES = [
     ('CMakeLists.txt', re.compile(r'ei_standalone\s+PRIVATE[^\n]*/FIXED')),       # the host at a fixed base
     ('src/standalone/host.cpp', re.compile(r'\bg_reserve\b')),                    # game.exe's range in the host
