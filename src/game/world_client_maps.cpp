@@ -647,16 +647,10 @@ void DropAndDelete(T*& slot) {
 
 void CWorldClient::Destroy() {
     TheCamera()->SetTarget(nullptr);
-    if (CFlyingHitPoints* p = numbers_) {
-        p->Destruct();
-        gamecrt::operator_delete(p);
-        numbers_ = nullptr;
-    }
-    if (CSky* p = skyDome_) {
-        p->Destruct();
-        gamecrt::operator_delete(p);
-        skyDome_ = nullptr;
-    }
+    delete numbers_;
+    numbers_ = nullptr;
+    delete skyDome_;
+    skyDome_ = nullptr;
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
     countedA0_.clear();

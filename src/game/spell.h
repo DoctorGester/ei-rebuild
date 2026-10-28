@@ -264,8 +264,8 @@ public:
 // half. Nothing in the game fills them, so only CreateSpellObject with an id whose low half is not 0 reaches
 // them (and then fails).
 struct SpellSequence {
-    // The walk stops at the first entry without a container.
-    void Destruct();
+    // The containers released; the walk stops at the first entry without one.
+    ~SpellSequence();
 
     lib::HashMap<std::uint32_t, CSpellContainer*> containers;
     std::uint32_t maxLow;

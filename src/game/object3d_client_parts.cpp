@@ -79,22 +79,13 @@ int PartGroup::ReleaseParts() {
     return 1;
 }
 
-void TextureParts::Destruct() {
-    for (int i = 0; i < std::ssize(groups); ++i) {
-        PartGroup* group = groups[i];
+TextureParts::~TextureParts() {
+    for (PartGroup* group : groups) {
         if (!group) continue;
         group->ReleaseParts();
-        if (group->material) {
-            group->material->Release();
-            group->material = nullptr;
-        }
-        lib::FreeStorage(group->parts);   // freed by ReleaseParts already
-        gamecrt::operator_delete(group);
-        groups[i] = nullptr;
+        if (group->material) group->material->Release();
+        delete group;
     }
-    groups.clear();
-    texture = nullptr;
-    lib::FreeStorage(groups);
 }
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
@@ -138,10 +129,7 @@ void CObject3DClientSpecific::Destroy() {
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     woundsMaterial.Assign(nullptr);
     for (int k = 0; k < 2; ++k) {
-        TextureParts* set = partSets[k];
-        if (!set) continue;
-        set->Destruct();
-        gamecrt::operator_delete(set);
+        delete partSets[k];
     }
     partSets[0] = nullptr;
     partSets[1] = nullptr;

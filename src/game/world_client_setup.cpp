@@ -98,8 +98,7 @@ int CWorldClient::LoadLights(const char* file) {
 void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     TextureManager()->SetDevice(device);
     LoadSky();
-    auto* numbers = gamecrt::operator_new_as<CFlyingHitPoints>();
-    numbers_ = numbers ? numbers->Construct() : nullptr;
+    numbers_ = new CFlyingHitPoints();
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         ++texture->refCount_;
@@ -141,8 +140,7 @@ void AssignCounted(T*& slot, T* object) {
 
 void CWorldClient::LoadSky() {
     if (skyDome_) return;
-    auto* sky = gamecrt::operator_new_as<CSky>();
-    skyDome_ = sky ? sky->Construct() : nullptr;
+    skyDome_ = new CSky();
     auto* figures = FigureManager();
     auto* object = figures->CreateObjectAs<CSkyObject>(kSkyFigureClass, kSkyObjectId);
     if (!object) return;

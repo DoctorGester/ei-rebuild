@@ -529,6 +529,12 @@ struct LinkArchive {
 // missing), and the animations read from the last by name. CFigureManager::models_ and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
+    // An empty animation map, then the three archives as new CMMIOResources.
+    FigureModel();
+    // Every cached animation deleted, the map cleared, each archive closed (CloseResource) and deleted.
+    ~FigureModel();
+    FigureModel(const FigureModel&) = delete;
+    FigureModel& operator=(const FigureModel&) = delete;
     CMappedResource* FindAnimation(const std::string* name);
     using AnimationMap = std::unordered_map<std::string, CMappedResource*>;
 
@@ -541,8 +547,6 @@ struct FigureModel {
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
     void Open(const void* mod, const void* bon, const void* anm);
 };
-FigureModel* ConstructFigureModel(FigureModel* model);
-void DestroyFigureModel(FigureModel* model);
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made

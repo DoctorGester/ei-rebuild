@@ -788,8 +788,8 @@ kinds given.
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
-      (nothing called the handler it held, C35e); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
-      `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
+      (nothing called the handler it held, C35e); `_afxNewHandler` 00796E14 went
+      with MFC's new handler loop (C35g: our allocations are the host's `new`). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
       function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
       (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
@@ -1714,11 +1714,10 @@ the `--no-hooks` suite) keeps the registry.
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
   repeatable heap, jitter, fill and trace (tests/verify/harness_heap.h) act on game.exe only now: the image's blocks
   are the host heap's (its low-fragmentation front end), so a golden of the image already holds under other
-  addresses in every run. operator new runs MFC's handler loop
-  (`_afxNewHandler` 00796E14, initial value `AfxNewHandler` 0070058F: throws the static CMemoryException); the
-  STLport node allocator 00405950 / 00404D70 with refill 004060E0 and chunk_alloc 00406B70 is ported exactly (the
-  pool is the exe's data). Nothing frees across heaps: our code takes game memory only through libcrt; the host CRT
-  keeps its own (std containers, FILE buffers).
+  addresses in every run. Our objects are the host's `new` / `delete` (C35g): MFC's handler loop
+  (`_afxNewHandler` 00796E14, initial value `AfxNewHandler` 0070058F, which threw the static CMemoryException)
+  is gone, so an exhausted heap throws std::bad_alloc where the game threw a CMemoryException.
+  The STLport node allocator went with the last stlp container (C14t).
 - **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
   `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
   table before the host's terminators.

@@ -74,9 +74,12 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `IsaacRandom::SetSeedHook`; the traced draws: `IsaacRandom::SetDrawObserver`,
    `gamecrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
    recorders call game.exe's code by address (`tests/verify/harness_original.h`).
-6. **Memory and CRT:** allocate and free game objects with `gamecrt::operator_new` / `operator_delete`
-   (src/lib/crt.h; other code frees them there), containers are `std::` (the last `mfc::` ones until C14
-   finishes). Call the CRT functions whose game behaviour differs from the host's through
+6. **Memory and CRT:** `new T(...)` / `delete p` (the host's heap): a class built by hand on a raw block
+   gets its constructor and destructor; plain arrays are `new T[n]` / `delete[]`, a block of a byte count
+   other than its type's (a header with what follows it) `::operator new(bytes)` / `::operator delete`. An
+   engine object whose constructor leaves fields the game reads is `new (kZeroed) T(...)` (engine_object.h).
+   `gamecrt::operator_new` / `operator_delete` are left only for the script's MFC records. Containers are
+   `std::` (the last `mfc::` ones until C14 finishes). Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
@@ -154,9 +157,7 @@ does not need a second pass:
   no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
   names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
-  raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
-  `operator_new_array<T>(count)`, `operator_new_bytes_as<T>(bytes)` (a block shorter or longer
-  than T: a figure strip, a CString's data) (`src/lib/crt.h`), not a `static_cast` at each allocation (tools/progress.py counts the
+  objects come from `new T` (rule 6), not a `static_cast` of a raw block (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its

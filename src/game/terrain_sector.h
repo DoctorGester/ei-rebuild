@@ -171,8 +171,10 @@ struct SectorData {
     std::uint32_t Ensure(std::uint32_t wanted, Terrain* owner);
 
     // Also sizes the shared projection buffers (positions, projected, outcodes) for 0x330 vertices.
-    SectorData* Construct();
-    void DestructBody();
+    SectorData();
+    ~SectorData();
+    SectorData(const SectorData&) = delete;
+    SectorData& operator=(const SectorData&) = delete;
 
     // The quarters not culled, at `detail`, ground then water: each quarter's mode becomes its clip result
     // (2 for -1); a crossing quarter's records get their outcodes, the others 0. Returns clipMode.

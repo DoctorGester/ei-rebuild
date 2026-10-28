@@ -62,9 +62,11 @@ public:
 // side), a frame's size, the frame shown, the hot spot and the mask.
 struct CursorImage {
     // The image of the picture "<name>.mmp" (from the texture manager; loaded into a holder with `flag`), the
-    // hot spot given in the 32-pixel layout. Returns this.
-    CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
-    void Destroy();
+    // hot spot given in the 32-pixel layout.
+    CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag);
+    ~CursorImage();
+    CursorImage(const CursorImage&) = delete;
+    CursorImage& operator=(const CursorImage&) = delete;
 
     CDXSurface* holder;
     LONG width;                      // a frame's width

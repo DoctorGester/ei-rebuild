@@ -60,7 +60,7 @@ struct CScreenFade {
     // Starts a fade over `ms` milliseconds, from alpha 0 (ms > 0) or 255.
     void Start(int ms);
     // Alpha 0, not fading, no letterbox; the rate and the clock stay unwritten.
-    CScreenFade* Construct();
+    CScreenFade();
 
     float rate_;                     // alpha per millisecond
     float alpha_;                    // 0..255
@@ -324,8 +324,12 @@ public:
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(int x, int y);
-    // The destructor body (fields left as they are).
-    void ReleaseContents();
+    // Enabled when its rectangle is set; the bounds are left uninitialised, as in the original.
+    explicit CUiRegion(CInterface3D* ui)
+        : interface_(ui), rectOnly_(false), enabled_(false), offsetX_(0), offsetY_(0), tip_(nullptr) {}
+    ~CUiRegion();
+    CUiRegion(const CUiRegion&) = delete;
+    CUiRegion& operator=(const CUiRegion&) = delete;
     void SetTipText(const char* text);
     // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
     // such text) and (a, b); id 0 gives an empty tooltip with (1, 0).
@@ -436,7 +440,11 @@ inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 class CUiModel {
 public:
     void SetScreenPosition(float x, float y, float depth);
-    void ReleaseObject();
+    CUiModel() = default;
+    // The object released.
+    ~CUiModel();
+    CUiModel(const CUiModel&) = delete;
+    CUiModel& operator=(const CUiModel&) = delete;
     // Draws the object in `pass` in white at the interface's animation clock (timeGetTime / 67), with
     // object flag 0x800 set while it draws.
     void Draw(CSceneRenderer* pass);
@@ -452,9 +460,8 @@ public:
     void Stop();
     CObject3D* Figure() const { return object_; }
 
-    CObject3D* object_;
+    CObject3D* object_ = nullptr;
 };
-static_assert(sizeof(CUiModel) == 4);
 
 // An input side: a window's own (CUiWindow's second base) or a separate handler a container keeps in its
 // list (e.g. the battle camera's keys, CCameraInput). The interface hands each event to the top window's

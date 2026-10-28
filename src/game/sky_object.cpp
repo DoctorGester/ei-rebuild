@@ -100,13 +100,12 @@ constexpr Vector3 kSkyDrawB = /*007AA8A0*/ {};               // and the origin
 
 } // namespace
 
-CSky* CSky::Construct() {
+CSky::CSky() {
     object = nullptr;
     material = nullptr;
     texture = nullptr;
     turns = 1;
     texture.Load(kSkyTextureKind, kSkyTextureName);
-    return this;
 }
 
 void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
@@ -142,7 +141,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     }
 }
 
-void CSky::Destruct() {
+CSky::~CSky() {
     if (texture) texture->Release();
     if (material) material->Release();
     if (object) object->Release();

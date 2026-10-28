@@ -284,43 +284,25 @@ void CUiSurface::Freeze(int frozen, int restore) {
 }
 
 CUiRegion* CUiWindow::AddRegion() {
-    auto* region = gamecrt::operator_new_as<CUiRegion>();
-    if (region) {
-        // The bounds are left uninitialised, as in the original.
-        region->interface_ = interface_;
-        std::construct_at(&region->points_);
-        region->tip_ = nullptr;
-        region->enabled_ = false;
-        region->rectOnly_ = false;
-        region->offsetX_ = 0;
-        region->offsetY_ = 0;
-    }
+    auto* region = new CUiRegion(interface_);
     regions_.push_back(region);
     return region;
 }
 
 void CUiWindow::RemoveRegionAt(int index) {
-    if (CUiRegion* region = regions_[index]) {
-        region->ReleaseContents();
-        gamecrt::operator_delete(region);
-    }
+    delete regions_[index];
     regions_.erase(regions_.begin() + index);
 }
 
 void CUiWindow::ClearRegions() {
     for (int i = 0; i < std::ssize(regions_); ++i) {
-        if (CUiRegion* region = regions_[i]) {
-            region->ReleaseContents();
-            gamecrt::operator_delete(region);
-        }
+        delete regions_[i];
     }
     regions_.clear();
 }
 
 CUiModel* CUiWindow::AddModel() {
-    auto* model = gamecrt::operator_new_as<CUiModel>();
-    if (!model) return nullptr;
-    model->object_ = nullptr;   // the constructor
+    auto* model = new CUiModel();
     models_.push_back(model);
     return model;
 }
@@ -460,19 +442,13 @@ CUiWindow::~CUiWindow() {
     }
     surfaces_.clear();
     for (int i = 0; i < std::ssize(regions_); ++i) {
-        if (CUiRegion* region = regions_[i]) {
-            region->ReleaseContents();
-            gamecrt::operator_delete(region);
-        }
+        delete regions_[i];
     }
     regions_.clear();
     for (int i = 0; i < std::ssize(objects_); ++i) objects_[i]->Release();
     objects_.clear();
     for (int i = 0; i < std::ssize(models_); ++i) {
-        if (CUiModel* model = models_[i]) {
-            model->ReleaseObject();
-            gamecrt::operator_delete(model);
-        }
+        delete models_[i];
     }
     models_.clear();
     flags_ = 0;

@@ -242,8 +242,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
         files[i] = FindInArchives(archives_, path);
     }
     if (!files[0]) return nullptr;
-    FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
-    auto* set = memory ? ConstructFigureModel(memory) : nullptr;
+    auto* set = new FigureModel();
     figureSets_[*name] = set;
     // The map is indexed a second time (resize for one more element included).
     figureSets_[*name]->Open(files[0], files[1], files[2]);
@@ -257,10 +256,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
         if (archive.resource) delete archive.resource;
     }
     for (auto& [name, set] : figureSets_) {
-        if (set) {
-            DestroyFigureModel(set);
-            gamecrt::operator_delete(set);
-        }
+        delete set;
     }
     if (CTextureDevice* device = renderer_) {
         renderer_ = nullptr;

@@ -68,12 +68,8 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
 }
 
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
-    CursorImage* image = nullptr;
-    if (auto* memory = gamecrt::operator_new_as<CursorImage>()) {
-        std::string file = std::string(name) + ".mmp";
-        image = memory->Construct(file.c_str(), hotX, hotY, flag);
-    }
-    images_.push_back(image);
+    const std::string file = std::string(name) + ".mmp";
+    images_.push_back(new CursorImage(file.c_str(), hotX, hotY, flag));
 }
 
 // --- The cursor's life cycle and state ---------------------------------------
@@ -94,7 +90,7 @@ void ReleaseHolder(CDXSurface*& slot) {
 
 } // namespace
 
-void CursorImage::Destroy() {
+CursorImage::~CursorImage() {
     delete[] saved;
     if (holder) holder->Release();
 }
@@ -202,10 +198,7 @@ void CCursor::Shutdown() {
     stopped_ = nullptr;
     for (int i = 0; i < std::ssize(images_); ++i) {
         ReleaseHolder(images_[i]->holder);
-        if (CursorImage* image = images_[i]) {
-            image->Destroy();
-            gamecrt::operator_delete(image);
-        }
+        delete images_[i];
     }
     images_.clear();
     ReleaseHolder(under_);

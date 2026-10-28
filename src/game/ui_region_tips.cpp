@@ -54,7 +54,4 @@ void CUiRegion::SetTipText(const char* text) {
 
 // --- The destructor body --------------------------------------------------------------
 
-void CUiRegion::ReleaseContents() {
-    delete tip_;
-    lib::FreeStorage(points_);
-}
+CUiRegion::~CUiRegion() { delete tip_; }

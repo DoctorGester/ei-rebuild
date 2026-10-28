@@ -29,15 +29,10 @@ constexpr std::uint32_t kDelayed = 8;
 constexpr std::uint32_t kDelay = 500;   // ms
 } // namespace
 
-CFlyingHitPoints* CFlyingHitPoints::Construct() {
-    std::construct_at(&points_);
-    texture_ = nullptr;
-    return this;
-}
+CFlyingHitPoints::CFlyingHitPoints() : texture_(nullptr) {}
 
-void CFlyingHitPoints::Destruct() {
+CFlyingHitPoints::~CFlyingHitPoints() {
     if (texture_) texture_->Release();
-    std::destroy_at(&points_);
 }
 
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {

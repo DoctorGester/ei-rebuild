@@ -80,8 +80,7 @@ void CInterface3D::Shutdown() {
         root_ = nullptr;
     }
     if (console_) {
-        console_->DestroyBody();
-        gamecrt::operator_delete(console_);
+        delete console_;
         console_ = nullptr;
     }
     keybind::SaveKeyBindings();
@@ -89,8 +88,7 @@ void CInterface3D::Shutdown() {
         delete font;
         font = nullptr;
     }
-    // The fade's destructor body is empty; the pointer is not cleared.
-    if (fade_) gamecrt::operator_delete(fade_);
+    delete fade_;   // (the pointer is not cleared)
 }
 
 void CInterface3D::DestroyBody() {
@@ -101,11 +99,9 @@ void CInterface3D::DestroyBody() {
     std::destroy_at(&stack_);
 }
 
-void console::ConsoleWindow::DestroyBody() {
+console::ConsoleWindow::~ConsoleWindow() {
     DeleteSurface(surface_);
     surface_ = nullptr;
     delete font_;
     font_ = nullptr;
-    // The members in reverse order: the lines, the input text, the command history.
-    this->~ConsoleWindow();
 }

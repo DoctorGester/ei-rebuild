@@ -37,11 +37,6 @@ int SectorBound(float value, int count) {
 // How many frames an unused sector stays cached before a load may reuse or free it.
 constexpr int kSectorAge = 240;
 
-void DeleteSector(SectorData* sector) {
-    sector->DestructBody();
-    gamecrt::operator_delete(sector);
-}
-
 } // namespace
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
@@ -65,8 +60,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     SectorData* sector;
     SectorData* last = !sectorCache.empty() ? sectorCache.back() : nullptr;
     if (!last || frame - kSectorAge <= last->lastUsed) {
-        auto* memory = gamecrt::operator_new_as<SectorData>();
-        sector = memory ? memory->Construct() : nullptr;
+        sector = new SectorData();
     } else {
         sector = last;
         sectorGrid[sector->sx][sector->sy] = {};
@@ -75,7 +69,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
             SectorData* old = sectorCache.back();
             sectorCache.pop_back();
             sectorGrid[old->sx][old->sy] = {};
-            if (old) DeleteSector(old);
+            delete old;
         }
     }
     if (sector->Load(&archive, sx, sy, pages, perPage, textF8.c_str(), this)) {
@@ -85,7 +79,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
         sector->Ensure(wanted, this);
         return (sector->built & wanted) ? sector : nullptr;
     }
-    if (sector) DeleteSector(sector);
+    delete sector;
     return nullptr;
 }
 
@@ -155,7 +149,7 @@ void Terrain::ClearMap() {
     while (!sectorCache.empty()) {
         SectorData* sector = sectorCache.front();
         sectorCache.pop_front();
-        if (sector) DeleteSector(sector);
+        delete sector;
     }
     for (int i = 0; i < std::ssize(pageTextures); ++i) pageTextures[i]->Release();
     pageTextures.clear();

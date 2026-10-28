@@ -52,16 +52,17 @@ static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
 
 // The world view's sky.
 struct CSky {
-    // The constructor (returns this). No object yet; the texture holder loads "sky00" (kind 0x3D); turning.
-    CSky* Construct();
+    // No object yet; the texture holder loads "sky00" (kind 0x3D); turning.
+    CSky();
+    // The texture, the material and the object released, in that order, each when set.
+    ~CSky();
+    CSky(const CSky&) = delete;
+    CSky& operator=(const CSky&) = delete;
     // Unless there is no object: it is placed at the eye lowered by 16, turned
     // about +z by the world time / 3000 when `turns` is set, its world matrix built from both and
     // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
     // drawn (renderer slot 14 with alpha 0xFF), and both stacks popped (when not empty).
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
-    // The compiler's destructor (from CWorldClient::Destroy): the texture, the
-    // material and the object released, in that order, each when set.
-    void Destruct();
 
     CSkyObject* object;   // null until the zone's sky is loaded
     CEngineObject* material;   // counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed

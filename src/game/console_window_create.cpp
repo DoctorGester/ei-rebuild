@@ -17,8 +17,7 @@ constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 } // namespace
 
-ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
-    new (this) ConsoleWindow;   // commands_, input_ (empty), lines_
+ConsoleWindow::ConsoleWindow(CInterface3D* screen) {
     screen_ = screen;
     surface_ = nullptr;
     commandIndex_ = kNoCommand;
@@ -40,7 +39,6 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     history_ = kHistory;
     DropOldLines(kHistory);
     DrawLines();
-    return this;
 }
 
 } // namespace console
